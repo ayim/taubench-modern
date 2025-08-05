@@ -365,6 +365,65 @@ new-empty-env:  ## Create a new empty .env file if one doesn't exist
 	fi
 
 # --------------------------------------------------------------------
+# AWS Deployment
+# --------------------------------------------------------------------
+
+aws:  ## AWS operations: make aws deploy|status|destroy|logs|troubleshoot
+	@if [ "$(filter-out $@,$(MAKECMDGOALS))" = "deploy" ]; then \
+		echo "Deploying to AWS Fargate + RDS..."; \
+		./aws-deployment/deploy.sh; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "status" ]; then \
+		echo "Checking AWS deployment status..."; \
+		cd aws-deployment/terraform && terraform output; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "destroy" ]; then \
+		echo "Destroying AWS resources..."; \
+		./aws-deployment/destroy.sh; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "troubleshoot" ]; then \
+		echo "Running AWS deployment troubleshooting..."; \
+		./aws-deployment/troubleshoot.sh; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "logs" ]; then \
+		echo "Showing AWS ECS logs with task status..."; \
+		cd aws-deployment/terraform && \
+		PROJECT_NAME=$$(terraform output -raw ecs_cluster_name 2>/dev/null || echo "agent-platform") && \
+		AWS_REGION=$$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1") && \
+		echo "📊 Current ECS Task Status:" && \
+		aws ecs describe-services --cluster $$PROJECT_NAME --services $$PROJECT_NAME --region $$AWS_REGION --query 'services[0].{Running:runningCount,Pending:pendingCount,Desired:desiredCount}' --output table 2>/dev/null || true && \
+		echo "" && \
+		echo "📋 Live Application Logs:" && \
+		aws logs tail /ecs/$$PROJECT_NAME --follow --region $$AWS_REGION; \
+	else \
+		echo "Usage: make aws [deploy|status|destroy|logs|troubleshoot]"; \
+		echo ""; \
+		echo "🚀 Agent Platform AWS Deployment"; \
+		echo "   Fargate + RDS deployment with Terraform"; \
+		echo ""; \
+		echo "Available commands:"; \
+		echo "  make aws deploy      - Deploy to AWS Fargate + RDS (builds image, creates infrastructure)"; \
+		echo "  make aws status      - Show deployment status and URLs"; \
+		echo "  make aws destroy     - Safely destroy all AWS resources"; \
+		echo "  make aws logs        - Follow ECS container logs with task status"; \
+		echo "  make aws troubleshoot - Diagnose deployment issues and show solutions"; \
+		echo ""; \
+		echo "Prerequisites:"; \
+		echo "  • AWS CLI configured (aws configure)"; \
+		echo "  • Terraform installed"; \
+		echo "  • Docker running"; \
+		echo ""; \
+		echo "AWS Profile Usage:"; \
+		echo "  • Default profile: make aws deploy"; \
+		echo "  • Specific profile: AWS_PROFILE=production make aws deploy"; \
+		echo "  • Check current: aws sts get-caller-identity"; \
+		echo ""; \
+		echo "Configuration:"; \
+		echo "  • Edit aws-deployment/terraform/terraform.tfvars for custom settings"; \
+		echo "  • Environment variables: AWS_PROFILE, PROJECT_NAME, AWS_REGION"; \
+		echo "  • Build mode: Always local AMD64 (Fargate compatible)"; \
+		echo "  • Default: us-east-1, db.t3.micro, 1 task, local builds"; \
+		echo ""; \
+		echo "Cost: ~$$30-50/month for minimal deployment"; \
+	fi
+
+# --------------------------------------------------------------------
 # GCP Deployment
 # --------------------------------------------------------------------
 
@@ -411,10 +470,10 @@ gcp:  ## GCP operations: make gcp setup|deploy|status|teardown|add-developer|iap
 	fi
 
 # Dummy targets so make doesn't complain about "nothing to be done"
-setup deploy status teardown add-developer iap:
+setup deploy status teardown add-developer iap destroy logs troubleshoot:
 	@:
 
-.PHONY: gcp setup deploy status teardown add-developer iap
+.PHONY: aws gcp setup deploy status teardown add-developer iap destroy logs troubleshoot
 
 # --------------------------------------------------------------------
 # Cleanup

@@ -50,7 +50,7 @@ x-service-workroom: &template-service-workroom
         DEPLOYMENT_TYPE: spar
         META_URL: http://localhost:8001/meta
         NODE_ENV: production
-        PORT: 8001
+        WORKROOM_PORT: 8001
     ports:
         - '8001:8001'
     expose:

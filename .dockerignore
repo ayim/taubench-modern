@@ -60,8 +60,6 @@ test-*/
 # Client SDKs (not needed for server build)
 packages/
 
-# Workroom frontend (separate build)
-workroom/
 
 # CI/CD and deployment configs
 .github/
@@ -104,4 +102,4 @@ coverage.xml
 # Other build outputs
 *.zip
 *.tar.gz
-*.tgz 
+*.tgz

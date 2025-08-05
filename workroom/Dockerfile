@@ -20,14 +20,14 @@ RUN sed -i -e "s/ACE_WORKROOM_VERSION_PLACEHOLDER/${ACE_SERVICE_VERSION}/g" fron
 #region Final
 FROM node:24-alpine
 
-ARG PORT
+ARG WORKROOM_PORT
 
 ENV NODE_ENV=production
 
 ENV AGENT_SERVER_HOST=
 ENV AGENT_SERVER_PORT=
 ENV ACE_SERVICE_VERSION=
-ENV PORT=${PORT}
+ENV WORKROOM_PORT=${WORKROOM_PORT}
 
 WORKDIR /app
 
@@ -39,7 +39,7 @@ COPY --from=build /app/frontend/dist frontend/dist
 COPY --from=build /app/frontend/public frontend/public
 COPY --from=build /app/backend/dist backend/dist
 
-EXPOSE $PORT
+EXPOSE $WORKROOM_PORT
 
 ENTRYPOINT ["node", "./backend/dist/index.js"]
 

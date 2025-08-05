@@ -843,7 +843,7 @@ deploy_workroom() {
     local workroom_env_vars="AGENT_SERVER_URL=$agent_server_url,AGENT_SERVER_HOST=$agent_server_host,DEPLOYMENT_TYPE=spar,NODE_ENV=production"
 
     # Always add JWT authentication for secure service communication on GCP
-    workroom_env_vars="$workroom_env_vars,AUTH_MODE=google,AGENT_SERVER_JWT_PRIVATE_KEY_B64=LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZ2xIaFNPVUFLcTMxMm1zN2QKT0RKMmhqRkRqaGNnaWltSnZ4bVh1bE9BWU51aFJBTkNBQVIyTmkrOGVsbUJ4bzlMOUx6QWlPNXh6MWVvRWR1dApCS0x5R29uSFllR3VqMEtEenVuQ0FkeUpmM1E2YlUvVklza2FKQlQ5aFBHZlNkZ01GaGxJL1RVNQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg=="
+    workroom_env_vars="$workroom_env_vars,AUTH_MODE=google,JWT_PRIVATE_KEY_B64=LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZ2xIaFNPVUFLcTMxMm1zN2QKT0RKMmhqRkRqaGNnaWltSnZ4bVh1bE9BWU51aFJBTkNBQVIyTmkrOGVsbUJ4bzlMOUx6QWlPNXh6MWVvRWR1dApCS0x5R29uSFllR3VqMEtEenVuQ0FkeUpmM1E2YlUvVklza2FKQlQ5aFBHZlNkZ01GaGxJL1RVNQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg=="
 
     if [[ "$ENABLE_IAP" == "true" ]]; then
         echo "🔐 Workroom: IAP authentication + secure JWT communication"

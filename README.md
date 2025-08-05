@@ -250,6 +250,108 @@ You can run a full-stack workroom and agent-server system using `docker` and `do
 2.  Production (everything built for you at startup - "finished product")
 3.  Agent server with forced-auth (docker)
 
+### Single Container Deployment (SPAR)
+
+#### Quick Start
+
+```bash
+# Pull and run both services with minimal configuration
+docker run -p 8000:8000 -p 8001:8001 \
+  -e DEPLOYMENT_TYPE=spar \
+  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
+  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
+  -e AUTH_MODE=none \
+  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
+```
+
+After starting, access:
+
+- **Agent Server API**: http://localhost:8000
+- **Workroom UI**: http://localhost:8001
+
+#### Configuration Examples
+
+**With PostgreSQL Database:**
+
+```bash
+docker run -p 8000:8000 -p 8001:8001 \
+  -e DEPLOYMENT_TYPE=spar \
+  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
+  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
+  -e POSTGRES_HOST=your-db-host.com \
+  -e POSTGRES_USER=myuser \
+  -e POSTGRES_PASSWORD=mypassword \
+  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
+```
+
+**With Agent Server JWT Authentication:**
+
+```bash
+docker run -p 8000:8000 -p 8001:8001 \
+  -e DEPLOYMENT_TYPE=spar \
+  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
+  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
+  -e AUTH_MODE=none \
+  -e AUTH_TYPE=jwt_local \
+  -e JWT_DECODE_KEY_B64=your_base64_jwt_key \
+  -e JWT_ALG=ES256 \
+  -e JWT_AUD=agent_server \
+  -e JWT_ISS=spar \
+  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
+```
+
+**With Snowflake Authentication (Workroom):**
+
+```bash
+docker run -p 8000:8000 -p 8001:8001 \
+  -e DEPLOYMENT_TYPE=spar \
+  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
+  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
+  -e AUTH_MODE=snowflake \
+  -e JWT_PRIVATE_KEY_B64=your_base64_jwt_key \
+  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
+```
+
+**Run Individual Services:**
+
+```bash
+# Workroom only (requires external agent-server)
+docker run -p 8001:8001 \
+  -e DISABLED_SERVICE=agent-server \
+  -e DEPLOYMENT_TYPE=spar \
+  -e AUTH_MODE=none \
+  -e AGENT_SERVER_URL=http://your-agent-server.com \
+  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
+
+# Agent-server only
+docker run -p 8000:8000 \
+  -e DISABLED_SERVICE=workroom \
+  -e DEPLOYMENT_TYPE=spar \
+  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
+  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
+  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
+```
+
+#### Key Environment Variables
+
+| Variable                                | Description                                        | Default        |
+| --------------------------------------- | -------------------------------------------------- | -------------- |
+| `DEPLOYMENT_TYPE`                       | Must be set to `spar`                              | -              |
+| `SEMA4AI_AGENT_SERVER_OTEL_ENABLED`     | Enable telemetry                                   | -              |
+| `SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS` | Enable work items                                  | -              |
+| `AUTH_TYPE`                             | Agent server auth type (`jwt_local`)               | -              |
+| `JWT_DECODE_KEY_B64`                    | JWT decode key (base64, required for JWT)          | -              |
+| `JWT_ALG`                               | JWT algorithm                                      | `ES256`        |
+| `JWT_AUD`                               | JWT audience                                       | `agent_server` |
+| `JWT_ISS`                               | JWT issuer                                         | `spar`         |
+| `AUTH_MODE`                             | Workroom auth mode (`none`, `snowflake`, `google`) | `none`         |
+| `JWT_PRIVATE_KEY_B64`                   | Workroom JWT key (for snowflake/google auth)       | -              |
+| `DISABLED_SERVICE`                      | Disable `agent-server` or `workroom`               | -              |
+| `PORT`                                  | Agent server port                                  | `8000`         |
+| `WORKROOM_PORT`                         | Workroom port                                      | `8001`         |
+
+See the image in ECR: `024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest`
+
 ### Creating agents
 
 _Make sure to at least replace the Open API LLM key `REPLACE_WITH_VALID_KEY` to have a working agent_
