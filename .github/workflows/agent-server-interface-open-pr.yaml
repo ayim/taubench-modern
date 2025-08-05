@@ -144,6 +144,7 @@ jobs:
         id: create-pull-request
         uses: actions/github-script@v7
         with:
+          result-encoding: string
           script: |
             const version = '${{ steps.bump-package-version.outputs.agent-server-version }}';
             const title = `Publish \`agent-server-interface\` v${version}`;
@@ -160,7 +161,7 @@ jobs:
             `.trim();
 
             try {
-              await github.rest.pulls.create({
+              const createPrResult = await github.rest.pulls.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 head: '${{ steps.bump-package-version.outputs.branch-name }}',
@@ -168,7 +169,53 @@ jobs:
                 title,
                 body,
               });
+
+              // Return Pull Request URL
+              return createPrResult.data.html_url;
             } catch (error) {
               console.error(`Failed to open pull request: ${error.message}`);
               process.exit(1);
+            }
+
+      - name: Enable automerge for Pull Request
+        env:
+          PR_URL: ${{ steps.create-pull-request.outputs.result }}
+        run: gh pr merge --auto --squash "${PR_URL}"
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2
+        env:
+          version: ${{ steps.bump-package-version.outputs.version }}
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Agent Server Interface v${{ env.version }} — Pull Request Ready for Review",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Agent Server Interface v${{ env.version }} — Pull Request Ready for Review"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "https://github.com/Sema4AI/agent-platform/pull/588"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "After the PR is *approved*, `agent-server-interface@${{ env.version }}` will be *published* automatically."
+                  }
+                }
+              ]
             }
