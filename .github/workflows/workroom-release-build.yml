@@ -121,10 +121,6 @@ jobs:
           secret-files: |
             "npmrc=./.npmrc"
           build-args: |
-            VITE_DEPLOYMENT_TYPE=spar
-            VITE_DEV_SERVER_PORT=8001
-            VITE_DEV_WORKROOM_TENANT_LIST_URL=/spar-tenants-list
-            VITE_INSTANCE_ID=dev
             ACE_SERVICE_VERSION=${{ steps.build-metadata.outputs.workroom-tag-sanitized }}
             AGENT_SERVER_URL=http://agent-server:8000
             DEPLOYMENT_TYPE=spar

@@ -1,12 +1,14 @@
 x-env-agent-server: &template-env-agent-server
     LOG_LEVEL: DEBUG
     OTEL_COLLECTOR_URL: http://otel-collector:4318
+    OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
     POSTGRES_DB: agents
     POSTGRES_HOST: postgres
     POSTGRES_PASSWORD: agents
     POSTGRES_PORT: 5432
     POSTGRES_USER: agents
     SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
+    SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
 
 x-service-agent-server: &template-service-agent-server
     build:
@@ -42,10 +44,6 @@ x-service-workroom: &template-service-workroom
         args:
             ACE_SERVICE_VERSION: v2-dev-build
             NODE_ENV: production
-            VITE_DEPLOYMENT_TYPE: spar
-            VITE_DEV_SERVER_PORT: 8001
-            VITE_DEV_WORKROOM_TENANT_LIST_URL: /api/tenants-list
-            VITE_INSTANCE_ID: dev
     environment:
         AGENT_SERVER_URL: http://agent-server:8000
         AUTH_MODE: none

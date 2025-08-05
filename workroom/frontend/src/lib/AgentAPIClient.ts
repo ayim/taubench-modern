@@ -62,20 +62,6 @@ export class AgentAPIClient {
       return this.meta;
     }
 
-    if (import.meta.env.MODE === 'development') {
-      console.warn('This should not be invoked in prod!', { deploymentType: import.meta.env.VITE_DEPLOYMENT_TYPE });
-      return {
-        deploymentType: import.meta.env.VITE_DEPLOYMENT_TYPE,
-        realm: import.meta.env.VITE_DEV_OIDC_REALM,
-        clientId: import.meta.env.VITE_DEV_OIDC_CLIENT_ID,
-        enableRefreshTokens: import.meta.env.VITE_DEV_OIDC_ALLOW_REFRESH_TOKENS_WITH_ROTATION,
-        oidcServerDiscoveryURI: import.meta.env.VITE_DEV_OIDC_DISCOVERY_URI,
-        instanceId: import.meta.env.VITE_INSTANCE_ID,
-        workroomTokenExchangeUrl: import.meta.env.VITE_DEV_WORKROOM_TOKEN_EXCHANGE_URL,
-        workroomTenantListUrl: import.meta.env.VITE_DEV_WORKROOM_TENANT_LIST_URL,
-      };
-    }
-
     const url = new URL('/meta', window.location.href).href;
     const response = await fetch(url, {
       method: 'GET',

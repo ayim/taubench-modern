@@ -255,10 +255,6 @@ steps:
         echo "🔨 Building workroom..."
         docker build \
           --secret id=npmrc,src=/workspace/.npmrc \
-          --build-arg VITE_INSTANCE_ID=dev \
-          --build-arg VITE_DEPLOYMENT_TYPE=spar \
-          --build-arg VITE_DEV_WORKROOM_TENANT_LIST_URL=/spar-tenants-list \
-          --build-arg VITE_DEV_SERVER_PORT=8001 \
           --build-arg NODE_ENV=production \
           --label "source-hash=$$WORKROOM_SOURCE_HASH" \
           --label "build-id=$BUILD_ID" \
