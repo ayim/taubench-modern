@@ -283,3 +283,10 @@ class SQLiteStorageMCPServersMixin(CommonMixin):
                     f"Some MCP servers not found (expected {len(mcp_server_ids)}, "
                     f"deleted {cur.rowcount})"
                 )
+
+    async def count_mcp_servers(self) -> int:
+        """Count the number of MCP servers."""
+        async with self._cursor() as cur:
+            await cur.execute("SELECT COUNT(*) AS cnt FROM v2_mcp_server")
+            row = await cur.fetchone()
+        return row["cnt"] if row else 0

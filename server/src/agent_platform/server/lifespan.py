@@ -5,6 +5,7 @@ import structlog
 from fastapi import FastAPI
 from starlette.applications import Starlette
 
+from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.platforms.llms_metadata_loader import llms_metadata_loader
 from agent_platform.core.responses.streaming.stream_pipe import ResponseStreamPipe
 from agent_platform.server.constants import SystemConfig, SystemPaths
@@ -65,6 +66,10 @@ async def lifespan(app: FastAPI):
 
     await StorageService.get_instance().setup()
     logger.info("Storage Service initialized")
+
+    # Initialize QuotasService singleton with configuration values from storage
+    await QuotasService.get_instance()
+    logger.info("QuotasService initialized")
 
     # IMPORTANT: Order of operations is critical here!
     # Current sequence: DB Migrations (create v2 tables) -> Data migration (v1 to v2)

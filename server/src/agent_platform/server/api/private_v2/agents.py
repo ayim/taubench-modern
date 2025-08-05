@@ -24,7 +24,7 @@ from agent_platform.core.payloads import (
 )
 from agent_platform.core.utils import SecretString
 from agent_platform.core.utils.url import safe_urljoin
-from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.api.dependencies import AgentQuotaCheck, StorageDependency
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.api.private_v2.package import create_or_update_agent_from_package
 from agent_platform.server.auth import AuthedUser
@@ -186,6 +186,7 @@ async def create_agent(
     payload: UpsertAgentPayload,
     user: AuthedUser,
     storage: StorageDependency,
+    _: AgentQuotaCheck,
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id)
     await storage.upsert_agent(user.user_id, agent)
@@ -355,6 +356,7 @@ async def create_agent_from_package(
     user: AuthedUser,
     payload: AgentPackagePayload,
     storage: StorageDependency,
+    _: AgentQuotaCheck,
 ) -> AgentCompat:
     aid = str(uuid.uuid4())
     return await create_or_update_agent_from_package(

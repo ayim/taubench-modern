@@ -277,3 +277,12 @@ class PostgresStorageMCPServersMixin(CommonMixin):
             missing_ids = set(mcp_server_ids) - set(deleted_ids)
             if missing_ids:
                 raise MCPServerNotFoundError(f"MCP servers not found: {', '.join(missing_ids)}")
+
+    async def count_mcp_servers(self) -> int:
+        """Count the number of MCP servers."""
+        async with self._cursor() as cur:
+            await cur.execute("SELECT COUNT(*) AS cnt FROM v2.mcp_server")
+            if not (row := await cur.fetchone()):
+                return 0
+
+            return row["cnt"]

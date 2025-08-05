@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS v2_agent_config (
+    id TEXT PRIMARY KEY NOT NULL,
+    config_type TEXT NOT NULL UNIQUE,
+    config_value TEXT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

@@ -151,6 +151,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -182,6 +183,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -213,6 +215,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -244,6 +247,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -275,6 +279,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -306,6 +311,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -349,6 +355,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -394,6 +401,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         assert isinstance(result, AgentCompat)
@@ -419,6 +427,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=sample_agent_package_payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -452,6 +461,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=sample_agent_package_payload_base64,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -500,6 +510,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -544,6 +555,7 @@ class TestCreateAgentFromPackage:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -576,6 +588,7 @@ class TestCreateAgentFromPackage:
                 user=mock_user,
                 payload=sample_agent_package_payload,
                 storage=mock_storage,
+                _=None,
             )
 
     @pytest.mark.asyncio
@@ -601,6 +614,7 @@ class TestCreateAgentFromPackage:
                 user=mock_user,
                 payload=sample_agent_package_payload,
                 storage=mock_storage,
+                _=None,
             )
 
 
@@ -895,6 +909,7 @@ class TestConversationFields:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -997,6 +1012,7 @@ class TestConversationFields:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -1120,6 +1136,7 @@ class TestConversationFields:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -1257,6 +1274,7 @@ class TestConversationFields:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify
@@ -1315,6 +1333,7 @@ class TestEdgeCases:
                 user=mock_user,
                 payload=payload,
                 storage=mock_storage,
+                _=None,
             )
 
     @pytest.mark.asyncio
@@ -1342,6 +1361,7 @@ class TestEdgeCases:
             user=mock_user,
             payload=payload,
             storage=mock_storage,
+            _=None,
         )
 
         # Verify the string was converted to SecretString

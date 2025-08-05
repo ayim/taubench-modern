@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.config.config import Config
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
@@ -558,6 +559,11 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
+    async def count_mcp_servers(self) -> int:
+        """Count the number of MCP servers."""
+        pass
+
+    @abstractmethod
     async def update_work_item_from_thread(
         self,
         user_id: str,
@@ -617,4 +623,31 @@ class BaseStorage(ABC):
     @abstractmethod
     async def delete_platform_params(self, platform_params_id: str) -> None:
         """Delete a platform configuration."""
+        pass
+
+    # -------------------------------------------------------------------------
+    # Methods for Agent Config
+    # -------------------------------------------------------------------------
+    @abstractmethod
+    async def list_all_configs(self) -> list[Config]:
+        """Fetches the list of all available agent configs from DB"""
+        pass
+
+    @abstractmethod
+    async def get_config(self, config_type: str) -> Config:
+        """Fetches the config from the DB for the config_type
+
+        Args:
+            config_type: Must be one of the valid ConfigType values defined in quotas.py
+        """
+        pass
+
+    @abstractmethod
+    async def set_config(self, config_type: str, current_value: str):
+        """Sets the config value in the DB for the config_type
+
+        Args:
+            config_type: Must be one of the valid ConfigType values defined in quotas.py
+            current_value: The new configuration value as a string
+        """
         pass

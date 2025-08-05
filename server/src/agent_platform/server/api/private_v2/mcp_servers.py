@@ -6,7 +6,7 @@ from structlog import get_logger
 
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.payloads import MCPServerResponse
-from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.api.dependencies import MCPQuotaCheck, StorageDependency
 from agent_platform.server.env_vars import SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE
 from agent_platform.server.storage import (
     MCPServerNotFoundError,
@@ -142,6 +142,7 @@ async def _sync_file_based_mcp_servers(storage: StorageDependency) -> None:
 async def upsert_mcp_server(
     payload: MCPServer,
     storage: StorageDependency,
+    _: MCPQuotaCheck,
 ) -> MCPServerResponse:
     """Create or update an MCP server."""
     try:

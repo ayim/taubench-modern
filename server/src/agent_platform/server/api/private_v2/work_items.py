@@ -17,7 +17,12 @@ from agent_platform.core.work_items.work_item import (
     WorkItemStatus,
     WorkItemStatusUpdatedBy,
 )
-from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
+from agent_platform.server.api.dependencies import (
+    FileManagerDependency,
+    StorageDependency,
+    WorkItemFileAttachmentSizeCheck,
+    WorkItemPayloadSizeCheck,
+)
 from agent_platform.server.api.private_v2.threads import (
     ConfirmRemoteFileUploadPayload,
 )
@@ -70,6 +75,7 @@ async def create_work_item(
     payload: CreateWorkItemPayload,
     user: AuthedUser,
     storage: StorageDependency,
+    _: WorkItemPayloadSizeCheck,
 ) -> WorkItem:
     agent = await storage.get_agent(user.user_id, payload.agent_id)
     if not agent:
@@ -118,7 +124,7 @@ async def create_work_item(
         payload.callbacks = await _validate_callbacks(payload.callbacks)
 
         # Use the system user for lookups to avoid permission issues.
-        system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+        system_user, _created = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
 
         work_item = CreateWorkItemPayload.to_work_item(
             payload=payload,
@@ -196,6 +202,7 @@ async def upload_work_item_file(
     user: AuthedUser,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
+    _: WorkItemFileAttachmentSizeCheck,
     work_item_id: str | None = None,
 ) -> dict[str, str | dict]:
     """Upload a file to a work item. If a work_item_id is not provided, a new one is created."""
@@ -246,7 +253,7 @@ async def upload_work_item_file(
         work_item = await _create_stub_work_item(user.user_id, storage)
 
     # A real user uploads the file, but we store it in the file_owners table as the system_user.
-    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+    system_user, _created = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     logger.info(
         f"Uploading files to work item {work_item.work_item_id} on behalf of user {user.user_id}"
     )

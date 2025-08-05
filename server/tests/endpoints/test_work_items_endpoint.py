@@ -1,7 +1,7 @@
 import os
 from http import HTTPStatus
 from io import BytesIO
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -1086,3 +1086,70 @@ async def test_complete_work_item_from_valid_statuses(client: TestClient, seed_a
         item_after_complete = get_response_after.json()
         assert item_after_complete["work_item_id"] == work_item_id
         assert item_after_complete["status"] == WorkItemStatus.COMPLETED.value
+
+
+@pytest.mark.asyncio
+async def test_confirm_file_attachment_size_quota_validation(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
+    """Test that confirm_file endpoint validates file attachment size against quota limits."""
+    manager_type, manager = file_manager_type
+
+    # This test only works with direct file uploads, not remote uploads
+    if manager_type != "local":
+        pytest.skip("File attachment size validation only applies to direct uploads")
+
+    # Mock QuotasService to return very small file attachment limit
+    with patch(
+        "agent_platform.core.configurations.quotas.QuotasService.get_instance"
+    ) as mock_quotas:
+        mock_service = Mock()
+        mock_service.get_max_work_item_payload_size.return_value = 1000  # 1000 KB payload limit
+        mock_service.get_max_work_item_file_attachment_size.return_value = 0.001  # 1 KB file limit
+        mock_quotas.return_value = mock_service
+
+        # Upload a file larger than 1 KB
+        large_content = b"x" * 2048  # 2 KB file
+        test_file = ("large_file.txt", BytesIO(large_content), "text/plain")
+        response = client.post("/public/v1/work-items/upload-file", files={"file": test_file})
+
+        # Should fail with 400 due to file attachment size quota exceeded
+        assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_confirm_file_quota_validation_success(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
+    """Test that confirm_file endpoint succeeds when within quota limits."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    # First create a work item with remote file upload request
+    request_payload = {"file": "test.pdf"}
+    request_response = client.post("/public/v1/work-items/upload-file", data=request_payload)
+    assert request_response.status_code == 200
+
+    request_data = request_response.json()
+    work_item_id = request_data["work_item_id"]
+    file_id = request_data["file_id"]
+    file_ref = request_data["file_ref"]
+
+    # Mock QuotasService to return generous limits
+    with patch(
+        "agent_platform.core.configurations.quotas.QuotasService.get_instance"
+    ) as mock_quotas:
+        mock_service = Mock()
+        mock_service.get_max_work_item_payload_size.return_value = 1000  # 1000 KB payload limit
+        mock_service.get_max_work_item_file_attachment_size.return_value = 100  # 100 MB file limit
+        mock_quotas.return_value = mock_service
+
+        confirm_payload = {"file_ref": file_ref, "file_id": file_id}
+        confirm_response = client.post(
+            f"/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
+        )
+
+        # Should succeed
+        assert confirm_response.status_code == 200
+        confirm_data = confirm_response.json()
+        assert confirm_data["work_item_id"] == work_item_id

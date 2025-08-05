@@ -22,6 +22,13 @@ class AgentNotFoundError(PlatformHTTPError):
         super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
 
 
+class ConfigNotFoundError(PlatformHTTPError):
+    """Config with given config type was not found"""
+
+    def __init__(self, message: str = "Config type not found"):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
+
+
 class ThreadNotFoundError(PlatformHTTPError):
     """A thread with the given ID was not found."""
 

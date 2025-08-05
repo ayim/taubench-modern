@@ -4,6 +4,7 @@ from agent_platform.server.api.private_v2.agents import router as agents_router
 from agent_platform.server.api.private_v2.capabilities import (
     router as capabilities_router,
 )
+from agent_platform.server.api.private_v2.config import router as config_router
 from agent_platform.server.api.private_v2.debug import router as debug_router
 from agent_platform.server.api.private_v2.mcp_servers import router as mcp_servers_router
 from agent_platform.server.api.private_v2.prompt import router as prompt_router
@@ -55,6 +56,11 @@ router.include_router(
     mcp_servers_router,
     prefix="/mcp-servers",
     tags=["mcp-servers"],
+)
+router.include_router(
+    config_router,
+    prefix="/config",
+    tags=["config"],
 )
 
 # Workroom uses the private API, so we need work-items published on the private api, too.

@@ -479,3 +479,87 @@ def test_sync_error_handling(client: TestClient):
         # The API should still return 200 even if sync fails
         assert response.status_code == 200
         assert isinstance(response.json(), dict)
+
+
+def test_create_mcp_server_quota_exceeded(fastapi_app, sample_mcp_server_payload: dict):
+    """Test that MCP server creation is blocked when quota is exceeded."""
+    from starlette.testclient import TestClient
+
+    from agent_platform.core.errors.quotas import MCPServerQuotaExceededError
+    from agent_platform.server.api.dependencies import check_mcp_server_quota
+
+    # Mock the quota check dependency to raise the quota exceeded error
+    async def mock_quota_check_exceeded():
+        raise MCPServerQuotaExceededError(current_count=3, quota_limit=2)
+
+    # Override the dependency in the FastAPI app
+    fastapi_app.dependency_overrides[check_mcp_server_quota] = mock_quota_check_exceeded
+
+    try:
+        # Create a client with the modified app
+        client = TestClient(fastapi_app)
+
+        # Attempt to create an MCP server
+        response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
+
+        # Should receive 429 Too Many Requests
+        assert response.status_code == 429
+
+    finally:
+        # Clean up the dependency override
+        fastapi_app.dependency_overrides.clear()
+
+
+def test_create_mcp_server_quota_within_limit(fastapi_app, sample_mcp_server_payload: dict):
+    """Test that MCP server creation succeeds when within quota limits."""
+    from starlette.testclient import TestClient
+
+    from agent_platform.server.api.dependencies import check_mcp_server_quota
+
+    # Mock the quota check dependency to pass (do nothing)
+    async def mock_quota_check_pass():
+        # This dependency should pass without raising any exception
+        pass
+
+    # Override the dependency in the FastAPI app
+    fastapi_app.dependency_overrides[check_mcp_server_quota] = mock_quota_check_pass
+
+    try:
+        # Create a client with the modified app
+        client = TestClient(fastapi_app)
+
+        # Attempt to create an MCP server
+        response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
+
+        # Should succeed with 200 OK
+        assert response.status_code == 200
+        mcp_server_data = response.json()
+
+        # Verify response structure
+        assert "mcp_server_id" in mcp_server_data
+        assert mcp_server_data["name"] == sample_mcp_server_payload["name"]
+        assert mcp_server_data["transport"] == sample_mcp_server_payload["transport"]
+
+    finally:
+        # Clean up the dependency override
+        fastapi_app.dependency_overrides.clear()
+
+
+def test_upsert_mcp_server_has_quota_check():
+    """Test that the upsert_mcp_server endpoint has the quota check dependency."""
+    import inspect
+
+    from agent_platform.server.api.private_v2.mcp_servers import upsert_mcp_server
+
+    # Get the function signature
+    sig = inspect.signature(upsert_mcp_server)
+
+    # Check that MCPQuotaCheck is in the parameters
+    param_names = list(sig.parameters.keys())
+
+    # The quota check should be present as a parameter
+    assert "_" in param_names  # The quota check parameter is named "_"
+
+    # Verify the parameter annotation contains the quota check
+    quota_param = sig.parameters["_"]
+    assert "check_mcp_server_quota" in str(quota_param.annotation)
