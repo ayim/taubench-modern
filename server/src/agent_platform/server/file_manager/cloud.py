@@ -114,11 +114,12 @@ class CloudFileManager(BaseFileManager):
     async def _store(self, file_data: FileData, file_id: str) -> str:
         presigned_post = self._get_presigned_post(file_id)
         payload = presigned_post["form_data"]
-
+        # Post all the required data to the presigned URL
+        # Check: https://requests.readthedocs.io/en/latest/user/quickstart/#post-a-multipart-encoded-file
         response = requests.post(
             presigned_post["url"],
             data=payload,
-            files={"file": file_data.content},
+            files={"file": (file_data.file_name, file_data.content, file_data.mime_type)},
         )
 
         if response.status_code not in (status.HTTP_200_OK, status.HTTP_204_NO_CONTENT):
