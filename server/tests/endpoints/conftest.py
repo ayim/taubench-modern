@@ -1,7 +1,7 @@
 # server/tests/endpoints/conftest.py
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pytest
 from fastapi import FastAPI
@@ -24,15 +24,15 @@ from agent_platform.server.storage.option import StorageService
 # 1.  spin-up Postgres once per session (copied from file manager)
 # ──────────────────────────────────────────────────────────────
 @pytest.fixture(scope="session", params=[pytest.param("", marks=[pytest.mark.postgresql])])
-async def postgres_test_db() -> AsyncGenerator[
-    AsyncConnectionPool[AsyncConnection[TupleRow]], None
+async def postgres_test_db_info() -> AsyncGenerator[
+    dict[str, AsyncConnectionPool[AsyncConnection[tuple[Any, ...]]] | str], None
 ]:
     import testing.postgresql
 
     with testing.postgresql.Postgresql() as pg:
         pool = AsyncConnectionPool(pg.url(), min_size=2, max_size=50, open=False)
         await pool.open()
-        yield cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool)
+        yield {"pool": cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool), "dns": pg.url()}
         await pool.close()
 
 
@@ -45,14 +45,20 @@ async def postgres_test_db() -> AsyncGenerator[
         pytest.param("postgres", marks=[pytest.mark.postgresql]),
     ]
 )
-async def storage(request, tmp_path: Path, postgres_test_db):
+async def storage(request, tmp_path: Path, postgres_test_db_info):
     if request.param == "postgres":
         # reset the schema and use the pool created above
-        async with postgres_test_db.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute("DROP SCHEMA IF EXISTS v2 CASCADE;")
-                await cur.execute("CREATE SCHEMA v2;")
-        store = PostgresStorage(postgres_test_db)
+        match postgres_test_db_info:
+            case {"pool": pool, "dns": dns}:
+                async with pool.connection() as conn:
+                    async with conn.cursor() as cur:
+                        await cur.execute("DROP SCHEMA IF EXISTS v2 CASCADE;")
+                        await cur.execute("CREATE SCHEMA v2;")
+
+                store = PostgresStorage(pool, dns)
+            case _:
+                raise Exception("postgres_test_db not set")
+
     else:
         db_file = tmp_path / "test.db"
         if db_file.exists():

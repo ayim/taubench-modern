@@ -86,7 +86,7 @@ async def storage(
                 await cur.execute("CREATE SCHEMA v2;")
 
         # Now instantiate storage and run migrations.
-        storage = PostgresStorage(pool=postgres_test_db, dns=postgres_testing.url())
+        storage = PostgresStorage(pool=postgres_test_db, dsn=postgres_testing.url())
         await storage.setup()  # Runs migrations to re-create tables in 'v2'.
 
         # Seed the system user.

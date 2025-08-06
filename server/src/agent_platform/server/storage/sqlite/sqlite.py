@@ -217,6 +217,10 @@ class SQLiteStorage(
 
         # Run migrations
         await self._run_migrations()
+
+        # Run database reflection for SQLAlchemy
+        await self._reflect_database()
+
         self._is_setup = True
 
     async def teardown(self) -> None:

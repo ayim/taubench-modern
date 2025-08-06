@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from sqlalchemy import column, select, text
+import sqlalchemy
+from sqlalchemy import MetaData, Table, column, inspect, select
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import JSON
@@ -47,6 +48,25 @@ class BaseStorage(ABC):
         """Initialize the storage with SQLAlchemy engine."""
         self._engine: AsyncEngine | None = None
         assert self.V2_PREFIX, "V2_PREFIX must be set"
+        self._metadata = MetaData()
+
+    async def _reflect_database(self, schema=None):
+        """
+        Current DB reflection doesn't (currently) work with AsyncEngines,
+        so we need to do it manually
+        """
+        if not self._engine:
+            raise ValueError("Engine not initialized; call setup() first.")
+
+        def _reflect_tables(sync_conn):
+            nonlocal self
+            db_inspector = cast(sqlalchemy.Inspector, inspect(sync_conn))
+            for table_name in db_inspector.get_table_names(schema=schema):
+                # This adds the table to the metadata object
+                Table(table_name, self._metadata, autoload_with=sync_conn, schema=schema)
+
+        async with self._engine.connect() as conn:
+            await conn.run_sync(_reflect_tables)
 
     @staticmethod
     def as_json_columns(*column_name: str):
@@ -63,6 +83,9 @@ class BaseStorage(ABC):
             raise RuntimeError("Expected AsyncEngine. Found: %s", type(self._engine))
 
         return self._engine
+
+    def _get_table(self, name: str) -> Table:
+        return self._metadata.tables[f"{self.V2_PREFIX}{name}"]
 
     @abstractmethod
     async def setup(self) -> None:
@@ -85,8 +108,17 @@ class BaseStorage(ABC):
 
     async def list_all_agents(self) -> list[Agent]:
         """List all agents for all users."""
+        agent = self._get_table("agent")
+
         stmt = select(
-            text("agent_id, name, description, user_id, version, created_at, updated_at, mode"),
+            agent.c.agent_id,
+            agent.c.name,
+            agent.c.description,
+            agent.c.user_id,
+            agent.c.version,
+            agent.c.created_at,
+            agent.c.updated_at,
+            agent.c.mode,
             *self.as_json_columns(
                 "runbook_structured",
                 "action_packages",
@@ -97,7 +129,7 @@ class BaseStorage(ABC):
                 "platform_configs",
                 "extra",
             ),
-        ).select_from(text(f"{self.V2_PREFIX}agent"))
+        ).select_from(agent)
 
         async with self.engine.begin() as conn:
             result = await conn.execute(stmt)

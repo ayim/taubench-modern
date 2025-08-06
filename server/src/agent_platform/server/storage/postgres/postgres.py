@@ -121,7 +121,7 @@ class PostgresStorage(
 ):
     V2_PREFIX = "v2."
 
-    def __init__(self, pool: AsyncConnectionPool | None = None, dns: str | None = None):
+    def __init__(self, pool: AsyncConnectionPool | None = None, dsn: str | None = None):
         # Initialize all parent mixins (including CommonMixin for secret manager)
         super().__init__()
 
@@ -133,7 +133,7 @@ class PostgresStorage(
         self._logger = get_logger(__name__)
         self._migrations = PostgresMigrations(self._cursor)
         self._is_setup = False
-        self._dns = dns
+        self._dns = dsn
 
     async def setup(self) -> None:
         """Create and open the async connection pool."""
@@ -163,8 +163,10 @@ class PostgresStorage(
             pool_pre_ping=True,
             pool_recycle=3600,
         )
-
         await self._run_migrations()
+
+        # Run database reflection for SQLAlchemy
+        await self._reflect_database(schema=self.V2_PREFIX.removesuffix("."))
         self._is_setup = True
 
     async def teardown(self) -> None:
