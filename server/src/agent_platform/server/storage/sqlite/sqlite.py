@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from aiosqlite import Cursor, Row, connect
+from sqlalchemy.ext.asyncio import create_async_engine
 from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
@@ -124,6 +125,8 @@ class SQLiteStorage(
     a 'v2_check_user_access' custom function used in the SQL statements.
     """
 
+    V2_PREFIX = "v2_"
+
     def __init__(self, db_path: str | None = None):
         # Initialize all parent mixins (including CommonMixin for secret manager)
         super().__init__()
@@ -143,6 +146,14 @@ class SQLiteStorage(
         self._db = await connect(self._db_path)
         await self._db.execute("PRAGMA foreign_keys = ON")
         self._db.row_factory = Row
+
+        # Initialize SQLAlchemy engine
+        sqlite_url = f"sqlite+aiosqlite:///{self._db_path}"
+        self._engine = create_async_engine(
+            sqlite_url,
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
 
         # ---------------------------------------------------------------------
         # Register the check_user_access function in SQLite
@@ -210,6 +221,11 @@ class SQLiteStorage(
 
     async def teardown(self) -> None:
         """Close the SQLite database connection."""
+        # Close SQLAlchemy engine
+        if hasattr(self, "_engine") and self._engine is not None:
+            await self._engine.dispose()
+            self._engine = None
+
         if self._is_setup and self._db is not None:
             await self._db.close()
             self._db = None

@@ -21,44 +21,56 @@ def _disable_logging() -> Generator[None, None, None]:
     getLogger("agent_platform.server.storage.postgres.postgres").setLevel(INFO)
 
 
-@pytest.fixture(scope="session", params=[pytest.param("postgres", marks=[pytest.mark.postgresql])])
-async def postgres_test_db() -> AsyncGenerator[
-    AsyncConnectionPool[AsyncConnection[TupleRow]],
-    None,
-]:
-    """Creates a shared temporary Postgres instance for the entire test session."""
+@pytest.fixture(scope="session")
+async def postgres_testing():
     # Lazy import testing.postgresql only when needed
     import testing.postgresql
 
     with testing.postgresql.Postgresql() as postgresql:
-        dsn = postgresql.url()
-        pool = None
         try:
-            # Increase min_size to maintain connections and reduce
-            # max_size to prevent too many connections
-            pool = AsyncConnectionPool(
-                conninfo=dsn,
-                min_size=2,  # Keep minimum connections alive
-                max_size=50,
-                num_workers=2,
-                open=False,
-                # Add timeout parameters
-                timeout=5,
-                reconnect_timeout=5,
-                # Configure connection recycling
-                max_lifetime=3600,  # Recycle connections after 1 hour
-                max_idle=300,  # Close idle connections after 5 minutes
-            )
-            await pool.open()
-            yield cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool)
+            yield postgresql
         finally:
-            if pool:
-                await pool.close()
             postgresql.stop()
 
 
+@pytest.fixture(scope="session", params=[pytest.param("postgres", marks=[pytest.mark.postgresql])])
+async def postgres_test_db(
+    postgres_testing,
+) -> AsyncGenerator[
+    AsyncConnectionPool[AsyncConnection[TupleRow]],
+    None,
+]:
+    """Creates a shared temporary Postgres instance for the entire test session."""
+
+    dsn = postgres_testing.url()
+    pool = None
+    try:
+        # Increase min_size to maintain connections and reduce
+        # max_size to prevent too many connections
+        pool = AsyncConnectionPool(
+            conninfo=dsn,
+            min_size=2,  # Keep minimum connections alive
+            max_size=50,
+            num_workers=2,
+            open=False,
+            # Add timeout parameters
+            timeout=5,
+            reconnect_timeout=5,
+            # Configure connection recycling
+            max_lifetime=3600,  # Recycle connections after 1 hour
+            max_idle=300,  # Close idle connections after 5 minutes
+        )
+        await pool.open()
+        yield cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool)
+    finally:
+        if pool:
+            await pool.close()
+
+
 @pytest.fixture
-async def storage(postgres_test_db: AsyncConnectionPool[AsyncConnection[TupleRow]]):
+async def storage(
+    postgres_test_db: AsyncConnectionPool[AsyncConnection[TupleRow]], postgres_testing
+):
     """
     Initialize storage with the shared test database.
 
@@ -74,7 +86,7 @@ async def storage(postgres_test_db: AsyncConnectionPool[AsyncConnection[TupleRow
                 await cur.execute("CREATE SCHEMA v2;")
 
         # Now instantiate storage and run migrations.
-        storage = PostgresStorage(pool=postgres_test_db)
+        storage = PostgresStorage(pool=postgres_test_db, dns=postgres_testing.url())
         await storage.setup()  # Runs migrations to re-create tables in 'v2'.
 
         # Seed the system user.

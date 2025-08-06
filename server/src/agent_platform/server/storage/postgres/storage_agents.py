@@ -14,19 +14,6 @@ from agent_platform.server.storage.postgres.common import CommonMixin
 class PostgresStorageAgentsMixin(CommonMixin):
     """Mixin for PostgreSQL agent operations."""
 
-    async def list_all_agents(self) -> list[Agent]:
-        """List all agents for all users."""
-        async with self._cursor() as cur:
-            # 1. Get every agent
-            await cur.execute("SELECT * FROM v2.agent")
-
-            # 2. No agents found?
-            if not (rows := await cur.fetchall()):
-                return []
-
-            # 3. Return all agents
-            return [Agent.model_validate(row) for row in rows]
-
     async def list_agents(self, user_id: str) -> list[Agent]:
         """List all agents for the given user."""
         # 1. Validate the uuid

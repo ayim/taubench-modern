@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from psycopg import AsyncConnection, AsyncCursor
 from psycopg.rows import DictRow, dict_row
 from psycopg_pool import AsyncConnectionPool
+from sqlalchemy.ext.asyncio import create_async_engine
 from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
@@ -118,7 +119,9 @@ class PostgresStorage(
     PostgresStoragePlatformConfigsMixin,
     PostgresStorageConfigMixin,
 ):
-    def __init__(self, pool: AsyncConnectionPool | None = None):
+    V2_PREFIX = "v2."
+
+    def __init__(self, pool: AsyncConnectionPool | None = None, dns: str | None = None):
         # Initialize all parent mixins (including CommonMixin for secret manager)
         super().__init__()
 
@@ -130,6 +133,7 @@ class PostgresStorage(
         self._logger = get_logger(__name__)
         self._migrations = PostgresMigrations(self._cursor)
         self._is_setup = False
+        self._dns = dns
 
     async def setup(self) -> None:
         """Create and open the async connection pool."""
@@ -148,11 +152,28 @@ class PostgresStorage(
             else self._pool
         )
         await self._pool.open()
+
+        # Initialize SQLAlchemy engine
+        assert dsn.startswith("postgresql://"), (
+            "DSN must start with postgresql:// (if this fails the logic below needs to be updated)"
+        )
+        self._engine = create_async_engine(
+            dsn.replace("postgresql://", "postgresql+psycopg://"),
+            echo=False,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+        )
+
         await self._run_migrations()
         self._is_setup = True
 
     async def teardown(self) -> None:
         """Close the async connection pool."""
+        # Close SQLAlchemy engine
+        if hasattr(self, "_engine") and self._engine is not None:
+            await self._engine.dispose()
+            self._engine = None
+
         # Only close the pool if we created/own it. A caller-provided pool may
         # be shared across test cases or even the entire application, so we
         # must not close it here! Doing so would render the shared pool
@@ -169,7 +190,7 @@ class PostgresStorage(
         return await self._pool.getconn()
 
     def _get_dsn(self) -> str:
-        return PostgresConfig.dsn
+        return self._dns or PostgresConfig.dsn
 
     async def _run_migrations(self):
         await self._migrations.run_migrations()

@@ -24,14 +24,6 @@ class SQLiteStorageAgentsMixin(CommonMixin):
     # -------------------------------------------------------------------------
     # Agents
     # -------------------------------------------------------------------------
-    async def list_all_agents(self) -> list[Agent]:
-        """List all agents for all users."""
-        async with self._cursor() as cur:
-            await cur.execute("SELECT * FROM v2_agent")
-            rows = await cur.fetchall()
-        if not rows:
-            return []
-        return [Agent.model_validate(self._convert_agent_json_fields(dict(row))) for row in rows]
 
     async def list_agents(self, user_id: str) -> list[Agent]:
         """List all agents for the given user."""
