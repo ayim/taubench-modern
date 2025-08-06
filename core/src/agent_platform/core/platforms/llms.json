@@ -1,6 +1,9 @@
 {
   "status": 200,
-  "prompt_options": { "parallel_queries": 1, "prompt_length": 1000 },
+  "prompt_options": {
+    "parallel_queries": 1,
+    "prompt_length": 1000
+  },
   "data": [
     {
       "id": "5ad2f60f-ee05-49fd-85a0-cef69aa7cb7b",
@@ -6909,6 +6912,74 @@
         "price_1m_input_tokens": 0,
         "price_1m_output_tokens": 0
       }
+    },
+    {
+      "id": "36f73aaf-d38a-4b56-a2b3-d04d17186910",
+      "name": "gpt-oss-20B",
+      "slug": "gpt-oss-20b",
+      "release_date": "2025-08-05",
+      "model_creator": {
+        "id": "e67e56e3-15cd-43db-b679-da4660a69f41",
+        "name": "OpenAI",
+        "slug": "openai"
+      },
+      "evaluations": {
+        "artificial_analysis_intelligence_index": 51.1,
+        "artificial_analysis_coding_index": 53.7,
+        "artificial_analysis_math_index": null,
+        "mmlu_pro": 0.736,
+        "gpqa": 0.617,
+        "hle": 0.085,
+        "livecodebench": 0.721,
+        "scicode": 0.354,
+        "math_500": null,
+        "aime": null,
+        "aime_25": 0.787,
+        "ifbench": 0.605,
+        "lcr": 0.187
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.144,
+        "price_1m_input_tokens": 0.075,
+        "price_1m_output_tokens": 0.35
+      },
+      "median_output_tokens_per_second": 408.4,
+      "median_time_to_first_token_seconds": 0.415,
+      "median_time_to_first_answer_token": 5.312
+    },
+    {
+      "id": "f0083258-8646-45b8-8082-7aaf6c2ea82a",
+      "name": "gpt-oss-120B",
+      "slug": "gpt-oss-120b",
+      "release_date": "2025-08-05",
+      "model_creator": {
+        "id": "e67e56e3-15cd-43db-b679-da4660a69f41",
+        "name": "OpenAI",
+        "slug": "openai"
+      },
+      "evaluations": {
+        "artificial_analysis_intelligence_index": 58.3,
+        "artificial_analysis_coding_index": 54.3,
+        "artificial_analysis_math_index": null,
+        "mmlu_pro": 0.793,
+        "gpqa": 0.723,
+        "hle": 0.096,
+        "livecodebench": 0.694,
+        "scicode": 0.391,
+        "math_500": null,
+        "aime": null,
+        "aime_25": 0.83,
+        "ifbench": 0.644,
+        "lcr": 0.49
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.263,
+        "price_1m_input_tokens": 0.15,
+        "price_1m_output_tokens": 0.6
+      },
+      "median_output_tokens_per_second": 260.269,
+      "median_time_to_first_token_seconds": 0.376,
+      "median_time_to_first_answer_token": 8.06
     }
   ]
 }

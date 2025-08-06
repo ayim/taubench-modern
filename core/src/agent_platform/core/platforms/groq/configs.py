@@ -16,6 +16,8 @@ class GroqModelMap(PlatformModelMap):
             "groq/meta/llama-4-scout": "llama-4-scout-17b-16e-instruct",
             "groq/meta/llama-4-maverick": "llama-4-maverick-17b-128e-instruct",
             "groq/moonshotai/kimi-k2": "moonshotai/kimi-k2-instruct",
+            "groq/openai/gpt-oss-120b": "openai/gpt-oss-120b",
+            "groq/openai/gpt-oss-20b": "openai/gpt-oss-20b",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and Groq model IDs."),
@@ -28,6 +30,8 @@ class GroqModelMap(PlatformModelMap):
             "llama-4-scout": "llm",
             "llama-4-maverick": "llm",
             "moonshotai/kimi-k2": "llm",
+            "openai/gpt-oss-120b": "llm",
+            "openai/gpt-oss-20b": "llm",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and model types."),
@@ -41,6 +45,8 @@ class GroqModelMap(PlatformModelMap):
             "llama-4-scout": ["text", "tools"],
             "llama-4-maverick": ["text", "tools"],
             "moonshotai/kimi-k2": ["text", "tools"],
+            "openai/gpt-oss-120b": ["text", "tools"],
+            "openai/gpt-oss-20b": ["text", "tools"],
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and input modalities."),
@@ -54,6 +60,8 @@ class GroqModelMap(PlatformModelMap):
             "llama-4-scout": ["text"],
             "llama-4-maverick": ["text"],
             "moonshotai/kimi-k2": ["text"],
+            "openai/gpt-oss-120b": ["text"],
+            "openai/gpt-oss-20b": ["text"],
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and output modalities."),
@@ -66,6 +74,8 @@ class GroqModelMap(PlatformModelMap):
             "llama-4-scout": "llama",
             "llama-4-maverick": "llama",
             "moonshotai/kimi-k2": "llama",
+            "openai/gpt-oss-120b": "openai",
+            "openai/gpt-oss-20b": "openai",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and model families."),
@@ -78,6 +88,8 @@ class GroqModelMap(PlatformModelMap):
             "llama-4-scout": 128_000,
             "llama-4-maverick": 128_000,
             "moonshotai/kimi-k2": 128_000,
+            "openai/gpt-oss-120b": 128_000,
+            "openai/gpt-oss-20b": 128_000,
         },
         metadata=FieldMetadata(
             description=("The maximum context window in tokens for each model."),

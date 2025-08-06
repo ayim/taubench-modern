@@ -41,9 +41,12 @@ logger = get_logger(__name__)
 class _Book:
     title: Annotated[str, "The title of the book"]
     author: Annotated[str, "The author's name"]
-    category: Annotated[str | None, "The category of the book"]
     # Showing example of using field(metadata={"description": ...})
     year: int = field(metadata={"description": "Year the book was published"})
+    # We tell the model to "completely omit" optional fields; the reasoning
+    # models I've tested were confused that nothing was optional causing
+    # increased latency on the /test endpoint... lol
+    category: Annotated[str | None, "The category of the book"] = None
 
 
 @dataclass

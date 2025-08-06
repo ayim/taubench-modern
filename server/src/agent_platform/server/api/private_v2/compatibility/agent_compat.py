@@ -293,6 +293,9 @@ class AgentCompat(Agent):
             advanced_config=dict(
                 # Only legacy architecture corresponding to v2
                 # agents is "agent" (we can't have "plan_execute" here)
+                # NOTE: cleints should really start _not looking here_,
+                # especially now that we have some other non-default
+                # architectures.
                 architecture="agent",
                 reasoning="disabled",
                 recursion_limit=100,

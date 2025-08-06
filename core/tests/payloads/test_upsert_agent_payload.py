@@ -146,7 +146,7 @@ class TestLegacyModelDictToAllowlist:
         # OpenAI
         model_dict = {"provider": "OpenAI", "name": "gpt-4"}
         result = self.payload._legacy_model_dict_to_allowlist(model_dict)
-        assert result == {"OpenAI": ["gpt-4"]}
+        assert result == {"openai": ["gpt-4"]}
 
         # Anthropic with slash notation
         model_dict = {"provider": "Anthropic", "name": "anthropic/claude-3-opus-20240229"}
@@ -156,12 +156,19 @@ class TestLegacyModelDictToAllowlist:
         # Azure
         model_dict = {"provider": "Azure", "name": "gpt-35-turbo"}
         result = self.payload._legacy_model_dict_to_allowlist(model_dict)
-        assert result == {"Azure": ["gpt-35-turbo"]}
+        assert result == {"azure": ["gpt-35-turbo"]}
 
         # Bedrock with provider in name
         model_dict = {"provider": "Amazon", "name": "amazon/titan-text-express-v1"}
         result = self.payload._legacy_model_dict_to_allowlist(model_dict)
         assert result == {"amazon": ["titan-text-express-v1"]}
+
+    def test_new_model(self):
+        """Test a real-world example that was broken where a new model was sent
+        but just the model name, and the provider mapping was not working."""
+        model_dict = {"provider": "Amazon", "name": "claude-4-sonnet"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"anthropic": ["claude-4-sonnet"]}
 
 
 class TestWorkerConfigRoundTrip:
@@ -446,3 +453,39 @@ def test_mcp_union_of_variable_types_behavior():
     assert get_value(headers["plain"]) == "plain-value"
     assert get_value(headers["string_obj"]) == "string-value"
     assert get_value(headers["secret_obj"]) == "secret-value"
+
+
+def test_accept_new_architecture_in_legacy_payload():
+    """Test that we can accept a new architecture in a legacy payload."""
+    payload = UpsertAgentPayload(
+        name="Test Agent",
+        description="desc",
+        version="1.0.0",
+        runbook="hi",
+        advanced_config={
+            "architecture": "agent_platform.architectures.experimental_1",
+        },
+    )
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+    assert agent.agent_architecture == AgentArchitecture(
+        name="agent_platform.architectures.experimental_1",
+        version="1.0.0",
+    )
+
+
+def test_non_new_architecture_gets_default_architecture():
+    """Test that a non-new architecture still gets the default architecture."""
+    payload = UpsertAgentPayload(
+        name="Test Agent",
+        description="desc",
+        version="1.0.0",
+        runbook="hi",
+        advanced_config={
+            "architecture": "plan_execute",
+        },
+    )
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+    assert agent.agent_architecture == AgentArchitecture(
+        name="agent_platform.architectures.default",
+        version="1.0.0",
+    )

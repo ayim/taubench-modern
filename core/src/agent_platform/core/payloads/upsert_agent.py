@@ -11,6 +11,7 @@ from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.platforms import AnyPlatformParameters
 from agent_platform.core.platforms.base import PlatformParameters
+from agent_platform.core.platforms.configs import resolve_provider_from_model_name
 from agent_platform.core.runbook import Runbook
 from agent_platform.core.utils import assert_literal_value_valid
 
@@ -169,15 +170,18 @@ class UpsertAgentPayload:
     def _handle_legacy_architecture(self):
         """Handle backward compatibility for 'architecture' in advanced_config."""
         if "architecture" in self.advanced_config:
+            # Instead of mapping _only_ to default arch, if (in the legacy payload)
+            # we're getting a seemingly non-legacy architecture, we'll use that instead
+            architecture = self.advanced_config["architecture"]
+            if not architecture.startswith("agent_platform.architectures."):
+                architecture = "agent_platform.architectures.default"
+
             object.__setattr__(
                 self,
                 "agent_architecture",
                 AgentArchitecture.model_validate(
                     {
-                        # It doesn't matter what _was_ in the payload, we only
-                        # have one architecture for now. So if we're converting
-                        # from a legacy payload, we'll just use the default.
-                        "name": "agent_platform.architectures.default",
+                        "name": architecture,
                         "version": "1.0.0",
                     }
                 ),
@@ -285,11 +289,13 @@ class UpsertAgentPayload:
         if "name" not in model_dict or not model_dict["name"]:
             return None
 
-        provider = model_dict["provider"]
         name = model_dict["name"]
-
         if "/" in name:
             provider, name = name.split("/", 1)
+        else:
+            provider = model_dict["provider"].lower()
+
+        provider = resolve_provider_from_model_name(name, provider)
 
         return {
             provider: [name],

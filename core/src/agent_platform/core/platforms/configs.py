@@ -97,7 +97,7 @@ class PlatformModelConfigs(Configuration):
             "cortex": "cortex/anthropic/claude-3-5-sonnet",
             "openai": "openai/openai/gpt-4-1",
             "google": "google/google/gemini-2-5-pro",
-            "groq": "groq/moonshotai/kimi-k2",
+            "groq": "groq/openai/gpt-oss-120b",
             "reducto": "reducto/reducto/reducto-standard-parse",
         },
         metadata=FieldMetadata(
@@ -172,6 +172,8 @@ class PlatformModelConfigs(Configuration):
             "groq/meta/llama-4-scout",
             "groq/meta/llama-4-maverick",
             "groq/moonshotai/kimi-k2",
+            "groq/openai/gpt-oss-120b",
+            "groq/openai/gpt-oss-20b",
         ],
         metadata=FieldMetadata(
             description="A mapping of model names to their platform IDs.",
@@ -248,6 +250,8 @@ class PlatformModelConfigs(Configuration):
             "groq/meta/llama-4-scout": "llama-4-scout-17b-16e-instruct",
             "groq/meta/llama-4-maverick": "llama-4-maverick-17b-128e-instruct",
             "groq/moonshotai/kimi-k2": "moonshotai/kimi-k2-instruct",
+            "groq/openai/gpt-oss-120b": "openai/gpt-oss-120b",
+            "groq/openai/gpt-oss-20b": "openai/gpt-oss-20b",
             # Reducto (has no date/version pinning!?)
             "reducto/reducto/reducto-standard-parse": "standard:parse",
             "reducto/reducto/reducto-standard-extract": "standard:extract",
@@ -326,6 +330,8 @@ class PlatformModelConfigs(Configuration):
             "groq/meta/llama-4-scout": "llama",
             "groq/meta/llama-4-maverick": "llama",
             "groq/moonshotai/kimi-k2": "moonshotai",
+            "groq/openai/gpt-oss-120b": "openai",
+            "groq/openai/gpt-oss-20b": "openai",
             # Reducto (has no date/version pinning!?)
             "reducto/reducto/reducto-standard-parse": "reducto",
             "reducto/reducto/reducto-standard-extract": "reducto",
@@ -403,6 +409,8 @@ class PlatformModelConfigs(Configuration):
             "groq/meta/llama-4-scout": "llm",
             "groq/meta/llama-4-maverick": "llm",
             "groq/moonshotai/kimi-k2": "llm",
+            "groq/openai/gpt-oss-120b": "llm",
+            "groq/openai/gpt-oss-20b": "llm",
             # Reducto
             "reducto/reducto/reducto-standard-parse": "document-processor",
             "reducto/reducto/reducto-standard-extract": "document-processor",
@@ -411,6 +419,36 @@ class PlatformModelConfigs(Configuration):
             description="A mapping of model names to their types.",
         ),
     )
+
+
+def resolve_provider_from_model_name(
+    model_name: str,
+    default_if_no_match: str | None = None,
+) -> str:
+    """Resolve a model name to a provider.
+
+    If the provider cannot be determined, we'll return the default if given,
+    otherwise we'll raise an error.
+    """
+    # First, collect any generic model id that ends with the given model name
+    matching_models = [
+        model
+        for model in PlatformModelConfigs.models_to_platform_specific_model_ids.keys()
+        if model.endswith(f"/{model_name}")
+    ]
+    # If we have no matches, we'll return the default if provided
+    if len(matching_models) == 0:
+        if default_if_no_match is None:
+            # No default provided, so we'll raise an error
+            raise ValueError(f"No matching model found for {model_name}")
+        return default_if_no_match
+    # If we have multiple matches, we'll return the first one
+    first_match = matching_models[0]
+    parts = first_match.split("/")
+    if len(parts) > 1:
+        return parts[1]
+    # Malformed generic model id? Should never happen
+    raise ValueError(f"No provider found for {model_name}")
 
 
 async def resolve_generic_model_id_to_platform_specific_model_id(  # noqa: C901, PLR0912
