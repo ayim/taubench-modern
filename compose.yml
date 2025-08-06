@@ -1,3 +1,54 @@
+x-env-spar: &template-env-spar
+    # Agent Server
+    AGENT_SERVER_PORT: 8000
+    LOG_LEVEL: DEBUG
+    OTEL_COLLECTOR_URL: http://otel-collector:4318
+    OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+    POSTGRES_DB: agents
+    POSTGRES_HOST: postgres
+    POSTGRES_PASSWORD: agents
+    POSTGRES_PORT: 5432
+    POSTGRES_USER: agents
+    SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
+    SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
+    # Workroom
+    AGENT_SERVER_URL: http://localhost:8000
+    AUTH_MODE: none
+    DEPLOYMENT_TYPE: spar
+    META_URL: http://localhost:8001/meta
+    NODE_ENV: production
+    WORKROOM_PORT: 8001
+
+x-service-spar: &template-service-spar
+    build:
+        context: .
+        dockerfile: Dockerfile.spar
+        secrets:
+            - npmrc
+        args:
+            ACE_SERVICE_VERSION: v2-dev-build
+            NODE_ENV: production
+    environment:
+        <<: *template-env-spar
+    ports:
+        - "8000:8000"
+        - "8001:8001"
+    expose:
+        - "8000"
+        - "8001"
+    restart: unless-stopped
+    networks:
+        default:
+            aliases:
+                - spar
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+        postgres:
+            condition: service_healthy
+        otel-collector:
+            condition: service_started
+
 x-env-agent-server: &template-env-agent-server
     LOG_LEVEL: DEBUG
     OTEL_COLLECTOR_URL: http://otel-collector:4318
@@ -127,37 +178,43 @@ services:
                 condition: service_healthy
 #endregion
 
-#region Agent Server
-    # You can run the `Debug Agent Server with Hot Reload` target
-    # to run the agent server with hot reloading.
-    agent-server-noauth:
-        <<: *template-service-agent-server
-        container_name: agent-server-noauth
+#region SPAR
+    spar-no-auth:
+        <<: *template-service-spar
+        container_name: spar-no-auth
+        profiles:
+            - spar-no-auth
+
+    agent-server-no-auth:
+        <<: *template-service-spar
+        container_name: agent-server-no-auth
+        environment:
+            <<: *template-env-spar
+            DISABLED_SERVICE: workroom
+        ports:
+            - "8000:8000"
+        expose:
+            - "8000"
         profiles:
             - agent-server-no-auth
+
     agent-server-auth:
-        <<: *template-service-agent-server
-        container_name: agent-server-auth
+        <<: *template-service-spar
+        container_name: spar-auth
         environment:
-            <<: *template-env-agent-server
+            <<: *template-env-spar
             AUTH_TYPE: jwt_local
             JWT_ALG: ES256
             JWT_AUD: agent_server
             JWT_DECODE_KEY_B64: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFZGpZdnZIcFpnY2FQUy9TOHdJanVjYzlYcUJIYgpyUVNpOGhxSngySGhybzlDZzg3cHdnSGNpWDkwT20xUDFTTEpHaVFVL1lUeG4wbllEQllaU1AwMU9RPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
             JWT_ISS: spar
+            DISABLED_SERVICE: workroom
+        ports:
+            - "8000:8000"
+        expose:
+            - "8000"
         profiles:
             - agent-server-auth
-#endregion
-
-#region Workroom
-    workroom-production:
-        <<: *template-service-workroom
-        container_name: workroom-production
-        # And then run `npm run dev` in the workroom directory to have both
-        # the frontend and backend hot-reload together. (Working against the
-        # postgres/influx/otel stack defined above.)
-        profiles:
-            - workroom-production
 #endregion
 
 volumes:

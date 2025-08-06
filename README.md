@@ -131,7 +131,7 @@ To run the example notebooks:
 The following dependencies need to be installed manually:
 
 - `uv` (which is used to manage the Python environment), see: <https://docs.astral.sh/uv/getting-started/installation/>
-- `node / npm` (for `prettier` to work with `npx`)
+- `node / npm` (for `prettier` to work with `npx`) (Node v22 or later)
 - `make` (note: on `Windows` you can install it using `Chocolatey` with `choco install make`)
 - `go` (used to build the `go-wrapper`, version `1.23.6` or newer required)
 
@@ -139,11 +139,13 @@ The following dependencies need to be installed manually:
 
 See [docs/development-guide.md](docs/development-guide.md) for more information on how to develop the Agent Platform.
 
-### Developing with Workroom
+### Development with Workroom & Agent Server (SPAR)
+
+Both the agent server and workroom (interaction UI) are available in this repository - you can develop against both projects at the same time in a combined manner (SPAR stack). The recommended approach is with Docker, but you can run both components outside of the Docker stack with hot reloading for improved development experience.
 
 #### Requirements
 
-To develop with the Workroom application, you must have **NPM** setup locally, with valid Sema4.ai authentication configured with which to use to install packages needed by Workroom and associated dependencies:
+To develop with the Workroom application, you must have **NodeJS** and **NPM** installed, with valid Sema4.ai authentication configured with which to use to install packages needed by Workroom and associated dependencies:
 
 1. You should have a `~/.npmrc` file with the following structure:
 
@@ -169,61 +171,51 @@ To develop with the Workroom application, you must have **NPM** setup locally, w
 > [!NOTE]
 > The `.env` file in `./workroom` is only necessary for non-docker-based Workroom development. If using workroom via Docker, you don't need to touch these files.
 
-> [!TIP]
-> If developing primarily against Workroom, it is recommended to install Docker (either via OrbStack or Docker desktop).
+#### Running SPAR Docker stack
 
-#### Workroom Hot Reloading & Dockerized Stack
-
-1. Run Workroom without Docker _and_ with hot reloading:
+You can run the full platform, without hot reloading, by running the following:
 
 ```shell
+COMPOSE_PROFILES=spar-no-auth docker compose up --build
+```
+
+This launches the base services as well as the SPAR module, which contains both workroom and agent server.
+
+If you want **hot reloading** for workroom, you can run the following:
+
+_Terminal 1:_
+
+```shell
+COMPOSE_PROFILES=agent-server-no-auth docker compose up --build
+```
+
+_Terminal 2:_
+
+```shell
+cd workroom
 npm run dev
 ```
 
-2. Run the rest of the stack with docker:
+And finally if you want to hot reload both workroom and agent server, just run the base docker stack in one terminal:
 
 ```shell
-# Runs agent-server, postgres, OTEL in Docker
-COMPOSE_PROFILES=agent-server-no-auth docker compose up
-# Runs postgres, OTEL in Docker
 docker compose up
 ```
 
-#### [Advanced Docker Stack Configuration] Workroom / Agent Server with Postgres Database
-
-The root `compose.yml` configuration configures a wide variety of Docker services and system configurations. It's a great development target if you're working with Workroom.
-
-This docker compose setup makes strong use of compose profiles, which allow for switching services on and off to allow for multiple ways of working with it.
+And the other hot reloading commands in separate terminals.
 
 > [!TIP]
 > Compose profiles are just like "tags". You can set one or more by either using `COMPOSE_PROFILES=one,two docker compose up` or `docker compose --profile one --profile two up`.
 
 The following table shows the various configurations you can run:
 
-|                                 | _No Profiles_ | `agent-server-no-auth` | `agent-server-auth` | `workroom-production` |
-| ------------------------------- | ------------- | ---------------------- | ------------------- | --------------------- |
-| Postgres                        | ✅            | ✅                     | ✅                  | ✅                    |
-| Influx                          | ✅            | ✅                     | ✅                  | ✅                    |
-| Open Telemetry                  | ✅            | ✅                     | ✅                  | ✅                    |
-| Agent Server, no authentication |               | ✅                     |                     |                       |
-| Agent server, authenticated     |               |                        | ✅                  |                       |
-| Workroom, production config     |               |                        |                     | ✅                    |
-
-So, for example, if you wanted to run a _non-authenticated agent server_ with the _workroom in production mode_, you'd execute the following:
-
-```shell
-COMPOSE_PROFILES=agent-server-no-auth,workroom-production docker compose up --build
-```
-
-Or if you were using Workroom with hot reloading:
-
-```shell
-# In terminal 1:
-COMPOSE_PROFILES=agent-server-no-auth docker compose up
-
-# In terminal 2:
-cd workroom && npm run dev
-```
+|                            | _No Profiles_ | `agent-server-no-auth` | `spar-no-auth` |
+| -------------------------- | ------------- | ---------------------- | -------------- |
+| Postgres                   | ✅            | ✅                     | ✅             |
+| Influx                     | ✅            | ✅                     | ✅             |
+| Open Telemetry             | ✅            | ✅                     | ✅             |
+| Workroom (SPAR module)     |               |                        | ✅             |
+| Agent Server (SPAR module) |               | ✅                     | ✅             |
 
 > [!TIP]
 > The running agent server will be available on [`http://localhost:8000`](http://localhost:8000), and workroom on [`http://localhost:8001`](http://localhost:8001).
@@ -239,118 +231,11 @@ Networking and other issues:
 ```sh
 docker compose down --remove-orphans
 docker network prune
-COMPOSE_PROFILES=agent-server-no-auth docker compose up --build --force-recreate
+COMPOSE_PROFILES=spar-no-auth docker compose up --build --force-recreate
 ```
 
----
-
-You can run a full-stack workroom and agent-server system using `docker` and `docker compose`. This stack comes in several flavours:
-
-1.  Hot reloading (agent-server and workroom built and watched for changes)
-2.  Production (everything built for you at startup - "finished product")
-3.  Agent server with forced-auth (docker)
-
-### Single Container Deployment (SPAR)
-
-#### Quick Start
-
-```bash
-# Pull and run both services with minimal configuration
-docker run -p 8000:8000 -p 8001:8001 \
-  -e DEPLOYMENT_TYPE=spar \
-  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
-  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
-  -e AUTH_MODE=none \
-  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
-```
-
-After starting, access:
-
-- **Agent Server API**: http://localhost:8000
-- **Workroom UI**: http://localhost:8001
-
-#### Configuration Examples
-
-**With PostgreSQL Database:**
-
-```bash
-docker run -p 8000:8000 -p 8001:8001 \
-  -e DEPLOYMENT_TYPE=spar \
-  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
-  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
-  -e POSTGRES_HOST=your-db-host.com \
-  -e POSTGRES_USER=myuser \
-  -e POSTGRES_PASSWORD=mypassword \
-  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
-```
-
-**With Agent Server JWT Authentication:**
-
-```bash
-docker run -p 8000:8000 -p 8001:8001 \
-  -e DEPLOYMENT_TYPE=spar \
-  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
-  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
-  -e AUTH_MODE=none \
-  -e AUTH_TYPE=jwt_local \
-  -e JWT_DECODE_KEY_B64=your_base64_jwt_key \
-  -e JWT_ALG=ES256 \
-  -e JWT_AUD=agent_server \
-  -e JWT_ISS=spar \
-  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
-```
-
-**With Snowflake Authentication (Workroom):**
-
-```bash
-docker run -p 8000:8000 -p 8001:8001 \
-  -e DEPLOYMENT_TYPE=spar \
-  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
-  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
-  -e AUTH_MODE=snowflake \
-  -e JWT_PRIVATE_KEY_B64=your_base64_jwt_key \
-  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
-```
-
-**Run Individual Services:**
-
-```bash
-# Workroom only (requires external agent-server)
-docker run -p 8001:8001 \
-  -e DISABLED_SERVICE=agent-server \
-  -e DEPLOYMENT_TYPE=spar \
-  -e AUTH_MODE=none \
-  -e AGENT_SERVER_URL=http://your-agent-server.com \
-  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
-
-# Agent-server only
-docker run -p 8000:8000 \
-  -e DISABLED_SERVICE=workroom \
-  -e DEPLOYMENT_TYPE=spar \
-  -e SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true \
-  -e SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true \
-  024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest
-```
-
-#### Key Environment Variables
-
-| Variable                                | Description                                        | Default        |
-| --------------------------------------- | -------------------------------------------------- | -------------- |
-| `DEPLOYMENT_TYPE`                       | Must be set to `spar`                              | -              |
-| `SEMA4AI_AGENT_SERVER_OTEL_ENABLED`     | Enable telemetry                                   | -              |
-| `SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS` | Enable work items                                  | -              |
-| `AUTH_TYPE`                             | Agent server auth type (`jwt_local`)               | -              |
-| `JWT_DECODE_KEY_B64`                    | JWT decode key (base64, required for JWT)          | -              |
-| `JWT_ALG`                               | JWT algorithm                                      | `ES256`        |
-| `JWT_AUD`                               | JWT audience                                       | `agent_server` |
-| `JWT_ISS`                               | JWT issuer                                         | `spar`         |
-| `AUTH_MODE`                             | Workroom auth mode (`none`, `snowflake`, `google`) | `none`         |
-| `JWT_PRIVATE_KEY_B64`                   | Workroom JWT key (for snowflake/google auth)       | -              |
-| `DISABLED_SERVICE`                      | Disable `agent-server` or `workroom`               | -              |
-| `PORT`                                  | Agent server port                                  | `8000`         |
-| `WORKROOM_PORT`                         | Workroom port                                      | `8001`         |
-
-See the image in ECR: `024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/spar:latest`
+> [!TIP]
+> Refer to the `compose.yml` and Dockerfile sources for what environment variables are required in each case. Since they change often, maintaining a list in the README is non-ideal.
 
 ### Creating agents
 

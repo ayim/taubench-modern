@@ -55,13 +55,13 @@ export const getConfiguration = (): Configuration => {
         return { type: 'none' };
       case 'snowflake': {
         return {
-          jwtPrivateKeyB64: parseEnvVariable('JWT_DECODE_KEY_B64'),
+          jwtPrivateKeyB64: parseEnvVariable('AGENT_SERVER_JWT_PRIVATE_KEY_B64'),
           type: 'snowflake',
         };
       }
       case 'google': {
         return {
-          jwtPrivateKeyB64: parseEnvVariable('JWT_DECODE_KEY_B64'),
+          jwtPrivateKeyB64: parseEnvVariable('AGENT_SERVER_JWT_PRIVATE_KEY_B64'),
           type: 'google',
         };
       }
