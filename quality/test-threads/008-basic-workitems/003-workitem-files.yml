@@ -1,0 +1,33 @@
+name: test-name-workitem
+description: What is my name?
+
+workitem:
+  - messages:
+      - role: user
+        content:
+          kind: attachment
+          description: Company Employees
+          mime_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+          file_name: employees.xlsx
+      - role: user
+        content:
+          kind: text
+          text: |
+            Review the structure of the uploaded file to understand what data is inside and how it's organized.
+            Remember that you should use the full path to download a file.
+    payload: {}
+
+target-platforms:
+  - name: openai
+  # - name: azure
+  # - name: bedrock
+  # - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have reviewed the schema of the uploaded file.
+      The agent should have examined the column headers in file sheets.
+  - kind: workitem-result-evaluation
+    expected: COMPLETED

@@ -128,12 +128,49 @@ class AgentRunner:
     def __init__(self, server_url: str):
         self.server_url = server_url.rstrip("/")
 
-    async def run_test_case(
+    async def run_test_case(  # noqa: PLR0915
         self, agent_id: str, test_case: TestCase, platform_name: str
     ) -> tuple[list[Message], WorkitemResult | None]:
         """Run a test case against an agent and return agent messages."""
         if test_case.workitem is not None:
             logger.info(f"Running test case with workitem {test_case.name}")
+
+            workitem_id = None
+
+            test_case_folder = Path(test_case.file_path).parent
+            attachments = [
+                attachment
+                for message in test_case.workitem.messages
+                for attachment in message.content
+                if isinstance(attachment, FileAttachment)
+            ]
+
+            if len(attachments) > 1:
+                raise ValueError(f"Only one file is allowed in workitems. Found {len(attachments)}")
+
+            if len(attachments) == 1:
+                attachment = attachments[0]
+                workitem_file = {
+                    "file": (
+                        attachment.file_name,
+                        open(test_case_folder / attachment.file_name, "rb"),
+                        attachment.mime_type,
+                    ),
+                }
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    try:
+                        response = await client.post(
+                            f"{self.server_url}/api/public/v1/work-items/upload-file",
+                            files=workitem_file,
+                        )
+                        response.raise_for_status()
+
+                        workitem = response.json()
+                        workitem_id = workitem.get("work_item_id")
+                    except httpx.HTTPError as e:
+                        logger.error(f"Cannot upload files: {e}")
+                        raise
+
             api_messages = [
                 build_agent_platform_user_message(message)
                 for message in test_case.workitem.messages
@@ -142,6 +179,7 @@ class AgentRunner:
                 "messages": api_messages,
                 "payload": test_case.workitem.payload,
                 "agent_id": agent_id,
+                "work_item_id": workitem_id,
             }
             async with httpx.AsyncClient(timeout=60.0 * 5) as client:
                 response = await client.post(
