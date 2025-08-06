@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import time
 from contextlib import asynccontextmanager
 
@@ -93,7 +94,10 @@ async def live_streamable_server(unused_tcp_port_factory):
     srv = await _make_dummy_server()
     app = srv.streamable_http_app()
 
-    with anyio.from_thread.start_blocking_portal() as portal:
+    with contextlib.ExitStack() as exit_stack:
+        exit_stack.enter_context(contextlib.suppress(anyio.ClosedResourceError))
+        portal = exit_stack.enter_context(anyio.from_thread.start_blocking_portal())
+
         config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
         server = uvicorn.Server(config)
         portal.start_task_soon(server.serve)  # background thread
@@ -110,7 +114,10 @@ async def live_sse_server(unused_tcp_port_factory):
     srv = await _make_dummy_server()
     app = srv.sse_app()
 
-    with anyio.from_thread.start_blocking_portal() as portal:
+    with contextlib.ExitStack() as exit_stack:
+        exit_stack.enter_context(contextlib.suppress(anyio.ClosedResourceError))
+        portal = exit_stack.enter_context(anyio.from_thread.start_blocking_portal())
+
         config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
         server = uvicorn.Server(config)
         portal.start_task_soon(server.serve)  # background thread
