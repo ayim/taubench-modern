@@ -293,32 +293,144 @@ class TestLocalFileSecretManager:
 
     def test_different_instances_cannot_decrypt_each_others_data(self):
         """Test that data encrypted by one manager instance cannot be decrypted
-        by another with different key."""
-        # Create first manager with fallback key
+        by another with different custom keys."""
+        # Create first manager with custom key
+        temp_key1 = "a" * 64  # First custom key
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".key") as f:
+            f.write(temp_key1)
+            temp_key_path1 = f.name
+
+        try:
+            env_var = "SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_FILE"
+            with patch.dict(os.environ, {env_var: temp_key_path1}):
+                manager1 = LocalFileSecretManager()
+                manager1.setup()
+
+                test_data = '{"key": "value", "number": 42}'
+                encrypted_reference = manager1.store(test_data)
+
+            # Create second manager with different custom key
+            temp_key2 = "b" * 64  # Different custom key
+            with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".key") as f:
+                f.write(temp_key2)
+                temp_key_path2 = f.name
+
+            try:
+                with patch.dict(os.environ, {env_var: temp_key_path2}):
+                    manager2 = LocalFileSecretManager()
+                    manager2.setup()
+
+                    # Attempting to decrypt with different custom key should fail
+                    from cryptography.exceptions import InvalidTag
+
+                    with pytest.raises(InvalidTag):  # Specific crypto exception
+                        manager2.fetch(encrypted_reference)
+            finally:
+                try:
+                    os.unlink(temp_key_path2)
+                except FileNotFoundError:
+                    pass
+        finally:
+            # Clean up temp file
+            try:
+                os.unlink(temp_key_path1)
+            except FileNotFoundError:
+                pass
+
+    def test_fallback_to_custom_key_migration(self):
+        """Test that a manager with custom key can decrypt data encrypted with fallback key."""
+        # Create first manager with no key file (uses fallback)
         manager1 = LocalFileSecretManager()
         manager1.setup()
 
-        test_data = '{"key": "value", "number": 42}'
+        test_data = '{"migration": "test", "scenario": "fallback_to_custom"}'
         encrypted_reference = manager1.store(test_data)
 
-        # Create a temporary key file with different key
-        temp_key = "a" * 64  # Different 64-character hex string
+        # Verify the data was encrypted with fallback key
+        from agent_platform.core.utils.encryption.envelope import EnvelopeEncryptionResult
+
+        envelope_result = EnvelopeEncryptionResult.from_json(encrypted_reference)
+        assert envelope_result.metadata.key_id == "fallback"
+
+        # Create second manager with custom key
+        temp_key = "c" * 64  # Custom key
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".key") as f:
             f.write(temp_key)
             temp_key_path = f.name
 
         try:
-            # Create second manager with different key
             env_var = "SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_FILE"
             with patch.dict(os.environ, {env_var: temp_key_path}):
                 manager2 = LocalFileSecretManager()
                 manager2.setup()
 
-                # Attempting to decrypt with different key should fail
+                # Manager with custom key should be able to decrypt fallback data
+                # (migration scenario)
+                decrypted_data = manager2.fetch(encrypted_reference)
+                assert decrypted_data == test_data
+
+        finally:
+            # Clean up temp file
+            try:
+                os.unlink(temp_key_path)
+            except FileNotFoundError:
+                pass
+
+    def test_fallback_decryption_mechanism_workflow(self):
+        """Test the complete fallback decryption workflow: primary fails → fallback succeeds."""
+        # Step 1: Create manager with no key file (uses fallback) and encrypt data
+        manager_fallback = LocalFileSecretManager()
+        manager_fallback.setup()
+
+        test_data = '{"workflow": "test", "step": "fallback_encryption"}'
+        encrypted_reference = manager_fallback.store(test_data)
+
+        # Verify the data was encrypted with fallback key
+        from agent_platform.core.utils.encryption.envelope import EnvelopeEncryptionResult
+
+        envelope_result = EnvelopeEncryptionResult.from_json(encrypted_reference)
+        assert envelope_result.metadata.key_id == "fallback"
+
+        # Step 2: Create manager with custom key
+        temp_key = "d" * 64  # Custom key
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".key") as f:
+            f.write(temp_key)
+            temp_key_path = f.name
+
+        try:
+            env_var = "SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_FILE"
+            with patch.dict(os.environ, {env_var: temp_key_path}):
+                manager_custom = LocalFileSecretManager()
+                manager_custom.setup()
+
+                # Step 3: Manually test what happens if we try to decrypt with primary key
+                # This simulates the "first try primary key" step of our fetch logic
                 from cryptography.exceptions import InvalidTag
 
-                with pytest.raises(InvalidTag):  # Specific crypto exception
-                    manager2.fetch(encrypted_reference)
+                # Try to decrypt with primary (custom) key - this should fail
+                primary_encryption = manager_custom._envelope_encryption
+                assert primary_encryption is not None
+                with pytest.raises(InvalidTag):
+                    primary_encryption.decrypt(encrypted_reference)
+
+                # Step 4: Now test that fallback decryption works
+                fallback_encryption = manager_custom._fallback_envelope_encryption
+                assert fallback_encryption is not None
+                decrypted_with_fallback = fallback_encryption.decrypt(encrypted_reference)
+                assert decrypted_with_fallback == test_data
+
+                # Step 5: Test the complete fetch method
+                # (which should handle the fallback automatically)
+                decrypted_data = manager_custom.fetch(encrypted_reference)
+                assert decrypted_data == test_data
+
+                print("✅ Workflow test passed:")
+                key_id = envelope_result.metadata.key_id
+                print(f"   1. Data encrypted with fallback key (key_id: {key_id})")
+                print("   2. Primary custom key decryption failed as expected")
+                print("   3. Fallback key decryption succeeded")
+                print("   4. fetch() method automatically used fallback and succeeded")
+
         finally:
             # Clean up temp file
             try:

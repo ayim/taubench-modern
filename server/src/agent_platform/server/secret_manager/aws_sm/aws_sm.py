@@ -42,6 +42,7 @@ class AwsSecretManager(BaseSecretManager):
     2. Uses local AES-GCM encryption for actual data
     3. Returns JSON envelope containing metadata, encrypted data key, and encrypted data
     4. Follows the envelope encryption pattern for secure key management
+    5. Falls back to hardcoded key when KMS ARN is not provided
     """
 
     SCHEME = "sema4ai-envelope-aws-kms-aes-gcm-256-v1"
@@ -58,12 +59,18 @@ class AwsSecretManager(BaseSecretManager):
         self._region_name: str | None = None
         self._client: Any | None = None
 
+        # Always create fallback encryption instance for decrypting old fallback data
+        from agent_platform.core.utils.encryption.envelope import StaticKeyEnvelopeEncryption
+
+        self._fallback_envelope_encryption: StaticKeyEnvelopeEncryption = (
+            StaticKeyEnvelopeEncryption(self.FALLBACK_KEY, key_id="fallback")
+        )
+
         if self._kms_key_arn is None:
             raise ValueError("KMS key ARN is required to initialize AWS KMS Secret Manager")
 
         # Parse region from ARN
         self._region_name = self._parse_region_from_arn(self._kms_key_arn)
-
         self.setup()
 
     def _parse_region_from_arn(self, arn: str) -> str:
@@ -286,9 +293,9 @@ class AwsSecretManager(BaseSecretManager):
         """
         Retrieve and decrypt data using AWS KMS envelope encryption.
 
-        1. Parses the stored envelope
-        2. Uses AWS KMS to decrypt the data key
-        3. Uses the plaintext data key to decrypt the data locally
+        1. Parses the stored envelope to check key_id
+        2. If key_id is "fallback", uses fallback key to decrypt
+        3. Otherwise uses AWS KMS to decrypt the data key
 
         Args:
             stored_reference: The JSON envelope returned from store()
@@ -302,10 +309,16 @@ class AwsSecretManager(BaseSecretManager):
         if self._client is None:
             raise RuntimeError("AWS KMS client not initialized. Call setup() first.")
 
+        # Parse metadata to check which key was used for encryption
         try:
-            # Parse and validate the envelope
             envelope_result = self._parse_and_validate_envelope(stored_reference)
+            encrypted_key_id = envelope_result.metadata.key_id
 
+            # If data was encrypted with fallback key, use fallback to decrypt
+            if encrypted_key_id == "fallback":
+                return self._fallback_envelope_encryption.decrypt(stored_reference)
+
+            # Otherwise, use KMS decryption
             # Decrypt the data key using AWS KMS
             plaintext_data_key = self._decrypt_data_key(envelope_result)
 

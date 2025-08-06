@@ -7,6 +7,10 @@ class BaseSecretManager(ABC):
     This class is responsible for managing the secrets for the agent platform.
     """
 
+    # Centralized fallback key used when no custom key is configured
+    # This ensures all secret managers use the same fallback for consistency
+    FALLBACK_KEY = bytes.fromhex("6fb689e35a85aaa6ca3f8726350c9ec8a681156db9f51cf8faf0264c3146e6c3")
+
     @abstractmethod
     def setup(self) -> None:
         """

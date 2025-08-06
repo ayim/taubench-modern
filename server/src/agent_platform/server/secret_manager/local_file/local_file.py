@@ -13,17 +13,21 @@ logger = get_logger(__name__)
 class LocalFileSecretManager(BaseSecretManager):
     """Local file-based secret manager with hardcoded fallback."""
 
-    FALLBACK_KEY = bytes.fromhex("6fb689e35a85aaa6ca3f8726350c9ec8a681156db9f51cf8faf0264c3146e6c3")
-
     def __init__(self):
         self.secret_file = os.getenv("SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_FILE")
         self.encryption_key: bytes = b""
         self._envelope_encryption: StaticKeyEnvelopeEncryption | None = None
+        self._fallback_envelope_encryption: StaticKeyEnvelopeEncryption | None = None
         self.setup()
 
     def setup(self):
         """Load encryption key from file or use fallback."""
         key = self._load_key_from_file()
+
+        # Always create fallback envelope encryption instance
+        self._fallback_envelope_encryption = StaticKeyEnvelopeEncryption(
+            self.FALLBACK_KEY, key_id="fallback"
+        )
 
         # Use fallback only if file is not present or empty
         if key is None or key.strip() == "":
@@ -37,7 +41,7 @@ class LocalFileSecretManager(BaseSecretManager):
         # Generate key_id using SHA256 hash of the key
         key_id = hashlib.sha256(self.encryption_key).hexdigest()
 
-        # Initialize envelope encryption with SHA256-based key identifier
+        # Initialize primary envelope encryption
         self._envelope_encryption = StaticKeyEnvelopeEncryption(self.encryption_key, key_id=key_id)
 
     def _is_valid_key(self, key: str) -> bool:
@@ -76,9 +80,8 @@ class LocalFileSecretManager(BaseSecretManager):
         """Use hardcoded fallback key with warning."""
         logger.warning("Using hardcoded fallback key. This is NOT secure for production use!")
         self.encryption_key = self.FALLBACK_KEY
-        self._envelope_encryption = StaticKeyEnvelopeEncryption(
-            self.encryption_key, key_id="fallback"
-        )
+        # Use the fallback envelope encryption as the primary one
+        self._envelope_encryption = self._fallback_envelope_encryption
 
     def store(self, data: str) -> str:
         """Store data using envelope encryption and return the encrypted result."""
@@ -90,4 +93,20 @@ class LocalFileSecretManager(BaseSecretManager):
         """Retrieve and decrypt data that was stored using envelope encryption."""
         if self._envelope_encryption is None:
             raise RuntimeError("Secret manager not properly initialized")
-        return self._envelope_encryption.decrypt(stored_reference)
+
+        # Parse metadata to check which key was used for encryption
+        from agent_platform.core.utils.encryption.envelope import EnvelopeEncryptionResult
+
+        try:
+            envelope_result = EnvelopeEncryptionResult.from_json(stored_reference)
+            encrypted_key_id = envelope_result.metadata.key_id
+
+            # If data was encrypted with fallback key, use fallback to decrypt
+            if encrypted_key_id == "fallback" and self._fallback_envelope_encryption is not None:
+                return self._fallback_envelope_encryption.decrypt(stored_reference)
+            else:
+                return self._envelope_encryption.decrypt(stored_reference)
+
+        except Exception:
+            # If metadata parsing fails, fall back to primary encryption
+            return self._envelope_encryption.decrypt(stored_reference)
