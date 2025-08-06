@@ -190,24 +190,26 @@ const CELL_COMPONENT_MAPPING: CellComponentMappingType = {
     const shouldShowButton = hasValidUrl;
 
     return (
-      <Table.Cell className="max-w-32">
+      <Table.Cell className="max-w-40">
         {shouldShowButton ? (
-          <Button
-            variant="secondary"
-            size="small"
-            forwardedAs="a"
-            href={workItemUrl}
-            target="_blank"
-            round
-            rel="noopener noreferrer"
-            aria-label="View Work Item content"
-            data-testid="work-item-view-button"
-          >
-            <Box display="flex" alignItems="center" gap="5px">
-              View Work Item
-              <IconShare />
-            </Box>
-          </Button>
+          <div className="flex items-center">
+            <Button
+              variant="secondary"
+              size="small"
+              forwardedAs="a"
+              href={workItemUrl}
+              target="_blank"
+              iconAfter={IconShare}
+              round
+              rel="noopener noreferrer"
+              aria-label="View Work Item content"
+              data-testid="work-item-view-button"
+              className="whitespace-nowrap w-full"
+            >
+              <span className="md:hidden">View</span>
+              <span className="hidden md:inline">View Work Item</span>
+            </Button>
+          </div>
         ) : (
           <span className="text-gray-400 text-sm">-</span>
         )}
@@ -217,7 +219,7 @@ const CELL_COMPONENT_MAPPING: CellComponentMappingType = {
 
   status: memo(({ rowData }) => {
     return (
-      <Table.Cell className="max-w-32 whitespace-nowrap overflow-hidden text-ellipsis" data-testid="status-cell">
+      <Table.Cell className="max-w-40 whitespace-nowrap" data-testid="status-cell">
         {renderStatusBadge(rowData.status || 'PENDING')}
       </Table.Cell>
     );
