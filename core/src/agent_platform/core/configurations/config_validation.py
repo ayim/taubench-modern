@@ -47,3 +47,37 @@ def validate_config_type(config_type: str) -> None:
         raise ValueError(
             f"Invalid config_type: {config_type}. Must be one of: {sorted(ALL_CONFIG_TYPES)}"
         )
+
+
+def validate_config_value(config_type: ConfigType, value: str) -> int:
+    """Validate and convert a config value.
+
+    Args:
+        config_type: The configuration type to validate against
+        value: The string value to validate and convert
+
+    Returns:
+        int: The validated integer value
+
+    Raises:
+        ValueError: If the value is invalid
+    """
+    # First validate the config type exists
+    validate_config_type(config_type)
+
+    try:
+        int_value = int(value)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid value '{value}' for {config_type}: must be a valid integer"
+        ) from e
+
+    # All config types should be non-negative.
+    # Later, when there is an usecase, we can use the config_type
+    # and do match case to validate the value.
+    if int_value < 0:
+        raise ValueError(
+            f"Invalid value {int_value} for {config_type}: must be >= 0 (non-negative)"
+        )
+
+    return int_value

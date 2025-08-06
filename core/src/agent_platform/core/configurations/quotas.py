@@ -12,6 +12,7 @@ from agent_platform.core.configurations.config_validation import (
     STORAGE_KEY_MAX_WORK_ITEM_PAYLOAD_SIZE,
     ConfigType,
     validate_config_type,
+    validate_config_value,
 )
 from agent_platform.server.storage import StorageService
 
@@ -144,12 +145,19 @@ class QuotasService:
                 )
 
     async def _set_config_value(self, config_type: ConfigType, new_value: str) -> None:
-        """Generic method to set a config value."""
-        validate_config_type(config_type)
+        """Generic method to set a config value.
+
+        Args:
+            config_type: The type of configuration to set
+            new_value: The new value as a string
+
+        Raises:
+            ValueError: If the value is invalid for the given config type
+        """
+        # Validate both config type and value - this will raise ValueError if invalid
+        int_value = validate_config_value(config_type, new_value)
 
         config = self.CONFIG_TYPES[config_type]
-        int_value = int(new_value)
-
         await StorageService.get_instance().set_config(config.storage_key, new_value)
         self._config_values[config_type] = int_value
 

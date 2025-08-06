@@ -216,3 +216,19 @@ class TestQuotaServiceConfig:
         agent_config = QuotasService.CONFIG_TYPES[QuotasService.MAX_AGENTS]
         assert agent_config.storage_key == "MAX_AGENTS"
         assert agent_config.default_value == 100
+
+    def test_config_value_validation(self):
+        """Test config value validation - positive values pass, negative values raise error."""
+        from agent_platform.core.configurations.config_validation import validate_config_value
+
+        # Test positive values - should succeed
+        assert validate_config_value("MAX_AGENTS", "100") == 100
+        assert validate_config_value("MAX_AGENTS", "0") == 0
+        assert validate_config_value("MAX_AGENTS", "1") == 1
+
+        # Test negative values - should raise error
+        with pytest.raises(ValueError, match="must be >= 0 \\(non-negative\\)"):
+            validate_config_value("MAX_AGENTS", "-1")
+
+        with pytest.raises(ValueError, match="must be >= 0 \\(non-negative\\)"):
+            validate_config_value("MAX_AGENTS", "-100")

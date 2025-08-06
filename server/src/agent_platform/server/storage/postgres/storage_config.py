@@ -1,3 +1,5 @@
+import json
+
 from agent_platform.core.config.config import Config
 from agent_platform.core.configurations.config_validation import ConfigType, validate_config_type
 from agent_platform.server.storage.errors import ConfigNotFoundError
@@ -12,7 +14,13 @@ class PostgresStorageConfigMixin(CommonMixin):
             await cur.execute("SELECT * FROM v2.agent_config")
             if not (rows := await cur.fetchall()):
                 return []
-            return [Config.model_validate(row) for row in rows]
+            configs = []
+            for row in rows:
+                row_dict = dict(row)
+                if isinstance(row_dict["config_value"], dict):
+                    row_dict["config_value"] = json.dumps(row_dict["config_value"])
+                configs.append(Config.model_validate(row_dict))
+            return configs
 
     async def get_config(self, config_type: ConfigType) -> Config:
         validate_config_type(config_type)
@@ -29,12 +37,15 @@ class PostgresStorageConfigMixin(CommonMixin):
             if not (row := await cur.fetchone()):
                 raise ConfigNotFoundError(config_type)
 
-            return Config.model_validate(row)
+            row_dict = dict(row)
+            if isinstance(row_dict["config_value"], dict):
+                row_dict["config_value"] = json.dumps(row_dict["config_value"])
+            return Config.model_validate(row_dict)
 
     async def set_config(self, config_type: ConfigType, current_value: str):
         validate_config_type(config_type)
 
-        config_value = {"current": current_value}
+        config_value = json.dumps({"current": current_value})
 
         async with self._cursor() as cur:
             await cur.execute(
