@@ -1,3 +1,7 @@
+# Unreleased
+
+- Add pre-ignition check for document intelligence data server in private v2 API, currently only a stub and will fail with a 412 error.
+
 # Sema4.ai Agent Server 2.0.27 (2025-08-04)
 
 - Add default API key for action server authentication
