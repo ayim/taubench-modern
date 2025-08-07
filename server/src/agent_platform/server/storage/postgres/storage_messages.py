@@ -4,15 +4,16 @@ from psycopg.rows import DictRow
 from psycopg.types.json import Jsonb
 
 from agent_platform.core.thread import ThreadMessage
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     ThreadNotFoundError,
     UserAccessDeniedError,
     UserPermissionError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageMessagesMixin(CommonMixin):
+class PostgresStorageMessagesMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL message operations."""
 
     async def overwrite_thread_messages(

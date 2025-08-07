@@ -2,16 +2,17 @@ from psycopg.errors import IntegrityError
 from psycopg.types.json import Jsonb
 
 from agent_platform.core.agent import Agent
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
     AgentWithNameAlreadyExistsError,
     RecordAlreadyExistsError,
     UserAccessDeniedError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageAgentsMixin(CommonMixin):
+class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL agent operations."""
 
     async def list_agents(self, user_id: str) -> list[Agent]:

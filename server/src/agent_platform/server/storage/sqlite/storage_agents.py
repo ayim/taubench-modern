@@ -4,6 +4,7 @@ import aiosqlite
 from structlog import get_logger
 
 from agent_platform.core.agent import Agent
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
     AgentWithNameAlreadyExistsError,
@@ -11,10 +12,10 @@ from agent_platform.server.storage.errors import (
     StorageError,
     UserAccessDeniedError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageAgentsMixin(CommonMixin):
+class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based agent operations.
     """

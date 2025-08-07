@@ -194,3 +194,19 @@ class PlatformConfigWithNameAlreadyExistsError(PlatformHTTPError):
         self, message: str = "A platform configuration with the given name already exists"
     ):
         super().__init__(error_code=ErrorCode.CONFLICT, message=message)
+
+
+class DIDSConnectionDetailsNotFoundError(PlatformHTTPError):
+    """Document Intelligence DataServer has not been configured."""
+
+    def __init__(self, message: str = "Document Intelligence DataServer has not been configured"):
+        super().__init__(error_code=ErrorCode.UNEXPECTED, message=message)
+
+
+class DocumentIntelligenceIntegrationNotFoundError(PlatformHTTPError):
+    """A document intelligence integration with the given ID was not found."""
+
+    def __init__(
+        self, message: str = "A document intelligence integration with the given ID was not found"
+    ):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)

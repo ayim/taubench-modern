@@ -6,11 +6,12 @@ from structlog import get_logger
 
 from agent_platform.core.config.config import Config
 from agent_platform.core.configurations.config_validation import ConfigType, validate_config_type
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import ConfigNotFoundError
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageConfigMixin(CommonMixin):
+class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based config operations
     """

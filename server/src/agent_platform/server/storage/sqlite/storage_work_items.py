@@ -6,11 +6,12 @@ from agent_platform.core.work_items import (
     WorkItemStatus,
     WorkItemStatusUpdatedBy,
 )
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import WorkItemNotFoundError
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageWorkItemsMixin(CommonMixin):
+class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
     """Mixin providing SQLite-based work-item operations."""
 
     # ------------------------------------------------------------------

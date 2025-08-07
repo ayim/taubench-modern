@@ -12,6 +12,7 @@ from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
 from agent_platform.server.constants import SystemPaths
+from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.sqlite.migrations import SQLiteMigrations
 from agent_platform.server.storage.sqlite.storage_agents import (
     SQLiteStorageAgentsMixin,
@@ -21,6 +22,9 @@ from agent_platform.server.storage.sqlite.storage_artifacts import (
 )
 from agent_platform.server.storage.sqlite.storage_config import (
     SQLiteStorageConfigMixin,
+)
+from agent_platform.server.storage.sqlite.storage_document_intelligence import (
+    SQLiteStorageDocumentIntelligenceMixin,
 )
 from agent_platform.server.storage.sqlite.storage_files import (
     SQLiteStorageFilesMixin,
@@ -119,6 +123,8 @@ class SQLiteStorage(
     SQLiteStorageMCPServersMixin,
     SQLiteStoragePlatformConfigsMixin,
     SQLiteStorageConfigMixin,
+    SQLiteStorageDocumentIntelligenceMixin,
+    BaseStorage,
 ):
     """
     SQLite-based storage that mirrors the Postgres-based semantics, including

@@ -4,14 +4,15 @@ from aiosqlite import IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.memory import Memory
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     MemoryNotFoundError,
     RecordAlreadyExistsError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageMemoriesMixin(CommonMixin):
+class SQLiteStorageMemoriesMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based memory operations.
     Assumes that helper methods such as `_cursor()` and

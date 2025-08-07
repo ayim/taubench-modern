@@ -2,11 +2,12 @@ import json
 
 from agent_platform.core.config.config import Config
 from agent_platform.core.configurations.config_validation import ConfigType, validate_config_type
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import ConfigNotFoundError
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageConfigMixin(CommonMixin):
+class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL config operations"""
 
     async def list_all_configs(self) -> list[Config]:

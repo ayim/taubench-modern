@@ -5,15 +5,16 @@ from psycopg.errors import UniqueViolation
 from psycopg.sql import SQL
 
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
     RecordAlreadyExistsError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageMCPServersMixin(CommonMixin):
+class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL MCP server operations."""
 
     async def create_mcp_server(self, mcp_server: MCPServer, source: MCPServerSource) -> str:

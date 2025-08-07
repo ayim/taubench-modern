@@ -1,28 +1,16 @@
 import json
-from abc import abstractmethod
-from contextlib import AbstractAsyncContextManager
 from uuid import UUID
 
-from aiosqlite.cursor import Cursor
-
+from agent_platform.core.utils.secret_str import SecretString
 from agent_platform.server.secret_manager.option import SecretService
-from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.errors import InvalidUUIDError
 
 
-class CommonMixin(BaseStorage):
+class CommonMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Initialize secret manager once and reuse it
         self._secret_manager = SecretService.get_instance()
-
-    @abstractmethod
-    def _cursor(
-        self,
-        cursor: Cursor | None = None,
-    ) -> AbstractAsyncContextManager[Cursor]:
-        """Get a cursor for the database (or uses the provided cursor)."""
-        pass
 
     def _validate_uuid(self, uuid: str) -> None:
         """Validate a UUID string."""
@@ -41,3 +29,12 @@ class CommonMixin(BaseStorage):
         """Decrypt the input config using the secret manager and return as dictionary."""
         decrypted_json = self._secret_manager.fetch(encrypted_config)
         return json.loads(decrypted_json)
+
+    def _encrypt_secret_string(self, secret_string: SecretString) -> str:
+        """Encrypt the input secret string using the secret manager."""
+        return self._secret_manager.store(secret_string.get_secret_value())
+
+    def _decrypt_secret_string(self, encrypted_secret_string: str) -> SecretString:
+        """Decrypt the input secret string using the secret manager."""
+        decrypted_json = self._secret_manager.fetch(encrypted_secret_string)
+        return SecretString(decrypted_json)

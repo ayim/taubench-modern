@@ -4,15 +4,16 @@ from sqlite3 import IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.storage import ScopedStorage
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
     ScopedStorageNotFoundError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageScopedStorageMixin(CommonMixin):
+class SQLiteStorageScopedStorageMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based scoped storage operations.
     Assumes that helper methods such as `_cursor()` and

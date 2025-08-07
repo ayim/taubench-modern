@@ -4,14 +4,15 @@ from aiosqlite import IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     ArtifactNotFoundError,
     RecordAlreadyExistsError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageArtifactsMixin(CommonMixin):
+class SQLiteStorageArtifactsMixin(CursorMixin, CommonMixin):
     """Mixin providing SQLite-based artifact operations."""
 
     _logger = get_logger(__name__)

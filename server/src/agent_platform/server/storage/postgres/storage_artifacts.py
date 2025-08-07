@@ -3,14 +3,15 @@ from datetime import UTC, datetime, timedelta
 from psycopg.errors import IntegrityError
 
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     ArtifactNotFoundError,
     RecordAlreadyExistsError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageArtifactsMixin(CommonMixin):
+class PostgresStorageArtifactsMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL artifact operations."""
 
     async def create_otel_artifact(self, artifact: OTelArtifact) -> None:

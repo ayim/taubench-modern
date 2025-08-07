@@ -3,15 +3,16 @@ from datetime import UTC, datetime
 from psycopg.errors import UniqueViolation
 
 from agent_platform.core.platforms.base import PlatformParameters
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     PlatformConfigNotFoundError,
     PlatformConfigWithNameAlreadyExistsError,
     RecordAlreadyExistsError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStoragePlatformConfigsMixin(CommonMixin):
+class PostgresStoragePlatformConfigsMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL platform parameters operations."""
 
     async def create_platform_params(self, platform_params: PlatformParameters) -> None:

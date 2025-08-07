@@ -4,16 +4,17 @@ from aiosqlite import Cursor, IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.thread import ThreadMessage
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
     ThreadNotFoundError,
     UserPermissionError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageMessagesMixin(CommonMixin):
+class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based message operations.
     """

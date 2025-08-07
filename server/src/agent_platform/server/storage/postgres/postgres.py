@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
+from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.postgres.migrations import PostgresMigrations
 from agent_platform.server.storage.postgres.storage_agents import (
     PostgresStorageAgentsMixin,
@@ -18,6 +19,9 @@ from agent_platform.server.storage.postgres.storage_artifacts import (
 )
 from agent_platform.server.storage.postgres.storage_config import (
     PostgresStorageConfigMixin,
+)
+from agent_platform.server.storage.postgres.storage_document_intelligence import (
+    PostgresStorageDocumentIntelligenceMixin,
 )
 from agent_platform.server.storage.postgres.storage_files import (
     PostgresStorageFilesMixin,
@@ -118,6 +122,8 @@ class PostgresStorage(
     PostgresStorageMCPServersMixin,
     PostgresStoragePlatformConfigsMixin,
     PostgresStorageConfigMixin,
+    PostgresStorageDocumentIntelligenceMixin,
+    BaseStorage,
 ):
     V2_PREFIX = "v2."
 

@@ -4,16 +4,17 @@ from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from psycopg.types.json import Jsonb
 
 from agent_platform.core.runs import Run, RunStep
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
     RunNotFoundError,
     RunStepNotFoundError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageRunsMixin(CommonMixin):
+class PostgresStorageRunsMixin(CursorMixin, CommonMixin):
     """
     Mixin providing PostgreSQL-based run and run step operations.
 

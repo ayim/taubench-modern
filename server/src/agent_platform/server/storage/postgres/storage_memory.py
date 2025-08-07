@@ -2,14 +2,15 @@ from psycopg.errors import UniqueViolation
 from psycopg.types.json import Jsonb
 
 from agent_platform.core.memory import Memory
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     MemoryNotFoundError,
     RecordAlreadyExistsError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageMemoriesMixin(CommonMixin):
+class PostgresStorageMemoriesMixin(CursorMixin, CommonMixin):
     """
     Mixin providing PostgreSQL-based memory operations.
 

@@ -3,15 +3,16 @@ from psycopg.types.json import Jsonb
 from structlog import get_logger
 
 from agent_platform.core.storage import ScopedStorage
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
     ScopedStorageNotFoundError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageScopedStorageMixin(CommonMixin):
+class PostgresStorageScopedStorageMixin(CursorMixin, CommonMixin):
     """
     Mixin providing PostgreSQL-based scoped storage operations.
 

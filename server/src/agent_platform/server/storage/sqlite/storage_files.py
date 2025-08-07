@@ -9,6 +9,7 @@ from agent_platform.core.files import UploadedFile
 from agent_platform.core.thread import Thread
 from agent_platform.core.work_items import WorkItem
 from agent_platform.server.constants import SystemConfig
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
     ThreadFileNotFoundError,
@@ -18,10 +19,10 @@ from agent_platform.server.storage.errors import (
     WorkItemFileNotFoundError,
     WorkItemNotFoundError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageFilesMixin(CommonMixin):
+class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based file operations.
     Assumes that helper methods such as `_cursor()`

@@ -4,15 +4,16 @@ from sqlite3 import IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.platforms.base import PlatformParameters
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     PlatformConfigNotFoundError,
     PlatformConfigWithNameAlreadyExistsError,
     RecordAlreadyExistsError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStoragePlatformConfigsMixin(CommonMixin):
+class SQLiteStoragePlatformConfigsMixin(CursorMixin, CommonMixin):
     """Mixin providing SQLite-based platform parameters operations."""
 
     _logger = get_logger(__name__)

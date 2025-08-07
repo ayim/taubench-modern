@@ -5,11 +5,12 @@ from aiosqlite import IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.user import User
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import NoSystemUserError, UserNotFoundError
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageUsersMixin(CommonMixin):
+class SQLiteStorageUsersMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based user operations.
     """

@@ -4,11 +4,12 @@ from uuid import uuid4
 from psycopg.errors import UniqueViolation
 
 from agent_platform.core.user import User
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import NoSystemUserError, UserNotFoundError
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageUsersMixin(CommonMixin):
+class PostgresStorageUsersMixin(CursorMixin, CommonMixin):
     async def get_user_by_id(self, user_id: str) -> User:
         """Get a user by ID."""
         self._validate_uuid(user_id)

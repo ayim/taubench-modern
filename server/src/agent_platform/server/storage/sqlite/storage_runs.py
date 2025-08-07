@@ -4,16 +4,17 @@ from aiosqlite import IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.runs import Run, RunStep
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
     RunNotFoundError,
     RunStepNotFoundError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageRunsMixin(CommonMixin):
+class SQLiteStorageRunsMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based run and run step operations.
     Assumes that helper methods such as `_cursor()` and

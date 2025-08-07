@@ -10,15 +10,16 @@ from agent_platform.core.work_items import (
     WorkItemStatus,
     WorkItemStatusUpdatedBy,
 )
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
     WorkItemNotFoundError,
 )
-from agent_platform.server.storage.postgres.common import CommonMixin
+from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 
-class PostgresStorageWorkItemsMixin(CommonMixin):
+class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
     """Mixin providing PostgreSQL-based work-item operations."""
 
     # ------------------------------------------------------------------

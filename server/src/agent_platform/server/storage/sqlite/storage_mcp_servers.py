@@ -5,15 +5,16 @@ from sqlite3 import IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
+from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
     RecordAlreadyExistsError,
 )
-from agent_platform.server.storage.sqlite.common import CommonMixin
+from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
-class SQLiteStorageMCPServersMixin(CommonMixin):
+class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
     """
     Mixin providing SQLite-based MCP server operations.
     """
