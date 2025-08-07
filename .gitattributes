@@ -1,0 +1,3 @@
+# Without below, docker container will not be able to execute .sh files
+# and will throw error `no such file or directory`
+* text=auto eol=lf
