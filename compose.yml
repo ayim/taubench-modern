@@ -12,12 +12,11 @@ x-env-spar: &template-env-spar
     SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
     SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
     # Workroom
-    AGENT_SERVER_URL: http://localhost:8000
-    AUTH_MODE: none
-    DEPLOYMENT_TYPE: spar
-    META_URL: http://localhost:8001/meta
-    NODE_ENV: production
-    WORKROOM_PORT: 8001
+    SEMA4AI_DEPLOYMENT_TYPE: spar
+    SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
+    SEMA4AI_WORKROOM_AUTH_MODE: none
+    SEMA4AI_WORKROOM_META_URL: http://localhost:8001/meta
+    SEMA4AI_WORKROOM_PORT: 8001
 
 x-service-spar: &template-service-spar
     build:
@@ -48,68 +47,6 @@ x-service-spar: &template-service-spar
             condition: service_healthy
         otel-collector:
             condition: service_started
-
-x-env-agent-server: &template-env-agent-server
-    LOG_LEVEL: DEBUG
-    OTEL_COLLECTOR_URL: http://otel-collector:4318
-    OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
-    POSTGRES_DB: agents
-    POSTGRES_HOST: postgres
-    POSTGRES_PASSWORD: agents
-    POSTGRES_PORT: 5432
-    POSTGRES_USER: agents
-    SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
-    SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
-
-x-service-agent-server: &template-service-agent-server
-    build:
-        context: .
-        dockerfile: Dockerfile
-        args:
-            AGENT_SERVER_PORT: 8000
-    ports:
-        - '8000:8000'
-    expose:
-        - '8000'
-    environment:
-        <<: *template-env-agent-server
-    restart: unless-stopped
-    networks:
-        default:
-            aliases:
-                - agent-server
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-        postgres:
-            condition: service_healthy
-        otel-collector:
-            condition: service_started
-
-x-service-workroom: &template-service-workroom
-    build:
-        context: ./workroom
-        dockerfile: Dockerfile
-        secrets:
-            - npmrc
-        args:
-            ACE_SERVICE_VERSION: v2-dev-build
-            NODE_ENV: production
-    environment:
-        AGENT_SERVER_URL: http://agent-server:8000
-        AUTH_MODE: none
-        DEPLOYMENT_TYPE: spar
-        META_URL: http://localhost:8001/meta
-        NODE_ENV: production
-        WORKROOM_PORT: 8001
-    ports:
-        - '8001:8001'
-    expose:
-        - '8001'
-    networks:
-        default:
-            aliases:
-                - workroom
 
 services:
     postgres:

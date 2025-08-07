@@ -122,9 +122,6 @@ jobs:
             "npmrc=./.npmrc"
           build-args: |
             ACE_SERVICE_VERSION=${{ steps.build-metadata.outputs.workroom-tag-sanitized }}
-            AGENT_SERVER_URL=http://agent-server:8000
-            DEPLOYMENT_TYPE=spar
-            META_URL=http://localhost:8001/meta
             NODE_ENV=production
             WORKROOM_URL=http://localhost:8001
 

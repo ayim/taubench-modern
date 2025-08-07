@@ -503,7 +503,7 @@ force-clean: clean ## Force remove build/dist artifacts (use with caution)
 # Workitems
 # --------------------------------------------------------------------
 
-#  Run the workitems server, standalone (requires a remote agent-server via AGENT_SERVER_URL)
+#  Run the workitems server, standalone (requires a remote agent-server via SEMA4AI_WORKROOM_AGENT_SERVER_URL)
 run-workitems-server:
 	uv run -m agent_platform.workitems
 

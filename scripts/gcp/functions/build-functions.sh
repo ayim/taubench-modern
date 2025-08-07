@@ -870,7 +870,7 @@ deploy_workroom() {
 
             gcloud run services update "$WORKROOM_SERVICE" \
                 --region="$REGION" \
-                --update-env-vars="META_URL=$workroom_url/meta,WORKROOM_URL=$workroom_url" \
+                --update-env-vars="SEMA4AI_WORKROOM_META_URL=$workroom_url/meta,SEMA4AI_WORKROOM_URL=$workroom_url" \
                 --quiet
 
             echo "✅ Workroom deployed"

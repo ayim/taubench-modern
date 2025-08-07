@@ -20,14 +20,10 @@ RUN sed -i -e "s/ACE_WORKROOM_VERSION_PLACEHOLDER/${ACE_SERVICE_VERSION}/g" fron
 #region Final
 FROM node:24-alpine
 
-ARG WORKROOM_PORT
+ARG SEMA4AI_WORKROOM_PORT=8001
 
 ENV NODE_ENV=production
-
-ENV AGENT_SERVER_HOST=
-ENV AGENT_SERVER_PORT=
-ENV ACE_SERVICE_VERSION=
-ENV WORKROOM_PORT=${WORKROOM_PORT}
+ENV SEMA4AI_WORKROOM_PORT=${SEMA4AI_WORKROOM_PORT}
 
 WORKDIR /app
 
@@ -39,7 +35,7 @@ COPY --from=build /app/frontend/dist frontend/dist
 COPY --from=build /app/frontend/public frontend/public
 COPY --from=build /app/backend/dist backend/dist
 
-EXPOSE $WORKROOM_PORT
+EXPOSE $SEMA4AI_WORKROOM_PORT
 
 ENTRYPOINT ["node", "./backend/dist/index.js"]
 

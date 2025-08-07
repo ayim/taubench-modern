@@ -33,7 +33,7 @@ export interface Configuration {
 }
 
 export const getConfiguration = (): Configuration => {
-  const port = parseEnvVariableInteger('WORKROOM_PORT');
+  const port = parseEnvVariableInteger('SEMA4AI_WORKROOM_PORT');
 
   const nodeEnv = (() => {
     const env = parseEnvVariable('NODE_ENV');
@@ -49,19 +49,19 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const auth = ((): Configuration['auth'] => {
-    const mode = parseEnvVariable('AUTH_MODE');
+    const mode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE');
     switch (mode) {
       case 'none':
         return { type: 'none' };
       case 'snowflake': {
         return {
-          jwtPrivateKeyB64: parseEnvVariable('AGENT_SERVER_JWT_PRIVATE_KEY_B64'),
+          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
           type: 'snowflake',
         };
       }
       case 'google': {
         return {
-          jwtPrivateKeyB64: parseEnvVariable('AGENT_SERVER_JWT_PRIVATE_KEY_B64'),
+          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
           type: 'google',
         };
       }
@@ -72,16 +72,16 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const deployment = ((): Configuration['deployment'] => {
-    const type = parseEnvVariable('DEPLOYMENT_TYPE') as Configuration['deployment']['type'];
+    const type = parseEnvVariable('SEMA4AI_WORKROOM_DEPLOYMENT_TYPE') as Configuration['deployment']['type'];
     switch (type) {
       case 'ace':
         return {
-          metaUrl: parseEnvVariable('META_URL'),
+          metaUrl: parseEnvVariable('SEMA4AI_WORKROOM_META_URL'),
           type: 'ace',
         };
       case 'spar':
         return {
-          agentServerInternalUrl: parseEnvVariable('AGENT_SERVER_URL'),
+          agentServerInternalUrl: parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_URL'),
           type: 'spar',
         };
 
@@ -91,7 +91,7 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const tenant = ((): Configuration['tenant'] => {
-    const authMode = parseEnvVariable('AUTH_MODE') as Configuration['auth']['type'];
+    const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
 
     switch (authMode) {
       case 'snowflake': {
@@ -117,7 +117,9 @@ export const getConfiguration = (): Configuration => {
     }
   })();
 
-  const legacyRoutingUrl = process.env.LEGACY_AGENT_ROUTER_URL ? parseEnvVariable('LEGACY_AGENT_ROUTER_URL') : null;
+  const legacyRoutingUrl = process.env.SEMA4AI_WORKROOM_AGENT_ROUTER_URL
+    ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_ROUTER_URL')
+    : null;
 
   return {
     auth,
