@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sema4ai.data import DataSource
 from sema4ai_docint.models import initialize_database
+from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
@@ -48,7 +49,7 @@ async def _build_datasource(connection_details: DIDSConnectionDetails):
 
         admin_ds.execute_sql(create_sql)
 
-        docint_ds = DataSource.model_validate(datasource_name="DocumentIntelligence")
+        docint_ds = DataSource.model_validate(datasource_name=DATA_SOURCE_NAME)
 
         initialize_database("postgres", docint_ds)
 
