@@ -152,7 +152,6 @@ jobs:
               matrix = {
                   "include": [
                       {"os": "ubuntu-24.04", "ext": "",    "artifact-name": "agent-server-build-ubuntu-x64", "s3-path": "linux_x64"},
-                      {"os": "macos-13",    "ext": "",    "artifact-name": "agent-server-build-macos-x64", "s3-path": "macos_x64"},
                       {"os": "macos-15",    "ext": "",    "artifact-name": "agent-server-build-macos-arm64", "s3-path": "macos_arm64"},
                       {"os": "windows-2025","ext": ".exe","artifact-name": "agent-server-build-windows-x64", "s3-path": "windows_x64"}
                   ]

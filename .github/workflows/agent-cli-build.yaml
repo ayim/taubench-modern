@@ -173,44 +173,6 @@ jobs:
           name: agent-cli-windows
           path: packages/golang-agent-cli/build/agent-cli.exe
 
-  build-macos-intel:
-    name: Build for MacOS Intel
-    runs-on: macos-13
-    needs: build-info
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
-          cache-dependency-path: packages/golang-agent-cli/go.sum
-      - name: Build
-        working-directory: packages/golang-agent-cli
-        env:
-          APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
-          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
-          APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
-          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
-          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
-          GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
-        run: |
-          git config --global url."https://$GH_PAT_GHA_TO_ANOTHER_REPO@github.com/".insteadOf "https://github.com/"
-          export GOPRIVATE=github.com/Sema4AI/agent-client-go
-          go get github.com/Sema4AI/agent-client-go
-          chmod +x ./scripts/sign_and_notarize.sh
-
-          GOOS=darwin GOARCH=amd64 go build -o build/agent-cli-unsigned
-          ./scripts/sign_and_notarize.sh build/agent-cli-unsigned ./dist/ entitlements.mac.plist
-          mv dist/build/agent-cli-unsigned build/agent-cli
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: agent-cli-macos64
-          path: packages/golang-agent-cli/build/agent-cli
-
   build-macos-arm:
     name: Build for MacOS Apple Silicon
     runs-on: macos-15
