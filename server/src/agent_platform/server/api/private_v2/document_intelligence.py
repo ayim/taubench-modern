@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from sema4ai.data import DataSource
 from sema4ai_docint.models import initialize_database
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
@@ -6,19 +6,15 @@ from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
 from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
-from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.core.payloads import (
+    UpsertDocumentIntelligenceConfigPayload,
+)
+from agent_platform.server.api.dependencies import DocIntDatasourceDependency, StorageDependency
 from agent_platform.server.storage.postgres.postgres import PostgresConfig
 
 logger: BoundLogger = get_logger(__name__)
-
-
-def _require_document_intelligence_data_server():
-    """Checks that a DIDS is configured for the agent server, or fail as a pre-ignition check."""
-    # TODO: Implement the actual check
-    raise PlatformHTTPError(
-        ErrorCode.PRECONDITION_FAILED, "Document Intelligence Data Server is not configured"
-    )
 
 
 async def _build_datasource(connection_details: DIDSConnectionDetails):
@@ -60,9 +56,34 @@ async def _build_datasource(connection_details: DIDSConnectionDetails):
         ) from e
 
 
-router = APIRouter(dependencies=[Depends(_require_document_intelligence_data_server)])
+router = APIRouter()
 
 
 @router.get("/ok")
-async def ok():
+async def ok(docint_ds: DocIntDatasourceDependency):
+    return {"ok": True}
+
+
+@router.post("")
+async def upsert_document_intelligence(
+    payload: UpsertDocumentIntelligenceConfigPayload,
+    storage: StorageDependency,
+):
+    """Upsert Document Intelligence configuration (PUT semantics).
+
+    Accepts a combined configuration payload under the `/document-intelligence`
+    root. It stores the Data Server connection details and any provided
+    integrations. For now, integrations are upserted individually by kind.
+    """
+    # Persist Data Server connection details
+    details = payload.to_dids_connection_details()
+    await storage.set_dids_connection_details(details)
+
+    # Initialize or refresh the DI database/datasource
+    await _build_datasource(details)
+
+    # Upsert integrations (if provided)
+    for integration in payload.to_integrations():
+        await storage.set_document_intelligence_integration(integration)
+
     return {"ok": True}

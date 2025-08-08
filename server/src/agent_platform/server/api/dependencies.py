@@ -3,8 +3,10 @@
 from typing import Annotated
 
 from fastapi import Depends, Request, UploadFile
+from sema4ai.data import DataSource
 
 from agent_platform.core.configurations.quotas import QuotasService
+from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
 from agent_platform.core.errors.quotas import (
     AgentQuotaExceededError,
     MCPServerQuotaExceededError,
@@ -13,10 +15,12 @@ from agent_platform.core.errors.work_items import (
     WorkItemFileAttachmentTooLargeError,
     WorkItemPayloadTooLargeError,
 )
+from agent_platform.server.document_intelligence import DocumentIntelligenceService
 from agent_platform.server.file_manager import BaseFileManager, FileManagerService
 from agent_platform.server.secret_manager.base import BaseSecretManager
 from agent_platform.server.secret_manager.option import SecretService
 from agent_platform.server.storage import BaseStorage, StorageService
+from agent_platform.server.storage.errors import DIDSConnectionDetailsNotFoundError
 
 StorageDependency = Annotated[BaseStorage, Depends(StorageService.get_instance)]
 
@@ -142,3 +146,61 @@ async def check_work_item_file_attachment_size(file: UploadFile | str) -> None:
 
 
 WorkItemFileAttachmentSizeCheck = Annotated[None, Depends(check_work_item_file_attachment_size)]
+
+
+# -----------------------------------------------------------------------------
+# Document Intelligence dependencies
+# -----------------------------------------------------------------------------
+
+
+async def get_dids_connection_details(storage: StorageDependency) -> DIDSConnectionDetails:
+    """Fetch and return validated DIDS connection details.
+
+    This wraps storage access to enable composition in other dependencies and
+    keeps the validation in the API layer.
+    """
+    details = await storage.get_dids_connection_details()
+
+    # Inline validation mirroring _require_document_intelligence_data_server
+    if not details.username or not details.username.strip():
+        raise DIDSConnectionDetailsNotFoundError(
+            "Document Intelligence Data Server configuration is missing username"
+        )
+
+    if not details.password or not details.password.get_secret_value().strip():
+        raise DIDSConnectionDetailsNotFoundError(
+            "Document Intelligence Data Server configuration is missing password"
+        )
+
+    if not details.connections:
+        raise DIDSConnectionDetailsNotFoundError(
+            "Document Intelligence Data Server configuration is missing connections"
+        )
+
+    for idx, conn in enumerate(details.connections):
+        if not getattr(conn, "host", None) or not str(conn.host).strip():
+            raise DIDSConnectionDetailsNotFoundError(
+                f"Document Intelligence Data Server connection #{idx} is missing host"
+            )
+        if not getattr(conn, "port", None) or int(conn.port) <= 0:
+            raise DIDSConnectionDetailsNotFoundError(
+                f"Document Intelligence Data Server connection #{idx} has invalid port"
+            )
+
+    return details
+
+
+DIDSDetailsDependency = Annotated[DIDSConnectionDetails, Depends(get_dids_connection_details)]
+
+
+def get_docint_datasource(details: DIDSDetailsDependency) -> DataSource:
+    """Ensure datasource setup for current configuration, then return it.
+
+    Note: Uses a singleton service, mirroring other option services to avoid
+    unsafe global caching patterns.
+    """
+    service = DocumentIntelligenceService.get_instance(details)
+    return service.get_docint_datasource()
+
+
+DocIntDatasourceDependency = Annotated[DataSource, Depends(get_docint_datasource)]

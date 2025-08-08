@@ -200,7 +200,7 @@ class DIDSConnectionDetailsNotFoundError(PlatformHTTPError):
     """Document Intelligence DataServer has not been configured."""
 
     def __init__(self, message: str = "Document Intelligence DataServer has not been configured"):
-        super().__init__(error_code=ErrorCode.UNEXPECTED, message=message)
+        super().__init__(error_code=ErrorCode.PRECONDITION_FAILED, message=message)
 
 
 class DocumentIntelligenceIntegrationNotFoundError(PlatformHTTPError):

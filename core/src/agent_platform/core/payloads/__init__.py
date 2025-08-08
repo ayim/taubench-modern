@@ -12,6 +12,9 @@ from agent_platform.core.payloads.upsert_agent import (
     PatchAgentPayload,
     UpsertAgentPayload,
 )
+from agent_platform.core.payloads.upsert_document_intelligence_config import (
+    UpsertDocumentIntelligenceConfigPayload,
+)
 from agent_platform.core.payloads.upsert_thread import UpsertThreadPayload
 
 __all__ = [
@@ -25,5 +28,6 @@ __all__ = [
     "PatchAgentPayload",
     "UploadFilePayload",
     "UpsertAgentPayload",
+    "UpsertDocumentIntelligenceConfigPayload",
     "UpsertThreadPayload",
 ]

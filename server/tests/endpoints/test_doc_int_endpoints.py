@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import FastAPI
@@ -45,18 +45,180 @@ def client(fastapi_app: FastAPI) -> TestClient:
 class TestDocumentIntelligenceEndpoints:
     """Tests for document intelligence endpoints."""
 
-    def test_ok_endpoint_fails_with_precondition_error(self, client: TestClient):
-        """Test that the /ok endpoint fails because DIDS is not configured (stub behavior)."""
-        # TODO: Update test after implementation of DIDS server
+    def test_ok_endpoint_fails_when_dids_not_configured(self, client: TestClient):
+        """When no DIDS details exist, dependency should fail early with a platform error."""
         response = client.get("/api/v2/document-intelligence/ok")
 
-        # Expect 412 Precondition Failed because the dependency check fails
+        # Expect 500 Unexpected because no configuration exists in storage
         assert response.status_code == 412
 
-        # Check the error response structure
         error_data = response.json()
         assert "error" in error_data
         assert error_data["error"]["code"] == ErrorCode.PRECONDITION_FAILED.value.code
+        assert (
+            error_data["error"]["message"]
+            == "Document Intelligence DataServer has not been configured"
+        )
+
+    def test_ok_endpoint_succeeds_when_configured(self, client: TestClient):
+        """When DIDS details are present and valid, the endpoint should succeed."""
+        # Prepare valid connection details
+        valid_details = DIDSConnectionDetails(
+            username="testuser",
+            password=SecretString("testpass"),
+            connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
+                ),
+            ],
+        )
+
+        # Patch the storage instance used by the router dependency to return valid details
+        storage_instance = StorageService.get_instance()
+
+        # Stub the DI service to avoid touching real DataSource during dependency execution
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+        ):
+            response = client.get("/api/v2/document-intelligence/ok")
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+
+    def test_upsert_document_intelligence_succeeds(self, client: TestClient):
+        """POST /document-intelligence should persist details, integrations,
+        and build datasource.
+        """
+        payload = {
+            "integrations": [
+                {
+                    "type": "reducto",
+                    "endpoint": "https://reducto.example.com",
+                    "api_key": "secret-key",
+                }
+            ],
+            "data_server": {
+                "credentials": {"username": "user", "password": "pass"},
+                "api": {
+                    "http": {"url": "127.0.0.1", "port": 47334},
+                    "mysql": {"host": "127.0.0.1", "port": 5432},
+                },
+            },
+        }
+
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "set_dids_connection_details",
+                new=AsyncMock(),
+            ) as set_details,
+            patch.object(
+                storage_instance,
+                "set_document_intelligence_integration",
+                new=AsyncMock(),
+            ) as set_integration,
+            patch.object(document_intelligence, "_build_datasource", new=AsyncMock()) as build_ds,
+        ):
+            response = client.post("/api/v2/document-intelligence", json=payload)
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        set_details.assert_awaited()
+        set_integration.assert_awaited()
+        build_ds.assert_awaited()
+
+    @pytest.mark.parametrize(
+        ("details", "expected_substring"),
+        [
+            (
+                DIDSConnectionDetails(
+                    username=None,
+                    password=SecretString("testpass"),
+                    connections=[
+                        DIDSApiConnectionDetails(
+                            host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                        ),
+                    ],
+                ),
+                "missing username",
+            ),
+            (
+                DIDSConnectionDetails(
+                    username="   ",
+                    password=SecretString("testpass"),
+                    connections=[
+                        DIDSApiConnectionDetails(
+                            host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                        ),
+                    ],
+                ),
+                "missing username",
+            ),
+            (
+                DIDSConnectionDetails(
+                    username="user",
+                    password=None,
+                    connections=[
+                        DIDSApiConnectionDetails(
+                            host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                        ),
+                    ],
+                ),
+                "missing password",
+            ),
+            (
+                DIDSConnectionDetails(
+                    username="user",
+                    password=SecretString("   "),
+                    connections=[
+                        DIDSApiConnectionDetails(
+                            host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                        ),
+                    ],
+                ),
+                "missing password",
+            ),
+            (
+                DIDSConnectionDetails(
+                    username="user",
+                    password=SecretString("testpass"),
+                    connections=[],
+                ),
+                "missing connections",
+            ),
+        ],
+    )
+    def test_ok_endpoint_fails_with_partial_configuration(
+        self, client: TestClient, details: DIDSConnectionDetails, expected_substring: str
+    ):
+        """Ensure dependency validation catches partial configurations with clear messages."""
+        storage_instance = StorageService.get_instance()
+        with patch.object(
+            storage_instance, "get_dids_connection_details", new=AsyncMock(return_value=details)
+        ):
+            response = client.get("/api/v2/document-intelligence/ok")
+
+        assert response.status_code == 412
+        error = response.json()["error"]
+        assert error["code"] == ErrorCode.PRECONDITION_FAILED.value.code
+        assert expected_substring in error["message"]
 
 
 class TestBuildDatasource:
