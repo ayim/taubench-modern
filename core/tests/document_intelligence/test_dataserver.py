@@ -187,6 +187,7 @@ class TestDIDSConnectionDetails:
 
         # Test SecretString conversion
         assert isinstance(creds.password, SecretString)
+        assert creds.password is not None
         assert creds.password.get_secret_value() == "secret123"
         assert str(creds.password) == "**********"
 
@@ -211,6 +212,7 @@ class TestDIDSConnectionDetails:
 
         # Test SecretString preservation
         assert isinstance(creds.password, SecretString)
+        assert creds.password is not None
         assert creds.password.get_secret_value() == "secret123"
         assert creds.password is secret_password  # Same object
 
@@ -360,6 +362,7 @@ class TestDIDSConnectionDetails:
 
         assert creds.username == "testuser"
         assert isinstance(creds.password, SecretString)
+        assert creds.password is not None
         assert creds.password.get_secret_value() == "secret123"
         assert len(creds.connections) == 1
         assert creds.connections[0].host == "mysql.example.com"
@@ -385,6 +388,7 @@ class TestDIDSConnectionDetails:
 
         assert creds.username == "testuser"
         assert isinstance(creds.password, SecretString)
+        assert creds.password is not None
         assert creds.password.get_secret_value() == "secret123"
         assert creds.password is secret_password  # Should preserve the same object
 
@@ -422,6 +426,8 @@ class TestDIDSConnectionDetails:
 
         assert restored.username == original.username
         assert isinstance(restored.password, SecretString)
+        assert restored.password is not None
+        assert original.password is not None
         assert restored.password.get_secret_value() == original.password.get_secret_value()
         assert len(restored.connections) == len(original.connections) == 1
         assert restored.connections[0].host == original.connections[0].host

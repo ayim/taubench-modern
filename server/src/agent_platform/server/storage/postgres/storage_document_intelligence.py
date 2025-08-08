@@ -23,7 +23,11 @@ class PostgresStorageDocumentIntelligenceMixin(BaseStorage):
             }
 
             # Encrypt the password field for database storage
-            details_data["enc_password"] = self._encrypt_secret_string(details.password)
+            details_data["enc_password"] = (
+                self._encrypt_secret_string(details.password)
+                if details.password is not None
+                else None
+            )
 
             # Insert the new connection details
             insert_stmt = insert(dids_connection_details).values(details_data)

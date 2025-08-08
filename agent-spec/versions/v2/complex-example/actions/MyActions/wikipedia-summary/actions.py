@@ -8,7 +8,7 @@ https://github.com/sema4ai/actions/blob/master/README.md
 
 import os
 
-from robocorp import browser  # pyright: ignore[reportMissingImports]
+from robocorp import browser  # type: ignore
 from sema4ai.actions import action  # pyright: ignore[reportMissingImports]
 
 HEADLESS_BROWSER = not os.getenv("HEADLESS_BROWSER")

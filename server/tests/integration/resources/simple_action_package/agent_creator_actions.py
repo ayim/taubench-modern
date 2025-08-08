@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Any
 
 from sema4ai.actions import Response, action, chat  # type: ignore
 
@@ -28,7 +28,12 @@ def save_runbook(runbook: str) -> Response[FileResponse]:
     """
     details = "The runbook was saved successfully."
     try:
-        current_contents = chat.get_json(FILE_NAME)
+        current_contents_json = chat.get_json(FILE_NAME)
+        # Ensure it's a dictionary, otherwise start with empty dict
+        if isinstance(current_contents_json, dict):
+            current_contents: dict[str, Any] = current_contents_json
+        else:
+            current_contents = {}
     except Exception:
         current_contents = {}
     current_contents["runbook"] = runbook

@@ -171,7 +171,8 @@ async def test_dids_connection_details_crud_operations(
     # Get connection details
     retrieved_details = await storage.get_dids_connection_details()
     assert retrieved_details.username == sample_dids_connection_details.username
-    assert retrieved_details.password.value == sample_dids_connection_details.password.value
+    assert retrieved_details.password is not None
+    assert retrieved_details.password.value == sample_dids_connection_details.password
     assert retrieved_details.connections == sample_dids_connection_details.connections
 
     # Update connection details
@@ -187,6 +188,7 @@ async def test_dids_connection_details_crud_operations(
     # Verify the update
     retrieved_updated = await storage.get_dids_connection_details()
     assert retrieved_updated.username == "updated_user"
+    assert retrieved_updated.password is not None
     assert retrieved_updated.password.value == "updated_password"
     assert len(retrieved_updated.connections) == 1
     assert retrieved_updated.connections[0].host == "updated-host"

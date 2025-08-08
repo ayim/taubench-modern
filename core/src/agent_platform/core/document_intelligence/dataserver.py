@@ -113,14 +113,14 @@ class DIDSApiConnectionDetails:
 class DIDSConnectionDetails:
     """DIDSConnectionDetails contains authentication information for connecting to DIDS"""
 
-    username: str = field(
+    username: str | None = field(
         metadata={
             "description": "The username to connect to the Document Intelligence Data Server",
         },
     )
     """The username to connect to the Document Intelligence Data Server"""
 
-    password: SecretString = field(
+    password: SecretString | None = field(
         metadata={
             "description": "The password to connect to the Document Intelligence Data Server",
         },
@@ -155,7 +155,7 @@ class DIDSConnectionDetails:
                 "host": connection.host,
                 "port": connection.port,
                 "user": self.username,
-                "password": self.password.get_secret_value(),
+                "password": self.password.get_secret_value() if self.password else None,
             }
 
             # As http requires a different key name, we cannot just iterate over the connections
@@ -178,9 +178,16 @@ class DIDSConnectionDetails:
         Args:
             mode: Either 'python' for Python objects or 'json' for JSON-serializable values
         """
+        if mode == "python":
+            password_value = self.password
+        elif self.password is not None:
+            password_value = self.password.get_secret_value()
+        else:
+            password_value = None
+
         return {
             "username": self.username,
-            "password": self.password if mode == "python" else self.password.get_secret_value(),
+            "password": password_value,
             "connections": [conn.model_dump(mode=mode) for conn in self.connections],
             "updated_at": self.updated_at if mode == "python" else self.updated_at.isoformat(),
         }

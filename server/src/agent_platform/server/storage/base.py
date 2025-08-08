@@ -133,9 +133,15 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # Convert row to dict and handle JSON deserialization
         row_dict = dict(row)
         assert "enc_password" in row_dict, "enc_password not found"
-        assert isinstance(row_dict["enc_password"], str), "enc_password is not a string"
+        assert row_dict["enc_password"] is None or isinstance(row_dict["enc_password"], str), (
+            "enc_password is not a string or None"
+        )
         # Decrypt the password field
-        row_dict["password"] = self._decrypt_secret_string(row_dict["enc_password"])
+        row_dict["password"] = (
+            self._decrypt_secret_string(row_dict["enc_password"])
+            if row_dict["enc_password"] is not None
+            else None
+        )
         row_dict.pop("enc_password")
 
         # Handle connections deserialization based on database type
@@ -163,7 +169,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
             }
 
             # Encrypt the password field for database storage
-            details_data["enc_password"] = self._encrypt_secret_string(details.password)
+            details_data["enc_password"] = (
+                self._encrypt_secret_string(details.password)
+                if details.password is not None
+                else None
+            )
 
             # Insert the new connection details
             insert_stmt = insert(dids_connection_details).values(details_data)

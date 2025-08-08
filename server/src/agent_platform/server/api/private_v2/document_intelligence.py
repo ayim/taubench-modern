@@ -1,9 +1,15 @@
 from fastapi import APIRouter, Depends
+from sema4ai.data import DataSource
+from sema4ai_docint.models import initialize_database
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
-from agent_platform.core.errors.base import PlatformHTTPError
+from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.server.storage.postgres.postgres import PostgresConfig
+
+logger: BoundLogger = get_logger(__name__)
 
 
 def _require_document_intelligence_data_server():
@@ -14,8 +20,46 @@ def _require_document_intelligence_data_server():
     )
 
 
+async def _build_datasource(connection_details: DIDSConnectionDetails):
+    proper_json = connection_details.as_datasource_connection_input()
+
+    try:
+        DataSource.setup_connection_from_input_json(proper_json)
+
+        # Drop existing database if it exists
+        # Create admin datasource for administrative commands
+        admin_ds = DataSource.model_validate(datasource_name="sema4ai")
+
+        drop_sql = "DROP DATABASE IF EXISTS DocumentIntelligence;"
+        admin_ds.execute_sql(drop_sql)
+
+        create_sql = f'''
+        CREATE DATABASE DocumentIntelligence
+        WITH ENGINE = "postgres",
+        PARAMETERS = {{
+            "user": "{PostgresConfig.user}",
+            "password": "{PostgresConfig.password}",
+            "host": "{PostgresConfig.host}",
+            "port": {PostgresConfig.port},
+            "database": "{PostgresConfig.db}",
+            "schema": "docint"
+        }};
+        '''
+
+        admin_ds.execute_sql(create_sql)
+
+        docint_ds = DataSource.model_validate(datasource_name="DocumentIntelligence")
+
+        initialize_database("postgres", docint_ds)
+
+    except Exception as e:
+        raise PlatformError(
+            ErrorCode.UNEXPECTED,
+            f"Error initializing Document Intelligence database: Error: {e}",
+        ) from e
+
+
 router = APIRouter(dependencies=[Depends(_require_document_intelligence_data_server)])
-logger: BoundLogger = get_logger(__name__)
 
 
 @router.get("/ok")

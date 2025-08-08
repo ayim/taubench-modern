@@ -44,6 +44,8 @@ build = ["pyinstaller==6.11.1"]
 [tool.uv]
 package = false
 python-preference = "only-managed"
+# Temporarily add an override as sema4ai-actions depends on <crypto45
+override-dependencies = ["cryptography>=45"]
 
 [tool.uv.sources]
 agent_platform_core = { workspace = true }
