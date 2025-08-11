@@ -11,6 +11,12 @@ class AgentSpecConfig(Configuration):
     )
     """The maximum size of the agent package in bytes."""
 
+    metadata_filename: str = field(
+        default="__agent_package_metadata__.json",
+        metadata=FieldMetadata(description="The filename of the agent package metadata."),
+    )
+    """The filename of the agent package metadata."""
+
     agent_spec_filename: str = field(
         default="agent-spec.yaml",
         metadata=FieldMetadata(description="The filename of the agent package specification."),

@@ -26,6 +26,7 @@ dependencies = [
     "cachetools>=5.5.2,<6.0.0",
     "sqlalchemy[asyncio]>=2.0.0,<3.0.0",
     "sema4ai-docint",
+    "siphash==0.0.1",
 ]
 
 [project.scripts]

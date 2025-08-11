@@ -1,11 +1,9 @@
-import base64
 import io
 import zipfile
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any, Literal
 
-import httpx
 import structlog
 from fastapi import HTTPException, status
 from ruamel.yaml import YAML
@@ -13,7 +11,8 @@ from ruamel.yaml import YAML
 from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.agent_spec.config import AgentSpecConfig
 from agent_platform.core.agent_spec.knowledge import KnowledgeStreams
-from agent_platform.core.agent_spec.package_parsed import AgentPackageParsed
+from agent_platform.core.agent_spec.package_parsed import ActionPackageParsed, AgentPackageParsed
+from agent_platform.core.agent_spec.utils import read_file_from_zip, read_package_bytes
 
 _yaml = YAML(typ="safe")
 
@@ -50,38 +49,13 @@ async def extract_and_validate_agent_package(
     Returns:
         An ``AgentPackageParsed`` instance.
     """
-    blob = await _read_package_bytes(path, url, package_base64)
+    blob = await read_package_bytes(path, url, package_base64)
 
     try:
         with zipfile.ZipFile(io.BytesIO(blob)) as zf:
-            spec_raw = _read_file_from_zip(zf, AgentSpecConfig.agent_spec_filename)
-            spec: dict[str, Any] = _yaml.load(spec_raw.decode())
-            _validate_spec(spec, zf)
-
-            runbook_raw = _read_file_from_zip(zf, AgentSpecConfig.runbook_filename)
-            question_groups = _extract_question_groups(spec, zf)
-            conversation_starter = _extract_conversation_starter(spec)
-            welcome_message = _extract_welcome_message(spec)
-            agent_settings = _extract_agent_settings(spec)
-
-            knowledge: Mapping[str, bytes] | KnowledgeStreams | None
-            if include_knowledge:
-                if knowledge_return == "bytes":
-                    knowledge = {Path(fn).name: zf.read(fn) for fn in _iter_knowledge_members(zf)}
-                else:  # "stream"
-                    streams = {Path(fn).name: zf.open(fn) for fn in _iter_knowledge_members(zf)}
-                    knowledge = KnowledgeStreams(streams)
-            else:
-                knowledge = None
-
-            return AgentPackageParsed(
-                spec=spec,
-                runbook_text=runbook_raw.decode("utf-8", errors="replace"),
-                knowledge=knowledge,
-                question_groups=question_groups,
-                conversation_starter=conversation_starter,
-                welcome_message=welcome_message,
-                agent_settings=agent_settings,
+            spec_raw = read_file_from_zip(zf, AgentSpecConfig.agent_spec_filename)
+            return await extract_agent_package_data(
+                spec_raw, zf, include_knowledge, knowledge_return
             )
 
     except zipfile.BadZipFile as exc:
@@ -91,76 +65,42 @@ async def extract_and_validate_agent_package(
         ) from exc
 
 
-async def _read_package_bytes(
-    path: str | Path | None,
-    url: str | None,
-    package_base64: str | bytes | None,
-) -> bytes:
-    """Load the zip file bytes, enforcing a single source."""
-    expected_source_count = 1
-    chosen = [path, url, package_base64].count(None)
-    if chosen != (3 - expected_source_count):  # Should have exactly one source
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Specify exactly one of 'path', 'url', or 'package_base64'",
-        )
+async def extract_agent_package_data(
+    spec_raw: bytes,
+    zf: zipfile.ZipFile,
+    include_knowledge: bool = False,
+    knowledge_return: Literal["bytes", "stream"] = "bytes",
+) -> AgentPackageParsed:
+    spec: dict[str, Any] = _yaml.load(spec_raw.decode())
+    _validate_spec(spec, zf)
 
-    if path is not None:
-        p = Path(path).expanduser()
-        if not p.is_file():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"{p} not found",
-            )
-        return p.read_bytes()
+    runbook_raw = read_file_from_zip(zf, AgentSpecConfig.runbook_filename)
+    question_groups = _extract_question_groups(spec, zf)
+    conversation_starter = _extract_conversation_starter(spec)
+    welcome_message = _extract_welcome_message(spec)
+    agent_settings = _extract_agent_settings(spec)
+    action_packages = _extract_action_packages(spec)
 
-    if url is not None:
-        try:
-            async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
-                resp = await client.get(url)
-                if resp.status_code != status.HTTP_200_OK:
-                    raise HTTPException(
-                        status_code=resp.status_code,
-                        detail=f"Failed to download package: HTTP {resp.status_code}",
-                    )
-                if len(resp.content) > AgentSpecConfig.max_size_bytes:
-                    size_in_mb = len(resp.content) / 1_000_000
-                    max_size_mb = AgentSpecConfig.max_size_bytes / 1_000_000
-                    raise HTTPException(
-                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                        detail=(f"Package exceeds {max_size_mb:.1f}MB limit ({size_in_mb:.1f}MB)"),
-                    )
-                return resp.content
-        except httpx.RequestError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Network error while downloading package: {exc}",
-            ) from exc
+    knowledge: Mapping[str, bytes] | KnowledgeStreams | None
+    if include_knowledge:
+        if knowledge_return == "bytes":
+            knowledge = {Path(fn).name: zf.read(fn) for fn in _iter_knowledge_members(zf)}
+        else:  # "stream"
+            streams = {Path(fn).name: zf.open(fn) for fn in _iter_knowledge_members(zf)}
+            knowledge = KnowledgeStreams(streams)
+    else:
+        knowledge = None
 
-    # base-64 branch
-    try:
-        if package_base64 is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Base-64 encoded package is required",
-            )
-        return base64.b64decode(package_base64)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid base-64 encoded package",
-        ) from exc
-
-
-def _read_file_from_zip(zf: zipfile.ZipFile, member: str) -> bytes:
-    """Read *member* or raise 400."""
-    try:
-        return zf.read(member)
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"'{member}' not found in agent package",
-        ) from exc
+    return AgentPackageParsed(
+        spec=spec,
+        runbook_text=runbook_raw.decode("utf-8", errors="replace"),
+        knowledge=knowledge,
+        question_groups=question_groups,
+        conversation_starter=conversation_starter,
+        welcome_message=welcome_message,
+        agent_settings=agent_settings,
+        action_packages=action_packages,
+    )
 
 
 def _iter_knowledge_members(zf: zipfile.ZipFile) -> Iterable[str]:
@@ -251,7 +191,7 @@ def _extract_question_groups(spec: dict[str, Any], zf: zipfile.ZipFile) -> list[
         return []
 
     try:
-        conversation_guide_raw = _read_file_from_zip(zf, conversation_guide_path)
+        conversation_guide_raw = read_file_from_zip(zf, conversation_guide_path)
     except Exception as e:
         logger.error(
             "Conversation guide file '%s' not found or could not be read",
@@ -300,3 +240,9 @@ def _extract_welcome_message(spec: dict[str, Any]) -> str | None:
 def _extract_agent_settings(spec: dict[str, Any]) -> dict[str, Any] | None:
     agent0 = _get_single_agent(spec)
     return agent0.get("agent-settings", None)
+
+
+def _extract_action_packages(spec: dict[str, Any]) -> list[ActionPackageParsed]:
+    agent0 = _get_single_agent(spec)
+    action_packages = agent0.get("action-packages", [])
+    return [ActionPackageParsed.model_validate(ap) for ap in action_packages]
