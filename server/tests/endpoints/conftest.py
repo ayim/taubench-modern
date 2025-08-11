@@ -13,7 +13,7 @@ from psycopg_pool import AsyncConnectionPool
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.agent_architecture import AgentArchitecture
 from agent_platform.core.runbook.runbook import Runbook
-from agent_platform.server.api.private_v2 import mcp_servers, work_items
+from agent_platform.server.api.private_v2 import mcp_servers, platforms, work_items
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.storage import PostgresStorage, SQLiteStorage
@@ -131,6 +131,7 @@ def fastapi_app(storage, stub_user) -> FastAPI:
     app = FastAPI()
     app.include_router(work_items.router, prefix="/public/v1/work-items")
     app.include_router(mcp_servers.router, prefix="/api/v2/private/mcp-servers")
+    app.include_router(platforms.router, prefix="/api/v2/private/platforms")
     app.dependency_overrides[auth_user] = lambda: stub_user
     add_exception_handlers(app)
     return app

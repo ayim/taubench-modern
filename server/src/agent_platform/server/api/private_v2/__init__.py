@@ -11,6 +11,7 @@ from agent_platform.server.api.private_v2.document_intelligence import (
 )
 from agent_platform.server.api.private_v2.mcp_servers import router as mcp_servers_router
 from agent_platform.server.api.private_v2.package import router as package_router
+from agent_platform.server.api.private_v2.platforms import router as platforms_router
 from agent_platform.server.api.private_v2.prompt import router as prompt_router
 from agent_platform.server.api.private_v2.runs import router as runs_router
 from agent_platform.server.api.private_v2.threads import router as threads_router
@@ -76,7 +77,11 @@ router.include_router(
     prefix="/package",
     tags=["package"],
 )
-
+router.include_router(
+    platforms_router,
+    prefix="/platforms",
+    tags=["platforms"],
+)
 
 # Workroom uses the private API, so we need work-items published on the private api, too.
 router.include_router(
