@@ -21,37 +21,58 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-
+    name: Build SPAR
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.build-metadata.outputs.tag }}
+      ace-prerelease: ${{ steps.build-metadata.outputs.ace-prerelease }}
+      invoked-by: ${{ steps.build-metadata.outputs.invoked-by }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Generate version string + Docker tag
-        id: generate-version
+      - name: Generate build metadata
+        id: build-metadata
+        env:
+          BRANCH_NAME: '${{ github.head_ref || github.ref_name }}'
         run: |
           spar_version="${{ env.SPAR_VERSION }}"
-          iso_date="$(date -u +"%Y%m%dT%H%M%SZ")"
-          commit_hash="$(git rev-parse --short HEAD)"
+          commit_hash=$(git rev-parse --short HEAD)
+          timestamp=$(date -u +"%Y%m%dT%H%M%SZ")
 
-          version_suffix=""
-          if [[ "${RELEASE_CHANNEL}" = "manual" ]]; then
-            sanitized_branch_name="$(
+          build_details="${commit_hash}.${timestamp}"
+
+          if [[ "${{ github.event_name }}" == "push" && "${BRANCH_NAME}" == "main" ]]; then
+            # Merge to main; Publish a CI ACE release
+            spar_tag="${spar_version}+${build_details}"
+            ace_prerelease="none"
+            invoked_by="spar@${spar_tag}"
+          else
+            # Push to dev branch; Publish a "manual" / dev ACE release
+            repo_name="$(
+              echo "${{ github.event.repository.name }}" |
+                tr '[:upper:]' '[:lower:]' |
+                tr -cd 'a-z-'
+            )"
+            branch_name="$(
               echo "${BRANCH_NAME}" |
                 tr '[:upper:]' '[:lower:]' |
                 tr -cd 'a-z' |
                 cut -c -20
             )"
-            version_suffix="-${sanitized_branch_name}"
+
+            spar_tag="${spar_version}-${repo_name}-${branch_name}+${build_details}"
+            ace_prerelease="${repo_name}-spar-${branch_name}"
+            invoked_by="${{ github.event.repository.name }}/${BRANCH_NAME}"
           fi
 
-          full_version_string="${spar_version}${version_suffix}+${commit_hash}.${iso_date}"
-          docker_tag="${full_version_string//\+/_}"
-
-          echo "version=${full_version_string}" >> "${GITHUB_OUTPUT}"
-          echo "tag=${docker_tag}" >> "${GITHUB_OUTPUT}"
+          spar_tag_sanitized="${spar_tag//+/_}" # Replace + with _ for the tag to be valid
+          echo "version=${spar_tag}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${spar_tag_sanitized}" >> "${GITHUB_OUTPUT}"
+          echo "ace-prerelease=${ace_prerelease}" >> "${GITHUB_OUTPUT}"
+          echo "invoked-by=${invoked_by}" >> "${GITHUB_OUTPUT}"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -87,8 +108,8 @@ jobs:
           DOCKER_BUILD_RECORD_UPLOAD: false
           repository: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar'
           cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/ace/spar' # Note: Caches live on the manual channel
-          version: ${{ steps.generate-version.outputs.version }}
-          tag: ${{ steps.generate-version.outputs.tag }}
+          version: ${{ steps.build-metadata.outputs.version }}
+          tag: ${{ steps.build-metadata.outputs.tag }}
         with:
           file: 'Dockerfile.spar'
           context: '.'
@@ -107,7 +128,32 @@ jobs:
 
       - name: Print Docker image URI
         env:
-          IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar:${{ steps.generate-version.outputs.tag }}'
+          IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar:${{ steps.build-metadata.outputs.tag }}'
         run: |
           echo "Docker image URI: ${IMAGE_URI}"
           echo "::notice::Successfully published ${IMAGE_URI}"
+
+  trigger-docker-build:
+    name: Trigger Docker build workflow
+    needs: [build]
+    runs-on: ubuntu-24.04
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - name: Trigger Docker build workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: '${{ secrets.ACE_DEPLOY_WORKFLOW_TRIGGER_TOKEN }}'
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: 'ace',
+              workflow_id: 'ace-publish-v2.yml',
+              ref: 'master',
+              inputs: {
+                'branch': 'master',
+                'spar-version': '${{ needs.build.outputs.tag }}',
+                'prerelease': '${{ needs.build.outputs.ace-prerelease }}',
+                'invoked-by': '${{ needs.build.outputs.invoked-by }}'
+              }
+            })
