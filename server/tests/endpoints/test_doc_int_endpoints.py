@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -49,7 +50,7 @@ class TestDocumentIntelligenceEndpoints:
         """When no DIDS details exist, dependency should fail early with a platform error."""
         response = client.get("/api/v2/document-intelligence/ok")
 
-        # Expect 500 Unexpected because no configuration exists in storage
+        # Expect 412 Precondition Failed because no configuration exists in storage
         assert response.status_code == 412
 
         error_data = response.json()
@@ -471,3 +472,356 @@ class TestBuildDatasource:
         assert '"host": "config_host"' in create_sql_call
         assert '"port": 5433' in create_sql_call
         assert '"database": "config_db"' in create_sql_call
+
+
+class TestDataModelEndpoints:
+    """Tests for data model endpoints (list, create, get, update)."""
+
+    def _valid_details(self) -> DIDSConnectionDetails:
+        return DIDSConnectionDetails(
+            username="testuser",
+            password=SecretString("testpass"),
+            connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
+                ),
+            ],
+        )
+
+    def _sample_data_model_payload(self) -> dict:
+        return {
+            "dataModel": {
+                "name": "invoices",
+                "description": "Invoice data model",
+                "schema": {"type": "object", "properties": {"id": {"type": "string"}}},
+                "views": [
+                    {
+                        "name": "v_invoices",
+                        "sql": "SELECT id FROM invoices",
+                        "columns": [{"name": "id", "type": "string"}],
+                    }
+                ],
+                "qualityChecks": [
+                    {"name": "non_empty_id", "query": "SELECT ...", "description": "no empty id"}
+                ],
+                "prompt": "extract invoices",
+                "summary": "Invoices model",
+            }
+        }
+
+    def _sample_data_model_dict(self) -> dict:
+        return {
+            "name": "invoices",
+            "description": "Invoice data model",
+            "model_schema": {"type": "object", "properties": {"id": {"type": "string"}}},
+            "views": [
+                {
+                    "name": "v_invoices",
+                    "sql": "SELECT id FROM invoices",
+                    "columns": [{"name": "id", "type": "string"}],
+                }
+            ],
+            "quality_checks": [
+                {"name": "non_empty_id", "query": "SELECT ...", "description": "no empty id"}
+            ],
+            "prompt": "extract invoices",
+            "summary": "Invoices model",
+        }
+
+    def test_list_data_models_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        sample_models = [
+            SimpleNamespace(
+                name="invoices", description="Invoice data model", model_schema={"type": "object"}
+            ),
+            SimpleNamespace(name="receipts", description="Receipts", model_schema={}),
+        ]
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_all",
+                return_value=sample_models,
+            ) as mocked_find_all,
+        ):
+            resp = client.get("/api/v2/document-intelligence/data-models")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert isinstance(body, list)
+        assert len(body) == 2
+        assert {m["name"] for m in body} == {"invoices", "receipts"}
+        # summaries should not include heavy fields
+        assert "views" not in body[0]
+        assert "quality_checks" not in body[0]
+        mocked_find_all.assert_called_once()
+
+    def test_create_data_model_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        payload = self._sample_data_model_payload()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.insert",
+                return_value=None,
+            ) as mocked_insert,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                side_effect=[None, SimpleNamespace(**self._sample_data_model_dict())],
+            ) as mocked_find_by_name,
+        ):
+            resp = client.post("/api/v2/document-intelligence/data-models", json=payload)
+
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["dataModel"]["name"] == "invoices"
+        assert body["dataModel"]["schema"]["type"] == "object"
+        mocked_insert.assert_called_once()
+        mocked_find_by_name.assert_called()
+
+    def test_create_data_model_failure_when_not_found_after_insert(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        payload = self._sample_data_model_payload()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.insert",
+                return_value=None,
+            ),
+            # This patch is to simulate the case of an internal error when the model is not
+            # found right after creation.
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=None,
+            ),
+        ):
+            resp = client.post("/api/v2/document-intelligence/data-models", json=payload)
+
+        assert resp.status_code == 500
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.UNEXPECTED.value.code
+
+    def test_get_data_model_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=SimpleNamespace(**self._sample_data_model_dict()),
+            ),
+        ):
+            resp = client.get("/api/v2/document-intelligence/data-models/invoices")
+
+        assert resp.status_code == 200
+        assert resp.json()["dataModel"]["name"] == "invoices"
+
+    def test_get_data_model_not_found(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=None,
+            ),
+        ):
+            resp = client.get("/api/v2/document-intelligence/data-models/missing")
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+
+    def test_update_data_model_not_found(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        payload = self._sample_data_model_payload()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=None,
+            ),
+        ):
+            resp = client.put("/api/v2/document-intelligence/data-models/invoices", json=payload)
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+
+    def test_update_data_model_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        payload = self._sample_data_model_payload()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=SimpleNamespace(**self._sample_data_model_dict(), update=Mock()),
+            ) as mocked_find_by_name,
+        ):
+            resp = client.put("/api/v2/document-intelligence/data-models/invoices", json=payload)
+
+        assert resp.status_code == 200
+        assert resp.json() == {"ok": True}
+        # Ensure update was invoked on the returned instance
+        instance = mocked_find_by_name.return_value
+        instance.update.assert_called_once()
+
+    def test_delete_data_model_not_found(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=None,
+            ),
+        ):
+            resp = client.delete("/api/v2/document-intelligence/data-models/missing")
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+
+    def test_delete_data_model_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        sample_model = self._sample_data_model_dict()
+
+        class DummyDM:
+            def __init__(self, data):
+                self.__dict__.update(data)
+
+            def delete(self, _ds):
+                return True
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=DummyDM(sample_model),
+            ),
+        ):
+            resp = client.delete("/api/v2/document-intelligence/data-models/invoices")
+
+        assert resp.status_code == 200
+        assert resp.json() == {"ok": True}

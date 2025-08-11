@@ -2,6 +2,7 @@
 
 - Add pre-ignition check for document intelligence data server in private v2 API, currently only a stub and will fail with a 412 error.
 - Add create, read, update, delete endpoints for platforms.
+- (DIv2) Add CRUD API for Data Models.
 
 # Sema4.ai Agent Server 2.0.27 (2025-08-04)
 

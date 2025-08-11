@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from sema4ai_docint.models.data_model import DataModel
+from sema4ai_docint.utils import normalize_name
+
+
+@dataclass(frozen=True)
+class DataModelPayload:
+    """Payload matching the OpenAPI reference for the DataModel object.
+
+    Field names use the reference spec (camelCase) but are normalized here to
+    snake_case and converted to the underlying `DataModel` model as needed.
+    """
+
+    name: str
+    description: str
+    schema: dict[str, Any]
+    views: list[dict[str, Any]] | None = None
+    quality_checks: list[dict[str, str]] | None = field(
+        default=None, metadata={"alias": "qualityChecks"}
+    )
+    prompt: str | None = None
+    summary: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    @classmethod
+    def model_validate(cls, data: Any) -> DataModelPayload:
+        # Defensive copy
+        if isinstance(data, dict):
+            obj = dict(data)
+        else:
+            obj = dict(getattr(data, "__dict__", {}))
+
+        # Accept both camelCase (spec) and snake_case (internal) keys
+        name = normalize_name(str(obj.get("name")))
+        description = obj.get("description")
+        schema = obj.get("schema", obj.get("model_schema"))
+        views = obj.get("views")
+        quality_checks = obj.get("qualityChecks", obj.get("quality_checks"))
+        prompt = obj.get("prompt")
+        summary = obj.get("summary")
+        created_at = obj.get("createdAt", obj.get("created_at"))
+        updated_at = obj.get("updatedAt", obj.get("updated_at"))
+
+        if not name:
+            raise ValueError("DataModel.name is required")
+        if not description:
+            raise ValueError("DataModel.description is required")
+        if not schema:
+            raise ValueError("DataModel.schema is required")
+
+        return cls(
+            name=str(name),
+            description=str(description),
+            schema=schema,
+            views=views,
+            quality_checks=quality_checks,
+            prompt=prompt,
+            summary=summary,
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+    def to_data_model(self) -> DataModel:
+        return DataModel(
+            name=self.name,
+            description=self.description,
+            model_schema=self.schema,  # Map schema to model_schema
+            views=self.views,
+            quality_checks=self.quality_checks,
+            prompt=self.prompt,
+            summary=self.summary,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
+
+
+def model_to_spec_dict(model: DataModel) -> dict[str, Any]:
+    """Convert internal DataModel to an API response dict using camelCase keys."""
+    return {
+        "name": getattr(model, "name", None),
+        "description": getattr(model, "description", None),
+        "schema": getattr(model, "model_schema", None),
+        "views": getattr(model, "views", None),
+        "qualityChecks": getattr(model, "quality_checks", None),
+        "prompt": getattr(model, "prompt", None),
+        "summary": getattr(model, "summary", None),
+        "createdAt": getattr(model, "created_at", None),
+        "updatedAt": getattr(model, "updated_at", None),
+    }
+
+
+def summary_from_model(model: DataModel) -> dict[str, Any]:
+    """Build DataModelSummary (name, description, schema)."""
+    return {
+        "name": model.name,
+        "description": model.description,
+        "schema": model.model_schema,
+    }
+
+
+@dataclass(frozen=True)
+class UpsertDataModelRequest:
+    """Request payload for upserting a data model."""
+
+    dataModel: DataModelPayload  # noqa: N815
