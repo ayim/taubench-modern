@@ -220,6 +220,118 @@ class TestDocumentIntelligenceEndpoints:
         assert error["code"] == ErrorCode.PRECONDITION_FAILED.value.code
         assert expected_substring in error["message"]
 
+    def test_get_all_layouts_returns_layouts(self, client: TestClient):
+        """GET /document-intelligence/layouts should return layout summaries."""
+        # Prepare valid connection details
+        valid_details = DIDSConnectionDetails(
+            username="testuser",
+            password=SecretString("testpass"),
+            connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
+                ),
+            ],
+        )
+
+        storage_instance = StorageService.get_instance()
+
+        # Fake DI service and datasource
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        # Fake layouts returned by the model layer
+        layout1 = Mock()
+        layout1.name = "Invoice"
+        layout1.data_model = "InvoiceModel"
+        layout1.summary = "Standard invoice layout"
+        layout2 = Mock()
+        layout2.name = "Receipt"
+        layout2.data_model = "ReceiptModel"
+        layout2.summary = None
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_all",
+                return_value=[layout1, layout2],
+            ) as mock_find_all,
+        ):
+            response = client.get("/api/v2/document-intelligence/layouts")
+
+        assert response.status_code == 200
+        assert response.json() == [
+            {
+                "name": "Invoice",
+                "data_model": "InvoiceModel",
+                "summary": "Standard invoice layout",
+            },
+            {
+                "name": "Receipt",
+                "data_model": "ReceiptModel",
+                "summary": None,
+            },
+        ]
+        mock_find_all.assert_called_once()
+
+    def test_get_all_layouts_returns_empty_list(self, client: TestClient):
+        """GET /document-intelligence/layouts should return an empty list when no layouts exist."""
+        valid_details = DIDSConnectionDetails(
+            username="user",
+            password=SecretString("pass"),
+            connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
+                ),
+            ],
+        )
+
+        storage_instance = StorageService.get_instance()
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_all",
+                return_value=[],
+            ),
+        ):
+            response = client.get("/api/v2/document-intelligence/layouts")
+
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_get_all_layouts_fails_when_dids_not_configured(self, client: TestClient):
+        """When DIDS details are missing, the layouts endpoint should return precondition failed."""
+        response = client.get("/api/v2/document-intelligence/layouts")
+
+        assert response.status_code == 412
+        error = response.json()["error"]
+        assert error["code"] == ErrorCode.PRECONDITION_FAILED.value.code
+
 
 class TestBuildDatasource:
     """Tests for the _build_datasource function."""

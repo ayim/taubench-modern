@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 from sema4ai.data import DataSource
-from sema4ai_docint.models import initialize_database
+from sema4ai_docint.models import DocumentLayout, initialize_database
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
-from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
+from agent_platform.core.document_intelligence import DIDSConnectionDetails, DocumentLayoutSummary
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads import (
@@ -87,3 +87,19 @@ async def upsert_document_intelligence(
         await storage.set_document_intelligence_integration(integration)
 
     return {"ok": True}
+
+
+@router.get("/layouts")
+async def get_all_layouts(docint_ds: DocIntDatasourceDependency) -> list[DocumentLayoutSummary]:
+    """Get all layouts from the Document Intelligence database."""
+    document_layouts = DocumentLayout.find_all(docint_ds)
+    layout_summaries = []
+    for layout in document_layouts:
+        layout_summaries.append(
+            DocumentLayoutSummary(
+                name=layout.name,
+                data_model=layout.data_model,
+                summary=layout.summary,
+            )
+        )
+    return layout_summaries
