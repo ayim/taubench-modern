@@ -1,9 +1,10 @@
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import ANY, AsyncMock, Mock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sema4ai_docint import normalize_name
 
 from agent_platform.core.document_intelligence.dataserver import (
     DIDSApiConnectionDetails,
@@ -825,3 +826,217 @@ class TestDataModelEndpoints:
 
         assert resp.status_code == 200
         assert resp.json() == {"ok": True}
+
+
+class TestUpsertLayout:
+    def _valid_details(self) -> DIDSConnectionDetails:
+        return DIDSConnectionDetails(
+            username="user",
+            password=SecretString("pass"),
+            connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
+                ),
+            ],
+        )
+
+    def test_upsert_layout_inserts_when_not_exists(self, client: TestClient):
+        payload = {
+            "name": "invoice-v1",
+            "dataModelName": "invoice",
+            "extractionSchema": {"type": "object"},
+            "translationSchema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
+            "summary": "Invoice layout",
+            "extractionConfig": {"threshold": 0.8},
+            "prompt": "You are a helpful layout model.",
+        }
+
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance"
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=None,
+            ) as find_by_name,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.insert"
+            ) as insert,
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            response = client.post("/api/v2/document-intelligence/layouts", json=payload)
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        find_by_name.assert_called_once()
+        insert.assert_called_once()
+
+    def test_upsert_layout_updates_when_exists(self, client: TestClient):
+        payload = {
+            "name": "invoice-v1",
+            "dataModelName": "invoice",
+            "extractionSchema": {"type": "object"},
+            "translationSchema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
+            "summary": "Invoice layout",
+            "extractionConfig": {"threshold": 0.8},
+            "prompt": "You are a helpful layout model.",
+        }
+
+        expected_wrapped = {
+            "rules": [{"mode": "rename", "source": "total", "target": "grand_total"}]
+        }
+
+        storage_instance = StorageService.get_instance()
+        existing_layout = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=existing_layout,
+            ) as find_by_name,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.insert",
+            ) as insert,
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            with patch.object(existing_layout, "update") as update:
+                response = client.post("/api/v2/document-intelligence/layouts", json=payload)
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        find_by_name.assert_called_once()
+        update.assert_called_once()
+        insert.assert_not_called()
+        assert existing_layout.extraction_schema == {"type": "object"}
+        assert existing_layout.translation_schema == expected_wrapped
+        assert existing_layout.summary == "Invoice layout"
+        assert existing_layout.extraction_config == {"threshold": 0.8}
+        assert existing_layout.system_prompt == "You are a helpful layout model."
+
+    def test_upsert_layout_normalizes_names_on_lookup(self, client: TestClient):
+        payload = {
+            "name": "Invoice Layout V1!!",
+            "dataModelName": "Koch Invoices",
+            "extractionSchema": {"type": "object"},
+            "translationSchema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
+        }
+
+        storage_instance = StorageService.get_instance()
+        existing_layout = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=existing_layout,
+            ) as find_by_name,
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            with patch.object(existing_layout, "update") as update:
+                response = client.post("/api/v2/document-intelligence/layouts", json=payload)
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        # Ensure lookup used normalized names
+        expected_dm = normalize_name(payload["dataModelName"])  # type: ignore[index]
+        expected_name = normalize_name(payload["name"])  # type: ignore[index]
+        find_by_name.assert_called_once_with(ANY, expected_dm, expected_name)
+        update.assert_called_once()
+
+    def test_upsert_layout_inserts_with_normalized_name(self, client: TestClient):
+        payload = {
+            "name": "Invoice Layout V1!!",
+            "dataModelName": "Koch Invoices",
+            "extractionSchema": {"type": "object"},
+        }
+
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=None,
+            ) as find_by_name,
+            patch(
+                "agent_platform.core.payloads.upsert_document_layout.DocumentLayout",
+            ) as dummy_dl,
+        ):
+            # Configure a simple dummy DocumentLayout class to capture instance attributes
+            class _DummyDL:
+                last_instance = None
+
+                def __init__(self, name, data_model, **kwargs):
+                    self.name = name
+                    self.data_model = data_model
+                    # Optionally capture expected attributes if provided
+                    self.extraction_schema = kwargs.get("extraction_schema")
+                    self.translation_schema = kwargs.get("translation_schema")
+                    self.summary = kwargs.get("summary")
+                    self.extraction_config = kwargs.get("extraction_config")
+                    self.system_prompt = kwargs.get("system_prompt")
+                    _DummyDL.last_instance = self
+
+                def insert(self, ds):
+                    return None
+
+            dummy_dl.side_effect = _DummyDL
+
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            response = client.post("/api/v2/document-intelligence/layouts", json=payload)
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        find_by_name.assert_called_once()
+        # Ensure the created layout instance had normalized name
+        created_layout = dummy_dl.side_effect.last_instance  # type: ignore[attr-defined]
+        assert created_layout is not None
+        assert created_layout.name == normalize_name(payload["name"])  # type: ignore[index]

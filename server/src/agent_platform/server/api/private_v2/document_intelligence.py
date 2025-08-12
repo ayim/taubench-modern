@@ -15,7 +15,10 @@ from agent_platform.core.document_intelligence.data_models import (
 )
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
-from agent_platform.core.payloads import UpsertDocumentIntelligenceConfigPayload
+from agent_platform.core.payloads import (
+    UpsertDocumentIntelligenceConfigPayload,
+    UpsertDocumentLayoutPayload,
+)
 from agent_platform.server.api.dependencies import DocIntDatasourceDependency, StorageDependency
 from agent_platform.server.storage.postgres.postgres import PostgresConfig
 
@@ -205,3 +208,49 @@ async def delete_data_model(model_name: str, docint_ds: DocIntDatasourceDependen
         raise
     except Exception as e:
         raise PlatformHTTPError(ErrorCode.UNEXPECTED, f"Failed to delete data model: {e!s}") from e
+
+
+@router.post("/layouts")
+async def upsert_layout(
+    # Payload is a dict because we use dataclasses and want to allow camelCase
+    # in the payload and this is the only way to do that via FastAPI without a contrived
+    # dependency work around.
+    payload: dict,
+    docint_ds: DocIntDatasourceDependency,
+):
+    """Upsert a layout into the Document Intelligence database.
+
+    Behavior:
+    - If a layout with the same name and data model exists, update it
+      (extraction schema, translation schema, summary, extraction config, prompt).
+    - Otherwise, insert a new layout.
+    """
+    try:
+        normalized = UpsertDocumentLayoutPayload.model_validate(payload)
+
+        # Wrap translation schema (array of rules) into DI model-compatible dict
+        translation_schema_wrapped = None
+        if normalized.translation_schema is not None:
+            translation_schema_wrapped = {
+                "rules": [rule.to_compact_dict() for rule in normalized.translation_schema]
+            }
+
+        # Try to find existing layout
+        existing = DocumentLayout.find_by_name(
+            docint_ds, normalized.data_model_name, normalized.name
+        )
+        if existing:
+            existing.extraction_schema = normalized.extraction_schema
+            existing.translation_schema = translation_schema_wrapped
+            existing.summary = normalized.summary
+            existing.extraction_config = normalized.extraction_config
+            existing.system_prompt = normalized.prompt
+            existing.update(docint_ds)
+        else:
+            layout = normalized.to_document_layout()
+            layout.insert(docint_ds)
+
+        return {"ok": True}
+    except Exception as e:
+        logger.error("Error upserting layout", error=str(e))
+        raise PlatformError(ErrorCode.UNEXPECTED, f"Failed to upsert layout: {e!s}") from e
