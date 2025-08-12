@@ -1,0 +1,29 @@
+name: ask-name
+description: What is my name?
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          What is my name?
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The user is asking for their name, but I don't have access to any information about who they are or what their name is.
+      - role: agent
+        content: |
+          I don't have access to information about your name. I can only see the messages you send me in our conversation, but I don't have access to your profile information or personal details. Could you please tell me your name if you'd like me to use it in our conversation?"
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

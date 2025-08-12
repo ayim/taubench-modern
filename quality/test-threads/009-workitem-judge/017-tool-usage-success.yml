@@ -1,0 +1,45 @@
+name: tool-usage-success
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Can you calculate 8374 * 384759?
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            I need to multiply 8374 by 384759 to provide the user with the product. I have initiated the calculation using the relevant tool and will await the result before presenting the final answer.
+      - role: user
+        content: |
+          Calculating the result of 8374 multiplied by 384759. I will provide the product shortly
+      - role: agent
+        content:
+          kind: tool_use
+          tool_name: calculate
+          tool_call_id: call_VFDOuZF8gc3OvWZT22bx9Gtw
+          input_as_string: '{"operation": "multiply", "num1": 8374, "num2": 384759}'
+          output_as_string: 8374 multiply 384759 = 3221971866
+          started_at: '2022-09-27 18:00:00.000'
+          ended_at: '2022-09-27 18:00:00.000'
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            I have completed the multiplication using the proper tool and obtained the result of 8374 * 384759 = 3,221,971,866. No further actions are needed; I will present the answer to the user.
+      - role: agent
+        content: \nThe result of multiplying 8374 by 384759 is **3,221,971,866**.\n
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: COMPLETED

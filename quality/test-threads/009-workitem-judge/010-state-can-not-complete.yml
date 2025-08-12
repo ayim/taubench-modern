@@ -1,0 +1,29 @@
+name: state-can-not-complete
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          what is my name and my date of birth? if you dont know, clearly state that you cannot complete the task.
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The user is asking for their name and date of birth, but I don't have access to any personal information about them. They specifically asked me to clearly state if I cannot complete the task.
+      - role: agent
+        content: |
+          I cannot complete this task. I do not have access to your personal information, including your name or date of birth. I can only see the messages you send me in our conversation and don't have access to any profile information or personal details about you.
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

@@ -1,0 +1,57 @@
+name: tool-error-recovery-success
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Translate this customer support message from Brazilian Portuguese to English: 'Obrigado pela ajuda com meu pedido.'
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            I need to translate from Brazilian Portuguese to English. I'll use the translate tool with the Portuguese language code.
+      - role: agent
+        content:
+          kind: tool_use
+          tool_name: translate
+          tool_call_id: '1'
+          input_as_string: '{"text": "Obrigado pela ajuda com meu pedido.", "from": "portuguese", "to": "en"}'
+          output_as_string: '{}'
+          error: unsupported language code 'portuguese'. Did you mean 'pt-BR' for Brazilian Portuguese or 'pt' for Portuguese?
+          started_at: '2022-09-27 18:00:00.000'
+          ended_at: '2022-09-27 18:00:00.000'
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The tool failed because I used 'portuguese' instead of the proper language code. The error message suggests I should use 'pt-BR' for Brazilian Portuguese, which is exactly what I need.
+      - role: agent
+        content:
+          kind: tool_use
+          tool_name: translate
+          tool_call_id: '2'
+          input_as_string: '{"text": "Obrigado pela ajuda com meu pedido.", "from": "pt-BR", "to": "en"}'
+          output_as_string: Thank you for helping with my order.
+          started_at: '2022-09-27 18:00:00.000'
+          ended_at: '2022-09-27 18:00:00.000'
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            Perfect! The translation was successful after using the correct language code. I can now provide the customer with the English translation.
+      - role: agent
+        content: Here is the English translation of the customer support message:\n\n**Original (Brazilian Portuguese):** \"Obrigado pela ajuda com meu pedido.\"\n\n**Translation (English):** \"Thank you for helping with my order.\"\n\nThe customer is expressing gratitude for assistance with their order.
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: COMPLETED

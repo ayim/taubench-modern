@@ -1,0 +1,29 @@
+name: partially-completed-code
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Give me Python code that prints numbers 1-5 and 10-15.
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The user wants Python code that prints two ranges of numbers. I'll provide the first range.
+      - role: agent
+        content: |
+          Here's the Python code:\n\n```python\nfor i in range(1, 6):\n    print(i)\n```
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

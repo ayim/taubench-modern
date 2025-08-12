@@ -1,0 +1,29 @@
+name: say-hello-in-spanish
+description: Say hello in Spanish
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Say hello in Spanish.
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The user wants me to say hello in Spanish. This is straightforward - 'Hola' is hello in Spanish.
+      - role: agent
+        content: |
+          ¡Hola! (That's \"hello\" in Spanish. Let me know if you need anything else!)
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: COMPLETED

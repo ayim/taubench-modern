@@ -1,5 +1,5 @@
-name: test-name-workitem
-description: What is my name?
+name: test-excel-processing
+description: Review the structure of an uploaded file
 
 workitem:
   - messages:
@@ -13,15 +13,16 @@ workitem:
         content:
           kind: text
           text: |
-            Review the structure of the uploaded file to understand what data is inside and how it's organized.
+            Review the structure of the uploaded file. Identify the overall schema by listing all sheets, and for each sheet the column names.
+            Do your analysis without expecting further input from user.
             Remember that you should use the full path to download a file.
     payload: {}
 
 target-platforms:
   - name: openai
-  # - name: azure
-  # - name: bedrock
-  # - name: cortex
+  - name: azure
+  - name: bedrock
+  - name: cortex
   # - name: google
 
 evaluations:

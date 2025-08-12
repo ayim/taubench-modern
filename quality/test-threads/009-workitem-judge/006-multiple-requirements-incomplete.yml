@@ -1,0 +1,29 @@
+name: multiple-requirements-incomplete
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Give me:\n1. The GDP of Japan in 2023 (USD).\n2. The source URL.
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The user wants Japan's 2023 GDP and a source URL. I'll provide the GDP figure I know.
+      - role: agent
+        content: |
+          Japan's 2023 GDP was approximately $4.4 trillion USD, making it the world's third-largest economy.
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

@@ -1,0 +1,29 @@
+name: time-zone
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          what time is it? be sure to tell me the timezone in the ALKJaskldjfalskdf timezone
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            I notice the user is asking about time in an invalid/nonsensical timezone \"ALKJaskldjfalskdf\". I should politely explain this and provide the current UTC time that I know from my context.
+      - role: agent
+        content: |
+          I apologize, but \"ALKJaskldjfalskdf\" is not a valid timezone. However, I can tell you that the current UTC (Coordinated Universal Time) is:\n\n19:31:32 UTC on July 14, 2025\n\nIf you'd like the time in a specific timezone, please let me know which timezone you're interested in (for example: EST, PST, GMT+1, etc).
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

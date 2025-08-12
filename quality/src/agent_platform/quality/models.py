@@ -82,6 +82,7 @@ class ToolUse:
     input_as_string: str
     output_as_string: str
     tool_name: str
+    tool_call_id: str
     started_at: str
     ended_at: str
     error: str | None = None
@@ -189,6 +190,8 @@ class Metric:
 class Workitem:
     messages: list[Message]
     payload: dict
+    # indicates if we want to test if the workitem is valid
+    is_preview_only: bool
 
 
 @dataclass
@@ -232,6 +235,18 @@ class TestCase:
                         file_name=content["file_name"],
                         description=content["description"],
                         mime_type=content["mime_type"],
+                    )
+                case "thought":
+                    return Thought(content=content["text"])
+                case "tool_use":
+                    return ToolUse(
+                        tool_name=content["tool_name"],
+                        tool_call_id=content["tool_call_id"],
+                        input_as_string=content["input_as_string"],
+                        output_as_string=content["output_as_string"],
+                        ended_at=content.get("ended_at"),
+                        started_at=content.get("started_at"),
+                        error=content.get("error", None),
                     )
 
             raise ValueError(f"Unknown message content type {content}")
@@ -329,6 +344,7 @@ class TestCase:
                     for msg in workitem_data["messages"]
                 ],
                 payload=workitem_data.get("payload", {}),
+                is_preview_only=workitem_data.get("isPreviewOnly", False),
             )
 
         if thread is not None and workitem is not None:

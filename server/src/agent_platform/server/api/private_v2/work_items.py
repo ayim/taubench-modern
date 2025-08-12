@@ -28,6 +28,7 @@ from agent_platform.server.api.private_v2.threads import (
 )
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemConfig
+from agent_platform.server.work_items.background_worker import _validate_success
 from agent_platform.server.work_items.callbacks import _build_work_item_url
 from agent_platform.server.work_items.rest import WorkItemsListResponse
 from agent_platform.server.work_items.state_machine import WorkItemStateMachine
@@ -425,3 +426,24 @@ async def _create_stub_work_item(user_id: str, storage: StorageDependency) -> Wo
     )
     await storage.create_work_item(work_item)
     return work_item
+
+
+@router.post(
+    "/preview",
+    include_in_schema=False,  # used only by internal tools (e.g. quality)
+)
+async def preview_work_item(
+    payload: CreateWorkItemPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    """Preview the status of a work item during a dry run."""
+    system_user, _created = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+    work_item = CreateWorkItemPayload.to_work_item(
+        payload=payload,
+        owner_user_id=system_user.user_id,
+        created_by_user_id=user.user_id,
+    )
+    status = await _validate_success(work_item)
+
+    return {"status": status}

@@ -1,0 +1,29 @@
+name: time-no-access-correct
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          what time is it?
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The user is asking about the current time. I should let them know that I don't have access to real-time data.
+      - role: agent
+        content: |
+          I don't have access to real-time data, so I cannot tell you what time it is right now. To get the current time, you can check your device's clock, search \"current time\" in a web browser, or use a time-related app or website.
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

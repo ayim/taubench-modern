@@ -19,10 +19,7 @@ from agent_platform.quality.models import (
 logger = structlog.get_logger(__name__)
 
 
-def build_agent_platform_user_message(message: Message):
-    if message.role != "user":
-        raise ValueError(f"Expected user role, found {message.role}")
-
+def build_agent_platform_message(message: Message):
     api_content = []
     for content_item in message.content:
         match content_item:
@@ -34,6 +31,7 @@ def build_agent_platform_user_message(message: Message):
                 input_as_string=input_str,
                 output_as_string=output_str,
                 tool_name=tool_name,
+                tool_call_id=tool_call_id,
                 started_at=started_at,
                 ended_at=ended_at,
                 error=error,
@@ -42,6 +40,7 @@ def build_agent_platform_user_message(message: Message):
                     {
                         "kind": "tool_call",
                         "name": tool_name,
+                        "tool_call_id": tool_call_id,
                         "arguments_raw": input_str,
                         "result": output_str,
                         "started_at": started_at,
@@ -68,7 +67,7 @@ def build_agent_platform_user_message(message: Message):
                 # Fallback for unknown content types
                 api_content.append({"kind": "text", "text": str(content_item)})
 
-    return {"role": "user", "content": api_content}
+    return {"role": message.role, "content": api_content}
 
 
 def from_api_response_to_messages(api_response: Any) -> list[Message]:
@@ -88,13 +87,22 @@ def from_api_response_to_messages(api_response: Any) -> list[Message]:
                             input_as_string=part.get("arguments_raw", ""),
                             output_as_string=part.get("result", ""),
                             tool_name=part.get("name", ""),
+                            tool_call_id=part.get("tool_call_id", ""),
                             started_at=part.get("started_at", ""),
                             ended_at=part.get("ended_at", ""),
                             error=part.get("error", None),
                         )
                     )
+                case "attachment":
+                    # TODO server returns it, but should it?
+                    pass
+                case _:
+                    import json
 
-    agent_messages.append(Message(role="agent", content=mapped_content))
+                    print(json.dumps(part, indent=4))
+                    raise ValueError(f"unexpected message kind: {part.get('kind')}")
+
+        agent_messages.append(Message(role="agent", content=mapped_content))
     return agent_messages
 
 
@@ -133,7 +141,31 @@ class AgentRunner:
     ) -> tuple[list[Message], WorkitemResult | None]:
         """Run a test case against an agent and return agent messages."""
         if test_case.workitem is not None:
-            logger.info(f"Running test case with workitem {test_case.name}")
+            logger.info(
+                f"Running test case {test_case.name} (dryrun={test_case.workitem.is_preview_only})"
+            )
+
+            if test_case.workitem.is_preview_only:
+                api_messages = [
+                    build_agent_platform_message(message) for message in test_case.workitem.messages
+                ]
+                payload = {
+                    "messages": api_messages,
+                    "payload": test_case.workitem.payload,
+                    "agent_id": agent_id,
+                }
+                async with httpx.AsyncClient(timeout=60.0 * 5) as client:
+                    response = await client.post(
+                        f"{self.server_url}/api/public/v1/work-items/preview",
+                        json=payload,
+                    )
+                    response.raise_for_status()
+
+                    workitem_status_data = response.json()
+
+                return test_case.workitem.messages, WorkitemResult(
+                    status=workitem_status_data.get("status")
+                )
 
             workitem_id = None
 
@@ -172,8 +204,7 @@ class AgentRunner:
                         raise
 
             api_messages = [
-                build_agent_platform_user_message(message)
-                for message in test_case.workitem.messages
+                build_agent_platform_message(message) for message in test_case.workitem.messages
             ]
             payload = {
                 "messages": api_messages,
@@ -255,7 +286,7 @@ class AgentRunner:
                         raise
 
             api_messages = [
-                build_agent_platform_user_message(message) for message in test_case.thread.messages
+                build_agent_platform_message(message) for message in test_case.thread.messages
             ]
             payload = {
                 "agent_id": agent_id,

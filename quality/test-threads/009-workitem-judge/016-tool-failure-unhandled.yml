@@ -1,0 +1,43 @@
+name: tool-failure-unhandled
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Translate the customer feedback form responses in our proprietary business language code 'CORP-2024' to English.
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            I need to use the translation tool to translate from the business language code 'CORP-2024' to English.
+      - role: agent
+        content:
+          kind: tool_use
+          tool_name: translate
+          tool_call_id: tool_5678
+          input_as_string: '{"text": "customer feedback responses", "from": "CORP-2024", "to": "en"}'
+          output_as_string: '{}'
+          error: unsupported language code 'CORP-2024'
+          started_at: '2022-09-27 18:00:00.000'
+          ended_at: '2022-09-27 18:00:00.000'
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The translation tool failed because 'CORP-2024' is not a supported language code. Since this appears to be a proprietary business language, I cannot complete this translation task without the appropriate tools or access to the translation system.
+      - role: agent
+        content: I apologize, but I cannot complete the translation task. The translation tool failed because 'CORP-2024' is not a supported language code in the available translation system. This appears to be a proprietary business language that requires specialized translation tools or access that I don't currently have. You may need to use your organization's internal translation system or contact the team responsible for 'CORP-2024' translations.
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

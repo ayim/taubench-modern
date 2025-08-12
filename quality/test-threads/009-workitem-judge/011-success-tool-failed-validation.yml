@@ -1,0 +1,93 @@
+name: success-tool-failed-validation
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          process this document and run validation
+      - role: user
+        content: |
+          Uploaded [Bison IV Properties Colorado LLC - Feb 2025.pdf](https://ace-b1025012-bcfc-4198-b1a9-dbaf440e6b16-agent-data.s3.us-east-1.amazonaws.com/tenants/d5711b24-ec33-4dff-9047-076b4a486077/82be4f3a-e011-450b-a6b9-f010fcba869d?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAW3MECBZ4I5NXVFTT%2F20250726%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250726T222346Z&X-Amz-Expires=43200&X-Amz-Security-Token=IQoJb3JpZ2luX2VjED4aCXVzLWVhc3QtMSJIMEYCIQDh063NTOMx%2Bp4Q%2FZTWfGq%2FERogIksYIaTgBln3d1f1GQIhANJlFmL%2BNxe%2Fa1%2BJt949XISjC7ZinVoejuSDVhKNC78WKqYFCGcQABoMNDcxMTEyNzQ4NjY0IgyxpLzKp6Z9h2ln5%2BQqgwVVhVVyPt6L4MBRL6vbp4%2Fv2KGgYvg0ZCnZ2GtAOCeoVxY0g02%2B%2BJmUh16ZFf1qW3mEDJmUwv3VLUhHYs5weuSc92uYe6F9imjiVCu4MpZVDnRpXenuPFd3e9qL%2BpRQlYN0ms5r9iI2c1zSIWN1GQaNwGZaJ9B5hfTOPiHjYyDSflDm7EhwKRlD6goxqr%2BvwmyQ74%2FOZPs%2FdXfhKg0ZNvkFzah7%2Bz%2BXCfv8BtamCOSILDKgA02yEuE2YRIe3g5CKOlq1rKS4KkIongmvlaMojxMwYlImA3h2zP2Wm5xzM8IQevQftBUn6K4ScuIYF%2FB0bW2lbEngobYo0yApXRsGQbxyWPLWeyRiwgPqZCbWB%2BqvGiYCuLh0hptLZIDCU2pnd7PiZkUbJ618LujXfBPucXrEQiePUWOfCC0RPiO063jJ5qH1xqTx7d9YXm9H02WN6aR0Ja2J0n1Q2L0CXKP5nUjaAE3KaP1cUV24TlubqRJxx3INHYQ3c5d3UE0pCjamQc%2BgZyRmvYx1u5gmMFq7kw9vRyYaqPIxEFhBRJj1LqCOWc7ZZWe0g7nMxWyNtvHTeBUA2mAo0PqnNO7AkxtOLLeFluT9qiykT0TY5oy%2FeENy3N1%2ByeuZ44HTGxTp2JNlSA%2Bl7lZlRA1Kvi%2FsxFoHKUk3TfrpEtQZDo%2Bg9HnBcomctvlLP1X2o3apQHmewUVVlyKw%2BM%2FFHxepdqYy1THc8%2BD4j%2FgpHdsQbQxqj0iCF8ust70ZAxaen7JkDukJbstqJ0rEsRdRzdXtnLUW0DKnBFQYBAJ9GGaec7eJRAYZzm6J5pvJrsj21ZPPFZU%2FEqHJXnRZo03wAJfaFFTQYALq1rouNKlMPKflcQGOpoB6JiOQ3CudIw08wiW5r8o5c2OcQB%2B81yiq52x5MwnasVLAJVs1rqqj4Xg0Dbd3D6L68CcNlRQw84OYgdGOkk4v2z2By8Wgpkws%2F0Xv7QNpdXJRT28%2BfHGuuvfwUtxvhB00Y%2FethRivssEhZTDYfLAprEu0mjsq5Yz3ruMc8qfYZFfouQOklcG4CeKMoHiMAnhzDaGdykJ7FZ%2FsA%3D%3D&X-Amz-Signature=a9aecc12a819a3a6cc2efadb306fe06178c1469cd0cca975ac4bf216fa1bb7a6&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22Bison%20IV%20Properties%20Colorado%20LLC%20-%20Feb%202025.pdf%22&x-id=GetObject)
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            \nThe user has uploaded the document \"Bison IV Properties Colorado LLC - Feb 2025.pdf\" and requested processing and validation. \nAccording to the runbook, the next step is to determine and select the appropriate document layout using the layout chooser tool. \nOnce the layout is chosen, I will proceed with document processing and storage, followed by running validation upon successful ingestion.\n
+      - role: agent
+        content: |
+          \nProcessing your document. I am determining the optimal layout for “Bison IV Properties Colorado LLC - Feb 2025.pdf”. Once identified, I will extract its content and proceed to validation. I will update you as soon as the process completes.\n
+      - role: agent
+        content:
+          kind: tool_use
+          tool_name: choose_document_layout
+          tool_call_id: '123'
+          input_as_string: '{"data_model_name": "koch_invoices", "file_name": "Bison IV Properties Colorado LLC - Feb 2025.pdf"}'
+          output_as_string: '{"result": {"Message": "Document matched to bison using image classification", "layout_name": "bison", "confidence": null, "method": "image", "fallback_used": false}, "error": null}'
+          started_at: '2022-09-27 18:00:00.000'
+          ended_at: '2022-09-27 18:00:00.000'
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            \nI’ve determined that the best document layout for \"Bison IV Properties Colorado LLC - Feb 2025.pdf\" is \"bison\" using image classification. \nThe next step is to process (ingest) the document using the \"bison\" layout for the \"koch_invoices\" data model. \nAfter ingestion, I’ll perform quality checks and then present both the extracted content and the validation results in the required tabular format.\n
+      - role: agent
+        content: |
+          \nThe layout \"bison\" has been matched for your document. I am now processing and extracting its content. \nOnce completed, I will automatically run quality checks and present all findings to you.\n
+      - role: agent
+        content:
+          kind: tool_use
+          tool_name: ingest
+          tool_call_id: '456'
+          input_as_string: '{"file_name": "Bison IV Properties Colorado LLC - Feb 2025.pdf", "data_model_name": "koch_invoices", "layout_name": "bison"}'
+          output_as_string: '{"result": {"document": {"id": "720a13df-bc43-d046-bba4-884d0dc4ff5a", "document_name": "Bison IV Properties Colorado LLC - Feb 2025.pdf", "document_layout": "bison", "data_model": "koch_invoices"}}, "error": null}'
+          started_at: '2022-09-27 18:00:00.000'
+          ended_at: '2022-09-27 18:00:00.000'
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            \nThe ingestion (processing) step is complete, and the document is stored with the \"bison\" layout. \nThe next steps are: \n1. Retrieve the extracted content (fields and any table data) for presentation to the user in the specified tabular format.\n2. Run quality checks (validation) on the processed document and display the results. \nTool calls for both steps will be issued in parallel. I will present the content and validation results once complete.\n
+      - role: agent
+        content: |
+          \nThe document has been processed using the matched \"bison\" layout. I am now retrieving the extracted content and running automated quality checks. Results and details will be presented shortly.\n
+      - role: agent
+        content:
+          kind: tool_use
+          tool_name: validate_document
+          tool_call_id: '678'
+          input_as_string: '{"data_model_name": "koch_invoices", "document_id": "720a13df-bc43-d046-bba4-884d0dc4ff5a"}'
+          output_as_string: "{\n    \"result\": null,\n    \"error\": \"Document validation encountered errors: {'overall_status': 'failed', 'results': [{'rule_name': 'invoice_total_matches_transaction_sum_plus_tax_with_tolerance', 'status': 'failed', 'description': 'Validates that the difference between the invoice total and the sum of transaction amounts plus tax is less than 0.1, allowing for floating point rounding.', 'error_message': 'Validation query did not return true', 'sql_query': 'SELECT ABS(COALESCE(MAX(`invoice_details_invoice_total`), 0) - (COALESCE(SUM(`transactions_amount`), 0) + COALESCE(MAX(`invoice_details_tax_amount`), 0))) < 0.1 AS is_valid, COALESCE(MAX(`invoice_details_invoice_total`), 0) AS invoice_total, COALESCE(SUM(`transactions_amount`), 0) AS summed_transaction_amount, COALESCE(MAX(`invoice_details_tax_amount`), 0) AS tax_amount, ABS(COALESCE(MAX(`invoice_details_invoice_total`), 0) - (COALESCE(SUM(`transactions_amount`), 0) + COALESCE(MAX(`invoice_details_tax_amount`), 0))) AS difference FROM `document_intelligence`.`KOCH_INVOICES_TRANSACTIONS` WHERE document_id = $document_id GROUP BY document_id', 'context': {'invoice_total': 582367.88, 'summed_transaction_amount': 34885.0, 'tax_amount': 0.0, 'difference': 547482.88}}], 'passed': 0, 'failed': 1, 'errors': 0}\"\n}"
+          started_at: '2022-09-27 18:00:00.000'
+          ended_at: '2022-09-27 18:00:00.000'
+          error: "Document validation encountered errors: {'overall_status': 'failed', 'results': [{'rule_name': 'invoice_total_matches_transaction_sum_plus_tax_with_tolerance', 'status': 'failed', 'description': 'Validates that the difference between the invoice total and the sum of transaction amounts plus tax is less than 0.1, allowing for floating point rounding.', 'error_message': 'Validation query did not return true', 'sql_query': 'SELECT ABS(COALESCE(MAX(`invoice_details_invoice_total`), 0) - (COALESCE(SUM(`transactions_amount`), 0) + COALESCE(MAX(`invoice_details_tax_amount`), 0))) < 0.1 AS is_valid, COALESCE(MAX(`invoice_details_invoice_total`), 0) AS invoice_total, COALESCE(SUM(`transactions_amount`), 0) AS summed_transaction_amount, COALESCE(MAX(`invoice_details_tax_amount`), 0) AS tax_amount, ABS(COALESCE(MAX(`invoice_details_invoice_total`), 0) - (COALESCE(SUM(`transactions_amount`), 0) + COALESCE(MAX(`invoice_details_tax_amount`), 0))) AS difference FROM `document_intelligence`.`KOCH_INVOICES_TRANSACTIONS` WHERE document_id = $document_id GROUP BY document_id', 'context': {'invoice_total': 582367.88, 'summed_transaction_amount': 34885.0, 'tax_amount': 0.0, 'difference': 547482.88}}], 'passed': 0, 'failed': 1, 'errors': 0}"
+      - role: agent
+        content:
+          kind: tool_use
+          tool_name: query_document
+          tool_call_id: '910'
+          input_as_string: '{"document_id": "720a13df-bc43-d046-bba4-884d0dc4ff5a"}'
+          output_as_string: ''
+          started_at: '2022-09-27 18:00:00.000'
+          ended_at: '2022-09-27 18:00:00.000'
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            \nI have successfully processed the document \"Bison IV Properties Colorado LLC - Feb 2025.pdf\" using the \"bison\" layout. The data extraction is complete, and validation has been performed.\nValidation failed due to a mismatch between the invoice total and the sum of transaction amounts plus tax, with a large discrepancy indicated.\nI will present the extracted document content (fields and transaction table) and detailed validation feedback as required by the runbook.\nNo further tool calls are needed; ready to present results to the user.\n
+      - role: agent
+        content: |
+          "\n\n**Document Layout**: bison\n\n**Document Content:**\n\n**Fields:**\n\n| Field Name                   | Field Value                                     |\n|------------------------------|-------------------------------------------------|\n| Document Name                | Bison IV Properties Colorado LLC - Feb 2025.pdf |\n| Buyer Name                   | Koch Energy Services, LLC                       |\n| Buyer Email                  | kesacct@kochind.com                             |\n| Buyer Address                | 4111 East 37th Street North, Wichita, KS 67220  |\n| Buyer Phone No               | 316-828-8250                                    |\n| Invoice Due Date             | 2025-03-25                                      |\n| Invoice Date                 | 2025-03-12                                      |\n| Invoice Total                | 582,367.88                                      |\n| Invoice Number               | BIVPC-KOCH-0225                                 |\n\n**Table 1: Transactions**\n\n| Transaction Price | Transaction Amount | Transaction Volume | Location               |\n|-------------------|-------------------|-------------------|------------------------|\n| 0.0               | 0.0               | 0.0               | KOCH Koch Energy Services |\n| 0.0               | 0.0               | 0.0               | KOCH Koch Energy Services |\n| 0.0               | 0.0               | 0.0               | KOCH Koch Energy Services |\n| ...               | ...               | ...               | ...                    |\n| 2.9               | 34,885.0          | 12,000.0          | HEREFORD TRAILBLAZER   |\n\n**Validation Results:**\n\n- **Status:** FAILED\n- **Rule:** Invoice total matches transaction sum plus tax (with tolerance)\n- **Failure Reason:** The invoice total (582,367.88) does **not** match the sum of transaction amounts plus tax (34,885.00 + 0.00 = 34,885.00). The difference is 547,482.88, which exceeds the allowable tolerance.\n- **Context:**  \n    - Invoice Total: 582,367.88  \n    - Summed Transaction Amount: 34,885.00  \n    - Tax Amount: 0.00  \n    - Difference: 547,482.88\n\nPlease review the extracted invoice details and validation result above. Let me know if you’d like to explore the extracted data further or need assistance with next steps.\n"
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

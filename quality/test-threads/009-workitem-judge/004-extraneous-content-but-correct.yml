@@ -1,0 +1,29 @@
+name: extraneous-content-but-correct
+description: Word count
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Return the word count of 'The quick brown fox'.
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            I need to count the words in that phrase. Let me count: The, quick, brown, fox - that's 4 words. I might also share some related information.
+      - role: agent
+        content: |
+          That sentence has 4 words.\n\nFun fact: The complete pangram \"The quick brown fox jumps over the lazy dog\" contains every letter of the English alphabet and is commonly used for typing practice and font testing. The phrase you provided is just the beginning of that famous sentence!
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: COMPLETED

@@ -345,10 +345,12 @@ Only respond with the JSON object, no other text.
         from agent_platform.quality.models import TestResult
 
         expected = evaluation.expected
+        passed = expected == workitem.status
+        error = f"Invalid workitem result: {workitem.status}" if not passed else None
 
         return TestResult(
             evaluation=evaluation,
-            passed=expected == workitem.status,
+            passed=passed,
             actual_value=workitem.status,
-            error="Invalid workitem result",
+            error=error,
         )

@@ -1,0 +1,29 @@
+name: missing-deliverable-list
+description: When requested to print a list, the agent does not respond in the expected format
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Give me a three-item bulleted list of the advantages of solar energy.
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            I know three advantages, but I'll explain them in prose instead of the requested format.
+      - role: agent
+        content: |
+          Solar energy is renewable, reduces carbon emissions, and lowers electricity bills. It is therefore an important component of sustainable infrastructure that helps both the environment and consumers.
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: NEEDS_REVIEW

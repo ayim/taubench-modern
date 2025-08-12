@@ -1,0 +1,29 @@
+name: say-hello
+description: ''
+
+workitem:
+  - messages:
+      - role: user
+        content: |
+          Say hello
+      - role: agent
+        content:
+          kind: thought
+          text: |
+            The user is asking me to say hello. This is a simple and straightforward request that I can fulfill easily.
+      - role: agent
+        content: |
+          Hello! How can I help you today?
+    payload: {}
+    isPreviewOnly: true
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: workitem-result-evaluation
+    expected: COMPLETED
