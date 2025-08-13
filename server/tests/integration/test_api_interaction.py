@@ -641,6 +641,8 @@ def test_async_action_error_handling(
         # Verify the tool call result shows proper error handling
         # The tool call should have error information from our enhanced error handling
         tool_result = tool_call.result
+        if not tool_result:
+            raise AssertionError(f"Tool result is empty. Tool call: {tool_call}")
 
         # Check if the tool result contains error information
         # Should have error field from our _handle_status_check function

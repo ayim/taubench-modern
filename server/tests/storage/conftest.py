@@ -1,23 +1,36 @@
-from datetime import UTC, datetime
-from uuid import uuid4
+import typing
+from collections.abc import AsyncGenerator, Generator
+from pathlib import Path
+from typing import cast
 
 import pytest
 
-from agent_platform.core.actions import ActionPackage
-from agent_platform.core.agent import (
-    Agent,
-    AgentArchitecture,
-    ObservabilityConfig,
-    QuestionGroup,
-)
 from agent_platform.core.mcp.mcp_server import MCPServer
-from agent_platform.core.runbook import Runbook
-from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
-from agent_platform.core.utils import SecretString
+
+if typing.TYPE_CHECKING:
+    from psycopg import AsyncConnection
+    from psycopg.rows import TupleRow
+    from psycopg_pool import AsyncConnectionPool
+
+    from agent_platform.core.agent.agent import Agent
+    from agent_platform.core.thread.thread import Thread
+    from agent_platform.server.storage.postgres import PostgresStorage
+    from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
 @pytest.fixture
-def sample_agent(sample_user_id: str) -> Agent:
+def sample_agent(sample_user_id: str) -> "Agent":
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from agent_platform.core.actions.action_package import ActionPackage
+    from agent_platform.core.agent.agent import Agent
+    from agent_platform.core.agent.agent_architecture import AgentArchitecture
+    from agent_platform.core.agent.observability_config import ObservabilityConfig
+    from agent_platform.core.agent.question_group import QuestionGroup
+    from agent_platform.core.runbook.runbook import Runbook
+    from agent_platform.core.utils.secret_str import SecretString
+
     return Agent(
         user_id=sample_user_id,
         agent_id=str(uuid4()),
@@ -77,8 +90,14 @@ def sample_agent(sample_user_id: str) -> Agent:
 @pytest.fixture
 def sample_thread(
     sample_user_id: str,
-    sample_agent: Agent,
-) -> Thread:
+    sample_agent: "Agent",
+) -> "Thread":
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from agent_platform.core.thread.base import ThreadMessage, ThreadTextContent
+    from agent_platform.core.thread.thread import Thread
+
     return Thread(
         thread_id=str(uuid4()),
         user_id=sample_user_id,
@@ -132,3 +151,127 @@ def sample_mcp_server_sse() -> MCPServer:
         transport="sse",
         url="https://example.com/sse",
     )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _disable_logging() -> Generator[None, None, None]:
+    """Disable verbose logging for the entire session."""
+    from logging import CRITICAL, INFO, getLogger
+
+    getLogger("agent_platform.server.storage.postgres.migrations").setLevel(CRITICAL)
+    getLogger("agent_platform.server.storage.postgres.postgres").setLevel(CRITICAL)
+
+    getLogger("agent_platform.storage.sqlite.migrations").setLevel(CRITICAL)
+    getLogger("agent_platform.storage.sqlite.sqlite").setLevel(CRITICAL)
+
+    yield
+
+    getLogger("agent_platform.storage.sqlite.migrations").setLevel(INFO)
+    getLogger("agent_platform.storage.sqlite.sqlite").setLevel(INFO)
+
+    getLogger("agent_platform.server.storage.postgres.migrations").setLevel(INFO)
+    getLogger("agent_platform.server.storage.postgres.postgres").setLevel(INFO)
+
+
+@pytest.fixture
+async def sqlite_storage(tmp_path: Path) -> "AsyncGenerator[SQLiteStorage, None]":
+    """
+    Initialize SQLiteStorage with an ephemeral database.
+    We'll also seed a system user, just like in Postgres tests.
+    """
+    from agent_platform.server.storage.sqlite import SQLiteStorage
+
+    test_file_path = tmp_path / "test_sqlite_storage.db"
+    storage_instance = SQLiteStorage(db_path=str(test_file_path))
+    if test_file_path.exists():
+        test_file_path.unlink()
+    await storage_instance.setup()
+    await storage_instance.get_or_create_user(
+        sub="tenant:testing:system:system_user",
+    )
+    yield storage_instance
+    await storage_instance.teardown()
+    test_file_path.unlink()
+
+
+@pytest.fixture(scope="session")
+async def postgres_testing():
+    # Lazy import testing.postgresql only when needed
+    import testing.postgresql
+
+    with testing.postgresql.Postgresql() as postgresql:
+        try:
+            yield postgresql
+        finally:
+            postgresql.stop()
+
+
+@pytest.fixture(scope="session", params=[pytest.param("postgres", marks=[pytest.mark.postgresql])])
+async def postgres_test_db(
+    postgres_testing,
+) -> "AsyncGenerator[AsyncConnectionPool[AsyncConnection[TupleRow]], None]":
+    """Creates a shared temporary Postgres instance for the entire test session."""
+    from psycopg import AsyncConnection
+    from psycopg.rows import TupleRow
+    from psycopg_pool import AsyncConnectionPool
+
+    dsn = postgres_testing.url()
+    pool = None
+    try:
+        # Increase min_size to maintain connections and reduce
+        # max_size to prevent too many connections
+        pool = AsyncConnectionPool(
+            conninfo=dsn,
+            min_size=2,  # Keep minimum connections alive
+            max_size=50,
+            num_workers=2,
+            open=False,
+            # Add timeout parameters
+            timeout=5,
+            reconnect_timeout=5,
+            # Configure connection recycling
+            max_lifetime=3600,  # Recycle connections after 1 hour
+            max_idle=300,  # Close idle connections after 5 minutes
+        )
+        await pool.open()
+        yield cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool)
+    finally:
+        if pool:
+            await pool.close()
+
+
+@pytest.fixture
+async def postgres_storage(
+    postgres_test_db: "AsyncConnectionPool[AsyncConnection[TupleRow]]", postgres_testing
+) -> "AsyncGenerator[PostgresStorage, None]":
+    """
+    Initialize storage with the shared test database.
+
+    Before running migrations, we clean the slate by dropping
+    the 'v2' schema (if it exists) and recreating it. This
+    pre-truncates any existing state from previous tests.
+    """
+    from agent_platform.server.storage.postgres import PostgresStorage
+
+    try:
+        # Pre-truncate: Drop the schema 'v2' if it exists, then recreate it.
+        async with postgres_test_db.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DROP SCHEMA IF EXISTS v2 CASCADE;")
+                await cur.execute("CREATE SCHEMA v2;")
+
+        # Now instantiate storage and run migrations.
+        storage = PostgresStorage(pool=postgres_test_db, dsn=postgres_testing.url())
+        await storage.setup()  # Runs migrations to re-create tables in 'v2'.
+
+        # Seed the system user.
+        await storage.get_or_create_user(sub="tenant:testing:system:system_user")
+        yield storage
+        # No teardown: trying to keep pool open for the duration of the test session.
+        # await storage.teardown()
+    except Exception as e:
+        # Log any connection issues
+        import logging
+
+        logging.error(f"Error in storage fixture: {e}")
+        raise

@@ -1,6 +1,5 @@
 import json
 import uuid
-from datetime import datetime
 
 from structlog import get_logger
 
@@ -48,11 +47,13 @@ class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
         return Config.model_validate(row_dict)
 
     async def set_config(self, config_type: ConfigType, current_value: str):
+        import datetime
+
         validate_config_type(config_type)
 
         config_value = json.dumps({"current": current_value})
         record_id = str(uuid.uuid4())
-        updated_at = datetime.utcnow().isoformat()
+        updated_at = datetime.datetime.now(datetime.UTC).isoformat()
 
         async with self._cursor() as cur:
             await cur.execute(

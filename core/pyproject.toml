@@ -13,6 +13,13 @@ dependencies = [
     "httpx-retries>=0.4.0,<1.0.0",
     "httpx>=0.28.1,<0.29.0",
     "cryptography>=45,<46",
+    "ibis-framework[polars,postgres]>=10.8.0,<11.0.0",
+    # Explicitly pin pyarrow to <19.0.0 to avoid the following warning:
+    # .../site-packages/snowflake/connector/options.py:104: 
+    # UserWarning: You have an incompatible version of 'pyarrow' installed (21.0.0), 
+    # please install a version that adheres to: 'pyarrow<19.0.0; extra == "pandas"'
+    "pyarrow<19.0.0",
+    "fastexcel>=0.14.0,<1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -25,15 +32,9 @@ platforms-aws = [
     "types-boto3[bedrock,bedrock-runtime]>=1.36.9,<2.0.0",
     "aiobotocore>=2.23.0,<3.0.0",
 ]
-platforms-google = [
-    "google-genai>=1.11.0,<2.0.0",
-]
-platforms-groq = [
-    "groq>=0.22.0,<1.0.0",
-]
-platforms-reducto = [
-    "reductoai>=0.6.0,<1.0.0",
-]
+platforms-google = ["google-genai>=1.11.0,<2.0.0"]
+platforms-groq = ["groq>=0.22.0,<1.0.0"]
+platforms-reducto = ["reductoai>=0.6.0,<1.0.0"]
 platforms-all = [
     "openai>=1.59.8,<2.0.0",
     "anthropic>=0.41.3,<1.0.0",
@@ -56,6 +57,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = [
-    "sema4ai-common==0.1.0",
-]
+dev = ["sema4ai-common==0.1.0"]

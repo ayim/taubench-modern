@@ -686,3 +686,46 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error getting agent details: {response.status_code} {response.text}",
             ) from e
+
+    def inspect_file_as_data_frame(
+        self,
+        thread_id: str,
+        file_id: str,
+        num_samples: int = 5,
+    ) -> list[dict]:
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/inspect-file-as-data-frame")
+        response = requests.get(url, params={"file_id": file_id, "num_samples": num_samples})
+        try:
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error inspecting file as data frame: {response.status_code} {response.text}",
+            ) from e
+
+    def create_data_frame_from_file(
+        self, thread_id: str, file_id: str, sheet_name: str | None = None
+    ) -> dict:
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames/from-file")
+        params = {"file_id": file_id}
+        if sheet_name is not None:
+            params["sheet_name"] = sheet_name
+        response = requests.post(url, params=params)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error creating data frame: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def get_data_frames(self, thread_id: str) -> list[dict]:
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames")
+        response = requests.get(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting data frames: {response.status_code} {response.text}",
+            ) from e
+        return response.json()

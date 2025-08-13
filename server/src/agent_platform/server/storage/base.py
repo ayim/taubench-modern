@@ -1,4 +1,5 @@
 import json
+from abc import abstractmethod
 from typing import cast
 
 import sqlalchemy
@@ -8,6 +9,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import JSON
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.data_frames import PlatformDataFrame
 from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.server.storage.abstract import AbstractStorage
@@ -76,6 +78,153 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     def _get_table(self, name: str) -> Table:
         return self._metadata.tables[f"{self.V2_PREFIX}{name}"]
+
+    @abstractmethod
+    async def setup(self) -> None:
+        """Run the migrations and any necessary setup."""
+
+    @abstractmethod
+    async def teardown(self) -> None:
+        """Teardown logic, if needed."""
+
+    @abstractmethod
+    async def _run_migrations(self) -> None:
+        """Run the migrations."""
+
+    # -------------------------------------------------------------------------
+    # Methods for Data Frames
+    # -------------------------------------------------------------------------
+    async def save_data_frame(self, data_frame: "PlatformDataFrame") -> None:
+        """Save a new data frame."""
+        data_frames = self._get_table("data_frames")
+
+        # Use model_dump to properly serialize the data frame including computation_input_sources
+        data_frame_dict = data_frame.model_dump()
+
+        # Use JSON column for computation_input_sources to handle JSON serialization
+        stmt = insert(data_frames).values(data_frame_dict)
+
+        async with self.engine.begin() as conn:
+            await conn.execute(stmt)
+
+    async def get_data_frame(self, data_frame_id: str) -> "PlatformDataFrame":
+        """Get a data frame by ID."""
+        data_frames = self._get_table("data_frames")
+
+        stmt = (
+            select(
+                data_frames.c.data_frame_id,
+                data_frames.c.user_id,
+                data_frames.c.agent_id,
+                data_frames.c.thread_id,
+                data_frames.c.num_rows,
+                data_frames.c.num_columns,
+                data_frames.c.column_headers,
+                data_frames.c.name,
+                data_frames.c.input_id_type,
+                data_frames.c.created_at,
+                data_frames.c.computation_input_sources,
+                data_frames.c.file_id,
+                data_frames.c.description,
+                data_frames.c.computation,
+                data_frames.c.parquet_contents,
+                data_frames.c.sheet_name,
+                data_frames.c.extra_data,
+            )
+            .select_from(data_frames)
+            .where(data_frames.c.data_frame_id == data_frame_id)
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        if row is None:
+            raise ValueError(f"Data frame {data_frame_id} not found")
+
+        return self._build_data_frame(row)
+
+    def _build_data_frame(self, row_mapping: RowMapping) -> "PlatformDataFrame":
+        # SQLAlchemy may return UUIDs as UUID objects, so we need to convert them to strings, which
+        # is what we expect in the dataframe.
+        row = dict(row_mapping)
+        row["data_frame_id"] = str(row["data_frame_id"])
+        row["user_id"] = str(row["user_id"])
+        row["agent_id"] = str(row["agent_id"])
+        row["thread_id"] = str(row["thread_id"])
+
+        # Convert row to PlatformDataFrame object using model_validate for proper deserialization
+        return PlatformDataFrame.model_validate(row)
+
+    async def list_data_frames(self, thread_id: str) -> list["PlatformDataFrame"]:
+        """List all data frames for a given user and thread."""
+        data_frames = self._get_table("data_frames")
+
+        stmt = (
+            select(
+                data_frames.c.data_frame_id,
+                data_frames.c.user_id,
+                data_frames.c.agent_id,
+                data_frames.c.thread_id,
+                data_frames.c.num_rows,
+                data_frames.c.num_columns,
+                data_frames.c.column_headers,
+                data_frames.c.name,
+                data_frames.c.input_id_type,
+                data_frames.c.created_at,
+                data_frames.c.computation_input_sources,
+                data_frames.c.file_id,
+                data_frames.c.description,
+                data_frames.c.computation,
+                data_frames.c.parquet_contents,
+                data_frames.c.sheet_name,
+                data_frames.c.extra_data,
+            )
+            .select_from(data_frames)
+            .where(data_frames.c.thread_id == thread_id)
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        # Convert rows to PlatformDataFrame objects using model_validate for proper deserialization
+        data_frames_list = []
+        for row in rows:
+            data_frames_list.append(self._build_data_frame(row))
+
+        return data_frames_list
+
+    async def delete_data_frame(self, data_frame_id: str) -> None:
+        """Delete a data frame by ID."""
+        data_frames = self._get_table("data_frames")
+
+        stmt = data_frames.delete().where(data_frames.c.data_frame_id == data_frame_id)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            if result.rowcount == 0:
+                raise ValueError(f"Data frame {data_frame_id} not found")
+
+    async def update_data_frame(self, data_frame: "PlatformDataFrame") -> None:
+        """Update a data frame."""
+        data_frames = self._get_table("data_frames")
+
+        # Use model_dump to properly serialize the data frame including computation_input_sources
+        data_frame_dict = data_frame.model_dump()
+        # Remove data_frame_id from the update dict since it's used in the WHERE clause
+        data_frame_dict.pop("data_frame_id", None)
+
+        stmt = (
+            data_frames.update()
+            .where(data_frames.c.data_frame_id == data_frame.data_frame_id)
+            .values(data_frame_dict)
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            if result.rowcount == 0:
+                raise ValueError(f"Data frame {data_frame.data_frame_id} not found")
 
     # -------------------------
     # Concrete convenience methods
