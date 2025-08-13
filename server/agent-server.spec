@@ -82,6 +82,8 @@ psycopg_datas, psycopg_binaries, psycopg_hiddenimports = collect_all("psycopg")
 psyco_binary_datas, psyco_binary_binaries, psyco_binary_hiddenimports = collect_all(
     "psycopg_binary"
 )
+di_datas, di_binaries, di_hiddenimports = collect_all("sema4ai_docint")
+
 
 # Add explicit psycopg binary imports - these are the core components needed
 psycopg_hiddenimports.extend(
@@ -133,6 +135,8 @@ a = Analysis(
             "src/agent_platform/server/work_items",
             "agent_platform/server/work_items",
         ),
+        *di_datas,
+        *di_binaries,
     ],
     hiddenimports=[
         "pydantic.deprecated.decorator",
@@ -151,6 +155,7 @@ a = Analysis(
         *tiktoken_ext_submodules,
         *psycopg_hiddenimports,
         *psyco_binary_hiddenimports,
+        *di_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},
