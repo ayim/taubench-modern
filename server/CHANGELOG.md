@@ -1,8 +1,12 @@
-# Unreleased
+# Sema4.ai Agent Server 2.0.28 (2025-08-13)
 
-- Add pre-ignition check for document intelligence data server in private v2 API, currently only a stub and will fail with a 412 error.
-- Add create, read, update, delete endpoints for platforms.
-- (DIv2) Add CRUD API for Data Models.
+- Quotas & limits [PR 498](https://github.com/Sema4AI/agent-platform/pull/498) & [PR 577](https://github.com/Sema4AI/agent-platform/pull/577)
+- Add pre-ignition check for document intelligence data server in private v2 API, currently only a stub and will fail with a 412 error. [PR 599](https://github.com/Sema4AI/agent-platform/pull/599)
+- (DIv2) Add CRUD API for Data Models. [PR 607](https://github.com/Sema4AI/agent-platform/pull/607) & [PR 630](https://github.com/Sema4AI/agent-platform/pull/630)
+- Add create, read, update, delete endpoints for platforms. [PR 597](https://github.com/Sema4AI/agent-platform/pull/597)
+- Initial data frame functionality. [PR 631](https://github.com/Sema4AI/agent-platform/pull/631)
+- Fix to prompt endpoint tools integration. [PR 611](https://github.com/Sema4AI/agent-platform/pull/611)
+- Fix package/deploy endpoint [PR 641](https://github.com/Sema4AI/agent-platform/pull/641)
 
 # Sema4.ai Agent Server 2.0.27 (2025-08-04)
 
