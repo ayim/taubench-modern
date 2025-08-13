@@ -267,6 +267,7 @@ async def inspect_agent_from_package(
 )
 async def inspect_action_from_package(
     request: Request,
+    payload: ActionPackagePayload,  # Unused parameter, added to fix OpenAPI spec generation
 ) -> StatusResponse[dict]:
     try:
         # Handle both JSON and binary ZIP content types

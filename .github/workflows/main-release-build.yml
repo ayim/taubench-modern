@@ -272,6 +272,6 @@ jobs:
               workflow_id: 'agent-server-interface-open-pr.yaml',
               ref: '${{ env.BRANCH_NAME }}',
               inputs: {
-                agent_server_version: 'v${{ needs.version.outputs.value }}'
+                agent_server_version: '${{ needs.version.outputs.value }}'
               }
             })
