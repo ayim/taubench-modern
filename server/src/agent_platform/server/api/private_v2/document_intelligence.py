@@ -1,7 +1,15 @@
 import json
+from typing import Any, NoReturn
 
 from fastapi import APIRouter, UploadFile
 from sema4ai.data import DataSource
+from sema4ai_docint.extraction.reducto.exceptions import (
+    UploadForbiddenError,
+    UploadMissingFileIdError,
+    UploadMissingPresignedUrlError,
+    UploadPresignRequestError,
+    UploadPutError,
+)
 from sema4ai_docint.models import DocumentLayout, initialize_database
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 from sema4ai_docint.models.data_model import DataModel
@@ -10,7 +18,10 @@ from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
-from agent_platform.core.document_intelligence import DIDSConnectionDetails, DocumentLayoutSummary
+from agent_platform.core.document_intelligence import (
+    DIDSConnectionDetails,
+    DocumentLayoutSummary,
+)
 from agent_platform.core.document_intelligence.data_models import (
     DataModelPayload,
     UpsertDataModelRequest,
@@ -27,6 +38,7 @@ from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
     DocIntDatasourceDependency,
+    ExtractionClientDependency,
     FileManagerDependency,
     StorageDependency,
 )
@@ -81,6 +93,231 @@ router = APIRouter()
 @router.get("/ok")
 async def ok(docint_ds: DocIntDatasourceDependency):
     return {"ok": True}
+
+
+def _map_reducto_typed_error(
+    error: Exception,
+    *,
+    uploaded_file: Any,
+    user_id: str,
+    thread_id: str,
+) -> tuple[ErrorCode, str] | None:
+    message = str(error)
+    error_code: ErrorCode | None = None
+    public_message: str | None = None
+
+    if isinstance(error, UploadForbiddenError):
+        logger.warning(
+            "Reducto unauthorized/forbidden during upload/parse",
+            error=message,
+            user_id=user_id,
+            thread_id=thread_id,
+            file_id=getattr(uploaded_file, "file_id", None),
+        )
+        error_code = ErrorCode.UNAUTHORIZED
+        public_message = (
+            "We couldn't connect to the document service. "
+            "Check your credentials or contact support."
+        )
+
+    elif isinstance(error, UploadPresignRequestError):
+        status_code = getattr(error, "status_code", None)
+        if status_code in (401, 403):
+            logger.warning(
+                "Reducto unauthorized/forbidden during upload presign",
+                error=message,
+                status_code=status_code,
+                user_id=user_id,
+                thread_id=thread_id,
+                file_id=getattr(uploaded_file, "file_id", None),
+            )
+            error_code = ErrorCode.UNAUTHORIZED
+            public_message = (
+                "We couldn't connect to the document service. "
+                "Check your credentials or contact support."
+            )
+        else:
+            logger.warning(
+                "Reducto upload presign request failed",
+                error=message,
+                status_code=status_code,
+                user_id=user_id,
+                thread_id=thread_id,
+                file_id=getattr(uploaded_file, "file_id", None),
+            )
+            error_code = ErrorCode.UNEXPECTED
+            public_message = (
+                "Backend upload failed unexpectedly. Please try again or contact support."
+            )
+
+    elif isinstance(error, UploadMissingPresignedUrlError | UploadMissingFileIdError):
+        logger.warning(
+            "Reducto upload did not return required fields",
+            error=message,
+            user_id=user_id,
+            thread_id=thread_id,
+            file_id=getattr(uploaded_file, "file_id", None),
+        )
+        error_code = ErrorCode.UNEXPECTED
+        public_message = "Backend upload failed unexpectedly. Please try again or contact support."
+
+    elif isinstance(error, UploadPutError):
+        status_code = getattr(error, "status_code", None)
+        logger.warning(
+            "Reducto upload PUT failed",
+            error=message,
+            status_code=status_code,
+            user_id=user_id,
+            thread_id=thread_id,
+            file_id=getattr(uploaded_file, "file_id", None),
+        )
+        if status_code in (401, 403):
+            error_code = ErrorCode.UNAUTHORIZED
+            public_message = (
+                "We couldn't connect to the document service. "
+                "Check your credentials or contact support."
+            )
+        else:
+            error_code = ErrorCode.UNEXPECTED
+            public_message = "Failed to upload content. Please try again or contact support."
+
+    if error_code is None or public_message is None:
+        return None
+    return (error_code, public_message)
+
+
+async def _get_thread_or_404(storage: StorageDependency, user_id: str, thread_id: str):
+    """Load a thread or raise a NOT_FOUND HTTP error."""
+    thread = await storage.get_thread(user_id, thread_id)
+    if not thread:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"Thread {thread_id} not found",
+        )
+    return thread
+
+
+async def _get_or_upload_file(
+    file: UploadFile | str,
+    *,
+    thread: Any,
+    user_id: str,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+):
+    """Resolve an input file reference or upload a new file.
+
+    Returns a tuple of (uploaded_file, new_file_flag).
+    """
+    if isinstance(file, str):
+        stored_file = await storage.get_file_by_ref(thread, file, user_id)
+        if not stored_file:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"File {file} not found (storage)",
+            )
+        updated_file = await file_manager.refresh_file_paths([stored_file])
+        if not updated_file:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"File {file} not found (refresh)",
+            )
+        return updated_file[0], False
+
+    upload_request = UploadFilePayload(file=file)
+    stored_files = await file_manager.upload([upload_request], thread, user_id)
+    return stored_files[0], True
+
+
+def _raise_mapped_reducto_error(
+    error: Exception,
+    *,
+    uploaded_file: Any,
+    user_id: str,
+    thread_id: str,
+) -> NoReturn:
+    """Normalize Reducto client errors to PlatformHTTPError and raise."""
+    message = str(error)
+    logger.error("Document parse failed via Reducto", error=message)
+
+    # Prefer new typed exceptions from the extraction client
+    typed_result = _map_reducto_typed_error(
+        error,
+        uploaded_file=uploaded_file,
+        user_id=user_id,
+        thread_id=thread_id,
+    )
+    if typed_result is not None:
+        error_code, public_message = typed_result
+        raise PlatformHTTPError(error_code, public_message) from error
+
+    if message.startswith("Extract job failed:"):
+        reason = message.split(":", 1)[1].strip() if ":" in message else message
+        logger.warning(
+            "Reducto parse job failed",
+            reason=reason,
+            user_id=user_id,
+            thread_id=thread_id,
+            file_id=getattr(uploaded_file, "file_id", None),
+        )
+        raise PlatformHTTPError(
+            ErrorCode.UNPROCESSABLE_ENTITY,
+            "We couldn't process this file. Please try again or contact support.",
+        ) from error
+
+    if message.startswith("Unknown job status:"):
+        status_str = message.split(":", 1)[1].strip() if ":" in message else "unknown"
+        logger.warning(
+            "Reducto returned unknown job status",
+            status=status_str,
+            user_id=user_id,
+            thread_id=thread_id,
+            file_id=getattr(uploaded_file, "file_id", None),
+        )
+        raise PlatformHTTPError(
+            ErrorCode.UNEXPECTED,
+            (
+                "The document service returned an unexpected response. "
+                "Please try again or contact support."
+            ),
+        ) from error
+
+    logger.warning(
+        "Unexpected error during document parse",
+        error=message,
+        user_id=user_id,
+        thread_id=thread_id,
+        file_id=getattr(uploaded_file, "file_id", None),
+    )
+    raise PlatformHTTPError(
+        ErrorCode.UNEXPECTED,
+        "Something went wrong while processing the file. Please try again or contact support.",
+    ) from error
+
+
+async def _upload_and_parse(
+    *,
+    file_manager: FileManagerDependency,
+    extraction_client: ExtractionClientDependency,
+    uploaded_file: Any,
+    user_id: str,
+    thread_id: str,
+):
+    try:
+        file_contents = await file_manager.read_file_contents(uploaded_file.file_id, user_id)
+        reducto_uploaded_file_url = extraction_client.upload(
+            file_contents, content_length=len(file_contents)
+        )
+        return extraction_client.parse(reducto_uploaded_file_url)
+    except PlatformHTTPError:
+        raise
+    except Exception as e:
+        _raise_mapped_reducto_error(
+            e,
+            uploaded_file=uploaded_file,
+            user_id=user_id,
+            thread_id=thread_id,
+        )
 
 
 @router.post("")
@@ -393,3 +630,45 @@ async def generate_data_model_from_document(  # noqa: PLR0913
         return {
             "model_schema": schema,
         }
+
+
+# Reducto (extract, parse ...) endpoints
+
+
+@router.post("/documents/parse")
+async def parse_document(  # noqa: PLR0913
+    user: AuthedUser,
+    file: UploadFile | str,  # a direct upload or a file ref
+    thread_id: str,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    extraction_client: ExtractionClientDependency,
+):
+    """Parse a new document using the Document Intelligence database.
+
+    This endpoint is used to parse a new document. To parse a document that already
+    exists, use the `/documents/{document_id}/parse` endpoint.
+    """
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
+
+    uploaded_file, new_file = await _get_or_upload_file(
+        file,
+        thread=thread,
+        user_id=user.user_id,
+        storage=storage,
+        file_manager=file_manager,
+    )
+
+    parse_response = await _upload_and_parse(
+        file_manager=file_manager,
+        extraction_client=extraction_client,
+        uploaded_file=uploaded_file,
+        user_id=user.user_id,
+        thread_id=thread_id,
+    )
+
+    parse_result = parse_response.result
+    result: dict[str, Any] = {"parse_result": parse_result}
+    if new_file:
+        result["uploaded_file"] = uploaded_file
+    return result

@@ -5,6 +5,11 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sema4ai_docint import normalize_name
+from sema4ai_docint.extraction.reducto.exceptions import (
+    UploadForbiddenError,
+    UploadMissingFileIdError,
+    UploadMissingPresignedUrlError,
+)
 
 from agent_platform.core.document_intelligence.dataserver import (
     DIDSApiConnectionDetails,
@@ -1372,3 +1377,391 @@ class TestGenerateDataModelFromDocument:
         mock_get_file_by_ref.assert_awaited()
         fake_file_manager.refresh_file_paths.assert_awaited()
         fake_client.generate_schema_from_document.assert_called_once()
+
+
+class TestParseDocumentEndpoints:
+    def _valid_details(self) -> DIDSConnectionDetails:
+        return DIDSConnectionDetails(
+            username="user",
+            password=SecretString("pass"),
+            connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
+                ),
+            ],
+        )
+
+    def test_parse_with_file_ref_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        # Fakes
+        thread = SimpleNamespace(id="thread-1")
+        stored_file = SimpleNamespace(file_id="file-123")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored_file])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"file-bytes")
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.upload.return_value = "https://files.example.com/u/abc"
+        fake_extraction_client.parse.return_value = SimpleNamespace(result={"ok": True})
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=stored_file),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse",
+                params={"thread_id": "thread-1"},
+                data={"file": "file-ref-xyz"},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"parse_result": {"ok": True}}
+
+    def test_parse_with_upload_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        # Fakes
+        thread = SimpleNamespace(id="thread-1")
+        uploaded = SimpleNamespace(file_id="new-file-999")
+
+        fake_file_manager = Mock()
+        fake_file_manager.upload = AsyncMock(return_value=[uploaded])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"payload")
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.upload.return_value = "https://files.example.com/u/def"
+        fake_extraction_client.parse.return_value = SimpleNamespace(result={"parsed": True})
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse",
+                params={"thread_id": "thread-1"},
+                files={"file": ("test.txt", b"hello", "text/plain")},
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["parse_result"] == {"parsed": True}
+        assert body["uploaded_file"]["file_id"] == "new-file-999"
+
+    def test_parse_thread_not_found(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        fake_file_manager = Mock()
+        fake_extraction_client = Mock()
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=None)),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse",
+                params={"thread_id": "missing"},
+                data={"file": "file-ref"},
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "thread missing not found" in err["message"].lower()
+
+    def test_parse_file_ref_not_found_in_storage(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        thread = SimpleNamespace(id="thread-1")
+        fake_file_manager = Mock()
+        fake_extraction_client = Mock()
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=None),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse",
+                params={"thread_id": "thread-1"},
+                data={"file": "unknown-file"},
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "file unknown-file not found (storage)" in err["message"].lower()
+
+    def test_parse_file_ref_refresh_returns_empty(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        thread = SimpleNamespace(id="thread-1")
+        stored_file = SimpleNamespace(file_id="file-123")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[])
+        fake_extraction_client = Mock()
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=stored_file),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse",
+                params={"thread_id": "thread-1"},
+                data={"file": "stale-file"},
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "file stale-file not found (refresh)" in err["message"].lower()
+
+    @pytest.mark.parametrize(
+        ("raised", "expected_code", "expected_message_substr"),
+        [
+            (
+                UploadForbiddenError("http/403 - forbidden"),
+                ErrorCode.UNAUTHORIZED,
+                "couldn't connect",
+            ),
+            (UploadForbiddenError("API key invalid"), ErrorCode.UNAUTHORIZED, "couldn't connect"),
+            (
+                UploadMissingPresignedUrlError("No presigned URL returned"),
+                ErrorCode.UNEXPECTED,
+                "upload failed",
+            ),
+            (
+                UploadMissingFileIdError("No file ID returned"),
+                ErrorCode.UNEXPECTED,
+                "upload failed",
+            ),
+        ],
+    )
+    def test_parse_upload_errors_map_to_platform_error(
+        self,
+        client: TestClient,
+        raised: Exception,
+        expected_code: ErrorCode,
+        expected_message_substr: str,
+    ):
+        storage_instance = StorageService.get_instance()
+
+        thread = SimpleNamespace(id="thread-1")
+        uploaded = SimpleNamespace(file_id="fid-1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[uploaded])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"file-bytes")
+
+        fake_extraction_client = Mock()
+        # Raise during upload/parse block
+        fake_extraction_client.upload.side_effect = raised
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=uploaded),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse",
+                params={"thread_id": "thread-1"},
+                data={"file": "file-ref-xyz"},
+            )
+
+        err = resp.json()["error"]
+        assert err["code"] == expected_code.value.code
+        assert expected_message_substr in err["message"].lower()
+
+    @pytest.mark.parametrize(
+        ("raised", "expected_code", "expected_message_substr"),
+        [
+            (
+                Exception("Extract job failed: segmentation error"),
+                ErrorCode.UNPROCESSABLE_ENTITY,
+                "couldn't process",
+            ),
+            (
+                Exception("Unknown job status: TIMEOUT"),
+                ErrorCode.UNEXPECTED,
+                "unexpected response",
+            ),
+            (
+                Exception("Network down"),
+                ErrorCode.UNEXPECTED,
+                "something went wrong",
+            ),
+        ],
+    )
+    def test_parse_job_errors_map_to_platform_error(
+        self,
+        client: TestClient,
+        raised: Exception,
+        expected_code: ErrorCode,
+        expected_message_substr: str,
+    ):
+        storage_instance = StorageService.get_instance()
+
+        thread = SimpleNamespace(id="thread-1")
+        uploaded = SimpleNamespace(file_id="fid-1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[uploaded])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"file-bytes")
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.upload.return_value = "https://files.example.com/u/ghi"
+        fake_extraction_client.parse.side_effect = raised
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=uploaded),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse",
+                params={"thread_id": "thread-1"},
+                data={"file": "file-ref-xyz"},
+            )
+
+        err = resp.json()["error"]
+        assert err["code"] == expected_code.value.code
+        assert expected_message_substr in err["message"].lower()

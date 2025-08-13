@@ -9,11 +9,13 @@ from sema4ai.actions._action import set_current_requests_contexts
 from sema4ai.actions._action_context import RequestContexts
 from sema4ai.actions._request import Request as Sema4aiRequest
 from sema4ai.data import DataSource
+from sema4ai_docint import SyncExtractionClient
 from sema4ai_docint.agent_server_client import AgentServerClient
 from starlette.concurrency import run_in_threadpool
 
 from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
+from agent_platform.core.document_intelligence.integrations import IntegrationKind
 from agent_platform.core.errors.quotas import (
     AgentQuotaExceededError,
     MCPServerQuotaExceededError,
@@ -257,3 +259,18 @@ async def get_agent_server_client(
 
 
 AgentServerClientDependency = Annotated[AgentServerClient, Depends(get_agent_server_client)]
+
+
+async def get_extraction_client(storage: StorageDependency) -> SyncExtractionClient:
+    """Get an extraction client from the sema4ai-docint package for use in DIv2."""
+    reducto_integration = await storage.get_document_intelligence_integration(
+        IntegrationKind.REDUCTO
+    )
+    return SyncExtractionClient(
+        reducto_integration.api_key.get_secret_value(),
+        disable_ssl_verification=False,
+        base_url=reducto_integration.endpoint,
+    )
+
+
+ExtractionClientDependency = Annotated[SyncExtractionClient, Depends(get_extraction_client)]
