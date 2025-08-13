@@ -32,6 +32,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@hookform/resolvers": "^5.2.1",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@sema4ai/agent-components": "^6.7.1",
     "@sema4ai/components": "^1.5.1",

@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
 from agent_platform.core.agent_spec.package_parsed import AgentPackageParsed
 from agent_platform.core.mcp.mcp_server import MCPServer
@@ -128,6 +129,131 @@ class TestCreateAgentFromPackage:
     """Test cases for POST /api/v2/agents/package endpoint."""
 
     @pytest.mark.asyncio
+    async def test_create_agent_from_package_with_mcp_servers_objects(
+        self, mock_user, mock_storage, sample_agent_spec, monkeypatch
+    ):
+        """Direct function call path with dataclass payload should accept MCPServer objects."""
+        # Mock extraction of the package spec
+        monkeypatch.setattr(
+            "agent_platform.server.api.private_v2.package.extract_and_validate_agent_package",
+            AsyncMock(return_value=AgentPackageParsed(**sample_agent_spec)),
+        )
+
+        from agent_platform.core.mcp.mcp_server import MCPServer
+
+        payload = AgentPackagePayload(
+            name="MCP JSON Agent",
+            agent_package_url="https://example.com/agent.zip",
+            mcp_servers=[
+                MCPServer.model_validate(
+                    {
+                        "name": "mcp-http",
+                        "url": "https://mcp.example.com/sse",
+                        "transport": "auto",
+                        "headers": {"Authorization": "Bearer token"},
+                        "force_serial_tool_calls": False,
+                    }
+                ),
+                MCPServer.model_validate(
+                    {
+                        "name": "mcp-stdio",
+                        "command": "docker",
+                        "args": ["run", "--rm", "my-mcp"],
+                        "env": {"FOO": "BAR"},
+                        "cwd": "/work",
+                        "transport": "stdio",
+                    }
+                ),
+            ],
+        )
+
+        # Execute
+        result = await create_agent_from_package(
+            user=mock_user,
+            payload=payload,
+            storage=mock_storage,
+            _=None,
+        )
+
+        # Verify
+        assert isinstance(result, AgentCompat)
+        mock_storage.upsert_agent.assert_called_once()
+
+        created_agent = mock_storage.upsert_agent.call_args[0][1]
+        assert len(created_agent.mcp_servers) == 2
+        assert created_agent.mcp_servers[0].url == "https://mcp.example.com/sse"
+        assert created_agent.mcp_servers[1].is_stdio is True
+
+    @pytest.mark.asyncio
+    async def test_deploy_agent_with_mcp_servers_json(
+        self, mock_user, mock_storage, sample_agent_spec, monkeypatch
+    ):
+        """
+        Deploy endpoint should accept JSON with mcp/action/langsmith
+        and convert before saving.
+        """
+        # Mock extraction of the package spec
+        monkeypatch.setattr(
+            "agent_platform.server.api.private_v2.package.extract_and_validate_agent_package",
+            AsyncMock(return_value=AgentPackageParsed(**sample_agent_spec)),
+        )
+
+        # Build a Starlette Request with JSON body
+        body_json = {
+            "name": "Deploy JSON Agent",
+            "agent_package_url": "https://example.com/agent.zip",
+            "mcp_servers": [
+                {
+                    "name": "deploy-mcp",
+                    "url": "https://mcp.example.com/endpoint",
+                    "headers": {"X-API-Key": "abc"},
+                    "transport": "auto",
+                }
+            ],
+            "action_servers": [{"url": "https://actions.example.com", "api_key": "secret-act"}],
+            "langsmith": {
+                "api_key": "ls-key",
+                "api_url": "https://langsmith.example.com",
+                "project_name": "proj",
+            },
+        }
+
+        body_bytes = json.dumps(body_json).encode()
+
+        async def receive():
+            return {"type": "http.request", "body": body_bytes, "more_body": False}
+
+        scope = {
+            "type": "http",
+            "http_version": "1.1",
+            "method": "POST",
+            "path": "/",
+            "headers": [(b"content-type", b"application/json")],
+            "query_string": b"",
+            "client": ("testclient", 1234),
+            "server": ("testserver", 80),
+            "scheme": "http",
+        }
+        request = Request(scope, receive)
+
+        # Execute deploy handler
+        from agent_platform.server.api.private_v2.package import deploy_agent_from_package
+
+        result = await deploy_agent_from_package(
+            user=mock_user, request=request, storage=mock_storage, _=None
+        )
+
+        assert isinstance(result, AgentCompat)
+        created_agent = mock_storage.upsert_agent.call_args[0][1]
+        # mcp converted
+        assert len(created_agent.mcp_servers) == 1
+        assert created_agent.mcp_servers[0].url == "https://mcp.example.com/endpoint"
+        # action server propagated to action_packages
+        assert created_agent.action_packages[0].url == "https://actions.example.com"
+        # langsmith moved under advanced_config via conversion
+        as_legacy = AgentCompat.from_agent(created_agent, reveal_sensitive=True)
+        assert as_legacy.advanced_config.get("langsmith", {}).get("api_key") == "ls-key"
+
     async def test_create_agent_from_real_package_openai(
         self,
         mock_user,

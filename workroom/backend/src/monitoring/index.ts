@@ -13,6 +13,8 @@ export interface LogAttributes {
   errorMessage: string;
   errorName: string;
   errorStack: string;
+  status: number;
+  statusText: string;
   port: number;
   processSignal: string;
   requestMethod: string;

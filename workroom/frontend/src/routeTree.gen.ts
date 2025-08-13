@@ -26,6 +26,7 @@ import { Route as TenantIdAgentsIndexRouteImport } from './routes/$tenantId/agen
 import { Route as TenantIdAgentIdIndexRouteImport } from './routes/$tenantId/$agentId/index'
 import { Route as TenantIdDocumentsDocumentTypeRouteImport } from './routes/$tenantId/documents/documentType'
 import { Route as TenantIdAgentIdThreadIdRouteImport } from './routes/$tenantId/$agentId/$threadId'
+import { Route as TenantIdAgentsCreateIndexRouteImport } from './routes/$tenantId/agents/create/index'
 
 const SignoutCallbackRoute = SignoutCallbackRouteImport.update({
   id: '/signout-callback',
@@ -113,6 +114,12 @@ const TenantIdAgentIdThreadIdRoute = TenantIdAgentIdThreadIdRouteImport.update({
   path: '/$threadId',
   getParentRoute: () => TenantIdAgentIdRoute,
 } as any)
+const TenantIdAgentsCreateIndexRoute =
+  TenantIdAgentsCreateIndexRouteImport.update({
+    id: '/agents/create/',
+    path: '/agents/create/',
+    getParentRoute: () => TenantIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/$tenantId/home': typeof TenantIdHomeIndexRoute
   '/$tenantId/settings': typeof TenantIdSettingsIndexRoute
   '/$tenantId/workItems': typeof TenantIdWorkItemsIndexRoute
+  '/$tenantId/agents/create': typeof TenantIdAgentsCreateIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -149,6 +157,7 @@ export interface FileRoutesByTo {
   '/$tenantId/home': typeof TenantIdHomeIndexRoute
   '/$tenantId/settings': typeof TenantIdSettingsIndexRoute
   '/$tenantId/workItems': typeof TenantIdWorkItemsIndexRoute
+  '/$tenantId/agents/create': typeof TenantIdAgentsCreateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,6 +178,7 @@ export interface FileRoutesById {
   '/$tenantId/home/': typeof TenantIdHomeIndexRoute
   '/$tenantId/settings/': typeof TenantIdSettingsIndexRoute
   '/$tenantId/workItems/': typeof TenantIdWorkItemsIndexRoute
+  '/$tenantId/agents/create/': typeof TenantIdAgentsCreateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/$tenantId/home'
     | '/$tenantId/settings'
     | '/$tenantId/workItems'
+    | '/$tenantId/agents/create'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/$tenantId/home'
     | '/$tenantId/settings'
     | '/$tenantId/workItems'
+    | '/$tenantId/agents/create'
   id:
     | '__root__'
     | '/'
@@ -226,6 +238,7 @@ export interface FileRouteTypes {
     | '/$tenantId/home/'
     | '/$tenantId/settings/'
     | '/$tenantId/workItems/'
+    | '/$tenantId/agents/create/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantIdAgentIdThreadIdRouteImport
       parentRoute: typeof TenantIdAgentIdRoute
     }
+    '/$tenantId/agents/create/': {
+      id: '/$tenantId/agents/create/'
+      path: '/agents/create'
+      fullPath: '/$tenantId/agents/create'
+      preLoaderRoute: typeof TenantIdAgentsCreateIndexRouteImport
+      parentRoute: typeof TenantIdRoute
+    }
   }
 }
 
@@ -385,6 +405,7 @@ interface TenantIdRouteChildren {
   TenantIdHomeIndexRoute: typeof TenantIdHomeIndexRoute
   TenantIdSettingsIndexRoute: typeof TenantIdSettingsIndexRoute
   TenantIdWorkItemsIndexRoute: typeof TenantIdWorkItemsIndexRoute
+  TenantIdAgentsCreateIndexRoute: typeof TenantIdAgentsCreateIndexRoute
 }
 
 const TenantIdRouteChildren: TenantIdRouteChildren = {
@@ -398,6 +419,7 @@ const TenantIdRouteChildren: TenantIdRouteChildren = {
   TenantIdHomeIndexRoute: TenantIdHomeIndexRoute,
   TenantIdSettingsIndexRoute: TenantIdSettingsIndexRoute,
   TenantIdWorkItemsIndexRoute: TenantIdWorkItemsIndexRoute,
+  TenantIdAgentsCreateIndexRoute: TenantIdAgentsCreateIndexRoute,
 }
 
 const TenantIdRouteWithChildren = TenantIdRoute._addFileChildren(

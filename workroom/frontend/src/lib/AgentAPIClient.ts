@@ -454,6 +454,83 @@ export class AgentAPIClient {
     return this.createClient<WorkItemsSchema.paths>('events');
   }
 
+  public async inspectAgentPackageViaGateway(tenantId: string, formData: FormData): Promise<unknown> {
+    const url = new URL(`/api/tenants/${tenantId}/package`, window.location.href).href;
+    // TODO: REPLACE with Agent Fetch once the `agent-server-interface@2.0.28` is out
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new RequestError(response.status, response.statusText);
+    }
+
+    return await response.json();
+  }
+
+  public async deployAgentFromPackage(tenantId: string, body: unknown): Promise<unknown> {
+    const url = new URL(`/api/tenants/${tenantId}/package/deploy/agent`, window.location.href).href;
+    // TODO:  REPLACE with Agent Fetch once the `agent-server-interface@2.0.28` is out
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        // TODO: Once we have a interface, we can use the error from the response which would be erro: {code, message}
+        const err = await response.json();
+        message = err?.error?.message || message;
+      } catch (_e) {
+        void _e;
+      }
+      throw new RequestError(response.status, message);
+    }
+    return await response.json();
+  }
+
+  public async updateAgentFromPackage(tenantId: string, aid: string, body: unknown): Promise<unknown> {
+    const url = new URL(`/api/tenants/${tenantId}/package/deploy/agent/${aid}`, window.location.href).href;
+    // TODO: REPLACE with Agent Fetch once the `agent-server-interface@2.0.28` is out
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const err = await response.json();
+        message = err?.error?.message || message;
+      } catch (_e) {
+        void _e;
+      }
+      throw new RequestError(response.status, message);
+    }
+    return await response.json();
+  }
+
+  public async deployAgentFromPackageMultipart(tenantId: string, formData: FormData): Promise<unknown> {
+    const url = new URL(`/tenants/${tenantId}/package/deploy/agent`, window.location.href).href;
+    // TODO: REPLACE with Agent Fetch once the `agent-server-interface@2.0.28` is out
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const err = await response.json();
+        message = err?.error?.message || message;
+      } catch {
+        throw new RequestError(response.status, message);
+      }
+    }
+    return await response.json();
+  }
+
   public async startStream({
     tenantId,
     args,

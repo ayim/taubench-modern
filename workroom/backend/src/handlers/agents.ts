@@ -171,6 +171,12 @@ export const createProxyToAgentServer =
         const reader = response.body.getReader();
 
         const processStream = async () => {
+          const isError = response.status >= 400;
+          const decoder = isError ? new TextDecoder() : undefined;
+          let errorSnippet = '';
+          const maxSnippetBytes = 8 * 1024; // 8KB max in logs
+          let collectedBytes = 0;
+
           try {
             // eslint-disable-next-line no-constant-condition
             while (true) {
@@ -178,13 +184,31 @@ export const createProxyToAgentServer =
               if (done) break;
 
               if (value) {
+                if (isError && collectedBytes < maxSnippetBytes && decoder) {
+                  const remaining = maxSnippetBytes - collectedBytes;
+                  const slice = value.length > remaining ? value.subarray(0, remaining) : value;
+                  errorSnippet += decoder.decode(slice, { stream: true });
+                  collectedBytes += slice.length;
+                }
                 res.write(Buffer.from(value));
               }
+            }
+            if (isError) {
+              const snippetForLog = errorSnippet.length > 0 ? ` bodySnippet="${errorSnippet}"` : '';
+              monitoring.logger.error(
+                `Agent server responded with error (status=${response.status} statusText=${response.statusText})${snippetForLog}`,
+                {
+                  requestMethod: req.method,
+                  requestUrl: targetUrl,
+                },
+              );
             }
             res.end();
           } catch (error) {
             monitoring.logger.error('Error during response stream proxying', {
               error: error as Error,
+              requestMethod: req.method,
+              requestUrl: targetUrl,
             });
 
             if (!res.headersSent) {
@@ -197,6 +221,15 @@ export const createProxyToAgentServer =
 
         await processStream();
       } else {
+        if (response.status >= 400) {
+          monitoring.logger.error(
+            `Agent server responded with error (no body) (status=${response.status} statusText=${response.statusText})`,
+            {
+              requestMethod: req.method,
+              requestUrl: targetUrl,
+            },
+          );
+        }
         res.end();
       }
     } catch (error) {

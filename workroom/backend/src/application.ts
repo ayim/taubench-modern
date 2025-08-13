@@ -139,6 +139,40 @@ export const createApplication = async ({
       `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/meta`,
       createGetAgentMeta(),
     );
+    // TODO: Remove once we have interface updated. should use .all instead
+    frontendAPIRouter.post(
+      `/tenants/${configuration.tenant.tenantId}/package`,
+      createProxyToAgentServer({
+        configuration,
+        monitoring,
+        // Must include /api/v2 prefix for agent server EnsureAPIPrefixMiddleware
+        rewriteAgentServerPath: () => `/api/v2/package/inspect/agent`,
+        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
+      }),
+    );
+
+    // Deploy new agent from package (JSON body or multipart supported by agent server)
+    frontendAPIRouter.post(
+      `/tenants/${configuration.tenant.tenantId}/package/deploy/agent`,
+      createProxyToAgentServer({
+        configuration,
+        monitoring,
+        rewriteAgentServerPath: () => `/api/v2/package/deploy/agent`,
+        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
+      }),
+    );
+
+    // Update existing agent from package
+    frontendAPIRouter.put(
+      `/tenants/${configuration.tenant.tenantId}/package/deploy/agent/:aid`,
+      createProxyToAgentServer({
+        configuration,
+        monitoring,
+        rewriteAgentServerPath: (_current, getParam) => `/api/v2/package/deploy/agent/${getParam('aid')}`,
+        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
+      }),
+    );
+
     frontendAPIRouter.all(
       `/tenants/${configuration.tenant.tenantId}/agents/api/v2/*`,
       createProxyToAgentServer({

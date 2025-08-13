@@ -3,13 +3,9 @@ import uuid
 from fastapi import APIRouter, HTTPException, Request, status
 from structlog import get_logger
 
-from agent_platform.core.actions.action_package import (
-    ActionPackage,
-)
+from agent_platform.core.actions.action_package import ActionPackage
 from agent_platform.core.agent import AgentArchitecture
-from agent_platform.core.agent_spec.extract_spec import (
-    extract_and_validate_agent_package,
-)
+from agent_platform.core.agent_spec.extract_spec import extract_and_validate_agent_package
 from agent_platform.core.agent_spec.package.action_metadata import (
     ActionPackageMetadata,
     extract_action_package_metadata,
@@ -21,16 +17,15 @@ from agent_platform.core.agent_spec.package.agent_metadata import (
 )
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.status_response import StatusError, StatusResponse
-from agent_platform.core.payloads import (
-    AgentPackagePayload,
-    UpsertAgentPayload,
-)
+from agent_platform.core.mcp.mcp_server import MCPServer
+from agent_platform.core.payloads import AgentPackagePayload, UpsertAgentPayload
 from agent_platform.core.payloads.action_package import ActionPackagePayload
-from agent_platform.core.utils import SecretString
-from agent_platform.server.api.dependencies import (
-    AgentQuotaCheck,
-    StorageDependency,
+from agent_platform.core.payloads.agent_package import (
+    AgentPackagePayloadActionServer,
+    AgentPackagePayloadLangsmith,
 )
+from agent_platform.core.utils import SecretString
+from agent_platform.server.api.dependencies import AgentQuotaCheck, StorageDependency
 from agent_platform.server.api.package_content_handler import (
     convert_binary_to_base64,
     create_binary_zip_metadata,
@@ -314,7 +309,7 @@ async def inspect_action_from_package(
 # ===============================
 
 
-async def create_or_update_agent_from_package(
+async def create_or_update_agent_from_package(  # noqa: C901, PLR0912
     user: AuthedUser,
     aid: str,
     payload: AgentPackagePayload,
@@ -344,21 +339,45 @@ async def create_or_update_agent_from_package(
     # legacy conversion logic and get a "v2 agent" out of it.
     agent0 = agent_package.spec["agent-package"]["agents"][0]
 
-    # Bring over langsmith config from payload
+    # Normalize and bring over langsmith config from payload (accept dict or typed)
     advanced_config = {}
-    if payload.langsmith:
-        advanced_config["langsmith"] = payload.langsmith.model_dump()
+    ls_obj = payload.langsmith
+    if isinstance(ls_obj, dict):  # type: ignore[truthy-bool]
+        try:
+            ls_obj = AgentPackagePayloadLangsmith(**ls_obj)
+        except Exception:
+            ls_obj = None
+    if ls_obj is not None:
+        advanced_config["langsmith"] = ls_obj.model_dump()
 
     # Bring over action server config from payload (if it's there)
     # NOTE: just as in v1 code, we only can take the first action server
     # here (seems the idea of having multiple was never used...)
     action_server_url = None
     action_server_api_key = None
-    if len(payload.action_servers) > 0:
-        action_server_url = payload.action_servers[0].url
-        action_server_api_key = payload.action_servers[0].api_key
+    normalized_action_servers: list[AgentPackagePayloadActionServer] = []
+    if payload.action_servers:
+        for item in payload.action_servers:
+            if isinstance(item, AgentPackagePayloadActionServer):
+                normalized_action_servers.append(item)
+            elif isinstance(item, dict):  # type: ignore[unreachable]
+                try:
+                    normalized_action_servers.append(AgentPackagePayloadActionServer(**item))
+                except Exception:
+                    continue
+        if normalized_action_servers:
+            action_server_url = normalized_action_servers[0].url
+            action_server_api_key = normalized_action_servers[0].api_key
     if isinstance(action_server_api_key, str):
         action_server_api_key = SecretString(action_server_api_key)
+
+    # Normalize nested fields defensively if JSON deserialization left dicts
+    normalized_mcp_servers = []
+    for server in payload.mcp_servers:
+        if isinstance(server, dict):  # type: ignore[unreachable]
+            normalized_mcp_servers.append(MCPServer.model_validate(server))
+        else:
+            normalized_mcp_servers.append(server)
 
     as_upsert_payload = UpsertAgentPayload(
         name=payload.name,  # Want name from payload, not agent project
@@ -376,7 +395,7 @@ async def create_or_update_agent_from_package(
             )
             for action_package in agent0.get("action-packages", [])
         ],
-        mcp_servers=payload.mcp_servers,
+        mcp_servers=normalized_mcp_servers,
         runbook=agent_package.runbook_text,
         advanced_config=advanced_config,
         question_groups=agent_package.question_groups,
