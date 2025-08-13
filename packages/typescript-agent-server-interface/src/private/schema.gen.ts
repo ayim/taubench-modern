@@ -548,6 +548,83 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/inspect-file-as-data-frame': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Inspect File As Data Frame
+     * @description Inspect a file as a data frame.
+     *
+     *     Note: may return multiple data frames if the file is a multi-sheet excel file.
+     */
+    get: operations['inspect_file_as_data_frame_threads__tid__inspect_file_as_data_frame_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/data-frames/from-file': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Data Frame From File
+     * @description Create a data frame from a file.
+     *
+     *     Note: if the file is a multi-sheet excel file, this needs to be called for each sheet
+     *     by specifying the sheet_name or sheet_id.
+     */
+    post: operations['create_data_frame_from_file_threads__tid__data_frames_from_file_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/data-frames': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Thread Data Frames
+     * @description Get a list of data frames for a thread.
+     *
+     *     Args:
+     *         user: The user making the request.
+     *         tid: The ID of the thread to get data frames for.
+     *         storage: The storage to use to get the data frames.
+     *         num_samples: The number of samples to return for each data frame.
+     *             If 0, no samples are returned.
+     *             If -1, all samples are returned.
+     *             If a positive number, return up to that number of samples.
+     *
+     *     Returns:
+     *         A list of data frames created in the thread.
+     */
+    get: operations['get_thread_data_frames_threads__tid__data_frames_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/debug/artifacts': {
     parameters: {
       query?: never;
@@ -774,6 +851,309 @@ export interface paths {
      * @description Delete an MCP server.
      */
     delete: operations['delete_mcp_server_mcp_servers__mcp_server_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/config/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get All Configs
+     * @description Get all configuration values.
+     */
+    get: operations['get_all_configs_config__get'];
+    put?: never;
+    /**
+     * Set Config
+     * @description Set a configuration value by config_type and current_value.
+     */
+    post: operations['set_config_config__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/ok': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Ok */
+    get: operations['ok_document_intelligence_ok_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Upsert Document Intelligence
+     * @description Upsert Document Intelligence configuration (PUT semantics).
+     *
+     *     Accepts a combined configuration payload under the `/document-intelligence`
+     *     root. It stores the Data Server connection details and any provided
+     *     integrations. For now, integrations are upserted individually by kind.
+     */
+    post: operations['upsert_document_intelligence_document_intelligence_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/data-models': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Data Models */
+    get: operations['list_data_models_document_intelligence_data_models_get'];
+    put?: never;
+    /** Create Data Model */
+    post: operations['create_data_model_document_intelligence_data_models_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/data-models/{model_name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Data Model */
+    get: operations['get_data_model_document_intelligence_data_models__model_name__get'];
+    /** Update Data Model */
+    put: operations['update_data_model_document_intelligence_data_models__model_name__put'];
+    post?: never;
+    /** Delete Data Model */
+    delete: operations['delete_data_model_document_intelligence_data_models__model_name__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/layouts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get All Layouts
+     * @description Get all layouts from the Document Intelligence database.
+     */
+    get: operations['get_all_layouts_document_intelligence_layouts_get'];
+    put?: never;
+    /**
+     * Upsert Layout
+     * @description Upsert a layout into the Document Intelligence database.
+     *
+     *     Behavior:
+     *     - If a layout with the same name and data model exists, update it
+     *       (extraction schema, translation schema, summary, extraction config, prompt).
+     *     - Otherwise, insert a new layout.
+     */
+    post: operations['upsert_layout_document_intelligence_layouts_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/layouts/generate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Layout From File
+     * @description Generate a layout from a document.
+     */
+    post: operations['generate_layout_from_file_document_intelligence_layouts_generate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/deploy/agent': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Deploy agent from package
+     * @description Deploy an agent from a package. Accepts JSON and binary ZIP files.
+     */
+    post: operations['deploy_agent_from_package_package_deploy_agent_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/deploy/agent/{aid}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Update agent from package
+     * @description Update an existing agent from a package. Accepts JSON and binary ZIP files.
+     */
+    put: operations['update_agent_from_package_package_deploy_agent__aid__put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/environment-hash/agent': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Calculate agent package environment hash
+     * @description Calculate agent package environment hash. Accepts JSON and binary ZIP files.
+     */
+    post: operations['calculate_agent_package_hash_package_environment_hash_agent_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/inspect/agent': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Inspect agent package
+     * @description Inspect agent package metadata. Accepts JSON and binary ZIP files.
+     */
+    post: operations['inspect_agent_from_package_package_inspect_agent_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/inspect/action': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Inspect action package
+     * @description Inspect action package metadata. Accepts JSON and binary ZIP files.
+     */
+    post: operations['inspect_action_from_package_package_inspect_action_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/platforms/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Platforms
+     * @description List all platform configurations for the authenticated user.
+     */
+    get: operations['list_platforms_platforms__get'];
+    put?: never;
+    /**
+     * Create Platform
+     * @description Create a new platform configuration.
+     */
+    post: operations['create_platform_platforms__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/platforms/{platform_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Platform
+     * @description Get a specific platform configuration by ID.
+     */
+    get: operations['get_platform_platforms__platform_id__get'];
+    /**
+     * Update Platform
+     * @description Update an existing platform configuration by ID.
+     */
+    put: operations['update_platform_platforms__platform_id__put'];
+    post?: never;
+    /**
+     * Delete Platform
+     * @description Delete a platform configuration.
+     */
+    delete: operations['delete_platform_platforms__platform_id__delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1044,6 +1424,29 @@ export interface components {
        * @enum {string}
        */
       status: 'online' | 'offline';
+    };
+    /** ActionPackagePayload */
+    ActionPackagePayload: {
+      /**
+       * Name
+       * @description The name of the action package.
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the action package.
+       */
+      description?: string | null;
+      /**
+       * Action Package Url
+       * @description The URL of the action package.
+       */
+      action_package_url?: string | null;
+      /**
+       * Action Package Base64
+       * @description The base64 encoded action package.
+       */
+      action_package_base64?: string | null;
     };
     /** ActionServerConfigPayload */
     ActionServerConfigPayload: {
@@ -1498,6 +1901,11 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** Body_generate_layout_from_file_document_intelligence_layouts_generate_post */
+    Body_generate_layout_from_file_document_intelligence_layouts_generate_post: {
+      /** File */
+      file: string;
+    };
     /** Body_upload_thread_files_threads__tid__files_post */
     Body_upload_thread_files_threads__tid__files_post: {
       /** Files */
@@ -1561,6 +1969,36 @@ export interface components {
        * @description The text that is being cited (if provided, may be None)
        */
       cited_text?: string | null;
+    };
+    /** ConfigPayload */
+    ConfigPayload: {
+      /**
+       * Config Type
+       * @enum {string}
+       */
+      config_type:
+        | 'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB'
+        | 'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB'
+        | 'MAX_AGENTS'
+        | 'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS'
+        | 'MAX_MCP_SERVERS_IN_AGENT';
+      /** Current Value */
+      current_value: string;
+    };
+    /** ConfigResponse */
+    ConfigResponse: {
+      /**
+       * Config Type
+       * @enum {string}
+       */
+      config_type:
+        | 'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB'
+        | 'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB'
+        | 'MAX_AGENTS'
+        | 'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS'
+        | 'MAX_MCP_SERVERS_IN_AGENT';
+      /** Config Value */
+      config_value: string;
     };
     /** ConfirmRemoteFileUploadPayload */
     ConfirmRemoteFileUploadPayload: {
@@ -1704,6 +2142,46 @@ export interface components {
        * @description A list of callbacks to trigger when the work item reaches a certain status.
        */
       callbacks?: components['schemas']['WorkItemCallback'][] | null;
+    };
+    /** DataModelPayload */
+    DataModelPayload: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Schema */
+      schema: {
+        [key: string]: unknown;
+      };
+      /** Views */
+      views?:
+        | {
+            [key: string]: unknown;
+          }[]
+        | null;
+      /** Qualitychecks */
+      qualityChecks?:
+        | {
+            [key: string]: string;
+          }[]
+        | null;
+      /** Prompt */
+      prompt?: string | null;
+      /** Summary */
+      summary?: string | null;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+    };
+    /** DocumentLayoutSummary */
+    DocumentLayoutSummary: {
+      /** Name */
+      name: string;
+      /** Data Model */
+      data_model: string;
+      /** Summary */
+      summary?: string | null;
     };
     /** DocumentsParams */
     DocumentsParams: {
@@ -1871,6 +2349,12 @@ export interface components {
        */
       client_tools?: components['schemas']['ToolDefinitionPayload'][];
     };
+    /**
+     * IntegrationKind
+     * @description Supported integration kinds for Document Intelligence Data Server
+     * @enum {string}
+     */
+    IntegrationKind: 'reducto';
     /** ListMCPToolsRequest */
     ListMCPToolsRequest: {
       /**
@@ -2967,6 +3451,51 @@ export interface components {
        */
       value: string;
     };
+    /**
+     * StatusError
+     * @description A client-safe error representation that can be included in StatusResponse.
+     *
+     *     This model extracts safe information from PlatformError objects while
+     *     excluding sensitive internal details.
+     */
+    StatusError: {
+      /**
+       * Code
+       * @description Error code identifying the type of error
+       */
+      code: string;
+      /**
+       * Message
+       * @description Human-readable error message
+       */
+      message: string;
+      /**
+       * Error Id
+       * @description Unique error identifier for tracking
+       */
+      error_id?: string | null;
+    };
+    /** StatusResponse[dict] */
+    StatusResponse_dict_: {
+      /**
+       * Status
+       * @description Indicates whether the operation was successful
+       * @enum {string}
+       */
+      status: 'success' | 'failure';
+      /**
+       * Data
+       * @description The result data when successful, null when failed
+       */
+      data?: {
+        [key: string]: unknown;
+      } | null;
+      /**
+       * Errors
+       * @description List of errors when the operation fails
+       */
+      errors?: (components['schemas']['StatusError'] | string)[];
+    };
     /** Thread */
     Thread: {
       /**
@@ -3650,6 +4179,53 @@ export interface components {
        */
       public: boolean;
     };
+    /** UpsertDataModelRequest */
+    UpsertDataModelRequest: {
+      dataModel: components['schemas']['DataModelPayload'];
+    };
+    /** UpsertDocumentIntelligenceConfigPayload */
+    UpsertDocumentIntelligenceConfigPayload: {
+      data_server: components['schemas']['_DataServerConfig'];
+      /** Integrations */
+      integrations?: components['schemas']['_IntegrationInput'][];
+    };
+    /** UpsertPlatformConfigPayload */
+    UpsertPlatformConfigPayload: {
+      /**
+       * Name
+       * @description Human-readable name for this platform configuration
+       */
+      name: string;
+      /**
+       * Kind
+       * @description Platform kind
+       */
+      kind: string;
+      /**
+       * Credentials
+       * @description Credentials required for authenticating against the platform
+       */
+      credentials?: {
+        [key: string]: unknown;
+      } | null;
+      /**
+       * Description
+       * @description Description of the platform configuration
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3-high']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Id
+       * @description Unique identifier (server-generated)
+       */
+      id?: string | null;
+    };
     /** UpsertThreadPayload */
     UpsertThreadPayload: {
       /**
@@ -3822,6 +4398,94 @@ export interface components {
       records: components['schemas']['WorkItem'][];
       /** Next Offset */
       next_offset?: number | null;
+    };
+    /** _ApiConfig */
+    _ApiConfig: {
+      http: components['schemas']['_HttpConfig'];
+      mysql: components['schemas']['_MysqlConfig'];
+    };
+    /** _Credentials */
+    _Credentials: {
+      /** Username */
+      username: string;
+      /** Password */
+      password: string | components['schemas']['SecretString'];
+    };
+    /** _DataFrameCreationAPI */
+    _DataFrameCreationAPI: {
+      /** Data Frame Id */
+      data_frame_id: string;
+      /** Thread Id */
+      thread_id: string;
+      /** Name */
+      name: string;
+      /** Sheet Name */
+      sheet_name: string | null;
+      /** Description */
+      description: string | null;
+      /** Num Rows */
+      num_rows: number;
+      /** Num Columns */
+      num_columns: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Column Headers */
+      column_headers: string[];
+      /** Sample Rows */
+      sample_rows: unknown[][];
+    };
+    /** _DataFrameInspectionAPI */
+    _DataFrameInspectionAPI: {
+      /** Thread Id */
+      thread_id: string;
+      /** Name */
+      name: string;
+      /** Sheet Name */
+      sheet_name: string | null;
+      /** Num Rows */
+      num_rows: number;
+      /** Num Columns */
+      num_columns: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Column Headers */
+      column_headers: string[];
+      /** Sample Rows */
+      sample_rows: unknown[][];
+    };
+    /** _DataServerConfig */
+    _DataServerConfig: {
+      credentials: components['schemas']['_Credentials'];
+      api: components['schemas']['_ApiConfig'];
+    };
+    /** _HttpConfig */
+    _HttpConfig: {
+      /** Url */
+      url: string;
+      /** Port */
+      port: number;
+    };
+    /** _IntegrationInput */
+    _IntegrationInput: {
+      /** Type */
+      type: string | components['schemas']['IntegrationKind'];
+      /** Endpoint */
+      endpoint: string;
+      /** Api Key */
+      api_key: string | components['schemas']['SecretString'];
+    };
+    /** _MysqlConfig */
+    _MysqlConfig: {
+      /** Host */
+      host: string;
+      /** Port */
+      port: number;
     };
     /**
      * ErrorDetail
@@ -5175,6 +5839,112 @@ export interface operations {
       };
     };
   };
+  inspect_file_as_data_frame_threads__tid__inspect_file_as_data_frame_get: {
+    parameters: {
+      query: {
+        file_id: string;
+        num_samples?: number;
+        sheet_name?: string | null;
+        sheet_id?: number | null;
+      };
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['_DataFrameInspectionAPI'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_data_frame_from_file_threads__tid__data_frames_from_file_post: {
+    parameters: {
+      query: {
+        file_id: string;
+        num_samples?: number;
+        sheet_name?: string | null;
+        sheet_id?: number | null;
+        description?: string | null;
+      };
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['_DataFrameCreationAPI'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_thread_data_frames_threads__tid__data_frames_get: {
+    parameters: {
+      query?: {
+        num_samples?: number;
+      };
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['_DataFrameCreationAPI'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   get_artifacts_debug_artifacts_get: {
     parameters: {
       query?: never;
@@ -5573,6 +6343,733 @@ export interface operations {
       header?: never;
       path: {
         mcp_server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_all_configs_config__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConfigResponse'][];
+        };
+      };
+    };
+  };
+  set_config_config__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConfigPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  ok_document_intelligence_ok_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+    };
+  };
+  upsert_document_intelligence_document_intelligence_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertDocumentIntelligenceConfigPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_data_models_document_intelligence_data_models_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+    };
+  };
+  create_data_model_document_intelligence_data_models_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertDataModelRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_data_model_document_intelligence_data_models__model_name__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        model_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  update_data_model_document_intelligence_data_models__model_name__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        model_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertDataModelRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_data_model_document_intelligence_data_models__model_name__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        model_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_all_layouts_document_intelligence_layouts_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DocumentLayoutSummary'][];
+        };
+      };
+    };
+  };
+  upsert_layout_document_intelligence_layouts_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  generate_layout_from_file_document_intelligence_layouts_generate_post: {
+    parameters: {
+      query: {
+        data_model_name: string;
+        thread_id: string;
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_generate_layout_from_file_document_intelligence_layouts_generate_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  deploy_agent_from_package_package_deploy_agent_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['AgentPackagePayload'];
+        /** @description Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field */
+        'multipart/form-data': components['schemas']['AgentPackagePayload'] & {
+          /**
+           * Format: binary
+           * @description ZIP file
+           */
+          package_zip_file: string;
+        };
+        /** @description Binary ZIP file containing the package */
+        'application/zip': string;
+        /** @description Binary ZIP file containing the package */
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+    };
+  };
+  update_agent_from_package_package_deploy_agent__aid__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['AgentPackagePayload'];
+        /** @description Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field */
+        'multipart/form-data': components['schemas']['AgentPackagePayload'] & {
+          /**
+           * Format: binary
+           * @description ZIP file
+           */
+          package_zip_file: string;
+        };
+        /** @description Binary ZIP file containing the package */
+        'application/zip': string;
+        /** @description Binary ZIP file containing the package */
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  calculate_agent_package_hash_package_environment_hash_agent_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['AgentPackagePayload'];
+        /** @description Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field */
+        'multipart/form-data': components['schemas']['AgentPackagePayload'] & {
+          /**
+           * Format: binary
+           * @description ZIP file
+           */
+          package_zip_file: string;
+        };
+        /** @description Binary ZIP file containing the package */
+        'application/zip': string;
+        /** @description Binary ZIP file containing the package */
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StatusResponse_dict_'];
+        };
+      };
+    };
+  };
+  inspect_agent_from_package_package_inspect_agent_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['AgentPackagePayload'];
+        /** @description Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field */
+        'multipart/form-data': components['schemas']['AgentPackagePayload'] & {
+          /**
+           * Format: binary
+           * @description ZIP file
+           */
+          package_zip_file: string;
+        };
+        /** @description Binary ZIP file containing the package */
+        'application/zip': string;
+        /** @description Binary ZIP file containing the package */
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StatusResponse_dict_'];
+        };
+      };
+    };
+  };
+  inspect_action_from_package_package_inspect_action_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ActionPackagePayload'];
+        /** @description Multipart form with all ActionPackagePayload fields plus ZIP file under the 'package_zip_file' field */
+        'multipart/form-data': components['schemas']['ActionPackagePayload'] & {
+          /**
+           * Format: binary
+           * @description ZIP file
+           */
+          package_zip_file: string;
+        };
+        /** @description Binary ZIP file containing the package */
+        'application/zip': string;
+        /** @description Binary ZIP file containing the package */
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StatusResponse_dict_'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_platforms_platforms__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': (
+            | components['schemas']['BedrockPlatformParameters']
+            | components['schemas']['CortexPlatformParameters']
+            | components['schemas']['OpenAIPlatformParameters']
+            | components['schemas']['AzureOpenAIPlatformParameters']
+            | components['schemas']['GooglePlatformParameters']
+            | components['schemas']['GroqPlatformParameters']
+            | components['schemas']['ReductoPlatformParameters']
+          )[];
+        };
+      };
+    };
+  };
+  create_platform_platforms__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertPlatformConfigPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json':
+            | components['schemas']['BedrockPlatformParameters']
+            | components['schemas']['CortexPlatformParameters']
+            | components['schemas']['OpenAIPlatformParameters']
+            | components['schemas']['AzureOpenAIPlatformParameters']
+            | components['schemas']['GooglePlatformParameters']
+            | components['schemas']['GroqPlatformParameters']
+            | components['schemas']['ReductoPlatformParameters'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_platform_platforms__platform_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        platform_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json':
+            | components['schemas']['BedrockPlatformParameters']
+            | components['schemas']['CortexPlatformParameters']
+            | components['schemas']['OpenAIPlatformParameters']
+            | components['schemas']['AzureOpenAIPlatformParameters']
+            | components['schemas']['GooglePlatformParameters']
+            | components['schemas']['GroqPlatformParameters']
+            | components['schemas']['ReductoPlatformParameters'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  update_platform_platforms__platform_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        platform_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertPlatformConfigPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json':
+            | components['schemas']['BedrockPlatformParameters']
+            | components['schemas']['CortexPlatformParameters']
+            | components['schemas']['OpenAIPlatformParameters']
+            | components['schemas']['AzureOpenAIPlatformParameters']
+            | components['schemas']['GooglePlatformParameters']
+            | components['schemas']['GroqPlatformParameters']
+            | components['schemas']['ReductoPlatformParameters'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_platform_platforms__platform_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        platform_id: string;
       };
       cookie?: never;
     };

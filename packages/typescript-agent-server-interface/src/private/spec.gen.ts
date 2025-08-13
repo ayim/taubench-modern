@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.27',
+    version: '2.0.28',
   },
   paths: {
     '/api/v2/ok': {
@@ -1817,6 +1817,272 @@ export const spec = {
         },
       },
     },
+    '/api/v2/threads/{tid}/inspect-file-as-data-frame': {
+      get: {
+        tags: ['threads'],
+        summary: 'Inspect File As Data Frame',
+        description:
+          'Inspect a file as a data frame.\n\nNote: may return multiple data frames if the file is a multi-sheet excel file.',
+        operationId:
+          'inspect_file_as_data_frame_threads__tid__inspect_file_as_data_frame_get',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+          {
+            name: 'file_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'File Id',
+            },
+          },
+          {
+            name: 'num_samples',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              default: 0,
+              title: 'Num Samples',
+            },
+          },
+          {
+            name: 'sheet_name',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Sheet Name',
+            },
+          },
+          {
+            name: 'sheet_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'integer',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Sheet Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/_DataFrameInspectionAPI',
+                  },
+                  title:
+                    'Response Inspect File As Data Frame Threads  Tid  Inspect File As Data Frame Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/data-frames/from-file': {
+      post: {
+        tags: ['threads'],
+        summary: 'Create Data Frame From File',
+        description:
+          'Create a data frame from a file.\n\nNote: if the file is a multi-sheet excel file, this needs to be called for each sheet\nby specifying the sheet_name or sheet_id.',
+        operationId:
+          'create_data_frame_from_file_threads__tid__data_frames_from_file_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+          {
+            name: 'file_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'File Id',
+            },
+          },
+          {
+            name: 'num_samples',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              default: 0,
+              title: 'Num Samples',
+            },
+          },
+          {
+            name: 'sheet_name',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Sheet Name',
+            },
+          },
+          {
+            name: 'sheet_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'integer',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Sheet Id',
+            },
+          },
+          {
+            name: 'description',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Description',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/_DataFrameCreationAPI',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/data-frames': {
+      get: {
+        tags: ['threads'],
+        summary: 'Get Thread Data Frames',
+        description:
+          'Get a list of data frames for a thread.\n\nArgs:\n    user: The user making the request.\n    tid: The ID of the thread to get data frames for.\n    storage: The storage to use to get the data frames.\n    num_samples: The number of samples to return for each data frame.\n        If 0, no samples are returned.\n        If -1, all samples are returned.\n        If a positive number, return up to that number of samples.\n\nReturns:\n    A list of data frames created in the thread.',
+        operationId: 'get_thread_data_frames_threads__tid__data_frames_get',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+          {
+            name: 'num_samples',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              default: 0,
+              title: 'Num Samples',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/_DataFrameCreationAPI',
+                  },
+                  title:
+                    'Response Get Thread Data Frames Threads  Tid  Data Frames Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/debug/artifacts': {
       get: {
         tags: ['debug'],
@@ -2394,6 +2660,1100 @@ export const spec = {
             schema: {
               type: 'string',
               title: 'Mcp Server Id',
+            },
+          },
+        ],
+        responses: {
+          '204': {
+            description: 'Successful Response',
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/config/': {
+      get: {
+        tags: ['config'],
+        summary: 'Get All Configs',
+        description: 'Get all configuration values.',
+        operationId: 'get_all_configs_config__get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  items: {
+                    $ref: '#/components/schemas/ConfigResponse',
+                  },
+                  type: 'array',
+                  title: 'Response Get All Configs Config  Get',
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['config'],
+        summary: 'Set Config',
+        description:
+          'Set a configuration value by config_type and current_value.',
+        operationId: 'set_config_config__post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ConfigPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  additionalProperties: {
+                    type: 'string',
+                  },
+                  type: 'object',
+                  title: 'Response Set Config Config  Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/ok': {
+      get: {
+        tags: ['document-intelligence'],
+        summary: 'Ok',
+        operationId: 'ok_document_intelligence_ok_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Upsert Document Intelligence',
+        description:
+          'Upsert Document Intelligence configuration (PUT semantics).\n\nAccepts a combined configuration payload under the `/document-intelligence`\nroot. It stores the Data Server connection details and any provided\nintegrations. For now, integrations are upserted individually by kind.',
+        operationId: 'upsert_document_intelligence_document_intelligence_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertDocumentIntelligenceConfigPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/data-models': {
+      get: {
+        tags: ['document-intelligence'],
+        summary: 'List Data Models',
+        operationId: 'list_data_models_document_intelligence_data_models_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Create Data Model',
+        operationId: 'create_data_model_document_intelligence_data_models_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertDataModelRequest',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '201': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/data-models/{model_name}': {
+      get: {
+        tags: ['document-intelligence'],
+        summary: 'Get Data Model',
+        operationId:
+          'get_data_model_document_intelligence_data_models__model_name__get',
+        parameters: [
+          {
+            name: 'model_name',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Model Name',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ['document-intelligence'],
+        summary: 'Update Data Model',
+        operationId:
+          'update_data_model_document_intelligence_data_models__model_name__put',
+        parameters: [
+          {
+            name: 'model_name',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Model Name',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertDataModelRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['document-intelligence'],
+        summary: 'Delete Data Model',
+        operationId:
+          'delete_data_model_document_intelligence_data_models__model_name__delete',
+        parameters: [
+          {
+            name: 'model_name',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Model Name',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/layouts': {
+      get: {
+        tags: ['document-intelligence'],
+        summary: 'Get All Layouts',
+        description: 'Get all layouts from the Document Intelligence database.',
+        operationId: 'get_all_layouts_document_intelligence_layouts_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  items: {
+                    $ref: '#/components/schemas/DocumentLayoutSummary',
+                  },
+                  type: 'array',
+                  title:
+                    'Response Get All Layouts Document Intelligence Layouts Get',
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Upsert Layout',
+        description:
+          'Upsert a layout into the Document Intelligence database.\n\nBehavior:\n- If a layout with the same name and data model exists, update it\n  (extraction schema, translation schema, summary, extraction config, prompt).\n- Otherwise, insert a new layout.',
+        operationId: 'upsert_layout_document_intelligence_layouts_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                additionalProperties: true,
+                type: 'object',
+                title: 'Payload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/layouts/generate': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Generate Layout From File',
+        description: 'Generate a layout from a document.',
+        operationId:
+          'generate_layout_from_file_document_intelligence_layouts_generate_post',
+        parameters: [
+          {
+            name: 'data_model_name',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Data Model Name',
+            },
+          },
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_generate_layout_from_file_document_intelligence_layouts_generate_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/deploy/agent': {
+      post: {
+        tags: ['package'],
+        summary: 'Deploy agent from package',
+        description:
+          'Deploy an agent from a package. Accepts JSON and binary ZIP files.',
+        operationId: 'deploy_agent_from_package_package_deploy_agent_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/AgentPackagePayload',
+              },
+            },
+            'multipart/form-data': {
+              schema: {
+                allOf: [
+                  {
+                    $ref: '#/components/schemas/AgentPackagePayload',
+                  },
+                  {
+                    properties: {
+                      package_zip_file: {
+                        type: 'string',
+                        format: 'binary',
+                        description: 'ZIP file',
+                      },
+                    },
+                    type: 'object',
+                    required: ['package_zip_file'],
+                  },
+                ],
+              },
+              encoding: {
+                package_zip_file: {
+                  contentType: 'application/zip',
+                },
+              },
+              description:
+                "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
+            },
+            'application/zip': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+            'application/octet-stream': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/deploy/agent/{aid}': {
+      put: {
+        tags: ['package'],
+        summary: 'Update agent from package',
+        description:
+          'Update an existing agent from a package. Accepts JSON and binary ZIP files.',
+        operationId: 'update_agent_from_package_package_deploy_agent__aid__put',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/AgentPackagePayload',
+              },
+            },
+            'multipart/form-data': {
+              schema: {
+                allOf: [
+                  {
+                    $ref: '#/components/schemas/AgentPackagePayload',
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      package_zip_file: {
+                        type: 'string',
+                        format: 'binary',
+                        description: 'ZIP file',
+                      },
+                    },
+                    required: ['package_zip_file'],
+                  },
+                ],
+              },
+              encoding: {
+                package_zip_file: {
+                  contentType: 'application/zip',
+                },
+              },
+              description:
+                "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
+            },
+            'application/zip': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+            'application/octet-stream': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/environment-hash/agent': {
+      post: {
+        tags: ['package'],
+        summary: 'Calculate agent package environment hash',
+        description:
+          'Calculate agent package environment hash. Accepts JSON and binary ZIP files.',
+        operationId:
+          'calculate_agent_package_hash_package_environment_hash_agent_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/AgentPackagePayload',
+              },
+            },
+            'multipart/form-data': {
+              schema: {
+                allOf: [
+                  {
+                    $ref: '#/components/schemas/AgentPackagePayload',
+                  },
+                  {
+                    properties: {
+                      package_zip_file: {
+                        type: 'string',
+                        format: 'binary',
+                        description: 'ZIP file',
+                      },
+                    },
+                    type: 'object',
+                    required: ['package_zip_file'],
+                  },
+                ],
+              },
+              encoding: {
+                package_zip_file: {
+                  contentType: 'application/zip',
+                },
+              },
+              description:
+                "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
+            },
+            'application/zip': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+            'application/octet-stream': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/StatusResponse_dict_',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/inspect/agent': {
+      post: {
+        tags: ['package'],
+        summary: 'Inspect agent package',
+        description:
+          'Inspect agent package metadata. Accepts JSON and binary ZIP files.',
+        operationId: 'inspect_agent_from_package_package_inspect_agent_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/AgentPackagePayload',
+              },
+            },
+            'multipart/form-data': {
+              schema: {
+                allOf: [
+                  {
+                    $ref: '#/components/schemas/AgentPackagePayload',
+                  },
+                  {
+                    properties: {
+                      package_zip_file: {
+                        type: 'string',
+                        format: 'binary',
+                        description: 'ZIP file',
+                      },
+                    },
+                    type: 'object',
+                    required: ['package_zip_file'],
+                  },
+                ],
+              },
+              encoding: {
+                package_zip_file: {
+                  contentType: 'application/zip',
+                },
+              },
+              description:
+                "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
+            },
+            'application/zip': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+            'application/octet-stream': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/StatusResponse_dict_',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/inspect/action': {
+      post: {
+        tags: ['package'],
+        summary: 'Inspect action package',
+        description:
+          'Inspect action package metadata. Accepts JSON and binary ZIP files.',
+        operationId: 'inspect_action_from_package_package_inspect_action_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ActionPackagePayload',
+              },
+            },
+            'multipart/form-data': {
+              schema: {
+                allOf: [
+                  {
+                    $ref: '#/components/schemas/ActionPackagePayload',
+                  },
+                  {
+                    properties: {
+                      package_zip_file: {
+                        type: 'string',
+                        format: 'binary',
+                        description: 'ZIP file',
+                      },
+                    },
+                    type: 'object',
+                    required: ['package_zip_file'],
+                  },
+                ],
+              },
+              encoding: {
+                package_zip_file: {
+                  contentType: 'application/zip',
+                },
+              },
+              description:
+                "Multipart form with all ActionPackagePayload fields plus ZIP file under the 'package_zip_file' field",
+            },
+            'application/zip': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+            'application/octet-stream': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/StatusResponse_dict_',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/platforms/': {
+      get: {
+        tags: ['platforms'],
+        summary: 'List Platforms',
+        description:
+          'List all platform configurations for the authenticated user.',
+        operationId: 'list_platforms_platforms__get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  items: {
+                    anyOf: [
+                      {
+                        $ref: '#/components/schemas/BedrockPlatformParameters',
+                      },
+                      {
+                        $ref: '#/components/schemas/CortexPlatformParameters',
+                      },
+                      {
+                        $ref: '#/components/schemas/OpenAIPlatformParameters',
+                      },
+                      {
+                        $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
+                      },
+                      {
+                        $ref: '#/components/schemas/GooglePlatformParameters',
+                      },
+                      {
+                        $ref: '#/components/schemas/GroqPlatformParameters',
+                      },
+                      {
+                        $ref: '#/components/schemas/ReductoPlatformParameters',
+                      },
+                    ],
+                  },
+                  type: 'array',
+                  title: 'Response List Platforms Platforms  Get',
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['platforms'],
+        summary: 'Create Platform',
+        description: 'Create a new platform configuration.',
+        operationId: 'create_platform_platforms__post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertPlatformConfigPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/BedrockPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/CortexPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/OpenAIPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/GooglePlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/GroqPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/ReductoPlatformParameters',
+                    },
+                  ],
+                  title: 'Response Create Platform Platforms  Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/platforms/{platform_id}': {
+      get: {
+        tags: ['platforms'],
+        summary: 'Get Platform',
+        description: 'Get a specific platform configuration by ID.',
+        operationId: 'get_platform_platforms__platform_id__get',
+        parameters: [
+          {
+            name: 'platform_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Platform Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/BedrockPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/CortexPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/OpenAIPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/GooglePlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/GroqPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/ReductoPlatformParameters',
+                    },
+                  ],
+                  title: 'Response Get Platform Platforms  Platform Id  Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ['platforms'],
+        summary: 'Update Platform',
+        description: 'Update an existing platform configuration by ID.',
+        operationId: 'update_platform_platforms__platform_id__put',
+        parameters: [
+          {
+            name: 'platform_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Platform Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertPlatformConfigPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/BedrockPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/CortexPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/OpenAIPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/GooglePlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/GroqPlatformParameters',
+                    },
+                    {
+                      $ref: '#/components/schemas/ReductoPlatformParameters',
+                    },
+                  ],
+                  title: 'Response Update Platform Platforms  Platform Id  Put',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['platforms'],
+        summary: 'Delete Platform',
+        description: 'Delete a platform configuration.',
+        operationId: 'delete_platform_platforms__platform_id__delete',
+        parameters: [
+          {
+            name: 'platform_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Platform Id',
             },
           },
         ],
@@ -3074,6 +4434,54 @@ export const spec = {
         type: 'object',
         required: ['name', 'actions', 'version', 'status'],
         title: 'ActionPackageDetail',
+      },
+      ActionPackagePayload: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the action package.',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the action package.',
+          },
+          action_package_url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Action Package Url',
+            description: 'The URL of the action package.',
+          },
+          action_package_base64: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Action Package Base64',
+            description: 'The base64 encoded action package.',
+          },
+        },
+        type: 'object',
+        required: ['name'],
+        title: 'ActionPackagePayload',
       },
       ActionServerConfigPayload: {
         properties: {
@@ -3861,6 +5269,27 @@ export const spec = {
         type: 'object',
         title: 'BedrockPlatformParameters',
       },
+      Body_generate_layout_from_file_document_intelligence_layouts_generate_post:
+        {
+          properties: {
+            file: {
+              anyOf: [
+                {
+                  type: 'string',
+                  format: 'binary',
+                },
+                {
+                  type: 'string',
+                },
+              ],
+              title: 'File',
+            },
+          },
+          type: 'object',
+          required: ['file'],
+          title:
+            'Body_generate_layout_from_file_document_intelligence_layouts_generate_post',
+        },
       Body_upload_thread_files_threads__tid__files_post: {
         properties: {
           files: {
@@ -4007,6 +5436,50 @@ export const spec = {
         type: 'object',
         required: ['document_uri', 'start_char_index', 'end_char_index'],
         title: 'Citation',
+      },
+      ConfigPayload: {
+        properties: {
+          config_type: {
+            type: 'string',
+            enum: [
+              'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB',
+              'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB',
+              'MAX_AGENTS',
+              'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS',
+              'MAX_MCP_SERVERS_IN_AGENT',
+            ],
+            title: 'Config Type',
+          },
+          current_value: {
+            type: 'string',
+            title: 'Current Value',
+          },
+        },
+        type: 'object',
+        required: ['config_type', 'current_value'],
+        title: 'ConfigPayload',
+      },
+      ConfigResponse: {
+        properties: {
+          config_type: {
+            type: 'string',
+            enum: [
+              'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB',
+              'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB',
+              'MAX_AGENTS',
+              'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS',
+              'MAX_MCP_SERVERS_IN_AGENT',
+            ],
+            title: 'Config Type',
+          },
+          config_value: {
+            type: 'string',
+            title: 'Config Value',
+          },
+        },
+        type: 'object',
+        required: ['config_type', 'config_value'],
+        title: 'ConfigResponse',
       },
       ConfirmRemoteFileUploadPayload: {
         properties: {
@@ -4280,6 +5753,128 @@ export const spec = {
         type: 'object',
         required: ['agent_id'],
         title: 'CreateWorkItemPayload',
+      },
+      DataModelPayload: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Schema',
+          },
+          views: {
+            anyOf: [
+              {
+                items: {
+                  additionalProperties: true,
+                  type: 'object',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Views',
+          },
+          qualityChecks: {
+            anyOf: [
+              {
+                items: {
+                  additionalProperties: {
+                    type: 'string',
+                  },
+                  type: 'object',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Qualitychecks',
+          },
+          prompt: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Prompt',
+          },
+          summary: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Summary',
+          },
+          created_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Created At',
+          },
+          updated_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Updated At',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description', 'schema'],
+        title: 'DataModelPayload',
+      },
+      DocumentLayoutSummary: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          data_model: {
+            type: 'string',
+            title: 'Data Model',
+          },
+          summary: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Summary',
+          },
+        },
+        type: 'object',
+        required: ['name', 'data_model'],
+        title: 'DocumentLayoutSummary',
       },
       DocumentsParams: {
         properties: {
@@ -4560,6 +6155,13 @@ export const spec = {
         type: 'object',
         required: ['agent_id'],
         title: 'InitiateStreamPayload',
+      },
+      IntegrationKind: {
+        type: 'string',
+        enum: ['reducto'],
+        title: 'IntegrationKind',
+        description:
+          'Supported integration kinds for Document Intelligence Data Server',
       },
       ListMCPToolsRequest: {
         properties: {
@@ -6467,6 +8069,78 @@ export const spec = {
         required: ['value'],
         title: 'SecretString',
       },
+      StatusError: {
+        properties: {
+          code: {
+            type: 'string',
+            title: 'Code',
+            description: 'Error code identifying the type of error',
+          },
+          message: {
+            type: 'string',
+            title: 'Message',
+            description: 'Human-readable error message',
+          },
+          error_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Error Id',
+            description: 'Unique error identifier for tracking',
+          },
+        },
+        type: 'object',
+        required: ['code', 'message'],
+        title: 'StatusError',
+        description:
+          'A client-safe error representation that can be included in StatusResponse.\n\nThis model extracts safe information from PlatformError objects while\nexcluding sensitive internal details.',
+      },
+      StatusResponse_dict_: {
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['success', 'failure'],
+            title: 'Status',
+            description: 'Indicates whether the operation was successful',
+          },
+          data: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Data',
+            description: 'The result data when successful, null when failed',
+          },
+          errors: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/StatusError',
+                },
+                {
+                  type: 'string',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Errors',
+            description: 'List of errors when the operation fails',
+          },
+        },
+        type: 'object',
+        required: ['status'],
+        title: 'StatusResponse[dict]',
+      },
       Thread: {
         properties: {
           user_id: {
@@ -7514,6 +9188,107 @@ export const spec = {
         required: ['name', 'description', 'version'],
         title: 'UpsertAgentPayload',
       },
+      UpsertDataModelRequest: {
+        properties: {
+          dataModel: {
+            $ref: '#/components/schemas/DataModelPayload',
+          },
+        },
+        type: 'object',
+        required: ['dataModel'],
+        title: 'UpsertDataModelRequest',
+      },
+      UpsertDocumentIntelligenceConfigPayload: {
+        properties: {
+          data_server: {
+            $ref: '#/components/schemas/_DataServerConfig',
+          },
+          integrations: {
+            items: {
+              $ref: '#/components/schemas/_IntegrationInput',
+            },
+            type: 'array',
+            title: 'Integrations',
+          },
+        },
+        type: 'object',
+        required: ['data_server'],
+        title: 'UpsertDocumentIntelligenceConfigPayload',
+      },
+      UpsertPlatformConfigPayload: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'Human-readable name for this platform configuration',
+          },
+          kind: {
+            type: 'string',
+            title: 'Kind',
+            description: 'Platform kind',
+          },
+          credentials: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Credentials',
+            description:
+              'Credentials required for authenticating against the platform',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'Description of the platform configuration',
+          },
+          models: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Models',
+            description:
+              "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3-high']})",
+          },
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+            description: 'Unique identifier (server-generated)',
+          },
+        },
+        type: 'object',
+        required: ['name', 'kind'],
+        title: 'UpsertPlatformConfigPayload',
+      },
       UpsertThreadPayload: {
         properties: {
           agent_id: {
@@ -7779,6 +9554,260 @@ export const spec = {
         type: 'object',
         required: ['records'],
         title: 'WorkItemsListResponse',
+      },
+      _ApiConfig: {
+        properties: {
+          http: {
+            $ref: '#/components/schemas/_HttpConfig',
+          },
+          mysql: {
+            $ref: '#/components/schemas/_MysqlConfig',
+          },
+        },
+        type: 'object',
+        required: ['http', 'mysql'],
+        title: '_ApiConfig',
+      },
+      _Credentials: {
+        properties: {
+          username: {
+            type: 'string',
+            title: 'Username',
+          },
+          password: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+            ],
+            title: 'Password',
+          },
+        },
+        type: 'object',
+        required: ['username', 'password'],
+        title: '_Credentials',
+      },
+      _DataFrameCreationAPI: {
+        properties: {
+          data_frame_id: {
+            type: 'string',
+            title: 'Data Frame Id',
+          },
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          sheet_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sheet Name',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          num_rows: {
+            type: 'integer',
+            title: 'Num Rows',
+          },
+          num_columns: {
+            type: 'integer',
+            title: 'Num Columns',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+          },
+          column_headers: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Column Headers',
+          },
+          sample_rows: {
+            items: {
+              items: {},
+              type: 'array',
+            },
+            type: 'array',
+            title: 'Sample Rows',
+          },
+        },
+        type: 'object',
+        required: [
+          'data_frame_id',
+          'thread_id',
+          'name',
+          'sheet_name',
+          'description',
+          'num_rows',
+          'num_columns',
+          'created_at',
+          'column_headers',
+          'sample_rows',
+        ],
+        title: '_DataFrameCreationAPI',
+      },
+      _DataFrameInspectionAPI: {
+        properties: {
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          sheet_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sheet Name',
+          },
+          num_rows: {
+            type: 'integer',
+            title: 'Num Rows',
+          },
+          num_columns: {
+            type: 'integer',
+            title: 'Num Columns',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+          },
+          column_headers: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Column Headers',
+          },
+          sample_rows: {
+            items: {
+              items: {},
+              type: 'array',
+            },
+            type: 'array',
+            title: 'Sample Rows',
+          },
+        },
+        type: 'object',
+        required: [
+          'thread_id',
+          'name',
+          'sheet_name',
+          'num_rows',
+          'num_columns',
+          'created_at',
+          'column_headers',
+          'sample_rows',
+        ],
+        title: '_DataFrameInspectionAPI',
+      },
+      _DataServerConfig: {
+        properties: {
+          credentials: {
+            $ref: '#/components/schemas/_Credentials',
+          },
+          api: {
+            $ref: '#/components/schemas/_ApiConfig',
+          },
+        },
+        type: 'object',
+        required: ['credentials', 'api'],
+        title: '_DataServerConfig',
+      },
+      _HttpConfig: {
+        properties: {
+          url: {
+            type: 'string',
+            title: 'Url',
+          },
+          port: {
+            type: 'integer',
+            title: 'Port',
+          },
+        },
+        type: 'object',
+        required: ['url', 'port'],
+        title: '_HttpConfig',
+      },
+      _IntegrationInput: {
+        properties: {
+          type: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                $ref: '#/components/schemas/IntegrationKind',
+              },
+            ],
+            title: 'Type',
+          },
+          endpoint: {
+            type: 'string',
+            title: 'Endpoint',
+          },
+          api_key: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+            ],
+            title: 'Api Key',
+          },
+        },
+        type: 'object',
+        required: ['type', 'endpoint', 'api_key'],
+        title: '_IntegrationInput',
+      },
+      _MysqlConfig: {
+        properties: {
+          host: {
+            type: 'string',
+            title: 'Host',
+          },
+          port: {
+            type: 'integer',
+            title: 'Port',
+          },
+        },
+        type: 'object',
+        required: ['host', 'port'],
+        title: '_MysqlConfig',
       },
       ErrorDetail: {
         description:
