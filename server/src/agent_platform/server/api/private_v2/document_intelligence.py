@@ -337,3 +337,59 @@ async def generate_layout_from_file(  # noqa: PLR0913
         return {
             "extraction_schema": extraction_schema,
         }
+
+
+@router.post("/data-models/generate")
+async def generate_data_model_from_document(  # noqa: PLR0913
+    file: UploadFile | str,
+    thread_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    docint_ds: DocIntDatasourceDependency,
+    agent_server_client: AgentServerClientDependency,
+):
+    """Generate a data model from a document."""
+
+    thread = await storage.get_thread(user.user_id, thread_id)
+    if not thread:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"Thread {thread_id} not found",
+        )
+
+    new_file = False
+    if isinstance(file, str):
+        stored_file = await storage.get_file_by_ref(thread, file, user.user_id)
+        if not stored_file:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"File {file} not found (storage)",
+            )
+        updated_file = await file_manager.refresh_file_paths([stored_file])
+        if not updated_file:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"File {file} not found (refresh)",
+            )
+        uploaded_file = updated_file[0]
+    else:
+        upload_request = UploadFilePayload(file=file)
+        stored_files = await file_manager.upload([upload_request], thread, user.user_id)
+        uploaded_file = stored_files[0]
+        new_file = True
+
+    schema = await run_in_threadpool(
+        agent_server_client.generate_schema_from_document,
+        uploaded_file.file_ref,
+    )
+
+    if new_file:
+        return {
+            "model_schema": schema,
+            "uploaded_file": uploaded_file,
+        }
+    else:
+        return {
+            "model_schema": schema,
+        }
