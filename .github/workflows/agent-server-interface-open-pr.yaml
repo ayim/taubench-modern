@@ -180,6 +180,7 @@ jobs:
       - name: Enable automerge for Pull Request
         env:
           PR_URL: ${{ steps.create-pull-request.outputs.result }}
+          GH_TOKEN: ${{ github.token }}
         run: gh pr merge --auto --squash "${PR_URL}"
 
       - name: Send Slack notification
