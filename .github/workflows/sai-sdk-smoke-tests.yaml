@@ -1,0 +1,63 @@
+name: Sai SDK Smoke Tests
+
+on:
+  workflow_dispatch:
+    # Enables manual triggering
+  pull_request:
+    # Trigger a build on changes to files in cli directory
+    paths:
+      - 'packages/typescript-sai-sdk/**'
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  smoke-tests:
+    name: Sai SDK Smoke Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/typescript-sai-sdk
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup `uv`
+        uses: astral-sh/setup-uv@1bf14936647e2742afe170d7d7fd95f45bfe4fc7
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.1'
+
+      - name: Creating .npmrc
+        run: |
+          cat << EOF > "./.npmrc"
+            registry=https://registry.npmjs.org/
+            @robocorp:registry=https://npm.pkg.github.com/
+            @sema4ai:registry=https://npm.pkg.github.com/
+            //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
+          EOF
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          NPM_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Install Dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          NPM_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          npm run test:as

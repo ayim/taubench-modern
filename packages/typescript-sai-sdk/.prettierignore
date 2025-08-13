@@ -1,0 +1,13 @@
+core/tests/fixtures/vcr_cassettes/platforms
+docs/prompt-endpoint-examples/package-lock.json
+server/examples/debug_widget/pnpm-lock.yaml
+server/examples/debug_widget/static/index.js
+server/examples/debug_widget/static/style.css
+**/CHANGELOG-PRE-RELEASE.md
+**/CHANGELOG.md
+**/versionbump.yaml
+agent-spec/validation/_go_validation_tests/test_go_validation/**
+agent-spec/validation/_spec_validation_tests/test_spec*/**
+packages/golang-agent-cli/tests
+workroom/**/routeTree.gen.ts
+compose.yml
