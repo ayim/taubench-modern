@@ -17,7 +17,8 @@
     "check:types": "tsc --noEmit",
     "copy-legacy-types": "mkdir -p lib/private/v1 && cp src/private/v1/schema.d.ts lib/private/v1/schema.d.ts && cp src/private/v1/spec.gen.d.ts lib/private/v1/spec.gen.d.ts",
     "test:types": "tsd",
-    "test": "jest"
+    "test": "jest",
+    "prepublishOnly": "tsc && npm run copy-legacy-types"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
