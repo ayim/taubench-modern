@@ -1,9 +1,16 @@
-"""FastAPI dependencies used for injection."""
-
+import base64
+import json
+import os
 from typing import Annotated
+from urllib.parse import urljoin
 
 from fastapi import Depends, Request, UploadFile
+from sema4ai.actions._action import set_current_requests_contexts
+from sema4ai.actions._action_context import RequestContexts
+from sema4ai.actions._request import Request as Sema4aiRequest
 from sema4ai.data import DataSource
+from sema4ai_docint.agent_server_client import AgentServerClient
+from starlette.concurrency import run_in_threadpool
 
 from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
@@ -204,3 +211,49 @@ def get_docint_datasource(details: DIDSDetailsDependency) -> DataSource:
 
 
 DocIntDatasourceDependency = Annotated[DataSource, Depends(get_docint_datasource)]
+
+
+async def get_agent_server_client(
+    agent_id: str, request: Request, thread_id: str | None = None
+) -> AgentServerClient:
+    """Get an agent server client from the sema4ai-docint package for use in DIv2.
+
+    Ensures the file management client points to this server instance by
+    deriving the base URL from the current request and setting
+    SEMA4AI_FILE_MANAGEMENT_URL if it is not already set.
+    """
+    # Set the file management URL to the current server instance
+    if not os.environ.get("SEMA4AI_FILE_MANAGEMENT_URL"):
+        base_url = str(request.base_url)
+        os.environ["SEMA4AI_FILE_MANAGEMENT_URL"] = urljoin(base_url, "api/v2")
+
+    # Inject the request context to make the action code work
+    # Build an action request from the FastAPI request
+    headers: dict[str, str] = {str(k): str(v) for k, v in request.headers.items()}
+    cookies: dict[str, str] = {str(k): str(v) for k, v in request.cookies.items()}
+
+    # Provide invocation context so downstream helpers can fetch agent/thread context
+    if thread_id:
+        invocation_context = {"agent_id": agent_id, "thread_id": thread_id}
+        headers["x-action-invocation-context"] = base64.b64encode(
+            json.dumps(invocation_context).encode("utf-8")
+        ).decode("ascii")
+        # Fallback header used by some clients
+        headers.setdefault("x-invoked_for_thread_id", thread_id)
+        # Also set assistant id header fallback used by AgentServerClient
+        headers.setdefault("X-INVOKED_BY_ASSISTANT_ID", agent_id)
+
+    action_request = Sema4aiRequest.model_validate(
+        {
+            "headers": headers,
+            "cookies": cookies,
+        }
+    )
+    set_current_requests_contexts(RequestContexts(action_request))
+
+    # Create client off-thread since it performs sync I/O (health check)
+    client = await run_in_threadpool(AgentServerClient, agent_id)
+    return client
+
+
+AgentServerClientDependency = Annotated[AgentServerClient, Depends(get_agent_server_client)]

@@ -1,8 +1,12 @@
-from fastapi import APIRouter
+import json
+
+from fastapi import APIRouter, UploadFile
 from sema4ai.data import DataSource
 from sema4ai_docint.models import DocumentLayout, initialize_database
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 from sema4ai_docint.models.data_model import DataModel
+from sema4ai_docint.utils import normalize_name
+from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
@@ -19,7 +23,14 @@ from agent_platform.core.payloads import (
     UpsertDocumentIntelligenceConfigPayload,
     UpsertDocumentLayoutPayload,
 )
-from agent_platform.server.api.dependencies import DocIntDatasourceDependency, StorageDependency
+from agent_platform.core.payloads.upload_file import UploadFilePayload
+from agent_platform.server.api.dependencies import (
+    AgentServerClientDependency,
+    DocIntDatasourceDependency,
+    FileManagerDependency,
+    StorageDependency,
+)
+from agent_platform.server.auth import AuthedUser
 from agent_platform.server.storage.postgres.postgres import PostgresConfig
 
 logger: BoundLogger = get_logger(__name__)
@@ -95,22 +106,6 @@ async def upsert_document_intelligence(
         await storage.set_document_intelligence_integration(integration)
 
     return {"ok": True}
-
-
-@router.get("/layouts")
-async def get_all_layouts(docint_ds: DocIntDatasourceDependency) -> list[DocumentLayoutSummary]:
-    """Get all layouts from the Document Intelligence database."""
-    document_layouts = DocumentLayout.find_all(docint_ds)
-    layout_summaries = []
-    for layout in document_layouts:
-        layout_summaries.append(
-            DocumentLayoutSummary(
-                name=layout.name,
-                data_model=layout.data_model,
-                summary=layout.summary,
-            )
-        )
-    return layout_summaries
 
 
 # Data Model Endpoints
@@ -210,6 +205,25 @@ async def delete_data_model(model_name: str, docint_ds: DocIntDatasourceDependen
         raise PlatformHTTPError(ErrorCode.UNEXPECTED, f"Failed to delete data model: {e!s}") from e
 
 
+# Document Layout Endpoints
+
+
+@router.get("/layouts")
+async def get_all_layouts(docint_ds: DocIntDatasourceDependency) -> list[DocumentLayoutSummary]:
+    """Get all layouts from the Document Intelligence database."""
+    document_layouts = DocumentLayout.find_all(docint_ds)
+    layout_summaries = []
+    for layout in document_layouts:
+        layout_summaries.append(
+            DocumentLayoutSummary(
+                name=layout.name,
+                data_model=layout.data_model,
+                summary=layout.summary,
+            )
+        )
+    return layout_summaries
+
+
 @router.post("/layouts")
 async def upsert_layout(
     # Payload is a dict because we use dataclasses and want to allow camelCase
@@ -254,3 +268,72 @@ async def upsert_layout(
     except Exception as e:
         logger.error("Error upserting layout", error=str(e))
         raise PlatformError(ErrorCode.UNEXPECTED, f"Failed to upsert layout: {e!s}") from e
+
+
+@router.post("/layouts/generate")
+async def generate_layout_from_file(  # noqa: PLR0913
+    file: UploadFile | str,  # a direct upload or a file ref
+    data_model_name: str,
+    thread_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    docint_ds: DocIntDatasourceDependency,
+    agent_server_client: AgentServerClientDependency,
+):
+    """Generate a layout from a document."""
+    # get thread
+    thread = await storage.get_thread(user.user_id, thread_id)
+    if not thread:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"Thread {thread_id} not found",
+        )
+
+    # get file
+    new_file = False
+    if isinstance(file, str):
+        stored_file = await storage.get_file_by_ref(thread, file, user.user_id)
+        if not stored_file:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"File {file} not found (storage)",
+            )
+        updated_file = await file_manager.refresh_file_paths([stored_file])
+        if not updated_file:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"File {file} not found (refresh)",
+            )
+        uploaded_file = updated_file[0]
+    else:
+        upload_request = UploadFilePayload(file=file)
+        stored_files = await file_manager.upload([upload_request], thread, user.user_id)
+        uploaded_file = stored_files[0]
+        new_file = True
+
+    # get data model' schema
+    data_model = DataModel.find_by_name(docint_ds, normalize_name(data_model_name))
+    if not data_model:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"Data model {data_model_name} not found",
+        )
+    model_schema_json = json.dumps(data_model.model_schema, indent=2)
+
+    # generate extraction schema
+    extraction_schema = await run_in_threadpool(
+        agent_server_client.generate_extraction_schema,
+        uploaded_file.file_ref,
+        model_schema_json,
+    )
+
+    if new_file:
+        return {
+            "extraction_schema": extraction_schema,
+            "uploaded_file": uploaded_file,
+        }
+    else:
+        return {
+            "extraction_schema": extraction_schema,
+        }
