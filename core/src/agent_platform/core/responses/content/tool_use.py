@@ -107,6 +107,11 @@ class ResponseToolUseContent(ResponseMessageContent):
         # Remove 'kind' if present since it's not an init parameter
         if "kind" in data:
             data.pop("kind")
+        # Remove '_tool_input' if present since it's not an init parameter
+        # (it gets populated automatically in __post_init__)
+        if "_tool_input" in data:
+            data["tool_input_raw"] = json.dumps(data["_tool_input"])
+            data.pop("_tool_input")
         return cls(**data)
 
 
