@@ -144,7 +144,6 @@ jobs:
         id: create-pull-request
         uses: actions/github-script@v7
         with:
-          result-encoding: string
           script: |
             const version = '${{ steps.bump-package-version.outputs.agent-server-version }}';
             const title = `Publish \`agent-server-interface\` v${version}`;
@@ -171,7 +170,10 @@ jobs:
               });
 
               // Return Pull Request URL
-              return createPrResult.data.html_url;
+              return {
+                url: createPrResult.data.html_url,
+                number: createPrResult.data.number,
+              }
             } catch (error) {
               console.error(`Failed to open pull request: ${error.message}`);
               process.exit(1);
@@ -179,14 +181,15 @@ jobs:
 
       - name: Enable automerge for Pull Request
         env:
-          PR_URL: ${{ steps.create-pull-request.outputs.result }}
+          PR_URL: ${{ fromJson(steps.create-pull-request.outputs.result).url }}
           GH_TOKEN: ${{ github.token }}
         run: gh pr merge --auto --squash "${PR_URL}"
 
       - name: Send Slack notification
         uses: slackapi/slack-github-action@v2
         env:
-          version: ${{ steps.bump-package-version.outputs.version }}
+          pr_number: ${{ fromJson(steps.create-pull-request.outputs.result).number }}
+          version: ${{ steps.bump-package-version.outputs.agent-server-version }}
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
@@ -205,7 +208,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "https://github.com/Sema4AI/agent-platform/pull/588"
+                    "text": "https://github.com/Sema4AI/agent-platform/pull/${{ env.pr_number }}"
                   }
                 },
                 {
