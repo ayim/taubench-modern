@@ -10,10 +10,10 @@ from sema4ai_docint.extraction.reducto.exceptions import (
     UploadPresignRequestError,
     UploadPutError,
 )
-from sema4ai_docint.models import DocumentLayout, initialize_database
+from sema4ai_docint.models import DocumentLayout, Mapping, MappingRow, initialize_database
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 from sema4ai_docint.models.data_model import DataModel
-from sema4ai_docint.utils import normalize_name
+from sema4ai_docint.utils import normalize_name, validate_schema
 from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
@@ -29,12 +29,16 @@ from agent_platform.core.document_intelligence.data_models import (
     model_to_spec_dict,
     summary_from_model,
 )
+from agent_platform.core.document_intelligence.document_layout import (
+    DocumentLayoutBridge,
+)
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads import (
     UpsertDocumentIntelligenceConfigPayload,
     UpsertDocumentLayoutPayload,
 )
+from agent_platform.core.payloads.document_intelligence import GenerateLayoutResponsePayload
 from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
@@ -520,6 +524,28 @@ async def upsert_layout(
         raise PlatformError(ErrorCode.UNEXPECTED, f"Failed to upsert layout: {e!s}") from e
 
 
+async def _generate_translation_rules(
+    extraction_schema: dict[str, Any],
+    data_model_schema: dict[str, Any],
+    agent_server_client: AgentServerClientDependency,
+):
+    """Generate translation rules for a layout."""
+    mapping_rules_text = await run_in_threadpool(
+        agent_server_client.create_mapping,
+        json.dumps(data_model_schema),
+        json.dumps(extraction_schema),
+    )
+    mapping_rules = json.loads(mapping_rules_text)
+    if not isinstance(mapping_rules, list):
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED,
+            message="Generated mapping rules are not a list, please try again or provide "
+            "a different data model or layout",
+        )
+
+    return Mapping(rules=[MappingRow(**rule) for rule in mapping_rules])
+
+
 @router.post("/layouts/generate")
 async def generate_layout_from_file(  # noqa: PLR0913
     file: UploadFile | str,  # a direct upload or a file ref
@@ -532,35 +558,15 @@ async def generate_layout_from_file(  # noqa: PLR0913
     agent_server_client: AgentServerClientDependency,
 ):
     """Generate a layout from a document."""
-    # get thread
-    thread = await storage.get_thread(user.user_id, thread_id)
-    if not thread:
-        raise PlatformHTTPError(
-            error_code=ErrorCode.NOT_FOUND,
-            message=f"Thread {thread_id} not found",
-        )
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
-    # get file
-    new_file = False
-    if isinstance(file, str):
-        stored_file = await storage.get_file_by_ref(thread, file, user.user_id)
-        if not stored_file:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.NOT_FOUND,
-                message=f"File {file} not found (storage)",
-            )
-        updated_file = await file_manager.refresh_file_paths([stored_file])
-        if not updated_file:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.NOT_FOUND,
-                message=f"File {file} not found (refresh)",
-            )
-        uploaded_file = updated_file[0]
-    else:
-        upload_request = UploadFilePayload(file=file)
-        stored_files = await file_manager.upload([upload_request], thread, user.user_id)
-        uploaded_file = stored_files[0]
-        new_file = True
+    uploaded_file, new_file = await _get_or_upload_file(
+        file,
+        thread=thread,
+        user_id=user.user_id,
+        storage=storage,
+        file_manager=file_manager,
+    )
 
     # get data model' schema
     data_model = DataModel.find_by_name(docint_ds, normalize_name(data_model_name))
@@ -572,21 +578,77 @@ async def generate_layout_from_file(  # noqa: PLR0913
     model_schema_json = json.dumps(data_model.model_schema, indent=2)
 
     # generate extraction schema
-    extraction_schema = await run_in_threadpool(
+    candidate_extraction_schema = await run_in_threadpool(
         agent_server_client.generate_extraction_schema,
         uploaded_file.file_ref,
         model_schema_json,
     )
+    try:
+        extraction_schema = validate_schema(candidate_extraction_schema)
+    except Exception as e:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED,
+            message="The generated layout schema is not valid. Please try again or provide "
+            "a different data model or layout.",
+        ) from e
 
-    if new_file:
-        return {
+    # Generate Layout name
+    try:
+        images = [
+            img.get("value") for img in agent_server_client._file_to_images(uploaded_file.file_ref)
+        ]
+        images = [img for img in images if img is not None]
+        assert len(images) > 0, "No images found in the document"
+        layout_name = await run_in_threadpool(
+            agent_server_client.generate_document_layout_name,
+            images,
+            uploaded_file.file_ref,
+        )
+        layout_name = normalize_name(layout_name)
+    except AssertionError as e:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED,
+            message=f"Failed to generate layout name: {e!s}",
+        ) from e
+    except ValueError as e:
+        # Raised if the document is not an image, so the message should be end-user friendly
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=f"Failed to generate layout name: {e!s}.",
+        ) from e
+
+    # Generate summary for the layout
+    summary = await run_in_threadpool(
+        agent_server_client.summarize_with_args,
+        {
+            "Layout name": layout_name,
+            "Data model name": data_model.name,
+            "Layout schema": extraction_schema,
+        },
+    )
+
+    # Generate translation rules
+    translation_rules = await _generate_translation_rules(
+        extraction_schema,
+        data_model.model_schema,
+        agent_server_client,
+    )
+
+    # Generate layout
+    layout = DocumentLayoutBridge.model_validate(
+        {
+            "name": layout_name,
+            "data_model": data_model.name,
+            "summary": summary,
             "extraction_schema": extraction_schema,
-            "uploaded_file": uploaded_file,
+            "translation_schema": translation_rules,
         }
-    else:
-        return {
-            "extraction_schema": extraction_schema,
-        }
+    )
+
+    return GenerateLayoutResponsePayload(
+        layout=layout,
+        file=uploaded_file if new_file else None,
+    )
 
 
 @router.post("/data-models/generate")

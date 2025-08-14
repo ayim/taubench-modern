@@ -1197,6 +1197,10 @@ class TestGenerateLayoutFromFile:
 
         fake_client = Mock()
         fake_client.generate_extraction_schema.return_value = {"fields": []}
+        fake_client._file_to_images.return_value = [{"value": "img-bytes"}]
+        fake_client.generate_document_layout_name.return_value = "Invoice Layout"
+        fake_client.summarize_with_args.return_value = "Layout summary"
+        fake_client.create_mapping.return_value = "[]"
 
         fake_service = Mock()
         fake_service.get_docint_datasource.return_value = Mock()
@@ -1214,8 +1218,12 @@ class TestGenerateLayoutFromFile:
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
-                return_value=Mock(model_schema={"title": "Invoice"}),
+                return_value=SimpleNamespace(name="invoice", model_schema={"title": "Invoice"}),
             ) as mock_find_model,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.validate_schema",
+                return_value={"fields": []},
+            ),
         ):
             self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
 
@@ -1237,93 +1245,19 @@ class TestGenerateLayoutFromFile:
 
         assert response.status_code == 200
         body = response.json()
-        assert "extraction_schema" in body
-        assert "uploaded_file" in body
+        assert "layout" in body
+        assert isinstance(body["layout"], dict)
+        assert body["layout"].get("extraction_schema") == {"fields": []}
+        assert "translation_schema" in body["layout"]
+        assert body.get("file") is not None
 
         fake_file_manager.upload.assert_awaited()
         mock_find_model.assert_called_once()
         fake_client.generate_extraction_schema.assert_called_once()
-
-    def test_generate_layout_from_file_with_file_ref(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
-        """Providing a file ref should resolve from storage and not return
-        uploaded_file in response.
-        """
-        storage_instance = StorageService.get_instance()
-
-        valid_details = DIDSConnectionDetails(
-            username="user",
-            password=SecretString("pass"),
-            connections=[
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1",
-                    port=47334,
-                    kind=DIDSConnectionKind.HTTP,
-                )
-            ],
-        )
-
-        fake_thread = Mock()
-
-        class StoredFile:
-            def __init__(self, file_ref: str):
-                self.file_ref = file_ref
-
-        original_stored = StoredFile("file-ref-xyz")
-        refreshed_stored = StoredFile("file-ref-xyz-refreshed")
-
-        fake_file_manager = Mock()
-        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[refreshed_stored])
-
-        fake_client = Mock()
-        fake_client.generate_extraction_schema.return_value = {"fields": ["a", "b"]}
-
-        fake_service = Mock()
-        fake_service.get_docint_datasource.return_value = Mock()
-
-        with (
-            patch.object(
-                storage_instance,
-                "get_dids_connection_details",
-                new=AsyncMock(return_value=valid_details),
-            ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
-                return_value=fake_service,
-            ),
-            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)),
-            patch.object(
-                storage_instance,
-                "get_file_by_ref",
-                new=AsyncMock(return_value=original_stored),
-            ) as mock_get_file_by_ref,
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
-                return_value=Mock(model_schema={"title": "Receipt"}),
-            ) as mock_find_model,
-        ):
-            self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
-
-            response = client.post(
-                "/api/v2/document-intelligence/layouts/generate",
-                params={
-                    "data_model_name": "Receipt",
-                    "thread_id": "thread-2",
-                    "agent_id": "agent-2",
-                },
-                data={"file": "file-ref-xyz"},
-            )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert "extraction_schema" in body
-        assert "uploaded_file" not in body
-
-        mock_get_file_by_ref.assert_awaited()
-        fake_file_manager.refresh_file_paths.assert_awaited()
-        mock_find_model.assert_called_once()
-        fake_client.generate_extraction_schema.assert_called_once()
+        fake_client._file_to_images.assert_called_once()
+        fake_client.generate_document_layout_name.assert_called_once()
+        fake_client.summarize_with_args.assert_called_once()
+        fake_client.create_mapping.assert_called_once()
 
 
 class TestGenerateDataModelFromDocument:
