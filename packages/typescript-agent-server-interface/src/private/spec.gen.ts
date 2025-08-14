@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.28',
+    version: '2.0.29',
   },
   paths: {
     '/api/v2/ok': {
@@ -2827,7 +2827,7 @@ export const spec = {
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/UpsertDataModelRequest',
+                $ref: '#/components/schemas/CreateDataModelRequest',
               },
             },
           },
@@ -2914,7 +2914,7 @@ export const spec = {
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/UpsertDataModelRequest',
+                $ref: '#/components/schemas/UpdateDataModelRequest',
               },
             },
           },
@@ -3084,6 +3084,116 @@ export const spec = {
             'multipart/form-data': {
               schema: {
                 $ref: '#/components/schemas/Body_generate_layout_from_file_document_intelligence_layouts_generate_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/data-models/generate': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Generate Data Model From Document',
+        description: 'Generate a data model from a document.',
+        operationId:
+          'generate_data_model_from_document_document_intelligence_data_models_generate_post',
+        parameters: [
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_generate_data_model_from_document_document_intelligence_data_models_generate_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/documents/parse': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Parse Document',
+        description:
+          'Parse a new document using the Document Intelligence database.\n\nThis endpoint is used to parse a new document. To parse a document that already\nexists, use the `/documents/{document_id}/parse` endpoint.',
+        operationId:
+          'parse_document_document_intelligence_documents_parse_post',
+        parameters: [
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_parse_document_document_intelligence_documents_parse_post',
               },
             },
           },
@@ -5269,6 +5379,27 @@ export const spec = {
         type: 'object',
         title: 'BedrockPlatformParameters',
       },
+      Body_generate_data_model_from_document_document_intelligence_data_models_generate_post:
+        {
+          properties: {
+            file: {
+              anyOf: [
+                {
+                  type: 'string',
+                  format: 'binary',
+                },
+                {
+                  type: 'string',
+                },
+              ],
+              title: 'File',
+            },
+          },
+          type: 'object',
+          required: ['file'],
+          title:
+            'Body_generate_data_model_from_document_document_intelligence_data_models_generate_post',
+        },
       Body_generate_layout_from_file_document_intelligence_layouts_generate_post:
         {
           properties: {
@@ -5290,6 +5421,25 @@ export const spec = {
           title:
             'Body_generate_layout_from_file_document_intelligence_layouts_generate_post',
         },
+      Body_parse_document_document_intelligence_documents_parse_post: {
+        properties: {
+          file: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'binary',
+              },
+              {
+                type: 'string',
+              },
+            ],
+            title: 'File',
+          },
+        },
+        type: 'object',
+        required: ['file'],
+        title: 'Body_parse_document_document_intelligence_documents_parse_post',
+      },
       Body_upload_thread_files_threads__tid__files_post: {
         properties: {
           files: {
@@ -5698,6 +5848,16 @@ export const spec = {
         },
         type: 'object',
         title: 'CortexPlatformParameters',
+      },
+      CreateDataModelRequest: {
+        properties: {
+          dataModel: {
+            $ref: '#/components/schemas/DataModelPayload',
+          },
+        },
+        type: 'object',
+        required: ['dataModel'],
+        title: 'CreateDataModelRequest',
       },
       CreateWorkItemPayload: {
         properties: {
@@ -7061,6 +7221,111 @@ export const spec = {
         },
         type: 'object',
         title: 'OpenAIPlatformParameters',
+      },
+      PartialDataModelPayload: {
+        properties: {
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          schema: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Schema',
+          },
+          views: {
+            anyOf: [
+              {
+                items: {
+                  additionalProperties: true,
+                  type: 'object',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Views',
+          },
+          qualityChecks: {
+            anyOf: [
+              {
+                items: {
+                  additionalProperties: {
+                    type: 'string',
+                  },
+                  type: 'object',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Qualitychecks',
+          },
+          prompt: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Prompt',
+          },
+          summary: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Summary',
+          },
+          created_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Created At',
+          },
+          updated_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Updated At',
+          },
+        },
+        type: 'object',
+        title: 'PartialDataModelPayload',
       },
       PatchAgentPayload: {
         properties: {
@@ -8866,6 +9131,16 @@ export const spec = {
         required: ['name', 'description', 'input_schema'],
         title: 'ToolDefinitionPayload',
       },
+      UpdateDataModelRequest: {
+        properties: {
+          dataModel: {
+            $ref: '#/components/schemas/PartialDataModelPayload',
+          },
+        },
+        type: 'object',
+        required: ['dataModel'],
+        title: 'UpdateDataModelRequest',
+      },
       UploadedFile: {
         properties: {
           file_id: {
@@ -9187,16 +9462,6 @@ export const spec = {
         type: 'object',
         required: ['name', 'description', 'version'],
         title: 'UpsertAgentPayload',
-      },
-      UpsertDataModelRequest: {
-        properties: {
-          dataModel: {
-            $ref: '#/components/schemas/DataModelPayload',
-          },
-        },
-        type: 'object',
-        required: ['dataModel'],
-        title: 'UpsertDataModelRequest',
       },
       UpsertDocumentIntelligenceConfigPayload: {
         properties: {

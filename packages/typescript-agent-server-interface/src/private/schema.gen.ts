@@ -1007,6 +1007,49 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/data-models/generate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Data Model From Document
+     * @description Generate a data model from a document.
+     */
+    post: operations['generate_data_model_from_document_document_intelligence_data_models_generate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/documents/parse': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Parse Document
+     * @description Parse a new document using the Document Intelligence database.
+     *
+     *     This endpoint is used to parse a new document. To parse a document that already
+     *     exists, use the `/documents/{document_id}/parse` endpoint.
+     */
+    post: operations['parse_document_document_intelligence_documents_parse_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/package/deploy/agent': {
     parameters: {
       query?: never;
@@ -1901,8 +1944,18 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** Body_generate_data_model_from_document_document_intelligence_data_models_generate_post */
+    Body_generate_data_model_from_document_document_intelligence_data_models_generate_post: {
+      /** File */
+      file: string;
+    };
     /** Body_generate_layout_from_file_document_intelligence_layouts_generate_post */
     Body_generate_layout_from_file_document_intelligence_layouts_generate_post: {
+      /** File */
+      file: string;
+    };
+    /** Body_parse_document_document_intelligence_documents_parse_post */
+    Body_parse_document_document_intelligence_documents_parse_post: {
       /** File */
       file: string;
     };
@@ -2112,6 +2165,10 @@ export interface components {
        * @description The Snowflake role. Optional.
        */
       snowflake_role?: string | null;
+    };
+    /** CreateDataModelRequest */
+    CreateDataModelRequest: {
+      dataModel: components['schemas']['DataModelPayload'];
     };
     /** CreateWorkItemPayload */
     CreateWorkItemPayload: {
@@ -2758,6 +2815,35 @@ export interface components {
       platform_id?: string;
       /** @description The OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       openai_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /** PartialDataModelPayload */
+    PartialDataModelPayload: {
+      /** Description */
+      description?: string | null;
+      /** Schema */
+      schema?: {
+        [key: string]: unknown;
+      } | null;
+      /** Views */
+      views?:
+        | {
+            [key: string]: unknown;
+          }[]
+        | null;
+      /** Qualitychecks */
+      qualityChecks?:
+        | {
+            [key: string]: string;
+          }[]
+        | null;
+      /** Prompt */
+      prompt?: string | null;
+      /** Summary */
+      summary?: string | null;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
     };
     /** PatchAgentPayload */
     PatchAgentPayload: {
@@ -4020,6 +4106,10 @@ export interface components {
         | 'client-exec-tool'
         | 'client-info-tool';
     };
+    /** UpdateDataModelRequest */
+    UpdateDataModelRequest: {
+      dataModel: components['schemas']['PartialDataModelPayload'];
+    };
     /** UploadedFile */
     UploadedFile: {
       /** File Id */
@@ -4178,10 +4268,6 @@ export interface components {
        * @default true
        */
       public: boolean;
-    };
-    /** UpsertDataModelRequest */
-    UpsertDataModelRequest: {
-      dataModel: components['schemas']['DataModelPayload'];
     };
     /** UpsertDocumentIntelligenceConfigPayload */
     UpsertDocumentIntelligenceConfigPayload: {
@@ -6503,7 +6589,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpsertDataModelRequest'];
+        'application/json': components['schemas']['CreateDataModelRequest'];
       };
     };
     responses: {
@@ -6569,7 +6655,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpsertDataModelRequest'];
+        'application/json': components['schemas']['UpdateDataModelRequest'];
       };
     };
     responses: {
@@ -6693,6 +6779,77 @@ export interface operations {
     requestBody: {
       content: {
         'multipart/form-data': components['schemas']['Body_generate_layout_from_file_document_intelligence_layouts_generate_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  generate_data_model_from_document_document_intelligence_data_models_generate_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_generate_data_model_from_document_document_intelligence_data_models_generate_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  parse_document_document_intelligence_documents_parse_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_parse_document_document_intelligence_documents_parse_post'];
       };
     };
     responses: {
