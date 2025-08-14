@@ -104,7 +104,62 @@ def summary_from_model(model: DataModel) -> dict[str, Any]:
 
 
 @dataclass(frozen=True)
-class UpsertDataModelRequest:
-    """Request payload for upserting a data model."""
+class CreateDataModelRequest:
+    """Request payload for creating a data model."""
 
     dataModel: DataModelPayload  # noqa: N815
+
+
+@dataclass(frozen=True)
+class PartialDataModelPayload:
+    """Payload for partial updates of a DataModel (all fields optional).
+
+    Accepts both camelCase (spec) and snake_case (internal) keys.
+    """
+
+    description: str | None = None
+    schema: dict[str, Any] | None = None
+    views: list[dict[str, Any]] | None = None
+    quality_checks: list[dict[str, str]] | None = field(
+        default=None, metadata={"alias": "qualityChecks"}
+    )
+    prompt: str | None = None
+    summary: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    @classmethod
+    def model_validate(cls, data: Any) -> PartialDataModelPayload:
+        # Defensive copy
+        if isinstance(data, dict):
+            obj = dict(data)
+        else:
+            obj = dict(getattr(data, "__dict__", {}))
+
+        # Accept both camelCase (spec) and snake_case (internal) keys
+        description = obj.get("description")
+        schema = obj.get("schema", obj.get("model_schema"))
+        views = obj.get("views")
+        quality_checks = obj.get("qualityChecks", obj.get("quality_checks"))
+        prompt = obj.get("prompt")
+        summary = obj.get("summary")
+        created_at = obj.get("createdAt", obj.get("created_at"))
+        updated_at = obj.get("updatedAt", obj.get("updated_at"))
+
+        return cls(
+            description=str(description) if description is not None else None,
+            schema=schema,
+            views=views,
+            quality_checks=quality_checks,
+            prompt=prompt,
+            summary=summary,
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+
+@dataclass(frozen=True)
+class UpdateDataModelRequest:
+    """Request payload for updating a data model (partial)."""
+
+    dataModel: PartialDataModelPayload  # noqa: N815

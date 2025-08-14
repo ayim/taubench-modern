@@ -800,6 +800,106 @@ class TestDataModelEndpoints:
         err = resp.json()["error"]
         assert err["code"] == ErrorCode.NOT_FOUND.value.code
 
+    def test_update_data_model_quality_checks_only(self, client: TestClient):
+        """Update only quality checks without touching other fields."""
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        # Existing model with baseline values
+        existing_model = self._sample_data_model_dict()
+        existing_instance = SimpleNamespace(**existing_model, update=Mock())
+
+        new_quality_checks = [
+            {
+                "name": "check_total",
+                "query": "SELECT total FROM invoices WHERE total > 0",
+                "description": "Check positive totals",
+            },
+            {
+                "name": "check_date",
+                "query": "SELECT date FROM invoices WHERE date IS NOT NULL",
+                "description": "Check date presence",
+            },
+        ]
+
+        payload = {"dataModel": {"qualityChecks": new_quality_checks}}
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=existing_instance,
+            ) as mocked_find_by_name,
+        ):
+            resp = client.put("/api/v2/document-intelligence/data-models/invoices", json=payload)
+
+        assert resp.status_code == 200
+        assert resp.json() == {"ok": True}
+        instance = mocked_find_by_name.return_value
+        instance.update.assert_called_once()
+
+        # Only quality_checks should change
+        assert instance.quality_checks == new_quality_checks
+        assert instance.description == existing_model["description"]
+        assert instance.model_schema == existing_model["model_schema"]
+        assert instance.views == existing_model["views"]
+        assert instance.prompt == existing_model["prompt"]
+        assert instance.summary == existing_model["summary"]
+
+    def test_update_data_model_inserts_quality_checks_when_empty(self, client: TestClient):
+        """Insert quality checks when the existing model has none."""
+        storage_instance = StorageService.get_instance()
+        valid_details = self._valid_details()
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        # Existing model with empty quality checks
+        existing_model = self._sample_data_model_dict()
+        existing_model["quality_checks"] = []
+        existing_instance = SimpleNamespace(**existing_model, update=Mock())
+
+        inserted_quality_checks = [
+            {"name": "no_empty_id", "query": "SELECT ...", "description": "no empty id"}
+        ]
+
+        # Only provide qualityChecks in the payload
+        payload = {"dataModel": {"qualityChecks": inserted_quality_checks}}
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=existing_instance,
+            ) as mocked_find_by_name,
+        ):
+            resp = client.put("/api/v2/document-intelligence/data-models/invoices", json=payload)
+
+        assert resp.status_code == 200
+        assert resp.json() == {"ok": True}
+        instance = mocked_find_by_name.return_value
+        instance.update.assert_called_once()
+        assert instance.quality_checks == inserted_quality_checks
+
     def test_delete_data_model_success(self, client: TestClient):
         storage_instance = StorageService.get_instance()
         valid_details = self._valid_details()

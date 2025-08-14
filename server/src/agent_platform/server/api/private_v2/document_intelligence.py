@@ -23,8 +23,9 @@ from agent_platform.core.document_intelligence import (
     DocumentLayoutSummary,
 )
 from agent_platform.core.document_intelligence.data_models import (
+    CreateDataModelRequest,
     DataModelPayload,
-    UpsertDataModelRequest,
+    UpdateDataModelRequest,
     model_to_spec_dict,
     summary_from_model,
 )
@@ -360,7 +361,7 @@ async def list_data_models(docint_ds: DocIntDatasourceDependency):
 
 
 @router.post("/data-models", status_code=201)
-async def create_data_model(payload: UpsertDataModelRequest, docint_ds: DocIntDatasourceDependency):
+async def create_data_model(payload: CreateDataModelRequest, docint_ds: DocIntDatasourceDependency):
     try:
         existing = DataModel.find_by_name(docint_ds, payload.dataModel.name)
         if existing is not None:
@@ -397,7 +398,7 @@ async def get_data_model(model_name: str, docint_ds: DocIntDatasourceDependency)
 
 @router.put("/data-models/{model_name}")
 async def update_data_model(
-    model_name: str, payload: UpsertDataModelRequest, docint_ds: DocIntDatasourceDependency
+    model_name: str, payload: UpdateDataModelRequest, docint_ds: DocIntDatasourceDependency
 ):
     try:
         existing = DataModel.find_by_name(docint_ds, model_name)
