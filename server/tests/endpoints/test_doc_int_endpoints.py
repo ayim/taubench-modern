@@ -609,6 +609,10 @@ class TestDataModelEndpoints:
                 "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
                 side_effect=[None, SimpleNamespace(**self._sample_data_model_dict())],
             ) as mocked_find_by_name,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.upsert_layout",
+                return_value={"ok": True},
+            ) as mocked_upsert_layout,
         ):
             resp = client.post("/api/v2/document-intelligence/data-models", json=payload)
 
@@ -618,6 +622,7 @@ class TestDataModelEndpoints:
         assert body["dataModel"]["schema"]["type"] == "object"
         mocked_insert.assert_called_once()
         mocked_find_by_name.assert_called()
+        mocked_upsert_layout.assert_called_once()
 
     def test_create_data_model_failure_when_not_found_after_insert(self, client: TestClient):
         storage_instance = StorageService.get_instance()

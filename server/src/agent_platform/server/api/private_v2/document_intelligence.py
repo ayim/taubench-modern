@@ -376,6 +376,18 @@ async def create_data_model(payload: CreateDataModelRequest, docint_ds: DocIntDa
         created = DataModel.find_by_name(docint_ds, normalized.name)
         if created is None:
             raise PlatformHTTPError(ErrorCode.UNEXPECTED, "Failed to load created data model")
+
+        # Create a default layout for the data model
+        upsert_layout_payload = {
+            "data_model_name": created.name,
+            "name": f"default_{created.name}",
+            "summary": f"Default layout for data model {created.name}",
+            "extraction_schema": created.model_schema,
+        }
+        await upsert_layout(
+            payload=upsert_layout_payload,
+            docint_ds=docint_ds,
+        )
         return {"dataModel": model_to_spec_dict(created)}
     except PlatformHTTPError:
         raise
