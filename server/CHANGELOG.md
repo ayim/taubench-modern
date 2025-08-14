@@ -1,3 +1,14 @@
+# Sema4.ai Agent Server 2.0.29 (2025-08-14)
+
+- SAI SDK first iteration [#635](https://github.com/Sema4AI/agent-platform/pull/635)
+- [DIN-388] Generate data model from file [#638](https://github.com/Sema4AI/agent-platform/pull/638)
+- DIv2 Parse Document Endpoint [#640](https://github.com/Sema4AI/agent-platform/pull/640)
+- Include data files for sema4ai_docint in agent-server PyInstaller spec [#649](https://github.com/Sema4AI/agent-platform/pull/649)
+- GPT-1155 Enable workitems by default [#650](https://github.com/Sema4AI/agent-platform/pull/650)
+- [DIN-339] Enable partial updates in data model (such as quality_checks) [#639](https://github.com/Sema4AI/agent-platform/pull/639)
+- [DIN-336] Create default document layout when data model is created [#647](https://github.com/Sema4AI/agent-platform/pull/647)
+- Extend generate layout endpoint to fully create Document Layout and return it [#648](https://github.com/Sema4AI/agent-platform/pull/648)
+  
 # Sema4.ai Agent Server 2.0.28 (2025-08-13)
 
 - Quotas & limits [PR 498](https://github.com/Sema4AI/agent-platform/pull/498) & [PR 577](https://github.com/Sema4AI/agent-platform/pull/577)
