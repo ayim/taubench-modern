@@ -1,0 +1,36 @@
+agent-package:
+  spec-version: v2
+  agents:
+    - name: agent-with-settings
+      description: Test agent with settings
+      model:
+        provider: OpenAI
+        name: gpt-4o
+      version: 1.0.0
+      architecture: agent
+      reasoning: disabled
+      runbook: runbook.md
+      agent-settings:
+        api_timeout: 30
+        max_retries: 3
+        debug_mode: true
+        custom_prompt: "You are a helpful assistant"
+        temperature: 0.7
+        nested_config:
+          database:
+            host: "localhost"
+            port: 5432
+            ssl_enabled: false
+          features:
+            - "feature1"
+            - "feature2"
+      action-packages:
+        - name: test-package
+          organization: TestOrg
+          type: folder
+          version: 1.0.0
+          whitelist: ''
+          path: TestOrg/test-package
+      knowledge: []
+      metadata:
+        mode: conversational

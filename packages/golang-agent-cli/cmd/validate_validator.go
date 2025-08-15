@@ -63,42 +63,30 @@ func (v *Validator) validateKeyPair(keyNode *yaml.Node, errors chan Error) {
 	entry := v.specEntries[v.currentStackAsStr]
 
 	if entry == nil {
-		// Ok, we haven't been able to find the entry in the spec as is. This may be due to
-		// map[string,object]#<type> or map[string,object] fields.
-		// We have to check the curren stack to see if there is a path which is a map[string,object]#<type>
-		// or map[string,object] field.
-		// If so, we have to remove the the related part and re-validate the path without that part.
-		// For example, if the current stack is:
-		// agent-package/agents/mcp-servers/headers/my-object/my-field
-		// we have to remove the my-object part and validate the path without that part.
-		// So, the new path will be:
-		// agent-package/agents/mcp-servers/headers/my-field
+		// This logic attempts to handle map[string,object]#<type> and dynamic_object fields
+		// by walking the stack and skipping over the dynamic key part if needed.
+		currentStackParts := strings.Split(v.currentStackAsStr, "/")
 		var currentStackAsStr []string
 		skipNext := false
-		currentStackParts := strings.Split(v.currentStackAsStr, "/")
-		for i := 0; i < len(currentStackParts); i += 1 {
+		for _, part := range currentStackParts {
 			if skipNext {
 				skipNext = false
 				continue
 			}
-			part := currentStackParts[i]
 			currentStackAsStr = append(currentStackAsStr, part)
-
-			parentEntry := v.specEntries[strings.Join(currentStackAsStr, "/")]
-
-			if parentEntry != nil {
-				switch parentEntry.ExpectedType.ExpectedType {
-				case ExpectedTypeEnumMapStringObject:
-					fallthrough
-				case ExpectedTypeEnumMcpServerEnv:
-					fallthrough
-				case ExpectedTypeEnumMcpServerHeaders:
+			parentEntry, ok := v.specEntries[strings.Join(currentStackAsStr, "/")]
+			if ok && parentEntry != nil {
+				expectedType := parentEntry.ExpectedType.ExpectedType
+				if strings.HasPrefix(string(expectedType), "map[string,object]") {
 					skipNext = true
+				} else if expectedType == "dynamic_object" {
+					// If we are inside a dynamic_object, we can ignore the fact that the field is not defined.
+					return
 				}
 			}
 		}
-
 		entry = v.specEntries[strings.Join(currentStackAsStr, "/")]
+
 	}
 
 	if entry == nil {
@@ -283,14 +271,24 @@ func (v *Validator) getNodeValuePointsToPath(specPathForErrorMsg string, yamlNod
 	}
 
 	// If v.agentRootDirOrZip is not a zip file, then it's a directory, read the contents from it
-
 	var p string
 	var pathExists bool
 	if !v.IsZipValidation {
-		if !strings.HasPrefix(relativeTo, ".") {
-			relativeTo = "./" + relativeTo
+		// Check if path is a Windows path or a Unix path
+		valueTextIsAbsolutePath := strings.HasPrefix(valueText, "/") || strings.HasPrefix(valueText, "\\")
+		valueTextIsWindowsAbsolutePath := len(valueText) > 1 && valueText[1] == ':'
+
+		// Look into the relative to guide
+		if relativeTo == "" && (valueTextIsAbsolutePath || valueTextIsWindowsAbsolutePath) {
+			// Treat this as an absolute path
+			p = filepath.Clean(valueText)
+		} else {
+			// Treat this as a relative path to the agent root dir
+			if !strings.HasPrefix(relativeTo, ".") {
+				relativeTo = "./" + relativeTo
+			}
+			p = filepath.Clean(filepath.Join(v.agentRootDirOrZip, relativeTo, valueText))
 		}
-		p = filepath.Clean(filepath.Join(v.agentRootDirOrZip, relativeTo, valueText))
 		pathExists = fileExists(p)
 	} else {
 		relativeTo = strings.TrimPrefix(relativeTo, ".")
@@ -541,7 +539,7 @@ func (v *Validator) verifyYamlMatchesSpec(
 					yamlNode.data, Critical)
 			} else {
 				relativeTo := specData.ExpectedType.RelativeTo
-				if relativeTo == nil || *relativeTo == "" {
+				if relativeTo == nil {
 					panic(fmt.Sprintf("Expected relative_to to be set in %s", specData.Path))
 				}
 
@@ -799,6 +797,11 @@ func (v *Validator) verifyYamlMatchesSpec(
 					}
 				}
 			}
+
+		case ExpectedTypeEnumDynamicObject:
+			// Do nothing, as anything can be defined inside a dynamic_object.
+			// (this is a special case where we don't need to validate anything)
+			return
 
 		default:
 			panic(fmt.Sprintf("Unexpected expected type: %v", specData.ExpectedType.ExpectedType))

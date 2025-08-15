@@ -8,6 +8,7 @@ root (no data)
         type (required)
         version (required)
         whitelist (required)
+      agent-settings
       architecture (required)
       conversation-guide
       conversation-starter

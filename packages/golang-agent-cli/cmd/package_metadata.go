@@ -487,6 +487,7 @@ func GenerateAgentMetadataFromProject(agentProjectPath string) ([]*common.AgentP
 			Version:             agent.Version,
 			WelcomeMessage:      agent.WelcomeMessage,
 			ConversationStarter: agent.ConversationStarter,
+			AgentSettings:       common.NormalizeMap(agent.AgentSettings),
 			Knowledge:           []common.AgentPackageMetadataKnowledge{},
 			Datasources:         []common.AgentPackageDatasource{},
 			ActionPackages:      []common.AgentPackageActionPackageMetadata{},

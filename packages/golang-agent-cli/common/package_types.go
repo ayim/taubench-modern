@@ -26,6 +26,7 @@ type AgentPackageMetadata struct {
 	QuestionGroups      AgentServer.QuestionGroups          `json:"question_groups,omitempty"`
 	ConversationStarter string                              `json:"conversation_starter,omitempty"`
 	WelcomeMessage      string                              `json:"welcome_message,omitempty"`
+	AgentSettings       map[string]any                      `json:"agent_settings,omitempty"`
 	Metadata            AgentServer.AgentMetadata           `json:"metadata"`
 	ActionPackages      []AgentPackageActionPackageMetadata `json:"action_packages"`
 	McpServers          []AgentPackageMcpServer             `json:"mcp_servers,omitempty"`

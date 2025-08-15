@@ -205,6 +205,11 @@ func buildActionPackages(spec *common.AgentSpec, agentProjectActionsPath string)
 		}
 	}
 
+	// Normalize agent settings for JSON marshaling validation
+	for i := range spec.AgentPackage.Agents {
+		spec.AgentPackage.Agents[i].AgentSettings = common.NormalizeMap(spec.AgentPackage.Agents[i].AgentSettings)
+	}
+
 	_, err := json.MarshalIndent(spec, "", "  ")
 	if err != nil {
 		pretty.Exit(1, "agent-spec json parsing failed on: %+v", err)

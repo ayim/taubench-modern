@@ -778,6 +778,11 @@ class AgentPackageMetadata:
     )
     """Changes to Docker MCP Gateway."""
 
+    agent_settings: dict[str, Any] | None = field(
+        default_factory=dict, metadata={"description": "Agent settings."}
+    )
+    """Agent settings."""
+
     def model_dump(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         result = {
@@ -797,6 +802,7 @@ class AgentPackageMetadata:
             if self.docker_mcp_gateway
             else None,
             "docker_mcp_gateway_changes": self.docker_mcp_gateway_changes.model_dump(),
+            "agent_settings": self.agent_settings,
         }
 
         # Handle optional fields
@@ -882,6 +888,7 @@ class AgentPackageMetadata:
                 mcp_servers=[],
                 docker_mcp_gateway=None,
                 docker_mcp_gateway_changes=DockerMcpGatewayChanges(),
+                agent_settings=None,
             )
 
         if isinstance(data, cls):
@@ -911,6 +918,7 @@ class AgentPackageMetadata:
             docker_mcp_gateway_changes=data.get(
                 "docker_mcp_gateway_changes", DockerMcpGatewayChanges()
             ),
+            agent_settings=data.get("agent_settings", None),
         )
 
 

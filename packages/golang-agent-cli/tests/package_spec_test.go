@@ -736,3 +736,411 @@ func TestSpecWriteFiltersQuestionGroupsFromMetadata(t *testing.T) {
 	assert.Contains(t, writtenYaml, "mode: conversational", "Spec YAML should contain mode in metadata")
 	assert.NotContains(t, writtenYaml, "question-groups", "Spec YAML should not contain question-groups in metadata")
 }
+
+func TestReadSpecV2_1WithAgentSettings(t *testing.T) {
+	common.Verbose = true
+	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1-with-settings")
+	if err != nil {
+		t.Errorf("error: %+v", err)
+	}
+
+	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, "agent-with-settings", spec.AgentPackage.Agents[0].Name, "agent should have correct name")
+
+	// Test agent settings
+	agentSettings := spec.AgentPackage.Agents[0].AgentSettings
+	assert.NotNil(t, agentSettings, "agent settings should not be nil")
+
+	// Test various data types in agent settings
+	assert.Equal(t, 30, agentSettings["api_timeout"], "api_timeout should be 30")
+	assert.Equal(t, 3, agentSettings["max_retries"], "max_retries should be 3")
+	assert.Equal(t, true, agentSettings["debug_mode"], "debug_mode should be true")
+	assert.Equal(t, "You are a helpful assistant", agentSettings["custom_prompt"], "custom_prompt should match")
+	assert.Equal(t, 0.7, agentSettings["temperature"], "temperature should be 0.7")
+
+	// Test nested config (YAML parser uses map[interface{}]interface{})
+	nestedConfigRaw, ok := agentSettings["nested_config"].(map[interface{}]interface{})
+	assert.True(t, ok, "nested_config should be a map")
+
+	// Convert string keys for easier access
+	nestedConfig := make(map[string]interface{})
+	for k, v := range nestedConfigRaw {
+		nestedConfig[k.(string)] = v
+	}
+
+	databaseRaw, ok := nestedConfig["database"].(map[interface{}]interface{})
+	assert.True(t, ok, "database should be a map")
+
+	// Convert database map keys
+	database := make(map[string]interface{})
+	for k, v := range databaseRaw {
+		database[k.(string)] = v
+	}
+
+	assert.Equal(t, "localhost", database["host"], "database host should be localhost")
+	assert.Equal(t, 5432, database["port"], "database port should be 5432")
+	assert.Equal(t, false, database["ssl_enabled"], "ssl_enabled should be false")
+
+	features, ok := nestedConfig["features"].([]interface{})
+	assert.True(t, ok, "features should be a slice")
+	assert.Equal(t, 2, len(features), "features should have 2 items")
+	assert.Equal(t, "feature1", features[0], "first feature should be feature1")
+	assert.Equal(t, "feature2", features[1], "second feature should be feature2")
+}
+
+func TestWriteSpecV2_1WithAgentSettings(t *testing.T) {
+	common.Verbose = true
+	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1-with-settings")
+	if err != nil {
+		t.Errorf("error: %+v", err)
+	}
+
+	tempDir, err := os.MkdirTemp("", "writespec-agent-settings-test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %+v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	err = cmd.WriteSpec(spec, tempDir)
+	if err != nil {
+		t.Fatalf("failed to write spec: %+v", err)
+	}
+
+	// Read back and verify agent settings are preserved
+	writtenSpec, err := cmd.ReadSpec(tempDir)
+	if err != nil {
+		t.Fatalf("failed to read written spec: %+v", err)
+	}
+
+	writtenSettings := writtenSpec.AgentPackage.Agents[0].AgentSettings
+	originalSettings := spec.AgentPackage.Agents[0].AgentSettings
+
+	assert.Equal(t, originalSettings["api_timeout"], writtenSettings["api_timeout"], "api_timeout should be preserved")
+	assert.Equal(t, originalSettings["max_retries"], writtenSettings["max_retries"], "max_retries should be preserved")
+	assert.Equal(t, originalSettings["debug_mode"], writtenSettings["debug_mode"], "debug_mode should be preserved")
+	assert.Equal(t, originalSettings["custom_prompt"], writtenSettings["custom_prompt"], "custom_prompt should be preserved")
+	assert.Equal(t, originalSettings["temperature"], writtenSettings["temperature"], "temperature should be preserved")
+
+	// Verify nested structure is preserved (handling YAML interface{} maps)
+	originalNestedRaw := originalSettings["nested_config"].(map[interface{}]interface{})
+	writtenNestedRaw := writtenSettings["nested_config"].(map[interface{}]interface{})
+
+	// Convert to string-keyed maps for comparison
+	originalNested := make(map[string]interface{})
+	for k, v := range originalNestedRaw {
+		originalNested[k.(string)] = v
+	}
+
+	writtenNested := make(map[string]interface{})
+	for k, v := range writtenNestedRaw {
+		writtenNested[k.(string)] = v
+	}
+
+	originalDbRaw := originalNested["database"].(map[interface{}]interface{})
+	writtenDbRaw := writtenNested["database"].(map[interface{}]interface{})
+
+	originalDb := make(map[string]interface{})
+	for k, v := range originalDbRaw {
+		originalDb[k.(string)] = v
+	}
+
+	writtenDb := make(map[string]interface{})
+	for k, v := range writtenDbRaw {
+		writtenDb[k.(string)] = v
+	}
+
+	assert.Equal(t, originalDb["host"], writtenDb["host"], "nested database host should be preserved")
+	assert.Equal(t, originalDb["port"], writtenDb["port"], "nested database port should be preserved")
+	assert.Equal(t, originalDb["ssl_enabled"], writtenDb["ssl_enabled"], "nested database ssl_enabled should be preserved")
+}
+
+func TestWriteSpecStringMatchV2_1WithAgentSettings(t *testing.T) {
+	common.Verbose = true
+
+	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1-with-settings")
+	if err != nil {
+		t.Fatalf("failed to read spec: %+v", err)
+	}
+
+	tempDir, err := os.MkdirTemp("", "writespec-stringmatch-agent-settings-test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %+v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	err = cmd.WriteSpec(spec, tempDir)
+	if err != nil {
+		t.Fatalf("failed to write spec: %+v", err)
+	}
+
+	originalYamlBytes, err := os.ReadFile("./fixtures/agent-specs/agent-spec-v2.1-with-settings/expected-agent-spec.yaml")
+	if err != nil {
+		t.Fatalf("failed to read expected YAML: %+v", err)
+	}
+	originalYaml := string(originalYamlBytes)
+
+	writtenYamlBytes, err := os.ReadFile(tempDir + "/agent-spec.yaml")
+	if err != nil {
+		t.Fatalf("failed to read written YAML: %+v", err)
+	}
+	writtenYaml := string(writtenYamlBytes)
+
+	assert.YAMLEq(t, originalYaml, writtenYaml, "YAML written by WriteSpec should match the expected YAML string")
+}
+
+func TestSpecAgentIsEqualWithAgentSettings(t *testing.T) {
+	baseSpec := common.SpecAgent{
+		Name:         "agent1",
+		Description:  "desc",
+		Model:        common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
+		Version:      "1.0.0",
+		Runbook:      "runbook.md",
+		Architecture: "agent",
+		Reasoning:    "disabled",
+		Metadata:     AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+		AgentSettings: map[string]any{
+			"timeout": 30,
+			"debug":   true,
+			"config": map[string]interface{}{
+				"key": "value",
+			},
+		},
+		ActionPackages: []common.SpecAgentActionPackage{{
+			Name:         "ap1",
+			Organization: "MyActions",
+			Type:         "folder",
+			Version:      "0.1.0",
+			Whitelist:    "",
+		}},
+		McpServers: []common.SpecMcpServer{{
+			Name:      "mcp1",
+			Transport: AgentServer.MCPTransportAuto,
+			URL:       "http://",
+		}},
+	}
+
+	baseDeployed := AgentServer.Agent{
+		Name:        baseSpec.Name,
+		Description: baseSpec.Description,
+		Model:       AgentServer.AgentModel{Provider: "OpenAI", Name: "gpt-4"},
+		Version:     baseSpec.Version,
+		Runbook:     baseSpec.Runbook,
+		AdvancedConfig: AgentServer.AgentAdvancedConfig{
+			Architecture: "agent",
+			Reasoning:    "disabled",
+		},
+		Metadata: AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+		Extra: AgentServer.AgentExtra{
+			AgentSettings: map[string]any{
+				"timeout": 30,
+				"debug":   true,
+				"config": map[string]interface{}{
+					"key": "value",
+				},
+			},
+		},
+
+		ActionPackages: []AgentServer.AgentActionPackage{{
+			Name:         "ap1",
+			Organization: "MyActions",
+			Version:      "0.1.0",
+			Whitelist:    "",
+		}},
+		McpServers: []AgentServer.McpServer{{
+			Name:      "mcp1",
+			Transport: AgentServer.MCPTransportAuto,
+			URL:       common.Ptr("http://"),
+		}},
+	}
+
+	tests := []struct {
+		name     string
+		spec     common.SpecAgent
+		deployed AgentServer.Agent
+		expectEq bool
+		expectCh []string
+	}{
+		{
+			name:     "agent settings same",
+			spec:     baseSpec,
+			deployed: baseDeployed,
+			expectEq: true,
+			expectCh: nil,
+		},
+		{
+			name: "agent settings differ - simple value",
+			spec: func() common.SpecAgent {
+				s := baseSpec
+				s.AgentSettings = map[string]any{
+					"timeout": 60, // different value
+					"debug":   true,
+					"config": map[string]interface{}{
+						"key": "value",
+					},
+				}
+				return s
+			}(),
+			deployed: baseDeployed,
+			expectEq: false,
+			expectCh: []string{"agentSettings"},
+		},
+		{
+			name: "agent settings differ - nested value",
+			spec: func() common.SpecAgent {
+				s := baseSpec
+				s.AgentSettings = map[string]any{
+					"timeout": 30,
+					"debug":   true,
+					"config": map[string]interface{}{
+						"key": "different_value", // different nested value
+					},
+				}
+				return s
+			}(),
+			deployed: baseDeployed,
+			expectEq: false,
+			expectCh: []string{"agentSettings"},
+		},
+		{
+			name: "agent settings differ - missing key",
+			spec: func() common.SpecAgent {
+				s := baseSpec
+				s.AgentSettings = map[string]any{
+					"timeout": 30,
+					"debug":   true,
+					// missing "config" key
+				}
+				return s
+			}(),
+			deployed: baseDeployed,
+			expectEq: false,
+			expectCh: []string{"agentSettings"},
+		},
+		{
+			name: "agent settings nil vs empty",
+			spec: func() common.SpecAgent {
+				s := baseSpec
+				s.AgentSettings = nil
+				return s
+			}(),
+			deployed: func() AgentServer.Agent {
+				d := baseDeployed
+				d.Extra.AgentSettings = map[string]any{}
+				return d
+			}(),
+			expectEq: true, // nil and empty map should be considered equal
+			expectCh: nil,
+		},
+		{
+			name: "agent settings empty vs nil",
+			spec: func() common.SpecAgent {
+				s := baseSpec
+				s.AgentSettings = map[string]any{}
+				return s
+			}(),
+			deployed: func() AgentServer.Agent {
+				d := baseDeployed
+				d.Extra.AgentSettings = nil
+				return d
+			}(),
+			expectEq: true, // empty map and nil should be considered equal
+			expectCh: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			eq, changes := tt.spec.IsEqual(&common.AgentProject{}, &tt.deployed)
+			if !tt.expectEq && eq {
+				t.Logf("Expected not equal but got equal for test: %s", tt.name)
+			}
+			if tt.expectEq && !eq {
+				t.Logf("Expected equal but got not equal for test: %s", tt.name)
+				t.Logf("Changes: %v", changes)
+				t.Logf("Spec AgentSettings: %+v", tt.spec.AgentSettings)
+				t.Logf("Deployed AgentSettings: %+v", tt.deployed.AgentSettings)
+			}
+			assert.Equal(t, tt.expectEq, eq)
+			if tt.expectCh != nil {
+				assert.ElementsMatch(t, tt.expectCh, changes)
+			} else {
+				assert.Empty(t, changes)
+			}
+		})
+	}
+}
+
+func TestFilterAgentSettingsFromSpec(t *testing.T) {
+	spec := &common.AgentSpec{
+		AgentPackage: common.SpecAgentPackage{
+			SpecVersion: "v2",
+			Agents: []common.SpecAgent{
+				{
+					Name:         "agent1",
+					Description:  "desc",
+					Model:        common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
+					Version:      "1.0.0",
+					Runbook:      "runbook.md",
+					Architecture: "agent",
+					Reasoning:    "disabled",
+					Metadata:     AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+					AgentSettings: map[string]any{
+						"api_key":    "secret-key-should-be-preserved",
+						"timeout":    30,
+						"debug_mode": true,
+						"config_url": "http://example.com",
+						"nested_config": map[string]interface{}{
+							"database": map[string]interface{}{
+								"password": "secret-password",
+								"host":     "localhost",
+								"port":     5432,
+							},
+							"features": []interface{}{"feature1", "feature2"},
+						},
+					},
+					ActionPackages: []common.SpecAgentActionPackage{{
+						Name:         "ap1",
+						Organization: "MyActions",
+						Type:         "folder",
+						Version:      "0.1.0",
+						Whitelist:    "",
+					}},
+					McpServers: []common.SpecMcpServer{},
+				},
+			},
+		},
+	}
+
+	// Currently, agent settings are not filtered - they are preserved as-is
+	// This test verifies that agent settings are NOT filtered (unlike MCP server secrets)
+	filtered := cmd.FilterMcpServerSecretValuesFromSpec(spec)
+	assert.NotNil(t, filtered)
+	assert.Equal(t, "v2", filtered.AgentPackage.SpecVersion)
+	assert.Equal(t, 1, len(filtered.AgentPackage.Agents))
+
+	agent := filtered.AgentPackage.Agents[0]
+	assert.NotNil(t, agent.AgentSettings)
+
+	// All agent settings should be preserved (not filtered like MCP secrets)
+	assert.Equal(t, "secret-key-should-be-preserved", agent.AgentSettings["api_key"])
+	assert.Equal(t, 30, agent.AgentSettings["timeout"])
+	assert.Equal(t, true, agent.AgentSettings["debug_mode"])
+	assert.Equal(t, "http://example.com", agent.AgentSettings["config_url"])
+
+	// Nested structures should also be preserved
+	// This test creates data programmatically, so it uses string-keyed maps
+	nestedConfig, ok := agent.AgentSettings["nested_config"].(map[string]interface{})
+	assert.True(t, ok, "nested_config should be preserved")
+
+	database, ok := nestedConfig["database"].(map[string]interface{})
+	assert.True(t, ok, "database config should be preserved")
+	assert.Equal(t, "secret-password", database["password"])
+	assert.Equal(t, "localhost", database["host"])
+	assert.Equal(t, 5432, database["port"])
+
+	features, ok := nestedConfig["features"].([]interface{})
+	assert.True(t, ok, "features should be preserved")
+	assert.Equal(t, 2, len(features))
+	assert.Equal(t, "feature1", features[0])
+	assert.Equal(t, "feature2", features[1])
+}

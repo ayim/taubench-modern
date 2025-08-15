@@ -82,7 +82,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -111,7 +111,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -140,7 +140,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path1",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Agent 1",
 						Description: "Description 1",
 						Version:     "1.0.0",
@@ -151,7 +151,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path2",
 					AgentID: "agent-2",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Agent 2",
 						Description: "Description 2",
 						Version:     "2.0.0",
@@ -188,7 +188,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -226,7 +226,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path1",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Agent 1",
 						Description: "Description 1",
 						Version:     "1.0.0",
@@ -237,7 +237,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path2",
 					AgentID: "agent-2",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Agent 2",
 						Description: "Description 2",
 						Version:     "2.0.0",
@@ -248,7 +248,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path3",
 					AgentID: "agent-3",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Agent 3",
 						Description: "Description 3",
 						Version:     "3.0.0",
@@ -293,7 +293,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "", // Empty AgentID
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -322,7 +322,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "different-format-id",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -351,7 +351,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -388,7 +388,7 @@ func TestCheckAgentsSynchronization(t *testing.T) {
 						agentCopy := &common.AgentProject{
 							Path:                  ap.Path,
 							AgentID:               ap.AgentID,
-							Agent:                 ap.Agent,
+							SpecAgent:             ap.SpecAgent,
 							Synced:                ap.Synced,
 							AgentChanges:          make([]string, len(ap.AgentChanges)),
 							ActionPackagesChanges: make([]string, len(ap.ActionPackagesChanges)),
@@ -449,7 +449,7 @@ func TestCheckAgentsSynchronization_WithMcpServers(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -557,7 +557,7 @@ func TestCheckAgentsSynchronization_WithMcpServers(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -621,7 +621,7 @@ func TestCheckAgentsSynchronization_WithMcpServers(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:        "Test Agent",
 						Description: "Test Description",
 						Version:     "1.0.0",
@@ -666,7 +666,7 @@ func TestCheckAgentsSynchronization_WithMcpServers(t *testing.T) {
 						agentCopy := &common.AgentProject{
 							Path:                  ap.Path,
 							AgentID:               ap.AgentID,
-							Agent:                 ap.Agent,
+							SpecAgent:             ap.SpecAgent,
 							Synced:                ap.Synced,
 							AgentChanges:          make([]string, len(ap.AgentChanges)),
 							ActionPackagesChanges: make([]string, len(ap.ActionPackagesChanges)),
@@ -714,7 +714,7 @@ func TestCheckAgentsSynchronization_WithConversationStarter(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:                "Test Agent",
 						Description:         "Test Description",
 						Version:             "1.0.0",
@@ -747,7 +747,7 @@ func TestCheckAgentsSynchronization_WithConversationStarter(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:                "Test Agent",
 						Description:         "Test Description",
 						Version:             "1.0.0",
@@ -780,7 +780,7 @@ func TestCheckAgentsSynchronization_WithConversationStarter(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:                "Test Agent",
 						Description:         "Test Description",
 						Version:             "1.0.0",
@@ -813,7 +813,7 @@ func TestCheckAgentsSynchronization_WithConversationStarter(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:                "Test Agent",
 						Description:         "Test Description",
 						Version:             "1.0.0",
@@ -853,7 +853,7 @@ func TestCheckAgentsSynchronization_WithConversationStarter(t *testing.T) {
 						agentCopy := &common.AgentProject{
 							Path:                  ap.Path,
 							AgentID:               ap.AgentID,
-							Agent:                 ap.Agent,
+							SpecAgent:             ap.SpecAgent,
 							Synced:                ap.Synced,
 							AgentChanges:          make([]string, len(ap.AgentChanges)),
 							ActionPackagesChanges: make([]string, len(ap.ActionPackagesChanges)),
@@ -901,7 +901,7 @@ func TestCheckAgentsSynchronization_WithWelcomeMessage(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:           "Test Agent",
 						Description:    "Test Description",
 						Version:        "1.0.0",
@@ -934,7 +934,7 @@ func TestCheckAgentsSynchronization_WithWelcomeMessage(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:           "Test Agent",
 						Description:    "Test Description",
 						Version:        "1.0.0",
@@ -967,7 +967,7 @@ func TestCheckAgentsSynchronization_WithWelcomeMessage(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:           "Test Agent",
 						Description:    "Test Description",
 						Version:        "1.0.0",
@@ -1000,7 +1000,7 @@ func TestCheckAgentsSynchronization_WithWelcomeMessage(t *testing.T) {
 				{
 					Path:    "/test/path",
 					AgentID: "agent-1",
-					Agent: common.SpecAgent{
+					SpecAgent: common.SpecAgent{
 						Name:           "Test Agent",
 						Description:    "Test Description",
 						Version:        "1.0.0",
@@ -1040,7 +1040,7 @@ func TestCheckAgentsSynchronization_WithWelcomeMessage(t *testing.T) {
 						agentCopy := &common.AgentProject{
 							Path:                  ap.Path,
 							AgentID:               ap.AgentID,
-							Agent:                 ap.Agent,
+							SpecAgent:             ap.SpecAgent,
 							Synced:                ap.Synced,
 							AgentChanges:          make([]string, len(ap.AgentChanges)),
 							ActionPackagesChanges: make([]string, len(ap.ActionPackagesChanges)),
@@ -1106,7 +1106,7 @@ func BenchmarkCheckAgentsSynchronization(b *testing.B) {
 		agentProjects[i] = &common.AgentProject{
 			Path:    "/test/path" + string(rune('0'+i%10)),
 			AgentID: "agent-" + string(rune('0'+i%10)),
-			Agent: common.SpecAgent{
+			SpecAgent: common.SpecAgent{
 				Name:        "Agent " + string(rune('0'+i%10)),
 				Description: "Description " + string(rune('0'+i%10)),
 				Version:     "1.0." + string(rune('0'+i%10)),
@@ -1134,7 +1134,7 @@ func BenchmarkCheckAgentsSynchronization(b *testing.B) {
 				agentCopy := &common.AgentProject{
 					Path:                  ap.Path,
 					AgentID:               ap.AgentID,
-					Agent:                 ap.Agent,
+					SpecAgent:             ap.SpecAgent,
 					Synced:                ap.Synced,
 					AgentChanges:          make([]string, len(ap.AgentChanges)),
 					ActionPackagesChanges: make([]string, len(ap.ActionPackagesChanges)),

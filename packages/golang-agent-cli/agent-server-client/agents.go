@@ -195,8 +195,9 @@ type AgentMetadata struct {
 }
 
 type AgentExtra struct {
-	ConversationStarter string `json:"conversation_starter,omitempty" yaml:"conversation-starter,omitempty"`
-	WelcomeMessage      string `json:"welcome_message,omitempty" yaml:"welcome-message,omitempty"`
+	ConversationStarter string         `json:"conversation_starter,omitempty" yaml:"conversation-starter,omitempty"`
+	WelcomeMessage      string         `json:"welcome_message,omitempty" yaml:"welcome-message,omitempty"`
+	AgentSettings       map[string]any `json:"agent_settings,omitempty" yaml:"agent-settings,omitempty"`
 }
 
 type Agent struct {
@@ -214,6 +215,7 @@ type Agent struct {
 	QuestionGroups QuestionGroups       `json:"question_groups,omitempty"`
 	Metadata       AgentMetadata        `json:"metadata,omitempty"`
 	Extra          AgentExtra           `json:"extra,omitempty"`
+	AgentSettings  map[string]any       `json:"agent_settings,omitempty"`
 	Files          []AgentFile          `json:"files"`
 	Public         bool                 `json:"public"`
 }
@@ -230,6 +232,7 @@ type AgentPayload struct {
 	QuestionGroups QuestionGroups       `json:"question_groups,omitempty"`
 	Metadata       AgentMetadata        `json:"metadata,omitempty"` // TODO: remove this as Metadata is deprecated
 	Extra          AgentExtra           `json:"extra,omitempty"`
+	AgentSettings  map[string]any       `json:"agent_settings,omitempty"`
 	Files          []AgentFile          `json:"files,omitempty"`
 	Public         bool                 `json:"public"`
 }

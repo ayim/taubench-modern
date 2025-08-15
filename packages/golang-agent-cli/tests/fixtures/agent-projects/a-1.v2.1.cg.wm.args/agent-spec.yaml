@@ -1,0 +1,25 @@
+agent-package:
+  spec-version: v2
+  agents:
+  - name: a1
+    description: a1
+    model:
+      provider: OpenAI
+      name: gpt-4o
+    version: 0.0.1
+    architecture: agent
+    reasoning: disabled
+    runbook: runbook.md
+    conversation-guide: conversation-guide.yaml
+    agent-settings:
+      config:
+        key: value
+      conversation-turns-kept-in-context: 10
+      debug: true
+      timeout: 30
+    action-packages: []
+    knowledge: []
+    metadata:
+      mode: conversational
+      welcome-message: What can you do?
+  exclude: []

@@ -207,6 +207,7 @@ type SpecAgent struct {
 	ConversationGuide   string                        `yaml:"conversation-guide,omitempty" json:"conversation_guide,omitempty"`
 	ConversationStarter string                        `yaml:"conversation-starter,omitempty" json:"conversation_starter,omitempty"`
 	WelcomeMessage      string                        `yaml:"welcome-message,omitempty" json:"welcome_message,omitempty"`
+	AgentSettings       map[string]any                `yaml:"agent-settings,omitempty" json:"agent_settings,omitempty"`
 	ActionPackages      []SpecAgentActionPackage      `yaml:"action-packages" json:"action_packages"`
 	McpServers          []SpecMcpServer               `yaml:"mcp-servers,omitempty" json:"mcp_servers,omitempty"`
 	DockerMcpGateway    *SpecDockerMcpGateway         `yaml:"docker-mcp-gateway,omitempty" json:"docker_mcp_gateway,omitempty"`
@@ -267,6 +268,7 @@ func (sa *SpecAgent) IsEqual(ap *AgentProject, deployed *AgentServer.Agent) (boo
 		"actionPackages":      AreActionPackagesEqual(sa.ActionPackages, deployed.ActionPackages),
 		"mcpServers":          AreMcpServersEqual(specMcpServers, agentMcpServers),
 		"dockerMcpGateway":    specHasDockerMcpGateway == agentHasDockerMcpGateway,
+		"agentSettings":       AreAgentSettingsEqual(sa.AgentSettings, deployed.Extra.AgentSettings),
 	}
 
 	// Collect the changes

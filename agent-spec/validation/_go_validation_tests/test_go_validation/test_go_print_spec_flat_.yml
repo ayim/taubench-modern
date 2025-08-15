@@ -97,6 +97,17 @@ agent-package/agents/action-packages/whitelist:
     RelativeTo: ''
   Path: agent-package/agents/action-packages/whitelist
   Required: true
+agent-package/agents/agent-settings:
+  Deprecated: false
+  Description: Section to describe the agent settings (this field is currently open-ended
+    and can contain anything)
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: dynamic_object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/agent-settings
+  Required: false
 agent-package/agents/architecture:
   Deprecated: false
   Description: 'The agent type. Accepted values are: "agent", "plan_execute". "agent"
@@ -260,7 +271,7 @@ agent-package/agents/mcp-servers/cwd:
     EnumValues: null
     ExpectedType: file
     RecommendedValues: null
-    RelativeTo: ./
+    RelativeTo: ''
   Path: agent-package/agents/mcp-servers/cwd
   Required: false
 agent-package/agents/mcp-servers/description:

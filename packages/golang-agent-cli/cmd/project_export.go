@@ -134,6 +134,7 @@ func (state *SpecState) specForAgent(assistant AgentServer.Agent, projectPath st
 			}
 			return assistant.Metadata.WelcomeMessage
 		}(),
+		AgentSettings:    common.NormalizeMap(assistant.Extra.AgentSettings),
 		ActionPackages:   state.assistantActionPackages[assistant.ID],
 		McpServers:       state.assistantMcpServer[assistant.ID],
 		DockerMcpGateway: mergedDockerMcpGateway,

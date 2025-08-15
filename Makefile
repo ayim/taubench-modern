@@ -268,6 +268,9 @@ notebooks-clean:  sync ## Strip outputs from all Jupyter notebooks
 	@uv run nbstripout $$(find . -name "*.ipynb" -type f)
 	@echo "✅ All notebooks have been cleaned!"
 
+pr-fix: lint-fix format typecheck
+	@echo "✅ PR is now fixed!"
+
 # --------------------------------------------------------------------
 # Environment Validation
 # --------------------------------------------------------------------

@@ -2,6 +2,11 @@ package agent_server_client
 
 // BuildAgentPayload builds an AgentPayload from an Agent.
 func BuildAgentPayload(agent *Agent) AgentPayload {
+	agentSettings := agent.AgentSettings
+	if agentSettings == nil {
+		agentSettings = agent.Extra.AgentSettings
+	}
+
 	return AgentPayload{
 		Name:           agent.Name,
 		Description:    agent.Description,
@@ -12,6 +17,7 @@ func BuildAgentPayload(agent *Agent) AgentPayload {
 		ActionPackages: agent.ActionPackages,
 		McpServers:     agent.McpServers,
 		QuestionGroups: agent.QuestionGroups,
+		AgentSettings:  agentSettings,
 		Metadata:       agent.Metadata,
 		Extra:          agent.Extra,
 		Files:          agent.Files,
@@ -21,6 +27,15 @@ func BuildAgentPayload(agent *Agent) AgentPayload {
 
 // BuildAgent builds an Agent from an AgentPayload.
 func BuildAgent(payload *AgentPayload) *Agent {
+	agentSettings := payload.AgentSettings
+	if agentSettings == nil {
+		agentSettings = payload.Extra.AgentSettings
+	}
+	extra := payload.Extra
+	if extra.AgentSettings == nil {
+		extra.AgentSettings = agentSettings
+	}
+
 	return &Agent{
 		Name:           payload.Name,
 		Description:    payload.Description,
@@ -31,8 +46,9 @@ func BuildAgent(payload *AgentPayload) *Agent {
 		ActionPackages: payload.ActionPackages,
 		McpServers:     payload.McpServers,
 		QuestionGroups: payload.QuestionGroups,
+		AgentSettings:  agentSettings,
 		Metadata:       payload.Metadata,
-		Extra:          payload.Extra,
+		Extra:          extra,
 		Files:          payload.Files,
 		Public:         payload.Public,
 	}

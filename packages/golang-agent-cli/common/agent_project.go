@@ -19,7 +19,8 @@ type DockerMcpGatewayChanges []string
 type AgentProject struct {
 	Path                    string                  `json:"path"`
 	AgentID                 string                  `json:"agentId"`
-	Agent                   SpecAgent               `json:"agent"`
+	SpecAgent               SpecAgent               `json:"specAgent"`
+	AsServerAgent           *AgentServer.Agent      `json:"asServerAgent"`
 	Synced                  bool                    `json:"synced"`
 	AgentChanges            AgentChanges            `json:"agentChanges"`
 	ActionPackagesChanges   ActionPackagesChanges   `json:"actionPackagesChanges"`
@@ -40,7 +41,7 @@ func excludeByHardcodedPatters(path string) bool {
 }
 
 func (ap *AgentProject) GetUnbundledActionPackageForFile(filePath string) *SpecAgentActionPackage {
-	for _, actionPackage := range ap.Agent.ActionPackages {
+	for _, actionPackage := range ap.SpecAgent.ActionPackages {
 		packagePath := filepath.Join(AgentProjectActionsLocation(ap.Path), actionPackage.Path)
 		packagePathPattern := packagePath + "/**"
 
@@ -63,7 +64,7 @@ func (ap *AgentProject) GetActionPackagesFilesForSynchronization() ([]string, er
 
 	var myActionsPackages []SpecAgentActionPackage
 
-	for _, actionPackage := range ap.Agent.ActionPackages {
+	for _, actionPackage := range ap.SpecAgent.ActionPackages {
 		if actionPackage.Organization == AGENT_PROJECT_UNBUNDLED_ACTIONS_DIR {
 			myActionsPackages = append(myActionsPackages, actionPackage)
 		}
@@ -160,7 +161,7 @@ func (ap *AgentProject) GetNotSynchronizedActionPackages(deployedAgent *AgentSer
 func (ap *AgentProject) CheckDockerRegistryDifferences() (DockerMcpGatewayChanges, error) {
 	var differences DockerMcpGatewayChanges
 
-	differences, err := CheckDockerRegistryDifferences(ap.Agent.DockerMcpGateway, ap.Path)
+	differences, err := CheckDockerRegistryDifferences(ap.SpecAgent.DockerMcpGateway, ap.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +170,7 @@ func (ap *AgentProject) CheckDockerRegistryDifferences() (DockerMcpGatewayChange
 }
 
 func (ap *AgentProject) ApplySynchronizationStatus(deployedAgent *AgentServer.Agent) error {
-	isEqual, agentChanges := ap.Agent.IsEqual(ap, deployedAgent)
+	isEqual, agentChanges := ap.SpecAgent.IsEqual(ap, deployedAgent)
 	notSynchronizedActionPackages, err := ap.GetNotSynchronizedActionPackages(deployedAgent)
 	if err != nil {
 		return err

@@ -244,7 +244,8 @@ func BuildAgentPayload(
 			WelcomeMessage:      metadata[0].WelcomeMessage,
 			ConversationStarter: metadata[0].ConversationStarter,
 		},
-		Public: makePublic,
+		AgentSettings: common.NormalizeMap(metadata[0].AgentSettings),
+		Public:        makePublic,
 	}
 
 	if modelConfiguration != "" {

@@ -31,6 +31,7 @@ const (
 	ExpectedTypeEnumMcpServerTools           ExpectedTypeEnum = "mcp_server_tools"
 	ExpectedTypeEnumMapStringObject          ExpectedTypeEnum = "map[string,object]"
 	ExpectedTypeEnumVersionV2                ExpectedTypeEnum = "version_v2"
+	ExpectedTypeEnumDynamicObject            ExpectedTypeEnum = "dynamic_object"
 )
 
 func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
@@ -57,7 +58,8 @@ func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
 		ExpectedTypeEnumMcpServerVarType,
 		ExpectedTypeEnumMapStringObject,
 		ExpectedTypeEnumMcpServerTools,
-		ExpectedTypeEnumVersionV2:
+		ExpectedTypeEnumVersionV2,
+		ExpectedTypeEnumDynamicObject:
 		return true
 	default:
 		return false

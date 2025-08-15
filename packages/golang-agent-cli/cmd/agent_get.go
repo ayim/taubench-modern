@@ -102,9 +102,138 @@ func getAgentProject(path string) (*common.AgentProject, error) {
 
 	// For now, we only support one Agent per Agent spec.
 	agent := spec.AgentPackage.Agents[0]
-	agentProject := &common.AgentProject{Path: path, Agent: agent, Exclude: spec.AgentPackage.Exclude}
 
+	agentProject := &common.AgentProject{
+		Path:          path,
+		SpecAgent:     agent,
+		AsServerAgent: convertSpecAgentToAgentServer(agent),
+		Exclude:       spec.AgentPackage.Exclude,
+	}
 	return agentProject, nil
+}
+
+func convertSpecAgentToAgentServer(agent common.SpecAgent) *AgentServer.Agent {
+	// Convert Agent to AgentServer.Agent
+	asServerAgent := AgentServer.BuildAgent(&AgentServer.AgentPayload{
+		Name:        agent.Name,
+		Description: agent.Description,
+		Version:     agent.Version,
+		Runbook:     agent.Runbook,
+		Model: AgentServer.AgentModel{
+			Provider: agent.Model.Provider,
+			Name:     agent.Model.Name,
+		},
+		AdvancedConfig: AgentServer.AgentAdvancedConfig{
+			Architecture: agent.Architecture,
+			Reasoning:    agent.Reasoning,
+		},
+		ActionPackages: convertSpecAgentActionPackagesToAgentServer(agent.ActionPackages),
+		McpServers:     convertSpecMcpServersToAgentServer(agent.McpServers, agent.DockerMcpGateway),
+		QuestionGroups: agent.Metadata.QuestionGroups,
+		Metadata:       agent.Metadata,
+		Extra: AgentServer.AgentExtra{
+			WelcomeMessage:      agent.WelcomeMessage,
+			ConversationStarter: agent.ConversationStarter,
+			AgentSettings:       agent.AgentSettings,
+		},
+		AgentSettings: agent.AgentSettings,
+		Public:        true,
+	})
+	return asServerAgent
+}
+
+func convertSpecMcpServerVariablesToAgentServer(specVars common.SpecMcpServerVariables) AgentServer.McpServerVariables {
+	if specVars == nil {
+		return nil
+	}
+
+	result := make(AgentServer.McpServerVariables)
+	for key, specVar := range specVars {
+		result[key] = AgentServer.McpServerVariable{
+			Type:        string(specVar.Type),
+			Description: specVar.Description,
+			Provider:    specVar.Provider,
+			Scopes:      specVar.Scopes,
+			Value:       specVar.Value,
+		}
+	}
+	return result
+}
+
+func convertSpecMcpServersToAgentServer(mcpServers []common.SpecMcpServer, dockerMcpGateway *common.SpecDockerMcpGateway) []AgentServer.McpServer {
+	result := make([]AgentServer.McpServer, len(mcpServers))
+
+	// Check to see if the Spec contains Docker as MCP Gateway
+	// The Spec should not contain Docker as MCP Gateway - it should be added as the SpecDockerMcpGateway
+	specHasDockerMcpGateway := false
+
+	// Convert MCP servers to AgentServer.McpServer
+	for i := range mcpServers {
+		var command *string
+		var args []string
+
+		mcpServer := &mcpServers[i]
+		if len(mcpServer.CommandLine) > 0 {
+			command = &mcpServer.CommandLine[0]
+			if len(mcpServer.CommandLine) > 1 {
+				args = mcpServer.CommandLine[1:]
+			} else {
+				args = nil
+			}
+		}
+
+		// Check if the MCP server is a Docker MCP Gateway
+		// so we don't add it again when we check the dockerMcpGateway field
+		if common.IsSpecDockerMcpGateway(mcpServer) {
+			specHasDockerMcpGateway = true
+		}
+
+		result[i] = AgentServer.McpServer{
+			Name:        mcpServer.Name,
+			Description: mcpServer.Description,
+			Transport:   mcpServer.Transport,
+			// URL + Streamable HTTP fields
+			URL:     &mcpServer.URL,
+			Headers: convertSpecMcpServerVariablesToAgentServer(mcpServer.Headers),
+			// STDIO fields
+			Command: command,
+			Args:    args,
+			Env:     convertSpecMcpServerVariablesToAgentServer(mcpServer.Env),
+			Cwd:     &mcpServer.Cwd,
+			// Other fields
+			ForceSerialToolCalls: mcpServer.ForceSerialToolCalls,
+		}
+	}
+
+	// If the docker MCP gateway is set, we add it to the list of MCP servers.
+	if dockerMcpGateway != nil && !specHasDockerMcpGateway {
+		result = append(result, AgentServer.McpServer{
+			Name:                 "MCP_DOCKER",
+			Description:          "Docker MCP Gateway",
+			Transport:            AgentServer.MCPTransportStdio,
+			URL:                  nil,
+			Headers:              nil,
+			Command:              common.Ptr("docker"),
+			Args:                 []string{"mcp", "gateway", "run"},
+			Env:                  nil,
+			Cwd:                  nil,
+			ForceSerialToolCalls: false,
+		})
+	}
+	return result
+}
+
+func convertSpecAgentActionPackagesToAgentServer(actionPackages []common.SpecAgentActionPackage) []AgentServer.AgentActionPackage {
+	result := make([]AgentServer.AgentActionPackage, len(actionPackages))
+	for i := range actionPackages {
+		result[i] = AgentServer.AgentActionPackage{
+			Name:         actionPackages[i].Name,
+			Organization: actionPackages[i].Organization,
+			Version:      actionPackages[i].Version,
+			Whitelist:    actionPackages[i].Whitelist,
+		}
+	}
+	return result
 }
 
 // getAgentProjects reads the agent projects from a given paths.

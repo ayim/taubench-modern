@@ -285,8 +285,7 @@ var SpecV2_1 = `
     "description": "Working directory for the command line (defaults to agent-spec directory if not specified). Can be relative or absolute path.",
     "required": false,
     "expected-type": {
-      "type": "file",
-      "relative-to": "./"
+      "type": "file"
     }
   },
   "agent-package/agents/mcp-servers/force-serial-tool-calls": {
@@ -378,6 +377,11 @@ var SpecV2_1 = `
   "agent-package/agents/runbooks": {
     "description": "Please use 'runbook' instead",
     "deprecated": true
+  },
+  "agent-package/agents/agent-settings": {
+    "description": "Section to describe the agent settings (this field is currently open-ended and can contain anything)",
+    "required": false,
+    "expected-type": "dynamic_object"
   }
 }
 `

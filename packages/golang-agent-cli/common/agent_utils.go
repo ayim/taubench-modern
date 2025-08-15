@@ -2,6 +2,9 @@ package common
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
 
 	AgentServer "github.com/Sema4AI/agent-platform/packages/golang-agent-cli/agent-server-client"
 )
@@ -252,6 +255,110 @@ func AreQuestionGroupsEqual(local []AgentServer.QuestionGroup, deployed []AgentS
 	return CheckSliceEquality(local, deployed, func(local AgentServer.QuestionGroup, deployed AgentServer.QuestionGroup) bool {
 		return local.Title == deployed.Title && StringSlicesEqual(local.Questions, deployed.Questions)
 	})
+}
+
+// areAgentSettingsEqual checks if two AgentSettings maps are equal, treating nil and empty maps as equal
+func AreAgentSettingsEqual(local map[string]any, deployed map[string]any) bool {
+	// Treat nil and empty maps as equal for BOTH sides
+	localEmpty := len(local) == 0
+	deployedEmpty := len(deployed) == 0
+
+	if localEmpty && deployedEmpty {
+		return true
+	}
+
+	// For more complex comparison that handles YAML parsing differences,
+	// we need to normalize the maps before comparison
+	normalizedLocal := NormalizeMap(local)
+	normalizedDeployed := NormalizeMap(deployed)
+
+	// Use reflect.DeepEqual for deep comparison of the normalized map contents
+	equal := reflect.DeepEqual(normalizedLocal, normalizedDeployed)
+	return equal
+}
+
+// NormalizeMap converts interface{} keys to string keys recursively to handle YAML parsing differences
+func NormalizeMap(m map[string]any) map[string]any {
+	if m == nil {
+		return nil
+	}
+
+	result := make(map[string]any)
+	for k, v := range m {
+		result[k] = normalizeValue(v)
+	}
+	return result
+}
+
+// normalizeValue recursively normalizes values, converting map[interface{}]interface{} to map[string]interface{}
+func normalizeValue(v any) any {
+	if v == nil {
+		return nil
+	}
+
+	switch val := v.(type) {
+	// Normalize integer types to a common int64 to avoid DeepEqual false positives
+	case int:
+		return float64(val)
+	case int8:
+		return float64(val)
+	case int16:
+		return float64(val)
+	case int32:
+		return float64(val)
+	case int64:
+		return float64(val)
+	case uint:
+		return float64(val)
+	case uint8:
+		return float64(val)
+	case uint16:
+		return float64(val)
+	case uint32:
+		return float64(val)
+	case uint64:
+		return float64(val)
+	case float32:
+		return float64(val)
+	case float64:
+		return float64(val)
+	case string:
+		// Attempt to coerce numeric strings to numbers for robust deep equality checks
+		s := strings.TrimSpace(val)
+		if i, err := strconv.ParseInt(s, 10, 64); err == nil {
+			// Normalize numeric strings to float64 to match other numeric types after normalization
+			return float64(i)
+		}
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			return f
+		}
+		return val
+	case map[interface{}]interface{}:
+		// Convert map[interface{}]interface{} to map[string]interface{}
+		result := make(map[string]interface{})
+		for k, v := range val {
+			if keyStr, ok := k.(string); ok {
+				result[keyStr] = normalizeValue(v)
+			}
+		}
+		return result
+	case map[string]interface{}:
+		// Recursively normalize nested maps
+		result := make(map[string]interface{})
+		for k, v := range val {
+			result[k] = normalizeValue(v)
+		}
+		return result
+	case []interface{}:
+		// Recursively normalize slice elements
+		result := make([]interface{}, len(val))
+		for i, item := range val {
+			result[i] = normalizeValue(item)
+		}
+		return result
+	default:
+		return v
+	}
 }
 
 // === FINDERS ===

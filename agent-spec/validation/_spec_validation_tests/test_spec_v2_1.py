@@ -274,6 +274,58 @@ agent-package: # Root element
 
 
 @pytest.mark.usefixtures("_gen_runbook")
+def test_spec_validation_action_packages_relative_paths(datadir: Path, v_2_1_spec: dict):
+    """Test that action packages from MyActions and Sema4ai with relative paths are correctly resolved.
+
+    This test verifies that the path validation correctly resolves relative paths to action packages,
+    even though the packages themselves may not have valid content (which would cause other validation errors).
+    The key assertion is that NO path-related errors occur, confirming relative path resolution works.
+    """
+    from _spec_validation_tests._spec_validation import load_spec
+
+    # First, create the directory structure for the updated path
+    (datadir / "actions" / "MyActions" / "control-room-test").mkdir(parents=True, exist_ok=True)
+    (datadir / "actions" / "Sema4.ai" / "google").mkdir(parents=True, exist_ok=True)
+
+    yaml_with_relative_paths = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: '0.0.1'
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: agent
+      reasoning: enabled
+      runbook: runbook.md
+      metadata:
+        mode: conversational
+      action-packages:
+        - name: Google
+          organization: Sema4.ai
+          type: folder
+          version: 1.3.2
+          whitelist: ""
+          path: Sema4.ai/google
+        - name: Control Room Test
+          organization: MyActions
+          type: folder
+          version: 0.0.1
+          whitelist: my_custom_action,another_action
+          path: MyActions/control-room-test
+      knowledge: []
+    """
+
+    # Get validation errors without raising exception
+    errors = validate_from_spec(
+        load_spec(v_2_1_spec), yaml_with_relative_paths, datadir, raise_on_error=False
+    )
+    assert not errors, "Expected no errors"
+
+
+@pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_deprecated(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
@@ -976,6 +1028,61 @@ agent-package:
 
 
 @pytest.mark.usefixtures("_gen_runbook")
+def test_spec_validation_mcp_servers_cwd_path_formats(datadir: Path, v_2_1_spec: dict):
+    from _spec_validation_tests._spec_validation import load_spec
+
+    # Create the directories that will be referenced in the cwd paths
+    # Relative path directory
+    relative_mcp_dir = datadir / "mcp-server" / "path"
+    relative_mcp_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create a temporary absolute directory for Unix/Linux testing
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        abs_unix_dir = temp_path / "mcp-server"
+        abs_unix_dir.mkdir(parents=True, exist_ok=True)
+
+        valid_yaml = f"""
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-absolute-unix
+          transport: stdio
+          description: MCP Server with absolute Unix/Linux path
+          command-line: ['python', '-m', 'server']
+          cwd: {abs_unix_dir.as_posix()}
+        - name: mcp-server-relative
+          transport: stdio
+          description: MCP Server with relative path
+          command-line: ['python', '-m', 'server']
+          cwd: ./mcp-server/path
+        - name: mcp-server-relative-without-dot
+          transport: stdio
+          description: MCP Server with relative path
+          command-line: ['python', '-m', 'server']
+          cwd: mcp-server/path
+    """
+
+        validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir)
+
+
+@pytest.mark.usefixtures("_gen_runbook")
 def test_spec_bad_conversation_guide(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
@@ -1107,6 +1214,37 @@ agent-package:
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
+
+
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_conversation_agent_settings(datadir: Path, v_2_1_spec: dict):
+    from _spec_validation_tests._spec_validation import load_spec
+
+    yaml_contents = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      agent-settings:
+        config: 22
+        anything-goes: 
+          - yes: "yes!"
+    """
+
+    errors = validate_from_spec(load_spec(v_2_1_spec), yaml_contents, datadir)
+    assert not errors, "Expected no errors"
 
 
 def test_spec():
