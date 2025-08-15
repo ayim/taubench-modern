@@ -33,7 +33,7 @@ def sample_dids_connection_details() -> DIDSConnectionDetails:
     return DIDSConnectionDetails(
         username="test_user",
         password=SecretString("test_password"),
-        connections=[
+        data_server_connections=[
             DIDSApiConnectionDetails(host="localhost", port=8080, kind=DIDSConnectionKind.HTTP),
         ],
     )
@@ -174,13 +174,16 @@ async def test_dids_connection_details_crud_operations(
     assert retrieved_details.password is not None
     assert sample_dids_connection_details.password is not None
     assert retrieved_details.password.value == sample_dids_connection_details.password.value
-    assert retrieved_details.connections == sample_dids_connection_details.connections
+    assert (
+        retrieved_details.data_server_connections
+        == sample_dids_connection_details.data_server_connections
+    )
 
     # Update connection details
     updated_details = DIDSConnectionDetails(
         username="updated_user",
         password=SecretString("updated_password"),
-        connections=[
+        data_server_connections=[
             DIDSApiConnectionDetails(host="updated-host", port=9090, kind=DIDSConnectionKind.MYSQL),
         ],
     )
@@ -191,10 +194,10 @@ async def test_dids_connection_details_crud_operations(
     assert retrieved_updated.username == "updated_user"
     assert retrieved_updated.password is not None
     assert retrieved_updated.password.value == "updated_password"
-    assert len(retrieved_updated.connections) == 1
-    assert retrieved_updated.connections[0].host == "updated-host"
-    assert retrieved_updated.connections[0].port == 9090
-    assert retrieved_updated.connections[0].kind == DIDSConnectionKind.MYSQL
+    assert len(retrieved_updated.data_server_connections) == 1
+    assert retrieved_updated.data_server_connections[0].host == "updated-host"
+    assert retrieved_updated.data_server_connections[0].port == 9090
+    assert retrieved_updated.data_server_connections[0].kind == DIDSConnectionKind.MYSQL
 
     # Delete connection details
     await storage.delete_dids_connection_details()

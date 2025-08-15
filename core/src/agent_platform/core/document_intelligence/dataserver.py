@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
 
+from agent_platform.core.document_intelligence.data_connection import DataConnection
 from agent_platform.core.utils import SecretString
 
 
@@ -127,7 +128,7 @@ class DIDSConnectionDetails:
     )
     """The password to connect to the Document Intelligence Data Server"""
 
-    connections: list[DIDSApiConnectionDetails] = field(
+    data_server_connections: list[DIDSApiConnectionDetails] = field(
         metadata={
             "description": "The connection details for the Document Intelligence Data Server",
         },
@@ -142,6 +143,14 @@ class DIDSConnectionDetails:
     )
     """The timestamp when the connection details were last updated"""
 
+    data_connections: list[DataConnection] = field(
+        default_factory=list,
+        metadata={
+            "description": "The data connections for the Document Intelligence Data Server",
+        },
+    )
+    """The data connections for the Document Intelligence Data Server"""
+
     def __post_init__(self):
         if isinstance(self.password, str):
             object.__setattr__(self, "password", SecretString(self.password))
@@ -150,7 +159,7 @@ class DIDSConnectionDetails:
         """Convert the DIDSConnectionDetails to a datasource connection input dictionary"""
         result = {}
 
-        for connection in self.connections:
+        for connection in self.data_server_connections:
             base_connection = {
                 "host": connection.host,
                 "port": connection.port,
@@ -188,8 +197,11 @@ class DIDSConnectionDetails:
         return {
             "username": self.username,
             "password": password_value,
-            "connections": [conn.model_dump(mode=mode) for conn in self.connections],
+            "data_server_connections": [
+                conn.model_dump(mode=mode) for conn in self.data_server_connections
+            ],
             "updated_at": self.updated_at if mode == "python" else self.updated_at.isoformat(),
+            "data_connections": [conn.model_dump(mode=mode) for conn in self.data_connections],
         }
 
     @classmethod
@@ -227,9 +239,17 @@ class DIDSConnectionDetails:
                 raise TypeError(f"Cannot convert {type(data)} to dict for model_validate") from err
 
         # Handle nested connections list
-        if "connections" in data_dict and isinstance(data_dict["connections"], list):
-            data_dict["connections"] = [
-                DIDSApiConnectionDetails.model_validate(conn) for conn in data_dict["connections"]
+        if "data_server_connections" in data_dict and isinstance(
+            data_dict["data_server_connections"], list
+        ):
+            data_dict["data_server_connections"] = [
+                DIDSApiConnectionDetails.model_validate(conn)
+                for conn in data_dict["data_server_connections"]
+            ]
+
+        if "data_connections" in data_dict and isinstance(data_dict["data_connections"], list):
+            data_dict["data_connections"] = [
+                DataConnection.model_validate(conn) for conn in data_dict["data_connections"]
             ]
 
         # Handle SecretString conversion (password can be a string or already a SecretString)

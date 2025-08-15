@@ -181,12 +181,12 @@ async def get_dids_connection_details(storage: StorageDependency) -> DIDSConnect
             "Document Intelligence Data Server configuration is missing password"
         )
 
-    if not details.connections:
+    if not details.data_server_connections:
         raise DIDSConnectionDetailsNotFoundError(
             "Document Intelligence Data Server configuration is missing connections"
         )
 
-    for idx, conn in enumerate(details.connections):
+    for idx, conn in enumerate(details.data_server_connections):
         if not getattr(conn, "host", None) or not str(conn.host).strip():
             raise DIDSConnectionDetailsNotFoundError(
                 f"Document Intelligence Data Server connection #{idx} is missing host"

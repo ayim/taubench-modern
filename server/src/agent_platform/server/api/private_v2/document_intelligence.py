@@ -48,7 +48,6 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.storage.postgres.postgres import PostgresConfig
 
 logger: BoundLogger = get_logger(__name__)
 
@@ -63,19 +62,24 @@ async def _build_datasource(connection_details: DIDSConnectionDetails):
         # Create admin datasource for administrative commands
         admin_ds = DataSource.model_validate(datasource_name="sema4ai")
 
-        drop_sql = "DROP DATABASE IF EXISTS DocumentIntelligence;"
+        drop_sql = f"DROP DATABASE IF EXISTS {DATA_SOURCE_NAME};"
         admin_ds.execute_sql(drop_sql)
 
+        # We may support multiple connections in the future, but for now we only support one
+        num_data_connections = len(connection_details.data_connections)
+        if num_data_connections != 1:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message=f"Exactly one data connection is required (got {num_data_connections}).",
+            )
+        connection = connection_details.data_connections[0]
+
+        # Pass the data connection details directly to the datasource
         create_sql = f'''
-        CREATE DATABASE DocumentIntelligence
-        WITH ENGINE = "postgres",
+        CREATE DATABASE {DATA_SOURCE_NAME}
+        WITH ENGINE = "{connection.engine.value}",
         PARAMETERS = {{
-            "user": "{PostgresConfig.user}",
-            "password": "{PostgresConfig.password}",
-            "host": "{PostgresConfig.host}",
-            "port": {PostgresConfig.port},
-            "database": "{PostgresConfig.db}",
-            "schema": "docint"
+            {connection.build_mindsdb_parameters()}
         }};
         '''
 

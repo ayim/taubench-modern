@@ -1,0 +1,1 @@
+ALTER TABLE v2_dids_connection_details RENAME COLUMN data_server_connections to connections;

@@ -181,7 +181,7 @@ class TestDIDSConnectionDetails:
         creds = DIDSConnectionDetails(
             username="testuser",
             password="secret123",  # type: ignore[arg-type] # String password
-            connections=[connection],
+            data_server_connections=[connection],
         )
         after_creation = datetime.now()
 
@@ -206,7 +206,7 @@ class TestDIDSConnectionDetails:
         creds = DIDSConnectionDetails(
             username="testuser",
             password=secret_password,
-            connections=[connection],
+            data_server_connections=[connection],
             updated_at=specific_time,
         )
 
@@ -226,7 +226,7 @@ class TestDIDSConnectionDetails:
         creds = DIDSConnectionDetails(
             username="testuser",
             password="secret123",  # type: ignore[arg-type]
-            connections=[connection],
+            data_server_connections=[connection],
         )
 
         dump = creds.model_dump()
@@ -236,7 +236,7 @@ class TestDIDSConnectionDetails:
         assert dump["password"].get_secret_value() == "secret123"
         assert str(dump["password"]) == "**********"
 
-        assert dump["connections"] == [
+        assert dump["data_server_connections"] == [
             {
                 "kind": "http",
                 "host": "api.example.com",
@@ -251,7 +251,7 @@ class TestDIDSConnectionDetails:
         creds = DIDSConnectionDetails(
             username="testuser",
             password="secret123",  # type: ignore[arg-type]
-            connections=[connection],
+            data_server_connections=[connection],
         )
 
         datasource_input = creds.as_datasource_connection_input()
@@ -276,7 +276,7 @@ class TestDIDSConnectionDetails:
         creds = DIDSConnectionDetails(
             username="testuser",
             password="secret123",  # type: ignore[arg-type]
-            connections=[connection],
+            data_server_connections=[connection],
         )
 
         datasource_input = creds.as_datasource_connection_input()
@@ -304,7 +304,7 @@ class TestDIDSConnectionDetails:
         creds = DIDSConnectionDetails(
             username="testuser",
             password="secret123",  # type: ignore[arg-type]
-            connections=[http_connection, mysql_connection],
+            data_server_connections=[http_connection, mysql_connection],
         )
 
         datasource_input = creds.as_datasource_connection_input()
@@ -333,7 +333,7 @@ class TestDIDSConnectionDetails:
         creds = DIDSConnectionDetails(
             username="testuser",
             password="secret123",  # type: ignore[arg-type]
-            connections=[connection],
+            data_server_connections=[connection],
         )
 
         # Check that secret is not in string representation
@@ -349,11 +349,25 @@ class TestDIDSConnectionDetails:
         data = {
             "username": "testuser",
             "password": "secret123",
-            "connections": [
+            "data_server_connections": [
                 {
                     "kind": "mysql",
                     "host": "mysql.example.com",
                     "port": 3307,
+                }
+            ],
+            "data_connections": [
+                {
+                    "id": "123",
+                    "name": "test_connection",
+                    "engine": "postgres",
+                    "configuration": {
+                        "user": "postgres",
+                        "password": "secret123",
+                        "host": "postgres.example.com",
+                        "port": 5432,
+                        "database": "test_db",
+                    },
                 }
             ],
         }
@@ -364,10 +378,20 @@ class TestDIDSConnectionDetails:
         assert isinstance(creds.password, SecretString)
         assert creds.password is not None
         assert creds.password.get_secret_value() == "secret123"
-        assert len(creds.connections) == 1
-        assert creds.connections[0].host == "mysql.example.com"
-        assert creds.connections[0].port == 3307
-        assert creds.connections[0].kind == DIDSConnectionKind.MYSQL
+        assert len(creds.data_server_connections) == 1
+        assert creds.data_server_connections[0].host == "mysql.example.com"
+        assert creds.data_server_connections[0].port == 3307
+        assert creds.data_server_connections[0].kind == DIDSConnectionKind.MYSQL
+
+        assert len(creds.data_connections) == 1
+        assert creds.data_connections[0].id == "123"
+        assert creds.data_connections[0].name == "test_connection"
+        assert creds.data_connections[0].engine == "postgres"
+        assert creds.data_connections[0].configuration["user"] == "postgres"
+        assert creds.data_connections[0].configuration["password"] == "secret123"
+        assert creds.data_connections[0].configuration["host"] == "postgres.example.com"
+        assert creds.data_connections[0].configuration["port"] == 5432
+        assert creds.data_connections[0].configuration["database"] == "test_db"
 
     def test_model_validate_with_secret_string(self):
         """Test model_validate handles SecretString objects correctly."""
@@ -375,7 +399,7 @@ class TestDIDSConnectionDetails:
         data = {
             "username": "testuser",
             "password": secret_password,
-            "connections": [
+            "data_server_connections": [
                 {
                     "kind": "http",
                     "host": "api.example.com",
@@ -399,15 +423,15 @@ class TestDIDSConnectionDetails:
         data = {
             "username": "testuser",
             "password": "secret123",
-            "connections": [connection],
+            "data_server_connections": [connection],
         }
 
         creds = DIDSConnectionDetails.model_validate(data)
 
         assert creds.username == "testuser"
         assert isinstance(creds.password, SecretString)
-        assert len(creds.connections) == 1
-        assert creds.connections[0] is connection
+        assert len(creds.data_server_connections) == 1
+        assert creds.data_server_connections[0] is connection
 
     def test_model_validate_roundtrip(self):
         """Test that model_dump -> model_validate is a roundtrip."""
@@ -418,7 +442,7 @@ class TestDIDSConnectionDetails:
         original = DIDSConnectionDetails(
             username="testuser",
             password="secret123",  # type: ignore[arg-type]
-            connections=[connection],
+            data_server_connections=[connection],
         )
 
         dumped = original.model_dump()
@@ -429,10 +453,10 @@ class TestDIDSConnectionDetails:
         assert restored.password is not None
         assert original.password is not None
         assert restored.password.get_secret_value() == original.password.get_secret_value()
-        assert len(restored.connections) == len(original.connections) == 1
-        assert restored.connections[0].host == original.connections[0].host
-        assert restored.connections[0].port == original.connections[0].port
-        assert restored.connections[0].kind == original.connections[0].kind
+        assert len(restored.data_server_connections) == len(original.data_server_connections) == 1
+        assert restored.data_server_connections[0].host == original.data_server_connections[0].host
+        assert restored.data_server_connections[0].port == original.data_server_connections[0].port
+        assert restored.data_server_connections[0].kind == original.data_server_connections[0].kind
 
         # Test updated_at roundtrip (datetime -> ISO string -> datetime)
         assert isinstance(restored.updated_at, datetime)
@@ -444,7 +468,7 @@ class TestDIDSConnectionDetails:
         data_with_iso = {
             "username": "testuser",
             "password": "secret123",
-            "connections": [
+            "data_server_connections": [
                 {
                     "kind": "http",
                     "host": "api.example.com",

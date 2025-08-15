@@ -1,5 +1,6 @@
+import dataclasses
 from types import SimpleNamespace
-from unittest.mock import ANY, AsyncMock, Mock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastapi import FastAPI
@@ -11,6 +12,10 @@ from sema4ai_docint.extraction.reducto.exceptions import (
     UploadMissingPresignedUrlError,
 )
 
+from agent_platform.core.document_intelligence.data_connection import (
+    DataConnection,
+    DataConnectionEngine,
+)
 from agent_platform.core.document_intelligence.dataserver import (
     DIDSApiConnectionDetails,
     DIDSConnectionDetails,
@@ -77,7 +82,7 @@ class TestDocumentIntelligenceEndpoints:
         valid_details = DIDSConnectionDetails(
             username="testuser",
             password=SecretString("testpass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                 ),
@@ -162,7 +167,7 @@ class TestDocumentIntelligenceEndpoints:
                 DIDSConnectionDetails(
                     username=None,
                     password=SecretString("testpass"),
-                    connections=[
+                    data_server_connections=[
                         DIDSApiConnectionDetails(
                             host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                         ),
@@ -174,7 +179,7 @@ class TestDocumentIntelligenceEndpoints:
                 DIDSConnectionDetails(
                     username="   ",
                     password=SecretString("testpass"),
-                    connections=[
+                    data_server_connections=[
                         DIDSApiConnectionDetails(
                             host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                         ),
@@ -186,7 +191,7 @@ class TestDocumentIntelligenceEndpoints:
                 DIDSConnectionDetails(
                     username="user",
                     password=None,
-                    connections=[
+                    data_server_connections=[
                         DIDSApiConnectionDetails(
                             host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                         ),
@@ -198,7 +203,7 @@ class TestDocumentIntelligenceEndpoints:
                 DIDSConnectionDetails(
                     username="user",
                     password=SecretString("   "),
-                    connections=[
+                    data_server_connections=[
                         DIDSApiConnectionDetails(
                             host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                         ),
@@ -210,7 +215,7 @@ class TestDocumentIntelligenceEndpoints:
                 DIDSConnectionDetails(
                     username="user",
                     password=SecretString("testpass"),
-                    connections=[],
+                    data_server_connections=[],
                 ),
                 "missing connections",
             ),
@@ -237,7 +242,7 @@ class TestDocumentIntelligenceEndpoints:
         valid_details = DIDSConnectionDetails(
             username="testuser",
             password=SecretString("testpass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                 ),
@@ -301,7 +306,7 @@ class TestDocumentIntelligenceEndpoints:
         valid_details = DIDSConnectionDetails(
             username="user",
             password=SecretString("pass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                 ),
@@ -353,7 +358,7 @@ class TestBuildDatasource:
         return DIDSConnectionDetails(
             username="testuser",
             password=SecretString("testpass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                 ),
@@ -361,26 +366,30 @@ class TestBuildDatasource:
                     host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
                 ),
             ],
+            data_connections=[
+                DataConnection(
+                    id="123",
+                    name="docint-postgres",
+                    engine=DataConnectionEngine.POSTGRES,
+                    configuration={
+                        "user": "testuser",
+                        "password": "testpass",
+                        "host": "localhost",
+                        "port": 5432,
+                        "database": "testdb",
+                    },
+                ),
+            ],
         )
 
-    @patch("agent_platform.server.api.private_v2.document_intelligence.PostgresConfig")
     @patch("agent_platform.server.api.private_v2.document_intelligence.DataSource")
     @patch("agent_platform.server.api.private_v2.document_intelligence.initialize_database")
     async def test_build_datasource_success(
-        self, mock_initialize_db, mock_datasource, mock_postgres_config, sample_connection_details
+        self, mock_initialize_db, mock_datasource, sample_connection_details
     ):
         """Test successful datasource creation and initialization."""
-        # Setup PostgresConfig mock
-        mock_postgres_instance = Mock()
-        mock_postgres_instance.user = "testuser"
-        mock_postgres_instance.password = "testpass"
-        mock_postgres_instance.host = "localhost"
-        mock_postgres_instance.port = 5432
-        mock_postgres_instance.db = "testdb"
-        mock_postgres_config.get_instance.return_value = mock_postgres_instance
-
         # Setup DataSource mocks
-        mock_admin_ds = Mock()
+        mock_admin_ds = MagicMock()
         mock_connection = Mock()
         mock_source_info = Mock()
         mock_source_info.name = "existing_source"
@@ -415,27 +424,26 @@ class TestBuildDatasource:
         mock_datasource.model_validate.assert_any_call(datasource_name="DocumentIntelligence")
 
         # Verify database operations
-        mock_admin_ds.execute_sql.assert_any_call("DROP DATABASE IF EXISTS DocumentIntelligence;")
         assert mock_admin_ds.execute_sql.call_count == 2  # DROP and CREATE
+        data_server_call_args = mock_admin_ds.execute_sql.call_args_list
+        assert data_server_call_args[0][0][0] == "DROP DATABASE IF EXISTS DocumentIntelligence;"
+
+        assert "CREATE DATABASE DocumentIntelligence" in data_server_call_args[1][0][0]
+        assert 'WITH ENGINE = "postgres"' in data_server_call_args[1][0][0]
+        assert '"user": "testuser"' in data_server_call_args[1][0][0]
+        assert '"password": "testpass"' in data_server_call_args[1][0][0]
+        assert '"host": "localhost"' in data_server_call_args[1][0][0]
+        assert '"port": 5432' in data_server_call_args[1][0][0]
+        assert '"database": "testdb"' in data_server_call_args[1][0][0]
 
         # Verify initialize_database was called
         mock_initialize_db.assert_called_once_with("postgres", mock_docint_ds)
 
-    @patch("agent_platform.server.api.private_v2.document_intelligence.PostgresConfig")
     @patch("agent_platform.server.api.private_v2.document_intelligence.DataSource")
     async def test_build_datasource_connection_error(
-        self, mock_datasource, mock_postgres_config, sample_connection_details
+        self, mock_datasource, sample_connection_details
     ):
         """Test error handling when connection setup fails."""
-        # Setup PostgresConfig mock
-        mock_postgres_instance = Mock()
-        mock_postgres_instance.user = "testuser"
-        mock_postgres_instance.password = "testpass"
-        mock_postgres_instance.host = "localhost"
-        mock_postgres_instance.port = 5432
-        mock_postgres_instance.db = "testdb"
-        mock_postgres_config.get_instance.return_value = mock_postgres_instance
-
         # Setup mock to raise exception on setup
         mock_datasource.setup_connection_from_input_json.side_effect = Exception(
             "Connection failed"
@@ -448,18 +456,27 @@ class TestBuildDatasource:
         assert exc_info.value.response.error_code == ErrorCode.UNEXPECTED
         assert "Error initializing Document Intelligence database" in str(exc_info.value)
 
-    @patch("agent_platform.server.api.private_v2.document_intelligence.PostgresConfig")
     @patch("agent_platform.server.api.private_v2.document_intelligence.DataSource")
     async def test_build_datasource_uses_postgres_config(
-        self, mock_datasource, mock_postgres_config, sample_connection_details
+        self, mock_datasource, sample_connection_details
     ):
         """Test that the function correctly uses PostgresConfig for database connection details."""
-        # Setup PostgresConfig mock with class attributes
-        mock_postgres_config.user = "config_user"
-        mock_postgres_config.password = "config_pass"
-        mock_postgres_config.host = "config_host"
-        mock_postgres_config.port = 5433
-        mock_postgres_config.db = "config_db"
+
+        override_config = {
+            "user": "config_user",
+            "password": "config_pass",
+            "host": "config_host",
+            "port": 5433,
+            "database": "config_db",
+        }
+        sample_connection_details = dataclasses.replace(
+            sample_connection_details,
+            data_connections=[
+                dataclasses.replace(
+                    sample_connection_details.data_connections[0], configuration=override_config
+                )
+            ],
+        )
 
         # Setup DataSource mocks
         mock_admin_ds = Mock()
@@ -491,7 +508,7 @@ class TestDataModelEndpoints:
         return DIDSConnectionDetails(
             username="testuser",
             password=SecretString("testpass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                 ),
@@ -947,7 +964,7 @@ class TestUpsertLayout:
         return DIDSConnectionDetails(
             username="user",
             password=SecretString("pass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                 ),
@@ -1175,7 +1192,7 @@ class TestGenerateLayoutFromFile:
         valid_details = DIDSConnectionDetails(
             username="user",
             password=SecretString("pass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1",
                     port=47334,
@@ -1254,6 +1271,7 @@ class TestGenerateLayoutFromFile:
         fake_file_manager.upload.assert_awaited()
         mock_find_model.assert_called_once()
         fake_client.generate_extraction_schema.assert_called_once()
+
         fake_client._file_to_images.assert_called_once()
         fake_client.generate_document_layout_name.assert_called_once()
         fake_client.summarize_with_args.assert_called_once()
@@ -1279,7 +1297,7 @@ class TestGenerateDataModelFromDocument:
         valid_details = DIDSConnectionDetails(
             username="user",
             password=SecretString("pass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1",
                     port=47334,
@@ -1353,7 +1371,7 @@ class TestGenerateDataModelFromDocument:
         valid_details = DIDSConnectionDetails(
             username="user",
             password=SecretString("pass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1",
                     port=47334,
@@ -1423,7 +1441,7 @@ class TestParseDocumentEndpoints:
         return DIDSConnectionDetails(
             username="user",
             password=SecretString("pass"),
-            connections=[
+            data_server_connections=[
                 DIDSApiConnectionDetails(
                     host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
                 ),

@@ -19,7 +19,9 @@ class PostgresStorageDocumentIntelligenceMixin(BaseStorage):
             details_data = {
                 "username": details.username,
                 "updated_at": details.updated_at,
-                "connections": [conn.model_dump() for conn in details.connections],
+                "data_server_connections": [
+                    conn.model_dump() for conn in details.data_server_connections
+                ],
             }
 
             # Encrypt the password field for database storage

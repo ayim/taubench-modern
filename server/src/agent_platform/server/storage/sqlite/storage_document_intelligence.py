@@ -21,8 +21,8 @@ class SQLiteStorageDocumentIntelligenceMixin(BaseStorage):
             details_data = {
                 "username": details.username,
                 "updated_at": details.updated_at,
-                "connections": json.dumps(
-                    [conn.model_dump(mode="json") for conn in details.connections]
+                "data_server_connections": json.dumps(
+                    [conn.model_dump(mode="json") for conn in details.data_server_connections]
                 ),
             }
 

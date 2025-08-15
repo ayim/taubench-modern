@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
 
+from agent_platform.core.document_intelligence.data_connection import DataConnection
 from agent_platform.core.document_intelligence.dataserver import (
     DIDSApiConnectionDetails,
     DIDSConnectionDetails,
@@ -64,6 +65,7 @@ class UpsertDocumentIntelligenceConfigPayload:
 
     data_server: _DataServerConfig = field()
     integrations: list[_IntegrationInput] = field(default_factory=list)
+    data_connections: list[DataConnection] = field(default_factory=list)
 
     @classmethod
     def model_validate(cls, data: Any) -> UpsertDocumentIntelligenceConfigPayload:
@@ -102,7 +104,23 @@ class UpsertDocumentIntelligenceConfigPayload:
                 )
             )
 
-        return cls(integrations=integrations, data_server=data_server)
+        data_connections_raw = obj.get("data_connections", []) or []
+        data_connections: list[DataConnection] = []
+        for item in data_connections_raw:
+            data_connections.append(
+                DataConnection(
+                    id=item["id"],
+                    name=item["name"],
+                    engine=item["engine"],
+                    configuration=item["configuration"],
+                )
+            )
+
+        return cls(
+            integrations=integrations,
+            data_server=data_server,
+            data_connections=data_connections,
+        )
 
     # Convenience helpers used by the API layer
     def to_dids_connection_details(self) -> DIDSConnectionDetails:
@@ -139,7 +157,8 @@ class UpsertDocumentIntelligenceConfigPayload:
         return DIDSConnectionDetails(
             username=self.data_server.credentials.username,
             password=password_value,
-            connections=[http_conn, mysql_conn],
+            data_server_connections=[http_conn, mysql_conn],
+            data_connections=self.data_connections,
         )
 
     def to_integrations(self) -> list[DocumentIntelligenceIntegration]:

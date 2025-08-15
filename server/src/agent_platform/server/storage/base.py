@@ -295,10 +295,14 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         # Handle connections deserialization based on database type
         # SQLite stores as JSON string, PostgreSQL stores as JSONB (auto-deserialized)
+        # Automatically handle conversion from connections to data_server_connections
         if "connections" in row_dict and isinstance(row_dict["connections"], str):
             # SQLite case: deserialize JSON string
-            row_dict["connections"] = json.loads(row_dict["connections"])
-        # PostgreSQL case: already deserialized by SQLAlchemy
+            row_dict["data_server_connections"] = json.loads(row_dict["connections"])
+        elif "data_server_connections" in row_dict and isinstance(
+            row_dict["data_server_connections"], str
+        ):
+            row_dict["data_server_connections"] = json.loads(row_dict["data_server_connections"])
 
         return DIDSConnectionDetails.model_validate(row_dict)
 
@@ -314,7 +318,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
             details_data = {
                 "username": details.username,
                 "updated_at": details.updated_at,
-                "connections": [conn.model_dump(mode="json") for conn in details.connections],
+                "data_server_connections": [
+                    conn.model_dump(mode="json") for conn in details.data_server_connections
+                ],
             }
 
             # Encrypt the password field for database storage
