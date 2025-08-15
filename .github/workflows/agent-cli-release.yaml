@@ -73,7 +73,6 @@ jobs:
           ls -l build
           mkdir s3-drop
           mv build/version.txt s3-drop/
-          mv build/macos64 s3-drop/
           mv build/macos-arm64 s3-drop/
           mv build/linux64 s3-drop/
           mv build/windows64 s3-drop/
@@ -100,7 +99,6 @@ jobs:
           for VERSION in "${{ env.agentCliVersion }}" "latest"; do
             aws s3 cp s3-drop/version.txt "$S3_BASE_URL/$VERSION/version.txt" --cache-control max-age=120 --content-type "text/plain"
             aws s3 cp s3-drop/windows64/agent-cli.exe "$S3_BASE_URL/$VERSION/windows64/agent-cli.exe" --cache-control max-age=120 --content-type "application/octet-stream"
-            aws s3 cp s3-drop/macos64/agent-cli "$S3_BASE_URL/$VERSION/macos64/agent-cli" --cache-control max-age=120 --content-type "application/octet-stream"
             aws s3 cp s3-drop/macos-arm64/agent-cli "$S3_BASE_URL/$VERSION/macos-arm64/agent-cli" --cache-control max-age=120 --content-type "application/octet-stream"
             aws s3 cp s3-drop/linux64/agent-cli "$S3_BASE_URL/$VERSION/linux64/agent-cli" --cache-control max-age=120 --content-type "application/octet-stream"
           done
@@ -129,10 +127,6 @@ jobs:
           path: windows64/
       - uses: actions/download-artifact@v4
         with:
-          name: agent-cli-macos64
-          path: macos64/
-      - uses: actions/download-artifact@v4
-        with:
           name: agent-cli-macos-arm64
           path: macos-arm64/
       - uses: actions/download-artifact@v4
@@ -152,8 +146,8 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./macos64/agent-cli
-          asset_name: $tag-macos64
+          file: ./macos-arm64/agent-cli
+          asset_name: $tag-macos-arm64
           tag: ${{ github.ref }}
           overwrite: true
       - name: Upload Windows binary
