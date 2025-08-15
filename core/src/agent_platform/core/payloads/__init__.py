@@ -16,8 +16,8 @@ from agent_platform.core.payloads.upsert_document_intelligence_config import (
     UpsertDocumentIntelligenceConfigPayload,
 )
 from agent_platform.core.payloads.upsert_document_layout import (
+    DocumentLayoutPayload,
     TranslationRulePayload,
-    UpsertDocumentLayoutPayload,
 )
 from agent_platform.core.payloads.upsert_thread import UpsertThreadPayload
 
@@ -25,6 +25,7 @@ __all__ = [
     "ActionServerConfigPayload",
     "AddThreadMessagePayload",
     "AgentPackagePayload",
+    "DocumentLayoutPayload",
     "EphemeralStreamPayload",
     "ForkThreadPayload",
     "InitiateStreamPayload",
@@ -34,6 +35,5 @@ __all__ = [
     "UploadFilePayload",
     "UpsertAgentPayload",
     "UpsertDocumentIntelligenceConfigPayload",
-    "UpsertDocumentLayoutPayload",
     "UpsertThreadPayload",
 ]

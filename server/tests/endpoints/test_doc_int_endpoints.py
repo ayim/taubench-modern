@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sema4ai_docint import normalize_name
 from sema4ai_docint.extraction.reducto.exceptions import (
+    ExtractFailedError,
     UploadForbiddenError,
     UploadMissingFileIdError,
     UploadMissingPresignedUrlError,
@@ -977,11 +978,11 @@ class TestUpsertLayout:
     def test_upsert_layout_inserts_when_not_exists(self, client: TestClient):
         payload = {
             "name": "invoice-v1",
-            "dataModelName": "invoice",
-            "extractionSchema": {"type": "object"},
-            "translationSchema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
+            "data_model_name": "invoice",
+            "extraction_schema": {"type": "object"},
+            "translation_schema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
             "summary": "Invoice layout",
-            "extractionConfig": {"threshold": 0.8},
+            "extraction_config": {"threshold": 0.8},
             "prompt": "You are a helpful layout model.",
         }
 
@@ -1019,11 +1020,11 @@ class TestUpsertLayout:
     def test_upsert_layout_updates_when_exists(self, client: TestClient):
         payload = {
             "name": "invoice-v1",
-            "dataModelName": "invoice",
-            "extractionSchema": {"type": "object"},
-            "translationSchema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
+            "data_model_name": "invoice",
+            "extraction_schema": {"type": "object"},
+            "translation_schema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
             "summary": "Invoice layout",
-            "extractionConfig": {"threshold": 0.8},
+            "extraction_config": {"threshold": 0.8},
             "prompt": "You are a helpful layout model.",
         }
 
@@ -1073,9 +1074,9 @@ class TestUpsertLayout:
     def test_upsert_layout_normalizes_names_on_lookup(self, client: TestClient):
         payload = {
             "name": "Invoice Layout V1!!",
-            "dataModelName": "Koch Invoices",
-            "extractionSchema": {"type": "object"},
-            "translationSchema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
+            "data_model_name": "Koch Invoices",
+            "extraction_schema": {"type": "object"},
+            "translation_schema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
         }
 
         storage_instance = StorageService.get_instance()
@@ -1106,7 +1107,7 @@ class TestUpsertLayout:
         assert response.status_code == 200
         assert response.json() == {"ok": True}
         # Ensure lookup used normalized names
-        expected_dm = normalize_name(payload["dataModelName"])  # type: ignore[index]
+        expected_dm = normalize_name(payload["data_model_name"])  # type: ignore[index]
         expected_name = normalize_name(payload["name"])  # type: ignore[index]
         find_by_name.assert_called_once_with(ANY, expected_dm, expected_name)
         update.assert_called_once()
@@ -1114,8 +1115,8 @@ class TestUpsertLayout:
     def test_upsert_layout_inserts_with_normalized_name(self, client: TestClient):
         payload = {
             "name": "Invoice Layout V1!!",
-            "dataModelName": "Koch Invoices",
-            "extractionSchema": {"type": "object"},
+            "data_model_name": "Koch Invoices",
+            "extraction_schema": {"type": "object"},
         }
 
         storage_instance = StorageService.get_instance()
@@ -1748,23 +1749,621 @@ class TestParseDocumentEndpoints:
         assert err["code"] == expected_code.value.code
         assert expected_message_substr in err["message"].lower()
 
+
+class TestExtractDocumentEndpoints:
+    def _valid_details(self) -> DIDSConnectionDetails:
+        return DIDSConnectionDetails(
+            username="user",
+            password=SecretString("pass"),
+            data_server_connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1",
+                    port=47334,
+                    kind=DIDSConnectionKind.HTTP,
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1",
+                    port=5432,
+                    kind=DIDSConnectionKind.MYSQL,
+                ),
+            ],
+        )
+
+    def test_extract_with_layout_name_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        # Fakes
+        thread = SimpleNamespace(id="thread-1")
+        stored = SimpleNamespace(file_id="fid-1", file_ref="ref-1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"bytes")
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT = "BASE"
+        fake_extraction_client.upload.return_value = "doc-1"
+        fake_extraction_client.extract.return_value = SimpleNamespace(result=[{"ok": True}])
+
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        # Layout and model
+        data_model_name = "Invoices"
+        layout_name = "Standard V1"
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=SimpleNamespace(name=normalize_name(data_model_name), prompt="DM P"),
+            ) as mock_find_model,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=SimpleNamespace(
+                    extraction_schema={"type": "object"},
+                    system_prompt="LAYOUT P",
+                    extraction_config={"mode": "strict"},
+                ),
+            ) as mock_find_layout,
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto",
+                        api_key=SecretString("k"),
+                    )
+                ),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json={
+                    "thread_id": "thread-1",
+                    "file_name": "file-xyz",
+                    "data_model_name": data_model_name,
+                    "layout_name": layout_name,
+                },
+            )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"ok": True}
+
+        # Ensure lookups used normalized names
+        mock_find_model.assert_called_once()
+        mock_find_layout.assert_called_once()
+
+        # Ensure extract called with merged prompt and schema/config
+        fake_extraction_client.extract.assert_called_once()
+        _, kwargs = fake_extraction_client.extract.call_args
+        assert kwargs["schema"] == {"type": "object"}
+        assert kwargs["extraction_config"] == {"mode": "strict"}
+        assert kwargs["system_prompt"].startswith("BASE")
+        assert "DM P" in kwargs["system_prompt"]
+        assert "LAYOUT P" in kwargs["system_prompt"]
+
+    def test_extract_with_document_layout_payload_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        thread = SimpleNamespace(id="t1")
+        stored = SimpleNamespace(file_id="f1", file_ref="r1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"payload")
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT = "BASE"
+        fake_extraction_client.upload.return_value = "doc-7"
+        fake_extraction_client.extract.return_value = SimpleNamespace(result=[{"data": 1}])
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto",
+                        api_key=SecretString("k"),
+                    )
+                ),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json={
+                    "thread_id": "t1",
+                    "file_name": "file-a",
+                    "document_layout": {
+                        "name": "Invoice L1",
+                        "data_model_name": "Invoices",
+                        "extraction_schema": {"type": "object"},
+                        "prompt": "LP",
+                        "extraction_config": {"k": "v"},
+                    },
+                },
+            )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"data": 1}
+        fake_extraction_client.extract.assert_called_once()
+        _, kwargs = fake_extraction_client.extract.call_args
+        assert kwargs["schema"] == {"type": "object"}
+        assert kwargs["extraction_config"] == {"k": "v"}
+        assert kwargs["system_prompt"].startswith("BASE")
+        assert "LP" in kwargs["system_prompt"]
+
+    @pytest.mark.parametrize(
+        ("payload", "expected_status"),
+        [
+            (
+                {"file_name": "f", "layout_name": "l"},
+                422,
+            ),  # missing thread_id - FastAPI validation
+            (
+                {"thread_id": "t"},
+                422,
+            ),  # missing file_ref and layout/document - FastAPI validation
+            (
+                {"thread_id": "t", "file_name": "f"},
+                400,
+            ),  # missing layout/document - custom validation
+            (
+                {"thread_id": "t", "file_name": "f", "layout_name": "l"},
+                400,
+            ),  # missing dm name - custom validation
+            (
+                {
+                    "thread_id": "t",
+                    "file_name": "f",
+                    "layout_name": "l",
+                    "data_model_name": "dm",
+                    "document_layout": {"name": "a", "data_model_name": "b"},
+                },
+                400,
+            ),  # both provided - custom validation
+        ],
+    )
+    def test_extract_validation_errors(
+        self, client: TestClient, payload: dict, expected_status: int
+    ):
+        storage_instance = StorageService.get_instance()
+        # Minimal service wiring so dependency resolves; validation should trigger before usage
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+        fake_integration = Mock()
+        fake_integration.endpoint = "http://test.com"
+        fake_api_key = Mock()
+        fake_api_key.get_secret_value.return_value = "test-key"
+        fake_integration.api_key = fake_api_key
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(return_value=fake_integration),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json=payload,
+            )
+
+        assert resp.status_code == expected_status
+        err = resp.json()["error"]
+
+        # All validation errors use the custom ErrorResponse format with an error code
+        if expected_status == 422:
+            assert err["code"] == ErrorCode.UNPROCESSABLE_ENTITY.value.code
+        else:
+            assert err["code"] == ErrorCode.BAD_REQUEST.value.code
+
+    def test_extract_data_model_not_found(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+        thread = SimpleNamespace(id="t1")
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=SimpleNamespace(file_id="f")),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=None,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json={
+                    "thread_id": "t1",
+                    "file_name": "r1",
+                    "data_model_name": "missing",
+                    "layout_name": "l1",
+                },
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+
+    def test_extract_layout_not_found(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+        thread = SimpleNamespace(id="t1")
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=SimpleNamespace(file_id="f")),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=SimpleNamespace(name="dm", prompt=None),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=None,
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json={
+                    "thread_id": "t1",
+                    "file_name": "r1",
+                    "data_model_name": "dm",
+                    "layout_name": "l1",
+                },
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+
+    def test_extract_layout_missing_schema(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+        thread = SimpleNamespace(id="t1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(
+            return_value=[SimpleNamespace(file_id="f")]
+        )
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"x")
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.upload.return_value = "doc"
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=SimpleNamespace(file_id="f")),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=SimpleNamespace(name="dm", prompt=None),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=SimpleNamespace(
+                    extraction_schema=None,
+                    system_prompt=None,
+                    extraction_config=None,
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto",
+                        api_key=SecretString("k"),
+                    )
+                ),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json={
+                    "thread_id": "t1",
+                    "file_name": "r1",
+                    "data_model_name": "dm",
+                    "layout_name": "l1",
+                },
+            )
+
+        assert resp.status_code == 500
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.UNEXPECTED.value.code
+        assert "no extraction schema" in err["message"].lower()
+
+    @pytest.mark.parametrize(
+        ("raised", "expected_code", "expected_message_substr"),
+        [
+            (UploadForbiddenError("forbidden"), ErrorCode.UNAUTHORIZED, "couldn't connect"),
+            (UploadMissingPresignedUrlError("no url"), ErrorCode.UNEXPECTED, "upload failed"),
+            (UploadMissingFileIdError("no file id"), ErrorCode.UNEXPECTED, "upload failed"),
+        ],
+    )
+    def test_extract_upload_errors_map(
+        self,
+        client: TestClient,
+        raised: Exception,
+        expected_code: ErrorCode,
+        expected_message_substr: str,
+    ):
+        storage_instance = StorageService.get_instance()
+
+        thread = SimpleNamespace(id="t1")
+        stored = SimpleNamespace(file_id="f1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"b")
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.upload.side_effect = raised
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=SimpleNamespace(name="dm", prompt=None),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=SimpleNamespace(
+                    extraction_schema={},
+                    system_prompt=None,
+                    extraction_config=None,
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json={
+                    "thread_id": "t1",
+                    "file_name": "r1",
+                    "data_model_name": "dm",
+                    "layout_name": "l1",
+                },
+            )
+
+        err = resp.json()["error"]
+        assert err["code"] == expected_code.value.code
+        assert expected_message_substr in err["message"].lower()
+
     @pytest.mark.parametrize(
         ("raised", "expected_code", "expected_message_substr"),
         [
             (
-                Exception("Extract job failed: segmentation error"),
+                ExtractFailedError("extract failed"),
                 ErrorCode.UNPROCESSABLE_ENTITY,
-                "couldn't process",
+                "document extraction failed",
+            ),
+            (Exception("network"), ErrorCode.UNEXPECTED, "something went wrong"),
+        ],
+    )
+    def test_extract_job_errors_map(
+        self,
+        client: TestClient,
+        raised: Exception,
+        expected_code: ErrorCode,
+        expected_message_substr: str,
+    ):
+        storage_instance = StorageService.get_instance()
+
+        thread = SimpleNamespace(id="t1")
+        stored = SimpleNamespace(file_id="f1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"b")
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.upload.return_value = "doc"
+        fake_extraction_client.extract.side_effect = raised
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=SimpleNamespace(name="dm", prompt=None),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=SimpleNamespace(
+                    extraction_schema={},
+                    system_prompt=None,
+                    extraction_config=None,
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json={
+                    "thread_id": "t1",
+                    "file_name": "r1",
+                    "data_model_name": "dm",
+                    "layout_name": "l1",
+                },
+            )
+
+        err = resp.json()["error"]
+        assert err["code"] == expected_code.value.code
+        assert expected_message_substr in err["message"].lower()
+
+    @pytest.mark.parametrize(
+        ("raised", "expected_code", "expected_message_substr"),
+        [
+            (
+                ExtractFailedError("Extract job failed: segmentation error"),
+                ErrorCode.UNPROCESSABLE_ENTITY,
+                "document extraction failed",
             ),
             (
                 Exception("Unknown job status: TIMEOUT"),
                 ErrorCode.UNEXPECTED,
-                "unexpected response",
+                "something went wrong while processing",
             ),
             (
                 Exception("Network down"),
                 ErrorCode.UNEXPECTED,
-                "something went wrong",
+                "something went wrong while processing",
             ),
         ],
     )

@@ -6,6 +6,8 @@ from typing import Any
 from sema4ai_docint import normalize_name
 from sema4ai_docint.models import DocumentLayout
 
+from agent_platform.core.document_intelligence.document_layout import DocumentLayoutBridge
+
 
 @dataclass(frozen=True)
 class TranslationRulePayload:
@@ -46,11 +48,9 @@ class TranslationRulePayload:
 
 
 @dataclass(frozen=True)
-class UpsertDocumentLayoutPayload:
-    """Payload matching the OpenAPI reference for the Layout object.
-
-    Field names use the reference spec (camelCase) but are normalized here to
-    snake_case and converted to the underlying `DocumentLayout` model as needed.
+class DocumentLayoutPayload:
+    """Payload matching the OpenAPI reference for the Layout object except our fields
+    will use snake_case.
     """
 
     name: str
@@ -65,23 +65,22 @@ class UpsertDocumentLayoutPayload:
     updated_at: str | None = None
 
     @classmethod
-    def model_validate(cls, data: Any) -> UpsertDocumentLayoutPayload:
+    def model_validate(cls, data: Any) -> DocumentLayoutPayload:
         # Defensive copy
         if isinstance(data, dict):
             obj = dict(data)
         else:
             obj = dict(getattr(data, "__dict__", {}))
 
-        # Accept both camelCase (spec) and snake_case (internal) keys
         name = normalize_name(str(obj.get("name")))
-        data_model_name = normalize_name(str(obj.get("dataModelName", obj.get("data_model_name"))))
-        extraction_schema = obj.get("extractionSchema", obj.get("extraction_schema"))
-        translation_schema_in = obj.get("translationSchema", obj.get("translation_schema"))
+        data_model_name = normalize_name(str(obj.get("data_model_name")))
+        extraction_schema = obj.get("extraction_schema")
+        translation_schema_in = obj.get("translation_schema")
         summary = obj.get("summary")
-        extraction_config = obj.get("extractionConfig", obj.get("extraction_config"))
-        prompt = obj.get("prompt", obj.get("system_prompt"))
-        created_at = obj.get("createdAt", obj.get("created_at"))
-        updated_at = obj.get("updatedAt", obj.get("updated_at"))
+        extraction_config = obj.get("extraction_config")
+        prompt = obj.get("prompt")
+        created_at = obj.get("created_at")
+        updated_at = obj.get("updated_at")
 
         # Normalize translation rules
         rules: list[TranslationRulePayload] | None = None
@@ -118,4 +117,21 @@ class UpsertDocumentLayoutPayload:
             summary=self.summary,
             extraction_config=self.extraction_config,
             system_prompt=self.prompt,
+        )
+
+    def to_document_layout_bridge(self) -> DocumentLayoutBridge:
+        return DocumentLayoutBridge.model_validate(
+            {
+                "name": self.name,
+                "data_model": self.data_model_name,
+                "extraction_schema": self.extraction_schema,
+                "translation_schema": [rule.to_compact_dict() for rule in self.translation_schema]
+                if self.translation_schema
+                else None,
+                "summary": self.summary,
+                "extraction_config": self.extraction_config,
+                "system_prompt": self.prompt,
+                "created_at": self.created_at,
+                "updated_at": self.updated_at,
+            }
         )

@@ -4,6 +4,7 @@ from typing import Any, NoReturn
 from fastapi import APIRouter, UploadFile
 from sema4ai.data import DataSource
 from sema4ai_docint.extraction.reducto.exceptions import (
+    ExtractFailedError,
     UploadForbiddenError,
     UploadMissingFileIdError,
     UploadMissingPresignedUrlError,
@@ -34,11 +35,15 @@ from agent_platform.core.document_intelligence.document_layout import (
 )
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.core.files.files import UploadedFile
 from agent_platform.core.payloads import (
+    DocumentLayoutPayload,
     UpsertDocumentIntelligenceConfigPayload,
-    UpsertDocumentLayoutPayload,
 )
-from agent_platform.core.payloads.document_intelligence import GenerateLayoutResponsePayload
+from agent_platform.core.payloads.document_intelligence import (
+    ExtractDocumentPayload,
+    GenerateLayoutResponsePayload,
+)
 from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
@@ -124,10 +129,7 @@ def _map_reducto_typed_error(
             file_id=getattr(uploaded_file, "file_id", None),
         )
         error_code = ErrorCode.UNAUTHORIZED
-        public_message = (
-            "We couldn't connect to the document service. "
-            "Check your credentials or contact support."
-        )
+        public_message = "We couldn't connect to the document service. Check your credentials."
 
     elif isinstance(error, UploadPresignRequestError):
         status_code = getattr(error, "status_code", None)
@@ -141,10 +143,7 @@ def _map_reducto_typed_error(
                 file_id=getattr(uploaded_file, "file_id", None),
             )
             error_code = ErrorCode.UNAUTHORIZED
-            public_message = (
-                "We couldn't connect to the document service. "
-                "Check your credentials or contact support."
-            )
+            public_message = "We couldn't connect to the document service. Check your credentials."
         else:
             logger.warning(
                 "Reducto upload presign request failed",
@@ -155,9 +154,7 @@ def _map_reducto_typed_error(
                 file_id=getattr(uploaded_file, "file_id", None),
             )
             error_code = ErrorCode.UNEXPECTED
-            public_message = (
-                "Backend upload failed unexpectedly. Please try again or contact support."
-            )
+            public_message = "Backend upload failed unexpectedly."
 
     elif isinstance(error, UploadMissingPresignedUrlError | UploadMissingFileIdError):
         logger.warning(
@@ -168,7 +165,7 @@ def _map_reducto_typed_error(
             file_id=getattr(uploaded_file, "file_id", None),
         )
         error_code = ErrorCode.UNEXPECTED
-        public_message = "Backend upload failed unexpectedly. Please try again or contact support."
+        public_message = "Backend upload failed unexpectedly."
 
     elif isinstance(error, UploadPutError):
         status_code = getattr(error, "status_code", None)
@@ -182,13 +179,22 @@ def _map_reducto_typed_error(
         )
         if status_code in (401, 403):
             error_code = ErrorCode.UNAUTHORIZED
-            public_message = (
-                "We couldn't connect to the document service. "
-                "Check your credentials or contact support."
-            )
+            public_message = "We couldn't connect to the document service. Check your credentials."
         else:
             error_code = ErrorCode.UNEXPECTED
-            public_message = "Failed to upload content. Please try again or contact support."
+            public_message = "Failed to upload content."
+
+    elif isinstance(error, ExtractFailedError):
+        logger.warning(
+            "Reducto extract failed",
+            error=message,
+            reason=getattr(error, "reason", None),
+            user_id=user_id,
+            thread_id=thread_id,
+            file_id=getattr(uploaded_file, "file_id", None),
+        )
+        error_code = ErrorCode.UNPROCESSABLE_ENTITY
+        public_message = "Document extraction failed."
 
     if error_code is None or public_message is None:
         return None
@@ -259,37 +265,6 @@ def _raise_mapped_reducto_error(
     if typed_result is not None:
         error_code, public_message = typed_result
         raise PlatformHTTPError(error_code, public_message) from error
-
-    if message.startswith("Extract job failed:"):
-        reason = message.split(":", 1)[1].strip() if ":" in message else message
-        logger.warning(
-            "Reducto parse job failed",
-            reason=reason,
-            user_id=user_id,
-            thread_id=thread_id,
-            file_id=getattr(uploaded_file, "file_id", None),
-        )
-        raise PlatformHTTPError(
-            ErrorCode.UNPROCESSABLE_ENTITY,
-            "We couldn't process this file. Please try again or contact support.",
-        ) from error
-
-    if message.startswith("Unknown job status:"):
-        status_str = message.split(":", 1)[1].strip() if ":" in message else "unknown"
-        logger.warning(
-            "Reducto returned unknown job status",
-            status=status_str,
-            user_id=user_id,
-            thread_id=thread_id,
-            file_id=getattr(uploaded_file, "file_id", None),
-        )
-        raise PlatformHTTPError(
-            ErrorCode.UNEXPECTED,
-            (
-                "The document service returned an unexpected response. "
-                "Please try again or contact support."
-            ),
-        ) from error
 
     logger.warning(
         "Unexpected error during document parse",
@@ -386,12 +361,14 @@ async def create_data_model(payload: CreateDataModelRequest, docint_ds: DocIntDa
             raise PlatformHTTPError(ErrorCode.UNEXPECTED, "Failed to load created data model")
 
         # Create a default layout for the data model
-        upsert_layout_payload = {
-            "data_model_name": created.name,
-            "name": f"default_{created.name}",
-            "summary": f"Default layout for data model {created.name}",
-            "extraction_schema": created.model_schema,
-        }
+        upsert_layout_payload = DocumentLayoutPayload.model_validate(
+            {
+                "data_model_name": created.name,
+                "name": f"default_{created.name}",
+                "summary": f"Default layout for data model {created.name}",
+                "extraction_schema": created.model_schema,
+            }
+        )
         await upsert_layout(
             payload=upsert_layout_payload,
             docint_ds=docint_ds,
@@ -484,10 +461,7 @@ async def get_all_layouts(docint_ds: DocIntDatasourceDependency) -> list[Documen
 
 @router.post("/layouts")
 async def upsert_layout(
-    # Payload is a dict because we use dataclasses and want to allow camelCase
-    # in the payload and this is the only way to do that via FastAPI without a contrived
-    # dependency work around.
-    payload: dict,
+    payload: DocumentLayoutPayload,
     docint_ds: DocIntDatasourceDependency,
 ):
     """Upsert a layout into the Document Intelligence database.
@@ -498,7 +472,7 @@ async def upsert_layout(
     - Otherwise, insert a new layout.
     """
     try:
-        normalized = UpsertDocumentLayoutPayload.model_validate(payload)
+        normalized = DocumentLayoutPayload.model_validate(payload)
 
         # Wrap translation schema (array of rules) into DI model-compatible dict
         translation_schema_wrapped = None
@@ -754,3 +728,156 @@ async def parse_document(  # noqa: PLR0913
     if new_file:
         result["uploaded_file"] = uploaded_file
     return result
+
+
+async def _resolve_extract_request(
+    payload: ExtractDocumentPayload,
+    docint_ds: DocIntDatasourceDependency,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    user: AuthedUser,
+) -> tuple[str, UploadedFile, DocumentLayout, str]:
+    """Handles the extraction payload.
+
+    If the payload is valid, the returned values will be:
+    - thread_id: The thread ID from the payload.
+    - uploaded_file: The uploaded file from the payload.
+    - document_layout: The document layout from the payload.
+    - data_model_prompt: The data model prompt from the payload.
+    """
+    valid_payload = ExtractDocumentPayload.model_validate(payload)
+
+    thread_id = valid_payload.thread_id
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
+    file, _ = await _get_or_upload_file(
+        valid_payload.file_name,
+        thread=thread,
+        user_id=user.user_id,
+        storage=storage,
+        file_manager=file_manager,
+    )
+
+    # Get data model prompt and document layout
+    data_model_prompt: str = ""
+    document_layout: DocumentLayout | None = None
+
+    data_model: DataModel | None = None
+    if valid_payload.data_model_name:
+        data_model = DataModel.find_by_name(docint_ds, valid_payload.data_model_name)
+        if not data_model:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"Data model {valid_payload.data_model_name} not found",
+            )
+        data_model_prompt = data_model.prompt or ""
+
+    if valid_payload.layout_name:
+        if not data_model:
+            # This check will likely never happen as we validate the payload before
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="data_model_name is required when layout_name is provided",
+            )
+        document_layout = DocumentLayout.find_by_name(
+            docint_ds, data_model.name, valid_payload.layout_name
+        )
+        if not document_layout:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"Layout {valid_payload.layout_name} not found",
+            )
+    else:
+        # We must have been given a document layout based on payload's initial validation
+        if valid_payload.document_layout is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="document_layout is required when layout_name is not provided",
+            )
+        document_layout = valid_payload.document_layout.to_document_layout()
+
+    return thread_id, file, document_layout, data_model_prompt
+
+
+async def _upload_and_extract(  # noqa: PLR0913
+    uploaded_file: UploadedFile,
+    user_id: str,
+    thread_id: str,
+    document_layout: DocumentLayout,
+    file_manager: FileManagerDependency,
+    extraction_client: ExtractionClientDependency,
+    data_model_prompt: str | None = None,
+):
+    """Upload a file and extract it using the Document Intelligence database."""
+    try:
+        file_contents = await file_manager.read_file_contents(uploaded_file.file_id, user_id)
+        reducto_doc_id = extraction_client.upload(file_contents, content_length=len(file_contents))
+
+        # Ready extraction schema
+        schema = document_layout.extraction_schema
+        if schema is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNEXPECTED,
+                message="Document layout has no extraction schema",
+            )
+        schema = dict(schema)
+
+        # Figure out prompt
+        prompt = extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT
+        if data_model_prompt:
+            prompt = f"{prompt}\n\n{data_model_prompt}"
+        if document_layout.system_prompt:
+            prompt = f"{prompt}\n\n{document_layout.system_prompt}"
+
+        logger.info(
+            f"Extracting document {reducto_doc_id} with schema {schema} and prompt {prompt}"
+        )
+        return extraction_client.extract(
+            reducto_doc_id,
+            schema=schema,
+            system_prompt=prompt,
+            extraction_config=document_layout.extraction_config,
+        )
+    except PlatformHTTPError:
+        raise
+    except Exception as e:
+        _raise_mapped_reducto_error(
+            e,
+            uploaded_file=uploaded_file,
+            user_id=user_id,
+            thread_id=thread_id,
+        )
+
+
+@router.post("/documents/extract")
+async def extract_document(  # noqa: PLR0913
+    user: AuthedUser,
+    payload: ExtractDocumentPayload,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    extraction_client: ExtractionClientDependency,
+    docint_ds: DocIntDatasourceDependency,
+):
+    """Extract from an existing document using the Document Intelligence database."""
+    # This endpoint deviates from other endpoints because it uses a JSON payload so it
+    # cannot accept a multipart/form-data request that includes a file.
+
+    thread_id, file, document_layout, data_model_prompt = await _resolve_extract_request(
+        payload=payload,
+        docint_ds=docint_ds,
+        storage=storage,
+        file_manager=file_manager,
+        user=user,
+    )
+
+    extract_response = await _upload_and_extract(
+        uploaded_file=file,
+        user_id=user.user_id,
+        thread_id=thread_id,
+        document_layout=document_layout,
+        file_manager=file_manager,
+        extraction_client=extraction_client,
+        data_model_prompt=data_model_prompt,
+    )
+
+    extract_result = extract_response.result
+    return extract_result[0]
