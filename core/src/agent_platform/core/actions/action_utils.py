@@ -371,8 +371,8 @@ def _build_post_async_function(
                 base_url = action_url.split("/api/actions/")[0]
 
                 # Start polling for action server status
-                # Default: 20 minutes with 10 second intervals
-                max_retries = int(os.getenv("ACTIONS_ASYNC_MAX_RETRIES", "120"))
+                # Default: 60 minutes with 10 second intervals
+                max_retries = int(os.getenv("ACTIONS_ASYNC_MAX_RETRIES", "600"))
                 # Default: 10 seconds between retries
                 retry_interval = float(os.getenv("ACTIONS_ASYNC_RETRY_INTERVAL", "10"))
                 retries = 0
