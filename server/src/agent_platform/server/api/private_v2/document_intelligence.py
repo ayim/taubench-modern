@@ -550,6 +550,31 @@ async def _generate_translation_rules(
     return Mapping(rules=[MappingRow(**rule) for rule in mapping_rules])
 
 
+async def _generate_layout_name(
+    file_name: str,
+    agent_server_client: AgentServerClientDependency,
+):
+    """Generate a layout name for a document."""
+
+    def _sync_generate_layout_name(file_ref: str, client: AgentServerClientDependency):
+        images = [img.get("value") for img in client._file_to_images(file_ref)]
+        images = [img for img in images if img is not None]
+        if len(images) == 0:
+            raise ValueError("No images found in the document")
+
+        layout_name = client.generate_document_layout_name(images, file_ref)
+        return normalize_name(layout_name)
+
+    try:
+        return await run_in_threadpool(_sync_generate_layout_name, file_name, agent_server_client)
+    except ValueError as e:
+        # Raised if the document is not an image, so the message should be end-user friendly
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=f"Failed to generate layout name: {e!s}.",
+        ) from e
+
+
 @router.post("/layouts/generate")
 async def generate_layout_from_file(  # noqa: PLR0913
     file: UploadFile | str,  # a direct upload or a file ref
@@ -597,29 +622,7 @@ async def generate_layout_from_file(  # noqa: PLR0913
         ) from e
 
     # Generate Layout name
-    try:
-        images = [
-            img.get("value") for img in agent_server_client._file_to_images(uploaded_file.file_ref)
-        ]
-        images = [img for img in images if img is not None]
-        assert len(images) > 0, "No images found in the document"
-        layout_name = await run_in_threadpool(
-            agent_server_client.generate_document_layout_name,
-            images,
-            uploaded_file.file_ref,
-        )
-        layout_name = normalize_name(layout_name)
-    except AssertionError as e:
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED,
-            message=f"Failed to generate layout name: {e!s}",
-        ) from e
-    except ValueError as e:
-        # Raised if the document is not an image, so the message should be end-user friendly
-        raise PlatformHTTPError(
-            error_code=ErrorCode.BAD_REQUEST,
-            message=f"Failed to generate layout name: {e!s}.",
-        ) from e
+    layout_name = await _generate_layout_name(uploaded_file.file_ref, agent_server_client)
 
     # Generate summary for the layout
     summary = await run_in_threadpool(
