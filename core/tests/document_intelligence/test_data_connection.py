@@ -43,7 +43,7 @@ class TestDataConnection:
         assert dump == expected
 
     def test_missing_connection_details(self):
-        """Test that model_validate works for Postgres data connections."""
+        """Test that model_validate identifies missing, required attributes"""
         data = {
             "id": "123",
             "name": "test",
@@ -64,7 +64,7 @@ class TestDataConnection:
         assert "host" in exc_info.value.detail
 
     def test_invalid_engine(self):
-        """Test that model_validate works for Postgres data connections."""
+        """Test that model_validate errors on an invalid engine"""
         data = {
             "id": "123",
             "name": "test",
