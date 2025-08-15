@@ -463,6 +463,14 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                 else server_context.user_context.user.sub,
             )
             span.set_attribute("langsmith.metadata.agent_name", agent.name)
+            span.set_attribute(
+                "langsmith.metadata.agent_architecture_name",
+                agent.agent_architecture.name,
+            )
+            span.set_attribute(
+                "langsmith.metadata.agent_architecture_version",
+                agent.agent_architecture.version,
+            )
 
             # 2. Upsert thread and messages
             with server_context.start_span("upsert_thread_and_messages") as upsert_span:

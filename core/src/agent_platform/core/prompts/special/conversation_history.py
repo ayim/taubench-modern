@@ -13,7 +13,7 @@ class ConversationHistoryParams:
     """Parameters for the conversation history special message."""
 
     maximum_number_of_turns: int = field(
-        default=5,
+        default=20,
         metadata={
             "description": ("The maximum number of turns to include in the conversation history."),
         },
