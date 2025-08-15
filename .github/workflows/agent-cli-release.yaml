@@ -57,10 +57,6 @@ jobs:
           path: packages/golang-agent-cli/build/windows64/
       - uses: actions/download-artifact@v4
         with:
-          name: agent-cli-macos64
-          path: packages/golang-agent-cli/build/macos64/
-      - uses: actions/download-artifact@v4
-        with:
           name: agent-cli-macos-arm64
           path: packages/golang-agent-cli/build/macos-arm64/
       - uses: actions/download-artifact@v4
