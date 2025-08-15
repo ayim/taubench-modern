@@ -132,7 +132,7 @@ run-server:  ## Run the agent server
 	@echo "Running server from agent_platform.server..."
 	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"
 	@echo ""
-	PORT=$${PORT:-8000} uv run -m agent_platform.server --port $$PORT
+	uv run -m agent_platform.server --port $${PORT:-8000}
 
 run-server-exe:  ## Run the agent server executable
 	@if [ ! -f dist/$(EXE_NAME) ]; then \
