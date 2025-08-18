@@ -140,7 +140,11 @@ async def test_work_item_judge_with_recorded_threads(
     resource_file: str,
     resources_dir: Path,
 ):
-    """Test the work item judge using pre-recorded conversation threads."""
+    """Test the work item judge using pre-recorded conversation threads.
+    These are sanity checks for the work-items judge to verify that it is capable of
+    handling basic cases. A thorough test-suite for work-items is available in the Quality
+    test harness.
+    """
 
     from agent_platform.server.storage import StorageService
     from agent_platform.server.work_items.background_worker import _validate_success
