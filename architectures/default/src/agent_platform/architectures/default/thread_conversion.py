@@ -16,7 +16,22 @@ from agent_platform.core.thread.content.thought import ThreadThoughtContent
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 
 
+async def _get_file_name_and_path(
+    kernel: Kernel,
+    attachment_content: ThreadAttachmentContent,
+) -> tuple[str | None, str | None]:
+    """Gets the name and ref of a file from an attachment content."""
+    if not attachment_content.uri:
+        return None, None
+    file_id = attachment_content.uri.replace("agent-server-file://", "")
+    file_details = await kernel.files.get_file_by_id(file_id)
+    if not file_details:
+        return None, None
+    return file_details.file_ref, file_details.file_path
+
+
 async def _user_thread_contents_to_prompt_contents(
+    kernel: Kernel,
     contents: list[AnyThreadMessageContent],
 ) -> list[UserPromptMessageContent]:
     """Converts a thread content to a prompt content."""
@@ -31,11 +46,13 @@ async def _user_thread_contents_to_prompt_contents(
                     ),
                 )
             case ThreadAttachmentContent() as attachment_content:
-                prompt_contents.append(
-                    PromptTextContent(
-                        text=(f"Uploaded [{attachment_content.name}]({attachment_content.uri})."),
-                    ),
-                )
+                file_name, file_path = await _get_file_name_and_path(kernel, attachment_content)
+                if file_name and file_path:
+                    prompt_contents.append(
+                        PromptTextContent(
+                            text=(f"Uploaded [{file_name}]({file_path})."),
+                        ),
+                    )
             # TODO: multi-modal content/docs
             case _:
                 raise ValueError(f"Unsupported thread content kind: {content.kind}")
@@ -119,6 +136,7 @@ async def thread_messages_to_prompt_messages(
                 prompt_messages.append(
                     PromptUserMessage(
                         content=await _user_thread_contents_to_prompt_contents(
+                            kernel,
                             message.content,
                         ),
                     ),

@@ -1,3 +1,4 @@
+from agent_platform.core.files.files import UploadedFile
 from agent_platform.core.kernel import StorageInterface
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.storage import ScopedStorage
@@ -43,3 +44,7 @@ class AgentServerStorageInterface(StorageInterface, UsesKernelMixin):
     async def create_otel_artifact(self, artifact: OTelArtifact) -> None:
         """Creates a new OTel artifact."""
         await self._internal_storage.create_otel_artifact(artifact)
+
+    async def get_file_by_id(self, file_id: str) -> UploadedFile | None:
+        """Gets a file by its ID."""
+        return await self._internal_storage.get_file_by_id(file_id, self.kernel.user.user_id)

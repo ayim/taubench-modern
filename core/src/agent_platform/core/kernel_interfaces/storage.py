@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from agent_platform.core.files import UploadedFile
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import ThreadMessage
@@ -41,4 +42,9 @@ class StorageInterface(ABC):
     @abstractmethod
     async def create_otel_artifact(self, artifact: OTelArtifact) -> None:
         """Creates a new OTel artifact."""
+        pass
+
+    @abstractmethod
+    async def get_file_by_id(self, file_id: str) -> UploadedFile | None:
+        """Gets a file by its ID."""
         pass
