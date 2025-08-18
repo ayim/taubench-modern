@@ -9,6 +9,7 @@
 # 3. Accessing nested attributes like content[0].content[0].text triggers type errors
 # These ignores don't affect runtime behavior, they just silence the type checker.
 
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,6 +17,7 @@ import pytest
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
 from agent_platform.core.prompts.finalizers.truncation_finalizer import (
     TruncationFinalizer,
+    TruncationItem,
 )
 from agent_platform.core.prompts.messages import (
     PromptAgentMessage,
@@ -427,3 +429,55 @@ def test_truncate_content_method(finalizer):
 
     # Verify the token count was updated in the item
     assert truncatable_content[0]["tokens"] < 1500
+
+
+def test_proportional_reduction_no_overshoot(monkeypatch):
+    """Ensure proportional reduction uses total reducible tokens and does not over-truncate.
+
+    Scenario mirrors the logs case: one very large tool result and two tiny ones below the floor.
+    We request a modest reduction and expect the large item to be reduced by approximately that
+    amount, not driven near the floor.
+    """
+    finalizer = TruncationFinalizer()
+
+    # Construct truncatable content: one huge item and two tiny items (under floor)
+    truncatable_content: list[TruncationItem] = cast(
+        list[TruncationItem],
+        [
+            {
+                "tool_name": "list_pull_requests",
+                "tokens": 98_660,
+                "text_contents": [PromptTextContent(text="x")],
+            },
+            {
+                "tool_name": "ready_to_reply_to_user",
+                "tokens": 7,
+                "text_contents": [PromptTextContent(text="y")],
+            },
+            {
+                "tool_name": "ready_to_reply_to_user",
+                "tokens": 7,
+                "text_contents": [PromptTextContent(text="z")],
+            },
+        ],
+    )
+
+    # Make truncation deterministic: set item tokens directly to the computed target
+    def fake_truncate_item_to_target(item, target_token_count):  # type: ignore[no-redef]
+        item["tokens"] = target_token_count
+
+    monkeypatch.setattr(finalizer, "_truncate_item_to_target", fake_truncate_item_to_target)
+
+    tokens_to_reduce = 11_545
+    remaining = finalizer._truncate_content(truncatable_content, tokens_to_reduce)
+
+    # No remaining because requested reduction is well within total reducible tokens
+    assert remaining == 0
+
+    # Only the large item should be reduced, and by approximately the requested amount
+    assert truncatable_content[0]["tokens"] == 98_660 - 11_545
+    assert truncatable_content[0]["tokens"] > finalizer.truncation_token_floor
+
+    # Tiny items were already below the floor; they should remain unchanged
+    assert truncatable_content[1]["tokens"] == 7
+    assert truncatable_content[2]["tokens"] == 7

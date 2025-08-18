@@ -268,9 +268,11 @@ class TruncationFinalizer(BaseFinalizer):
             if reducible_tokens == 0:
                 continue
 
-            # Calculate this item's share of the reduction
-            reduction_ratio = reducible_tokens / actual_tokens_to_reduce
-            tokens_to_reduce_from_item = int(actual_tokens_to_reduce * reduction_ratio)
+            # Calculate this item's share of the reduction based on total reducible tokens
+            share_ratio = reducible_tokens / total_reducible_tokens
+            tokens_to_reduce_from_item = int(actual_tokens_to_reduce * share_ratio)
+            # Ensure we never try to reduce more than what's reducible for this item
+            tokens_to_reduce_from_item = min(tokens_to_reduce_from_item, reducible_tokens)
 
             if tokens_to_reduce_from_item <= 0:
                 continue

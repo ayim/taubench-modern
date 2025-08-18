@@ -361,6 +361,7 @@ async def test_prompt_finalize_with_truncation(mock_kernel, mock_platform):
     assert tool_result.tool_call_id == "call_weather_1"
 
     # The tool result should have been truncated
+    assert isinstance(tool_result.content, list)
     assert len(tool_result.content) == 1
     assert isinstance(tool_result.content[0], PromptTextContent)
     tool_result_text = tool_result.content[0].text
