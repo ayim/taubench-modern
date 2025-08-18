@@ -309,8 +309,9 @@ async def post_public_api_messages_simple(
         user=user,
         version="2.0.0",
     )
+    # refresh fresh thread with new messages
+    thread = await storage.get_thread(user_id=user.user_id, thread_id=cid)
     kernel = AgentServerKernel(server_context, thread, agent, active_run)
-    await runner.invoke(kernel)
 
     ca_invoke_task = create_task(runner.invoke(kernel))
 
