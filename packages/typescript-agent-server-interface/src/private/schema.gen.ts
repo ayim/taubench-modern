@@ -1050,6 +1050,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/documents/extract': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Extract Document
+     * @description Extract from an existing document using the Document Intelligence database.
+     */
+    post: operations['extract_document_document_intelligence_documents_extract_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/package/deploy/agent': {
     parameters: {
       query?: never;
@@ -2065,7 +2085,7 @@ export interface components {
       /**
        * Maximum Number Of Turns
        * @description The maximum number of turns to include in the conversation history.
-       * @default 5
+       * @default 20
        */
       maximum_number_of_turns: number;
       /**
@@ -2200,6 +2220,34 @@ export interface components {
        */
       callbacks?: components['schemas']['WorkItemCallback'][] | null;
     };
+    /** DataConnection */
+    DataConnection: {
+      /**
+       * Id
+       * @description The ID of the data connection
+       */
+      id: string;
+      /**
+       * Name
+       * @description The name of the data connection
+       */
+      name: string;
+      /** @description The engine of the data connection */
+      engine: components['schemas']['DataConnectionEngine'];
+      /**
+       * Configuration
+       * @description The configuration of the data connection
+       */
+      configuration: {
+        [key: string]: unknown;
+      };
+    };
+    /**
+     * DataConnectionEngine
+     * @description An engine for a data connection to the Document Intelligence Data Server
+     * @enum {string}
+     */
+    DataConnectionEngine: 'postgres';
     /** DataModelPayload */
     DataModelPayload: {
       /** Name */
@@ -2226,6 +2274,33 @@ export interface components {
       prompt?: string | null;
       /** Summary */
       summary?: string | null;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+    };
+    /** DocumentLayoutPayload */
+    DocumentLayoutPayload: {
+      /** Name */
+      name: string;
+      /** Data Model Name */
+      data_model_name: string;
+      /** Extraction Schema */
+      extraction_schema?: {
+        [key: string]: unknown;
+      } | null;
+      /** Translation Schema */
+      translation_schema?:
+        | components['schemas']['TranslationRulePayload'][]
+        | null;
+      /** Summary */
+      summary?: string | null;
+      /** Extraction Config */
+      extraction_config?: {
+        [key: string]: unknown;
+      } | null;
+      /** Prompt */
+      prompt?: string | null;
       /** Created At */
       created_at?: string | null;
       /** Updated At */
@@ -2263,6 +2338,20 @@ export interface components {
        */
       role: '$conversation-history' | '$documents' | '$memories';
       params?: components['schemas']['DocumentsParams'];
+    };
+    /** ExtractDocumentPayload */
+    ExtractDocumentPayload: {
+      /** Thread Id */
+      thread_id: string;
+      /** File Name */
+      file_name: string;
+      /** Data Model Name */
+      data_model_name?: string | null;
+      /** Data Model Prompt */
+      data_model_prompt?: string | null;
+      /** Layout Name */
+      layout_name?: string | null;
+      document_layout?: components['schemas']['DocumentLayoutPayload'] | null;
     };
     /** ForkThreadPayload */
     ForkThreadPayload: {
@@ -4106,6 +4195,21 @@ export interface components {
         | 'client-exec-tool'
         | 'client-info-tool';
     };
+    /** TranslationRulePayload */
+    TranslationRulePayload: {
+      /** Mode */
+      mode?: string | null;
+      /** Extras */
+      extras?: {
+        [key: string]: unknown;
+      } | null;
+      /** Source */
+      source?: string | null;
+      /** Target */
+      target?: string | null;
+      /** Transform */
+      transform?: string | null;
+    };
     /** UpdateDataModelRequest */
     UpdateDataModelRequest: {
       dataModel: components['schemas']['PartialDataModelPayload'];
@@ -4274,6 +4378,8 @@ export interface components {
       data_server: components['schemas']['_DataServerConfig'];
       /** Integrations */
       integrations?: components['schemas']['_IntegrationInput'][];
+      /** Data Connections */
+      data_connections?: components['schemas']['DataConnection'][];
     };
     /** UpsertPlatformConfigPayload */
     UpsertPlatformConfigPayload: {
@@ -6739,9 +6845,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
+        'application/json': components['schemas']['DocumentLayoutPayload'];
       };
     };
     responses: {
@@ -6850,6 +6954,39 @@ export interface operations {
     requestBody: {
       content: {
         'multipart/form-data': components['schemas']['Body_parse_document_document_intelligence_documents_parse_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  extract_document_document_intelligence_documents_extract_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ExtractDocumentPayload'];
       };
     };
     responses: {

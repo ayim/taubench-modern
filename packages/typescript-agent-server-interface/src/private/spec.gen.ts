@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.29',
+    version: '2.0.30',
   },
   paths: {
     '/api/v2/ok': {
@@ -3012,9 +3012,7 @@ export const spec = {
           content: {
             'application/json': {
               schema: {
-                additionalProperties: true,
-                type: 'object',
-                title: 'Payload',
+                $ref: '#/components/schemas/DocumentLayoutPayload',
               },
             },
           },
@@ -3197,6 +3195,46 @@ export const spec = {
               },
             },
           },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/documents/extract': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Extract Document',
+        description:
+          'Extract from an existing document using the Document Intelligence database.',
+        operationId:
+          'extract_document_document_intelligence_documents_extract_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ExtractDocumentPayload',
+              },
+            },
+          },
+          required: true,
         },
         responses: {
           '200': {
@@ -5653,7 +5691,7 @@ export const spec = {
             title: 'Maximum Number Of Turns',
             description:
               'The maximum number of turns to include in the conversation history.',
-            default: 5,
+            default: 20,
           },
           token_budget_as_percentage: {
             type: 'number',
@@ -5914,6 +5952,40 @@ export const spec = {
         required: ['agent_id'],
         title: 'CreateWorkItemPayload',
       },
+      DataConnection: {
+        properties: {
+          id: {
+            type: 'string',
+            title: 'Id',
+            description: 'The ID of the data connection',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the data connection',
+          },
+          engine: {
+            $ref: '#/components/schemas/DataConnectionEngine',
+            description: 'The engine of the data connection',
+          },
+          configuration: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Configuration',
+            description: 'The configuration of the data connection',
+          },
+        },
+        type: 'object',
+        required: ['id', 'name', 'engine', 'configuration'],
+        title: 'DataConnection',
+      },
+      DataConnectionEngine: {
+        type: 'string',
+        enum: ['postgres'],
+        title: 'DataConnectionEngine',
+        description:
+          'An engine for a data connection to the Document Intelligence Data Server',
+      },
       DataModelPayload: {
         properties: {
           name: {
@@ -6010,6 +6082,103 @@ export const spec = {
         required: ['name', 'description', 'schema'],
         title: 'DataModelPayload',
       },
+      DocumentLayoutPayload: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          data_model_name: {
+            type: 'string',
+            title: 'Data Model Name',
+          },
+          extraction_schema: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Extraction Schema',
+          },
+          translation_schema: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/TranslationRulePayload',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Translation Schema',
+          },
+          summary: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Summary',
+          },
+          extraction_config: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Extraction Config',
+          },
+          prompt: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Prompt',
+          },
+          created_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Created At',
+          },
+          updated_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Updated At',
+          },
+        },
+        type: 'object',
+        required: ['name', 'data_model_name'],
+        title: 'DocumentLayoutPayload',
+      },
       DocumentLayoutSummary: {
         properties: {
           name: {
@@ -6070,6 +6239,64 @@ export const spec = {
         type: 'object',
         required: ['role'],
         title: 'DocumentsSpecialMessage',
+      },
+      ExtractDocumentPayload: {
+        properties: {
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+          },
+          file_name: {
+            type: 'string',
+            title: 'File Name',
+          },
+          data_model_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Data Model Name',
+          },
+          data_model_prompt: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Data Model Prompt',
+          },
+          layout_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Layout Name',
+          },
+          document_layout: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/DocumentLayoutPayload',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: ['thread_id', 'file_name'],
+        title: 'ExtractDocumentPayload',
       },
       ForkThreadPayload: {
         properties: {
@@ -9131,6 +9358,68 @@ export const spec = {
         required: ['name', 'description', 'input_schema'],
         title: 'ToolDefinitionPayload',
       },
+      TranslationRulePayload: {
+        properties: {
+          mode: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Mode',
+          },
+          extras: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Extras',
+          },
+          source: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Source',
+          },
+          target: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Target',
+          },
+          transform: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Transform',
+          },
+        },
+        type: 'object',
+        title: 'TranslationRulePayload',
+      },
       UpdateDataModelRequest: {
         properties: {
           dataModel: {
@@ -9474,6 +9763,13 @@ export const spec = {
             },
             type: 'array',
             title: 'Integrations',
+          },
+          data_connections: {
+            items: {
+              $ref: '#/components/schemas/DataConnection',
+            },
+            type: 'array',
+            title: 'Data Connections',
           },
         },
         type: 'object',
