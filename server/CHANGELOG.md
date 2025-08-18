@@ -1,3 +1,18 @@
+# Sema4.ai Agent Server 2.0.30 (2025-08-18)
+
+- Agent Settings Support in Agent Spec [#613](https://github.com/Sema4AI/agent-platform/pull/613)
+- GPT-1159 Add ability to specify data_connections in DIv2 setup endpoint [#661](https://github.com/Sema4AI/agent-platform/pull/661) [#667](https://github.com/Sema4AI/agent-platform/pull/667)
+- Implement documents/extract endpoint [#658](https://github.com/Sema4AI/agent-platform/pull/658)
+- GPT-1169 Fix generate_layout_from_file endpoint by encapsulating layout name generation in a threadpool [#669](https://github.com/Sema4AI/agent-platform/pull/669)
+- GPT-1164 Increase the max tool duration from 20 mins to 60 mins [#671](https://github.com/Sema4AI/agent-platform/pull/671)
+- Bump default context; add arch to LS tracing [#672](https://github.com/Sema4AI/agent-platform/pull/672)
+  - Increases the default architeccture context window from 5 turns to 20 turns
+- In Public Agent API, the /stream endpoint does not trigger any processing flow. [#676](https://github.com/Sema4AI/agent-platform/pull/676)
+- Zendesk 7330. In Public Agent API, the /stream endpoint does not trigger any processing flow. [#676](https://github.com/Sema4AI/agent-platform/pull/676)
+- Fixes to truncation finalizer [#673](https://github.com/Sema4AI/agent-platform/pull/673)
+- [GPT-1170] File Handling Fix [#678](https://github.com/Sema4AI/agent-platform/pull/678)
+- fix: incoming_events.wait_for_event predicate is a just dict [#679](https://github.com/Sema4AI/agent-platform/pull/679)
+
 # Sema4.ai Agent Server 2.0.29 (2025-08-14)
 
 - SAI SDK first iteration [#635](https://github.com/Sema4AI/agent-platform/pull/635)
