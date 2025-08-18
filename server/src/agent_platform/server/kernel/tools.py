@@ -3,7 +3,6 @@ import json
 from collections import Counter
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
-from typing import cast
 from uuid import uuid4
 
 import structlog
@@ -17,7 +16,6 @@ from agent_platform.core.kernel_interfaces.thread_state import (
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.streaming.delta import StreamingDeltaRequestToolExecution
-from agent_platform.core.streaming.incoming import IncomingDeltaClientToolResult
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 from agent_platform.server.kernel.tools_caching import (
@@ -146,15 +144,17 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 # Use the new wait_for_event method with a predicate
                 reply = await self.kernel.incoming_events.wait_for_event(
                     lambda event: (
-                        isinstance(event, IncomingDeltaClientToolResult)
-                        and event.tool_call_id == tool_use.tool_call_id
+                        isinstance(event, dict)
+                        and event.get("event_type") == "client_tool_result"
+                        and event.get("tool_call_id") == tool_use.tool_call_id
                     )
                 )
-                # Cast to the specific type since we know from the predicate it's
-                # IncomingDeltaClientToolResult
-                reply = cast(IncomingDeltaClientToolResult, reply)
-                output_raw = reply.result.get("output")
-                error = reply.result.get("error")
+                if isinstance(reply, dict):
+                    output_raw = reply.get("result", {}).get("output")
+                    error = reply.get("result", {}).get("error")
+                else:
+                    output_raw = None
+                    error = "Tool reply was not a dictionary"
             except asyncio.CancelledError:
                 # Handle graceful cancellation (e.g., websocket disconnect)
                 output_raw = None

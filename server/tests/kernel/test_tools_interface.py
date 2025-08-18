@@ -1,6 +1,7 @@
 """Tests for the AgentServerToolsInterface class."""
 
 import asyncio
+from dataclasses import asdict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -688,7 +689,7 @@ async def test_client_exec_tool_success():
         result={"output": "Command executed successfully", "error": None},
     )
 
-    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=mock_client_result)
+    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=asdict(mock_client_result))
 
     interface.attach_kernel(mock_kernel)
 
@@ -716,7 +717,7 @@ async def test_client_exec_tool_success():
     wait_predicate = mock_kernel.incoming_events.wait_for_event.call_args[0][0]
 
     # Test the predicate function
-    assert wait_predicate(mock_client_result) is True
+    assert wait_predicate(asdict(mock_client_result)) is True
 
     # Test predicate with wrong tool_call_id
     wrong_result = IncomingDeltaClientToolResult(
@@ -724,7 +725,7 @@ async def test_client_exec_tool_success():
         tool_call_id="wrong_id",
         result={"output": "test", "error": None},
     )
-    assert wait_predicate(wrong_result) is False
+    assert wait_predicate(asdict(wrong_result)) is False
 
     # Verify the result
     assert result.error is None
@@ -767,7 +768,7 @@ async def test_client_exec_tool_with_error():
         result={"output": None, "error": "Command failed: permission denied"},
     )
 
-    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=mock_client_result)
+    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=asdict(mock_client_result))
 
     interface.attach_kernel(mock_kernel)
 
@@ -933,7 +934,7 @@ async def test_execute_pending_tool_calls_with_client_tools():
         result={"output": "Executed successfully", "error": None},
     )
 
-    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=mock_client_result)
+    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=asdict(mock_client_result))
 
     interface.attach_kernel(mock_kernel)
 
