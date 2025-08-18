@@ -161,6 +161,65 @@ class TestDocumentIntelligenceEndpoints:
         set_integration.assert_awaited()
         build_ds.assert_awaited()
 
+    async def test_delete_di_when_not_configured(self, client: TestClient):
+        """
+        DELETE /document-intelligence should drop the mindsdb database and clear the
+        internal state
+        """
+        response = client.delete("/api/v2/document-intelligence")
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+
+    async def test_delete_document_intelligence(self, client: TestClient):
+        """
+        DELETE /document-intelligence should drop the mindsdb database and clear the
+        internal state
+        """
+        with patch(
+            "agent_platform.server.api.private_v2.document_intelligence.DataSource"
+        ) as mock_datasource:
+            # Setup DataSource mocks
+            mock_admin_ds = MagicMock()
+            mock_admin_ds.execute_sql.return_value = None
+
+            # Configure DataSource.model_validate to return different instances
+            mock_datasource.model_validate.side_effect = [mock_admin_ds]
+
+            storage_instance = StorageService.get_instance()
+
+            with (
+                # Inject  the DocIntDataSource
+                patch.object(
+                    storage_instance,
+                    "get_dids_connection_details",
+                    new=AsyncMock(),
+                ),
+                patch.object(
+                    storage_instance,
+                    "delete_dids_connection_details",
+                    new=AsyncMock(),
+                ) as delete_ds_details,
+                patch.object(
+                    storage_instance,
+                    "delete_document_intelligence_integration",
+                    new=AsyncMock(),
+                ) as delete_integration,
+            ):
+                response = client.delete("/api/v2/document-intelligence")
+
+            assert response.status_code == 200
+            assert response.json() == {"ok": True}
+            # Verify we dropped the database in mindsdb
+            mock_admin_ds.execute_sql.assert_called_once_with(
+                "DROP DATABASE IF EXISTS DocumentIntelligence;"
+            )
+            delete_integration.assert_awaited_once_with("reducto")
+            delete_ds_details.assert_awaited_once()
+
+            # Verify DataSource.setup_connection_from_input_json was called
+            mock_datasource.setup_connection_from_input_json.assert_called_once()
+
     @pytest.mark.parametrize(
         ("details", "expected_substring"),
         [

@@ -33,6 +33,7 @@ from agent_platform.core.document_intelligence.data_models import (
 from agent_platform.core.document_intelligence.document_layout import (
     DocumentLayoutBridge,
 )
+from agent_platform.core.document_intelligence.integrations import IntegrationKind
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.files.files import UploadedFile
@@ -53,6 +54,10 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.storage.errors import (
+    DIDSConnectionDetailsNotFoundError,
+    DocumentIntelligenceIntegrationNotFoundError,
+)
 
 logger: BoundLogger = get_logger(__name__)
 
@@ -325,6 +330,50 @@ async def upsert_document_intelligence(
     # Upsert integrations (if provided)
     for integration in payload.to_integrations():
         await storage.set_document_intelligence_integration(integration)
+
+    return {"ok": True}
+
+
+@router.delete("")
+async def clear_document_intelligence(
+    storage: StorageDependency,
+):
+    """Clear the Document Intelligence database."""
+    # Check to see if we have the DIDS details in the agentserver database to know
+    # if we have state to clear. Don't use the dependency injection so we can
+    # suppress a caught error
+    conn_details: DIDSConnectionDetails
+    try:
+        conn_details = await storage.get_dids_connection_details()
+    except DIDSConnectionDetailsNotFoundError:
+        return {"ok": True}
+
+    # Setup the DataSource.
+    proper_json = conn_details.as_datasource_connection_input()
+    DataSource.setup_connection_from_input_json(proper_json)
+
+    # Try to drop the mindsdb database.
+    try:
+        ds = DataSource.model_validate(datasource_name="sema4ai")
+        ds.execute_sql(f"DROP DATABASE IF EXISTS {DATA_SOURCE_NAME};")
+    except Exception as e:
+        logger.error("Failed to clear document intelligence", error=str(e))
+        if isinstance(e, PlatformHTTPError):
+            raise e
+        else:
+            raise PlatformHTTPError(
+                ErrorCode.UNEXPECTED, "Failed to clear document intelligence"
+            ) from e
+
+    # If we had a datasource, we should also have a Reducto integration.
+    try:
+        await storage.delete_document_intelligence_integration(IntegrationKind.REDUCTO.value)
+    except DocumentIntelligenceIntegrationNotFoundError:
+        logger.info("No Reducto integration found to delete, skipping")
+        pass
+
+    # Clear the dataserver connection details from the agent-server database.
+    await storage.delete_dids_connection_details()
 
     return {"ok": True}
 
