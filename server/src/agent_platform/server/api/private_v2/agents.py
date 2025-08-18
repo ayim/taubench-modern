@@ -26,7 +26,6 @@ from agent_platform.core.utils import SecretString
 from agent_platform.core.utils.url import safe_urljoin
 from agent_platform.server.api.dependencies import AgentQuotaCheck, StorageDependency
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
-from agent_platform.server.api.private_v2.package import create_or_update_agent_from_package
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
 
@@ -359,6 +358,8 @@ async def create_agent_from_package(
     _: AgentQuotaCheck,
 ) -> AgentCompat:
     aid = str(uuid.uuid4())
+    from agent_platform.server.api.private_v2.package import create_or_update_agent_from_package
+
     return await create_or_update_agent_from_package(
         user=user,
         aid=aid,
@@ -374,6 +375,8 @@ async def update_agent_from_package(
     payload: AgentPackagePayload,
     storage: StorageDependency,
 ) -> AgentCompat:
+    from agent_platform.server.api.private_v2.package import create_or_update_agent_from_package
+
     return await create_or_update_agent_from_package(
         user=user,
         aid=aid,

@@ -53,9 +53,48 @@ REST APIs created:
 - threads/{thread_id}/data-frames/from-file (POST)
 - threads/{thread_id}/data-frames (GET)
 
-Next work:
+# Current implementation step:
 
 - Create (builtin) tools that can be used by the agent to create new data frames based on existing data frames based on some computation (SQL)
+
+For this we need to:
+
+## Step 1 (current PR):
+
+Create a new REST API:
+
+- threads/{thread_id}/data-frames/from-computation (POST)
+
+- Create a new REST API to create a new data frame from an existing data frame based on some computation (SQL).
+  - The REST API should be created in the `server/src/agent_platform/server/api/private_v2/threads.py` file.
+  - The actual implementation should be created in a new file in the `server/src/agent_platform/server/data_frames/` directory.
+- The input should reference the existing data frame(s) by their name
+  - The tables in the thread should be listed and a dict with the name -> data frame should be created
+- A simple SQL query should be provided by the user to compute the new data frame
+- Using ibis we should create the pipeline to compute the new data frame
+- Evaluate the result of the query to see if it works as expected
+- If it does, create a new data frame with the result
+- If it doesn't, return an error message to the user
+- The new data frame should be added to the thread
+
+## Step 2 (next PR):
+
+Create a new REST API:
+
+- threads/{thread_id}/data-frames/slice (GET)
+
+- Create a new REST API which allows the client to obtain sliced data frame contents.
+  - The data sent in the wire should follow the parquet format.
+
+## Step 3 (next PR):
+
+- Actually create the builtin tools (using the same code from the REST APIs).
 - Update the runbook system prompt so that such tools and the related dataframes are available to the agent.
+
+# Future work (not right now):
+
 - Make the result of named queries (Tables) be available as data frames automatically.
-- Create tools that allow an agent to read the contents of data frames.
+- Create tools that allow an agent to read the slices of data frames and put it into the context.
+- Allow the user to have data frames that are backed by a database.
+- Investigate shortcomings of the "just SQL" approach and see if an approach using "sanitized but possibly unsafe python code" can be better.
+  - Investigate shortcomings of only accepting "postgres" as the input of the SQL query (when does the sqlglot translation layer used by ibis fail?)

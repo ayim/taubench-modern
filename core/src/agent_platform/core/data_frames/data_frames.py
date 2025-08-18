@@ -7,8 +7,8 @@ from typing import Literal
 class DataFrameSource:
     """Represents the source of a data frame."""
 
-    source_type: Literal["data_frame", "data_source"]
-    """The type of the source."""
+    source_type: Literal["data_frame"]
+    """The type of the source. Currently only "data_frame" is supported."""
 
     source_id: str
 
@@ -39,7 +39,7 @@ class PlatformDataFrame:
     When created from a file, the file_id must be set and the input_id_type must be "file".
 
     When created from a computation, the computation must be set (ibis SQL to be evaluated),
-    the input_id_type must be "computation" and the computation_input_sources must be set.
+    the input_id_type must be "sql_computation" and the computation_input_sources must be set.
     """
 
     data_frame_id: str
@@ -64,10 +64,18 @@ class PlatformDataFrame:
     """The headers of the columns in the data frame."""
 
     name: str
-    """A short name for the data frame to be shown to the user."""
+    """A name for the data frame to be referenced later on (as a table
+    name in a sql query or variable in an expression).
+    Must be unique within the thread and must be a valid variable name."""
 
-    input_id_type: Literal["file", "computation"]
-    """The type of the input ID."""
+    input_id_type: Literal["file", "sql_computation", "in_memory"]
+    """The type of the input ID.
+    - "file": the data frame was created from a file.
+    - "sql_computation": the data frame was created from a sql computation.
+    - "in_memory": the data frame was created from an in-memory data frame
+        i.e.: a data frame (from polars, pyarrow, pandas, json, etc.) the
+        contents must be available in the parquet_contents field.
+    """
 
     created_at: datetime.datetime
     """The date and time the data frame was created."""
@@ -88,7 +96,7 @@ class PlatformDataFrame:
 
     computation: str | None = None
     """The computation that was used to create the data frame (a sql to be
-    executed by ibis for example, only available if input_id_type is "computation")."""
+    executed by ibis for example, only available if input_id_type is "sql_computation")."""
 
     parquet_contents: bytes | None = None
     """The contents of the data frame in parquet format (only available if we actually decide
@@ -99,10 +107,41 @@ class PlatformDataFrame:
     store any additional data that is not covered by the other fields. The dict may only contain
     data that can be serialized to JSON."""
 
+    @classmethod
+    def build_extra_data(cls, sql_dialect: str | None = None) -> dict:
+        """Build the extra data for the data frame."""
+        extra_data = {}
+        if sql_dialect is not None:
+            extra_data["sql_dialect"] = sql_dialect
+        return extra_data
+
+    @property
+    def sql_dialect(self) -> str:
+        """The dialect of the SQL query that was used to create the data frame
+        (can be set when the input_id_type is "sql_computation").
+        """
+        if self.extra_data is not None:
+            dialect = self.extra_data.get("sql_dialect")
+
+        return dialect or "duckdb"
+
     def __post_init__(self) -> None:
+        self.verify()
+
+    def verify(self) -> None:
+        """
+        If changes are made outside, this method can be called to verify the data frame is valid.
+        """
+        import keyword
+
         from agent_platform.core.utils.asserts import assert_literal_value_valid
 
         assert_literal_value_valid(self, "input_id_type")
+
+        if self.input_id_type == "sql_computation":
+            assert self.computation is not None, (
+                "SQL computation must have the computation field set"
+            )
 
         column_headers = self.column_headers
         assert isinstance(column_headers, list)
@@ -121,6 +160,10 @@ class PlatformDataFrame:
         assert isinstance(self.name, str)
         assert isinstance(self.created_at, datetime.datetime)
         assert isinstance(self.computation_input_sources, dict)
+
+        # Verify the name is a valid variable name (so that it can be properly referenced later on).
+        if not self.name.isidentifier() or keyword.iskeyword(self.name):
+            raise ValueError(f"Data frame name must be a valid variable name. Got: {self.name}")
 
         for key, source in self.computation_input_sources.items():
             assert isinstance(key, str)

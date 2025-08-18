@@ -13,12 +13,8 @@ dependencies = [
     "httpx-retries>=0.4.0,<1.0.0",
     "httpx>=0.28.1,<0.29.0",
     "cryptography>=45,<46",
-    "ibis-framework[polars,postgres]>=10.8.0,<11.0.0",
-    # Explicitly pin pyarrow to <19.0.0 to avoid the following warning:
-    # .../site-packages/snowflake/connector/options.py:104: 
-    # UserWarning: You have an incompatible version of 'pyarrow' installed (21.0.0), 
-    # please install a version that adheres to: 'pyarrow<19.0.0; extra == "pandas"'
-    "pyarrow<19.0.0",
+    "ibis-framework[duckdb, postgres]>=10.8.0,<11.0.0",
+    "pyarrow>=21.0.0,<22.0.0",
     "fastexcel>=0.14.0,<1.0.0",
 ]
 

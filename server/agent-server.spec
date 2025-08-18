@@ -52,6 +52,14 @@ for package in agent_arch_packages:
         )
     )
 
+# Add ibis dependencies
+ibis_metadata = copy_metadata("ibis-framework")
+ibis_hiddenimports = collect_submodules("ibis.backends.duckdb")
+ibis_hiddenimports.extend(collect_submodules("ibis.backends.postgres"))
+
+# Used by ibis to parse the sql internally.
+sqlglot_hiddenimports = collect_submodules("sqlglot")
+
 logger.info("=== Analyzing Imports ===")
 logger.info("Starting Analysis phase...")
 
@@ -137,6 +145,7 @@ a = Analysis(
         ),
         *di_datas,
         *di_binaries,
+        *ibis_metadata,
     ],
     hiddenimports=[
         "pydantic.deprecated.decorator",
@@ -156,14 +165,14 @@ a = Analysis(
         *psycopg_hiddenimports,
         *psyco_binary_hiddenimports,
         *di_hiddenimports,
+        *ibis_hiddenimports,
+        *sqlglot_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    # in v1 we excluded nltk and magic but those are not installed in v2
-    # so they are not needed
-    # Add numpy to the excludes list
-    excludes=['numpy'],
+    # Since numpy is excluded, we also exclude pandas as it depends on numpy and save some space.
+    excludes=["numpy", "pandas"],
     noarchive=False,
     optimize=0,
 )
@@ -216,9 +225,7 @@ else:
 logger.info("=== Building Executable ===")
 pp = pprint.PrettyPrinter(indent=2)
 logger.debug(f"Building executable with the following args:\n{pp.pformat(exe_args)}")
-logger.debug(
-    f"Building executable with the following kwargs:\n{pp.pformat(exe_kwargs)}"
-)
+logger.debug(f"Building executable with the following kwargs:\n{pp.pformat(exe_kwargs)}")
 
 exe = EXE(
     *exe_args,

@@ -15,10 +15,12 @@ async def check_data_frame_storage_crud(
 ) -> None:
     from uuid import uuid4
 
+    from sqlalchemy.exc import IntegrityError
+
     await model_creator.setup()
 
     # Save the data frame (this will call `save_data_frame`)
-    sample_data_frame = await model_creator.obtain_sample_data_frame()
+    sample_data_frame = await model_creator.obtain_sample_data_frame(name="test_data_frame")
 
     # Verify it was saved by retrieving it
     retrieved_data_frame = await model_creator.storage.get_data_frame(
@@ -27,6 +29,11 @@ async def check_data_frame_storage_crud(
 
     assert sample_data_frame is not retrieved_data_frame
     assert sample_data_frame == retrieved_data_frame
+
+    with pytest.raises(ValueError, match="Data frame name must be a valid variable name"):
+        await model_creator.obtain_sample_data_frame(name="test data frame")
+    with pytest.raises(IntegrityError):
+        await model_creator.obtain_sample_data_frame(name="test_data_frame")
 
     non_existent_id = str(uuid4())
 
@@ -40,7 +47,7 @@ async def check_data_frame_storage_crud(
 
     # Now, add a new data frame
     model_creator.sample_data_frame = None
-    sample_data_frame_2 = await model_creator.obtain_sample_data_frame()
+    sample_data_frame_2 = await model_creator.obtain_sample_data_frame(name="test_data_frame_2")
     data_frames = await model_creator.storage.list_data_frames(sample_data_frame.thread_id)
 
     assert len(data_frames) == 2
@@ -57,12 +64,16 @@ async def check_data_frame_storage_crud(
 
     # Update the 2nd data frame
     sample_data_frame_2.name = "Updated Data Frame"
+    with pytest.raises(ValueError, match="Data frame name must be a valid variable name"):
+        await model_creator.storage.update_data_frame(sample_data_frame_2)
+
+    sample_data_frame_2.name = "updated_data_frame"
     await model_creator.storage.update_data_frame(sample_data_frame_2)
 
     retrieved_data_frame_2 = await model_creator.storage.get_data_frame(
         sample_data_frame_2.data_frame_id
     )
-    assert retrieved_data_frame_2.name == "Updated Data Frame"
+    assert retrieved_data_frame_2.name == "updated_data_frame"
 
     # Update data frame with a non-existent id (use first one)
     with pytest.raises(ValueError, match=f"Data frame {sample_data_frame.data_frame_id} not found"):

@@ -704,12 +704,18 @@ class AgentServerClient:
             ) from e
 
     def create_data_frame_from_file(
-        self, thread_id: str, file_id: str, sheet_name: str | None = None
+        self,
+        thread_id: str,
+        file_id: str,
+        sheet_name: str | None = None,
+        name: str | None = None,
     ) -> dict:
         url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames/from-file")
         params = {"file_id": file_id}
         if sheet_name is not None:
             params["sheet_name"] = sheet_name
+        if name is not None:
+            params["name"] = name
         response = requests.post(url, params=params)
         try:
             response.raise_for_status()
@@ -727,5 +733,45 @@ class AgentServerClient:
         except requests.exceptions.HTTPError as e:
             raise requests.exceptions.HTTPError(
                 f"Error getting data frames: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def create_data_frame_from_sql_computation(
+        self,
+        thread_id: str,
+        name: str,
+        sql_query: str,
+        description: str | None = None,
+        sql_dialect: str = "duckdb",
+    ) -> dict:
+        """Create a new data frame from existing data frames using a SQL computation.
+
+        Args:
+            thread_id: The ID of the thread
+            name: The name for the new data frame
+            sql_query: The SQL query to execute
+            input_data_frames: Dictionary mapping table names to data frame IDs
+            description: Optional description for the new data frame
+            sql_dialect: The dialect of the SQL query to use (default is "duckdb")
+
+        Returns:
+            The created data frame information
+        """
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames/from-computation")
+        payload = {
+            "new_data_frame_name": name,
+            "sql_query": sql_query,
+            "sql_dialect": sql_dialect,
+        }
+        if description is not None:
+            payload["description"] = description
+
+        response = requests.post(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error creating data frame from computation: {response.status_code} "
+                f"{response.text}",
             ) from e
         return response.json()

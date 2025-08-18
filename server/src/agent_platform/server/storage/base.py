@@ -208,6 +208,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def update_data_frame(self, data_frame: "PlatformDataFrame") -> None:
         """Update a data frame."""
+        data_frame.verify()
+
         data_frames = self._get_table("data_frames")
 
         # Use model_dump to properly serialize the data frame including computation_input_sources

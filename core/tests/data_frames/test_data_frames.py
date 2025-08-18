@@ -28,7 +28,7 @@ def test_data_frame_basic_model_dump_and_validate():
     """Test 1: Basic test for PlatformDataFrame model_dump and model_validate."""
     # Create a PlatformDataFrame instance with minimal required fields
     created_at = datetime.datetime(2023, 1, 1, 12, 0, 0)
-    source = DataFrameSource(source_type="data_source", source_id="source-456")
+    source = DataFrameSource(source_type="data_frame", source_id="source-456")
 
     data_frame = PlatformDataFrame(
         data_frame_id="df-123",
@@ -38,10 +38,11 @@ def test_data_frame_basic_model_dump_and_validate():
         num_rows=100,
         num_columns=5,
         column_headers=["col1", "col2", "col3", "col4", "col5"],
-        name="Test PlatformDataFrame",
-        input_id_type="computation",
+        name="Test_PlatformDataFrame",
+        input_id_type="sql_computation",
         created_at=created_at,
         computation_input_sources={"source1": source},
+        computation="SELECT * FROM source1",
     )
 
     # Test model_dump
@@ -54,15 +55,15 @@ def test_data_frame_basic_model_dump_and_validate():
         "num_rows": 100,
         "num_columns": 5,
         "column_headers": ["col1", "col2", "col3", "col4", "col5"],
-        "name": "Test PlatformDataFrame",
-        "input_id_type": "computation",
+        "name": "Test_PlatformDataFrame",
+        "input_id_type": "sql_computation",
         "created_at": "2023-01-01T12:00:00",
         "computation_input_sources": {
-            "source1": {"source_type": "data_source", "source_id": "source-456"}
+            "source1": {"source_type": "data_frame", "source_id": "source-456"}
         },
         "sheet_name": None,
         "extra_data": None,
-        "computation": None,
+        "computation": "SELECT * FROM source1",
         "parquet_contents": None,
         "description": None,
         "file_id": None,
@@ -76,8 +77,8 @@ def test_data_frame_basic_model_dump_and_validate():
     assert validated.num_rows == 100
     assert validated.num_columns == 5
     assert validated.column_headers == ["col1", "col2", "col3", "col4", "col5"]
-    assert validated.name == "Test PlatformDataFrame"
-    assert validated.input_id_type == "computation"
+    assert validated.name == "Test_PlatformDataFrame"
+    assert validated.input_id_type == "sql_computation"
     assert validated.created_at == created_at
     assert len(validated.computation_input_sources) == 1
     assert validated.computation_input_sources["source1"].source_id == "source-456"
@@ -91,7 +92,7 @@ def test_data_frame_complex_model_dump_and_validate():
     # Create a complex PlatformDataFrame instance with all fields
     created_at = datetime.datetime(2023, 6, 15, 14, 30, 45, 123456)
     source1 = DataFrameSource(source_type="data_frame", source_id="frame-001")
-    source2 = DataFrameSource(source_type="data_source", source_id="source-002")
+    source2 = DataFrameSource(source_type="data_frame", source_id="source-002")
 
     data_frame = PlatformDataFrame(
         data_frame_id="complex-df-789",
@@ -101,7 +102,7 @@ def test_data_frame_complex_model_dump_and_validate():
         num_rows=1000,
         num_columns=25,
         column_headers=["col1", "col2", "col3", "col4", "col5"],
-        name="Complex Test PlatformDataFrame",
+        name="Complex_Test_PlatformDataFrame",
         input_id_type="file",
         created_at=created_at,
         computation_input_sources={"source1": source1, "source2": source2},
@@ -122,12 +123,12 @@ def test_data_frame_complex_model_dump_and_validate():
         "num_rows": 1000,
         "num_columns": 25,
         "column_headers": ["col1", "col2", "col3", "col4", "col5"],
-        "name": "Complex Test PlatformDataFrame",
+        "name": "Complex_Test_PlatformDataFrame",
         "input_id_type": "file",
         "created_at": "2023-06-15T14:30:45.123456",
         "computation_input_sources": {
             "source1": {"source_type": "data_frame", "source_id": "frame-001"},
-            "source2": {"source_type": "data_source", "source_id": "source-002"},
+            "source2": {"source_type": "data_frame", "source_id": "source-002"},
         },
         "file_id": "file-123",
         "description": "A comprehensive test data frame with all fields populated",
@@ -144,7 +145,7 @@ def test_data_frame_complex_model_dump_and_validate():
     assert validated.user_id == "complex-user-123"
     assert validated.num_rows == 1000
     assert validated.num_columns == 25
-    assert validated.name == "Complex Test PlatformDataFrame"
+    assert validated.name == "Complex_Test_PlatformDataFrame"
     assert validated.input_id_type == "file"
     assert validated.created_at == created_at
     assert validated.file_id == "file-123"
@@ -154,7 +155,7 @@ def test_data_frame_complex_model_dump_and_validate():
     assert validated.sheet_name == "Sheet1"
     assert len(validated.computation_input_sources) == 2
     assert validated.computation_input_sources["source1"].source_type == "data_frame"
-    assert validated.computation_input_sources["source2"].source_type == "data_source"
+    assert validated.computation_input_sources["source2"].source_type == "data_frame"
 
     # Test round-trip
     assert validated.model_dump() == dumped
@@ -188,8 +189,8 @@ def test_data_frame_error_handling():
         "num_rows": 100,
         "num_columns": 5,
         "column_headers": ["col1", "col2", "col3", "col4", "col5"],
-        "name": "Test PlatformDataFrame",
-        "input_id_type": "computation",
+        "name": "Test_PlatformDataFrame",
+        "input_id_type": "sql_computation",
         "created_at": "invalid-datetime-format",
         "computation_input_sources": {},
     }
@@ -217,17 +218,18 @@ def test_data_frame_error_handling():
         "num_rows": 100,
         "num_columns": 5,
         "column_headers": ["col1", "col2", "col3", "col4", "col5"],
-        "name": "Test PlatformDataFrame",
-        "input_id_type": "computation",
+        "name": "Test_PlatformDataFrame",
+        "input_id_type": "sql_computation",
         "created_at": "2023-01-01T12:00:00",
         "computation_input_sources": {},
         "extra_data": {"key": "value"},
+        "computation": "SELECT * FROM source1",
     }
 
     validated = PlatformDataFrame.model_validate(minimal_data)
     assert validated.file_id is None
     assert validated.description is None
-    assert validated.computation is None
+    assert validated.computation == "SELECT * FROM source1"
     assert validated.parquet_contents is None
     assert validated.extra_data == {"key": "value"}
 
@@ -235,6 +237,5 @@ def test_data_frame_error_handling():
     dumped = validated.model_dump()
     assert dumped["file_id"] is None
     assert dumped["description"] is None
-    assert dumped["computation"] is None
     assert dumped["parquet_contents"] is None
     assert dumped["extra_data"] == {"key": "value"}

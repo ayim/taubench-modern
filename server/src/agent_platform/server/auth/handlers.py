@@ -15,20 +15,24 @@ from fastapi import (
 from fastapi.security.http import HTTPBearer
 
 from agent_platform.core.user import User
-from agent_platform.server.api import StorageDependency
 from agent_platform.server.auth.settings import (
     AuthConfig,
     AuthType,
     JWTSettingsLocal,
     JWTSettingsOIDC,
 )
-from agent_platform.server.storage import BaseStorage
+from agent_platform.server.storage import BaseStorage, StorageService
 
 logger = logging.getLogger(__name__)
 
+# Note: don't use StorageDependency here, trying to import it can lead to a circular dependency
+# (it depends on importing apis that themselves depend on auth)
+# So, just redeclare it here.
+_StorageDependency = Annotated[BaseStorage, Depends(StorageService.get_instance)]
+
 
 class AuthHandler(ABC):
-    def __init__(self, storage: StorageDependency):
+    def __init__(self, storage: _StorageDependency):
         self._storage = storage
 
     @property
@@ -141,7 +145,7 @@ class JWTAuthOIDC(JWTAuthBase):
         return self._jwk_client_cache[issuer]
 
 
-def get_auth_handler(storage: StorageDependency) -> AuthHandler:
+def get_auth_handler(storage: _StorageDependency) -> AuthHandler:
     logger.debug(f"Using auth_type = {AuthConfig.auth_type}")
     if AuthConfig.auth_type == AuthType.JWT_LOCAL:
         return JWTAuthLocal(storage)

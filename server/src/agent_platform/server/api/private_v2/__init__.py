@@ -15,6 +15,9 @@ from agent_platform.server.api.private_v2.platforms import router as platforms_r
 from agent_platform.server.api.private_v2.prompt import router as prompt_router
 from agent_platform.server.api.private_v2.runs import router as runs_router
 from agent_platform.server.api.private_v2.threads import router as threads_router
+from agent_platform.server.api.private_v2.threads_data_frames import (
+    router as threads_data_frames_router,
+)
 from agent_platform.server.api.private_v2.work_items import router as work_items_router
 
 PRIVATE_V2_PREFIX = "/api/v2"
@@ -39,6 +42,12 @@ router.include_router(
 )
 router.include_router(
     threads_router,
+    prefix="/threads",
+    tags=["threads"],
+)
+
+router.include_router(
+    threads_data_frames_router,
     prefix="/threads",
     tags=["threads"],
 )

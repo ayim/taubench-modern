@@ -37,7 +37,7 @@ class SampleModelCreator:
         from agent_platform.core.data_frames.data_frames import DataFrameSource
 
         return DataFrameSource(
-            source_type="data_source",
+            source_type="data_frame",
             source_id="external-postgres-connection",
         )
 
@@ -167,7 +167,7 @@ class SampleModelCreator:
         await self.storage.upsert_thread(sample_user_id, self.sample_thread)
         return self.sample_thread
 
-    async def obtain_sample_data_frame(self) -> "PlatformDataFrame":
+    async def obtain_sample_data_frame(self, name: str = "test_data_frame") -> "PlatformDataFrame":
         """Create a sample PlatformDataFrame for testing."""
         from datetime import UTC, datetime
         from uuid import uuid4
@@ -190,7 +190,7 @@ class SampleModelCreator:
             num_rows=100,
             num_columns=5,
             column_headers=["col1", "col2", "col3", "col4", "col5"],
-            name="Test Data Frame",
+            name=name,
             input_id_type="file",
             created_at=datetime.now(UTC),
             computation_input_sources={
@@ -199,7 +199,7 @@ class SampleModelCreator:
                     source_id="some-data-frame-id",
                 ),
                 "source_2": DataFrameSource(
-                    source_type="data_source",
+                    source_type="data_frame",
                     source_id="external-postgres-connection-2",
                 ),
             },
