@@ -23,7 +23,7 @@
     "test": "npm run test:specs && npm run lint && npm run test:types"
   },
   "dependencies": {
-    "@sema4ai/agent-server-interface": "^2.0.22",
+    "@sema4ai/agent-server-interface": "^2.0.30",
     "@sema4ai/robocloud-auth-utils": "^4.0.9",
     "@sema4ai/robocloud-shared-utils": "^1.10.1",
     "express": "^4.21.2",

@@ -102,6 +102,36 @@ export function getRouteBehaviour({
     case 'put /api/v2/mcp-servers/{mcp_server_id}':
     case 'get /api/v2/runs/{run_id}/status':
     case 'get /api/v2/runs/{aid}/stream': // moved from isAllowed: false, tenant
+    case 'delete /api/v2/document-intelligence/data-models/{model_name}':
+    case 'delete /api/v2/platforms/{platform_id}':
+    case 'get /api/v2/capabilities/platforms':
+    case 'get /api/v2/config/':
+    case 'get /api/v2/document-intelligence/data-models':
+    case 'get /api/v2/document-intelligence/data-models/{model_name}':
+    case 'get /api/v2/document-intelligence/layouts':
+    case 'get /api/v2/document-intelligence/ok':
+    case 'get /api/v2/platforms/':
+    case 'get /api/v2/platforms/{platform_id}':
+    case 'get /api/v2/threads/{tid}/data-frames':
+    case 'get /api/v2/threads/{tid}/inspect-file-as-data-frame':
+    case 'post /api/v2/capabilities/platforms/{kind}/test':
+    case 'post /api/v2/config/':
+    case 'post /api/v2/document-intelligence':
+    case 'post /api/v2/document-intelligence/data-models':
+    case 'post /api/v2/document-intelligence/data-models/generate':
+    case 'post /api/v2/document-intelligence/documents/extract':
+    case 'post /api/v2/document-intelligence/documents/parse':
+    case 'post /api/v2/document-intelligence/layouts':
+    case 'post /api/v2/document-intelligence/layouts/generate':
+    case 'post /api/v2/package/deploy/agent':
+    case 'post /api/v2/package/environment-hash/agent':
+    case 'post /api/v2/package/inspect/action':
+    case 'post /api/v2/package/inspect/agent':
+    case 'post /api/v2/platforms/':
+    case 'post /api/v2/threads/{tid}/data-frames/from-file':
+    case 'put /api/v2/document-intelligence/data-models/{model_name}':
+    case 'put /api/v2/package/deploy/agent/{aid}':
+    case 'put /api/v2/platforms/{platform_id}':
       return {
         isAllowed: true,
         signAgentToken: createSigner('user'),
@@ -119,13 +149,11 @@ export function getRouteBehaviour({
     case 'delete /api/v2/debug/artifacts':
     case 'get /api/v2/agents/by-name':
     case 'get /api/v2/capabilities/architectures':
-    case 'get /api/v2/capabilities/providers':
     case 'get /api/v2/debug/artifacts':
     case 'get /api/v2/debug/artifacts/search':
     case 'get /api/v2/debug/artifacts/{aid}':
     case 'post /api/v2/agents/':
     case 'patch /api/v2/agents/{aid}':
-    case 'post /api/v2/capabilities/providers/{kind}/test':
     case 'put /api/v2/agents/{aid}/raw':
     case 'post /api/v2/agents/{aid}/refresh-tools':
     case 'get /api/v2/debug/tools/report-cache-stats':
