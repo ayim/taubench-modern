@@ -1,6 +1,6 @@
 # agent.cli changelog
 
-## Unreleased
+## 2.1.1 - 2025-08-19
 
 - For action build and extract ensure consistent file naming conventions with action server
 - Use existing action naming from the agent-spec if it's available when creating or updating the action folder for the agent project
