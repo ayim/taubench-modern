@@ -7,10 +7,11 @@ from sema4ai_docint import normalize_name
 from sema4ai_docint.models import DocumentLayout
 
 from agent_platform.core.document_intelligence.document_layout import DocumentLayoutBridge
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
 
 @dataclass(frozen=True)
-class TranslationRulePayload:
+class _TranslationRule:
     mode: str | None = None
     extras: dict[str, Any] | None = None
     source: str | None = None
@@ -18,7 +19,7 @@ class TranslationRulePayload:
     transform: str | None = None
 
     @classmethod
-    def model_validate(cls, data: Any) -> TranslationRulePayload:
+    def model_validate(cls, data: Any) -> _TranslationRule:
         if isinstance(data, dict):
             obj = dict(data)
         else:
@@ -48,6 +49,25 @@ class TranslationRulePayload:
 
 
 @dataclass(frozen=True)
+class _TranslationSchema:
+    rules: list[_TranslationRule]
+
+    @classmethod
+    def model_validate(cls, data: Any) -> _TranslationSchema:
+        if isinstance(data, dict) and "rules" in data:
+            return cls(rules=[_TranslationRule.model_validate(item) for item in data["rules"]])
+        else:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="Translation schema must be an object with a `rules` key made of "
+                "an array of rules.",
+            )
+
+    def to_compact_dict(self) -> dict[str, Any]:
+        return {"rules": [rule.to_compact_dict() for rule in self.rules]}
+
+
+@dataclass(frozen=True)
 class DocumentLayoutPayload:
     """Payload matching the OpenAPI reference for the Layout object except our fields
     will use snake_case.
@@ -56,7 +76,7 @@ class DocumentLayoutPayload:
     name: str
     data_model_name: str
     extraction_schema: dict[str, Any] | None = None
-    translation_schema: list[TranslationRulePayload] | None = None
+    translation_schema: _TranslationSchema | list[_TranslationRule] | None = None
     summary: str | None = None
     extraction_config: dict[str, Any] | None = None
     prompt: str | None = None
@@ -82,10 +102,13 @@ class DocumentLayoutPayload:
         created_at = obj.get("created_at")
         updated_at = obj.get("updated_at")
 
-        # Normalize translation rules
-        rules: list[TranslationRulePayload] | None = None
+        # Normalize translation rules to the _TranslationSchema type
+        rules: _TranslationSchema | list[_TranslationRule] | None = None
         if translation_schema_in:
-            rules = [TranslationRulePayload.model_validate(item) for item in translation_schema_in]
+            if isinstance(translation_schema_in, list):
+                rules = _TranslationSchema.model_validate({"rules": translation_schema_in})
+            else:
+                rules = _TranslationSchema.model_validate(translation_schema_in)
 
         return cls(
             name=name,
@@ -99,15 +122,18 @@ class DocumentLayoutPayload:
             updated_at=updated_at,
         )
 
+    def wrap_translation_schema(self) -> dict[str, Any] | None:
+        """We wrap the translation schema into a dictionary for the underlying
+        library to properly validate it.
+        """
+        if self.translation_schema is None:
+            return None
+        if isinstance(self.translation_schema, _TranslationSchema):
+            return self.translation_schema.to_compact_dict()
+        return {"rules": [rule.to_compact_dict() for rule in self.translation_schema]}
+
     def to_document_layout(self) -> DocumentLayout:
-        # The underlying library expects `translation_schema` to be a JSON-like
-        # dict. The OpenAPI spec models it as an array of rules, so we wrap
-        # them into a dictionary under the `rules` key.
-        translation_schema_wrapped: dict[str, Any] | None = None
-        if self.translation_schema is not None:
-            translation_schema_wrapped = {
-                "rules": [rule.to_compact_dict() for rule in self.translation_schema]
-            }
+        translation_schema_wrapped = self.wrap_translation_schema()
 
         return DocumentLayout(
             name=self.name,
@@ -120,14 +146,14 @@ class DocumentLayoutPayload:
         )
 
     def to_document_layout_bridge(self) -> DocumentLayoutBridge:
+        translation_schema_wrapped = self.wrap_translation_schema()
+
         return DocumentLayoutBridge.model_validate(
             {
                 "name": self.name,
                 "data_model": self.data_model_name,
                 "extraction_schema": self.extraction_schema,
-                "translation_schema": [rule.to_compact_dict() for rule in self.translation_schema]
-                if self.translation_schema
-                else None,
+                "translation_schema": translation_schema_wrapped,
                 "summary": self.summary,
                 "extraction_config": self.extraction_config,
                 "system_prompt": self.prompt,

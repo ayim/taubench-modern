@@ -508,6 +508,45 @@ async def get_all_layouts(docint_ds: DocIntDatasourceDependency) -> list[Documen
     return layout_summaries
 
 
+@router.get("/layouts/{layout_name}")
+async def get_layout(
+    layout_name: str,
+    data_model_name: str,
+    docint_ds: DocIntDatasourceDependency,
+) -> DocumentLayoutBridge:
+    """Get a layout by name and data model from the Document Intelligence database."""
+    try:
+        # Normalize the names
+        normalized_layout_name = normalize_name(layout_name)
+        normalized_data_model_name = normalize_name(data_model_name)
+
+        # Find the layout in the database
+        document_layout = DocumentLayout.find_by_name(
+            docint_ds, normalized_data_model_name, normalized_layout_name
+        )
+
+        if not document_layout:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"Layout '{normalized_layout_name}' not found for data "
+                f"model '{normalized_data_model_name}'",
+            )
+
+        # Convert DocumentLayout to DocumentLayoutBridge
+        return DocumentLayoutBridge.from_document_layout(document_layout)
+
+    except PlatformHTTPError:
+        raise
+    except Exception as e:
+        logger.error(
+            "Error getting layout",
+            error=str(e),
+            layout_name=layout_name,
+            data_model_name=data_model_name,
+        )
+        raise PlatformHTTPError(ErrorCode.UNEXPECTED, "Failed to get layout") from e
+
+
 @router.post("/layouts")
 async def upsert_layout(
     payload: DocumentLayoutPayload,
@@ -523,20 +562,13 @@ async def upsert_layout(
     try:
         normalized = DocumentLayoutPayload.model_validate(payload)
 
-        # Wrap translation schema (array of rules) into DI model-compatible dict
-        translation_schema_wrapped = None
-        if normalized.translation_schema is not None:
-            translation_schema_wrapped = {
-                "rules": [rule.to_compact_dict() for rule in normalized.translation_schema]
-            }
-
         # Try to find existing layout
         existing = DocumentLayout.find_by_name(
             docint_ds, normalized.data_model_name, normalized.name
         )
         if existing:
             existing.extraction_schema = normalized.extraction_schema
-            existing.translation_schema = translation_schema_wrapped
+            existing.translation_schema = normalized.wrap_translation_schema()
             existing.summary = normalized.summary
             existing.extraction_config = normalized.extraction_config
             existing.system_prompt = normalized.prompt
@@ -549,6 +581,97 @@ async def upsert_layout(
     except Exception as e:
         logger.error("Error upserting layout", error=str(e))
         raise PlatformError(ErrorCode.UNEXPECTED, f"Failed to upsert layout: {e!s}") from e
+
+
+@router.put("/layouts/{layout_name}")
+async def update_layout(
+    layout_name: str,
+    data_model_name: str,
+    payload: DocumentLayoutPayload,
+    docint_ds: DocIntDatasourceDependency,
+):
+    """Partially update an existing layout in the Document Intelligence database.
+
+    This is a traditional PUT endpoint that requires the layout to already exist,
+    unlike the upsert endpoint which creates if it doesn't exist. It only updates
+    the fields in the payload which are not null.
+    """
+    try:
+        normalized_payload = DocumentLayoutPayload.model_validate(payload)
+
+        # Find the existing layout
+        existing_layout = DocumentLayout.find_by_name(docint_ds, data_model_name, layout_name)
+        if existing_layout is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"Layout '{layout_name}' not found for data model '{data_model_name}'",
+            )
+
+        # Update the existing layout
+        if normalized_payload.extraction_schema is not None:
+            existing_layout.extraction_schema = normalized_payload.extraction_schema
+        if normalized_payload.translation_schema is not None:
+            existing_layout.translation_schema = normalized_payload.wrap_translation_schema()
+        if normalized_payload.summary is not None:
+            existing_layout.summary = normalized_payload.summary
+        if normalized_payload.extraction_config is not None:
+            existing_layout.extraction_config = normalized_payload.extraction_config
+        if normalized_payload.prompt is not None:
+            existing_layout.system_prompt = normalized_payload.prompt
+
+        existing_layout.update(docint_ds)
+
+        return {"ok": True}
+    except PlatformHTTPError:
+        raise
+    except Exception as e:
+        logger.error(
+            "Error updating layout",
+            error=str(e),
+            layout_name=layout_name,
+            data_model_name=data_model_name,
+        )
+        raise PlatformHTTPError(ErrorCode.UNEXPECTED, "Layout update failed unexpectedly") from e
+
+
+@router.delete("/layouts/{layout_name}")
+async def delete_layout(
+    layout_name: str,
+    data_model_name: str,
+    docint_ds: DocIntDatasourceDependency,
+):
+    """Delete a layout from the Document Intelligence database."""
+    try:
+        # Normalize the names
+        normalized_layout_name = normalize_name(layout_name)
+        normalized_data_model_name = normalize_name(data_model_name)
+
+        # Find the layout
+        layout = DocumentLayout.find_by_name(
+            docint_ds, normalized_data_model_name, normalized_layout_name
+        )
+        if layout is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"Layout '{layout_name}' not found for data model '{data_model_name}'",
+            )
+
+        # Delete the layout
+        deleted = layout.delete(docint_ds)
+        if not deleted:
+            raise PlatformHTTPError(ErrorCode.UNEXPECTED, "Failed to delete layout")
+
+        return {"ok": True}
+    except PlatformHTTPError:
+        raise
+    except Exception as e:
+        logger.error(
+            "Error deleting layout",
+            error=str(e),
+            layout_name=layout_name,
+            data_model_name=data_model_name,
+        )
+        raise PlatformHTTPError(ErrorCode.UNEXPECTED, f"Failed to delete layout: {e!s}") from e
 
 
 async def _generate_translation_rules(

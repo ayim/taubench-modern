@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sema4ai_docint.models import Mapping, MappingRow
+
+if TYPE_CHECKING:
+    from sema4ai_docint.models import DocumentLayout
 
 
 @dataclass(frozen=True)
@@ -43,7 +48,7 @@ class DocumentLayoutBridge:
     updated_at: datetime | None = None
 
     @classmethod
-    def model_validate(cls, data: Any) -> "DocumentLayoutBridge":
+    def model_validate(cls, data: Any) -> DocumentLayoutBridge:
         """Create a DocumentLayout from a dict-like input using snake_case keys.
 
         Parses ISO 8601 datetimes. `translation_schema` may be provided as:
@@ -103,4 +108,35 @@ class DocumentLayoutBridge:
             system_prompt=system_prompt,
             created_at=created_at,
             updated_at=updated_at,
+        )
+
+    @classmethod
+    def from_document_layout(cls, document_layout: DocumentLayout) -> DocumentLayoutBridge:
+        """Convert a DocumentLayout database model to a DocumentLayoutBridge.
+
+        The DocumentLayout model uses pydantic Json fields for some complex data,
+        while DocumentLayoutBridge expects the parsed objects.
+        """
+        # Handle translation_schema conversion
+        translation_schema = None
+        if document_layout.translation_schema is not None:
+            if isinstance(document_layout.translation_schema, dict):
+                # Convert dict with rules to Mapping object
+                translation_schema = Mapping.model_validate(document_layout.translation_schema)
+            else:
+                # Already a Mapping object
+                translation_schema = document_layout.translation_schema
+
+        return cls.model_validate(
+            {
+                "name": document_layout.name,
+                "data_model": document_layout.data_model,
+                "summary": document_layout.summary,
+                "extraction_schema": document_layout.extraction_schema,
+                "translation_schema": translation_schema,
+                "extraction_config": document_layout.extraction_config,
+                "system_prompt": document_layout.system_prompt,
+                "created_at": _parse_dt(document_layout.created_at),
+                "updated_at": _parse_dt(document_layout.updated_at),
+            }
         )

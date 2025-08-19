@@ -1233,6 +1233,498 @@ class TestUpsertLayout:
         assert created_layout.name == normalize_name(payload["name"])  # type: ignore[index]
 
 
+class TestGetLayout:
+    """Tests for the get_layout endpoint."""
+
+    def _valid_details(self) -> DIDSConnectionDetails:
+        return DIDSConnectionDetails(
+            username="user",
+            password=SecretString("pass"),
+            data_server_connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1",
+                    port=47334,
+                    kind=DIDSConnectionKind.HTTP,
+                )
+            ],
+        )
+
+    def test_get_layout_success(self, client: TestClient):
+        """Test successful layout retrieval."""
+        storage_instance = StorageService.get_instance()
+
+        # Mock data that represents a DocumentLayout from the database
+        mock_document_layout = SimpleNamespace(
+            name="test_layout",
+            data_model="test_model",
+            summary="Test layout summary",
+            extraction_schema={"type": "object", "properties": {"field1": {"type": "string"}}},
+            translation_schema={"rules": [{"source": "field1", "target": "output_field1"}]},
+            extraction_config={"mode": "strict"},
+            system_prompt="Custom system prompt",
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-02T00:00:00Z",
+        )
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=mock_document_layout,
+            ) as mock_find,
+        ):
+            resp = client.get(
+                "/api/v2/document-intelligence/layouts/test_layout",
+                params={"data_model_name": "test_model"},
+            )
+
+        assert resp.status_code == 200
+        response_data = resp.json()
+
+        # Verify the response structure matches DocumentLayoutBridge
+        assert response_data["name"] == "test_layout"
+        assert response_data["data_model"] == "test_model"
+        assert response_data["summary"] == "Test layout summary"
+        assert response_data["extraction_schema"] == {
+            "type": "object",
+            "properties": {"field1": {"type": "string"}},
+        }
+        assert response_data["extraction_config"] == {"mode": "strict"}
+        assert response_data["system_prompt"] == "Custom system prompt"
+        assert "created_at" in response_data
+        assert "updated_at" in response_data
+
+        # Verify the database query was called correctly
+        mock_find.assert_called_once()
+        call_args = mock_find.call_args
+        assert call_args[0][1] == normalize_name("test_model")  # data_model_name
+        assert call_args[0][2] == normalize_name("test_layout")  # layout_name
+
+    def test_get_layout_not_found(self, client: TestClient):
+        """Test layout not found scenario."""
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=None,
+            ),
+        ):
+            resp = client.get(
+                "/api/v2/document-intelligence/layouts/nonexistent_layout",
+                params={"data_model_name": "test_model"},
+            )
+
+        assert resp.status_code == 404
+        error_data = resp.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "nonexistent_layout" in error_data["error"]["message"]
+        assert "test_model" in error_data["error"]["message"]
+
+    def test_get_layout_missing_data_model_param(self, client: TestClient):
+        """Test missing data_model_name query parameter."""
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+        ):
+            resp = client.get("/api/v2/document-intelligence/layouts/test_layout")
+
+        # FastAPI should return 422 for missing required query parameter
+        assert resp.status_code == 422
+        error_data = resp.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.UNPROCESSABLE_ENTITY.value.code
+
+    def test_get_layout_database_error(self, client: TestClient):
+        """Test database error handling."""
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                side_effect=Exception("Database connection failed"),
+            ),
+        ):
+            resp = client.get(
+                "/api/v2/document-intelligence/layouts/test_layout",
+                params={"data_model_name": "test_model"},
+            )
+
+        assert resp.status_code == 500
+        error_data = resp.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.UNEXPECTED.value.code
+        assert "Failed to get layout" in error_data["error"]["message"]
+
+
+class TestUpdateLayout:
+    """Tests for the update_layout (PUT) endpoint."""
+
+    def _valid_details(self) -> DIDSConnectionDetails:
+        return DIDSConnectionDetails(
+            username="user",
+            password=SecretString("pass"),
+            data_server_connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1",
+                    port=47334,
+                    kind=DIDSConnectionKind.HTTP,
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1",
+                    port=5432,
+                    kind=DIDSConnectionKind.MYSQL,
+                ),
+            ],
+        )
+
+    def test_update_layout_success(self, client: TestClient):
+        """Test successful layout update."""
+        payload = {
+            "name": "invoice_v1",
+            "data_model_name": "invoice",
+            "extraction_schema": {"type": "object"},
+            "translation_schema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
+            "summary": "Updated invoice layout",
+            "extraction_config": {"threshold": 0.9},
+            "prompt": "Updated prompt",
+        }
+
+        expected_wrapped = {
+            "rules": [{"mode": "rename", "source": "total", "target": "grand_total"}]
+        }
+
+        storage_instance = StorageService.get_instance()
+        existing_layout = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=existing_layout,
+            ) as find_by_name,
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            with patch.object(existing_layout, "update") as update:
+                response = client.put(
+                    "/api/v2/document-intelligence/layouts/invoice_v1?data_model_name=invoice",
+                    json=payload,
+                )
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        find_by_name.assert_called_once_with(fake_ds, "invoice", "invoice_v1")
+        update.assert_called_once_with(fake_ds)
+
+        # Verify fields were updated (partial update behavior)
+        assert existing_layout.extraction_schema == {"type": "object"}
+        assert existing_layout.translation_schema == expected_wrapped
+        assert existing_layout.summary == "Updated invoice layout"
+        assert existing_layout.extraction_config == {"threshold": 0.9}
+        assert existing_layout.system_prompt == "Updated prompt"
+
+    def test_update_layout_not_found(self, client: TestClient):
+        """Test updating a layout that doesn't exist."""
+        payload = {
+            "name": "nonexistent",
+            "data_model_name": "invoice",
+            "extraction_schema": {"type": "object"},
+        }
+
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=None,
+            ),
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            response = client.put(
+                "/api/v2/document-intelligence/layouts/nonexistent?data_model_name=invoice",
+                json=payload,
+            )
+
+        assert response.status_code == 404
+        error_data = response.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "not found" in error_data["error"]["message"]
+
+    def test_update_layout_partial_update(self, client: TestClient):
+        """Test partial update functionality - only updates non-null fields."""
+        payload = {
+            "name": "invoice_v1",
+            "data_model_name": "invoice",
+            "summary": "Updated summary only",
+            # Only updating summary, other fields should remain unchanged
+        }
+
+        storage_instance = StorageService.get_instance()
+        existing_layout = Mock()
+        existing_layout.extraction_schema = {"original": "schema"}
+        existing_layout.translation_schema = {"original": "translation"}
+        existing_layout.extraction_config = {"original": "config"}
+        existing_layout.system_prompt = "Original prompt"
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=existing_layout,
+            ),
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            with patch.object(existing_layout, "update") as update:
+                response = client.put(
+                    "/api/v2/document-intelligence/layouts/invoice_v1?data_model_name=invoice",
+                    json=payload,
+                )
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+
+        # Only summary should be updated, others should remain original
+        assert existing_layout.summary == "Updated summary only"
+        assert existing_layout.extraction_schema == {"original": "schema"}  # unchanged
+        assert existing_layout.translation_schema == {"original": "translation"}  # unchanged
+        assert existing_layout.extraction_config == {"original": "config"}  # unchanged
+        assert existing_layout.system_prompt == "Original prompt"  # unchanged
+        update.assert_called_once_with(fake_ds)
+
+
+class TestDeleteLayout:
+    """Tests for the delete_layout endpoint."""
+
+    def _valid_details(self) -> DIDSConnectionDetails:
+        return DIDSConnectionDetails(
+            username="user",
+            password=SecretString("pass"),
+            data_server_connections=[
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1",
+                    port=47334,
+                    kind=DIDSConnectionKind.HTTP,
+                ),
+                DIDSApiConnectionDetails(
+                    host="127.0.0.1",
+                    port=5432,
+                    kind=DIDSConnectionKind.MYSQL,
+                ),
+            ],
+        )
+
+    def test_delete_layout_success(self, client: TestClient):
+        """Test successful layout deletion."""
+        storage_instance = StorageService.get_instance()
+        mock_layout = Mock()
+        mock_layout.delete.return_value = True
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=mock_layout,
+            ) as find_by_name,
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            response = client.delete(
+                "/api/v2/document-intelligence/layouts/invoice_v1?data_model_name=invoice"
+            )
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        find_by_name.assert_called_once_with(fake_ds, "invoice", "invoice_v1")
+        mock_layout.delete.assert_called_once_with(fake_ds)
+
+    def test_delete_layout_not_found(self, client: TestClient):
+        """Test deleting a layout that doesn't exist."""
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=None,
+            ),
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            response = client.delete(
+                "/api/v2/document-intelligence/layouts/nonexistent?data_model_name=invoice"
+            )
+
+        assert response.status_code == 404
+        error_data = response.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "not found" in error_data["error"]["message"]
+
+    def test_delete_layout_delete_failed(self, client: TestClient):
+        """Test when layout.delete() returns False."""
+        storage_instance = StorageService.get_instance()
+        mock_layout = Mock()
+        mock_layout.delete.return_value = False
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=mock_layout,
+            ),
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            response = client.delete(
+                "/api/v2/document-intelligence/layouts/invoice_v1?data_model_name=invoice"
+            )
+
+        assert response.status_code == 500
+        error_data = response.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.UNEXPECTED.value.code
+        assert "Failed to delete layout" in error_data["error"]["message"]
+
+    def test_delete_layout_missing_data_model_param(self, client: TestClient):
+        """Test delete layout without required data_model_name parameter."""
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+            ) as get_service,
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            response = client.delete("/api/v2/document-intelligence/layouts/invoice_v1")
+
+        assert response.status_code == 422
+        error_data = response.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.UNPROCESSABLE_ENTITY.value.code
+
+
 class TestGenerateLayoutFromFile:
     """Tests for the generate_layout_from_file endpoint."""
 

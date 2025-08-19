@@ -17,7 +17,7 @@ from agent_platform.core.payloads.upsert_document_intelligence_config import (
 )
 from agent_platform.core.payloads.upsert_document_layout import (
     DocumentLayoutPayload,
-    TranslationRulePayload,
+    _TranslationRule,
 )
 from agent_platform.core.payloads.upsert_thread import UpsertThreadPayload
 
@@ -31,9 +31,9 @@ __all__ = [
     "InitiateStreamPayload",
     "MCPServerResponse",
     "PatchAgentPayload",
-    "TranslationRulePayload",
     "UploadFilePayload",
     "UpsertAgentPayload",
     "UpsertDocumentIntelligenceConfigPayload",
     "UpsertThreadPayload",
+    "_TranslationRule",
 ]
