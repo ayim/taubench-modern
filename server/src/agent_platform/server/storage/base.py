@@ -10,7 +10,7 @@ from sqlalchemy.types import JSON
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.data_frames import PlatformDataFrame
-from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.server.storage.abstract import AbstractStorage
 from agent_platform.server.storage.common import CommonMixin
@@ -267,7 +267,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Document Intelligence convenience methods
     # -------------------------------------------------------------------------
-    async def get_dids_connection_details(self) -> DIDSConnectionDetails:
+    async def get_dids_connection_details(self) -> DataServerDetails:
         """Get the Document Intelligence Data Server connection details."""
         dids_connection_details = self._get_table("dids_connection_details")
 
@@ -298,17 +298,19 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # Handle connections deserialization based on database type
         # SQLite stores as JSON string, PostgreSQL stores as JSONB (auto-deserialized)
         # Automatically handle conversion from connections to data_server_connections
-        if "connections" in row_dict and isinstance(row_dict["connections"], str):
-            # SQLite case: deserialize JSON string
-            row_dict["data_server_connections"] = json.loads(row_dict["connections"])
-        elif "data_server_connections" in row_dict and isinstance(
-            row_dict["data_server_connections"], str
+        if "data_server_endpoints" in row_dict and isinstance(
+            row_dict["data_server_endpoints"], str
         ):
-            row_dict["data_server_connections"] = json.loads(row_dict["data_server_connections"])
+            # SQLite case: deserialize JSON string
+            row_dict["data_server_endpoints"] = json.loads(row_dict["data_server_endpoints"])
+        elif "data_server_endpoints" in row_dict and isinstance(
+            row_dict["data_server_endpoints"], str
+        ):
+            row_dict["data_server_endpoints"] = json.loads(row_dict["data_server_endpoints"])
 
-        return DIDSConnectionDetails.model_validate(row_dict)
+        return DataServerDetails.model_validate(row_dict)
 
-    async def set_dids_connection_details(self, details: DIDSConnectionDetails) -> None:
+    async def set_dids_connection_details(self, details: DataServerDetails) -> None:
         """Set the Document Intelligence Data Server connection details."""
         dids_connection_details = self._get_table("dids_connection_details")
 
@@ -320,8 +322,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
             details_data = {
                 "username": details.username,
                 "updated_at": details.updated_at,
-                "data_server_connections": [
-                    conn.model_dump(mode="json") for conn in details.data_server_connections
+                "data_server_endpoints": [
+                    conn.model_dump(mode="json") for conn in details.data_server_endpoints
                 ],
             }
 

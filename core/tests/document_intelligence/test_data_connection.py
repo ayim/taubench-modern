@@ -1,6 +1,6 @@
 import pytest
 
-from agent_platform.core.document_intelligence.data_connection import (
+from agent_platform.core.data_server.data_connection import (
     DataConnection,
     DataConnectionEngine,
 )

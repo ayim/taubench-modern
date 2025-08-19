@@ -29,6 +29,8 @@ class MissingDataConnectionDetailsError(PlatformHTTPError):
 class DataConnectionEngine(StrEnum):
     """An engine for a data connection to the Document Intelligence Data Server"""
 
+    # TODO what are all of the engines we currently support? Do we need to enumerate
+    # them? Just allow pass-through?
     POSTGRES = "postgres"
 
 

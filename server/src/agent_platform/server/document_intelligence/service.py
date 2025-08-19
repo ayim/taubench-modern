@@ -7,7 +7,7 @@ from typing import ClassVar
 from sema4ai.data import DataSource
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 
-from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.responses import ErrorCode
 
@@ -34,9 +34,7 @@ class DocumentIntelligenceService:
         self._state = _DIState()
 
     @classmethod
-    def get_instance(
-        cls, details: DIDSConnectionDetails | None = None
-    ) -> DocumentIntelligenceService:
+    def get_instance(cls, details: DataServerDetails | None = None) -> DocumentIntelligenceService:
         """Get the singleton instance of the DI service.
 
         If ``details`` are provided, ensure the datasource setup is performed
@@ -60,7 +58,7 @@ class DocumentIntelligenceService:
         """Set a custom instance (for testing)."""
         cls._instance = instance
 
-    def ensure_setup(self, details: DIDSConnectionDetails) -> None:
+    def ensure_setup(self, details: DataServerDetails) -> None:
         """Ensure the DI connections are configured for the provided details.
 
         The setup is re-run only if the configuration changed (based on

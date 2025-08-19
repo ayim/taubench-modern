@@ -14,7 +14,7 @@ from sema4ai_docint.agent_server_client import AgentServerClient
 from starlette.concurrency import run_in_threadpool
 
 from agent_platform.core.configurations.quotas import QuotasService
-from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import IntegrationKind
 from agent_platform.core.errors.quotas import (
     AgentQuotaExceededError,
@@ -162,7 +162,7 @@ WorkItemFileAttachmentSizeCheck = Annotated[None, Depends(check_work_item_file_a
 # -----------------------------------------------------------------------------
 
 
-async def get_dids_connection_details(storage: StorageDependency) -> DIDSConnectionDetails:
+async def get_dids_connection_details(storage: StorageDependency) -> DataServerDetails:
     """Fetch and return validated DIDS connection details.
 
     This wraps storage access to enable composition in other dependencies and
@@ -181,12 +181,12 @@ async def get_dids_connection_details(storage: StorageDependency) -> DIDSConnect
             "Document Intelligence Data Server configuration is missing password"
         )
 
-    if not details.data_server_connections:
+    if not details.data_server_endpoints:
         raise DIDSConnectionDetailsNotFoundError(
             "Document Intelligence Data Server configuration is missing connections"
         )
 
-    for idx, conn in enumerate(details.data_server_connections):
+    for idx, conn in enumerate(details.data_server_endpoints):
         if not getattr(conn, "host", None) or not str(conn.host).strip():
             raise DIDSConnectionDetailsNotFoundError(
                 f"Document Intelligence Data Server connection #{idx} is missing host"
@@ -199,7 +199,7 @@ async def get_dids_connection_details(storage: StorageDependency) -> DIDSConnect
     return details
 
 
-DIDSDetailsDependency = Annotated[DIDSConnectionDetails, Depends(get_dids_connection_details)]
+DIDSDetailsDependency = Annotated[DataServerDetails, Depends(get_dids_connection_details)]
 
 
 def get_docint_datasource(details: DIDSDetailsDependency) -> DataSource:

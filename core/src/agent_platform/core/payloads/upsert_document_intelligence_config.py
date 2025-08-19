@@ -4,12 +4,15 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
 
-from agent_platform.core.document_intelligence.data_connection import DataConnection
-from agent_platform.core.document_intelligence.dataserver import (
-    DIDSApiConnectionDetails,
-    DIDSConnectionDetails,
-    DIDSConnectionKind,
+from sema4ai_docint.models.constants import DATA_SOURCE_NAME
+
+from agent_platform.core.data_server.data_connection import DataConnection
+from agent_platform.core.data_server.data_server import (
+    DataServerDetails,
+    DataServerEndpoint,
+    DataServerEndpointKind,
 )
+from agent_platform.core.data_server.data_sources import DataSources
 from agent_platform.core.document_intelligence.integrations import (
     DocumentIntelligenceIntegration,
     IntegrationKind,
@@ -123,7 +126,7 @@ class UpsertDocumentIntelligenceConfigPayload:
         )
 
     # Convenience helpers used by the API layer
-    def to_dids_connection_details(self) -> DIDSConnectionDetails:
+    def to_data_sources(self) -> DataSources:
         # HTTP connection: accept hostname in url; scheme (if provided) is ignored
         http_host = self.data_server.api.http.url
         # If the client sends something like http://host or https://host/path, extract hostname
@@ -137,15 +140,15 @@ class UpsertDocumentIntelligenceConfigPayload:
         except Exception:
             pass
 
-        http_conn = DIDSApiConnectionDetails(
+        http_conn = DataServerEndpoint(
             host=http_host,
             port=self.data_server.api.http.port,
-            kind=DIDSConnectionKind.HTTP,
+            kind=DataServerEndpointKind.HTTP,
         )
-        mysql_conn = DIDSApiConnectionDetails(
+        mysql_conn = DataServerEndpoint(
             host=self.data_server.api.mysql.host,
             port=self.data_server.api.mysql.port,
-            kind=DIDSConnectionKind.MYSQL,
+            kind=DataServerEndpointKind.MYSQL,
         )
 
         password_value = (
@@ -154,11 +157,16 @@ class UpsertDocumentIntelligenceConfigPayload:
             else SecretString(self.data_server.credentials.password)
         )
 
-        return DIDSConnectionDetails(
+        data_server = DataServerDetails(
             username=self.data_server.credentials.username,
             password=password_value,
-            data_server_connections=[http_conn, mysql_conn],
-            data_connections=self.data_connections,
+            data_server_endpoints=[http_conn, mysql_conn],
+        )
+        data_sources = {DATA_SOURCE_NAME: self.data_connections[0]} if self.data_connections else {}
+
+        return DataSources(
+            data_server=data_server,
+            data_sources=data_sources,
         )
 
     def to_integrations(self) -> list[DocumentIntelligenceIntegration]:

@@ -1,4 +1,3 @@
-import dataclasses
 from types import SimpleNamespace
 from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
 
@@ -12,16 +11,18 @@ from sema4ai_docint.extraction.reducto.exceptions import (
     UploadMissingFileIdError,
     UploadMissingPresignedUrlError,
 )
+from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 
-from agent_platform.core.document_intelligence.data_connection import (
+from agent_platform.core.data_server.data_connection import (
     DataConnection,
     DataConnectionEngine,
 )
-from agent_platform.core.document_intelligence.dataserver import (
-    DIDSApiConnectionDetails,
-    DIDSConnectionDetails,
-    DIDSConnectionKind,
+from agent_platform.core.data_server.data_server import (
+    DataServerDetails,
+    DataServerEndpoint,
+    DataServerEndpointKind,
 )
+from agent_platform.core.data_server.data_sources import DataSources
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.utils import SecretString
@@ -80,16 +81,12 @@ class TestDocumentIntelligenceEndpoints:
     def test_ok_endpoint_succeeds_when_configured(self, client: TestClient):
         """When DIDS details are present and valid, the endpoint should succeed."""
         # Prepare valid connection details
-        valid_details = DIDSConnectionDetails(
+        valid_details = DataServerDetails(
             username="testuser",
             password=SecretString("testpass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
-                ),
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
-                ),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
             ],
         )
 
@@ -224,65 +221,65 @@ class TestDocumentIntelligenceEndpoints:
         ("details", "expected_substring"),
         [
             (
-                DIDSConnectionDetails(
+                DataServerDetails(
                     username=None,
                     password=SecretString("testpass"),
-                    data_server_connections=[
-                        DIDSApiConnectionDetails(
-                            host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                    data_server_endpoints=[
+                        DataServerEndpoint(
+                            host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
                         ),
                     ],
                 ),
                 "missing username",
             ),
             (
-                DIDSConnectionDetails(
+                DataServerDetails(
                     username="   ",
                     password=SecretString("testpass"),
-                    data_server_connections=[
-                        DIDSApiConnectionDetails(
-                            host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                    data_server_endpoints=[
+                        DataServerEndpoint(
+                            host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
                         ),
                     ],
                 ),
                 "missing username",
             ),
             (
-                DIDSConnectionDetails(
+                DataServerDetails(
                     username="user",
                     password=None,
-                    data_server_connections=[
-                        DIDSApiConnectionDetails(
-                            host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                    data_server_endpoints=[
+                        DataServerEndpoint(
+                            host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
                         ),
                     ],
                 ),
                 "missing password",
             ),
             (
-                DIDSConnectionDetails(
+                DataServerDetails(
                     username="user",
                     password=SecretString("   "),
-                    data_server_connections=[
-                        DIDSApiConnectionDetails(
-                            host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
+                    data_server_endpoints=[
+                        DataServerEndpoint(
+                            host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
                         ),
                     ],
                 ),
                 "missing password",
             ),
             (
-                DIDSConnectionDetails(
+                DataServerDetails(
                     username="user",
                     password=SecretString("testpass"),
-                    data_server_connections=[],
+                    data_server_endpoints=[],
                 ),
                 "missing connections",
             ),
         ],
     )
     def test_ok_endpoint_fails_with_partial_configuration(
-        self, client: TestClient, details: DIDSConnectionDetails, expected_substring: str
+        self, client: TestClient, details: DataServerDetails, expected_substring: str
     ):
         """Ensure dependency validation catches partial configurations with clear messages."""
         storage_instance = StorageService.get_instance()
@@ -299,16 +296,12 @@ class TestDocumentIntelligenceEndpoints:
     def test_get_all_layouts_returns_layouts(self, client: TestClient):
         """GET /document-intelligence/layouts should return layout summaries."""
         # Prepare valid connection details
-        valid_details = DIDSConnectionDetails(
+        valid_details = DataServerDetails(
             username="testuser",
             password=SecretString("testpass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
-                ),
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
-                ),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
             ],
         )
 
@@ -363,16 +356,12 @@ class TestDocumentIntelligenceEndpoints:
 
     def test_get_all_layouts_returns_empty_list(self, client: TestClient):
         """GET /document-intelligence/layouts should return an empty list when no layouts exist."""
-        valid_details = DIDSConnectionDetails(
+        valid_details = DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
-                ),
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
-                ),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
             ],
         )
 
@@ -413,21 +402,23 @@ class TestBuildDatasource:
     """Tests for the _build_datasource function."""
 
     @pytest.fixture
-    def sample_connection_details(self):
-        """Sample DIDSConnectionDetails instance for testing."""
-        return DIDSConnectionDetails(
-            username="testuser",
-            password=SecretString("testpass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
-                ),
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
-                ),
-            ],
-            data_connections=[
-                DataConnection(
+    def sample_data_sources(self):
+        """Sample DataSources instance for testing."""
+        return DataSources(
+            data_server=DataServerDetails(
+                username="testuser",
+                password=SecretString("testpass"),
+                data_server_endpoints=[
+                    DataServerEndpoint(
+                        host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
+                    ),
+                    DataServerEndpoint(
+                        host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL
+                    ),
+                ],
+            ),
+            data_sources={
+                DATA_SOURCE_NAME: DataConnection(
                     id="123",
                     name="docint-postgres",
                     engine=DataConnectionEngine.POSTGRES,
@@ -439,142 +430,62 @@ class TestBuildDatasource:
                         "database": "testdb",
                     },
                 ),
-            ],
+            },
         )
 
     @patch("agent_platform.server.api.private_v2.document_intelligence.DataSource")
     @patch("agent_platform.server.api.private_v2.document_intelligence.initialize_database")
+    @patch("agent_platform.server.api.private_v2.document_intelligence.initialize_data_source")
     async def test_build_datasource_success(
-        self, mock_initialize_db, mock_datasource, sample_connection_details
+        self,
+        mock_initialize_data_source,
+        mock_initialize_database,
+        mock_datasource,
+        sample_data_sources,
     ):
         """Test successful datasource creation and initialization."""
-        # Setup DataSource mocks
-        mock_admin_ds = MagicMock()
-        mock_connection = Mock()
-        mock_source_info = Mock()
-        mock_source_info.name = "existing_source"
-        mock_connection.list_data_sources.return_value = [mock_source_info]
-        mock_admin_ds.connection.return_value = mock_connection
-        mock_admin_ds.execute_sql.return_value = None
-
+        # Setup DataSource mock instance returned by model_validate
         mock_docint_ds = Mock()
-
-        # Configure DataSource.model_validate to return different instances
-        mock_datasource.model_validate.side_effect = [mock_admin_ds, mock_docint_ds]
+        mock_datasource.model_validate.return_value = mock_docint_ds
 
         # Call the function
-        await document_intelligence._build_datasource(sample_connection_details)
+        await document_intelligence._build_datasource(sample_data_sources)
 
-        # Verify DataSource.setup_connection_from_input_json was called
-        mock_datasource.setup_connection_from_input_json.assert_called_once()
-
-        # Verify proper_json structure (from dataclass as_datasource_connection_input method)
-        call_args = mock_datasource.setup_connection_from_input_json.call_args[0][0]
-        assert call_args["http"]["url"] == "127.0.0.1:47334"
-        assert call_args["http"]["user"] == "testuser"
-        assert call_args["http"]["password"] == "testpass"
-        assert call_args["mysql"]["host"] == "127.0.0.1"
-        assert call_args["mysql"]["port"] == 5432
-        assert call_args["mysql"]["user"] == "testuser"
-        assert call_args["mysql"]["password"] == "testpass"
+        mock_initialize_data_source.assert_awaited_once_with(sample_data_sources)
 
         # Verify admin datasource was created with correct name
-        assert mock_datasource.model_validate.call_count == 2
-        mock_datasource.model_validate.assert_any_call(datasource_name="sema4ai")
+        assert mock_datasource.model_validate.call_count == 1
         mock_datasource.model_validate.assert_any_call(datasource_name="DocumentIntelligence")
 
-        # Verify database operations
-        assert mock_admin_ds.execute_sql.call_count == 2  # DROP and CREATE
-        data_server_call_args = mock_admin_ds.execute_sql.call_args_list
-        assert data_server_call_args[0][0][0] == "DROP DATABASE IF EXISTS DocumentIntelligence;"
-
-        assert "CREATE DATABASE DocumentIntelligence" in data_server_call_args[1][0][0]
-        assert 'WITH ENGINE = "postgres"' in data_server_call_args[1][0][0]
-        assert '"user": "testuser"' in data_server_call_args[1][0][0]
-        assert '"password": "testpass"' in data_server_call_args[1][0][0]
-        assert '"host": "localhost"' in data_server_call_args[1][0][0]
-        assert '"port": 5432' in data_server_call_args[1][0][0]
-        assert '"database": "testdb"' in data_server_call_args[1][0][0]
-
         # Verify initialize_database was called
-        mock_initialize_db.assert_called_once_with("postgres", mock_docint_ds)
+        mock_initialize_database.assert_called_once_with("postgres", mock_docint_ds)
 
-    @patch("agent_platform.server.api.private_v2.document_intelligence.DataSource")
+    @patch("agent_platform.server.api.private_v2.document_intelligence.initialize_data_source")
     async def test_build_datasource_connection_error(
-        self, mock_datasource, sample_connection_details
+        self, mock_initialize_data_source, sample_data_sources
     ):
         """Test error handling when connection setup fails."""
         # Setup mock to raise exception on setup
-        mock_datasource.setup_connection_from_input_json.side_effect = Exception(
-            "Connection failed"
-        )
+        mock_initialize_data_source.side_effect = Exception("Connection failed")
 
         # Verify PlatformError is raised
         with pytest.raises(PlatformError) as exc_info:
-            await document_intelligence._build_datasource(sample_connection_details)
+            await document_intelligence._build_datasource(sample_data_sources)
 
         assert exc_info.value.response.error_code == ErrorCode.UNEXPECTED
         assert "Error initializing Document Intelligence database" in str(exc_info.value)
-
-    @patch("agent_platform.server.api.private_v2.document_intelligence.DataSource")
-    async def test_build_datasource_uses_postgres_config(
-        self, mock_datasource, sample_connection_details
-    ):
-        """Test that the function correctly uses PostgresConfig for database connection details."""
-
-        override_config = {
-            "user": "config_user",
-            "password": "config_pass",
-            "host": "config_host",
-            "port": 5433,
-            "database": "config_db",
-        }
-        sample_connection_details = dataclasses.replace(
-            sample_connection_details,
-            data_connections=[
-                dataclasses.replace(
-                    sample_connection_details.data_connections[0], configuration=override_config
-                )
-            ],
-        )
-
-        # Setup DataSource mocks
-        mock_admin_ds = Mock()
-        mock_docint_ds = Mock()
-        mock_datasource.model_validate.side_effect = [mock_admin_ds, mock_docint_ds]
-
-        # Call the function
-        await document_intelligence._build_datasource(sample_connection_details)
-        # Verify the CREATE DATABASE SQL includes the PostgresConfig values
-        create_sql_call = None
-        for call in mock_admin_ds.execute_sql.call_args_list:
-            sql = call[0][0]
-            if "CREATE DATABASE DocumentIntelligence" in sql:
-                create_sql_call = sql
-                break
-
-        assert create_sql_call is not None
-        assert '"user": "config_user"' in create_sql_call
-        assert '"password": "config_pass"' in create_sql_call
-        assert '"host": "config_host"' in create_sql_call
-        assert '"port": 5433' in create_sql_call
-        assert '"database": "config_db"' in create_sql_call
 
 
 class TestDataModelEndpoints:
     """Tests for data model endpoints (list, create, get, update)."""
 
-    def _valid_details(self) -> DIDSConnectionDetails:
-        return DIDSConnectionDetails(
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
             username="testuser",
             password=SecretString("testpass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
-                ),
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
-                ),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
             ],
         )
 
@@ -1020,17 +931,13 @@ class TestDataModelEndpoints:
 
 
 class TestUpsertLayout:
-    def _valid_details(self) -> DIDSConnectionDetails:
-        return DIDSConnectionDetails(
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
-                ),
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
-                ),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
             ],
         )
 
@@ -1236,15 +1143,15 @@ class TestUpsertLayout:
 class TestGetLayout:
     """Tests for the get_layout endpoint."""
 
-    def _valid_details(self) -> DIDSConnectionDetails:
-        return DIDSConnectionDetails(
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
+            data_server_endpoints=[
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=47334,
-                    kind=DIDSConnectionKind.HTTP,
+                    kind=DataServerEndpointKind.HTTP,
                 )
             ],
         )
@@ -1408,20 +1315,20 @@ class TestGetLayout:
 class TestUpdateLayout:
     """Tests for the update_layout (PUT) endpoint."""
 
-    def _valid_details(self) -> DIDSConnectionDetails:
-        return DIDSConnectionDetails(
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
+            data_server_endpoints=[
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=47334,
-                    kind=DIDSConnectionKind.HTTP,
+                    kind=DataServerEndpointKind.HTTP,
                 ),
-                DIDSApiConnectionDetails(
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=5432,
-                    kind=DIDSConnectionKind.MYSQL,
+                    kind=DataServerEndpointKind.MYSQL,
                 ),
             ],
         )
@@ -1578,20 +1485,20 @@ class TestUpdateLayout:
 class TestDeleteLayout:
     """Tests for the delete_layout endpoint."""
 
-    def _valid_details(self) -> DIDSConnectionDetails:
-        return DIDSConnectionDetails(
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
+            data_server_endpoints=[
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=47334,
-                    kind=DIDSConnectionKind.HTTP,
+                    kind=DataServerEndpointKind.HTTP,
                 ),
-                DIDSApiConnectionDetails(
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=5432,
-                    kind=DIDSConnectionKind.MYSQL,
+                    kind=DataServerEndpointKind.MYSQL,
                 ),
             ],
         )
@@ -1741,15 +1648,15 @@ class TestGenerateLayoutFromFile:
         storage_instance = StorageService.get_instance()
 
         # Minimal valid DIDS details so DocInt datasource dependency resolves
-        valid_details = DIDSConnectionDetails(
+        valid_details = DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
+            data_server_endpoints=[
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=47334,
-                    kind=DIDSConnectionKind.HTTP,
-                )
+                    kind=DataServerEndpointKind.HTTP,
+                ),
             ],
         )
 
@@ -1846,14 +1753,14 @@ class TestGenerateDataModelFromDocument:
         storage_instance = StorageService.get_instance()
 
         # Minimal valid DIDS details so DocInt datasource dependency resolves
-        valid_details = DIDSConnectionDetails(
+        valid_details = DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
+            data_server_endpoints=[
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=47334,
-                    kind=DIDSConnectionKind.HTTP,
+                    kind=DataServerEndpointKind.HTTP,
                 )
             ],
         )
@@ -1920,14 +1827,14 @@ class TestGenerateDataModelFromDocument:
         """
         storage_instance = StorageService.get_instance()
 
-        valid_details = DIDSConnectionDetails(
+        valid_details = DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
+            data_server_endpoints=[
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=47334,
-                    kind=DIDSConnectionKind.HTTP,
+                    kind=DataServerEndpointKind.HTTP,
                 )
             ],
         )
@@ -1989,17 +1896,13 @@ class TestGenerateDataModelFromDocument:
 
 
 class TestParseDocumentEndpoints:
-    def _valid_details(self) -> DIDSConnectionDetails:
-        return DIDSConnectionDetails(
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=47334, kind=DIDSConnectionKind.HTTP
-                ),
-                DIDSApiConnectionDetails(
-                    host="127.0.0.1", port=5432, kind=DIDSConnectionKind.MYSQL
-                ),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
             ],
         )
 
@@ -2302,20 +2205,20 @@ class TestParseDocumentEndpoints:
 
 
 class TestExtractDocumentEndpoints:
-    def _valid_details(self) -> DIDSConnectionDetails:
-        return DIDSConnectionDetails(
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_connections=[
-                DIDSApiConnectionDetails(
+            data_server_endpoints=[
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=47334,
-                    kind=DIDSConnectionKind.HTTP,
+                    kind=DataServerEndpointKind.HTTP,
                 ),
-                DIDSApiConnectionDetails(
+                DataServerEndpoint(
                     host="127.0.0.1",
                     port=5432,
-                    kind=DIDSConnectionKind.MYSQL,
+                    kind=DataServerEndpointKind.MYSQL,
                 ),
             ],
         )

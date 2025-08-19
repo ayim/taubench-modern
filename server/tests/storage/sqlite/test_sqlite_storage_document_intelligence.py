@@ -1,9 +1,9 @@
 import pytest
 
-from agent_platform.core.document_intelligence.dataserver import (
-    DIDSApiConnectionDetails,
-    DIDSConnectionDetails,
-    DIDSConnectionKind,
+from agent_platform.core.data_server.data_server import (
+    DataServerDetails,
+    DataServerEndpoint,
+    DataServerEndpointKind,
 )
 from agent_platform.core.document_intelligence.integrations import (
     DocumentIntelligenceIntegration,
@@ -28,13 +28,13 @@ def sample_integration() -> DocumentIntelligenceIntegration:
 
 
 @pytest.fixture
-def sample_dids_connection_details() -> DIDSConnectionDetails:
+def sample_data_server_details() -> DataServerDetails:
     """Create sample DIDS connection details for testing."""
-    return DIDSConnectionDetails(
+    return DataServerDetails(
         username="test_user",
         password=SecretString("test_password"),
-        data_server_connections=[
-            DIDSApiConnectionDetails(host="localhost", port=8080, kind=DIDSConnectionKind.HTTP),
+        data_server_endpoints=[
+            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP),
         ],
     )
 
@@ -153,7 +153,7 @@ async def test_integration_update_same_kind(
 @pytest.mark.asyncio
 async def test_dids_connection_details_crud_operations(
     storage: SQLiteStorage,
-    sample_dids_connection_details: DIDSConnectionDetails,
+    sample_data_server_details: DataServerDetails,
 ) -> None:
     """Test Create, Read, Update, and Delete operations for DIDS connection details."""
 
@@ -166,25 +166,24 @@ async def test_dids_connection_details_crud_operations(
         await storage.delete_dids_connection_details()
 
     # Set connection details
-    await storage.set_dids_connection_details(sample_dids_connection_details)
+    await storage.set_dids_connection_details(sample_data_server_details)
 
     # Get connection details
     retrieved_details = await storage.get_dids_connection_details()
-    assert retrieved_details.username == sample_dids_connection_details.username
+    assert retrieved_details.username == sample_data_server_details.username
     assert retrieved_details.password is not None
-    assert sample_dids_connection_details.password is not None
-    assert retrieved_details.password.value == sample_dids_connection_details.password.value
+    assert sample_data_server_details.password is not None
+    assert retrieved_details.password.value == sample_data_server_details.password.value
     assert (
-        retrieved_details.data_server_connections
-        == sample_dids_connection_details.data_server_connections
+        retrieved_details.data_server_endpoints == sample_data_server_details.data_server_endpoints
     )
 
     # Update connection details
-    updated_details = DIDSConnectionDetails(
+    updated_details = DataServerDetails(
         username="updated_user",
         password=SecretString("updated_password"),
-        data_server_connections=[
-            DIDSApiConnectionDetails(host="updated-host", port=9090, kind=DIDSConnectionKind.MYSQL),
+        data_server_endpoints=[
+            DataServerEndpoint(host="updated-host", port=9090, kind=DataServerEndpointKind.MYSQL),
         ],
     )
     await storage.set_dids_connection_details(updated_details)
@@ -194,10 +193,10 @@ async def test_dids_connection_details_crud_operations(
     assert retrieved_updated.username == "updated_user"
     assert retrieved_updated.password is not None
     assert retrieved_updated.password.value == "updated_password"
-    assert len(retrieved_updated.data_server_connections) == 1
-    assert retrieved_updated.data_server_connections[0].host == "updated-host"
-    assert retrieved_updated.data_server_connections[0].port == 9090
-    assert retrieved_updated.data_server_connections[0].kind == DIDSConnectionKind.MYSQL
+    assert len(retrieved_updated.data_server_endpoints) == 1
+    assert retrieved_updated.data_server_endpoints[0].host == "updated-host"
+    assert retrieved_updated.data_server_endpoints[0].port == 9090
+    assert retrieved_updated.data_server_endpoints[0].kind == DataServerEndpointKind.MYSQL
 
     # Delete connection details
     await storage.delete_dids_connection_details()

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.config.config import Config
-from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
@@ -555,11 +555,11 @@ class AbstractStorage(ABC):
     # Methods for Document Intelligence
     # -------------------------------------------------------------------------
     @abstractmethod
-    async def get_dids_connection_details(self) -> DIDSConnectionDetails:
+    async def get_dids_connection_details(self) -> DataServerDetails:
         """Get the Document Intelligence Data Server connection details."""
 
     @abstractmethod
-    async def set_dids_connection_details(self, details: DIDSConnectionDetails) -> None:
+    async def set_dids_connection_details(self, details: DataServerDetails) -> None:
         """Set the Document Intelligence Data Server connection details."""
 
     @abstractmethod

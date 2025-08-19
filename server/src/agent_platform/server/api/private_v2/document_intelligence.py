@@ -19,8 +19,9 @@ from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
+from agent_platform.core.data_server.data_server import DataServerDetails
+from agent_platform.core.data_server.data_sources import DataSources
 from agent_platform.core.document_intelligence import (
-    DIDSConnectionDetails,
     DocumentLayoutSummary,
 )
 from agent_platform.core.document_intelligence.data_models import (
@@ -54,6 +55,7 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.data_server.data_source import initialize_data_source
 from agent_platform.server.storage.errors import (
     DIDSConnectionDetailsNotFoundError,
     DocumentIntelligenceIntegrationNotFoundError,
@@ -62,43 +64,16 @@ from agent_platform.server.storage.errors import (
 logger: BoundLogger = get_logger(__name__)
 
 
-async def _build_datasource(connection_details: DIDSConnectionDetails):
-    proper_json = connection_details.as_datasource_connection_input()
-
+async def _build_datasource(data_sources: DataSources):
+    """
+    Initialize the Document Intelligence database in the Data Server.
+    """
     try:
-        DataSource.setup_connection_from_input_json(proper_json)
+        await initialize_data_source(data_sources)
 
-        # Drop existing database if it exists
-        # Create admin datasource for administrative commands
-        admin_ds = DataSource.model_validate(datasource_name="sema4ai")
-
-        drop_sql = f"DROP DATABASE IF EXISTS {DATA_SOURCE_NAME};"
-        admin_ds.execute_sql(drop_sql)
-
-        # We may support multiple connections in the future, but for now we only support one
-        num_data_connections = len(connection_details.data_connections)
-        if num_data_connections != 1:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.BAD_REQUEST,
-                message=f"Exactly one data connection is required (got {num_data_connections}).",
-            )
-        connection = connection_details.data_connections[0]
-
-        # Pass the data connection details directly to the datasource
-        create_sql = f'''
-        CREATE DATABASE {DATA_SOURCE_NAME}
-        WITH ENGINE = "{connection.engine.value}",
-        PARAMETERS = {{
-            {connection.build_mindsdb_parameters()}
-        }};
-        '''
-
-        admin_ds.execute_sql(create_sql)
-
+        # Also create the DocInt tables in the database.
         docint_ds = DataSource.model_validate(datasource_name=DATA_SOURCE_NAME)
-
         initialize_database("postgres", docint_ds)
-
     except Exception as e:
         raise PlatformError(
             ErrorCode.UNEXPECTED,
@@ -320,12 +295,12 @@ async def upsert_document_intelligence(
     root. It stores the Data Server connection details and any provided
     integrations. For now, integrations are upserted individually by kind.
     """
-    # Persist Data Server connection details
-    details = payload.to_dids_connection_details()
-    await storage.set_dids_connection_details(details)
+    # Persist Data Server connection details for DocInt.
+    data_sources = payload.to_data_sources()
+    await storage.set_dids_connection_details(data_sources.data_server)
 
     # Initialize or refresh the DI database/datasource
-    await _build_datasource(details)
+    await _build_datasource(data_sources)
 
     # Upsert integrations (if provided)
     for integration in payload.to_integrations():
@@ -342,7 +317,7 @@ async def clear_document_intelligence(
     # Check to see if we have the DIDS details in the agentserver database to know
     # if we have state to clear. Don't use the dependency injection so we can
     # suppress a caught error
-    conn_details: DIDSConnectionDetails
+    conn_details: DataServerDetails
     try:
         conn_details = await storage.get_dids_connection_details()
     except DIDSConnectionDetailsNotFoundError:

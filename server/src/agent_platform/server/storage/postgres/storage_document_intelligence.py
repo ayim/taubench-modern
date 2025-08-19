@@ -1,13 +1,13 @@
 from sqlalchemy import delete, insert
 
-from agent_platform.core.document_intelligence.dataserver import DIDSConnectionDetails
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.server.storage.base import BaseStorage
 
 
 class PostgresStorageDocumentIntelligenceMixin(BaseStorage):
     """Mixin for PostgreSQL-specific document intelligence operations."""
 
-    async def set_dids_connection_details(self, details: DIDSConnectionDetails) -> None:
+    async def set_dids_connection_details(self, details: DataServerDetails) -> None:
         """Set the Document Intelligence Data Server connection details."""
         dids_connection_details = self._get_table("dids_connection_details")
 
@@ -19,8 +19,8 @@ class PostgresStorageDocumentIntelligenceMixin(BaseStorage):
             details_data = {
                 "username": details.username,
                 "updated_at": details.updated_at,
-                "data_server_connections": [
-                    conn.model_dump() for conn in details.data_server_connections
+                "data_server_endpoints": [
+                    conn.model_dump() for conn in details.data_server_endpoints
                 ],
             }
 

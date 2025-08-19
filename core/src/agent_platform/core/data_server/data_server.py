@@ -4,48 +4,48 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-from agent_platform.core.document_intelligence.data_connection import DataConnection
+from agent_platform.core.data_server.data_connection import DataConnection
 from agent_platform.core.utils import SecretString
 
 
-class DIDSConnectionKind(StrEnum):
-    """The kind of connection to the Document Intelligence Data Server"""
+class DataServerEndpointKind(StrEnum):
+    """The protocol to the Data Server"""
 
     HTTP = "http"
     MYSQL = "mysql"
 
 
 @dataclass(frozen=True)
-class DIDSApiConnectionDetails:
-    """DIDSApiConnectionDetails is a class that represents the details needed to
-    connect to the Document Intelligence Data Server"""
+class DataServerEndpoint:
+    """DataServerEndpoint is a class that represents the details needed to
+    connect to a Data Server over a specific protocol"""
 
     host: str = field(
         metadata={
-            "description": "The host address of the Document Intelligence Data Server",
+            "description": "The host address of the Data Server",
         },
     )
-    """The host address of the Document Intelligence Data Server"""
+    """The host address of the Data Server"""
 
     port: int = field(
         metadata={
-            "description": "The port of this connection to the Document Intelligence Data Server",
+            "description": "The port of this connection to the Data Server",
         },
     )
-    """The port of this connection to the Document Intelligence Data Server"""
+    """The port of this connection to the Data Server"""
 
-    kind: DIDSConnectionKind = field(
-        default=DIDSConnectionKind.HTTP,
+    kind: DataServerEndpointKind = field(
+        default=DataServerEndpointKind.HTTP,
         metadata={
-            "description": "The kind of connection to the Document Intelligence Data Server",
+            "description": "The kind of connection to the Data Server",
         },
     )
-    """The kind of connection to the Document Intelligence Data Server"""
+    """The kind of connection to the Data Server"""
 
     def __post_init__(self):
         # Ensure kind is the proper type
-        if not isinstance(self.kind, DIDSConnectionKind):
-            object.__setattr__(self, "kind", DIDSConnectionKind(self.kind))
+        if not isinstance(self.kind, DataServerEndpointKind):
+            object.__setattr__(self, "kind", DataServerEndpointKind(self.kind))
 
         # Validate host is not empty or whitespace-only
         if not self.host or not self.host.strip():
@@ -57,11 +57,11 @@ class DIDSApiConnectionDetails:
 
     @property
     def full_address(self) -> str:
-        """The full address of the Document Intelligence Data Server"""
+        """The full address of the Data Server"""
         return f"{self.host}:{self.port}"
 
     def model_dump(self, *, mode: Literal["python", "json"] = "python") -> dict:
-        """Convert the DIDSConnectionDetails to a dictionary
+        """Convert the DataServerEndpointDetails to a dictionary
 
         Args:
             mode: Either 'python' for Python objects or 'json' for JSON-serializable values
@@ -75,16 +75,16 @@ class DIDSApiConnectionDetails:
     @classmethod
     def model_validate(
         cls,
-        data: "dict[str, Any] | Mapping[str, Any] | DIDSApiConnectionDetails",
-    ) -> "DIDSApiConnectionDetails":
-        """Create a DIDSConnectionDetails instance from a dictionary or existing instance.
+        data: "dict[str, Any] | Mapping[str, Any] | DataServerEndpoint",
+    ) -> "DataServerEndpoint":
+        """Create a DataServerEndpoint instance from a dictionary or existing instance.
 
         Args:
             data: Dictionary containing kind, host, and port fields,
-                  or an existing DIDSApiConnectionDetails instance
+                  or an existing DataServerEndpoint instance
 
         Returns:
-            A DIDSConnectionDetails instance
+            A DataServerEndpoint instance
         """
         # If it's already an instance of the class, return it directly
         if isinstance(data, cls):
@@ -111,29 +111,29 @@ class DIDSApiConnectionDetails:
 
 
 @dataclass(frozen=True)
-class DIDSConnectionDetails:
-    """DIDSConnectionDetails contains authentication information for connecting to DIDS"""
+class DataServerDetails:
+    """DataServerDetails contains credentials to a DataServer"""
 
     username: str | None = field(
         metadata={
-            "description": "The username to connect to the Document Intelligence Data Server",
+            "description": "The username to connect to the Data Server",
         },
     )
-    """The username to connect to the Document Intelligence Data Server"""
+    """The username to connect to the Data Server"""
 
     password: SecretString | None = field(
         metadata={
-            "description": "The password to connect to the Document Intelligence Data Server",
+            "description": "The password to connect to a Data Server",
         },
     )
-    """The password to connect to the Document Intelligence Data Server"""
+    """The password to connect to the Data Server"""
 
-    data_server_connections: list[DIDSApiConnectionDetails] = field(
+    data_server_endpoints: list[DataServerEndpoint] = field(
         metadata={
-            "description": "The connection details for the Document Intelligence Data Server",
+            "description": "The connection details for a Data Server",
         },
     )
-    """The connection details for the Document Intelligence Data Server"""
+    """The connection details for the Data Server"""
 
     updated_at: datetime = field(
         default_factory=datetime.now,
@@ -143,46 +143,40 @@ class DIDSConnectionDetails:
     )
     """The timestamp when the connection details were last updated"""
 
-    data_connections: list[DataConnection] = field(
-        default_factory=list,
-        metadata={
-            "description": "The data connections for the Document Intelligence Data Server",
-        },
-    )
-    """The data connections for the Document Intelligence Data Server"""
-
     def __post_init__(self):
         if isinstance(self.password, str):
             object.__setattr__(self, "password", SecretString(self.password))
 
     def as_datasource_connection_input(self) -> dict:
-        """Convert the DIDSConnectionDetails to a datasource connection input dictionary"""
+        """Convert the DataServerDetails to a datasource connection input dictionary"""
         result = {}
 
-        for connection in self.data_server_connections:
+        for endpoint in self.data_server_endpoints:
             base_connection = {
-                "host": connection.host,
-                "port": connection.port,
+                "host": endpoint.host,
+                "port": endpoint.port,
                 "user": self.username,
                 "password": self.password.get_secret_value() if self.password else None,
             }
 
             # As http requires a different key name, we cannot just iterate over the connections
             # and add them to the result dictionary.
-            if connection.kind == DIDSConnectionKind.HTTP:
-                result["http"] = {
-                    "url": connection.full_address,
-                    **base_connection,
-                }
-                result["http"].pop("host")  # Remove host as it is already in the url
-            elif connection.kind == DIDSConnectionKind.MYSQL:
-                result["mysql"] = base_connection
-            # Note: Skip unknown connection kinds rather than defaulting
+            match endpoint.kind:
+                case DataServerEndpointKind.HTTP:
+                    result["http"] = {
+                        "url": endpoint.full_address,
+                        **base_connection,
+                    }
+                    result["http"].pop("host")  # Remove host as it is already in the url
+                case DataServerEndpointKind.MYSQL:
+                    result["mysql"] = base_connection
+                case _:
+                    pass  # Skip unknown connection kinds
 
         return result
 
     def model_dump(self, *, mode: Literal["python", "json"] = "python") -> dict:
-        """Convert the DIDSConnectionDetails to a dictionary
+        """Convert the DataServerDetails to a dictionary
 
         Args:
             mode: Either 'python' for Python objects or 'json' for JSON-serializable values
@@ -197,25 +191,24 @@ class DIDSConnectionDetails:
         return {
             "username": self.username,
             "password": password_value,
-            "data_server_connections": [
-                conn.model_dump(mode=mode) for conn in self.data_server_connections
+            "data_server_endpoints": [
+                conn.model_dump(mode=mode) for conn in self.data_server_endpoints
             ],
             "updated_at": self.updated_at if mode == "python" else self.updated_at.isoformat(),
-            "data_connections": [conn.model_dump(mode=mode) for conn in self.data_connections],
         }
 
     @classmethod
-    def model_validate(
-        cls, data: "dict[str, Any] | Mapping[str, Any] | DIDSConnectionDetails"
-    ) -> "DIDSConnectionDetails":
-        """Create a DIDSConnectionDetails instance from a dictionary or existing instance.
+    def model_validate(  # noqa: C901, PLR0912
+        cls, data: "dict[str, Any] | Mapping[str, Any] | DataServerDetails"
+    ) -> "DataServerDetails":
+        """Create a DataServerDetails instance from a dictionary or existing instance.
 
         Args:
             data: Dictionary containing username, password, connections,
-                  and optional updated_at fields, or an existing DIDSConnectionDetails instance
+                  and optional updated_at fields, or an existing DataServerDetails instance
 
         Returns:
-            A DIDSConnectionDetails instance
+            A DataServerDetails instance
         """
         # If it's already an instance of the class, return it directly
         if isinstance(data, cls):
@@ -224,7 +217,7 @@ class DIDSConnectionDetails:
         # Convert to dict if needed
         data_dict: dict[str, Any]
         if isinstance(data, dict):
-            data_dict = data
+            data_dict = data.copy()
         elif hasattr(data, "items"):
             # Handle mapping-like objects
             data_dict = dict(data.items())  # type: ignore[arg-type]
@@ -238,19 +231,30 @@ class DIDSConnectionDetails:
             except (TypeError, ValueError) as err:
                 raise TypeError(f"Cannot convert {type(data)} to dict for model_validate") from err
 
-        # Handle nested connections list
-        if "data_server_connections" in data_dict and isinstance(
-            data_dict["data_server_connections"], list
-        ):
-            data_dict["data_server_connections"] = [
-                DIDSApiConnectionDetails.model_validate(conn)
-                for conn in data_dict["data_server_connections"]
-            ]
+        # Serialize the list of data server API endpoitns.
+        # Handle the old name for backwards compatibility as these are in the DB.
+        for key in ["data_server_endpoints", "data_server_connections"]:
+            if key in data_dict and isinstance(data_dict[key], list):
+                data_dict["data_server_endpoints"] = [
+                    DataServerEndpoint.model_validate(conn) for conn in data_dict[key]
+                ]
+                break
+        # Remove the old name if present
+        if "data_server_connections" in data_dict:
+            del data_dict["data_server_connections"]
 
-        if "data_connections" in data_dict and isinstance(data_dict["data_connections"], list):
-            data_dict["data_connections"] = [
-                DataConnection.model_validate(conn) for conn in data_dict["data_connections"]
-            ]
+        # Serialize the list of data sources.
+        # Handle the old name for backwards compatibility as these are in the DB.
+        for key in ["data_sources", "data_connections"]:
+            if key in data_dict and isinstance(data_dict[key], dict):
+                data_dict["data_sources"] = {
+                    name: DataConnection.model_validate(conn)
+                    for name, conn in data_dict[key].items()
+                }
+                break
+        # Remove the old name if present
+        if "data_connections" in data_dict:
+            del data_dict["data_connections"]
 
         # Handle SecretString conversion (password can be a string or already a SecretString)
         if "password" in data_dict and isinstance(data_dict["password"], str):
