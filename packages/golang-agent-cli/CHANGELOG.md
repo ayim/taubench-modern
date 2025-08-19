@@ -3,6 +3,7 @@
 ## Unreleased
 
 - For action build and extract ensure consistent file naming conventions with action server
+- Use existing action naming from the agent-spec if it's available when creating or updating the action folder for the agent project
 
 ## 1.3.4 - 2025-06-13
 - Fixed agent-cli moving remote Action Packages to MyActions & not keep them in the correct organization

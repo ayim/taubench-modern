@@ -34,12 +34,6 @@ type SpecState struct {
 	AssistantConversationGuides map[string]string
 }
 
-type ActionPackageCompositeKey struct {
-	ActionPackageName string
-	version           string
-	Organization      string
-}
-
 // safeAgentString returns a sanitized string representation of an Agent
 // that is safe for logging without exposing sensitive information
 func safeAgentString(agent *AgentServer.Agent) string {
@@ -177,7 +171,7 @@ func (state *SpecState) createSpecFile(assistants []AgentServer.Agent, projectPa
 	return nil
 }
 
-func processOrganization(orgPath string, availableActions map[ActionPackageCompositeKey]string) error {
+func processOrganization(orgPath string, availableActions map[common.ActionPackageCompositeKey]string) error {
 	// Get the organization name from the file, because it is not in the metadata
 	// TODO: The metadata needs some fixing
 	_, orgName := filepath.Split(orgPath)
@@ -228,7 +222,7 @@ func processOrganization(orgPath string, availableActions map[ActionPackageCompo
 				}
 
 				actionPackageName := actionPackageSpec["name"].(string)
-				availableActions[ActionPackageCompositeKey{ActionPackageName: actionPackageName, version: version.Name(), Organization: orgName}] = filepath.Join(actionPackageVersionPath, version.Name())
+				availableActions[common.ActionPackageCompositeKey{ActionPackageName: actionPackageName, Version: version.Name(), Organization: orgName}] = filepath.Join(actionPackageVersionPath, version.Name())
 			}
 		}
 	}
@@ -237,8 +231,8 @@ func processOrganization(orgPath string, availableActions map[ActionPackageCompo
 
 // Returns a map of available action packages, where the key is the action package name
 // and the value is the path to the action package directory.
-func createAvailableActionPackagesMap() (map[ActionPackageCompositeKey]string, error) {
-	availableActions := make(map[ActionPackageCompositeKey]string)
+func createAvailableActionPackagesMap() (map[common.ActionPackageCompositeKey]string, error) {
+	availableActions := make(map[common.ActionPackageCompositeKey]string)
 
 	galleryRootDir := common.S4SActionsGalleryLocation()
 
@@ -330,51 +324,32 @@ func generateDigest(filePath string) (string, error) {
 
 func copyActionPackagesFor(
 	assistant AgentServer.Agent,
-	availableActions map[ActionPackageCompositeKey]string,
+	availableActions map[common.ActionPackageCompositeKey]string,
 	projectPath string,
+	agentProjectSpec *common.AgentSpec,
 ) ([]common.SpecAgentActionPackage, error) {
 	var actionPackages []common.SpecAgentActionPackage
 
-	for _, actionPackage := range assistant.ActionPackages {
-		source, ok := availableActions[ActionPackageCompositeKey{ActionPackageName: actionPackage.Name, version: actionPackage.Version, Organization: actionPackage.Organization}]
-		if !ok {
-			return nil, fmt.Errorf("[copyActionPackagesFor] failed to find Action Package for %s > %s > %s", actionPackage.Organization, actionPackage.Name, actionPackage.Version)
-		}
+	actionPackagesPaths, err := common.MapActionPackagesPathsFromAgentSpec(assistant, availableActions, projectPath, agentProjectSpec)
+	if err != nil {
+		return nil, err
+	}
 
-		packageFolderName := filepath.Base(filepath.Dir(source))
-		pretty.LogIfVerbose("[copyActionPackagesFor] processing source: %s", source)
-		pretty.LogIfVerbose("[copyActionPackagesFor] package folder: %s", packageFolderName)
-
-		var targetActionPackagePath string
-		var actionRelPath string
-		var actionPackageOrganization string = actionPackage.Organization
-
-		// Added a fail safe in case the organization is empty for some reason
-		if actionPackageOrganization == "" {
-			actionPackageOrganization = common.AGENT_PROJECT_UNBUNDLED_ACTIONS_DIR
-		}
-
-		targetActionPackagePath = filepath.Join(
-			common.AgentProjectActionsLocation(projectPath),
-			actionPackageOrganization,
-			packageFolderName,
-		)
-		actionRelPath = filepath.Join(actionPackage.Organization, packageFolderName)
-
-		pretty.LogIfVerbose("[copyActionPackagesFor] target Action Package Path: %s", targetActionPackagePath)
-		pretty.LogIfVerbose("[copyActionPackagesFor] relative Path: %s", actionRelPath)
+	for _, actionPackagePaths := range actionPackagesPaths {
+		pretty.LogIfVerbose("[copyActionPackagesFor] target Action Package Path: %s", actionPackagePaths.TargetPath)
+		pretty.LogIfVerbose("[copyActionPackagesFor] relative Path: %s", actionPackagePaths.RelativePath)
 
 		actionPackages = append(actionPackages, common.SpecAgentActionPackage{
-			Name:         actionPackage.Name,
-			Organization: actionPackage.Organization,
-			Path:         filepath.ToSlash(actionRelPath),
+			Name:         actionPackagePaths.Action.Name,
+			Organization: actionPackagePaths.Action.Organization,
+			Path:         filepath.ToSlash(actionPackagePaths.RelativePath),
 			Type:         common.ActionPackageFolder,
-			Version:      actionPackage.Version,
-			Whitelist:    actionPackage.Whitelist,
+			Version:      actionPackagePaths.Action.Version,
+			Whitelist:    actionPackagePaths.Action.Whitelist,
 		})
 
-		if err := common.CopyDir(source, targetActionPackagePath, true); err != nil {
-			return nil, fmt.Errorf("[copyActionPackagesFor] failed to copy directory %s to %s: %w", source, targetActionPackagePath, err)
+		if err := common.CopyDir(actionPackagePaths.SourcePath, actionPackagePaths.TargetPath, true); err != nil {
+			return nil, fmt.Errorf("[copyActionPackagesFor] failed to copy directory %s to %s: %w", actionPackagePaths.SourcePath, actionPackagePaths.TargetPath, err)
 		}
 		pretty.LogIfVerbose("[copyActionPackagesFor] [DONE] action Package was copied successfully!")
 	}
@@ -403,12 +378,19 @@ func (state *SpecState) createActionsDir(assistants []AgentServer.Agent, project
 	}
 	pretty.LogIfVerbose("[createActionsDir] available local actions: %+v", availableActions)
 
+	// Use agent-spec for action package naming if available
+	agentProjectSpec, err := getAgentProjectSpec(projectPath)
+	if err != nil {
+		pretty.LogIfVerbose("[createActionsDir] agent spec not available %s: %s", projectPath, err)
+	}
+
 	for _, assistant := range assistants {
 		pretty.LogIfVerbose("[createActionsDir] copying actions for agent: %s", safeAgentString(&assistant))
 		actions, err := copyActionPackagesFor(
 			assistant,
 			availableActions,
 			projectPath,
+			agentProjectSpec,
 		)
 		if err != nil {
 			return err
