@@ -144,6 +144,7 @@ jobs:
         id: create-pull-request
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.SEMA4_CI_USER_PAT_OPEN_PR }}
           script: |
             const version = '${{ steps.bump-package-version.outputs.agent-server-version }}';
             const title = `Publish \`agent-server-interface\` v${version}`;
@@ -182,7 +183,7 @@ jobs:
       - name: Enable automerge for Pull Request
         env:
           PR_URL: ${{ fromJson(steps.create-pull-request.outputs.result).url }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.SEMA4_CI_USER_PAT_OPEN_PR }}
         run: gh pr merge --auto --squash "${PR_URL}"
 
       - name: Send Slack notification
