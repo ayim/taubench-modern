@@ -584,7 +584,7 @@ export interface paths {
      * @description Create a data frame from a file.
      *
      *     Note: if the file is a multi-sheet excel file, this needs to be called for each sheet
-     *     by specifying the sheet_name or sheet_id.
+     *     by specifying the sheet_name.
      */
     post: operations['create_data_frame_from_file_threads__tid__data_frames_from_file_post'];
     delete?: never;
@@ -619,6 +619,35 @@ export interface paths {
     get: operations['get_thread_data_frames_threads__tid__data_frames_get'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/data-frames/from-computation': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Data Frame From Sql Computation
+     * @description Create a new data frame from existing data frames using a SQL computation.
+     *
+     *     Args:
+     *         payload: The computation payload containing name, SQL query, and input data frames
+     *         user: The user making the request
+     *         tid: The ID of the thread
+     *         storage: The storage to use
+     *
+     *     Returns:
+     *         The created data frame information
+     */
+    post: operations['create_data_frame_from_sql_computation_threads__tid__data_frames_from_computation_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -915,7 +944,11 @@ export interface paths {
      *     integrations. For now, integrations are upserted individually by kind.
      */
     post: operations['upsert_document_intelligence_document_intelligence_post'];
-    delete?: never;
+    /**
+     * Clear Document Intelligence
+     * @description Clear the Document Intelligence database.
+     */
+    delete: operations['clear_document_intelligence_document_intelligence_delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -982,6 +1015,38 @@ export interface paths {
      */
     post: operations['upsert_layout_document_intelligence_layouts_post'];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/layouts/{layout_name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Layout
+     * @description Get a layout by name and data model from the Document Intelligence database.
+     */
+    get: operations['get_layout_document_intelligence_layouts__layout_name__get'];
+    /**
+     * Update Layout
+     * @description Partially update an existing layout in the Document Intelligence database.
+     *
+     *     This is a traditional PUT endpoint that requires the layout to already exist,
+     *     unlike the upsert endpoint which creates if it doesn't exist. It only updates
+     *     the fields in the payload which are not null.
+     */
+    put: operations['update_layout_document_intelligence_layouts__layout_name__put'];
+    post?: never;
+    /**
+     * Delete Layout
+     * @description Delete a layout from the Document Intelligence database.
+     */
+    delete: operations['delete_layout_document_intelligence_layouts__layout_name__delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2279,6 +2344,30 @@ export interface components {
       /** Updated At */
       updated_at?: string | null;
     };
+    /** DocumentLayoutBridge */
+    DocumentLayoutBridge: {
+      /** Name */
+      name: string;
+      /** Data Model */
+      data_model: string;
+      /** Summary */
+      summary?: string | null;
+      /** Extraction Schema */
+      extraction_schema?: {
+        [key: string]: unknown;
+      } | null;
+      translation_schema?: components['schemas']['Mapping'] | null;
+      /** Extraction Config */
+      extraction_config?: {
+        [key: string]: unknown;
+      } | null;
+      /** System Prompt */
+      system_prompt?: string | null;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+    };
     /** DocumentLayoutPayload */
     DocumentLayoutPayload: {
       /** Name */
@@ -2291,7 +2380,8 @@ export interface components {
       } | null;
       /** Translation Schema */
       translation_schema?:
-        | components['schemas']['TranslationRulePayload'][]
+        | components['schemas']['_TranslationSchema']
+        | components['schemas']['_TranslationRule'][]
         | null;
       /** Summary */
       summary?: string | null;
@@ -2753,6 +2843,52 @@ export interface components {
       description?: string | null;
       /** Value */
       value?: string | null;
+    };
+    /**
+     * Mapping
+     * @description An object that describes the mapping from one JSON object to another.
+     *
+     *     Attributes
+     *     ----------
+     *     rules : list[MappingRow]
+     *         List of mapping rules to apply for the transformation.
+     */
+    Mapping: {
+      /** Rules */
+      rules: components['schemas']['MappingRow'][];
+    };
+    /**
+     * MappingRow
+     * @description An object that describes the mapping of one field in a Mapping.
+     *
+     *     Attributes
+     *     ----------
+     *     source : str
+     *         Dotted JSON path in the source document.
+     *         Use `[*]` to denote "all elements" of an array, e.g. `order.items[*]`.
+     *     target : str
+     *         Dotted path in the output object where the value(s) should be written.
+     *     mode : Optional[str], default None
+     *         * flatten – emit one new output object per element and merge `extras`.
+     *     transform : Optional[str], default None
+     *         Optional cast or conversion (e.g. "int", "float", "timestamp").
+     *     extras : dict[str, str], default {}
+     *         Only used when mode == "flatten".
+     *         Maps new field-names → relative paths of attributes to lift.
+     */
+    MappingRow: {
+      /** Source */
+      source: string;
+      /** Target */
+      target: string;
+      /** Mode */
+      mode?: 'flatten' | null;
+      /** Transform */
+      transform?: ('int' | 'float' | 'str' | 'bool') | null;
+      /** Extras */
+      extras?: {
+        [key: string]: string;
+      };
     };
     /** MemoriesParams */
     MemoriesParams: {
@@ -4195,21 +4331,6 @@ export interface components {
         | 'client-exec-tool'
         | 'client-info-tool';
     };
-    /** TranslationRulePayload */
-    TranslationRulePayload: {
-      /** Mode */
-      mode?: string | null;
-      /** Extras */
-      extras?: {
-        [key: string]: unknown;
-      } | null;
-      /** Source */
-      source?: string | null;
-      /** Target */
-      target?: string | null;
-      /** Transform */
-      transform?: string | null;
-    };
     /** UpdateDataModelRequest */
     UpdateDataModelRequest: {
       dataModel: components['schemas']['PartialDataModelPayload'];
@@ -4330,6 +4451,11 @@ export interface components {
       agent_settings?: {
         [key: string]: unknown;
       };
+      /**
+       * Document Intelligence
+       * @description The document intelligence version to use.
+       */
+      document_intelligence?: 'v2' | null;
       /**
        * Id
        * @description The ID of the agent (alias of agent_id for backwards compatibility).
@@ -4603,6 +4729,20 @@ export interface components {
       /** Password */
       password: string | components['schemas']['SecretString'];
     };
+    /** _DataFrameComputationPayload */
+    _DataFrameComputationPayload: {
+      /** New Data Frame Name */
+      new_data_frame_name: string;
+      /** Sql Query */
+      sql_query: string;
+      /** Description */
+      description?: string | null;
+      /**
+       * Sql Dialect
+       * @default duckdb
+       */
+      sql_dialect: string;
+    };
     /** _DataFrameCreationAPI */
     _DataFrameCreationAPI: {
       /** Data Frame Id */
@@ -4678,6 +4818,26 @@ export interface components {
       host: string;
       /** Port */
       port: number;
+    };
+    /** _TranslationRule */
+    _TranslationRule: {
+      /** Mode */
+      mode?: string | null;
+      /** Extras */
+      extras?: {
+        [key: string]: unknown;
+      } | null;
+      /** Source */
+      source?: string | null;
+      /** Target */
+      target?: string | null;
+      /** Transform */
+      transform?: string | null;
+    };
+    /** _TranslationSchema */
+    _TranslationSchema: {
+      /** Rules */
+      rules: components['schemas']['_TranslationRule'][];
     };
     /**
      * ErrorDetail
@@ -6037,7 +6197,6 @@ export interface operations {
         file_id: string;
         num_samples?: number;
         sheet_name?: string | null;
-        sheet_id?: number | null;
       };
       header?: never;
       path: {
@@ -6073,8 +6232,8 @@ export interface operations {
         file_id: string;
         num_samples?: number;
         sheet_name?: string | null;
-        sheet_id?: number | null;
         description?: string | null;
+        name?: string | null;
       };
       header?: never;
       path: {
@@ -6124,6 +6283,43 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['_DataFrameCreationAPI'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_data_frame_from_sql_computation_threads__tid__data_frames_from_computation_post: {
+    parameters: {
+      query?: {
+        num_samples?: number;
+      };
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['_DataFrameComputationPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['_DataFrameCreationAPI'];
         };
       };
       /** @description Validation Error */
@@ -6666,6 +6862,26 @@ export interface operations {
       };
     };
   };
+  clear_document_intelligence_document_intelligence_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+    };
+  };
   list_data_models_document_intelligence_data_models_get: {
     parameters: {
       query?: never;
@@ -6848,6 +7064,109 @@ export interface operations {
         'application/json': components['schemas']['DocumentLayoutPayload'];
       };
     };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_layout_document_intelligence_layouts__layout_name__get: {
+    parameters: {
+      query: {
+        data_model_name: string;
+      };
+      header?: never;
+      path: {
+        layout_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DocumentLayoutBridge'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  update_layout_document_intelligence_layouts__layout_name__put: {
+    parameters: {
+      query: {
+        data_model_name: string;
+      };
+      header?: never;
+      path: {
+        layout_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DocumentLayoutPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_layout_document_intelligence_layouts__layout_name__delete: {
+    parameters: {
+      query: {
+        data_model_name: string;
+      };
+      header?: never;
+      path: {
+        layout_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description Successful Response */
       200: {

@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.30',
+    version: '2.0.31',
   },
   paths: {
     '/api/v2/ok': {
@@ -1870,22 +1870,6 @@ export const spec = {
               title: 'Sheet Name',
             },
           },
-          {
-            name: 'sheet_id',
-            in: 'query',
-            required: false,
-            schema: {
-              anyOf: [
-                {
-                  type: 'integer',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'Sheet Id',
-            },
-          },
         ],
         responses: {
           '200': {
@@ -1921,7 +1905,7 @@ export const spec = {
         tags: ['threads'],
         summary: 'Create Data Frame From File',
         description:
-          'Create a data frame from a file.\n\nNote: if the file is a multi-sheet excel file, this needs to be called for each sheet\nby specifying the sheet_name or sheet_id.',
+          'Create a data frame from a file.\n\nNote: if the file is a multi-sheet excel file, this needs to be called for each sheet\nby specifying the sheet_name.',
         operationId:
           'create_data_frame_from_file_threads__tid__data_frames_from_file_post',
         parameters: [
@@ -1970,22 +1954,6 @@ export const spec = {
             },
           },
           {
-            name: 'sheet_id',
-            in: 'query',
-            required: false,
-            schema: {
-              anyOf: [
-                {
-                  type: 'integer',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'Sheet Id',
-            },
-          },
-          {
             name: 'description',
             in: 'query',
             required: false,
@@ -1999,6 +1967,22 @@ export const spec = {
                 },
               ],
               title: 'Description',
+            },
+          },
+          {
+            name: 'name',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Name',
             },
           },
         ],
@@ -2066,6 +2050,69 @@ export const spec = {
                   },
                   title:
                     'Response Get Thread Data Frames Threads  Tid  Data Frames Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/data-frames/from-computation': {
+      post: {
+        tags: ['threads'],
+        summary: 'Create Data Frame From Sql Computation',
+        description:
+          'Create a new data frame from existing data frames using a SQL computation.\n\nArgs:\n    payload: The computation payload containing name, SQL query, and input data frames\n    user: The user making the request\n    tid: The ID of the thread\n    storage: The storage to use\n\nReturns:\n    The created data frame information',
+        operationId:
+          'create_data_frame_from_sql_computation_threads__tid__data_frames_from_computation_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+          {
+            name: 'num_samples',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              default: 0,
+              title: 'Num Samples',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/_DataFrameComputationPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/_DataFrameCreationAPI',
                 },
               },
             },
@@ -2802,6 +2849,22 @@ export const spec = {
           },
         },
       },
+      delete: {
+        tags: ['document-intelligence'],
+        summary: 'Clear Document Intelligence',
+        description: 'Clear the Document Intelligence database.',
+        operationId: 'clear_document_intelligence_document_intelligence_delete',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+        },
+      },
     },
     '/api/v2/document-intelligence/data-models': {
       get: {
@@ -3018,6 +3081,163 @@ export const spec = {
           },
           required: true,
         },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/layouts/{layout_name}': {
+      get: {
+        tags: ['document-intelligence'],
+        summary: 'Get Layout',
+        description:
+          'Get a layout by name and data model from the Document Intelligence database.',
+        operationId:
+          'get_layout_document_intelligence_layouts__layout_name__get',
+        parameters: [
+          {
+            name: 'layout_name',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Layout Name',
+            },
+          },
+          {
+            name: 'data_model_name',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Data Model Name',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/DocumentLayoutBridge',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ['document-intelligence'],
+        summary: 'Update Layout',
+        description:
+          "Partially update an existing layout in the Document Intelligence database.\n\nThis is a traditional PUT endpoint that requires the layout to already exist,\nunlike the upsert endpoint which creates if it doesn't exist. It only updates\nthe fields in the payload which are not null.",
+        operationId:
+          'update_layout_document_intelligence_layouts__layout_name__put',
+        parameters: [
+          {
+            name: 'layout_name',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Layout Name',
+            },
+          },
+          {
+            name: 'data_model_name',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Data Model Name',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/DocumentLayoutPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['document-intelligence'],
+        summary: 'Delete Layout',
+        description: 'Delete a layout from the Document Intelligence database.',
+        operationId:
+          'delete_layout_document_intelligence_layouts__layout_name__delete',
+        parameters: [
+          {
+            name: 'layout_name',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Layout Name',
+            },
+          },
+          {
+            name: 'data_model_name',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Data Model Name',
+            },
+          },
+        ],
         responses: {
           '200': {
             description: 'Successful Response',
@@ -6082,6 +6302,101 @@ export const spec = {
         required: ['name', 'description', 'schema'],
         title: 'DataModelPayload',
       },
+      DocumentLayoutBridge: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          data_model: {
+            type: 'string',
+            title: 'Data Model',
+          },
+          summary: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Summary',
+          },
+          extraction_schema: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Extraction Schema',
+          },
+          translation_schema: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/Mapping',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+          extraction_config: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Extraction Config',
+          },
+          system_prompt: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'System Prompt',
+          },
+          created_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Created At',
+          },
+          updated_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Updated At',
+          },
+        },
+        type: 'object',
+        required: ['name', 'data_model'],
+        title: 'DocumentLayoutBridge',
+      },
       DocumentLayoutPayload: {
         properties: {
           name: {
@@ -6107,8 +6422,11 @@ export const spec = {
           translation_schema: {
             anyOf: [
               {
+                $ref: '#/components/schemas/_TranslationSchema',
+              },
+              {
                 items: {
-                  $ref: '#/components/schemas/TranslationRulePayload',
+                  $ref: '#/components/schemas/_TranslationRule',
                 },
                 type: 'array',
               },
@@ -7195,6 +7513,70 @@ export const spec = {
         },
         type: 'object',
         title: 'MCPVariableTypeString',
+      },
+      Mapping: {
+        properties: {
+          rules: {
+            items: {
+              $ref: '#/components/schemas/MappingRow',
+            },
+            type: 'array',
+            title: 'Rules',
+          },
+        },
+        type: 'object',
+        required: ['rules'],
+        title: 'Mapping',
+        description:
+          'An object that describes the mapping from one JSON object to another.\n\nAttributes\n----------\nrules : list[MappingRow]\n    List of mapping rules to apply for the transformation.',
+      },
+      MappingRow: {
+        properties: {
+          source: {
+            type: 'string',
+            title: 'Source',
+          },
+          target: {
+            type: 'string',
+            title: 'Target',
+          },
+          mode: {
+            anyOf: [
+              {
+                type: 'string',
+                const: 'flatten',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Mode',
+          },
+          transform: {
+            anyOf: [
+              {
+                type: 'string',
+                enum: ['int', 'float', 'str', 'bool'],
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Transform',
+          },
+          extras: {
+            additionalProperties: {
+              type: 'string',
+            },
+            type: 'object',
+            title: 'Extras',
+          },
+        },
+        type: 'object',
+        required: ['source', 'target'],
+        title: 'MappingRow',
+        description:
+          'An object that describes the mapping of one field in a Mapping.\n\nAttributes\n----------\nsource : str\n    Dotted JSON path in the source document.\n    Use `[*]` to denote "all elements" of an array, e.g. `order.items[*]`.\ntarget : str\n    Dotted path in the output object where the value(s) should be written.\nmode : Optional[str], default None\n    * flatten – emit one new output object per element and merge `extras`.\ntransform : Optional[str], default None\n    Optional cast or conversion (e.g. "int", "float", "timestamp").\nextras : dict[str, str], default {}\n    Only used when mode == "flatten".\n    Maps new field-names → relative paths of attributes to lift.',
       },
       MemoriesParams: {
         properties: {
@@ -9358,68 +9740,6 @@ export const spec = {
         required: ['name', 'description', 'input_schema'],
         title: 'ToolDefinitionPayload',
       },
-      TranslationRulePayload: {
-        properties: {
-          mode: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Mode',
-          },
-          extras: {
-            anyOf: [
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Extras',
-          },
-          source: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Source',
-          },
-          target: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Target',
-          },
-          transform: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Transform',
-          },
-        },
-        type: 'object',
-        title: 'TranslationRulePayload',
-      },
       UpdateDataModelRequest: {
         properties: {
           dataModel: {
@@ -9676,6 +9996,19 @@ export const spec = {
             type: 'object',
             title: 'Agent Settings',
             description: "Settings that control the agent's behavior.",
+          },
+          document_intelligence: {
+            anyOf: [
+              {
+                type: 'string',
+                const: 'v2',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Document Intelligence',
+            description: 'The document intelligence version to use.',
           },
           id: {
             anyOf: [
@@ -10151,6 +10484,37 @@ export const spec = {
         required: ['username', 'password'],
         title: '_Credentials',
       },
+      _DataFrameComputationPayload: {
+        properties: {
+          new_data_frame_name: {
+            type: 'string',
+            title: 'New Data Frame Name',
+          },
+          sql_query: {
+            type: 'string',
+            title: 'Sql Query',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          sql_dialect: {
+            type: 'string',
+            title: 'Sql Dialect',
+            default: 'duckdb',
+          },
+        },
+        type: 'object',
+        required: ['new_data_frame_name', 'sql_query'],
+        title: '_DataFrameComputationPayload',
+      },
       _DataFrameCreationAPI: {
         properties: {
           data_frame_id: {
@@ -10369,6 +10733,82 @@ export const spec = {
         type: 'object',
         required: ['host', 'port'],
         title: '_MysqlConfig',
+      },
+      _TranslationRule: {
+        properties: {
+          mode: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Mode',
+          },
+          extras: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Extras',
+          },
+          source: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Source',
+          },
+          target: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Target',
+          },
+          transform: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Transform',
+          },
+        },
+        type: 'object',
+        title: '_TranslationRule',
+      },
+      _TranslationSchema: {
+        properties: {
+          rules: {
+            items: {
+              $ref: '#/components/schemas/_TranslationRule',
+            },
+            type: 'array',
+            title: 'Rules',
+          },
+        },
+        type: 'object',
+        required: ['rules'],
+        title: '_TranslationSchema',
       },
       ErrorDetail: {
         description:
