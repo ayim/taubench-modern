@@ -1,5 +1,9 @@
 # agent.cli changelog
 
+## 2.1.2 - 2025-08-19
+
+- Remove unnecessary print that caused the client to fail when reading the JSON output 
+
 ## 2.1.1 - 2025-08-19
 
 - For action build and extract ensure consistent file naming conventions with action server

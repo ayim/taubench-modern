@@ -74,8 +74,6 @@ func MapActionPackagesPathsFromAgentSpec(
 		}
 	}
 
-	fmt.Printf("[MapActionPackagesPathsFromAgentSpec] actionPackageDirPathLookup: %v\n", actionPackageDirPathLookup)
-
 	for _, actionPackage := range agent.ActionPackages {
 		source, ok := availableActions[ActionPackageCompositeKey{ActionPackageName: actionPackage.Name, Version: actionPackage.Version, Organization: actionPackage.Organization}]
 		if !ok {
