@@ -1,3 +1,9 @@
+# Sema4.ai Agent Server 2.0.31 (2025-08-19)
+
+- Implement Document Layout GET, PUT, and DELETE endpoints [#682](https://github.com/Sema4AI/agent-platform/pull/682)
+- Data frames may now be created using a SQL referencing existing data frames. [#655](https://github.com/Sema4AI/agent-platform/pull/655)
+- GPT-1158 New endpoint to clear docint details from mindsdb and agentserver [#670](https://github.com/Sema4AI/agent-platform/pull/670)
+
 # Sema4.ai Agent Server 2.0.30 (2025-08-18)
 
 - Agent Settings Support in Agent Spec [#613](https://github.com/Sema4AI/agent-platform/pull/613)
