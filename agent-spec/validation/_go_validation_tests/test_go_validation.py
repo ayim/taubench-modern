@@ -1232,6 +1232,40 @@ agent-package:
     )
 
 
+def test_spec_document_intelligence_field(agent_cli: Path, datadir: Path, data_regression):
+    """
+    Test that the document-intelligence field is validated correctly in the agent spec.
+    """
+    # Valid value
+    valid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent1
+      description: Test agent with document-intelligence
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      document-intelligence: v2
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        valid_yaml,
+        datadir,
+        returncode=0,
+    )
+
+
 def test_spec(agent_cli: Path):
     import os
 

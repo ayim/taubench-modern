@@ -10,14 +10,9 @@ agent-package:
       architecture: agent
       reasoning: disabled
       runbook: runbook.md
+      conversation-guide: conversation-guide.yaml
+      action-packages: []
       document-intelligence: v2
-      action-packages:
-        - name: Wind of Change
-          organization: MyActions
-          type: zip
-          version: 0.0.1
-          whitelist: ''
-          path: MyActions/wind-of-change/0.0.1.zip
       mcp-servers:
         - name: file-system-server
           transport: stdio
@@ -50,9 +45,7 @@ agent-package:
               type: oauth2-secret
               description: Your OAuth2 API key for authentication
               provider: Microsoft
-              scopes:
-                - user.read
-                - user.write
+              scopes: []
             X-API-Version:
               type: string
               description: API version header

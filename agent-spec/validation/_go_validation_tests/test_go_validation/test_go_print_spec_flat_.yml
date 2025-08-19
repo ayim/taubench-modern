@@ -197,6 +197,17 @@ agent-package/agents/docker-mcp-gateway/servers/tools:
     RelativeTo: ''
   Path: agent-package/agents/docker-mcp-gateway/servers/tools
   Required: false
+agent-package/agents/document-intelligence:
+  Deprecated: false
+  Description: 'Document intelligence version to use. Example: "v2"'
+  ExpectedType:
+    EnumValues:
+    - v2
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/document-intelligence
+  Required: false
 agent-package/agents/knowledge:
   Deprecated: false
   Description: Section to indicate additional knowledge files for the agent or actions.

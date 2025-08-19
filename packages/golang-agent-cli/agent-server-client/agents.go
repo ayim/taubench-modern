@@ -10,6 +10,7 @@ type AgentModelProvider string
 type AgentArchitecture string
 type AgentMode string
 type WorkerType string
+type DocumentIntelligenceVersion string
 
 const FIELD_NOT_CONFIGURED = "SEMA4AI_FIELD_NOT_CONFIGURED"
 
@@ -29,6 +30,10 @@ const (
 const (
 	AgentKind       AgentArchitecture = "agent"
 	PlanExecuteKind AgentArchitecture = "plan_execute"
+)
+
+const (
+	DocumentIntelligenceVersionV2 DocumentIntelligenceVersion = "v2"
 )
 
 type AgentModel struct {
@@ -195,9 +200,10 @@ type AgentMetadata struct {
 }
 
 type AgentExtra struct {
-	ConversationStarter string         `json:"conversation_starter,omitempty" yaml:"conversation-starter,omitempty"`
-	WelcomeMessage      string         `json:"welcome_message,omitempty" yaml:"welcome-message,omitempty"`
-	AgentSettings       map[string]any `json:"agent_settings,omitempty" yaml:"agent-settings,omitempty"`
+	DocumentIntelligence DocumentIntelligenceVersion `json:"document_intelligence,omitempty" yaml:"document-intelligence,omitempty"`
+	ConversationStarter  string                      `json:"conversation_starter,omitempty" yaml:"conversation-starter,omitempty"`
+	WelcomeMessage       string                      `json:"welcome_message,omitempty" yaml:"welcome-message,omitempty"`
+	AgentSettings        map[string]any              `json:"agent_settings,omitempty" yaml:"agent-settings,omitempty"`
 }
 
 type Agent struct {

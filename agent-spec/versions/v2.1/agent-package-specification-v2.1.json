@@ -326,6 +326,14 @@
     "required": false,
     "expected-type": "string"
   },
+  "agent-package/agents/document-intelligence": {
+    "description": "Document intelligence version to use. Example: \"v2\"",
+    "required": false,
+    "expected-type": {
+      "type": "enum",
+      "values": ["v2"]
+    }
+  },
   "agent-package/agents/welcome-message": {
     "description": "Welcome message displayed to users when they first interact with the agent. Example: \"What tools do you have?\"",
     "required": false,

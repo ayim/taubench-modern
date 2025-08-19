@@ -197,22 +197,23 @@ type SpecDockerMcpServer struct {
 // --- this is the entry in the Agent Spec file
 // --- this represents an Agent from the list of Agents
 type SpecAgent struct {
-	Name                string                        `yaml:"name" json:"name"`
-	Description         string                        `yaml:"description" json:"description"`
-	Model               SpecAgentModel                `yaml:"model" json:"model"`
-	Version             string                        `yaml:"version" json:"version"`
-	Architecture        AgentServer.AgentArchitecture `yaml:"architecture" json:"architecture"`
-	Reasoning           AgentServer.AgentReasoning    `yaml:"reasoning" json:"reasoning"`
-	Runbook             string                        `yaml:"runbook" json:"runbook"`
-	ConversationGuide   string                        `yaml:"conversation-guide,omitempty" json:"conversation_guide,omitempty"`
-	ConversationStarter string                        `yaml:"conversation-starter,omitempty" json:"conversation_starter,omitempty"`
-	WelcomeMessage      string                        `yaml:"welcome-message,omitempty" json:"welcome_message,omitempty"`
-	AgentSettings       map[string]any                `yaml:"agent-settings,omitempty" json:"agent_settings,omitempty"`
-	ActionPackages      []SpecAgentActionPackage      `yaml:"action-packages" json:"action_packages"`
-	McpServers          []SpecMcpServer               `yaml:"mcp-servers,omitempty" json:"mcp_servers,omitempty"`
-	DockerMcpGateway    *SpecDockerMcpGateway         `yaml:"docker-mcp-gateway,omitempty" json:"docker_mcp_gateway,omitempty"`
-	Knowledge           []SpecAgentKnowledge          `yaml:"knowledge" json:"knowledge"`
-	Metadata            AgentServer.AgentMetadata     `yaml:"metadata" json:"metadata"`
+	Name                 string                                  `yaml:"name" json:"name"`
+	Description          string                                  `yaml:"description" json:"description"`
+	Model                SpecAgentModel                          `yaml:"model" json:"model"`
+	Version              string                                  `yaml:"version" json:"version"`
+	Architecture         AgentServer.AgentArchitecture           `yaml:"architecture" json:"architecture"`
+	Reasoning            AgentServer.AgentReasoning              `yaml:"reasoning" json:"reasoning"`
+	Runbook              string                                  `yaml:"runbook" json:"runbook"`
+	ConversationGuide    string                                  `yaml:"conversation-guide,omitempty" json:"conversation_guide,omitempty"`
+	ConversationStarter  string                                  `yaml:"conversation-starter,omitempty" json:"conversation_starter,omitempty"`
+	WelcomeMessage       string                                  `yaml:"welcome-message,omitempty" json:"welcome_message,omitempty"`
+	DocumentIntelligence AgentServer.DocumentIntelligenceVersion `yaml:"document-intelligence,omitempty" json:"document_intelligence,omitempty"`
+	AgentSettings        map[string]any                          `yaml:"agent-settings,omitempty" json:"agent_settings,omitempty"`
+	ActionPackages       []SpecAgentActionPackage                `yaml:"action-packages" json:"action_packages"`
+	McpServers           []SpecMcpServer                         `yaml:"mcp-servers,omitempty" json:"mcp_servers,omitempty"`
+	DockerMcpGateway     *SpecDockerMcpGateway                   `yaml:"docker-mcp-gateway,omitempty" json:"docker_mcp_gateway,omitempty"`
+	Knowledge            []SpecAgentKnowledge                    `yaml:"knowledge" json:"knowledge"`
+	Metadata             AgentServer.AgentMetadata               `yaml:"metadata" json:"metadata"`
 }
 
 func (sa *SpecAgent) IsEqual(ap *AgentProject, deployed *AgentServer.Agent) (bool, AgentChanges) {
@@ -256,19 +257,20 @@ func (sa *SpecAgent) IsEqual(ap *AgentProject, deployed *AgentServer.Agent) (boo
 		"description": sa.Description == deployed.Description,
 		// From Agent Server v2 onwards, only the model provider can be selected by the user.
 		// Therefore, when detecting changes, we only compare the model provider.
-		"modelProvider":       sa.Model.Provider == deployed.Model.Provider,
-		"version":             sa.Version == deployed.Version,
-		"architecture":        sa.Architecture == deployed.AdvancedConfig.Architecture,
-		"reasoning":           sa.Reasoning == deployed.AdvancedConfig.Reasoning,
-		"runbook":             sa.Runbook == deployed.Runbook,
-		"conversationGuide":   IsConversationGuideEqual(conversationGuidePath, deployed.QuestionGroups),
-		"conversationStarter": sa.ConversationStarter == deployed.Extra.ConversationStarter, // TODO: change this when ConversationStarter is added to top level Agent struct
-		"welcomeMessage":      sa.WelcomeMessage == deployed.Extra.WelcomeMessage,           // TODO: change this when WelcomeMessage is added to top level Agent struct
-		"metadata":            IsAgentMetadataEqual(sa.Metadata, deployed.Metadata),
-		"actionPackages":      AreActionPackagesEqual(sa.ActionPackages, deployed.ActionPackages),
-		"mcpServers":          AreMcpServersEqual(specMcpServers, agentMcpServers),
-		"dockerMcpGateway":    specHasDockerMcpGateway == agentHasDockerMcpGateway,
-		"agentSettings":       AreAgentSettingsEqual(sa.AgentSettings, deployed.Extra.AgentSettings),
+		"modelProvider":        sa.Model.Provider == deployed.Model.Provider,
+		"version":              sa.Version == deployed.Version,
+		"architecture":         sa.Architecture == deployed.AdvancedConfig.Architecture,
+		"reasoning":            sa.Reasoning == deployed.AdvancedConfig.Reasoning,
+		"runbook":              sa.Runbook == deployed.Runbook,
+		"conversationGuide":    IsConversationGuideEqual(conversationGuidePath, deployed.QuestionGroups),
+		"documentIntelligence": sa.DocumentIntelligence == deployed.Extra.DocumentIntelligence,
+		"conversationStarter":  sa.ConversationStarter == deployed.Extra.ConversationStarter, // TODO: change this when ConversationStarter is added to top level Agent struct
+		"welcomeMessage":       sa.WelcomeMessage == deployed.Extra.WelcomeMessage,           // TODO: change this when WelcomeMessage is added to top level Agent struct
+		"metadata":             IsAgentMetadataEqual(sa.Metadata, deployed.Metadata),
+		"actionPackages":       AreActionPackagesEqual(sa.ActionPackages, deployed.ActionPackages),
+		"mcpServers":           AreMcpServersEqual(specMcpServers, agentMcpServers),
+		"dockerMcpGateway":     specHasDockerMcpGateway == agentHasDockerMcpGateway,
+		"agentSettings":        AreAgentSettingsEqual(sa.AgentSettings, deployed.Extra.AgentSettings),
 	}
 
 	// Collect the changes

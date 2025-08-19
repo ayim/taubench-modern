@@ -416,6 +416,7 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912
         metadata={
             **agent0.get("metadata", {}),
         },
+        document_intelligence=agent0.get("document-intelligence", None),
     )
 
     # Now, for the third and final step, we have essentially a normal

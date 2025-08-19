@@ -117,6 +117,12 @@ class UpsertAgentPayload:
     )
     """Settings that control the agent's behavior."""
 
+    document_intelligence: Literal["v2"] | None = field(
+        default=None,
+        metadata={"description": "The document intelligence version to use."},
+    )
+    """The document intelligence version to use."""
+
     id: str | None = field(
         default=None,
         metadata={
@@ -677,6 +683,7 @@ class UpsertAgentPayload:
                 **metadata_without_mode,
                 **extra,
                 "agent_settings": payload.agent_settings or {},
+                "document_intelligence": payload.document_intelligence,
             },
             user_id=user_id,
             agent_id=(

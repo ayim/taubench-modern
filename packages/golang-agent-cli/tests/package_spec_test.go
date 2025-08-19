@@ -20,6 +20,7 @@ func TestReadSpecV2_1Empty(t *testing.T) {
 		t.Errorf("error: %+v", err)
 	}
 	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, AgentServer.DocumentIntelligenceVersionV2, spec.AgentPackage.Agents[0].DocumentIntelligence, "agent should have correct document-intelligence version")
 }
 
 func TestReadSpecV2_1(t *testing.T) {
@@ -30,6 +31,7 @@ func TestReadSpecV2_1(t *testing.T) {
 	}
 
 	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, AgentServer.DocumentIntelligenceVersionV2, spec.AgentPackage.Agents[0].DocumentIntelligence, "agent should have correct document-intelligence version")
 	assert.Equal(t, common.Ptr("application/json"), spec.AgentPackage.Agents[0].McpServers[0].Env["CONTENT_TYPE"].Value, "agent metadata should have correct Value")
 	assert.Equal(t, common.SpecMcpTypeSecret, spec.AgentPackage.Agents[0].McpServers[0].Env["MCP_API_KEY"].Type, "agent metadata should have correct Type")
 	assert.Equal(t, common.SpecMcpTypeOAuth2Secret, spec.AgentPackage.Agents[0].McpServers[0].Env["MY_OAUTH2_API_KEY"].Type, "agent metadata should have correct Type")
@@ -47,6 +49,7 @@ func TestWriteSpecV2_1(t *testing.T) {
 	}
 
 	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, AgentServer.DocumentIntelligenceVersionV2, spec.AgentPackage.Agents[0].DocumentIntelligence, "agent should have correct document-intelligence version")
 	assert.Equal(t, common.Ptr("application/json"), spec.AgentPackage.Agents[0].McpServers[0].Env["CONTENT_TYPE"].Value, "agent metadata should have correct Value")
 	assert.Equal(t, common.SpecMcpTypeSecret, spec.AgentPackage.Agents[0].McpServers[0].Env["MCP_API_KEY"].Type, "agent metadata should have correct Type")
 	assert.Equal(t, common.SpecMcpTypeOAuth2Secret, spec.AgentPackage.Agents[0].McpServers[0].Env["MY_OAUTH2_API_KEY"].Type, "agent metadata should have correct Type")
@@ -162,7 +165,8 @@ func TestFilterMcpServerSecretValuesFromSpec(t *testing.T) {
 			SpecVersion: "v2",
 			Agents: []common.SpecAgent{
 				{
-					Name: "agent1",
+					Name:                 "agent1",
+					DocumentIntelligence: AgentServer.DocumentIntelligenceVersionV2,
 					McpServers: []common.SpecMcpServer{
 						{
 							Name: "mcp1",
@@ -299,14 +303,15 @@ func TestFilterMcpServerSecretValuesFromSpec_EmptyCases(t *testing.T) {
 
 func TestSpecAgentIsEqual(t *testing.T) {
 	baseSpec := common.SpecAgent{
-		Name:         "agent1",
-		Description:  "desc",
-		Model:        common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
-		Version:      "1.0.0",
-		Runbook:      "runbook.md",
-		Architecture: "agent",
-		Reasoning:    "disabled",
-		Metadata:     AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+		Name:                 "agent1",
+		Description:          "desc",
+		Model:                common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
+		Version:              "1.0.0",
+		Runbook:              "runbook.md",
+		Architecture:         "agent",
+		Reasoning:            "disabled",
+		DocumentIntelligence: AgentServer.DocumentIntelligenceVersionV2,
+		Metadata:             AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
 		ActionPackages: []common.SpecAgentActionPackage{{
 			Name:         "ap1",
 			Organization: "MyActions",
@@ -331,6 +336,9 @@ func TestSpecAgentIsEqual(t *testing.T) {
 			Reasoning:    "disabled",
 		},
 		Metadata: AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+		Extra: AgentServer.AgentExtra{
+			DocumentIntelligence: AgentServer.DocumentIntelligenceVersionV2,
+		},
 		ActionPackages: []AgentServer.AgentActionPackage{{
 			Name:         "ap1",
 			Organization: "MyActions",
@@ -703,13 +711,14 @@ func TestSpecWriteFiltersQuestionGroupsFromMetadata(t *testing.T) {
 			SpecVersion: "v2",
 			Agents: []common.SpecAgent{
 				{
-					Name:         "agent-with-qg",
-					Description:  "desc",
-					Model:        common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
-					Version:      "1.0.0",
-					Runbook:      "runbook.md",
-					Architecture: "agent",
-					Reasoning:    "disabled",
+					Name:                 "agent-with-qg",
+					Description:          "desc",
+					Model:                common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
+					Version:              "1.0.0",
+					Runbook:              "runbook.md",
+					Architecture:         "agent",
+					Reasoning:            "disabled",
+					DocumentIntelligence: AgentServer.DocumentIntelligenceVersionV2,
 					Metadata: AgentServer.AgentMetadata{
 						Mode: AgentServer.ConversationalMode,
 						QuestionGroups: AgentServer.QuestionGroups{
@@ -745,6 +754,7 @@ func TestReadSpecV2_1WithAgentSettings(t *testing.T) {
 	}
 
 	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, AgentServer.DocumentIntelligenceVersionV2, spec.AgentPackage.Agents[0].DocumentIntelligence, "agent should have correct document-intelligence version")
 	assert.Equal(t, "agent-with-settings", spec.AgentPackage.Agents[0].Name, "agent should have correct name")
 
 	// Test agent settings
@@ -795,6 +805,8 @@ func TestWriteSpecV2_1WithAgentSettings(t *testing.T) {
 		t.Errorf("error: %+v", err)
 	}
 
+	assert.Equal(t, AgentServer.DocumentIntelligenceVersionV2, spec.AgentPackage.Agents[0].DocumentIntelligence, "agent should have correct document-intelligence version")
+
 	tempDir, err := os.MkdirTemp("", "writespec-agent-settings-test")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %+v", err)
@@ -811,6 +823,8 @@ func TestWriteSpecV2_1WithAgentSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read written spec: %+v", err)
 	}
+
+	assert.Equal(t, AgentServer.DocumentIntelligenceVersionV2, writtenSpec.AgentPackage.Agents[0].DocumentIntelligence, "written agent should have correct document-intelligence version")
 
 	writtenSettings := writtenSpec.AgentPackage.Agents[0].AgentSettings
 	originalSettings := spec.AgentPackage.Agents[0].AgentSettings
@@ -1076,14 +1090,15 @@ func TestFilterAgentSettingsFromSpec(t *testing.T) {
 			SpecVersion: "v2",
 			Agents: []common.SpecAgent{
 				{
-					Name:         "agent1",
-					Description:  "desc",
-					Model:        common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
-					Version:      "1.0.0",
-					Runbook:      "runbook.md",
-					Architecture: "agent",
-					Reasoning:    "disabled",
-					Metadata:     AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+					Name:                 "agent1",
+					Description:          "desc",
+					Model:                common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
+					Version:              "1.0.0",
+					Runbook:              "runbook.md",
+					Architecture:         "agent",
+					Reasoning:            "disabled",
+					DocumentIntelligence: AgentServer.DocumentIntelligenceVersionV2,
+					Metadata:             AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
 					AgentSettings: map[string]any{
 						"api_key":    "secret-key-should-be-preserved",
 						"timeout":    30,

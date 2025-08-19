@@ -106,13 +106,13 @@ func getAgentProject(path string) (*common.AgentProject, error) {
 	agentProject := &common.AgentProject{
 		Path:          path,
 		SpecAgent:     agent,
-		AsServerAgent: convertSpecAgentToAgentServer(agent),
+		AsServerAgent: ConvertSpecAgentToAgentServer(agent),
 		Exclude:       spec.AgentPackage.Exclude,
 	}
 	return agentProject, nil
 }
 
-func convertSpecAgentToAgentServer(agent common.SpecAgent) *AgentServer.Agent {
+func ConvertSpecAgentToAgentServer(agent common.SpecAgent) *AgentServer.Agent {
 	// Convert Agent to AgentServer.Agent
 	asServerAgent := AgentServer.BuildAgent(&AgentServer.AgentPayload{
 		Name:        agent.Name,
@@ -132,12 +132,12 @@ func convertSpecAgentToAgentServer(agent common.SpecAgent) *AgentServer.Agent {
 		QuestionGroups: agent.Metadata.QuestionGroups,
 		Metadata:       agent.Metadata,
 		Extra: AgentServer.AgentExtra{
-			WelcomeMessage:      agent.WelcomeMessage,
-			ConversationStarter: agent.ConversationStarter,
-			AgentSettings:       agent.AgentSettings,
+			WelcomeMessage:       agent.WelcomeMessage,
+			ConversationStarter:  agent.ConversationStarter,
+			DocumentIntelligence: agent.DocumentIntelligence,
+			AgentSettings:        agent.AgentSettings,
 		},
-		AgentSettings: agent.AgentSettings,
-		Public:        true,
+		Public: true,
 	})
 	return asServerAgent
 }

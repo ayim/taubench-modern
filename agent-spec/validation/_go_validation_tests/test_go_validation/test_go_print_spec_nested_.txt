@@ -17,6 +17,7 @@ root (no data)
         catalog
         servers (required)
           tools
+      document-intelligence
       knowledge
         digest
         embedded (required)

@@ -479,21 +479,22 @@ func GenerateAgentMetadataFromProject(agentProjectPath string) ([]*common.AgentP
 	for _, agent := range spec.AgentPackage.Agents {
 		pretty.LogIfVerbose("[generateAgentMetadataFromProject] dealing with agent: %+v", agent.Name)
 		metadata := common.AgentPackageMetadata{
-			Name:                agent.Name,
-			Description:         agent.Description,
-			Model:               agent.Model,
-			Architecture:        agent.Architecture,
-			Reasoning:           agent.Reasoning,
-			Version:             agent.Version,
-			WelcomeMessage:      agent.WelcomeMessage,
-			ConversationStarter: agent.ConversationStarter,
-			AgentSettings:       common.NormalizeMap(agent.AgentSettings),
-			Knowledge:           []common.AgentPackageMetadataKnowledge{},
-			Datasources:         []common.AgentPackageDatasource{},
-			ActionPackages:      []common.AgentPackageActionPackageMetadata{},
-			McpServers:          []common.AgentPackageMcpServer{},
-			DockerMcpGateway:    nil,
-			Metadata:            agent.Metadata,
+			Name:                 agent.Name,
+			Description:          agent.Description,
+			Model:                agent.Model,
+			Architecture:         agent.Architecture,
+			Reasoning:            agent.Reasoning,
+			Version:              agent.Version,
+			WelcomeMessage:       agent.WelcomeMessage,
+			ConversationStarter:  agent.ConversationStarter,
+			DocumentIntelligence: agent.DocumentIntelligence,
+			AgentSettings:        common.NormalizeMap(agent.AgentSettings),
+			Knowledge:            []common.AgentPackageMetadataKnowledge{},
+			Datasources:          []common.AgentPackageDatasource{},
+			ActionPackages:       []common.AgentPackageActionPackageMetadata{},
+			McpServers:           []common.AgentPackageMcpServer{},
+			DockerMcpGateway:     nil,
+			Metadata:             agent.Metadata,
 		}
 
 		// Extract Welcome Message if present

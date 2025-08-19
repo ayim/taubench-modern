@@ -13,24 +13,25 @@ type AgentPackageMetadataKnowledge struct {
 }
 
 type AgentPackageMetadata struct {
-	ReleaseNote         string                              `json:"release_note"`
-	Version             string                              `json:"version"`
-	Icon                string                              `json:"icon"`
-	Name                string                              `json:"name"`
-	Description         string                              `json:"description"`
-	Model               SpecAgentModel                      `json:"model"`
-	Architecture        AgentServer.AgentArchitecture       `json:"architecture"`
-	Reasoning           AgentServer.AgentReasoning          `json:"reasoning"`
-	Knowledge           []AgentPackageMetadataKnowledge     `json:"knowledge"`
-	Datasources         []AgentPackageDatasource            `json:"datasources"`
-	QuestionGroups      AgentServer.QuestionGroups          `json:"question_groups,omitempty"`
-	ConversationStarter string                              `json:"conversation_starter,omitempty"`
-	WelcomeMessage      string                              `json:"welcome_message,omitempty"`
-	AgentSettings       map[string]any                      `json:"agent_settings,omitempty"`
-	Metadata            AgentServer.AgentMetadata           `json:"metadata"`
-	ActionPackages      []AgentPackageActionPackageMetadata `json:"action_packages"`
-	McpServers          []AgentPackageMcpServer             `json:"mcp_servers,omitempty"`
-	DockerMcpGateway    *AgentPackageDockerMcpGateway       `json:"docker_mcp_gateway,omitempty"`
+	ReleaseNote          string                                  `json:"release_note"`
+	Version              string                                  `json:"version"`
+	Icon                 string                                  `json:"icon"`
+	Name                 string                                  `json:"name"`
+	Description          string                                  `json:"description"`
+	Model                SpecAgentModel                          `json:"model"`
+	Architecture         AgentServer.AgentArchitecture           `json:"architecture"`
+	Reasoning            AgentServer.AgentReasoning              `json:"reasoning"`
+	Knowledge            []AgentPackageMetadataKnowledge         `json:"knowledge"`
+	Datasources          []AgentPackageDatasource                `json:"datasources"`
+	QuestionGroups       AgentServer.QuestionGroups              `json:"question_groups,omitempty"`
+	ConversationStarter  string                                  `json:"conversation_starter,omitempty"`
+	DocumentIntelligence AgentServer.DocumentIntelligenceVersion `json:"document_intelligence,omitempty"`
+	WelcomeMessage       string                                  `json:"welcome_message,omitempty"`
+	AgentSettings        map[string]any                          `json:"agent_settings,omitempty"`
+	Metadata             AgentServer.AgentMetadata               `json:"metadata"`
+	ActionPackages       []AgentPackageActionPackageMetadata     `json:"action_packages"`
+	McpServers           []AgentPackageMcpServer                 `json:"mcp_servers,omitempty"`
+	DockerMcpGateway     *AgentPackageDockerMcpGateway           `json:"docker_mcp_gateway,omitempty"`
 
 	// Differences from external sources
 	DockerMcpGatewayChanges DockerMcpGatewayChanges `json:"docker_mcp_gateway_changes,omitempty"`

@@ -1247,6 +1247,62 @@ agent-package:
     assert not errors, "Expected no errors"
 
 
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_document_intelligence_field(datadir: Path, v_2_1_spec: dict):
+    """
+    Test that the document-intelligence field is validated correctly in the agent spec.
+    """
+    from _spec_validation_tests._spec_validation import load_spec
+
+    # Valid value
+    valid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent1
+      description: Test agent with document-intelligence
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      document-intelligence: v2
+    """
+
+    errors = validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir, raise_on_error=False)
+    assert not errors, f"Expected no errors for valid document-intelligence, got: {errors}"
+
+    # Invalid value
+    invalid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent1
+      description: Test agent with document-intelligence
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      document-intelligence: not_a_valid_version
+    """
+
+    errors = validate_from_spec(load_spec(v_2_1_spec), invalid_yaml, datadir, raise_on_error=False)
+    assert errors, "Expected errors for invalid document-intelligence value"
+
+
 def test_spec():
     from _spec_validation_tests._spec_validation import load_spec
 

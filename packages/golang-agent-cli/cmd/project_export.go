@@ -114,12 +114,13 @@ func (state *SpecState) specForAgent(assistant AgentServer.Agent, projectPath st
 			Provider: assistant.Model.Provider,
 			Name:     assistant.Model.Name,
 		},
-		Version:             assistant.Version,
-		Architecture:        assistant.AdvancedConfig.Architecture,
-		Reasoning:           assistant.AdvancedConfig.Reasoning,
-		Runbook:             state.assistantRunbooks[assistant.ID],
-		ConversationGuide:   state.AssistantConversationGuides[assistant.ID],
-		ConversationStarter: assistant.Extra.ConversationStarter,
+		Version:              assistant.Version,
+		Architecture:         assistant.AdvancedConfig.Architecture,
+		Reasoning:            assistant.AdvancedConfig.Reasoning,
+		Runbook:              state.assistantRunbooks[assistant.ID],
+		ConversationGuide:    state.AssistantConversationGuides[assistant.ID],
+		ConversationStarter:  assistant.Extra.ConversationStarter,
+		DocumentIntelligence: assistant.Extra.DocumentIntelligence,
 		WelcomeMessage: func() string {
 			// TODO: remove this once we have a proper welcome message field in the agent
 			// - done for backwards compatibility

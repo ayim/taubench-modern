@@ -783,6 +783,11 @@ class AgentPackageMetadata:
     )
     """Agent settings."""
 
+    document_intelligence: Literal["v2"] | None = field(
+        default=None, metadata={"description": "The document intelligence version to use."}
+    )
+    """The document intelligence version to use."""
+
     def model_dump(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         result = {
@@ -803,6 +808,7 @@ class AgentPackageMetadata:
             else None,
             "docker_mcp_gateway_changes": self.docker_mcp_gateway_changes.model_dump(),
             "agent_settings": self.agent_settings,
+            "document_intelligence": self.document_intelligence,
         }
 
         # Handle optional fields
@@ -889,6 +895,7 @@ class AgentPackageMetadata:
                 docker_mcp_gateway=None,
                 docker_mcp_gateway_changes=DockerMcpGatewayChanges(),
                 agent_settings=None,
+                document_intelligence=None,
             )
 
         if isinstance(data, cls):
@@ -919,6 +926,7 @@ class AgentPackageMetadata:
                 "docker_mcp_gateway_changes", DockerMcpGatewayChanges()
             ),
             agent_settings=data.get("agent_settings", None),
+            document_intelligence=data.get("document_intelligence", None),
         )
 
 
