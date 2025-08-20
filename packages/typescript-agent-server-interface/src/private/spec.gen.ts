@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.31',
+    version: '2.0.32',
   },
   paths: {
     '/api/v2/ok': {
@@ -2114,6 +2114,56 @@ export const spec = {
                 schema: {
                   $ref: '#/components/schemas/_DataFrameCreationAPI',
                 },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/data-frames/slice': {
+      get: {
+        tags: ['threads'],
+        summary: 'Slice Data Frame',
+        description:
+          'Get a slice of a data frame\'s contents.\n\nArgs:\n    user: The user making the request\n    tid: The ID of the thread\n    storage: The storage to use\n    data_frame_id: The ID of the data frame to slice (mutually exclusive with data_frame_name)\n    data_frame_name: The name of the data frame to slice (mutually exclusive with data_frame_id)\n    offset: From which offset to start the slice. If not provided, starts with 0\n    limit: The number of rows to slice. If not provided, slices to the end.\n    column_names: List of column names to include. If not provided, returns all columns\n    output_format: Output format - either "json" or "parquet"\n    order_by: The column name to order by (use \'-\' prefix to order by descending order).\n\nReturns:\n    A streaming response with the sliced data in the specified format',
+        operationId: 'slice_data_frame_threads__tid__data_frames_slice_get',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/_SliceDataInput',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
               },
             },
           },
@@ -5848,15 +5898,7 @@ export const spec = {
       ConfigPayload: {
         properties: {
           config_type: {
-            type: 'string',
-            enum: [
-              'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB',
-              'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB',
-              'MAX_AGENTS',
-              'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS',
-              'MAX_MCP_SERVERS_IN_AGENT',
-            ],
-            title: 'Config Type',
+            $ref: '#/components/schemas/ConfigType',
           },
           current_value: {
             type: 'string',
@@ -5870,15 +5912,7 @@ export const spec = {
       ConfigResponse: {
         properties: {
           config_type: {
-            type: 'string',
-            enum: [
-              'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB',
-              'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB',
-              'MAX_AGENTS',
-              'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS',
-              'MAX_MCP_SERVERS_IN_AGENT',
-            ],
-            title: 'Config Type',
+            $ref: '#/components/schemas/ConfigType',
           },
           config_value: {
             type: 'string',
@@ -5888,6 +5922,18 @@ export const spec = {
         type: 'object',
         required: ['config_type', 'config_value'],
         title: 'ConfigResponse',
+      },
+      ConfigType: {
+        type: 'string',
+        enum: [
+          'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB',
+          'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB',
+          'MAX_AGENTS',
+          'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS',
+          'MAX_MCP_SERVERS_IN_AGENT',
+          'AGENT_THREAD_RETENTION_PERIOD',
+        ],
+        title: 'ConfigType',
       },
       ConfirmRemoteFileUploadPayload: {
         properties: {
@@ -10733,6 +10779,75 @@ export const spec = {
         type: 'object',
         required: ['host', 'port'],
         title: '_MysqlConfig',
+      },
+      _SliceDataInput: {
+        properties: {
+          data_frame_id: {
+            type: 'string',
+            title: 'Data Frame Id',
+          },
+          data_frame_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Data Frame Name',
+          },
+          offset: {
+            type: 'integer',
+            title: 'Offset',
+            default: 0,
+          },
+          limit: {
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Limit',
+          },
+          column_names: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Column Names',
+          },
+          output_format: {
+            type: 'string',
+            enum: ['json', 'parquet'],
+            title: 'Output Format',
+            default: 'json',
+          },
+          order_by: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Order By',
+          },
+        },
+        type: 'object',
+        required: ['data_frame_id'],
+        title: '_SliceDataInput',
       },
       _TranslationRule: {
         properties: {

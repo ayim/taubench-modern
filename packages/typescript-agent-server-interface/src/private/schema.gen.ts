@@ -654,6 +654,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/data-frames/slice': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Slice Data Frame
+     * @description Get a slice of a data frame's contents.
+     *
+     *     Args:
+     *         user: The user making the request
+     *         tid: The ID of the thread
+     *         storage: The storage to use
+     *         data_frame_id: The ID of the data frame to slice (mutually exclusive with data_frame_name)
+     *         data_frame_name: The name of the data frame to slice (mutually exclusive with data_frame_id)
+     *         offset: From which offset to start the slice. If not provided, starts with 0
+     *         limit: The number of rows to slice. If not provided, slices to the end.
+     *         column_names: List of column names to include. If not provided, returns all columns
+     *         output_format: Output format - either "json" or "parquet"
+     *         order_by: The column name to order by (use '-' prefix to order by descending order).
+     *
+     *     Returns:
+     *         A streaming response with the sliced data in the specified format
+     */
+    get: operations['slice_data_frame_threads__tid__data_frames_slice_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/debug/artifacts': {
     parameters: {
       query?: never;
@@ -2110,34 +2145,27 @@ export interface components {
     };
     /** ConfigPayload */
     ConfigPayload: {
-      /**
-       * Config Type
-       * @enum {string}
-       */
-      config_type:
-        | 'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB'
-        | 'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB'
-        | 'MAX_AGENTS'
-        | 'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS'
-        | 'MAX_MCP_SERVERS_IN_AGENT';
+      config_type: components['schemas']['ConfigType'];
       /** Current Value */
       current_value: string;
     };
     /** ConfigResponse */
     ConfigResponse: {
-      /**
-       * Config Type
-       * @enum {string}
-       */
-      config_type:
-        | 'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB'
-        | 'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB'
-        | 'MAX_AGENTS'
-        | 'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS'
-        | 'MAX_MCP_SERVERS_IN_AGENT';
+      config_type: components['schemas']['ConfigType'];
       /** Config Value */
       config_value: string;
     };
+    /**
+     * ConfigType
+     * @enum {string}
+     */
+    ConfigType:
+      | 'MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB'
+      | 'MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB'
+      | 'MAX_AGENTS'
+      | 'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS'
+      | 'MAX_MCP_SERVERS_IN_AGENT'
+      | 'AGENT_THREAD_RETENTION_PERIOD';
     /** ConfirmRemoteFileUploadPayload */
     ConfirmRemoteFileUploadPayload: {
       /** File Ref */
@@ -4819,6 +4847,30 @@ export interface components {
       /** Port */
       port: number;
     };
+    /** _SliceDataInput */
+    _SliceDataInput: {
+      /** Data Frame Id */
+      data_frame_id: string;
+      /** Data Frame Name */
+      data_frame_name?: string | null;
+      /**
+       * Offset
+       * @default 0
+       */
+      offset: number;
+      /** Limit */
+      limit?: number | null;
+      /** Column Names */
+      column_names?: string[] | null;
+      /**
+       * Output Format
+       * @default json
+       * @enum {string}
+       */
+      output_format: 'json' | 'parquet';
+      /** Order By */
+      order_by?: string | null;
+    };
     /** _TranslationRule */
     _TranslationRule: {
       /** Mode */
@@ -6320,6 +6372,41 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['_DataFrameCreationAPI'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  slice_data_frame_threads__tid__data_frames_slice_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['_SliceDataInput'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
       /** @description Validation Error */
