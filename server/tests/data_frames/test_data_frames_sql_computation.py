@@ -1,3 +1,4 @@
+import json
 import typing
 from pathlib import Path
 
@@ -240,6 +241,10 @@ class _StorageStub:
 
 @pytest.mark.asyncio
 async def test_create_data_frame_from_sql_computation():
+    import io
+
+    import pyarrow.parquet as pq
+
     from agent_platform.server.auth import AuthedUser
     from agent_platform.server.data_frames.data_frames_from_computation import (
         create_data_frame_from_sql_computation,
@@ -277,6 +282,45 @@ async def test_create_data_frame_from_sql_computation():
     assert result.platform_data_frame.column_headers == ["col1", "col2"]
     assert result.platform_data_frame.sql_dialect == "duckdb"
 
+    loaded = json.loads(result.slice(offset=0, limit=1, output_format="json"))
+    assert loaded == [{"col1": 1, "col2": 4}]
+
+    loaded = json.loads(result.slice(offset=0, limit=2, output_format="json"))
+    assert loaded == [{"col1": 1, "col2": 4}, {"col1": 2, "col2": 5}]
+
+    loaded = json.loads(
+        result.slice(offset=0, limit=2, output_format="json", column_names=["col1"])
+    )
+    assert loaded == [{"col1": 1}, {"col1": 2}]
+
+    loaded = json.loads(
+        result.slice(
+            offset=0,
+            limit=2,
+            output_format="json",
+            column_names=["col1"],
+            order_by="-col1",
+        )
+    )
+    assert loaded == [{"col1": 2}, {"col1": 1}]
+
+    loaded = json.loads(
+        result.slice(
+            offset=0,
+            limit=2,
+            output_format="json",
+            column_names=["col1"],
+            order_by="col1",
+        )
+    )
+    assert loaded == [{"col1": 1}, {"col1": 2}]
+
+    as_parquet = result.slice(offset=0, limit=2, output_format="parquet", column_names=["col1"])
+
+    table = pq.read_table(io.BytesIO(as_parquet))
+    assert table.column_names == ["col1"]
+    assert table.to_pylist() == [{"col1": 1}, {"col1": 2}]
+
     # Now, create a new computation that uses the previous one as a source
     new_data_frame_name = "test_data_frame_2"
     sql_query = "SELECT * FROM test_data_frame WHERE col1 <= 1"
@@ -296,3 +340,10 @@ async def test_create_data_frame_from_sql_computation():
 
     assert result.platform_data_frame.num_rows == 1
     assert result.platform_data_frame.sql_dialect == "postgres"
+
+    loaded = json.loads(result.slice(offset=0, limit=1, output_format="json"))
+    assert loaded == [{"col1": 1, "col2": 4}]
+
+    loaded = json.loads(result.slice(offset=0, limit=2, output_format="json"))
+    # Still same (we only have one row in this query)
+    assert loaded == [{"col1": 1, "col2": 4}]

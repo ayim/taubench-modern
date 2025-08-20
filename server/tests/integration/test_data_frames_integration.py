@@ -173,10 +173,42 @@ def test_data_frames_integration(base_url_agent_server):
         assert data_frame["column_headers"] == ["name", "age"]
         assert data_frame["data_frame_id"] == data_frame_response["data_frame_id"]
 
+        # Get the full data in parquet format
+        slice_response = agent_client.get_data_frame_slice(
+            thread_id,
+            data_frame["data_frame_id"],
+            output_format="parquet",
+            order_by="aGe",
+        )
+        assert slice_response is not None
+
+        import io
+
+        import pyarrow.parquet as pq
+
+        table = pq.read_table(io.BytesIO(slice_response))
+        assert table.column_names == ["name", "age"]
+        assert table.to_pylist() == [{"name": "John", "age": 25}, {"name": "Jane", "age": 30}]
+
+        # Get the full data in parquet format in descending order
+        slice_response = agent_client.get_data_frame_slice(
+            thread_id,
+            data_frame["data_frame_id"],
+            output_format="parquet",
+            order_by="-aGe",
+        )
+        assert slice_response is not None
+
+        table = pq.read_table(io.BytesIO(slice_response))
+        assert table.column_names == ["name", "age"]
+        assert table.to_pylist() == [{"name": "Jane", "age": 30}, {"name": "John", "age": 25}]
+
 
 @pytest.mark.integration
 def test_data_frames_computation_integration_success(base_url_agent_server):
     """Test creating a data frame from computation with valid SQL query."""
+    import json
+
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
@@ -203,7 +235,35 @@ def test_data_frames_computation_integration_success(base_url_agent_server):
         file_id = check_upload_response(thread_response)
 
         # Create a data frame from the file
-        agent_client.create_data_frame_from_file(thread_id, file_id, name="my_data")
+        created = agent_client.create_data_frame_from_file(thread_id, file_id, name="my_data")
+
+        # Request a slice of the data frame
+        slice_response = agent_client.get_data_frame_slice(
+            thread_id,
+            created["data_frame_id"],
+            offset=0,
+            limit=2,
+            output_format="json",
+        )
+
+        loaded = json.loads(slice_response)
+        assert loaded == [
+            {"name": "John", "age": 25, "city": "New York"},
+            {"name": "Jane", "age": 30, "city": "London"},
+        ]
+
+        # Request just the name and city
+        slice_response = agent_client.get_data_frame_slice(
+            thread_id,
+            created["data_frame_id"],
+            offset=1,
+            limit=1,
+            output_format="json",
+            column_names=["nAme", "ciTy"],  # case should not matter
+        )
+
+        loaded = json.loads(slice_response)
+        assert loaded == [{"name": "Jane", "city": "London"}]
 
         # Create a new data frame from computation
         computation_response = agent_client.create_data_frame_from_sql_computation(
@@ -236,3 +296,38 @@ def test_data_frames_computation_integration_success(base_url_agent_server):
 
         assert computation_df is not None, "Computation data frame not found"
         assert computation_df["data_frame_id"] == computation_response["data_frame_id"]
+
+        # Get all data from the computation data frame
+        slice_response = agent_client.get_data_frame_slice(
+            thread_id,
+            computation_df["data_frame_id"],
+            output_format="json",
+        )
+
+        loaded = json.loads(slice_response)
+        assert loaded == [{"name": "Jane", "age": 30}, {"name": "Bob", "age": 35}]
+
+        # Now request just the name and 1st row
+        slice_response = agent_client.get_data_frame_slice(
+            thread_id,
+            computation_df["data_frame_id"],
+            output_format="json",
+            column_names=["nAMe"],  # case should not matter
+            limit=1,
+        )
+
+        loaded = json.loads(slice_response)
+        assert loaded == [{"name": "Jane"}]
+
+        # Now request just the age in 2nd row
+        slice_response = agent_client.get_data_frame_slice(
+            thread_id,
+            computation_df["data_frame_id"],
+            output_format="json",
+            column_names=["age"],
+            offset=1,
+            limit=1,
+        )
+
+        loaded = json.loads(slice_response)
+        assert loaded == [{"age": 35}]

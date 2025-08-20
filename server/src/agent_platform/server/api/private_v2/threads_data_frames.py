@@ -2,10 +2,11 @@ import dataclasses
 import datetime
 import typing
 from collections.abc import Sequence
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from fastapi.routing import APIRouter
+from pydantic.main import BaseModel
 from structlog.stdlib import get_logger
 
 from agent_platform.server.api.dependencies import (
@@ -339,3 +340,124 @@ async def create_data_frame_from_sql_computation(
         column_headers=platform_data_frame.column_headers,
         sample_rows=resolved_df.list_sample_rows(num_samples),
     )
+
+
+class _SliceDataInput(BaseModel):
+    data_frame_id: Annotated[str, "The ID of the data frame to slice."]
+    data_frame_name: Annotated[str | None, "The name of the data frame to slice."] = None
+    offset: Annotated[int, "From which offset to start the slice (starts at 0)."] = 0
+    limit: Annotated[int | None, "The maximum number of rows to return in the slice."] = None
+    column_names: Annotated[list[str] | None, "The column names to include."] = None
+    output_format: Annotated[Literal["json", "parquet"], "The output format."] = "json"
+    order_by: Annotated[
+        str | None,
+        "The column name to order by (use '-' prefix to order by descending order).",
+    ] = None
+
+
+@router.get("/{tid}/data-frames/slice")
+async def slice_data_frame(  # noqa: PLR0912,C901
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+    payload: _SliceDataInput,
+) -> Response:
+    """Get a slice of a data frame's contents.
+
+    Args:
+        user: The user making the request
+        tid: The ID of the thread
+        storage: The storage to use
+        data_frame_id: The ID of the data frame to slice (mutually exclusive with data_frame_name)
+        data_frame_name: The name of the data frame to slice (mutually exclusive with data_frame_id)
+        offset: From which offset to start the slice. If not provided, starts with 0
+        limit: The number of rows to slice. If not provided, slices to the end.
+        column_names: List of column names to include. If not provided, returns all columns
+        output_format: Output format - either "json" or "parquet"
+        order_by: The column name to order by (use '-' prefix to order by descending order).
+
+    Returns:
+        A streaming response with the sliced data in the specified format
+    """
+    from agent_platform.core.errors.base import PlatformError
+    from agent_platform.core.errors.responses import ErrorCode
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.storage.base import BaseStorage
+
+    # Validate that exactly one of data_frame_id or data_frame_name is provided
+    if payload.data_frame_id is None and payload.data_frame_name is None:
+        raise PlatformError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="Either data_frame_id or data_frame_name must be provided",
+        )
+
+    if payload.data_frame_id is not None and payload.data_frame_name is not None:
+        raise PlatformError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="Only one of data_frame_id or data_frame_name can be provided",
+        )
+
+    base_storage = typing.cast(BaseStorage, storage)
+    data_frames_kernel = DataFramesKernel(base_storage, user, tid)
+
+    # Find the data frame
+    data_frame = None
+    if payload.data_frame_id is not None:
+        # Get by ID
+        data_frames = await base_storage.list_data_frames(tid)
+        for df in data_frames:
+            if df.data_frame_id == payload.data_frame_id:
+                data_frame = df
+                break
+        else:
+            raise PlatformError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"Data frame with id {payload.data_frame_id} not found in thread: {tid}",
+            )
+    else:
+        # Get by name
+        data_frames = await base_storage.list_data_frames(tid)
+        for df in data_frames:
+            if df.name == payload.data_frame_name:
+                data_frame = df
+                break
+        else:
+            raise PlatformError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=(
+                    f"Data frame with name {payload.data_frame_name} not found in thread: {tid}"
+                ),
+            )
+
+    try:
+        # Resolve the data frame
+        resolved_df = await data_frames_kernel.resolve_data_frame(data_frame)
+
+        # Get the sliced data
+        sliced_data = resolved_df.slice(
+            offset=payload.offset,
+            limit=payload.limit,
+            column_names=payload.column_names,
+            output_format=payload.output_format,
+            order_by=payload.order_by,
+        )
+
+        # Return as streaming response
+        if payload.output_format == "json":
+            return Response(content=sliced_data, media_type="application/json")
+        elif payload.output_format == "parquet":
+            return Response(
+                content=sliced_data,
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": f"attachment; filename={data_frame.name}.parquet"},
+            )
+        else:
+            raise PlatformError(
+                message=f"Unsupported format: {payload.output_format}",
+            )
+
+    except PlatformError:
+        raise
+    except Exception as e:
+        logger.error("Error slicing data frame", error=e, data_frame_id=data_frame.data_frame_id)
+        raise PlatformError(message="Internal server error while slicing data frame") from e

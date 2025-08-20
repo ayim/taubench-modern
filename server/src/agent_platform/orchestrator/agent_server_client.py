@@ -775,3 +775,36 @@ class AgentServerClient:
                 f"{response.text}",
             ) from e
         return response.json()
+
+    def get_data_frame_slice(  # noqa: PLR0913
+        self,
+        thread_id: str,
+        data_frame_id: str,
+        offset: int | None = None,
+        limit: int | None = None,
+        column_names: list[str] | None = None,
+        output_format: Literal["json", "parquet"] = "json",
+        order_by: str | None = None,
+    ) -> bytes:
+        from typing import Any
+
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames/slice")
+        params: dict[str, Any] = {"data_frame_id": data_frame_id}
+        if offset is not None:
+            params["offset"] = offset
+        if limit is not None:
+            params["limit"] = limit
+        if column_names is not None:
+            params["column_names"] = column_names
+        if output_format is not None:
+            params["output_format"] = output_format
+        if order_by is not None:
+            params["order_by"] = order_by
+        response = requests.get(url, json=params)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting data frame slice: {response.status_code} {response.text}",
+            ) from e
+        return response.content

@@ -59,7 +59,7 @@ REST APIs created:
 
 For this we need to:
 
-## Step 1 (current PR):
+## Step 1 (done):
 
 Create a new REST API:
 
@@ -77,14 +77,27 @@ Create a new REST API:
 - If it doesn't, return an error message to the user
 - The new data frame should be added to the thread
 
-## Step 2 (next PR):
+## Step 2 (current PR):
 
 Create a new REST API:
 
 - threads/{thread_id}/data-frames/slice (GET)
 
 - Create a new REST API which allows the client to obtain sliced data frame contents.
-  - The data sent in the wire should follow the parquet format.
+  - The data sent in the wire should follow either the parquet format or the json format (passed as an 'output_format' parameter).
+  - The API requires a user.
+  - The API requires a thread id.
+  - The API requires either a data frame id or a data frame name.
+  - The API requires an offset (optional) and a limit (optional) as well as column_names (optional).
+    - If offset is not provided it starts with `0`
+    - If limit is not provided it ends with the last row of the data frame
+    - If column_names is not provided it returns all columns
+  - The API returns a stream of data (either a parquet stream or a json stream).
+
+Implementation-wise we must:
+
+- Create the new REST API
+- Change DataNodeResult (in `server/src/agent_platform/server/data_frames/data_node.py`) to include a `slice` method (which receives the offset, limit, column_names and format and returns the actual data, as a bytes -- either a json converted to bytes or a parquet created from pyarrow and then converted to bytes).
 
 ## Step 3 (next PR):
 
