@@ -58,9 +58,6 @@ messages:
           I confirm the operating instructions. I will attend carefully to my Runbook.
   # 5. SLIDING WINDOW OF RECENT TURNS (grounding context)
   - role: $conversation-history
-    params:
-      maximum_number_of_turns: 5
-      token_budget_as_percentage: 0.30
 
   # 6. LATEST USER REQUEST (always last)
   - role: user

@@ -1,11 +1,15 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from structlog import get_logger
+
 from agent_platform.core.prompts.messages import AnyPromptMessage
 from agent_platform.core.prompts.special.base import SpecialPromptMessage
 
 if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
+
+logger = get_logger()
 
 
 @dataclass(frozen=True)
@@ -50,9 +54,27 @@ class ConversationHistorySpecialMessage(SpecialPromptMessage):
         kernel: "Kernel",
     ) -> list[AnyPromptMessage]:
         """Hydrate the conversation history special message."""
+        # Look in the agents settings for how much context to keep
+        number_of_turns_to_keep = kernel.agent.extra.get("agent_settings", {}).get(
+            "conversation_turns_kept_in_context", None
+        )
+        if number_of_turns_to_keep and not isinstance(number_of_turns_to_keep, int):
+            number_of_turns_to_keep = int(number_of_turns_to_keep)
+
+        # Log a bit about context (debug)
+        if number_of_turns_to_keep:
+            logger.debug(f"Will keep {number_of_turns_to_keep} turns of context (agent settings)")
+        else:
+            logger.debug(
+                f"Will keep {self.params.maximum_number_of_turns} default number of "
+                "turns of context (params)"
+            )
+
         # Get the last N message turns
         historical_messages = kernel.thread.get_last_n_message_turns(
-            n=self.params.maximum_number_of_turns,
+            # Take either the agents settings (has precedence) or whatever
+            # was set on the params of this block (likely just the default)
+            n=number_of_turns_to_keep or self.params.maximum_number_of_turns,
         )
 
         # Convert the historical messages to prompt messages
