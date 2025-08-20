@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
+
+import sqlalchemy as sa
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.config.config import Config
@@ -20,6 +22,7 @@ from agent_platform.core.work_items import (
     WorkItemStatus,
     WorkItemStatusUpdatedBy,
 )
+from agent_platform.server.storage.types import StaleThreadsResult
 
 if TYPE_CHECKING:
     from agent_platform.core import MCPServer, MCPServerSource
@@ -596,7 +599,7 @@ class AbstractStorage(ABC):
         """Fetches the list of all available agent configs from DB"""
 
     @abstractmethod
-    async def get_config(self, config_type: str) -> Config:
+    async def get_config(self, config_type: str, *, namespace: str = "global") -> Config:
         """Fetches the config from the DB for the config_type
 
         Args:
@@ -604,10 +607,20 @@ class AbstractStorage(ABC):
         """
 
     @abstractmethod
-    async def set_config(self, config_type: str, current_value: str):
+    async def set_config(self, config_type: str, current_value: str, *, namespace: str = "global"):
         """Sets the config value in the DB for the config_type
 
         Args:
             config_type: Must be one of the valid ConfigType values defined in quotas.py
             current_value: The new configuration value as a string
         """
+
+    @abstractmethod
+    def _clean_up_stale_threads__get_threshold(self, now: datetime, config_column: sa.Column):
+        """Get Interval for cleaning up stale threads."""
+
+    @abstractmethod
+    async def clean_up_stale_threads(
+        self, default_retention_period: timedelta
+    ) -> list[StaleThreadsResult]:
+        """Cleans up stale threads based on the configured retention period."""

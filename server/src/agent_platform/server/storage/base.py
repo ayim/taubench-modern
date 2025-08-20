@@ -1,9 +1,9 @@
 import json
 from abc import abstractmethod
+from datetime import UTC, datetime, timedelta
 from typing import cast
 
-import sqlalchemy
-from sqlalchemy import MetaData, RowMapping, Table, column, delete, insert, inspect, select, update
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import JSON
@@ -18,6 +18,7 @@ from agent_platform.server.storage.errors import (
     DIDSConnectionDetailsNotFoundError,
     DocumentIntelligenceIntegrationNotFoundError,
 )
+from agent_platform.server.storage.types import StaleThreadsResult
 
 
 @compiles(JSON, "postgresql")
@@ -40,7 +41,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         super().__init__()
         self._engine: AsyncEngine | None = None
         assert self.V2_PREFIX, "V2_PREFIX must be set"
-        self._metadata = MetaData()
+        self._metadata = sa.MetaData()
 
     async def _reflect_database(self, schema=None):
         """
@@ -52,10 +53,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         def _reflect_tables(sync_conn):
             nonlocal self
-            db_inspector = cast(sqlalchemy.Inspector, inspect(sync_conn))
+            db_inspector = cast(sa.Inspector, sa.inspect(sync_conn))
             for table_name in db_inspector.get_table_names(schema=schema):
                 # This adds the table to the metadata object
-                Table(table_name, self._metadata, autoload_with=sync_conn, schema=schema)
+                sa.Table(table_name, self._metadata, autoload_with=sync_conn, schema=schema)
 
         async with self._engine.connect() as conn:
             await conn.run_sync(_reflect_tables)
@@ -63,7 +64,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     @staticmethod
     def as_json_columns(*column_name: str):
         """Return a JSON column for the given engine."""
-        return [column(name, JSON()) for name in column_name]
+        return [sa.column(name, JSON()) for name in column_name]
 
     @property
     def engine(self) -> AsyncEngine:
@@ -76,7 +77,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return self._engine
 
-    def _get_table(self, name: str) -> Table:
+    def _get_table(self, name: str) -> sa.Table:
         return self._metadata.tables[f"{self.V2_PREFIX}{name}"]
 
     @abstractmethod
@@ -102,7 +103,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         data_frame_dict = data_frame.model_dump()
 
         # Use JSON column for computation_input_sources to handle JSON serialization
-        stmt = insert(data_frames).values(data_frame_dict)
+        stmt = sa.insert(data_frames).values(data_frame_dict)
 
         async with self.engine.begin() as conn:
             await conn.execute(stmt)
@@ -112,7 +113,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         data_frames = self._get_table("data_frames")
 
         stmt = (
-            select(
+            sa.select(
                 data_frames.c.data_frame_id,
                 data_frames.c.user_id,
                 data_frames.c.agent_id,
@@ -144,7 +145,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return self._build_data_frame(row)
 
-    def _build_data_frame(self, row_mapping: RowMapping) -> "PlatformDataFrame":
+    def _build_data_frame(self, row_mapping: sa.RowMapping) -> "PlatformDataFrame":
         # SQLAlchemy may return UUIDs as UUID objects, so we need to convert them to strings, which
         # is what we expect in the dataframe.
         row = dict(row_mapping)
@@ -161,7 +162,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         data_frames = self._get_table("data_frames")
 
         stmt = (
-            select(
+            sa.select(
                 data_frames.c.data_frame_id,
                 data_frames.c.user_id,
                 data_frames.c.agent_id,
@@ -236,7 +237,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """List all agents for all users."""
         agent = self._get_table("agent")
 
-        stmt = select(
+        stmt = sa.select(
             agent.c.agent_id,
             agent.c.name,
             agent.c.description,
@@ -271,7 +272,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Get the Document Intelligence Data Server connection details."""
         dids_connection_details = self._get_table("dids_connection_details")
 
-        stmt = select(dids_connection_details)
+        stmt = sa.select(dids_connection_details)
 
         async with self.engine.begin() as conn:
             result = await conn.execute(stmt)
@@ -316,7 +317,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self.engine.begin() as conn:
             # Since we only store one row, clear the table first
-            delete_stmt = delete(dids_connection_details)
+            delete_stmt = sa.delete(dids_connection_details)
             await conn.execute(delete_stmt)
 
             details_data = {
@@ -335,7 +336,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
 
             # Insert the new connection details
-            insert_stmt = insert(dids_connection_details).values(details_data)
+            insert_stmt = sa.insert(dids_connection_details).values(details_data)
             await conn.execute(insert_stmt)
 
     async def delete_dids_connection_details(self) -> None:
@@ -344,7 +345,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self.engine.begin() as conn:
             # Check if connection details exist
-            select_stmt = select(dids_connection_details)
+            select_stmt = sa.select(dids_connection_details)
             result = await conn.execute(select_stmt)
             existing_row = result.mappings().fetchone()
 
@@ -352,10 +353,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 raise DIDSConnectionDetailsNotFoundError()
 
             # Delete the connection details
-            delete_stmt = delete(dids_connection_details)
+            delete_stmt = sa.delete(dids_connection_details)
             await conn.execute(delete_stmt)
 
-    def _parse_di_integration_row(self, row: RowMapping) -> DocumentIntelligenceIntegration:
+    def _parse_di_integration_row(self, row: sa.RowMapping) -> DocumentIntelligenceIntegration:
         """Parse a document intelligence integration row from the database."""
         row_dict = dict(row)
         assert "enc_api_key" in row_dict, "enc_api_key not found"
@@ -370,7 +371,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Get a document intelligence integration by kind."""
         integrations_table = self._get_table("document_intelligence_integrations")
 
-        stmt = select(integrations_table).where(integrations_table.c.kind == kind)
+        stmt = sa.select(integrations_table).where(integrations_table.c.kind == kind)
 
         async with self.engine.begin() as conn:
             result = await conn.execute(stmt)
@@ -387,7 +388,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """List all document intelligence integrations."""
         integrations_table = self._get_table("document_intelligence_integrations")
 
-        stmt = select(integrations_table)
+        stmt = sa.select(integrations_table)
 
         async with self.engine.begin() as conn:
             result = await conn.execute(stmt)
@@ -407,7 +408,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self.engine.begin() as conn:
             # Check if integration already exists
-            select_stmt = select(integrations_table).where(
+            select_stmt = sa.select(integrations_table).where(
                 integrations_table.c.kind == integration.kind
             )
             result = await conn.execute(select_stmt)
@@ -422,12 +423,12 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
             if existing_row is None:
                 # Insert new integration
-                insert_stmt = insert(integrations_table).values(integration_data)
+                insert_stmt = sa.insert(integrations_table).values(integration_data)
                 await conn.execute(insert_stmt)
             else:
                 # Update existing integration
                 update_stmt = (
-                    update(integrations_table)
+                    sa.update(integrations_table)
                     .where(integrations_table.c.kind == integration.kind)
                     .values(integration_data)
                 )
@@ -439,7 +440,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self.engine.begin() as conn:
             # Check if integration exists
-            select_stmt = select(integrations_table).where(integrations_table.c.kind == kind)
+            select_stmt = sa.select(integrations_table).where(integrations_table.c.kind == kind)
             result = await conn.execute(select_stmt)
             existing_row = result.mappings().fetchone()
 
@@ -447,5 +448,57 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 raise DocumentIntelligenceIntegrationNotFoundError()
 
             # Delete the integration
-            delete_stmt = delete(integrations_table).where(integrations_table.c.kind == kind)
+            delete_stmt = sa.delete(integrations_table).where(integrations_table.c.kind == kind)
             await conn.execute(delete_stmt)
+
+    async def clean_up_stale_threads(
+        self, default_retention_period: timedelta
+    ) -> list[StaleThreadsResult]:
+        """
+        Returns:
+            list[StaleThreadsResult]: A list of thread_ids that were cleaned up.
+        """
+        now = datetime.now(UTC)
+
+        default_retention_datetime = now - default_retention_period
+
+        threads = self._get_table("thread")
+        configs = self._get_table("agent_config")
+        files = self._get_table("file_owner")
+        users = self._get_table("user")
+
+        stale_threads_stmt = (
+            sa.select(threads.c.thread_id, files.c.file_id, files.c.file_path)
+            .select_from(threads)
+            .join(users, threads.c.user_id == users.c.user_id)
+            .outerjoin(
+                configs,
+                configs.c.namespace == sa.func.concat("agent_id:", threads.c.agent_id),
+            )
+            .outerjoin(
+                files,
+                threads.c.thread_id == files.c.thread_id,
+            )
+            .where(
+                (users.c.sub.notilike("tenant:%:system:system_user"))
+                & (
+                    threads.c.updated_at
+                    < sa.func.coalesce(
+                        self._clean_up_stale_threads__get_threshold(now, configs.c.config_value),
+                        default_retention_datetime,
+                    )
+                )
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stale_threads_stmt)
+            stale_threads = [StaleThreadsResult(**item) for item in result.mappings().fetchall()]
+
+            await conn.execute(
+                sa.delete(threads).where(
+                    threads.c.thread_id.in_({item.thread_id for item in stale_threads})
+                )
+            )
+
+        return stale_threads

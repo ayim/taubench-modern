@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from agent_platform.core.configurations.config_validation import ALL_CONFIG_TYPES
+from agent_platform.core.configurations.config_validation import ConfigType
 from agent_platform.server.api.private_v2 import config
 from agent_platform.server.auth.handlers import User, auth_user
 from agent_platform.server.storage.option import StorageService
@@ -136,7 +136,7 @@ class TestSetConfigEndpoint:
 
     def test_set_config_all_valid_config_types(self, client: TestClient, mock_quotas_service):
         """Test that all defined config types are accepted."""
-        for config_type in ALL_CONFIG_TYPES:
+        for config_type in ConfigType:
             payload = {"config_type": config_type, "current_value": "100"}
 
             response = client.post("/api/v2/private/config/", json=payload)

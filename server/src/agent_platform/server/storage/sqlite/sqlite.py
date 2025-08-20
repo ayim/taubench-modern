@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import ClassVar
 
+import sqlalchemy as sa
 from aiosqlite import Cursor, Row, connect
 from sqlalchemy.ext.asyncio import create_async_engine
 from structlog import get_logger
@@ -265,3 +266,14 @@ class SQLiteStorage(
             cursor = await self._db.cursor()
         yield cursor
         await self._db.commit()
+
+    def _clean_up_stale_threads__get_threshold(
+        self,
+        now: datetime,
+        config_column: sa.Column,
+    ):
+        """Get Interval for cleaning up stale threads"""
+        return sa.text(
+            f"datetime('{now.isoformat()}', '-' "
+            f"|| CAST(json_extract({config_column.name}, '$') AS integer) || ' days')"
+        )

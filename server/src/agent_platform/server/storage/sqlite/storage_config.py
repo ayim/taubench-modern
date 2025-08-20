@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import UTC, datetime
 
 from structlog import get_logger
 
@@ -26,7 +27,7 @@ class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
             return []
         return [Config.model_validate(dict(row)) for row in rows]
 
-    async def get_config(self, config_type: ConfigType) -> Config:
+    async def get_config(self, config_type: ConfigType, *, namespace: str = "global") -> Config:
         validate_config_type(config_type)
 
         async with self._cursor() as cur:
@@ -35,9 +36,9 @@ class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
                 SELECT
                 *
                 FROM v2_agent_config
-                WHERE config_type = :config_type
+                WHERE config_type = :config_type AND namespace = :namespace
                 """,
-                {"config_type": config_type},
+                {"config_type": config_type, "namespace": namespace},
             )
             row = await cur.fetchone()
 
@@ -46,23 +47,29 @@ class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
         row_dict = dict(row)
         return Config.model_validate(row_dict)
 
-    async def set_config(self, config_type: ConfigType, current_value: str):
-        import datetime
-
+    async def set_config(
+        self, config_type: ConfigType, current_value: str, *, namespace: str = "global"
+    ):
         validate_config_type(config_type)
 
-        config_value = json.dumps({"current": current_value})
+        config_value = json.dumps(current_value)
         record_id = str(uuid.uuid4())
-        updated_at = datetime.datetime.now(datetime.UTC).isoformat()
+        updated_at = datetime.now(UTC).isoformat()
 
         async with self._cursor() as cur:
             await cur.execute(
                 """
-                INSERT INTO v2_agent_config (id, config_type, config_value, updated_at)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(config_type) DO UPDATE SET
+                INSERT INTO v2_agent_config (id, config_type, namespace, config_value, updated_at)
+                VALUES (:id, :config_type, :namespace, :config_value, :updated_at)
+                ON CONFLICT(config_type, namespace) DO UPDATE SET
                     config_value = excluded.config_value,
                     updated_at = CURRENT_TIMESTAMP
                 """,
-                (record_id, config_type, config_value, updated_at),
+                {
+                    "id": record_id,
+                    "config_type": config_type,
+                    "namespace": namespace,
+                    "config_value": config_value,
+                    "updated_at": updated_at,
+                },
             )

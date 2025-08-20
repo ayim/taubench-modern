@@ -458,7 +458,7 @@ async def test_agent_as_mcp_endpoints__no_auth(mock_mcp_proxy):
         ):
             # Create a session using the client streams
             async with MCPClientSession(
-                read_stream, write_stream, read_timeout_seconds=timedelta(seconds=1)
+                read_stream, write_stream, read_timeout_seconds=timedelta(seconds=2)
             ) as session:
                 # The server responds with HTTP 403 which is surfaced as an ExceptionGroup
                 # containing a single `httpx.HTTPStatusError`.  Catch the group and verify

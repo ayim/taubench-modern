@@ -186,7 +186,7 @@ class TestQuotaServiceConfig:
 
     def test_all_config_types_present(self):
         """Test that all expected config types are defined."""
-        from agent_platform.core.configurations.config_validation import ALL_CONFIG_TYPES
+        from agent_platform.core.configurations.config_validation import ConfigType
 
         expected_types = {
             "MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB",
@@ -197,15 +197,15 @@ class TestQuotaServiceConfig:
         }
 
         # All expected types should be present
-        assert expected_types.issubset(ALL_CONFIG_TYPES)
+        assert expected_types.issubset(ConfigType)
 
     def test_quota_constants_defined(self):
         """Test that quota constants are properly defined."""
-        from agent_platform.core.configurations.config_validation import STORAGE_KEY_MAX_AGENTS
+        from agent_platform.core.configurations.config_validation import ConfigType
         from agent_platform.core.configurations.quotas import QuotasService
 
         # Test that storage constants are imported correctly
-        assert STORAGE_KEY_MAX_AGENTS == "MAX_AGENTS"
+        assert ConfigType.MAX_AGENTS == "MAX_AGENTS"
 
         # Test that quota key constants exist
         assert hasattr(QuotasService, "MAX_AGENTS")

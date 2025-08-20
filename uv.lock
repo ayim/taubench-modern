@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12.9, <3.13"
 
 [manifest]
@@ -26,6 +26,7 @@ dev = [
     { name = "click" },
     { name = "coverage" },
     { name = "flaky" },
+    { name = "freezegun" },
     { name = "ipython" },
     { name = "mu-repo" },
     { name = "nbstripout" },
@@ -64,6 +65,7 @@ dev = [
     { name = "click", specifier = ">=8.1.8,<9.0.0" },
     { name = "coverage", specifier = ">=7.6.7,<8.0.0" },
     { name = "flaky", specifier = ">=3.8.1,<4.0.0" },
+    { name = "freezegun", specifier = ">=1.5.4" },
     { name = "ipython", specifier = ">=8.31.0,<9.0.0" },
     { name = "mu-repo", specifier = ">=1.9.0" },
     { name = "nbstripout", specifier = ">=0.7.1" },
@@ -869,6 +871,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5b/c5/ef69119a01427204ff2db5fc8f98001087bcce719bbb94749dcd7b191365/flaky-3.8.1.tar.gz", hash = "sha256:47204a81ec905f3d5acfbd61daeabcada8f9d4031616d9bcb0618461729699f5", size = 25248, upload-time = "2024-03-12T22:17:59.265Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/b8/b830fc43663246c3f3dd1ae7dca4847b96ed992537e85311e27fa41ac40e/flaky-3.8.1-py2.py3-none-any.whl", hash = "sha256:194ccf4f0d3a22b2de7130f4b62e45e977ac1b5ccad74d4d48f3005dcc38815e", size = 19139, upload-time = "2024-03-12T22:17:51.59Z" },
+]
+
+[[package]]
+name = "freezegun"
+version = "1.5.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/dd/23e2f4e357f8fd3bdff613c1fe4466d21bfb00a6177f238079b17f7b1c84/freezegun-1.5.5.tar.gz", hash = "sha256:ac7742a6cc6c25a2c35e9292dfd554b897b517d2dec26891a2e8debf205cb94a", size = 35914, upload-time = "2025-08-09T10:39:08.338Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/2e/b41d8a1a917d6581fc27a35d05561037b048e47df50f27f8ac9c7e27a710/freezegun-1.5.5-py3-none-any.whl", hash = "sha256:cd557f4a75cf074e84bc374249b9dd491eaeacd61376b9eb3c423282211619d2", size = 19266, upload-time = "2025-08-09T10:39:06.636Z" },
 ]
 
 [[package]]

@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from datetime import datetime
@@ -13,7 +14,10 @@ class Config:
 
     id: str = field(metadata={"description": "The id of the config, Primary key"})
     config_type: ConfigType = field(metadata={"description": "The config type of this row"})
-    config_value: str = field(metadata={"description": "The config value of the config type"})
+    namespace: str = field(
+        metadata={"description": 'The namespace of the config. Defaults to "global"'}
+    )
+    config_value: Any = field(metadata={"description": "The config value of the config type"})
     updated_at: datetime = field(metadata={"description": "The last update time of the config"})
 
     def copy(self, **updates: Any) -> "Config":
@@ -38,7 +42,8 @@ class Config:
     def model_dump(self) -> dict:
         return {
             "id": self.id,
-            "config_type": self.config_type,
+            "config_type": self.config_type.value,
+            "namespace": self.namespace,
             "config_value": self.config_value,
             "updated_at": self.updated_at.isoformat(),
         }
@@ -51,5 +56,7 @@ class Config:
             data["id"] = str(data["id"])
         if "updated_at" in data and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+        if "config_value" in data:
+            data["config_value"] = json.loads(data["config_value"])
 
         return cls(**data)

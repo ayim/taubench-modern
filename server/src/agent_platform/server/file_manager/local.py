@@ -255,3 +255,17 @@ class LocalFileManager(BaseFileManager):
         # files, but for now, just overriding is simpler and easier to manage.
 
         return file_name
+
+    async def rm(self, *, file_id: str | None = None, file_path: str | None = None) -> None:
+        if not file_path:
+            raise ValueError("file_path is required for deleting files via LocalFileManager")
+
+        try:
+            fs_path = url_to_fs_path(file_path)
+            if os.path.exists(fs_path):
+                os.remove(fs_path)
+                # remove parent directory as that gets
+                # created by the file upload as well
+                os.rmdir(os.path.dirname(fs_path))
+        except Exception as e:
+            logger.exception(f"Error deleting file at {file_path}: {e!s}")

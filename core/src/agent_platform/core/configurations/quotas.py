@@ -5,11 +5,6 @@ from typing import Any, ClassVar
 import structlog
 
 from agent_platform.core.configurations.config_validation import (
-    STORAGE_KEY_MAX_AGENTS,
-    STORAGE_KEY_MAX_MCP_SERVERS,
-    STORAGE_KEY_MAX_PARALLEL_WORK_ITEMS,
-    STORAGE_KEY_MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE,
-    STORAGE_KEY_MAX_WORK_ITEM_PAYLOAD_SIZE,
     ConfigType,
     validate_config_type,
     validate_config_value,
@@ -23,7 +18,7 @@ logger = structlog.get_logger(__name__)
 class QuotaConfig:
     """Configuration for a single quota setting."""
 
-    storage_key: str
+    storage_key: ConfigType
     default_value: int
     description: str
 
@@ -35,40 +30,46 @@ class QuotasService:
     _config_values: dict[str, int]
 
     # Config type constants - using actual storage keys for strict typing
-    WORK_ITEM_PAYLOAD_SIZE = STORAGE_KEY_MAX_WORK_ITEM_PAYLOAD_SIZE
-    WORK_ITEM_FILE_ATTACHMENT_SIZE = STORAGE_KEY_MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE
-    MAX_AGENTS = STORAGE_KEY_MAX_AGENTS
-    PARALLEL_WORK_ITEMS = STORAGE_KEY_MAX_PARALLEL_WORK_ITEMS
-    MCP_SERVERS_PER_AGENT = STORAGE_KEY_MAX_MCP_SERVERS
+    WORK_ITEM_PAYLOAD_SIZE = ConfigType.MAX_WORK_ITEM_PAYLOAD_SIZE
+    WORK_ITEM_FILE_ATTACHMENT_SIZE = ConfigType.MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE
+    MAX_AGENTS = ConfigType.MAX_AGENTS
+    PARALLEL_WORK_ITEMS = ConfigType.MAX_PARALLEL_WORK_ITEMS
+    MCP_SERVERS_PER_AGENT = ConfigType.MAX_MCP_SERVERS
+    AGENT_THREAD_RETENTION_PERIOD_DAYS = ConfigType.AGENT_THREAD_RETENTION_PERIOD
 
     # Storage key constants imported from config_validation (single source of truth)
 
     # Configuration mapping for all config types
     CONFIG_TYPES: ClassVar[dict[str, QuotaConfig]] = {
         WORK_ITEM_PAYLOAD_SIZE: QuotaConfig(
-            storage_key=STORAGE_KEY_MAX_WORK_ITEM_PAYLOAD_SIZE,
+            storage_key=ConfigType.MAX_WORK_ITEM_PAYLOAD_SIZE,
             default_value=100,
             description="Maximum work item payload size in KB",
         ),
         WORK_ITEM_FILE_ATTACHMENT_SIZE: QuotaConfig(
-            storage_key=STORAGE_KEY_MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE,
+            storage_key=ConfigType.MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE,
             default_value=100,
             description="Maximum work item file attachment size in MB",
         ),
         MAX_AGENTS: QuotaConfig(
-            storage_key=STORAGE_KEY_MAX_AGENTS,
+            storage_key=ConfigType.MAX_AGENTS,
             default_value=100,
             description="Maximum number of agents",
         ),
         PARALLEL_WORK_ITEMS: QuotaConfig(
-            storage_key=STORAGE_KEY_MAX_PARALLEL_WORK_ITEMS,
+            storage_key=ConfigType.MAX_PARALLEL_WORK_ITEMS,
             default_value=10,
             description="Maximum parallel work items in process",
         ),
         MCP_SERVERS_PER_AGENT: QuotaConfig(
-            storage_key=STORAGE_KEY_MAX_MCP_SERVERS,
+            storage_key=ConfigType.MAX_MCP_SERVERS,
             default_value=30,
             description="Maximum MCP servers per agent",
+        ),
+        AGENT_THREAD_RETENTION_PERIOD_DAYS: QuotaConfig(
+            storage_key=ConfigType.AGENT_THREAD_RETENTION_PERIOD,
+            default_value=90,
+            description="Retention period for agent threads in days",
         ),
     }
 
@@ -116,13 +117,12 @@ class QuotasService:
             config.storage_key: config_type for config_type, config in self.CONFIG_TYPES.items()
         }
 
-        for current_config in config_list:
+        for current_config in (item for item in config_list if item.namespace == "global"):
             storage_key = current_config.config_type
             if storage_key in storage_key_to_config_type:
                 config_type = storage_key_to_config_type[storage_key]
                 try:
-                    config_value_json = json.loads(current_config.config_value)
-                    current_value = int(config_value_json["current"])
+                    current_value = int(current_config.config_value)
                     self._config_values[config_type] = current_value
                     logger.info(
                         "Loaded config from storage", storage_key=storage_key, value=current_value
@@ -207,6 +207,9 @@ class QuotasService:
     def get_max_mcp_servers_in_agent(self) -> int:
         """Get maximum MCP servers per agent."""
         return self._get_config_value(self.MCP_SERVERS_PER_AGENT)
+
+    def get_agent_thread_retention_period(self) -> int:
+        return self._get_config_value(self.AGENT_THREAD_RETENTION_PERIOD_DAYS)
 
     def get_all_configs(self) -> dict[str, dict[str, Any]]:
         """Get all config values with their configurations."""

@@ -386,3 +386,9 @@ class CloudFileManager(BaseFileManager):
         # files, but for now, just overriding is simpler and easier to manage.
 
         return file_name
+
+    async def rm(self, *, file_id: str | None = None, file_path: str | None = None) -> None:
+        if not file_id:
+            raise ValueError("file_id is required for deleting files via CloudFileManager")
+
+        await self._delete_stored_file(file_id)

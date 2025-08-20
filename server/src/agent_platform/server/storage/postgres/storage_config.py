@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 from agent_platform.core.config.config import Config
 from agent_platform.core.configurations.config_validation import ConfigType, validate_config_type
@@ -23,7 +24,7 @@ class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
                 configs.append(Config.model_validate(row_dict))
             return configs
 
-    async def get_config(self, config_type: ConfigType) -> Config:
+    async def get_config(self, config_type: ConfigType, *, namespace: str = "global") -> Config:
         validate_config_type(config_type)
 
         async with self._cursor() as cur:
@@ -31,8 +32,8 @@ class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
                 """SELECT
                 *
                 FROM v2.agent_config
-                WHERE config_type = %(config_type)""",
-                {"config_type": config_type},
+                WHERE config_type = %(config_type) AND namespace = %(namespace)s""",
+                {"config_type": config_type, "namespace": namespace},
             )
 
             if not (row := await cur.fetchone()):
@@ -43,20 +44,21 @@ class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
                 row_dict["config_value"] = json.dumps(row_dict["config_value"])
             return Config.model_validate(row_dict)
 
-    async def set_config(self, config_type: ConfigType, current_value: str):
+    async def set_config(
+        self, config_type: ConfigType, current_value: Any, *, namespace: str = "global"
+    ):
         validate_config_type(config_type)
-
-        config_value = json.dumps({"current": current_value})
+        config_value = json.dumps(current_value)
 
         async with self._cursor() as cur:
             await cur.execute(
                 """
-                INSERT INTO v2.agent_config (config_type, config_value)
-                VALUES (%(config_type)s, %(config_value)s)
-                ON CONFLICT (config_type)
+                INSERT INTO v2.agent_config (config_type, namespace, config_value)
+                VALUES (%(config_type)s, %(namespace)s, %(config_value)s)
+                ON CONFLICT (config_type, namespace)
                 DO UPDATE SET
                     config_value = EXCLUDED.config_value,
                     updated_at = now()
                 """,
-                {"config_type": config_type, "config_value": config_value},
+                {"config_type": config_type, "namespace": namespace, "config_value": config_value},
             )

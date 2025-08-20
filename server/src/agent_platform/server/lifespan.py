@@ -9,6 +9,7 @@ from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.platforms.llms_metadata_loader import llms_metadata_loader
 from agent_platform.core.responses.streaming.stream_pipe import ResponseStreamPipe
 from agent_platform.server.constants import SystemConfig, SystemPaths
+from agent_platform.server.data_retention_policy import start_data_retention_worker
 
 # Import the data migration function
 from agent_platform.server.scripts.migration.auto_migrate import run_automatic_migration
@@ -92,10 +93,14 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("Work-items feature disabled; background worker will not start")
 
+    data_retention_task = start_data_retention_worker()
+
     try:
         yield
 
     finally:
+        data_retention_task.cancel()
+
         # Shut down the background worker only if it was started
         if work_items_shutdown_event is not None and work_items_task is not None:
             logger.info("Shutting down work-items background worker")

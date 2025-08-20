@@ -15,13 +15,14 @@ class FileManagerService:
     @classmethod
     def get_instance(
         cls,
-        storage: BaseStorage,
+        storage: BaseStorage | None = None,
         manager_type: str | None = None,
     ) -> BaseFileManager:
         """Get the singleton instance of the file manager service.
 
         Args:
             storage: The storage service instance.
+                Not required once the service has been initialised.
             manager_type: The type of file manager to use. If None, the type is
                 determined from configuration.
 
@@ -29,11 +30,15 @@ class FileManagerService:
             The file manager service instance.
         """
         # Get the manager type from config if not specified
+
         if manager_type is None:
             manager_type = SystemConfig.file_manager_type
 
         # Create the instance if it doesn't exist
         if manager_type not in cls._instances:
+            if not storage:
+                raise ValueError("Storage service is required to initialise the file manager")
+
             # Create the appropriate file manager
             if manager_type == "local":
                 cls._instances[manager_type] = LocalFileManager(storage)

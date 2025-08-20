@@ -263,6 +263,10 @@ class BaseFileManager(ABC):
     #     file_extension = os.path.splitext(file.filename)[1].lower()
     #     return file_extension not in NON_EMBEDDABLE_EXTENSIONS
 
+    @abstractmethod
+    async def rm(self, *, file_id: str | None = None, file_path: str | None = None):
+        pass
+
 
 def get_hash(file_data: bytes) -> str:
     generated_hash = hashlib.sha256()

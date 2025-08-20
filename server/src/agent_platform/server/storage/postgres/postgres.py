@@ -1,7 +1,9 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from datetime import datetime
 
+import sqlalchemy as sa
 from psycopg import AsyncConnection, AsyncCursor
 from psycopg.rows import DictRow, dict_row
 from psycopg_pool import AsyncConnectionPool
@@ -217,3 +219,14 @@ class PostgresStorage(
                     yield cur
         else:
             yield cursor
+
+    def _clean_up_stale_threads__get_threshold(
+        self,
+        now: datetime,
+        config_column: sa.Column,
+    ) -> sa.sql.ClauseElement:
+        return sa.literal(now) - (
+            # Strange way of converting JSONB to text
+            sa.cast(config_column.op("#>>")(sa.literal_column("'{}'::text[]")), sa.Integer)
+            * sa.text("interval '1 day'")
+        )
