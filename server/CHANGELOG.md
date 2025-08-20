@@ -1,3 +1,11 @@
+# Sema4.ai Agent Server 2.0.32 (2025-08-20)
+
+- GPT-1174 Separate DataServer configuration from DocInt [#683](https://github.com/Sema4AI/agent-platform/pull/683)
+- GPT-1179 Increase single work-item execution timeout from 20mins to 4 hours [#692](https://github.com/Sema4AI/agent-platform/pull/692)
+- API to get data frame slices [#687](https://github.com/Sema4AI/agent-platform/pull/687)
+- [GPT-1093] Retention Policy - cleanup stale threads [#614](https://github.com/Sema4AI/agent-platform/pull/614)
+- Agents Respect `agent_settings.conversation_turns_kept_in_context` When Set By Clients [#699](https://github.com/Sema4AI/agent-platform/pull/699)
+
 # Sema4.ai Agent Server 2.0.31 (2025-08-19)
 
 - Implement Document Layout GET, PUT, and DELETE endpoints [#682](https://github.com/Sema4AI/agent-platform/pull/682)
