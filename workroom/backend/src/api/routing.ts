@@ -132,6 +132,11 @@ export function getRouteBehaviour({
     case 'put /api/v2/document-intelligence/data-models/{model_name}':
     case 'put /api/v2/package/deploy/agent/{aid}':
     case 'put /api/v2/platforms/{platform_id}':
+    case 'delete /api/v2/document-intelligence':
+    case 'delete /api/v2/document-intelligence/layouts/{layout_name}':
+    case 'get /api/v2/document-intelligence/layouts/{layout_name}':
+    case 'post /api/v2/threads/{tid}/data-frames/from-computation':
+    case 'put /api/v2/document-intelligence/layouts/{layout_name}':
       return {
         isAllowed: true,
         signAgentToken: createSigner('user'),

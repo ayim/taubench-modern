@@ -213,6 +213,36 @@ export const getChatAPIClient = (
     getTenant: async () => {
       return agentAPIClient.getTenant(tenantId);
     },
+    getWorkItemList: async (queryOptions) => {
+      return agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/', {
+        params: {
+          query: queryOptions,
+        },
+      });
+    },
+    createWorkItem: async (payload) => {
+      console.log('createWorkItem', payload);
+      return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/work-items/', {
+        body: payload,
+      });
+    },
+    getWorkItemDetails: async (workItemId) => {
+      return agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/{work_item_id}', {
+        params: { path: { work_item_id: workItemId } },
+      });
+    },
+    uploadWorkItemFile: async (file, workItemId) => {
+      // Direct file upload - let the backend handle everything
+      return await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/work-items/upload-file', {
+        params: { query: workItemId ? { work_item_id: workItemId } : {} },
+        body: { file: file as unknown as string },
+        bodySerializer(body) {
+          const formData = new FormData();
+          formData.append('file', body.file);
+          return formData;
+        },
+      });
+    },
     onSuccess: (message: string) => successToast(message),
     onError: (message: string) => errorToast(message),
     onWarning: (message) => warnToast(message),
