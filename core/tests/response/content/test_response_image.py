@@ -1,6 +1,5 @@
 import base64
 import json
-from dataclasses import FrozenInstanceError
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -256,14 +255,3 @@ class TestResponseImageContent:
         assert content.value == "https://example.com/image.jpg"
         assert content.sub_type == "url"
         assert content.detail == "high_res"
-
-    def test_immutability(self) -> None:
-        """Test that ResponseImageContent is immutable."""
-        content = ResponseImageContent(
-            mime_type="image/jpeg",
-            value="https://example.com/image.jpg",
-            sub_type="url",
-        )
-        with pytest.raises(FrozenInstanceError):
-            # This should raise an exception because ResponseImageContent is frozen
-            content.mime_type = "image/png"  # type: ignore

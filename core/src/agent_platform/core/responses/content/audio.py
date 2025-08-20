@@ -6,7 +6,7 @@ from agent_platform.core.responses.content.base import ResponseMessageContent
 from agent_platform.core.utils import assert_literal_value_valid
 
 
-@dataclass(frozen=True)
+@dataclass(kw_only=True)
 class ResponseAudioContent(ResponseMessageContent):
     """Represents audio content generated or referenced in a model's response.
 

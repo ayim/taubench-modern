@@ -100,7 +100,10 @@ def _basic_test_prompt_with_tool() -> tuple[Prompt, Callable[[ResponseMessage], 
         messages=[PromptUserMessage(content=[content])],
         tools=[ToolDefinition.from_callable(_add_book)],
         temperature=0.0,
-        max_output_tokens=512,
+        # To prepare for reasoning models, we need to allow
+        # for more output tokens (no longer just the response, but
+        # also any "reasoning" happening behind the scenes)
+        max_output_tokens=4096,
     ), _validate_response
 
 

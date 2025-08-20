@@ -1,6 +1,5 @@
 import base64
 import json
-from dataclasses import FrozenInstanceError
 from unittest.mock import MagicMock
 
 import pytest
@@ -185,15 +184,3 @@ class TestResponseDocumentContent:
         assert content.value == valid_base64_document
         assert content.name == "test.pdf"
         assert content.sub_type == "base64"
-
-    def test_immutability(self, valid_base64_document: str) -> None:
-        """Test that ResponseDocumentContent is immutable."""
-        content = ResponseDocumentContent(
-            mime_type="application/pdf",
-            value=valid_base64_document,
-            name="test.pdf",
-            sub_type="base64",
-        )
-        with pytest.raises(FrozenInstanceError):
-            # This should raise an exception because ResponseDocumentContent is frozen
-            content.mime_type = "text/plain"  # type: ignore

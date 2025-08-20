@@ -3,6 +3,7 @@ from agent_platform.core.responses.content import (
     ResponseDocumentContent,
     ResponseImageContent,
     ResponseMessageContent,
+    ResponseReasoningContent,
     ResponseTextContent,
     ResponseToolUseContent,
 )
@@ -162,5 +163,27 @@ class NoOpResponseStreamSink(ResponseStreamSinkBase):
         idx: int,
         final_content: ResponseToolUseContent,
         tool_def: ToolDefinition | None,
+    ) -> None:
+        pass
+
+    async def on_reasoning_content_begin(
+        self,
+        idx: int,
+        content: ResponseReasoningContent,
+    ) -> None:
+        pass
+
+    async def on_reasoning_content_partial(
+        self,
+        idx: int,
+        old_content: ResponseReasoningContent,
+        new_content: ResponseReasoningContent,
+    ) -> None:
+        pass
+
+    async def on_reasoning_content_end(
+        self,
+        idx: int,
+        final_content: ResponseReasoningContent,
     ) -> None:
         pass

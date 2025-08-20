@@ -102,6 +102,15 @@ class CollectingStreamSink(ResponseStreamSinkBase):
     async def on_tool_use_content_end(self, idx: int, final_content, tool_def) -> None:
         await self._record("on_tool_use_content_end", idx, final_content, tool_def)
 
+    async def on_reasoning_content_begin(self, idx: int, content) -> None:
+        await self._record("on_reasoning_content_begin", idx, content)
+
+    async def on_reasoning_content_partial(self, idx: int, old_content, new_content) -> None:
+        await self._record("on_reasoning_content_partial", idx, old_content, new_content)
+
+    async def on_reasoning_content_end(self, idx: int, final_content) -> None:
+        await self._record("on_reasoning_content_end", idx, final_content)
+
 
 class ExplodingSink(CollectingStreamSink):
     """Sink that raises an exception on its first callback to test fault isolation."""

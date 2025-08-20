@@ -1,5 +1,4 @@
 import json
-from dataclasses import FrozenInstanceError
 from typing import Any
 
 import pytest
@@ -27,13 +26,6 @@ class TestTokenUsage:
         assert usage.input_tokens == 10
         assert usage.output_tokens == 20
         assert usage.total_tokens == 30
-
-    def test_immutability(self) -> None:
-        """Test that TokenUsage is immutable."""
-        usage = TokenUsage(input_tokens=10, output_tokens=20, total_tokens=30)
-        with pytest.raises(FrozenInstanceError):
-            # This should raise an exception because TokenUsage is frozen
-            usage.input_tokens = 100  # type: ignore
 
 
 class TestResponseMessage:
@@ -165,13 +157,3 @@ class TestResponseMessage:
         data = json.loads(json_str)
         assert "content" in data
         assert "role" in data
-
-    def test_immutability(self, sample_text_content: ResponseTextContent) -> None:
-        """Test that ResponseMessage is immutable."""
-        response = ResponseMessage(
-            content=[sample_text_content],
-            role="agent",
-        )
-        with pytest.raises(FrozenInstanceError):
-            # This should raise an exception because ResponseMessage is frozen
-            response.role = "user"  # type: ignore

@@ -344,7 +344,7 @@ class TestThreadMessageSoftCommit:
             message, ignore_websocket_errors=True
         )
 
-        assert message.complete is True
+        assert message.complete is False
         assert message.commited is False
 
         msg_with_state.append_content(" Tool completed!")

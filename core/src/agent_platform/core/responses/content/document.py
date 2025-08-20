@@ -33,7 +33,7 @@ RESPONSE_DOCUMENT_MIME_TYPES: set[ResponseDocumentMimeTypes] = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(kw_only=True)
 class ResponseDocumentContent(ResponseMessageContent):
     """Represents a document generated or referenced in a model's response.
 

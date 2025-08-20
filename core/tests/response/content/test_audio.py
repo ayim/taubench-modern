@@ -1,6 +1,5 @@
 import base64
 import json
-from dataclasses import FrozenInstanceError
 
 import pytest
 
@@ -114,13 +113,3 @@ class TestResponseAudioContent:
         assert content.mime_type == "audio/wav"
         assert content.value == valid_base64_audio
         assert content.sub_type == "base64"
-
-    def test_immutability(self, valid_base64_audio: str) -> None:
-        """Test that ResponseAudioContent is immutable."""
-        content = ResponseAudioContent(
-            mime_type="audio/wav",
-            value=valid_base64_audio,
-        )
-        with pytest.raises(FrozenInstanceError):
-            # This should raise an exception because ResponseAudioContent is frozen
-            content.mime_type = "audio/mp3"  # type: ignore

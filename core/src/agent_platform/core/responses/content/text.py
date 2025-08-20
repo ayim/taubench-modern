@@ -5,7 +5,7 @@ from agent_platform.core.responses.content.base import ResponseMessageContent
 from agent_platform.core.utils import assert_literal_value_valid
 
 
-@dataclass(frozen=True)
+@dataclass(kw_only=True)
 class ResponseTextContent(ResponseMessageContent):
     """Represents a text segment in a model's response.
 

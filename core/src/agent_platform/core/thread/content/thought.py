@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass, field
+from typing import Any
 
 from agent_platform.core.thread.content.base import ThreadMessageContent
 
@@ -16,6 +17,12 @@ class ThreadThoughtContent(ThreadMessageContent):
         metadata={"description": "The actual text content of the thought"},
     )
     """The actual text content of the thought"""
+
+    extras: dict[str, Any] = field(
+        default_factory=dict,
+        metadata={"description": "Extra information about related to the thought"},
+    )
+    """Extra information about related to the thought"""
 
     kind: str = field(
         default="thought",
@@ -46,6 +53,7 @@ class ThreadThoughtContent(ThreadMessageContent):
         return {
             **super().model_dump(),
             "thought": self.thought,
+            "extras": self.extras,
         }
 
     def model_dump_json(self) -> str:

@@ -14,6 +14,7 @@ from agent_platform.core.prompts.content import (
 )
 from agent_platform.core.prompts.content.image import PromptImageContent
 from agent_platform.core.responses.content import (
+    ResponseReasoningContent,
     ResponseTextContent,
     ResponseToolUseContent,
 )
@@ -47,7 +48,22 @@ def compare_responses(
     """
     Compare two responses.
     """
+    import re
     from json import dumps
+
+    # We need to ignore any reasoning content in the given response
+    # WHY? It may look odd, but we neither control what's _in_ the reasoning
+    # nor do we really control _it's presence_ even (OpenAI is dropping this
+    # content occasionally and whether it's a bug, or whether the reasoning was
+    # to short for them to summarize, we don't get anything a decent fraction
+    # of the time). Put another way, it's _very very_ nondeterministic and
+    # really not worth trying to make any kind of assertions about it in these
+    # e2e tests.
+    given_response.content = [
+        content
+        for content in given_response.content
+        if not isinstance(content, ResponseReasoningContent)
+    ]
 
     # We need to "align" the given response with the expected response
     # by adding wildcards to the given response where necessary
@@ -66,6 +82,10 @@ def compare_responses(
         expected_response.content,
         strict=True,
     ):
+        # Ignore metadata field (for tests we don't care about metadata)
+        given_content.metadata = {}
+        expected_content.metadata = {}
+
         # Tool calls need more care in comparison
         if isinstance(given_content, ResponseToolUseContent):
             assert isinstance(expected_content, ResponseToolUseContent)
@@ -92,7 +112,15 @@ def compare_responses(
             if expected_content.text.strip() == "*":
                 continue
             else:
-                assert given_content.text.strip() == expected_content.text.strip()
+                # Normalize all whitespace (spaces, newlines, tabs) so we do not
+                # fail due to inconsequential formatting differences
+                def _normalize_ws(s: str) -> str:
+                    return re.sub(r"\s+", "", s.strip())
+
+                assert _normalize_ws(given_content.text) == _normalize_ws(expected_content.text)
+                # We don't want to also do the model dump comparison below
+                # we just care about the text here
+                continue
 
         # Default processing
         assert given_content.model_dump() == expected_content.model_dump()
@@ -120,7 +148,7 @@ def basic_prompt_no_tools():
         messages=messages,
         tools=[],
         temperature=0.0,
-        max_output_tokens=512,
+        max_output_tokens=4096,
     )
 
 
@@ -165,7 +193,7 @@ def basic_prompt_with_system_message():
         messages=messages,
         tools=[],
         temperature=0.0,
-        max_output_tokens=512,
+        max_output_tokens=4096,
     )
 
 
@@ -232,7 +260,7 @@ def basic_prompt_with_three_messages():
         messages=messages,
         tools=[],
         temperature=0.0,
-        max_output_tokens=512,
+        max_output_tokens=4096,
     )
 
 
@@ -289,7 +317,7 @@ def basic_prompt_with_one_tool():
         messages=messages,
         tools=[ToolDefinition.from_callable(_add_book)],
         temperature=0.0,
-        max_output_tokens=512,
+        max_output_tokens=4096,
     )
 
 
@@ -369,7 +397,7 @@ def basic_prompt_tool_no_args():
             ToolDefinition.from_callable(_confirm_request),
         ],
         temperature=0.0,
-        max_output_tokens=512,
+        max_output_tokens=4096,
     )
 
 
@@ -437,7 +465,7 @@ def prompt_to_elicit_parallel_tool_calls():
             ToolDefinition.from_callable(_confirm_request),
         ],
         temperature=0.0,
-        max_output_tokens=512,
+        max_output_tokens=4096,
     )
 
 

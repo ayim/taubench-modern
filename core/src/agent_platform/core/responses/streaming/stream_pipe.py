@@ -15,6 +15,7 @@ from agent_platform.core.responses.content import (
     ResponseDocumentContent,
     ResponseImageContent,
     ResponseMessageContent,
+    ResponseReasoningContent,
     ResponseTextContent,
     ResponseToolUseContent,
 )
@@ -356,7 +357,7 @@ class ResponseStreamPipe:
         if new_len > old_len:
             # finalise old tail only if there was at least one item previously
             if old_len > 0:
-                await self._dispatch_content_end(old_len - 1, old.content[-1])
+                await self._dispatch_content_end(old_len - 1, new.content[old_len - 1])
 
             # open new items (if any)
             for idx in range(old_len, new_len):
@@ -394,6 +395,8 @@ class ResponseStreamPipe:
                 await self._fan_out(
                     "on_tool_use_content_begin", idx, c, self._find_matching_tool_def(c)
                 )
+            case ResponseReasoningContent() as c:
+                await self._fan_out("on_reasoning_content_begin", idx, c)
 
     async def _dispatch_content_partial(
         self,
@@ -438,6 +441,13 @@ class ResponseStreamPipe:
                     new_c,
                     self._find_matching_tool_def(new_c),
                 )
+            case ResponseReasoningContent() as new_c:
+                await self._fan_out(
+                    "on_reasoning_content_partial",
+                    idx,
+                    cast(ResponseReasoningContent, old_content),
+                    new_c,
+                )
 
     async def _dispatch_content_end(self, idx: int, final: ResponseMessageContent) -> None:
         await self._fan_out("on_content_end", idx, final)
@@ -458,6 +468,8 @@ class ResponseStreamPipe:
                     c,
                     self._find_matching_tool_def(c),
                 )
+            case ResponseReasoningContent() as c:
+                await self._fan_out("on_reasoning_content_end", idx, c)
 
     # ═════════════════════════════════════════════════════════════
     # Low-level utilities

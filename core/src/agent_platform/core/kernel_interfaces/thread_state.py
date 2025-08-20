@@ -4,8 +4,11 @@ from datetime import UTC, datetime
 from typing import Any, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
+from agent_platform.core.responses.content.reasoning import ResponseReasoningContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.responses.streaming import (
+    ReasoningResponseStreamSink,
+    TextResponseStreamSink,
     ToolUseResponseStreamSink,
     XmlTagResponseStreamSink,
 )
@@ -73,6 +76,49 @@ class ThreadMessageWithThreadState:
             )
 
         @property
+        def raw_content(self) -> TextResponseStreamSink:
+            """The sink for the raw content of the message."""
+
+            async def _append_content(text: str) -> None:
+                self._message.append_content(text)
+                await self._message.stream_delta()
+
+            async def _complete_content(text: str) -> None:
+                self._message.append_content("", complete=True)
+                await self._message.stream_delta()
+
+            return TextResponseStreamSink(
+                on_text_start=_append_content,
+                on_text_partial=_append_content,
+                on_text_complete=_complete_content,
+            )
+
+        @property
+        def reasoning(self) -> ReasoningResponseStreamSink:
+            """The sink for the reasoning of the message."""
+
+            async def _append_reasoning(reasoning: str) -> None:
+                self._message.append_thought(reasoning)
+                await self._message.stream_delta()
+
+            async def _complete_reasoning(
+                reasoning: str,
+                content: ResponseReasoningContent,
+            ) -> None:
+                self._message.append_thought(
+                    reasoning,
+                    complete=True,
+                    extras=content.model_dump(),
+                )
+                await self._message.stream_delta()
+
+            return ReasoningResponseStreamSink(
+                on_reasoning_start=_append_reasoning,
+                on_reasoning_partial=_append_reasoning,
+                on_reasoning_complete=_complete_reasoning,
+            )
+
+        @property
         def thoughts(self) -> XmlTagResponseStreamSink:
             """The sink for the thoughts of the message."""
 
@@ -123,6 +169,7 @@ class ThreadMessageWithThreadState:
     ):
         self._thread_state = thread_state
         self._message = message
+        self._prompt_index = 0
         self._tag_expected_past_response = tag_expected_past_response
         self._tag_expected_pre_response = tag_expected_pre_response
         self._sinks = self.Sinks(
@@ -145,6 +192,18 @@ class ThreadMessageWithThreadState:
     def agent_metadata(self) -> dict[str, Any]:
         """The metadata of the message."""
         return self._message.agent_metadata
+
+    def mark_prompt_start(self) -> None:
+        """Marks the prompt as started."""
+        if "content_idx_to_prompt_idx" not in self._message.agent_metadata:
+            self._message.agent_metadata["content_idx_to_prompt_idx"] = {}
+
+    def mark_prompt_end(self) -> None:
+        """Marks the prompt as ended."""
+        for idx in range(len(self._message.content)):
+            if idx not in self._message.agent_metadata["content_idx_to_prompt_idx"]:
+                self._message.agent_metadata["content_idx_to_prompt_idx"][idx] = self._prompt_index
+        self._prompt_index += 1
 
     def mark_last_content_complete(self) -> None:
         """Marks the last content as complete (finished streaming)."""
@@ -193,8 +252,9 @@ class ThreadMessageWithThreadState:
         so that the message can still be updated (e.g., for long-running tool results).
         Use this when you want to persist the message but continue tool execution.
         """
-        # Mark as complete but don't set commited = True yet
-        self._message.mark_complete()
+        # We used to mark complete in soft commit... but that's not
+        # correct, as it's not complete until we've streamed the final
+        # delta for the content
 
         # Send the current state to websocket (but don't fail if websocket is down)
         try:
@@ -264,16 +324,22 @@ class ThreadMessageWithThreadState:
         # If string is passed, treat it as text content
         if isinstance(content, str):
             text_piece = content
-            index_of_last_text_content = next(
-                (
-                    i
-                    for i, content in enumerate(self._message.content)
-                    if isinstance(content, ThreadTextContent)
-                ),
-                None,
-            )
 
-            if index_of_last_text_content is None:
+            # In older versions of this index computation, we had wrongly
+            # picked the _first_ index instead of the _last_ index. Somehow,
+            # this didn't bite us as we only had one text/thought content.
+            # Now we may have more, and need to make sure we iterate
+            # backwards to find the last text content.
+            index_of_last_text_content = None
+            for i in range(len(self._message.content) - 1, -1, -1):
+                if isinstance(self._message.content[i], ThreadTextContent):
+                    index_of_last_text_content = i
+                    break
+
+            if (
+                index_of_last_text_content is None
+                or self._message.content[index_of_last_text_content].complete
+            ):
                 self._message.content.append(ThreadTextContent(text=text_piece))
             else:
                 # Directly mutate the text content instead of creating a new object
@@ -287,21 +353,27 @@ class ThreadMessageWithThreadState:
             # For other content types, just append directly
             self._message.content.append(content)
 
-    def append_thought(self, thought: str, complete: bool = False) -> None:
+    def append_thought(
+        self,
+        thought: str,
+        complete: bool = False,
+        extras: dict[str, Any] | None = None,
+    ) -> None:
         """Appends a text to the most recent thought content."""
         if self._message.commited:
             raise ValueError("Cannot add content to a committed message")
 
-        index_of_last_thought_content = next(
-            (
-                i
-                for i, content in enumerate(self._message.content)
-                if isinstance(content, ThreadThoughtContent)
-            ),
-            None,
-        )
+        # Same thing, we were getting _first_ not last previouslly
+        index_of_last_thought_content = None
+        for i in range(len(self._message.content) - 1, -1, -1):
+            if isinstance(self._message.content[i], ThreadThoughtContent):
+                index_of_last_thought_content = i
+                break
 
-        if index_of_last_thought_content is None:
+        if (
+            index_of_last_thought_content is None
+            or self._message.content[index_of_last_thought_content].complete
+        ):
             self._message.content.append(ThreadThoughtContent(thought=thought))
         else:
             # Directly mutate the thought content instead of creating a new object
@@ -311,6 +383,8 @@ class ThreadMessageWithThreadState:
             )
             as_thought_content.thought += thought
             as_thought_content.complete = complete
+            if complete and extras:
+                as_thought_content.extras = extras
 
     def update_tool_use(
         self,
@@ -611,7 +685,9 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         # compute the delta.
         delta_objects = compute_message_delta(
             old=self._previous_message_states[unwrapped_message.message_id],
-            new=unwrapped_message,
+            # By normalizing timestamps, we cut down on a ton of noise
+            # over-the-wire we get from just timestamp updates
+            new=unwrapped_message.with_normalized_timestamps(),
             sequence_number=self._previous_message_sequence_numbers[unwrapped_message.message_id],
         )
 
@@ -622,7 +698,11 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
                 await self._send_delta_event(delta_object)
 
             # And, finally, we'll update our state to the current message.
-            self._previous_message_states[unwrapped_message.message_id] = unwrapped_message.copy()
+            self._previous_message_states[unwrapped_message.message_id] = (
+                # By normalizing timestamps, we cut down on a ton of noise
+                # over-the-wire we get from just timestamp updates
+                unwrapped_message.with_normalized_timestamps()
+            )
             self._previous_message_sequence_numbers[unwrapped_message.message_id] += len(
                 delta_objects
             )

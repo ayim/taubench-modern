@@ -5,6 +5,7 @@ from agent_platform.core.responses.content import (
     ResponseDocumentContent,
     ResponseImageContent,
     ResponseMessageContent,
+    ResponseReasoningContent,
     ResponseTextContent,
     ResponseToolUseContent,
 )
@@ -250,5 +251,39 @@ class ResponseStreamSinkBase(ABC):
     ) -> None:
         """
         Called when the tool use content at `idx` is final.
+        """
+        pass
+
+    @abstractmethod
+    async def on_reasoning_content_begin(
+        self,
+        idx: int,
+        content: ResponseReasoningContent,
+    ) -> None:
+        """
+        Called when a new reasoning content item is recognized or begins streaming.
+        """
+        pass
+
+    @abstractmethod
+    async def on_reasoning_content_partial(
+        self,
+        idx: int,
+        old_content: ResponseReasoningContent,
+        new_content: ResponseReasoningContent,
+    ) -> None:
+        """
+        Called when a partial update of reasoning content is received.
+        """
+        pass
+
+    @abstractmethod
+    async def on_reasoning_content_end(
+        self,
+        idx: int,
+        final_content: ResponseReasoningContent,
+    ) -> None:
+        """
+        Called when the reasoning content item at `idx` is considered final/completed.
         """
         pass

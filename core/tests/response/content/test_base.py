@@ -8,7 +8,7 @@ from agent_platform.core.responses.content.base import ResponseMessageContent
 
 
 # Create a simple concrete implementation for testing
-@dataclass(frozen=True)
+@dataclass(kw_only=True)
 class MockContent(ResponseMessageContent):
     """A simple content implementation for testing."""
 

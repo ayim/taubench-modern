@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from json import dumps
-from typing import ClassVar
+from typing import Any, ClassVar
 
 
-@dataclass(frozen=True)
+@dataclass(kw_only=True)
 class ResponseMessageContent:
     """Base class for all model response content types.
 
@@ -14,6 +14,12 @@ class ResponseMessageContent:
     """
 
     _content_kinds: ClassVar[dict[str, type["ResponseMessageContent"]]] = {}
+
+    metadata: dict[str, Any] = field(
+        default_factory=dict,
+        metadata={"description": "Metadata about the response content"},
+    )
+    """Metadata about the response content"""
 
     kind: str = field(
         default="",

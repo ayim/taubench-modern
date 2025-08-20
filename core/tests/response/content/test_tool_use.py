@@ -1,5 +1,4 @@
 import json
-from dataclasses import FrozenInstanceError
 
 import pytest
 
@@ -105,14 +104,3 @@ class TestResponseToolUseContent:
         assert content.tool_name == "test_tool"
         assert content.tool_input_raw == '{"param1": "value1", "param2": 42}'
         assert content.tool_input == {"param1": "value1", "param2": 42}
-
-    def test_immutability(self) -> None:
-        """Test that ResponseToolUseContent is immutable."""
-        content = ResponseToolUseContent(
-            tool_call_id="123",
-            tool_name="test_tool",
-            tool_input_raw='{"param1": "value1", "param2": 42}',
-        )
-        with pytest.raises(FrozenInstanceError):
-            # This should raise an exception because ResponseToolUseContent is frozen
-            content.tool_name = "new_tool"  # type: ignore

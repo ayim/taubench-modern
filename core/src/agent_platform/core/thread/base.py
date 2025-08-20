@@ -175,6 +175,20 @@ class ThreadMessage:
 
         return new_message
 
+    def with_normalized_timestamps(self, to_timestamp: datetime | None = None) -> Self:
+        """Normalize the timestamps of the message.
+
+        This helps us when we generate deltas to not generate noise related to timestamps.
+
+        Args:
+            to_timestamp: The timestamp to normalize to.
+                If None, the timestamp will be set to epoch time 0.
+        """
+        copied_message = self.copy()
+        copied_message.created_at = to_timestamp or datetime.fromtimestamp(0, UTC)
+        copied_message.updated_at = to_timestamp or datetime.fromtimestamp(0, UTC)
+        return copied_message
+
     def model_dump(self) -> dict:
         """Serializes the message to a dictionary. Useful for JSON serialization."""
         return {

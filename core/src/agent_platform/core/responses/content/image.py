@@ -24,7 +24,7 @@ RESPONSE_IMAGE_MIME_TYPES: set[ResponseImageMimeTypes] = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(kw_only=True)
 class ResponseImageContent(ResponseMessageContent):
     """Represents an image generated or referenced in a model's response.
 
