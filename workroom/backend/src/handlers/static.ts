@@ -1,6 +1,8 @@
 import { createReadStream } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import express, { type NextFunction, type Request, type Response } from 'express';
+import type { Configuration } from '../configuration.js';
 
 export const createAssetServe = ({ root }: { root: string }) =>
   express.static(root, {
@@ -26,3 +28,18 @@ export const createIndexServe =
 
     return next();
   };
+
+export const initializeFrontendPlaceholders = async ({
+  configuration,
+  root,
+}: {
+  configuration: Configuration;
+  root: string;
+}): Promise<void> => {
+  const indexHTMLPath = resolve(root, 'index.html');
+
+  let indexContents = await readFile(indexHTMLPath, 'utf-8');
+  indexContents = indexContents.replace(/DO_NOT_TOUCH_TENANT_ID_PLACEHOLDER/g, configuration.tenant.tenantId);
+
+  await writeFile(indexHTMLPath, indexContents);
+};

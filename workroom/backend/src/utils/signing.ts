@@ -20,7 +20,6 @@ interface PrivateKeyResult {
 
 const AGENT_TOKEN_AUDIENCE = 'agent_server';
 const AGENT_TOKEN_EXPIRY = 300; // 5 min
-const AGENT_TOKEN_ISSUER = 'spar';
 const AGENT_TOKEN_KEY_ID = 'agent_server_v2';
 
 export const signAgentToken = async ({
@@ -49,7 +48,7 @@ export const signAgentToken = async ({
     const signerResult = await signer.sign({
       audience: AGENT_TOKEN_AUDIENCE,
       expiresInSeconds: AGENT_TOKEN_EXPIRY,
-      issuer: AGENT_TOKEN_ISSUER,
+      issuer: configuration.auth.tokenIssuer,
       subject: payload.userId,
       token: payload,
     });

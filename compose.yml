@@ -12,10 +12,8 @@ x-env-spar: &template-env-spar
     SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
     SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
     # Workroom
-    SEMA4AI_DEPLOYMENT_TYPE: spar
     SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
     SEMA4AI_WORKROOM_AUTH_MODE: none
-    SEMA4AI_WORKROOM_META_URL: http://localhost:8001/meta
     SEMA4AI_WORKROOM_PORT: 8001
 
 x-service-spar: &template-service-spar

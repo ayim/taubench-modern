@@ -12,6 +12,7 @@ import {
 } from '@sema4ai/icons';
 import { Link as LinkBase, LinkComponentProps, useMatch, useParams } from '@tanstack/react-router';
 import { FC, memo, ReactNode, useEffect, useMemo, useState } from 'react';
+import { useMeta } from '~/hooks/meta';
 import { useTenantContext } from '~/lib/tenantContext';
 import { Agent } from '~/types';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
@@ -44,11 +45,11 @@ const CustomDivider: FC = memo(() => {
 });
 
 const AgentEntryLink: FC<{ agent: Agent }> = memo(({ agent }) => {
-  const { tenantId } = useParams({ from: '/$tenantId' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
 
   // TODO: v2 integration, remove this nullish coalescing in agent.id 2 places
   return (
-    <Link to="/$tenantId/$agentId" params={{ tenantId, agentId: agent.id ?? '' }}>
+    <Link to="/tenants/$tenantId/$agentId" params={{ tenantId, agentId: agent.id ?? '' }}>
       <SideNavigation.Item
         icon={<Circle identifier={agent.id ?? ''} />}
         className={cn('group-[:not(:hover)]/sidebar:!pl-[10px] !transition-[padding-left] ')}
@@ -109,11 +110,11 @@ const MyAgentsItems: FC<{ agents: Agent[] }> = memo(({ agents }) => {
 });
 
 const HomeLink: FC = memo(() => {
-  const { tenantId } = useParams({ from: '/$tenantId' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/$tenantId/home" params={{ tenantId }}>
+      <Link to="/tenants/$tenantId/home" params={{ tenantId }}>
         <SideNavigation.Item icon={<IconHome />}>Home</SideNavigation.Item>
       </Link>
     </SideNavigation.ItemGroup>
@@ -121,11 +122,11 @@ const HomeLink: FC = memo(() => {
 });
 
 const AgentsLink: FC = memo(() => {
-  const { tenantId } = useParams({ from: '/$tenantId' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/$tenantId/agents" params={{ tenantId }}>
+      <Link to="/tenants/$tenantId/agents" params={{ tenantId }}>
         <SideNavigation.Item icon={<IconAgents />}>Agents</SideNavigation.Item>
       </Link>
     </SideNavigation.ItemGroup>
@@ -133,11 +134,11 @@ const AgentsLink: FC = memo(() => {
 });
 
 const DocumentsLink: FC = memo(() => {
-  const { tenantId } = useParams({ from: '/$tenantId' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/$tenantId/documents" params={{ tenantId }}>
+      <Link to="/tenants/$tenantId/documents" params={{ tenantId }}>
         <SideNavigation.Item icon={<IconDocumentIntelligence />}>Documents</SideNavigation.Item>
       </Link>
     </SideNavigation.ItemGroup>
@@ -145,10 +146,10 @@ const DocumentsLink: FC = memo(() => {
 });
 
 const WorkItemsLink: FC = memo(() => {
-  const { tenantId } = useParams({ from: '/$tenantId' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/$tenantId/workItems" params={{ tenantId }}>
+      <Link to="/tenants/$tenantId/workItems" params={{ tenantId }}>
         <SideNavigation.Item icon={<IconUnorderedList />}>Work Items</SideNavigation.Item>
       </Link>
     </SideNavigation.ItemGroup>
@@ -156,11 +157,11 @@ const WorkItemsLink: FC = memo(() => {
 });
 
 const SettingsLink: FC = memo(() => {
-  const { tenantId } = useParams({ from: '/$tenantId' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/$tenantId/settings" params={{ tenantId }}>
+      <Link to="/tenants/$tenantId/settings" params={{ tenantId }}>
         <SideNavigation.Item icon={<IconSettings2 />}>Settings</SideNavigation.Item>
       </Link>
     </SideNavigation.ItemGroup>
@@ -168,11 +169,11 @@ const SettingsLink: FC = memo(() => {
 });
 
 const HelpLink: FC = memo(() => {
-  const { tenantId } = useParams({ from: '/$tenantId' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/$tenantId/help" params={{ tenantId }}>
+      <Link to="/tenants/$tenantId/help" params={{ tenantId }}>
         <SideNavigation.Item icon={<IconHelpCircle />}>Help</SideNavigation.Item>
       </Link>
     </SideNavigation.ItemGroup>
@@ -182,20 +183,14 @@ const HelpLink: FC = memo(() => {
 const PoweredByStamp: FC = memo(() => {
   const { branding } = useTenantContext();
   const { setOpen, referenceRef, referenceProps, PopoverContent } = usePopover();
-  const [aceId, setAceId] = useState('-');
+  const [aceId, setAceId] = useState<string | null>(null);
+  const meta = useMeta();
 
   useEffect(() => {
-    const fetchVersion = async () => {
-      try {
-        const response = await fetch('/meta');
-        const { aceId }: { aceId: string } = await response.json();
-        setAceId(aceId);
-      } catch (_) {
-        setAceId('Not available');
-      }
-    };
-    fetchVersion();
-  }, []);
+    if (meta && 'aceId' in meta) {
+      setAceId(meta.aceId);
+    }
+  }, [meta]);
 
   if (branding) {
     return null;
@@ -219,11 +214,15 @@ const PoweredByStamp: FC = memo(() => {
           onClick={(e) => e.stopPropagation()}
           onMouseLeave={() => setOpen(false)}
         >
-          <Typography fontWeight="bold" as="span">
-            Agent Compute ID:{' '}
-          </Typography>
-          {aceId}
-          <br />
+          {aceId && (
+            <>
+              <Typography fontWeight="bold" as="span">
+                Agent Compute ID:{' '}
+              </Typography>
+              {aceId}
+              <br />
+            </>
+          )}
           <Typography fontWeight="bold" as="span">
             Work Room build:
           </Typography>{' '}
@@ -243,7 +242,7 @@ export const Sidebar: FC<SideBarProps> = memo(({ agents }) => {
   const [open, setOpen] = useState<boolean>(false);
   // checking if "/$tenantId/$agentId" is matched
   const isAgentRouteMatched = !!useMatch({
-    from: '/$tenantId/$agentId',
+    from: '/tenants/$tenantId/$agentId',
     shouldThrow: false,
   });
 

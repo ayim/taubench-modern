@@ -1,8 +1,18 @@
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { AgentAPIRoute } from './parsers.js';
+import type { Permission } from '../auth/oidc.js';
 import type { Configuration } from '../configuration.js';
 import type { Result } from '../utils/result.js';
 import { signAgentToken, type SignAgentTokenErrorOutcome } from '../utils/signing.js';
+
+export type RouteBehaviour =
+  | {
+      isAllowed: true;
+      permissions: Array<Permission>;
+      signAgentToken: () => SignAgentTokenResult;
+    }
+  | {
+      isAllowed: false;
+    };
 
 type SignAgentTokenResult = Promise<
   Result<
@@ -15,22 +25,144 @@ type SignAgentTokenResult = Promise<
   >
 >;
 
+const ALLOWED = true;
+const DISALLOWED = false;
+
+const SIGN_WITH_TENANT = 'tenant';
+const SIGN_WITH_USER = 'user';
+
+function getRouteMap(): {
+  [Key in AgentAPIRoute['type']]:
+    | [isAllowed: false]
+    | [isAllowed: true, signMode: 'user' | 'tenant', permissions: Array<Permission>];
+} {
+  const agentReadPermissions: Array<Permission> = ['agents.read'];
+  const agentWritePermissions: Array<Permission> = ['agents.write'];
+
+  return {
+    // Allowed routes with tenant-level signing
+    'get /api/v2/agents/{aid}/files': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'get /api/v2/agents/{aid}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'get /api/v2/agents/': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+
+    // Allowed routes with user-level signing
+    'delete /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'delete /api/v2/threads/{tid}/files/{file_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/threads/{tid}/files/request-upload': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/threads/{tid}/files/confirm-upload': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/runs/{run_id}/messages': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/threads/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/threads/{tid}/messages': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/threads/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'put /api/v2/threads/{tid}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'delete /api/v2/threads/{tid}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'patch /api/v2/threads/{tid}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/threads/{tid}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/threads/{tid}/context-stats': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/threads/{tid}/file-by-ref': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/threads/{tid}/files/download/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/runs/{agent_id}/sync': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/runs/{agent_id}/async': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/threads/{tid}/messages/{message_id}/edit': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/threads/{tid}/state': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/agents/{aid}/agent-details': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/work-items/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/work-items/{work_item_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/work-items/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/work-items/upload-file': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/work-items/{work_item_id}/cancel': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/work-items/{work_item_id}/complete': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/work-items/{work_item_id}/confirm-file': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/work-items/{work_item_id}/continue': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/work-items/{work_item_id}/restart': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'delete /api/v2/mcp-servers/{mcp_server_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/mcp-servers/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/mcp-servers/{mcp_server_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/mcp-servers/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'put /api/v2/mcp-servers/{mcp_server_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/runs/{run_id}/status': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/runs/{aid}/stream': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+
+    // @TODO: New endpoints, needs perms - no examples in ACE yet
+    'delete /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'delete /api/v2/platforms/{platform_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/capabilities/platforms': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/config/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/document-intelligence/data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/document-intelligence/layouts': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/document-intelligence/ok': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/platforms/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/platforms/{platform_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/threads/{tid}/data-frames': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/threads/{tid}/inspect-file-as-data-frame': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/capabilities/platforms/{kind}/test': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/config/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/data-models/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/documents/extract': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/documents/parse': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/layouts': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/layouts/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/package/deploy/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/package/environment-hash/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/package/inspect/action': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/package/inspect/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/platforms/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/threads/{tid}/data-frames/from-file': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'put /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'put /api/v2/package/deploy/agent/{aid}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'put /api/v2/platforms/{platform_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/threads/{tid}/data-frames/from-computation': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'delete /api/v2/document-intelligence': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/document-intelligence/layouts/{layout_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'delete /api/v2/document-intelligence/layouts/{layout_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'put /api/v2/document-intelligence/layouts/{layout_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+
+    // #region Disallowed Routes
+    'get /api/v2/health': [DISALLOWED],
+    'get /api/v2/ok': [DISALLOWED],
+    'get /api/v2/metrics': [DISALLOWED],
+    'put /api/v2/agents/{aid}': [DISALLOWED],
+    'delete /api/v2/agents/{aid}': [DISALLOWED],
+    'post /api/v2/agents/package': [DISALLOWED],
+    'get /api/v2/agents/raw': [DISALLOWED],
+    'get /api/v2/agents/{aid}/raw': [DISALLOWED],
+    'delete /api/v2/debug/artifacts': [DISALLOWED],
+    'get /api/v2/agents/by-name': [DISALLOWED],
+    'get /api/v2/capabilities/architectures': [DISALLOWED],
+    'get /api/v2/debug/artifacts': [DISALLOWED],
+    'get /api/v2/debug/artifacts/search': [DISALLOWED],
+    'get /api/v2/debug/artifacts/{aid}': [DISALLOWED],
+    'post /api/v2/agents/': [DISALLOWED],
+    'patch /api/v2/agents/{aid}': [DISALLOWED],
+    'put /api/v2/agents/{aid}/raw': [DISALLOWED],
+    'post /api/v2/agents/{aid}/refresh-tools': [DISALLOWED],
+    'get /api/v2/debug/tools/report-cache-stats': [DISALLOWED],
+    'get /api/v2/debug/tools/invalidate-cache': [DISALLOWED],
+    'delete /api/v2/threads/': [DISALLOWED],
+    'put /api/v2/agents/package/{aid}': [DISALLOWED],
+    'put /api/v2/agents/{aid}/action-server-config': [DISALLOWED],
+    'post /api/v2/threads/{tid}/fork': [DISALLOWED],
+    'post /api/v2/capabilities/mcp/tools': [DISALLOWED],
+    // #endregion
+  };
+}
+
 export function getRouteBehaviour({
   configuration,
   route,
+  tenantId,
   userId,
 }: {
   configuration: Configuration;
   route: AgentAPIRoute;
+  tenantId: string;
   userId: string;
-}):
-  | {
-      isAllowed: true;
-      signAgentToken: () => SignAgentTokenResult;
-    }
-  | {
-      isAllowed: false;
-    } {
+}): RouteBehaviour {
   const createSigner = (mode: 'tenant' | 'user') => async (): SignAgentTokenResult => {
     if (configuration.auth.type === 'none') {
       return {
@@ -45,140 +177,29 @@ export function getRouteBehaviour({
     return signAgentToken({
       configuration,
       payload: {
-        userId:
-          mode === 'tenant'
-            ? `tenant:${configuration.tenant.tenantId}`
-            : `tenant:${configuration.tenant.tenantId}:user:${userId}`,
+        userId: mode === 'tenant' ? `tenant:${tenantId}` : `tenant:${tenantId}:user:${userId}`,
       },
     });
   };
 
-  switch (route.type) {
-    // Allowed routes with tenant-level signing
-    case 'get /api/v2/agents/{aid}/files':
-    case 'get /api/v2/agents/{aid}':
-    case 'get /api/v2/agents/':
-      return {
-        isAllowed: true,
-        signAgentToken: createSigner('tenant'),
-      };
+  const routes = getRouteMap();
 
-    // Allowed routes with user-level signing
-    case 'delete /api/v2/threads/{tid}/files':
-    case 'delete /api/v2/threads/{tid}/files/{file_id}':
-    case 'post /api/v2/threads/{tid}/files/request-upload':
-    case 'post /api/v2/threads/{tid}/files/confirm-upload':
-    case 'get /api/v2/runs/{run_id}/messages':
-    case 'post /api/v2/threads/':
-    case 'post /api/v2/threads/{tid}/messages':
-    case 'get /api/v2/threads/':
-    case 'put /api/v2/threads/{tid}':
-    case 'delete /api/v2/threads/{tid}':
-    case 'patch /api/v2/threads/{tid}':
-    case 'get /api/v2/threads/{tid}':
-    case 'get /api/v2/threads/{tid}/files':
-    case 'post /api/v2/threads/{tid}/files':
-    case 'get /api/v2/threads/{tid}/context-stats':
-    case 'get /api/v2/threads/{tid}/file-by-ref':
-    case 'get /api/v2/threads/{tid}/files/download/':
-    case 'post /api/v2/runs/{agent_id}/sync':
-    case 'post /api/v2/runs/{agent_id}/async':
-    case 'post /api/v2/threads/{tid}/messages/{message_id}/edit':
-    case 'get /api/v2/threads/{tid}/state':
-    case 'get /api/v2/agents/{aid}/agent-details':
-    case 'get /api/v2/work-items/':
-    case 'get /api/v2/work-items/{work_item_id}':
-    case 'post /api/v2/work-items/':
-    case 'post /api/v2/work-items/upload-file':
-    case 'post /api/v2/work-items/{work_item_id}/cancel':
-    case 'post /api/v2/work-items/{work_item_id}/complete':
-    case 'post /api/v2/work-items/{work_item_id}/confirm-file':
-    case 'post /api/v2/work-items/{work_item_id}/continue':
-    case 'post /api/v2/work-items/{work_item_id}/restart':
-    case 'delete /api/v2/mcp-servers/{mcp_server_id}':
-    case 'get /api/v2/mcp-servers/':
-    case 'get /api/v2/mcp-servers/{mcp_server_id}':
-    case 'post /api/v2/mcp-servers/':
-    case 'put /api/v2/mcp-servers/{mcp_server_id}':
-    case 'get /api/v2/runs/{run_id}/status':
-    case 'get /api/v2/runs/{aid}/stream': // moved from isAllowed: false, tenant
-    case 'delete /api/v2/document-intelligence/data-models/{model_name}':
-    case 'delete /api/v2/platforms/{platform_id}':
-    case 'get /api/v2/capabilities/platforms':
-    case 'get /api/v2/config/':
-    case 'get /api/v2/document-intelligence/data-models':
-    case 'get /api/v2/document-intelligence/data-models/{model_name}':
-    case 'get /api/v2/document-intelligence/layouts':
-    case 'get /api/v2/document-intelligence/ok':
-    case 'get /api/v2/platforms/':
-    case 'get /api/v2/platforms/{platform_id}':
-    case 'get /api/v2/threads/{tid}/data-frames':
-    case 'get /api/v2/threads/{tid}/inspect-file-as-data-frame':
-    case 'post /api/v2/capabilities/platforms/{kind}/test':
-    case 'post /api/v2/config/':
-    case 'post /api/v2/document-intelligence':
-    case 'post /api/v2/document-intelligence/data-models':
-    case 'post /api/v2/document-intelligence/data-models/generate':
-    case 'post /api/v2/document-intelligence/documents/extract':
-    case 'post /api/v2/document-intelligence/documents/parse':
-    case 'post /api/v2/document-intelligence/layouts':
-    case 'post /api/v2/document-intelligence/layouts/generate':
-    case 'post /api/v2/package/deploy/agent':
-    case 'post /api/v2/package/environment-hash/agent':
-    case 'post /api/v2/package/inspect/action':
-    case 'post /api/v2/package/inspect/agent':
-    case 'post /api/v2/platforms/':
-    case 'post /api/v2/threads/{tid}/data-frames/from-file':
-    case 'put /api/v2/document-intelligence/data-models/{model_name}':
-    case 'put /api/v2/package/deploy/agent/{aid}':
-    case 'put /api/v2/platforms/{platform_id}':
-    case 'delete /api/v2/document-intelligence':
-    case 'delete /api/v2/document-intelligence/layouts/{layout_name}':
-    case 'get /api/v2/document-intelligence/layouts/{layout_name}':
-    case 'post /api/v2/threads/{tid}/data-frames/from-computation':
-    case 'put /api/v2/document-intelligence/layouts/{layout_name}':
-      return {
-        isAllowed: true,
-        signAgentToken: createSigner('user'),
-      };
-
-    // #region Disallowed
-    case 'get /api/v2/health':
-    case 'get /api/v2/ok':
-    case 'get /api/v2/metrics':
-    case 'put /api/v2/agents/{aid}':
-    case 'delete /api/v2/agents/{aid}':
-    case 'post /api/v2/agents/package':
-    case 'get /api/v2/agents/raw':
-    case 'get /api/v2/agents/{aid}/raw':
-    case 'delete /api/v2/debug/artifacts':
-    case 'get /api/v2/agents/by-name':
-    case 'get /api/v2/capabilities/architectures':
-    case 'get /api/v2/debug/artifacts':
-    case 'get /api/v2/debug/artifacts/search':
-    case 'get /api/v2/debug/artifacts/{aid}':
-    case 'post /api/v2/agents/':
-    case 'patch /api/v2/agents/{aid}':
-    case 'put /api/v2/agents/{aid}/raw':
-    case 'post /api/v2/agents/{aid}/refresh-tools':
-    case 'get /api/v2/debug/tools/report-cache-stats':
-    case 'get /api/v2/debug/tools/invalidate-cache':
-      return {
-        isAllowed: false,
-      };
-
-    // Disallowed routes with user-level signing
-    case 'delete /api/v2/threads/':
-    case 'put /api/v2/agents/package/{aid}':
-    case 'put /api/v2/agents/{aid}/action-server-config':
-    case 'post /api/v2/threads/{tid}/fork':
-    case 'post /api/v2/capabilities/mcp/tools':
-      return {
-        isAllowed: false,
-      };
-    // #endregion
-
-    default:
-      exhaustiveCheck(route);
+  const routeConfig = routes[route.type];
+  if (!routeConfig) {
+    throw new Error(`Invalid route: Route not supported: ${route.type}`);
   }
+
+  const [isAllowed] = routeConfig;
+
+  if (!isAllowed) {
+    return { isAllowed: false };
+  }
+
+  const [, signMode, permissions] = routeConfig;
+
+  return {
+    isAllowed: true,
+    signAgentToken: createSigner(signMode),
+    permissions,
+  };
 }

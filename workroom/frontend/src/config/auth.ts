@@ -1,14 +1,11 @@
 import { AuthClientOpts } from '@sema4ai/robocloud-ui-utils';
-import { Meta } from '~/lib/AgentAPIClient';
+import { getMeta } from '~/lib/meta';
 
 export type AuthOptions = { bypassAuth: true } | (AuthClientOpts & { bypassAuth: undefined });
 export const getAuthOptions = async (): Promise<AuthOptions> => {
-  const url = new URL('/meta', window.location.href).href;
-  const meta = (await fetch(url, {
-    method: 'GET',
-  }).then(async (res) => await res.json())) as Meta;
+  const meta = await getMeta();
 
-  if (meta.deploymentType !== undefined) {
+  if (meta.deploymentType) {
     return {
       bypassAuth: true,
     };
@@ -17,6 +14,8 @@ export const getAuthOptions = async (): Promise<AuthOptions> => {
   return {
     // we have only one auth type
     type: 'dev_oidc' as AuthClientOpts['type'],
+    // Redirect to the ACE control-plane endpoint, which will subsequently redirect
+    // back to workroom
     redirectUri: `${window.location.origin}/signin-callback`,
     baseUrls: [window.location.origin],
     oidc: {

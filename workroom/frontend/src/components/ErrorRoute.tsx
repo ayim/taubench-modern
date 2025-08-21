@@ -4,13 +4,16 @@ import { Link, ErrorComponentProps } from '@tanstack/react-router';
 
 import errorIllustration from '~/assets/error.svg';
 import { RequestError } from '~/lib/Error';
+import { useTenantId } from '~/hooks/tenant';
 
 export const ErrorRoute: FC<ErrorComponentProps> = ({ error }) => {
+  const tenantId = useTenantId();
+
   let meta = {
     title: 'An error happened',
     description: 'An unknown error occured.',
     action: (
-      <Link to="/">
+      <Link to="/tenants/$tenantId" params={{ tenantId }}>
         <Button forwardedAs="span" round>
           Return to Home
         </Button>

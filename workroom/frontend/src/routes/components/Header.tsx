@@ -15,7 +15,7 @@ const MenuItem: FC<{ tenant: UserTenant }> = memo(({ tenant }) => {
 
   return (
     <Link
-      to="/$tenantId/home"
+      to="/tenants/$tenantId/home"
       params={{ tenantId: tenant.id }}
       tabIndex={-1}
       onClick={() => {
@@ -46,7 +46,7 @@ const MenuItem: FC<{ tenant: UserTenant }> = memo(({ tenant }) => {
 
 export const Header = () => {
   const { branding } = useTenantContext();
-  const { tenantId } = useParams({ from: '/$tenantId' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { logout } = useAuth();
   const { bypassAuth } = useAuthContext();
   const { data: tenants } = useListUserTenantsQuery();

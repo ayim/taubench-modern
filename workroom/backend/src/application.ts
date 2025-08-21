@@ -1,17 +1,20 @@
 import http from 'node:http';
 import { resolve } from 'node:path';
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
+import { createGetACEUser } from './auth/oidc.js';
 import type { Configuration } from './configuration.js';
-import { createGetAgentMeta, createProxyToAgentServer } from './handlers/agents.js';
+import { createGetAgentMeta, createProxyHandler } from './handlers/agents.js';
 import { createHealthCheck } from './handlers/health.js';
-import { createGetSparMeta, createGetSparTenantsList } from './handlers/meta.js';
-import { createAssetServe, createIndexServe } from './handlers/static.js';
+import { createGetMeta, createGetSparTenantsList } from './handlers/meta.js';
+import { createAssetServe, createIndexServe, initializeFrontendPlaceholders } from './handlers/static.js';
 import { initializeWebSocketProxying } from './handlers/websocket.js';
 import { createGetWorkroomMeta } from './handlers/workroom.js';
 import { createAuthMiddleware } from './middleware/auth/index.js';
 import { createRequestLogger } from './middleware/logging.js';
+import { createTenantExtractionMiddleware } from './middleware/tenant.js';
 import type { MonitoringContext } from './monitoring/index.js';
 
 export const createApplication = async ({
@@ -27,181 +30,165 @@ export const createApplication = async ({
 }> => {
   monitoring.logger.info('Configuring application', {
     authMode: configuration.auth.type,
-    deploymentType: configuration.deployment.type,
+    deploymentType: 'spar',
+  });
+
+  const { getACEUser } = createGetACEUser({
+    configuration,
+    monitoring,
   });
 
   const app = express();
   const server = http.createServer(app);
 
-  app.set('trust proxy', true);
+  app.set('trust proxy', 1);
   app.disable('x-powered-by');
-
-  app.use(createRequestLogger({ monitoring }));
+  // @TODO: Lock down CORS to public domain / explicit headers
+  app.use(cors());
 
   app.get('/healthz', createHealthCheck());
   app.get('/ready', createHealthCheck());
 
-  const frontendAPIRouter = createRouter();
-  app.use('/api', frontendAPIRouter);
+  app.use(createRequestLogger({ monitoring }));
 
-  const makeFrontendMiddleware = () => [createAuthMiddleware({ configuration, monitoring })];
+  const { handleWebsocketUpgrade } = initializeWebSocketProxying({
+    configuration,
+    getACEUser,
+    monitoring,
+    rewriteAgentServerPath: (current) => current.replace(/^\/tenants\/[^/]+\/agents/i, ''),
+    targetBaseUrl: configuration.agentServerInternalUrl,
+  });
+  server.on('upgrade', (...eventArgs) =>
+    handleWebsocketUpgrade(...eventArgs).catch((err) => {
+      monitoring.logger.error('Websocket upgrade failed', {
+        error: err as Error,
+      });
+    }),
+  );
 
-  frontendAPIRouter.use(...makeFrontendMiddleware());
+  const tenantRouter = createRouter({ mergeParams: true });
+  app.use('/tenants/:tenantId', tenantRouter);
 
-  if (configuration.deployment.type === 'ace') {
-    const targetMetaPath = new URL(configuration.deployment.metaUrl).pathname;
-
-    const baseURL = new URL(configuration.deployment.metaUrl);
-    baseURL.pathname = '';
-
-    app.get(
-      '/meta',
-      ...makeFrontendMiddleware(),
-      createProxyToAgentServer({
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: () => targetMetaPath,
-        targetBaseUrl: baseURL.toString(),
-      }),
-    );
-  } else if (configuration.deployment.type === 'spar') {
-    const { handleWebsocketUpgrade } = initializeWebSocketProxying({
+  tenantRouter.use(
+    createTenantExtractionMiddleware({
       configuration,
       monitoring,
-      rewriteAgentServerPath: (current) => current.replace(`/api/tenants/${configuration.tenant.tenantId}/agents`, ''),
-      targetBaseUrl: configuration.deployment.agentServerInternalUrl,
+    }),
+  );
+
+  tenantRouter.get('/meta', createGetMeta({ configuration, monitoring }));
+
+  tenantRouter.get(
+    '/tenants-list',
+    createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+    createGetSparTenantsList({ configuration }),
+  );
+
+  tenantRouter.get(
+    `/workroom/meta`,
+    createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+    createGetWorkroomMeta({ configuration }),
+  );
+
+  // Overrides
+  if (configuration.legacyRoutingUrl) {
+    monitoring.logger.info('Enabling legacy proxy routes', {
+      requestUrl: configuration.legacyRoutingUrl,
     });
-    server.on('upgrade', handleWebsocketUpgrade);
 
-    app.get('/meta', ...makeFrontendMiddleware(), createGetSparMeta({ configuration }));
-
-    frontendAPIRouter.get('/tenants-list', createGetSparTenantsList({ configuration }));
-
-    // Workroom routes
-    frontendAPIRouter.get(
-      `/tenants/${configuration.tenant.tenantId}/workroom/meta`,
-      createGetWorkroomMeta({ configuration }),
-    );
-
-    // Overrides
-    if (configuration.legacyRoutingUrl) {
-      monitoring.logger.info('Enabling legacy proxy routes', {
-        requestUrl: configuration.legacyRoutingUrl,
-      });
-
-      frontendAPIRouter.get(
-        `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/threads/:threadId/action-invocations/:actionInvocationId`,
-        createProxyToAgentServer({
-          configuration,
-          monitoring,
-          rewriteAgentServerPath: (current) => current.replace(/^\/api/, '/backend'),
-          skipAuthentication: true, // Auth handled by agent-router
-          targetBaseUrl: configuration.legacyRoutingUrl,
-        }),
-      );
-
-      frontendAPIRouter.get(
-        `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/me/oauth/permissions`,
-        createProxyToAgentServer({
-          configuration,
-          monitoring,
-          rewriteAgentServerPath: (current) => current.replace(/^\/api/, '/backend'),
-          skipAuthentication: true, // Auth handled by agent-router
-          targetBaseUrl: configuration.legacyRoutingUrl,
-        }),
-      );
-
-      frontendAPIRouter.get(
-        `/tenants/${configuration.tenant.tenantId}/workroom/oauth/authorize`,
-        createProxyToAgentServer({
-          configuration,
-          monitoring,
-          rewriteAgentServerPath: (current) => current.replace(/^\/api/, '/backend'),
-          skipAuthentication: true, // Auth handled by agent-router
-          targetBaseUrl: configuration.legacyRoutingUrl,
-        }),
-      );
-
-      frontendAPIRouter.delete(
-        `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/me/oauth/connections/:connectionId`,
-        createProxyToAgentServer({
-          configuration,
-          monitoring,
-          rewriteAgentServerPath: (current) => current.replace(/^\/api/, '/backend'),
-          skipAuthentication: true, // Auth handled by agent-router
-          targetBaseUrl: configuration.legacyRoutingUrl,
-        }),
-      );
-    }
-
-    // Agent routes
-    frontendAPIRouter.get(
-      `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/meta`,
-      createGetAgentMeta(),
-    );
-    // TODO: Remove once we have interface updated. should use .all instead
-    frontendAPIRouter.post(
-      `/tenants/${configuration.tenant.tenantId}/package`,
-      createProxyToAgentServer({
+    tenantRouter.get(
+      '/workroom/agents/:agentId/threads/:threadId/action-invocations/:actionInvocationId',
+      createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+      createProxyHandler({
         configuration,
         monitoring,
-        // Must include /api/v2 prefix for agent server EnsureAPIPrefixMiddleware
-        rewriteAgentServerPath: () => `/api/v2/package/inspect/agent`,
-        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
+        rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
+        skipAuthentication: true, // Auth handled by agent-router
+        targetBaseUrl: configuration.legacyRoutingUrl,
       }),
     );
 
-    // Deploy new agent from package (JSON body or multipart supported by agent server)
-    frontendAPIRouter.post(
-      `/tenants/${configuration.tenant.tenantId}/package/deploy/agent`,
-      createProxyToAgentServer({
+    tenantRouter.get(
+      '/workroom/agents/:agentId/me/oauth/permissions',
+      createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+      createProxyHandler({
         configuration,
         monitoring,
-        rewriteAgentServerPath: () => `/api/v2/package/deploy/agent`,
-        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
+        rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
+        skipAuthentication: true, // Auth handled by agent-router
+        targetBaseUrl: configuration.legacyRoutingUrl,
       }),
     );
 
-    // Update existing agent from package
-    frontendAPIRouter.put(
-      `/tenants/${configuration.tenant.tenantId}/package/deploy/agent/:aid`,
-      createProxyToAgentServer({
+    tenantRouter.get(
+      '/workroom/oauth/authorize',
+      createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+      createProxyHandler({
         configuration,
         monitoring,
-        rewriteAgentServerPath: (_current, getParam) => `/api/v2/package/deploy/agent/${getParam('aid')}`,
-        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
+        rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
+        skipAuthentication: true, // Auth handled by agent-router
+        targetBaseUrl: configuration.legacyRoutingUrl,
       }),
     );
 
-    frontendAPIRouter.all(
-      `/tenants/${configuration.tenant.tenantId}/agents/api/v2/*`,
-      createProxyToAgentServer({
+    tenantRouter.delete(
+      '/workroom/agents/:agentId/me/oauth/connections/:connectionId',
+      createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+      createProxyHandler({
         configuration,
         monitoring,
-        rewriteAgentServerPath: (current) =>
-          current.replace(`/api/tenants/${configuration.tenant.tenantId}/agents`, ''),
-        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
+        rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
+        skipAuthentication: true, // Auth handled by agent-router
+        targetBaseUrl: configuration.legacyRoutingUrl,
       }),
     );
-    frontendAPIRouter.get(
-      `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/details`,
-      createProxyToAgentServer({
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: (_current, getParam) => `/api/v2/agents/${getParam('agentId')}/agent-details`,
-        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
-      }),
-    );
-  } else {
-    exhaustiveCheck(configuration.deployment);
   }
+
+  // Agent server routes
+  tenantRouter.get(
+    '/workroom/agents/:agentId/meta',
+    createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+    createGetAgentMeta(),
+  );
+  tenantRouter.all(
+    '/agents/api/v2/*',
+    createAuthMiddleware({ authentication: 'with-permissions-check', configuration, getACEUser, monitoring }),
+    createProxyHandler({
+      configuration,
+      monitoring,
+      rewriteAgentServerPath: (current, getParam) => current.replace(`/tenants/${getParam('tenantId')}/agents`, ''),
+      targetBaseUrl: configuration.agentServerInternalUrl,
+    }),
+  );
+  tenantRouter.get(
+    '/workroom/agents/:agentId/details',
+    createAuthMiddleware({ authentication: 'with-permissions-check', configuration, getACEUser, monitoring }),
+    createProxyHandler({
+      configuration,
+      monitoring,
+      rewriteAgentServerPath: (_current, getParam) => `/api/v2/agents/${getParam('agentId')}/agent-details`,
+      targetBaseUrl: configuration.agentServerInternalUrl,
+    }),
+  );
+
+  // Index bounce
+  app.get('/', (_req, res) => {
+    res
+      .set('x-sema4ai-redirect-source', 'spar-gateway')
+      .redirect(302, `/tenants/${configuration.tenant.tenantId}/home`);
+  });
 
   // Static routes / Frontend handling
   if (configuration.frontendMode === 'disk') {
     monitoring.logger.info('Frontend will be loaded from disk');
 
-    app.use('/', createAssetServe({ root: resolve(import.meta.dirname, '../../frontend/dist') }));
-    app.get('/*', createIndexServe({ root: resolve(import.meta.dirname, '../../frontend/dist') }));
+    const root = resolve(import.meta.dirname, '../../frontend/dist');
+
+    await initializeFrontendPlaceholders({ configuration, root });
+
+    tenantRouter.use('/', createAssetServe({ root }));
+    tenantRouter.get('/*', createIndexServe({ root }));
   } else if (configuration.frontendMode === 'middleware') {
     monitoring.logger.info('Frontend will be processed using Vite middlewares');
 

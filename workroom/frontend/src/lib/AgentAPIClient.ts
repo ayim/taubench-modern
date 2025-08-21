@@ -8,36 +8,13 @@ import { HttpMethod, MediaType, PathsWithMethod, RequiredKeysOf } from 'openapi-
 import { UserTenant } from '~/queries/tenants';
 import { errorToast } from '~/utils/toasts';
 import { RequestError } from './Error';
-import { getTenantEnvironmentUrl } from './utils';
+import { getTenantEnvironmentUrl, resolveWorkroomURL } from './utils';
+import { getMeta } from './meta';
 
 // Reference:
 // https://github.com/openapi-ts/openapi-typescript/blob/fdc6d229e995b6009619835530ac74487fda48ef/packages/openapi-fetch/src/index.d.ts#L165
 type InitParam<Init> =
   RequiredKeysOf<Init> extends never ? [(Init & { [key: string]: unknown })?] : [Init & { [key: string]: unknown }];
-
-export type Meta =
-  | {
-      deploymentType: undefined;
-      realm: string;
-      clientId: string;
-      enableRefreshTokens: boolean;
-      oidcServerDiscoveryURI: string;
-      instanceId: string;
-      workroomTokenExchangeUrl: string;
-      workroomTenantListUrl: string;
-      branding?: {
-        logoUrl: string;
-        agentAvatarUrl: string;
-      };
-    }
-  | {
-      deploymentType: 'spcs' | 'spar';
-      workroomTenantListUrl: string;
-      branding?: {
-        logoUrl: string;
-        agentAvatarUrl: string;
-      };
-    };
 
 type WorkroomToken = {
   token: string;
@@ -50,26 +27,10 @@ type EmptyObjectType = {};
 export class AgentAPIClient {
   private getUserToken: () => Promise<string | undefined>;
   private workroomToken: WorkroomToken | undefined;
-  private meta: Meta | null = null;
   private tenants: UserTenant[] = [];
 
   constructor(getUserToken: () => Promise<string | undefined>) {
     this.getUserToken = getUserToken;
-  }
-
-  public async getMeta(): Promise<Meta> {
-    if (this.meta) {
-      return this.meta;
-    }
-
-    const url = new URL('/meta', window.location.href).href;
-    const response = await fetch(url, {
-      method: 'GET',
-    }).then(async (res) => await res.json());
-
-    this.meta = response as Meta;
-
-    return this.meta;
   }
 
   private async getWorkroomToken() {
@@ -80,7 +41,7 @@ export class AgentAPIClient {
       }
     }
 
-    const metaContent = await this.getMeta();
+    const metaContent = await getMeta();
 
     if (metaContent.deploymentType !== undefined) {
       metaContent.deploymentType satisfies 'spar' | 'spcs';
@@ -120,7 +81,7 @@ export class AgentAPIClient {
 
   public async getTenants(): Promise<UserTenant[]> {
     const userToken = await this.getUserToken();
-    const { workroomTenantListUrl } = await this.getMeta();
+    const { workroomTenantListUrl } = await getMeta();
 
     const response = await fetch(workroomTenantListUrl, {
       method: 'GET',
@@ -146,9 +107,8 @@ export class AgentAPIClient {
       throw new RequestError(404, 'Workspace not found');
     }
 
-    const environmentUrl = getTenantEnvironmentUrl(tenant);
     const workroomClient = createWorkroomClient({
-      baseUrl: environmentUrl,
+      baseUrl: '/',
       bearerToken: workroomToken,
     });
 
@@ -182,9 +142,8 @@ export class AgentAPIClient {
       throw new RequestError(404, 'Workspace not found');
     }
 
-    const environmentUrl = getTenantEnvironmentUrl(tenant);
     const workroomClient = createWorkroomClient({
-      baseUrl: environmentUrl,
+      baseUrl: '/',
       bearerToken: workroomToken,
     });
 
@@ -223,9 +182,8 @@ export class AgentAPIClient {
       throw new RequestError(404, 'Workspace not found');
     }
 
-    const environmentUrl = getTenantEnvironmentUrl(tenant);
     const workroomClient = createWorkroomClient({
-      baseUrl: environmentUrl,
+      baseUrl: '/',
       bearerToken: workroomToken,
     });
 
@@ -266,9 +224,8 @@ export class AgentAPIClient {
     const fixUrlEncoding = (s: string) => s.replace(/https:\/(?!\/)/g, 'https://');
     const scope = fixUrlEncoding(params.get('scope') || '');
 
-    const environmentUrl = getTenantEnvironmentUrl(tenant);
     const workroomClient = createWorkroomClient({
-      baseUrl: environmentUrl,
+      baseUrl: '/',
       bearerToken: workroomToken,
     });
 
@@ -315,9 +272,8 @@ export class AgentAPIClient {
       throw new RequestError(404, 'Workspace not found');
     }
 
-    const environmentUrl = getTenantEnvironmentUrl(tenant);
     const workroomClient = createWorkroomClient({
-      baseUrl: environmentUrl,
+      baseUrl: '/',
       bearerToken: workroomToken,
     });
 
@@ -341,9 +297,8 @@ export class AgentAPIClient {
       throw new RequestError(404, 'Workspace not found');
     }
 
-    const environmentUrl = getTenantEnvironmentUrl(tenant);
     const workroomClient = createWorkroomClient({
-      baseUrl: environmentUrl,
+      baseUrl: '/',
       bearerToken: workroomToken,
     });
 
@@ -381,15 +336,11 @@ export class AgentAPIClient {
           throw new RequestError(404, 'Workspace not found');
         }
 
-        // TODO: Extract into utils: specified in two places
-        // The tenants path (first parameter) needs to be joined relatively
-        // to the URL provided in the tenant environment result. Resolving
-        // URLs with the URL class is tricky as leading and trailing slahses
-        // affect the resolution. The first path must not start with a slash
-        // (relative), and the tenant URL must end with one for the resolution
-        // to work correctly.
+        // Get the environment URL, which does not include the /tenants/<id>
+        // portion of the path:
         const environmentUrl = getTenantEnvironmentUrl(tenant);
-        const url = new URL(`tenants/${tenant.id}/${pathIdentifier}`, environmentUrl).href;
+        // Resolve the full URL so that it includes the /tenants/<id> portion:
+        const url = resolveWorkroomURL(pathIdentifier, environmentUrl);
 
         const client = createFetchClient<Paths>({
           baseUrl: url,
@@ -554,15 +505,8 @@ export class AgentAPIClient {
 
     const { input, thread_id, ...rest } = args;
 
-    // TODO: Extract into utils: specified in two places
-    // The tenants path (first parameter) needs to be joined relatively
-    // to the URL provided in the tenant environment result. Resolving
-    // URLs with the URL class is tricky as leading and trailing slahses
-    // affect the resolution. The first path must not start with a slash
-    // (relative), and the tenant URL must end with one for the resolution
-    // to work correctly.
     const environmentUrl = getTenantEnvironmentUrl(tenant);
-    const url = new URL(`tenants/${tenant.id}/agents/api/v2/runs/stream`, environmentUrl).href;
+    const url = resolveWorkroomURL('agents/api/v2/runs/stream', environmentUrl);
 
     await fetchEventSource(url, {
       method: 'POST',
@@ -585,11 +529,10 @@ export class AgentAPIClient {
   }
 
   public async getTenantMeta(tenantId: string) {
-    const { tenant, workroomToken } = await this.prepareForRequest(tenantId);
+    const { workroomToken } = await this.prepareForRequest(tenantId);
 
-    const environmentUrl = getTenantEnvironmentUrl(tenant);
     const workroomClient = createWorkroomClient({
-      baseUrl: environmentUrl,
+      baseUrl: '/',
       bearerToken: workroomToken,
     });
 
@@ -610,11 +553,10 @@ export class AgentAPIClient {
   }
 
   public async getActionLogHtml(tenantId: string, agentId: string, threadId: string, toolCallId: string) {
-    const { tenant, workroomToken } = await this.prepareForRequest(tenantId);
+    const { workroomToken } = await this.prepareForRequest(tenantId);
 
-    const environmentUrl = getTenantEnvironmentUrl(tenant);
     const workroomClient = createWorkroomClient({
-      baseUrl: environmentUrl,
+      baseUrl: '/',
       bearerToken: workroomToken,
     });
 
@@ -670,10 +612,10 @@ export class AgentAPIClient {
 
     const workroomToken = await this.getWorkroomToken();
 
-    const withBearerTokenAuth = (await this.getMeta()).deploymentType !== 'spar';
+    const withBearerTokenAuth = (await getMeta()).deploymentType !== 'spar';
 
     const environmentUrl = getTenantEnvironmentUrl(tenant);
-    const url = new URL(`tenants/${tenant.id}/agents/api/v2/runs/${agentId}/stream`, environmentUrl).href;
+    const url = resolveWorkroomURL(`agents/api/v2/runs/${agentId}/stream`, environmentUrl);
 
     return { url, token: workroomToken, withBearerTokenAuth };
   }

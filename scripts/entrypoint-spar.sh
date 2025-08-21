@@ -44,7 +44,7 @@ fi
 if [ "$START_WORKROOM" = "true" ]; then
     echo "Starting workroom..."
     cd /app/workroom
-    node ./backend/dist/index.js &
+    node --no-deprecation ./backend/dist/index.js &
     WORKROOM_PID=$!
     echo "Workroom started (PID: $WORKROOM_PID)"
 fi

@@ -1,7 +1,10 @@
 import { exhaustiveCheck, parseEnvVariable, parseEnvVariableInteger } from '@sema4ai/robocloud-shared-utils';
 
 export interface Configuration {
-  auth:
+  agentServerInternalUrl: string;
+  auth: {
+    tokenIssuer: string;
+  } & (
     | {
         type: 'none';
       }
@@ -12,22 +15,23 @@ export interface Configuration {
     | {
         jwtPrivateKeyB64: string;
         type: 'snowflake';
-      };
-  deployment:
-    | {
-        agentServerInternalUrl: string;
-        type: 'spar';
       }
     | {
-        metaUrl: string;
-        type: 'ace';
-      };
+        controlPlaneUrl: string;
+        jwtPrivateKeyB64: string;
+        tokenIssuers: Array<string>;
+        type: 'sema4-oidc-sso';
+      }
+  );
   frontendMode: 'disk' | 'middleware';
   legacyRoutingUrl: string | null;
+  metaUrl: string | null;
   tenant: {
     tenantId: string;
     tenantName: string;
-    type: 'static';
+  };
+  userIdentity: {
+    cacheTTL: number;
   };
   port: number;
 }
@@ -48,47 +52,48 @@ export const getConfiguration = (): Configuration => {
     }
   })();
 
+  const agentServerInternalUrl = parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_URL');
+
   const auth = ((): Configuration['auth'] => {
     const mode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE');
+    const tokenIssuer = process.env.SEMA4AI_WORKROOM_AGENT_SERVER_TOKEN_ISSUER
+      ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_TOKEN_ISSUER')
+      : 'spar';
+
     switch (mode) {
       case 'none':
-        return { type: 'none' };
+        return { tokenIssuer, type: 'none' };
       case 'snowflake': {
         return {
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
+          tokenIssuer,
           type: 'snowflake',
         };
       }
       case 'google': {
         return {
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
+          tokenIssuer,
           type: 'google',
         };
       }
+      case 'sema4-oidc-sso':
+        return {
+          controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
+          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
+          tokenIssuer,
+          tokenIssuers: parseEnvVariable('SEMA4AI_WORKROOM_TOKEN_ISSUERS')
+            .split(';')
+            .filter((issuer) => issuer.trim() !== ''),
+          type: 'sema4-oidc-sso',
+        };
 
       default:
         throw new Error(`Unsupported auth mode: ${mode}`);
     }
   })();
 
-  const deployment = ((): Configuration['deployment'] => {
-    const type = parseEnvVariable('SEMA4AI_WORKROOM_DEPLOYMENT_TYPE') as Configuration['deployment']['type'];
-    switch (type) {
-      case 'ace':
-        return {
-          metaUrl: parseEnvVariable('SEMA4AI_WORKROOM_META_URL'),
-          type: 'ace',
-        };
-      case 'spar':
-        return {
-          agentServerInternalUrl: parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_URL'),
-          type: 'spar',
-        };
-
-      default:
-        throw new Error(`Unsupported deployment type: ${type}`);
-    }
-  })();
+  const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
 
   const tenant = ((): Configuration['tenant'] => {
     const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
@@ -101,16 +106,24 @@ export const getConfiguration = (): Configuration => {
         return {
           tenantId: snowflakeAccountId,
           tenantName: 'Sema4ai x Snowflake',
-          type: 'static',
         };
       }
+
       case 'google':
       case 'none':
         return {
           tenantId: 'spar',
-          tenantName: 'SPAR DEV',
-          type: 'static',
+          tenantName: 'SPAR',
         };
+
+      case 'sema4-oidc-sso': {
+        const tenantId = parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID');
+
+        return {
+          tenantId,
+          tenantName: tenantId,
+        };
+      }
 
       default:
         exhaustiveCheck(authMode);
@@ -122,11 +135,15 @@ export const getConfiguration = (): Configuration => {
     : null;
 
   return {
+    agentServerInternalUrl,
     auth,
-    deployment,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
     legacyRoutingUrl,
+    metaUrl,
     port,
     tenant,
+    userIdentity: {
+      cacheTTL: 30 * 1000, // 30 seconds
+    },
   };
 };

@@ -1,9 +1,18 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
-import type { Request, Response, NextFunction } from 'express';
+import type { ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
-import { REQUEST_AUTH_ID_KEY } from '../../utils/auth.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
+
+export type GoogleUserIdentityResult = Result<
+  {
+    userId: string;
+  },
+  {
+    code: 'unauthorized';
+    message: string;
+  }
+>;
 
 /**
  * Google authentication header, provided when auth is enabled for GCP
@@ -11,7 +20,7 @@ import type { Result } from '../../utils/result.js';
  * @example
  *  "accounts.google.com:109000000000000000000"
  */
-const GOOGLE_AUTH_HEADER = 'X-Goog-Authenticated-User-ID';
+export const GOOGLE_AUTH_HEADER = 'X-Goog-Authenticated-User-ID';
 
 export const handleGoogleAuthCheck = async ({
   monitoring,
@@ -20,9 +29,9 @@ export const handleGoogleAuthCheck = async ({
   res,
 }: {
   monitoring: MonitoringContext;
-  next: NextFunction;
-  req: Request;
-  res: Response;
+  next: ExpressNextFunction;
+  req: ExpressRequest;
+  res: ExpressResponse;
 }) => {
   const userIdentityResult = extractGoogleUserIdentity({
     headers: extractHeadersFromRequest(req.headers),
@@ -42,7 +51,7 @@ export const handleGoogleAuthCheck = async ({
   // @TODO: User Id is no longer identifiable as a Google ID.. this should
   // be addressed, but it should not contain a colon due to the string joining
   // in the agent server token signing process.
-  res.locals[REQUEST_AUTH_ID_KEY] = userIdentityResult.data.userId;
+  res.locals.authSub = userIdentityResult.data.userId;
 
   return next();
 };
@@ -53,24 +62,16 @@ export const extractGoogleUserIdentity = ({
 }: {
   headers: Record<string, string>;
   monitoring: MonitoringContext;
-}): Result<
-  {
-    userId: string;
-  },
-  {
-    code: 'unauthorized';
-    message: string;
-  }
-> => {
+}): GoogleUserIdentityResult => {
   const authHeaderValue = headers[GOOGLE_AUTH_HEADER.toLowerCase()];
   if (!authHeaderValue) {
-    monitoring.logger.error('Google authentication attempted but no header found');
+    monitoring.logger.error('Google authentication required but no header found');
 
     return {
       success: false,
       error: {
         code: 'unauthorized',
-        message: 'Google authentication attempted but no header found',
+        message: 'Google authentication required but no header found',
       },
     };
   }

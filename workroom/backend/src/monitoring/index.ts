@@ -7,7 +7,7 @@ export interface LogAttributes {
   authMode: Configuration['auth']['type'];
   authSkip: boolean;
   count: number;
-  deploymentType: Configuration['deployment']['type'];
+  deploymentType: 'spar';
   error?: Error;
   errorCause: string;
   errorMessage: string;
@@ -19,6 +19,7 @@ export interface LogAttributes {
   processSignal: string;
   requestMethod: string;
   requestUrl: string;
+  tenantId: string;
 }
 
 export interface LoggingContext {

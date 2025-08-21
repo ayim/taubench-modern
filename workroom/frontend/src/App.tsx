@@ -1,6 +1,6 @@
 import { ThemeProvider } from '@sema4ai/theme';
 import { ViewportProvider } from '@sema4ai/components';
-import { AuthProvider } from '@sema4ai/robocloud-ui-utils';
+import { AuthProvider, VirtualRoomMeta } from '@sema4ai/robocloud-ui-utils';
 import { PlatformProvider, Platform } from '@sema4ai/agent-components';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/ReactToastify.css';
@@ -10,13 +10,17 @@ import { RouterProvider } from './components/providers/Router';
 import { QueryClientProvider } from './components/providers/QueryClient';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useEffect, useState } from 'react';
-import { ACE_WORKROOM_VERSION } from './version';
+import { ACE_WORKROOM_VERSION } from './version.ts';
 import { TransitionLoader } from './components/Loaders.tsx';
+import { useMeta } from './hooks/meta.ts';
 
 export const App = () => {
-  console.log(`ACE workroom ${ACE_WORKROOM_VERSION}`);
+  useEffect(() => {
+    console.log(`ACE workroom: ${ACE_WORKROOM_VERSION}`);
+  }, []);
 
   const [authOptions, setAuthOptions] = useState<AuthOptions | undefined>(undefined);
+  const meta = useMeta();
 
   useEffect(() => {
     const getOptionsAsync = async () => {
@@ -27,7 +31,7 @@ export const App = () => {
     getOptionsAsync();
   }, []);
 
-  if (!authOptions) {
+  if (!authOptions || !meta) {
     return (
       <ThemeProvider name="light">
         <TransitionLoader />
@@ -57,7 +61,7 @@ export const App = () => {
       <PlatformProvider value={Platform.WORKROOM}>
         <ToastContainer />
         <ViewportProvider>
-          <AuthProvider authOptions={authOptions}>
+          <AuthProvider authOptions={authOptions} meta={meta as VirtualRoomMeta}>
             <QueryClientProvider>
               <ProtectedRoute>
                 <RouterProvider />

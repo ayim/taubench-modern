@@ -4,6 +4,7 @@ import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import { WebSocket, WebSocketServer } from 'ws';
 import { parseAgentRequest } from '../api/parsers.js';
 import { getRouteBehaviour } from '../api/routing.js';
+import type { GetACEUser } from '../auth/oidc.js';
 import type { Configuration } from '../configuration.js';
 import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import type { MonitoringContext } from '../monitoring/index.js';
@@ -12,15 +13,16 @@ import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
 
 /**
  * Start websocket proxying
- * @see {} Not used for ACE
  */
 export const initializeWebSocketProxying = ({
   configuration,
+  getACEUser,
   monitoring,
   rewriteAgentServerPath,
   targetBaseUrl,
 }: {
   configuration: Configuration;
+  getACEUser: GetACEUser;
   monitoring: MonitoringContext;
   rewriteAgentServerPath: (currentPath: string) => string;
   targetBaseUrl: string;
@@ -79,10 +81,20 @@ export const initializeWebSocketProxying = ({
     });
 
     if (!req.url) {
-      throw new Error('No URL found for upgrade request');
+      monitoring.logger.error('No request URL found for websocket upgrade', {
+        requestMethod: req.method,
+        requestUrl: req.url,
+      });
+
+      return internalServerError();
     }
     if (!req.method) {
-      throw new Error('No method found for upgrade request');
+      monitoring.logger.error('No request method found for websocket upgrade', {
+        requestMethod: req.method,
+        requestUrl: req.url,
+      });
+
+      return internalServerError();
     }
 
     const urlAttributes = extractRequestPathAttributes(req.url);
@@ -100,45 +112,64 @@ export const initializeWebSocketProxying = ({
       }
     }
 
+    const requestPathWithQueryStringParameters = `${targetPath}${urlAttributes.searchParams}`;
+
+    const route = parseAgentRequest({
+      method: req.method,
+      path: requestPathWithQueryStringParameters,
+    });
+    if (route === null) {
+      monitoring.logger.error('Missing agent workroom route', {
+        requestMethod: req.method,
+        requestUrl: requestPathWithQueryStringParameters,
+      });
+
+      return notFoundError();
+    }
+
     if (configuration.auth.type !== 'none') {
-      const userIdentityResult = extractAuthenticatedUserIdentity({
+      const userIdentityResult = await extractAuthenticatedUserIdentity({
         configuration,
+        getACEUser,
         headers: extractHeadersFromRequest(req.headers),
         monitoring,
+        permissions: [],
       });
 
       if (!userIdentityResult.success) {
+        monitoring.logger.error('Websocket upgrade failed: User identity resolution failed', {
+          errorName: userIdentityResult.error.code,
+          errorMessage: userIdentityResult.error.message,
+          requestMethod: req.method,
+          requestUrl: req.url,
+        });
+
         switch (userIdentityResult.error.code) {
           case 'unauthorized':
             return unauthorizedAccess();
+          case 'forbidden':
+            return forbiddenAccess();
+          case 'misconfigured':
+            return internalServerError();
 
           default:
-            exhaustiveCheck(userIdentityResult.error.code);
+            exhaustiveCheck(userIdentityResult.error);
         }
       }
 
       if (!userIdentityResult.data.userId) {
-        return unauthorizedAccess();
-      }
-
-      const requestPathWithQueryStringParameters = `${targetPath}${urlAttributes.searchParams}`;
-
-      const route = parseAgentRequest({
-        method: req.method,
-        path: requestPathWithQueryStringParameters,
-      });
-      if (route === null) {
-        monitoring.logger.error('Missing agent workroom route', {
+        monitoring.logger.error('Websocket upgrade failed: No user ID', {
           requestMethod: req.method,
-          requestUrl: requestPathWithQueryStringParameters,
+          requestUrl: req.url,
         });
 
-        return notFoundError();
+        return unauthorizedAccess();
       }
 
       const routeBehaviour = getRouteBehaviour({
         configuration,
         route,
+        tenantId: configuration.tenant.tenantId,
         userId: userIdentityResult.data.userId,
       });
 

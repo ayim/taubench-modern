@@ -1,11 +1,10 @@
 import { PassThrough } from 'node:stream';
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
-import type { Request, Response } from 'express';
 import { parseAgentRequest } from '../api/parsers.js';
 import { getRouteBehaviour } from '../api/routing.js';
 import type { Configuration } from '../configuration.js';
+import { type ExpressRequest, type ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import { REQUEST_AUTH_ID_KEY } from '../utils/auth.js';
 import { NO_PROXY_HEADERS } from '../utils/request.js';
 import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
 
@@ -14,7 +13,7 @@ import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
  * @see {} NOTE that this is dynamic on ACE, and this particular
  *  route is not called
  */
-export const createGetAgentMeta = () => (_req: Request, res: Response) => {
+export const createGetAgentMeta = () => (_req: ExpressRequest, res: ExpressResponse) => {
   res.json({
     workroomUi: {
       feedback: { enabled: false },
@@ -25,7 +24,7 @@ export const createGetAgentMeta = () => (_req: Request, res: Response) => {
   });
 };
 
-export const createProxyToAgentServer =
+export const createProxyHandler =
   ({
     configuration,
     monitoring,
@@ -39,7 +38,7 @@ export const createProxyToAgentServer =
     skipAuthentication?: boolean;
     targetBaseUrl: string;
   }) =>
-  async (req: Request, res: Response) => {
+  async (req: ExpressRequest, res: ExpressResponse) => {
     const urlAttributes = extractRequestPathAttributes(req.originalUrl);
 
     const targetPath = rewriteAgentServerPath(urlAttributes.pathname, (param: string) => {
@@ -79,8 +78,7 @@ export const createProxyToAgentServer =
     }
 
     if (configuration.auth.type !== 'none' && !skipAuthentication) {
-      const sub = res.locals[REQUEST_AUTH_ID_KEY] as string | undefined;
-      if (!sub) {
+      if (!res.locals.authSub) {
         throw new Error('Authentication identity not found');
       }
 
@@ -102,7 +100,8 @@ export const createProxyToAgentServer =
       const routeBehaviour = getRouteBehaviour({
         configuration,
         route,
-        userId: sub,
+        tenantId: configuration.tenant.tenantId,
+        userId: res.locals.authSub,
       });
 
       if (!routeBehaviour.isAllowed) {
@@ -233,7 +232,7 @@ export const createProxyToAgentServer =
         res.end();
       }
     } catch (error) {
-      monitoring.logger.error('Agent server proxy error', {
+      monitoring.logger.error('Proxy error', {
         error: error instanceof Error ? error : new Error(`${error}`),
         requestMethod: req.method,
         requestUrl: targetUrl,

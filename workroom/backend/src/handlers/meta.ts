@@ -1,12 +1,29 @@
 import type { Request, Response } from 'express';
 import type { Configuration } from '../configuration.js';
+import { createProxyHandler } from './agents.js';
+import type { MonitoringContext } from '../monitoring/index.js';
 
-export const createGetSparMeta =
-  ({ configuration }: { configuration: Configuration }) =>
-  (_req: Request, res: Response) => {
+export const createGetMeta =
+  ({ configuration, monitoring }: { configuration: Configuration; monitoring: MonitoringContext }) =>
+  (req: Request, res: Response) => {
+    if (configuration.metaUrl) {
+      const targetMetaPath = new URL(configuration.metaUrl).pathname;
+
+      const baseURL = new URL(configuration.metaUrl);
+      baseURL.pathname = '';
+
+      return createProxyHandler({
+        configuration,
+        monitoring,
+        rewriteAgentServerPath: () => targetMetaPath,
+        skipAuthentication: true,
+        targetBaseUrl: baseURL.toString(),
+      })(req, res);
+    }
+
     res.json({
-      deploymentType: configuration.deployment.type,
-      workroomTenantListUrl: '/api/tenants-list',
+      deploymentType: 'spar',
+      workroomTenantListUrl: `/tenants/${configuration.tenant.tenantId}/tenants-list`,
     });
   };
 
@@ -24,7 +41,7 @@ export const createGetSparTenantsList =
           },
           environment: {
             id: 'spar_environment_id_not_used',
-            url: '/api',
+            url: '/',
           },
         },
       ],

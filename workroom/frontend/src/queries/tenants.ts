@@ -29,7 +29,7 @@ export const listUserTenantsQueryOptions = ({ agentAPIClient }: QueryProps) =>
   });
 
 export const useListUserTenantsQuery = () => {
-  const { agentAPIClient } = useRouteContext({ from: '/$tenantId' });
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   return useQuery(listUserTenantsQueryOptions({ agentAPIClient }));
 };
 

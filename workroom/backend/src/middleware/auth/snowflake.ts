@@ -1,9 +1,18 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
-import type { Request, Response, NextFunction } from 'express';
+import type { ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
-import { REQUEST_AUTH_ID_KEY } from '../../utils/auth.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
+
+export type SnowflakeUserIdentityResult = Result<
+  {
+    userId: string;
+  },
+  {
+    code: 'unauthorized';
+    message: string;
+  }
+>;
 
 /**
  * Snowflake user identity header
@@ -12,7 +21,7 @@ import type { Result } from '../../utils/result.js';
  * @example
  *  "perry"
  */
-const SNOWFLAKE_AUTH_HEADER = 'sf-context-current-user';
+export const SNOWFLAKE_AUTH_HEADER = 'sf-context-current-user';
 
 export const handleSnowflakeAuthCheck = async ({
   monitoring,
@@ -21,9 +30,9 @@ export const handleSnowflakeAuthCheck = async ({
   res,
 }: {
   monitoring: MonitoringContext;
-  next: NextFunction;
-  req: Request;
-  res: Response;
+  next: ExpressNextFunction;
+  req: ExpressRequest;
+  res: ExpressResponse;
 }) => {
   const userIdentityResult = extractSnowflakeUserIdentity({
     headers: extractHeadersFromRequest(req.headers),
@@ -40,7 +49,7 @@ export const handleSnowflakeAuthCheck = async ({
     }
   }
 
-  res.locals[REQUEST_AUTH_ID_KEY] = userIdentityResult.data.userId;
+  res.locals.authSub = userIdentityResult.data.userId;
 
   return next();
 };
@@ -51,24 +60,16 @@ export const extractSnowflakeUserIdentity = ({
 }: {
   headers: Record<string, string>;
   monitoring: MonitoringContext;
-}): Result<
-  {
-    userId: string;
-  },
-  {
-    code: 'unauthorized';
-    message: string;
-  }
-> => {
+}): SnowflakeUserIdentityResult => {
   const authHeaderValue = headers[SNOWFLAKE_AUTH_HEADER.toLowerCase()];
   if (!authHeaderValue) {
-    monitoring.logger.error('Snowflake authentication attempted but no header found');
+    monitoring.logger.error('Snowflake authentication required but no header found');
 
     return {
       success: false,
       error: {
         code: 'unauthorized',
-        message: 'Snowflake authentication attempted but no header found',
+        message: 'Snowflake authentication required but no header found',
       },
     };
   }

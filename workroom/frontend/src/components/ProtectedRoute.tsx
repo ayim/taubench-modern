@@ -1,6 +1,5 @@
 import { FC, ReactNode, createContext, useContext, useEffect, useMemo } from 'react';
 import { useAuth as useAuthUtil } from '@sema4ai/robocloud-ui-utils';
-
 import { InlineLoader } from './Loaders';
 
 type Props = {
@@ -28,6 +27,7 @@ export const ProtectedRoute: FC<Props> = ({ bypassAuth = false, children }) => {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
+      console.log('Setting auth redirect:', window.location.href);
       redirectToLogin(window.location.href);
     }
   }, [isLoading, isAuthenticated, getUserToken, redirectToLogin]);

@@ -49,6 +49,11 @@ jobs:
         run: |
           npm ci
 
+      - name: Build frontend
+        shell: bash
+        run: |
+          npm run build:frontend
+
       - name: Run tests
         shell: bash
         run: |

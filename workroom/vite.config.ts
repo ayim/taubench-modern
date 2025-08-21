@@ -25,11 +25,20 @@ const getAgentComponentConditions = () => {
   return {};
 };
 
+const tenantReplacementPlugin = () => ({
+  name: 'tenant-replacement',
+  transformIndexHtml(html, _context) {
+    return html.replace(/DO_NOT_TOUCH_TENANT_ID_PLACEHOLDER/g, 'spar');
+  },
+});
+
 export default defineConfig({
   root: 'frontend',
+  base: './',
   build: {
     outDir: '../frontend/dist',
     emptyOutDir: true,
+    sourcemap: process.env.NODE_ENV !== 'production',
   },
   plugins: [
     tsconfigPaths(),
@@ -40,6 +49,7 @@ export default defineConfig({
       generatedRouteTree: './frontend/src/routeTree.gen.ts',
     }),
     react(),
+    ...(process.env.NODE_ENV === 'production' ? [] : [tenantReplacementPlugin()]),
   ],
   resolve: {
     ...getAgentComponentConditions(),

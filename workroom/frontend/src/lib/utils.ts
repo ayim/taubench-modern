@@ -1,4 +1,5 @@
 import { UserTenant } from '~/queries/tenants';
+import { getBasePath } from '~/utils/base';
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -34,7 +35,10 @@ export const getTenantEnvironmentUrl = (tenant: UserTenant): string => {
     return tenant.environment.url.endsWith('/') ? tenant.environment.url : `${tenant.environment.url}/`;
   }
 
-  const relativeLocal = new URL(tenant.environment.url, window.location.href).toString();
+  const relativeLocal = new URL(
+    tenant.environment.url,
+    `${window.location.protocol}//${window.location.host}`,
+  ).toString();
   return relativeLocal.endsWith('/') ? relativeLocal : `${relativeLocal}/`;
 };
 
@@ -75,3 +79,19 @@ export const getTenantWorkoomRedirect = ({
     href: targetWorkRoomURL,
   };
 };
+
+export const joinURL = (...parts: Array<string>): string => {
+  return parts
+    .join('/')
+    .replace(/[/]+/g, '/')
+    .replace(/^(.+):\//, '$1://')
+    .replace(/^file:/, 'file:/')
+    .replace(/\/(\?|&|#[^!])/g, '$1')
+    .replace(/\?/g, '&')
+    .replace('&', '?');
+};
+
+export const resolveWorkroomURL = (
+  path: string,
+  baseUrl: string = `${window.location.protocol}//${window.location.host}`,
+): string => joinURL(baseUrl, getBasePath(), path);

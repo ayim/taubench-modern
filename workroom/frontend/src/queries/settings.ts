@@ -31,7 +31,7 @@ export const getGetConfigQueryOptions = ({
   });
 
 export const useUpdateConfigMutation = () => {
-  const { agentAPIClient } = useRouteContext({ from: '/$tenantId' });
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
 
   return useMutation({
     mutationFn: async ({

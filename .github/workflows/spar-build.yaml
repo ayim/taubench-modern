@@ -106,6 +106,7 @@ jobs:
           DOCKER_BUILD_CHECKS_ANNOTATIONS: false
           DOCKER_BUILD_SUMMARY: false
           DOCKER_BUILD_RECORD_UPLOAD: false
+          NODE_OPTIONS: '--max_old_space_size=4096'
           repository: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar'
           cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/ace/spar' # Note: Caches live on the manual channel
           version: ${{ steps.build-metadata.outputs.version }}
@@ -149,9 +150,9 @@ jobs:
               owner: context.repo.owner,
               repo: 'ace',
               workflow_id: 'ace-publish-v2.yml',
-              ref: 'master',
+              ref: 'feat/ace-spar',
               inputs: {
-                'branch': 'master',
+                'branch': 'feat/ace-spar',
                 'spar-version': '${{ needs.build.outputs.tag }}',
                 'prerelease': '${{ needs.build.outputs.ace-prerelease }}',
                 'invoked-by': '${{ needs.build.outputs.invoked-by }}'

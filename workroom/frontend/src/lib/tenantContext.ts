@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { operations } from '@sema4ai/workroom-interface';
-import { Meta } from './AgentAPIClient';
+import { Meta } from './meta';
 
 export const TenantContext = createContext<
   operations['getWorkroomMeta']['responses'][200]['content']['application/json'] & Pick<Meta, 'branding'>
