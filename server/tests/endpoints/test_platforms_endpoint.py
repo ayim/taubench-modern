@@ -233,7 +233,7 @@ def test_update_platform_preserves_credentials_on_omission(
     data = response.json()
     assert data["name"] == "Updated Name Without Credentials"
     # Secret should be preserved server-side when omitted in the request
-    assert data["openai_api_key"] == original_key
+    assert data["openai_api_key"]["value"] == original_key
 
 
 def test_update_platform_not_found(client: TestClient, sample_openai_platform_payload: dict):
