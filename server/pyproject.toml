@@ -27,6 +27,7 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.0,<3.0.0",
     "sema4ai-docint",
     "siphash==0.0.1",
+    "reductoai>=0.9.0",
 ]
 
 [project.scripts]

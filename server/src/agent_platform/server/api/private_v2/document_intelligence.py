@@ -1,7 +1,9 @@
 import json
-from typing import Any, NoReturn
+from typing import Any, NoReturn, cast
 
 from fastapi import APIRouter, UploadFile
+from reducto.types import ParseResponse
+from reducto.types.shared.parse_response import ResultFullResult
 from sema4ai.data import DataSource
 from sema4ai_docint.extraction.reducto.exceptions import (
     ExtractFailedError,
@@ -266,7 +268,7 @@ async def _upload_and_parse(
     uploaded_file: Any,
     user_id: str,
     thread_id: str,
-):
+) -> ParseResponse:
     try:
         file_contents = await file_manager.read_file_contents(uploaded_file.file_id, user_id)
         reducto_uploaded_file_url = extraction_client.upload(
@@ -846,7 +848,7 @@ async def parse_document(  # noqa: PLR0913
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     extraction_client: ExtractionClientDependency,
-):
+) -> ResultFullResult:
     """Parse a new document using the Document Intelligence database.
 
     This endpoint is used to parse a new document. To parse a document that already
@@ -862,7 +864,7 @@ async def parse_document(  # noqa: PLR0913
         file_manager=file_manager,
     )
 
-    parse_response = await _upload_and_parse(
+    parse_response: ParseResponse = await _upload_and_parse(
         file_manager=file_manager,
         extraction_client=extraction_client,
         uploaded_file=uploaded_file,
@@ -870,11 +872,14 @@ async def parse_document(  # noqa: PLR0913
         thread_id=thread_id,
     )
 
-    parse_result = parse_response.result
-    result: dict[str, Any] = {"parse_result": parse_result}
-    if new_file:
-        result["uploaded_file"] = uploaded_file
-    return result
+    # sema4ai-docint guarantees a ResultFullResult and not a ResultURLResult.
+    if not isinstance(parse_response.result, ResultFullResult):
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED,
+            message="Parse response is not a ResultFullResult",
+        )
+
+    return cast(ResultFullResult, parse_response.result)
 
 
 async def _resolve_extract_request(

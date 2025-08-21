@@ -4,6 +4,14 @@ from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from reducto.types.shared.bounding_box import BoundingBox
+from reducto.types.shared.parse_response import (
+    ParseResponse,
+    ResultFullResult,
+    ResultFullResultChunk,
+    ResultFullResultChunkBlock,
+)
+from reducto.types.shared.parse_usage import ParseUsage
 from sema4ai_docint import normalize_name
 from sema4ai_docint.extraction.reducto.exceptions import (
     ExtractFailedError,
@@ -1895,6 +1903,31 @@ class TestGenerateDataModelFromDocument:
         fake_client.generate_schema_from_document.assert_called_once()
 
 
+@pytest.fixture
+def parse_response() -> ParseResponse:
+    return ParseResponse(
+        duration=0,
+        job_id="job-1",
+        usage=ParseUsage(num_pages=1),
+        result=ResultFullResult(
+            chunks=[
+                ResultFullResultChunk(
+                    content="test",
+                    embed="test",
+                    blocks=[
+                        ResultFullResultChunkBlock(
+                            bbox=BoundingBox(left=0, page=0, top=0, width=0, height=0),
+                            content="test",
+                            type="Text",
+                        )
+                    ],
+                )
+            ],
+            type="full",
+        ),
+    )
+
+
 class TestParseDocumentEndpoints:
     def _valid_details(self) -> DataServerDetails:
         return DataServerDetails(
@@ -1906,7 +1939,7 @@ class TestParseDocumentEndpoints:
             ],
         )
 
-    def test_parse_with_file_ref_success(self, client: TestClient):
+    def test_parse_with_file_ref_success(self, client: TestClient, parse_response: ParseResponse):
         storage_instance = StorageService.get_instance()
 
         # Fakes
@@ -1919,7 +1952,7 @@ class TestParseDocumentEndpoints:
 
         fake_extraction_client = Mock()
         fake_extraction_client.upload.return_value = "https://files.example.com/u/abc"
-        fake_extraction_client.parse.return_value = SimpleNamespace(result={"ok": True})
+        fake_extraction_client.parse.return_value = parse_response
 
         with (
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
@@ -1953,9 +1986,9 @@ class TestParseDocumentEndpoints:
             )
 
         assert resp.status_code == 200
-        assert resp.json() == {"parse_result": {"ok": True}}
+        assert resp.json() == parse_response.result.model_dump(mode="json")
 
-    def test_parse_with_upload_success(self, client: TestClient):
+    def test_parse_with_upload_success(self, client: TestClient, parse_response: ParseResponse):
         storage_instance = StorageService.get_instance()
 
         # Fakes
@@ -1968,7 +2001,7 @@ class TestParseDocumentEndpoints:
 
         fake_extraction_client = Mock()
         fake_extraction_client.upload.return_value = "https://files.example.com/u/def"
-        fake_extraction_client.parse.return_value = SimpleNamespace(result={"parsed": True})
+        fake_extraction_client.parse.return_value = parse_response
 
         with (
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
@@ -1998,8 +2031,7 @@ class TestParseDocumentEndpoints:
 
         assert resp.status_code == 200
         body = resp.json()
-        assert body["parse_result"] == {"parsed": True}
-        assert body["uploaded_file"]["file_id"] == "new-file-999"
+        assert body == parse_response.result.model_dump(mode="json")
 
     def test_parse_thread_not_found(self, client: TestClient):
         storage_instance = StorageService.get_instance()
