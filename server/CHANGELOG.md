@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.0.33 (2025-08-20)
+
+- DIN-418 Use reducto types in our openapi (#708)
+- Support Reasoning Throughout our Stack (#704)
+
 # Sema4.ai Agent Server 2.0.32 (2025-08-20)
 
 - GPT-1174 Separate DataServer configuration from DocInt [#683](https://github.com/Sema4AI/agent-platform/pull/683)
