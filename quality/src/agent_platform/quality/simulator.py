@@ -254,55 +254,65 @@ class ReplayResultManager:
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         self.current_run_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_trace(self, trace: Trace):
-        import yaml
+    def save_result(self, result: ReplayResult):
+        # TODO it is not clear what name we should choose in a unique way
+        replay_result_file = self.current_run_dir / "replay_result.json"
 
-        trace_file = self.current_run_dir / "trace.yaml"
-        with open(trace_file, "w") as f:
-            environment = {
-                "name": trace.environment.name,
-                "agent_name": trace.environment.agent_name,
-                "agent_server_version": trace.environment.agent_server_version,
-                "platform": trace.environment.platform,
+        with open(replay_result_file, "w") as f:
+            payload = {
+                "success": result.success,
+                "error": result.error,
+                "golden_trace": self._get_trace_as_json(result.golden_trace),
+                "trace": self._get_trace_as_json(result.trace)
+                if result.trace is not None
+                else None,
             }
-            tools = []
-            for t in trace.tools:
-                tools.append(
-                    {
-                        "name": t.name,
-                        "description": t.description,
-                        "input_schema": t.input_schema,
+            json.dump(payload, f, indent=4)
+
+    def _get_trace_as_json(self, trace: Trace):
+        environment = {
+            "name": trace.environment.name,
+            "agent_name": trace.environment.agent_name,
+            "agent_server_version": trace.environment.agent_server_version,
+            "platform": trace.environment.platform,
+        }
+        tools = []
+        for t in trace.tools:
+            tools.append(
+                {
+                    "name": t.name,
+                    "description": t.description,
+                    "input_schema": t.input_schema,
+                }
+            )
+
+        def message_to_export(m: Message) -> dict:
+            items = []
+            for it in m.content:
+                if isinstance(it, Thought):
+                    items.append({"type": "thought", "thought": it.content})
+                elif isinstance(it, Text):
+                    items.append({"type": "text", "text": it.content})
+                elif isinstance(it, ToolUse):
+                    tool_obj = {
+                        "type": "tool_use",
+                        "tool_name": it.tool_name,
+                        "tool_call_id": it.tool_call_id,
+                        "input_as_string": it.input_as_string,
+                        "output_as_string": it.output_as_string,
+                        "started_at": it.started_at,
+                        "ended_at": it.ended_at,
                     }
-                )
+                    if it.error is not None:
+                        tool_obj["error"] = it.error
+                    items.append(tool_obj)
+                else:
+                    raise TypeError(f"Unsupported content item: {type(it).__name__}")
+            return {"content": items, "role": m.role}
 
-            def message_to_export(m: Message) -> dict:
-                items = []
-                for it in m.content:
-                    if isinstance(it, Thought):
-                        items.append({"kind": "thought", "thought": it.content})
-                    elif isinstance(it, Text):
-                        items.append({"kind": "text", "text": it.content})
-                    elif isinstance(it, ToolUse):
-                        tool_obj = {
-                            "kind": "tool_use",
-                            "tool_name": it.tool_name,
-                            "tool_call_id": it.tool_call_id,
-                            "input_as_string": it.input_as_string,
-                            "output_as_string": it.output_as_string,
-                            "started_at": it.started_at,
-                            "ended_at": it.ended_at,
-                        }
-                        if it.error is not None:
-                            tool_obj["error"] = it.error
-                        items.append(tool_obj)
-                    else:
-                        raise TypeError(f"Unsupported content item: {type(it).__name__}")
-                return {"content": items, "role": m.role}
+        messages = [message_to_export(m) for m in trace.messages]
 
-            messages = [message_to_export(m) for m in trace.messages]
-
-            payload = {"environment": environment, "tools": tools, "messages": messages}
-            yaml.safe_dump(payload, f, sort_keys=False, indent=2)
+        return {"environment": environment, "tools": tools, "messages": messages}
 
 
 class Simulator:
@@ -371,37 +381,45 @@ class Simulator:
             # TODO for now we consider a single turn conversation: user request/agent response
             initial_payload = sublist_until_last(golden_trace.messages, lambda m: m.role == "user")
 
+            agent_messages = []
             try:
-                agent_messages = await agent.run_once(initial_payload)
+                # TODO get messages in a stream-y way
+                new_agent_messages = await agent.run_once(initial_payload)
+                agent_messages.extend(new_agent_messages)
 
                 if assert_all_consumed:
                     tool_executor.assert_all_consumed()
             except AssertionError as e:
+                new_agent_messages = agent.get_messages()
+                agent_messages.extend(new_agent_messages)
                 trace = Trace(
                     environment=new_environment,
                     tools=golden_trace.tools,
-                    messages=initial_payload
-                    + (agent_messages if agent_messages is not None else []),
+                    messages=initial_payload + agent_messages,
                 )
-                self.result_manager.save_trace(trace)
-                return ReplayResult(
+                result = ReplayResult(
                     golden_trace=golden_trace,
                     trace=trace,
                     success=False,
                     error=f"{e}",
                 )
 
+                self.result_manager.save_result(result)
+
+                return result
+
             trace = Trace(
                 environment=new_environment,
                 tools=golden_trace.tools,
-                messages=initial_payload + (agent_messages if agent_messages is not None else []),
+                messages=initial_payload + agent_messages,
             )
-            self.result_manager.save_trace(trace)
-            return ReplayResult(
+            result = ReplayResult(
                 trace=trace,
                 golden_trace=golden_trace,
                 success=True,
             )
+            self.result_manager.save_result(result)
+            return result
 
         finally:
             if infrastructure_started:

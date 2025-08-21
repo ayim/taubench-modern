@@ -93,6 +93,9 @@ class AgentClient:
             await self._wait_finished(timeout=120)
         return from_api_response_to_messages(list(self._messages.values()))
 
+    def get_messages(self) -> list[Message]:
+        return from_api_response_to_messages(list(self._messages.values()))
+
     async def _handle_event(self, event: dict[str, Any]) -> None:
         etype = event.get("event_type", "")
         handler = self._handlers.get(etype, self._on_unknown_event)

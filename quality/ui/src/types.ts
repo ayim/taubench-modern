@@ -164,3 +164,28 @@ export interface DiscoveredAgents {
   run_id: string;
   agents: Agent[];
 }
+
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  input_schema: object;
+}
+export interface TraceEnvironment {
+  name: string;
+  agent_name: string;
+  agent_server_version: string;
+  platform: string;
+}
+export interface Trace {
+  environment: TraceEnvironment;
+  messages: AgentMessage[];
+  tools: ToolDefinition[];
+}
+export interface ReplayResult {
+  golden_trace: Trace;
+  success: boolean;
+  trace?: Trace;
+  error?: string;
+  completed_at: string;
+  started_at: string;
+}
