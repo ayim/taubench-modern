@@ -122,7 +122,17 @@ class QuotasService:
             if storage_key in storage_key_to_config_type:
                 config_type = storage_key_to_config_type[storage_key]
                 try:
-                    current_value = int(current_config.config_value)
+                    # Fix a regression introduced in this PR [https://github.com/Sema4AI/agent-platform/pull/614]
+                    # Before this PR, the config value was stored as a dict
+                    # which had the following structure: {"current": VALUE}
+                    if isinstance(current_config.config_value, dict):
+                        default_value = self.CONFIG_TYPES[current_config.config_type].default_value
+                        current_value = int(
+                            current_config.config_value.get("current", default_value)
+                        )
+                    else:
+                        current_value = int(current_config.config_value)
+
                     self._config_values[config_type] = current_value
                     logger.info(
                         "Loaded config from storage", storage_key=storage_key, value=current_value

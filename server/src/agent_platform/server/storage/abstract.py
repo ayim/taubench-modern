@@ -22,7 +22,7 @@ from agent_platform.core.work_items import (
     WorkItemStatus,
     WorkItemStatusUpdatedBy,
 )
-from agent_platform.server.storage.types import StaleThreadsResult
+from agent_platform.server.storage.types import JSONValue, StaleThreadsResult
 
 if TYPE_CHECKING:
     from agent_platform.core import MCPServer, MCPServerSource
@@ -607,7 +607,9 @@ class AbstractStorage(ABC):
         """
 
     @abstractmethod
-    async def set_config(self, config_type: str, current_value: str, *, namespace: str = "global"):
+    async def set_config(
+        self, config_type: str, current_value: JSONValue, *, namespace: str = "global"
+    ):
         """Sets the config value in the DB for the config_type
 
         Args:

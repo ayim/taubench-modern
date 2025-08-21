@@ -35,6 +35,15 @@ class TestQuotasServiceIntegration:
 
         assert max_batch_size == 15
 
+    async def test_regression__initialize_from_storage(self, storage):
+        StorageService.set_for_testing(storage)
+        await StorageService.get_instance().set_config(QuotasService.MAX_AGENTS, {"current": "99"})
+
+        QuotasService._instance = None
+
+        quotas_service = await QuotasService.get_instance()
+        assert quotas_service.get_max_agents() == 99
+
     def teardown_method(self):
         QuotasService._instance = None
         StorageService.reset()

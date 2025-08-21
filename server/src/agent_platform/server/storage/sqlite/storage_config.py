@@ -9,6 +9,7 @@ from agent_platform.core.configurations.config_validation import ConfigType, val
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import ConfigNotFoundError
 from agent_platform.server.storage.sqlite.cursor import CursorMixin
+from agent_platform.server.storage.types import JSONValue
 
 
 class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
@@ -48,7 +49,7 @@ class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
         return Config.model_validate(row_dict)
 
     async def set_config(
-        self, config_type: ConfigType, current_value: str, *, namespace: str = "global"
+        self, config_type: ConfigType, current_value: JSONValue, *, namespace: str = "global"
     ):
         validate_config_type(config_type)
 
