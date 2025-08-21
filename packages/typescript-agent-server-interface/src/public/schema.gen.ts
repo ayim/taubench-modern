@@ -813,6 +813,13 @@ export interface components {
        * @description The actual text content of the thought
        */
       thought: string;
+      /**
+       * Extras
+       * @description Extra information about related to the thought
+       */
+      extras?: {
+        [key: string]: unknown;
+      };
     };
     /** ThreadToolUsageContent */
     ThreadToolUsageContent: {

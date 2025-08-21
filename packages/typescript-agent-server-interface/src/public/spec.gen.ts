@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Public API Version 2',
-    version: '2.0.32',
+    version: '2.0.33',
   },
   paths: {
     '/api/public/v1/agents': {
@@ -1990,6 +1990,12 @@ export const spec = {
             type: 'string',
             title: 'Thought',
             description: 'The actual text content of the thought',
+          },
+          extras: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Extras',
+            description: 'Extra information about related to the thought',
           },
         },
         type: 'object',

@@ -2089,6 +2089,23 @@ export interface components {
       /** File */
       file: string;
     };
+    /** BoundingBox */
+    BoundingBox: {
+      /** Height */
+      height: number;
+      /** Left */
+      left: number;
+      /** Page */
+      page: number;
+      /** Top */
+      top: number;
+      /** Width */
+      width: number;
+      /** Original Page */
+      original_page?: number | null;
+    } & {
+      [key: string]: unknown;
+    };
     /** CachedToolDefinitionsReport */
     CachedToolDefinitionsReport: {
       /** Cached Action Packages */
@@ -3442,6 +3459,13 @@ export interface components {
     /** ResponseAudioContent */
     ResponseAudioContent: {
       /**
+       * Metadata
+       * @description Metadata about the response content
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
        * Kind
        * @description Content kind identifier, always 'audio'
        * @default audio
@@ -3469,6 +3493,13 @@ export interface components {
     };
     /** ResponseDocumentContent */
     ResponseDocumentContent: {
+      /**
+       * Metadata
+       * @description Metadata about the response content
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
       /**
        * Kind
        * @description Content kind identifier, always 'document'
@@ -3513,6 +3544,13 @@ export interface components {
     /** ResponseImageContent */
     ResponseImageContent: {
       /**
+       * Metadata
+       * @description Metadata about the response content
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
        * Kind
        * @description Content kind identifier, always 'image'
        * @default image
@@ -3552,6 +3590,7 @@ export interface components {
         | components['schemas']['ResponseAudioContent']
         | components['schemas']['ResponseDocumentContent']
         | components['schemas']['ResponseImageContent']
+        | components['schemas']['ResponseReasoningContent']
         | components['schemas']['ResponseTextContent']
         | components['schemas']['ResponseToolUseContent']
       )[];
@@ -3594,8 +3633,67 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** ResponseReasoningContent */
+    ResponseReasoningContent: {
+      /**
+       * Metadata
+       * @description Metadata about the response content
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Kind
+       * @description Content kind identifier, always 'reasoning'
+       * @default reasoning
+       * @constant
+       */
+      kind: 'reasoning';
+      /**
+       * Reasoning
+       * @description The reasoning text from the model
+       */
+      reasoning?: string | null;
+      /**
+       * Signature
+       * @description The signature of the reasoning content
+       */
+      signature?: string | null;
+      /**
+       * Redacted Content
+       * @description The redacted content of the reasoning
+       */
+      redacted_content?: string | null;
+      /**
+       * Encrypted Content
+       * @description The encrypted content of the reasoning
+       */
+      encrypted_content?: string | null;
+      /**
+       * Response Id
+       * @description The response ID of the reasoning
+       */
+      response_id?: string | null;
+      /**
+       * Summary
+       * @description The summary of the reasoning
+       */
+      summary?: string[] | null;
+      /**
+       * Content
+       * @description The content of the reasoning
+       */
+      content?: string[] | null;
+    };
     /** ResponseTextContent */
     ResponseTextContent: {
+      /**
+       * Metadata
+       * @description Metadata about the response content
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
       /**
        * Kind
        * @description Content kind identifier, always 'text'
@@ -3611,6 +3709,13 @@ export interface components {
     };
     /** ResponseToolUseContent */
     ResponseToolUseContent: {
+      /**
+       * Metadata
+       * @description Metadata about the response content
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
       /**
        * Kind
        * @description Content kind identifier, always 'tool_use'
@@ -3633,6 +3738,93 @@ export interface components {
        * @description Raw tool input as a JSON string.
        */
       tool_input_raw: string;
+    };
+    /** ResultFullResult */
+    ResultFullResult: {
+      /** Chunks */
+      chunks: components['schemas']['ResultFullResultChunk'][];
+      /**
+       * Type
+       * @constant
+       */
+      type: 'full';
+      /** Custom */
+      custom?: unknown | null;
+      ocr?: components['schemas']['ResultFullResultOcr'] | null;
+    } & {
+      [key: string]: unknown;
+    };
+    /** ResultFullResultChunk */
+    ResultFullResultChunk: {
+      /** Blocks */
+      blocks: components['schemas']['ResultFullResultChunkBlock'][];
+      /** Content */
+      content: string;
+      /** Embed */
+      embed: string;
+      /** Enriched */
+      enriched?: string | null;
+      /** Enrichment Success */
+      enrichment_success?: boolean | null;
+    } & {
+      [key: string]: unknown;
+    };
+    /** ResultFullResultChunkBlock */
+    ResultFullResultChunkBlock: {
+      bbox: components['schemas']['BoundingBox'];
+      /** Content */
+      content: string;
+      /**
+       * Type
+       * @enum {string}
+       */
+      type:
+        | 'Header'
+        | 'Footer'
+        | 'Title'
+        | 'Section Header'
+        | 'Page Number'
+        | 'List Item'
+        | 'Figure'
+        | 'Table'
+        | 'Key Value'
+        | 'Text'
+        | 'Comment';
+      /** Confidence */
+      confidence?: string | null;
+      /** Image Url */
+      image_url?: string | null;
+    } & {
+      [key: string]: unknown;
+    };
+    /** ResultFullResultOcr */
+    ResultFullResultOcr: {
+      /** Lines */
+      lines: components['schemas']['ResultFullResultOcrLine'][];
+      /** Words */
+      words: components['schemas']['ResultFullResultOcrWord'][];
+    } & {
+      [key: string]: unknown;
+    };
+    /** ResultFullResultOcrLine */
+    ResultFullResultOcrLine: {
+      bbox: components['schemas']['BoundingBox'];
+      /** Text */
+      text: string;
+      /** Confidence */
+      confidence?: number | null;
+    } & {
+      [key: string]: unknown;
+    };
+    /** ResultFullResultOcrWord */
+    ResultFullResultOcrWord: {
+      bbox: components['schemas']['BoundingBox'];
+      /** Text */
+      text: string;
+      /** Confidence */
+      confidence?: number | null;
+    } & {
+      [key: string]: unknown;
     };
     /** Run */
     Run: {
@@ -4169,6 +4361,13 @@ export interface components {
        * @description The actual text content of the thought
        */
       thought: string;
+      /**
+       * Extras
+       * @description Extra information about related to the thought
+       */
+      extras?: {
+        [key: string]: unknown;
+      };
     };
     /** ThreadToolUsageContent */
     ThreadToolUsageContent: {
@@ -4325,6 +4524,18 @@ export interface components {
        * @default 0
        */
       total_tokens: number;
+      /**
+       * Cached Tokens
+       * @description Number of tokens that were retrieved from cache
+       * @default 0
+       */
+      cached_tokens: number;
+      /**
+       * Reasoning Tokens
+       * @description Number of reasoning tokens generated by the model
+       * @default 0
+       */
+      reasoning_tokens: number;
     };
     /** ToolDefinitionPayload */
     ToolDefinitionPayload: {
@@ -7369,7 +7580,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['ResultFullResult'];
         };
       };
       /** @description Validation Error */

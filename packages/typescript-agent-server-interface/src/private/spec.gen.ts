@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.32',
+    version: '2.0.33',
   },
   paths: {
     '/api/v2/ok': {
@@ -3471,7 +3471,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/ResultFullResult',
+                },
               },
             },
           },
@@ -5781,6 +5783,45 @@ export const spec = {
         type: 'object',
         required: ['file'],
         title: 'Body_upload_work_item_file_work_items_upload_file_post',
+      },
+      BoundingBox: {
+        properties: {
+          height: {
+            type: 'number',
+            title: 'Height',
+          },
+          left: {
+            type: 'number',
+            title: 'Left',
+          },
+          page: {
+            type: 'integer',
+            title: 'Page',
+          },
+          top: {
+            type: 'number',
+            title: 'Top',
+          },
+          width: {
+            type: 'number',
+            title: 'Width',
+          },
+          original_page: {
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Original Page',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['height', 'left', 'page', 'top', 'width'],
+        title: 'BoundingBox',
       },
       CachedToolDefinitionsReport: {
         properties: {
@@ -8519,6 +8560,12 @@ export const spec = {
       },
       ResponseAudioContent: {
         properties: {
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Metadata about the response content',
+          },
           kind: {
             type: 'string',
             const: 'audio',
@@ -8552,6 +8599,12 @@ export const spec = {
       },
       ResponseDocumentContent: {
         properties: {
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Metadata about the response content',
+          },
           kind: {
             type: 'string',
             const: 'document',
@@ -8610,6 +8663,12 @@ export const spec = {
       },
       ResponseImageContent: {
         properties: {
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Metadata about the response content',
+          },
           kind: {
             type: 'string',
             const: 'image',
@@ -8670,6 +8729,9 @@ export const spec = {
                 },
                 {
                   $ref: '#/components/schemas/ResponseImageContent',
+                },
+                {
+                  $ref: '#/components/schemas/ResponseReasoningContent',
                 },
                 {
                   $ref: '#/components/schemas/ResponseTextContent',
@@ -8738,8 +8800,123 @@ export const spec = {
         required: ['content', 'role'],
         title: 'ResponseMessage',
       },
+      ResponseReasoningContent: {
+        properties: {
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Metadata about the response content',
+          },
+          kind: {
+            type: 'string',
+            const: 'reasoning',
+            title: 'Kind',
+            description: "Content kind identifier, always 'reasoning'",
+            default: 'reasoning',
+          },
+          reasoning: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Reasoning',
+            description: 'The reasoning text from the model',
+          },
+          signature: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Signature',
+            description: 'The signature of the reasoning content',
+          },
+          redacted_content: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Redacted Content',
+            description: 'The redacted content of the reasoning',
+          },
+          encrypted_content: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Encrypted Content',
+            description: 'The encrypted content of the reasoning',
+          },
+          response_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Response Id',
+            description: 'The response ID of the reasoning',
+          },
+          summary: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Summary',
+            description: 'The summary of the reasoning',
+          },
+          content: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Content',
+            description: 'The content of the reasoning',
+          },
+        },
+        type: 'object',
+        title: 'ResponseReasoningContent',
+      },
       ResponseTextContent: {
         properties: {
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Metadata about the response content',
+          },
           kind: {
             type: 'string',
             const: 'text',
@@ -8759,6 +8936,12 @@ export const spec = {
       },
       ResponseToolUseContent: {
         properties: {
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Metadata about the response content',
+          },
           kind: {
             type: 'string',
             const: 'tool_use',
@@ -8785,6 +8968,218 @@ export const spec = {
         type: 'object',
         required: ['tool_call_id', 'tool_name', 'tool_input_raw'],
         title: 'ResponseToolUseContent',
+      },
+      ResultFullResult: {
+        properties: {
+          chunks: {
+            items: {
+              $ref: '#/components/schemas/ResultFullResultChunk',
+            },
+            type: 'array',
+            title: 'Chunks',
+          },
+          type: {
+            type: 'string',
+            const: 'full',
+            title: 'Type',
+          },
+          custom: {
+            anyOf: [
+              {},
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Custom',
+          },
+          ocr: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/ResultFullResultOcr',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['chunks', 'type'],
+        title: 'ResultFullResult',
+      },
+      ResultFullResultChunk: {
+        properties: {
+          blocks: {
+            items: {
+              $ref: '#/components/schemas/ResultFullResultChunkBlock',
+            },
+            type: 'array',
+            title: 'Blocks',
+          },
+          content: {
+            type: 'string',
+            title: 'Content',
+          },
+          embed: {
+            type: 'string',
+            title: 'Embed',
+          },
+          enriched: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Enriched',
+          },
+          enrichment_success: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Enrichment Success',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['blocks', 'content', 'embed'],
+        title: 'ResultFullResultChunk',
+      },
+      ResultFullResultChunkBlock: {
+        properties: {
+          bbox: {
+            $ref: '#/components/schemas/BoundingBox',
+          },
+          content: {
+            type: 'string',
+            title: 'Content',
+          },
+          type: {
+            type: 'string',
+            enum: [
+              'Header',
+              'Footer',
+              'Title',
+              'Section Header',
+              'Page Number',
+              'List Item',
+              'Figure',
+              'Table',
+              'Key Value',
+              'Text',
+              'Comment',
+            ],
+            title: 'Type',
+          },
+          confidence: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Confidence',
+          },
+          image_url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Image Url',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['bbox', 'content', 'type'],
+        title: 'ResultFullResultChunkBlock',
+      },
+      ResultFullResultOcr: {
+        properties: {
+          lines: {
+            items: {
+              $ref: '#/components/schemas/ResultFullResultOcrLine',
+            },
+            type: 'array',
+            title: 'Lines',
+          },
+          words: {
+            items: {
+              $ref: '#/components/schemas/ResultFullResultOcrWord',
+            },
+            type: 'array',
+            title: 'Words',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['lines', 'words'],
+        title: 'ResultFullResultOcr',
+      },
+      ResultFullResultOcrLine: {
+        properties: {
+          bbox: {
+            $ref: '#/components/schemas/BoundingBox',
+          },
+          text: {
+            type: 'string',
+            title: 'Text',
+          },
+          confidence: {
+            anyOf: [
+              {
+                type: 'number',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Confidence',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['bbox', 'text'],
+        title: 'ResultFullResultOcrLine',
+      },
+      ResultFullResultOcrWord: {
+        properties: {
+          bbox: {
+            $ref: '#/components/schemas/BoundingBox',
+          },
+          text: {
+            type: 'string',
+            title: 'Text',
+          },
+          confidence: {
+            anyOf: [
+              {
+                type: 'number',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Confidence',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['bbox', 'text'],
+        title: 'ResultFullResultOcrWord',
       },
       Run: {
         properties: {
@@ -9516,6 +9911,12 @@ export const spec = {
             title: 'Thought',
             description: 'The actual text content of the thought',
           },
+          extras: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Extras',
+            description: 'Extra information about related to the thought',
+          },
         },
         type: 'object',
         required: ['thought'],
@@ -9743,6 +10144,18 @@ export const spec = {
             title: 'Total Tokens',
             description:
               'Total number of tokens (input + output) used in the interaction',
+            default: 0,
+          },
+          cached_tokens: {
+            type: 'integer',
+            title: 'Cached Tokens',
+            description: 'Number of tokens that were retrieved from cache',
+            default: 0,
+          },
+          reasoning_tokens: {
+            type: 'integer',
+            title: 'Reasoning Tokens',
+            description: 'Number of reasoning tokens generated by the model',
             default: 0,
           },
         },
