@@ -329,12 +329,21 @@ class Simulator:
         self.server_url = server_url
 
         self.orchestrator = QualityOrchestrator(
-            server_url=server_url, data_dir=datadir, agent_server_version=agent_server_version
+            server_url=server_url,
+            data_dir=datadir,
+            agent_server_version=None if agent_server_version == "latest" else agent_server_version,
         )
 
         self.result_manager = ReplayResultManager(datadir=datadir)
 
-    async def replay_trace(self, golden_trace: Trace, assert_all_consumed: bool = False):
+    async def replay_trace(
+        self,
+        golden_trace: Trace,
+        assert_all_consumed: bool = False,
+        agent_server_version: str | None = None,
+        platform: str | None = None,
+        agent_name: str | None = None,
+    ):
         agents = self._discover_agents()
         if not agents:
             raise RuntimeError("No agent packages found")
@@ -348,13 +357,25 @@ class Simulator:
 
         agent = agents[0]
 
+        new_environment = TraceEnvironment(
+            name=f"Replay {golden_trace.environment.name}",
+            agent_name=agent_name
+            if agent_name is not None
+            else golden_trace.environment.agent_name,
+            agent_server_version=agent_server_version
+            if agent_server_version is not None
+            else golden_trace.environment.agent_server_version,
+            platform=platform if platform is not None else golden_trace.environment.platform,
+        )
+
         try:
             agent_server_url = await self.orchestrator.start_infrastructure()
             infrastructure_started = True
 
-            platform = Platform(name=golden_trace.environment.platform)
             agent_id = await self.orchestrator._upload_agent_with_platform(
-                agent_zip_path=agent.zip_path, agent_name=agent.name, platform=platform
+                agent_zip_path=agent.zip_path,
+                agent_name=agent.name,
+                platform=Platform(name=new_environment.platform),
             )
 
             tool_executor = ReplayToolExecutor.from_conversation(golden_trace)
@@ -372,12 +393,6 @@ class Simulator:
                 tool_executor=tool_executor,
             )
 
-            new_environment = TraceEnvironment(
-                name=f"Replay {golden_trace.environment.name}",
-                agent_name=golden_trace.environment.agent_name,
-                agent_server_version=golden_trace.environment.agent_server_version,
-                platform=golden_trace.environment.platform,
-            )
             # TODO for now we consider a single turn conversation: user request/agent response
             initial_payload = sublist_until_last(golden_trace.messages, lambda m: m.role == "user")
 

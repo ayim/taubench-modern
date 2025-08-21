@@ -455,9 +455,31 @@ async def oauth(ctx: Context):
     type=click.Path(exists=True, file_okay=True, path_type=Path),
     help="Simulate the agent environment using an existing conversation",
 )
+@click.option(
+    "--agent-server-version",
+    required=False,
+    type=str,
+)
+@click.option(
+    "--platform",
+    required=False,
+    type=str,
+)
+@click.option(
+    "--agent-name",
+    required=False,
+    type=str,
+)
 @click.option("--assert-all-consumed", is_flag=True)
 @click.pass_obj
-async def replay(ctx: Context, trace_file: Path, assert_all_consumed: bool):
+async def replay(  # noqa: PLR0913
+    ctx: Context,
+    trace_file: Path,
+    agent_server_version: str | None,
+    platform: str | None,
+    agent_name: str | None,
+    assert_all_consumed: bool,
+):
     trace = Trace.from_file(trace_file)
 
     try:
@@ -472,19 +494,27 @@ async def replay(ctx: Context, trace_file: Path, assert_all_consumed: bool):
         click.echo(f"{click.style('Platform:', fg='green')} {trace.environment.platform}")
         click.echo("-" * 40)
 
+        agent_server_version = (
+            agent_server_version
+            if agent_server_version is not None
+            else trace.environment.agent_server_version
+        )
+
         simulator = Simulator(
             test_threads_dir=ctx.threads_dir,
             test_agents_dir=ctx.agents_dir,
-            agent_server_version=None
-            if trace.environment.agent_server_version == "latest"
-            else trace.environment.agent_server_version,
+            agent_server_version=agent_server_version,
             datadir=ctx.quality_folder,
             server_url=ctx.agent_server_url,
         )
 
         # TODO allow to override trace environment
         result = await simulator.replay_trace(
-            golden_trace=trace, assert_all_consumed=assert_all_consumed
+            golden_trace=trace,
+            assert_all_consumed=assert_all_consumed,
+            agent_server_version=agent_server_version,
+            platform=platform,
+            agent_name=agent_name,
         )
 
         click.echo(f"💾 Results automatically saved to {simulator.result_manager.current_run_dir}")
