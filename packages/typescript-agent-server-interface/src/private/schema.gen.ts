@@ -1026,6 +1026,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/quality-checks/generate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Generate Quality Checks */
+    post: operations['generate_quality_checks_document_intelligence_quality_checks_generate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/quality-checks/execute': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Execute Quality Checks */
+    post: operations['execute_quality_checks_document_intelligence_quality_checks_execute_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/layouts': {
     parameters: {
       query?: never;
@@ -2474,6 +2508,13 @@ export interface components {
       role: '$conversation-history' | '$documents' | '$memories';
       params?: components['schemas']['DocumentsParams'];
     };
+    /** ExecuteDataQualityChecksRequest */
+    ExecuteDataQualityChecksRequest: {
+      /** Quality Checks */
+      quality_checks: components['schemas']['ValidationRule'][];
+      /** Document Id */
+      document_id: string;
+    };
     /** ExtractDocumentPayload */
     ExtractDocumentPayload: {
       /** Thread Id */
@@ -2500,6 +2541,23 @@ export interface components {
        * @description Optional custom name for the forked thread
        */
       name?: string | null;
+    };
+    /** GenerateDataQualityChecksRequest */
+    GenerateDataQualityChecksRequest: {
+      /** Data Model Name */
+      data_model_name: string;
+      /** Description */
+      description: string;
+      /**
+       * Limit
+       * @default 1
+       */
+      limit: number;
+    };
+    /** GenerateDataQualityChecksResponse */
+    GenerateDataQualityChecksResponse: {
+      /** Quality Checks */
+      quality_checks: components['schemas']['ValidationRule'][];
     };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
@@ -4807,6 +4865,74 @@ export interface components {
       metadata?: {
         [key: string]: unknown;
       };
+    };
+    /**
+     * ValidationResult
+     * @description Result of a single validation rule check.
+     *
+     *     Attributes:
+     *         rule_name: The name of the validation rule
+     *         status: The status of the validation (passed/failed/error)
+     *         description: Description of the validation result
+     *         error_message: Optional error message if validation failed
+     *         sql_query: The SQL query that was executed
+     *         context: Metadata about the validation result
+     */
+    ValidationResult: {
+      /** Rule Name */
+      rule_name: string;
+      /** Status */
+      status: string;
+      /** Description */
+      description: string;
+      /** Error Message */
+      error_message?: string | null;
+      /** Sql Query */
+      sql_query: string;
+      /** Context */
+      context?: {
+        [key: string]: unknown;
+      } | null;
+    };
+    /**
+     * ValidationRule
+     * @description A validation rule for a use case.
+     *
+     *     Attributes:
+     *         rule_name: The name of the validation rule
+     *         rule_description: A description of what the rule validates
+     *         sql_query: The SQL query that validates the extracted data
+     */
+    ValidationRule: {
+      /** Rule Name */
+      rule_name: string;
+      /** Rule Description */
+      rule_description: string;
+      /** Sql Query */
+      sql_query: string;
+    };
+    /**
+     * ValidationSummary
+     * @description Summary of all validation results for a document.
+     *
+     *     Attributes:
+     *         overall_status: Overall status of all validations
+     *         results: List of individual validation results
+     *         passed: Number of passed validations
+     *         failed: Number of failed validations
+     *         errors: Number of validation errors
+     */
+    ValidationSummary: {
+      /** Overall Status */
+      overall_status: string;
+      /** Results */
+      results: components['schemas']['ValidationResult'][];
+      /** Passed */
+      passed: number;
+      /** Failed */
+      failed: number;
+      /** Errors */
+      errors: number;
     };
     /** WorkItem */
     WorkItem: {
@@ -7317,6 +7443,75 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  generate_quality_checks_document_intelligence_quality_checks_generate_post: {
+    parameters: {
+      query: {
+        agent_id: string;
+        thread_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GenerateDataQualityChecksRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GenerateDataQualityChecksResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  execute_quality_checks_document_intelligence_quality_checks_execute_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ExecuteDataQualityChecksRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ValidationSummary'];
         };
       };
       /** @description Validation Error */

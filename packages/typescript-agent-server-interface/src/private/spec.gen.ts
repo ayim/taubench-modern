@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.33',
+    version: '2.0.34',
   },
   paths: {
     '/api/v2/ok': {
@@ -3075,6 +3075,113 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/quality-checks/generate': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Generate Quality Checks',
+        operationId:
+          'generate_quality_checks_document_intelligence_quality_checks_generate_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Thread Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/GenerateDataQualityChecksRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/GenerateDataQualityChecksResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/quality-checks/execute': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Execute Quality Checks',
+        operationId:
+          'execute_quality_checks_document_intelligence_quality_checks_execute_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ExecuteDataQualityChecksRequest',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ValidationSummary',
+                },
               },
             },
           },
@@ -6645,6 +6752,24 @@ export const spec = {
         required: ['role'],
         title: 'DocumentsSpecialMessage',
       },
+      ExecuteDataQualityChecksRequest: {
+        properties: {
+          quality_checks: {
+            items: {
+              $ref: '#/components/schemas/ValidationRule',
+            },
+            type: 'array',
+            title: 'Quality Checks',
+          },
+          document_id: {
+            type: 'string',
+            title: 'Document Id',
+          },
+        },
+        type: 'object',
+        required: ['quality_checks', 'document_id'],
+        title: 'ExecuteDataQualityChecksRequest',
+      },
       ExtractDocumentPayload: {
         properties: {
           thread_id: {
@@ -6726,6 +6851,40 @@ export const spec = {
         type: 'object',
         required: ['message_id'],
         title: 'ForkThreadPayload',
+      },
+      GenerateDataQualityChecksRequest: {
+        properties: {
+          data_model_name: {
+            type: 'string',
+            title: 'Data Model Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          limit: {
+            type: 'integer',
+            title: 'Limit',
+            default: 1,
+          },
+        },
+        type: 'object',
+        required: ['data_model_name', 'description'],
+        title: 'GenerateDataQualityChecksRequest',
+      },
+      GenerateDataQualityChecksResponse: {
+        properties: {
+          quality_checks: {
+            items: {
+              $ref: '#/components/schemas/ValidationRule',
+            },
+            type: 'array',
+            title: 'Quality Checks',
+          },
+        },
+        type: 'object',
+        required: ['quality_checks'],
+        title: 'GenerateDataQualityChecksResponse',
       },
       GooglePlatformParameters: {
         properties: {
@@ -10672,6 +10831,107 @@ export const spec = {
         type: 'object',
         required: ['agent_id', 'name'],
         title: 'UpsertThreadPayload',
+      },
+      ValidationResult: {
+        properties: {
+          rule_name: {
+            type: 'string',
+            title: 'Rule Name',
+          },
+          status: {
+            type: 'string',
+            title: 'Status',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          error_message: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Error Message',
+          },
+          sql_query: {
+            type: 'string',
+            title: 'Sql Query',
+          },
+          context: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Context',
+          },
+        },
+        type: 'object',
+        required: ['rule_name', 'status', 'description', 'sql_query'],
+        title: 'ValidationResult',
+        description:
+          'Result of a single validation rule check.\n\nAttributes:\n    rule_name: The name of the validation rule\n    status: The status of the validation (passed/failed/error)\n    description: Description of the validation result\n    error_message: Optional error message if validation failed\n    sql_query: The SQL query that was executed\n    context: Metadata about the validation result',
+      },
+      ValidationRule: {
+        properties: {
+          rule_name: {
+            type: 'string',
+            title: 'Rule Name',
+          },
+          rule_description: {
+            type: 'string',
+            title: 'Rule Description',
+          },
+          sql_query: {
+            type: 'string',
+            title: 'Sql Query',
+          },
+        },
+        type: 'object',
+        required: ['rule_name', 'rule_description', 'sql_query'],
+        title: 'ValidationRule',
+        description:
+          'A validation rule for a use case.\n\nAttributes:\n    rule_name: The name of the validation rule\n    rule_description: A description of what the rule validates\n    sql_query: The SQL query that validates the extracted data',
+      },
+      ValidationSummary: {
+        properties: {
+          overall_status: {
+            type: 'string',
+            title: 'Overall Status',
+          },
+          results: {
+            items: {
+              $ref: '#/components/schemas/ValidationResult',
+            },
+            type: 'array',
+            title: 'Results',
+          },
+          passed: {
+            type: 'integer',
+            title: 'Passed',
+          },
+          failed: {
+            type: 'integer',
+            title: 'Failed',
+          },
+          errors: {
+            type: 'integer',
+            title: 'Errors',
+          },
+        },
+        type: 'object',
+        required: ['overall_status', 'results', 'passed', 'failed', 'errors'],
+        title: 'ValidationSummary',
+        description:
+          'Summary of all validation results for a document.\n\nAttributes:\n    overall_status: Overall status of all validations\n    results: List of individual validation results\n    passed: Number of passed validations\n    failed: Number of failed validations\n    errors: Number of validation errors',
       },
       WorkItem: {
         properties: {
