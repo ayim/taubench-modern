@@ -583,7 +583,7 @@ async def test_client_sse_headers_propagated(monkeypatch):
     captured_headers = None
 
     @asynccontextmanager
-    async def mock_sse_client(url, headers=None):
+    async def mock_sse_client(url, headers=None, **_kw):
         nonlocal captured_headers
         captured_headers = headers
 
@@ -962,3 +962,108 @@ async def test_stdio_env_merging_preserves_current_env(monkeypatch):
 
     # Verify the total count
     assert len(merged_env) == len(mock_env) + 1
+
+
+@pytest.mark.asyncio
+async def test_call_tool_retries_on_http_429(monkeypatch):
+    """
+    If a tool call hits a rate limit (HTTP 429), the client should retry.
+    Also verify that the resumption token from the first attempt is reused.
+    """
+    server = await _make_dummy_server()
+    client, sess, done = await _make_connected_client(server)
+
+    sent_metadata: list[ClientMessageMetadata | None] = []
+    calls = 0
+
+    async def fake_send_request(*_a, metadata: ClientMessageMetadata | None = None, **_kw):
+        nonlocal calls
+        calls += 1
+        sent_metadata.append(metadata)
+
+        if calls == 1:
+            # Simulate the server emitting a token before failing
+            if metadata and metadata.on_resumption_token_update:
+                await metadata.on_resumption_token_update("tok-429")
+
+            # Raise a 429 as an httpx HTTPStatusError
+            req = httpx.Request("POST", "http://x/mcp")
+            resp = httpx.Response(429, request=req)
+            raise httpx.HTTPStatusError("rate limited", request=req, response=resp)
+
+        # Second attempt succeeds
+        return mtypes.CallToolResult(content=[mtypes.TextContent(type="text", text="ok")])
+
+    monkeypatch.setattr(sess, "send_request", fake_send_request, raising=True)
+
+    # Prevent real transport activity during retry
+    async def _noop(*_a, **_kw):  # <- coroutine!
+        return None
+
+    monkeypatch.setattr(client, "connect", _noop)
+    monkeypatch.setattr(client, "close", _noop)
+
+    # Call with 2 attempts and no backoff to keep the test snappy
+    out = await client.call_tool("dummy", attempts=2, base_backoff=0)
+    assert out["content"][0]["text"] == "ok"
+    assert calls == 2  # we actually retried
+
+    # Verify resumption-token behavior
+    assert sent_metadata[0] is not None
+    assert sent_metadata[0].resumption_token is None
+    assert sent_metadata[1] is not None
+    assert sent_metadata[1].resumption_token == "tok-429"
+
+    await done()
+
+
+@pytest.mark.asyncio
+async def test_call_tool_429_exhausts_attempts(monkeypatch):
+    server = await _make_dummy_server()
+    client, sess, done = await _make_connected_client(server)
+
+    async def always_429(*_a, **_kw):
+        req = httpx.Request("POST", "http://x/mcp")
+        resp = httpx.Response(429, request=req)
+        raise httpx.HTTPStatusError("rate limited", request=req, response=resp)
+
+    monkeypatch.setattr(sess, "send_request", always_429, raising=True)
+
+    async def _noop(*_a, **_kw):
+        return None
+
+    monkeypatch.setattr(client, "connect", _noop)
+    monkeypatch.setattr(client, "close", _noop)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await client.call_tool("dummy", attempts=1, base_backoff=0)
+
+    await done()
+
+
+@pytest.mark.asyncio
+async def test_call_tool_does_not_retry_on_400(monkeypatch):
+    server = await _make_dummy_server()
+    client, sess, done = await _make_connected_client(server)
+
+    calls = 0
+
+    async def once_400(*_a, **_kw):
+        nonlocal calls
+        calls += 1
+        req = httpx.Request("POST", "http://x/mcp")
+        resp = httpx.Response(400, request=req)
+        raise httpx.HTTPStatusError("bad request", request=req, response=resp)
+
+    monkeypatch.setattr(sess, "send_request", once_400, raising=True)
+
+    async def _noop(*_a, **_kw):
+        return None
+
+    monkeypatch.setattr(client, "connect", _noop)
+    monkeypatch.setattr(client, "close", _noop)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await client.call_tool("dummy", attempts=5, base_backoff=0)
+    assert calls == 1  # no retry
+    await done()

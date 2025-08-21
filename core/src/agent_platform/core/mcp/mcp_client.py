@@ -45,7 +45,8 @@ from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import urlparse
 
 import httpx
-from anyio import ClosedResourceError
+from anyio import BrokenResourceError, ClosedResourceError
+from httpx_retries import Retry, RetryTransport
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.stdio import StdioServerParameters, stdio_client
@@ -110,6 +111,27 @@ class MCPClientConfiguration(Configuration):
         metadata=FieldMetadata(
             description="Read-timeout for long-running tool calls.",
             env_vars=["SEMA4AI_AGENT_SERVER_MCP_TOOL_CALL_READ_TIMEOUT_SECONDS"],
+        ),
+    )
+    http_retry_total: int = field(
+        default=5,
+        metadata=FieldMetadata(
+            description="Max number of HTTP retries for MCP transports.",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_HTTP_RETRY_TOTAL"],
+        ),
+    )
+    http_retry_backoff_factor: float = field(
+        default=0.5,
+        metadata=FieldMetadata(
+            description="Exponential backoff factor for MCP HTTP retries.",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_HTTP_RETRY_BACKOFF_FACTOR"],
+        ),
+    )
+    http_retry_status_forcelist: list[int] = field(
+        default_factory=lambda: [408, 429, 500, 502, 503, 504],
+        metadata=FieldMetadata(
+            description="HTTP status codes retried for MCP transports.",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_HTTP_RETRY_STATUS_FORCELIST"],
         ),
     )
 
@@ -392,13 +414,39 @@ class MCPClient:
 
         name = "streamable" if self.target_server.transport == "streamable-http" else "sse"
 
+        def _retrying_httpx_client_factory(
+            headers: dict[str, str] | None = None,
+            timeout: httpx.Timeout | None = None,
+            auth: httpx.Auth | None = None,
+        ) -> httpx.AsyncClient:
+            retry = Retry(
+                total=self._cfg.http_retry_total,
+                backoff_factor=self._cfg.http_retry_backoff_factor,
+                status_forcelist=set(self._cfg.http_retry_status_forcelist),
+                allowed_methods=None,  # retry all methods (POST included)
+            )
+            transport = RetryTransport(retry=retry)
+            return httpx.AsyncClient(
+                transport=transport,
+                headers=headers,
+                timeout=timeout or httpx.Timeout(30.0),
+                auth=auth,
+                follow_redirects=True,
+            )
+
         def factory() -> Any:
             """Create the chosen transport client."""
             if name == "streamable":
                 return streamablehttp_client(
-                    target_url, headers=self._headers if self._headers else None
+                    target_url,
+                    headers=self._headers if self._headers else None,
+                    httpx_client_factory=_retrying_httpx_client_factory,
                 )
-            return sse_client(target_url, headers=self._headers if self._headers else None)
+            return sse_client(
+                target_url,
+                headers=self._headers if self._headers else None,
+                httpx_client_factory=_retrying_httpx_client_factory,
+            )
 
         winner_evt = asyncio.Event()
         task = asyncio.create_task(
@@ -543,37 +591,79 @@ class MCPClient:
     # ------------------------------------------------------------------ #
     #  High-level tool operations                                        #
     # ------------------------------------------------------------------ #
+    def _is_transient(self, e: Exception) -> bool:
+        # Network/timeout/protocol errors: transient
+        if isinstance(
+            e, (ClosedResourceError | BrokenResourceError | TimeoutError | ConnectionError)
+        ):
+            return True
+        if isinstance(e, httpx.RequestError) and not isinstance(e, httpx.HTTPStatusError):
+            # DNS failures, connect timeouts, read timeouts, protocol errors...
+            return True
+        if isinstance(e, httpx.HTTPStatusError):
+            resp = e.response
+            code = resp.status_code if resp is not None else None
+            # Retry only classic transient statuses
+            return (
+                code in self._cfg.http_retry_status_forcelist
+                or (code is not None and 500 <= code < 600)  # noqa: PLR2004
+            )
+        return False
+
+    async def _reconnect_when_appropriate(self, exc: Exception) -> None:
+        # Try to reestablish transport; swallow errors here
+        reconnect_needed = isinstance(
+            exc,
+            (ClosedResourceError | BrokenResourceError | httpx.RequestError),
+        ) and not isinstance(exc, httpx.HTTPStatusError)
+        if reconnect_needed:
+            logger.debug(f"will reconnect to MCP server because of transient error: {exc!r}")
+            try:
+                await self.close()
+            except Exception:
+                pass
+            try:
+                await self.connect()
+            except Exception:
+                pass
 
     async def call_tool(
         self,
         name: str,
         arguments: dict[str, Any] | None = None,
         *,
-        attempts: int = 3,
-        base_backoff: float = 0.25,
+        attempts: int = 5,
         backoff_cap: float = 8.0,
-    ) -> Any:
+        base_backoff: float = 0.25,
+    ) -> dict[str, Any]:
         """
-        Invoke *tool* with automatic retries on transient I/O errors.
-
-        Non-transient exceptions bubble up immediately.
+        Invoke a tool with automatic retries on transient I/O errors.
+        Retries reuse any resumption token emitted by earlier attempts.
+        Non-transient exceptions bubble immediately.
         """
 
-        # Per-call resumption token (independent for concurrent calls)
+        # Token captured from streaming; reused on retry
         last_token: str | None = None
 
         async def _on_token_update(token: str):
             nonlocal last_token
             last_token = token
 
+        if not self.is_connected:
+            await self.connect()
+
+        attempts = max(1, attempts)
+        last_exc: Exception | None = None
+
         for attempt in range(1, attempts + 1):
             try:
-                if not self.is_connected:
-                    await self.connect()
+                # Recreate the context manager each attempt; don't reuse
+                if self._call_lock:
+                    cm = self._call_lock
+                else:
+                    cm = _anoop()
 
-                maybe_lock = self._call_lock or _anoop()
-
-                async with maybe_lock:
+                async with cm:
                     metadata = ClientMessageMetadata(
                         resumption_token=last_token,
                         on_resumption_token_update=_on_token_update,
@@ -594,30 +684,33 @@ class MCPClient:
                         ),
                         metadata=metadata,
                     )
-
-                logger.info("Tool %s succeeded (attempt %d)", name, attempt)
+                logger.info(f"MCP Tool {name} succeeded (attempt {attempt}/{attempts})")
                 return result.model_dump()
 
-            # ---------------- transient failures -------------------- #
-            except (
-                ClosedResourceError,
-                httpx.ReadTimeout,
-                httpx.WriteError,
-                TimeoutError,
-            ) as exc:
-                logger.warning("Transient error on %s attempt %d: %s", name, attempt, exc)
-                await self.close()
-                if attempt == attempts:
+            except Exception as exc:
+                is_transient = self._is_transient(exc)
+                if not is_transient or attempt == attempts:
+                    if not is_transient:
+                        logger.debug(
+                            f"will not retry tool {name} attempt {attempt}/{attempts} "
+                            f"because it is not transient: {exc!r}"
+                        )
+                    elif attempt == attempts:
+                        logger.debug(
+                            f"will not retry tool {name} attempt {attempt}/{attempts} "
+                            f"because it is the last attempt: {exc!r}"
+                        )
                     raise
+                await self._reconnect_when_appropriate(exc)
+                last_exc = exc
+                logger.debug(
+                    f"tool {name} attempt {attempt}/{attempts} "
+                    f"failed: {exc!r} (resumption_token={last_token})"
+                )
+                await asyncio.sleep(_full_jitter(base_backoff, attempt, backoff_cap))
 
-                delay = _full_jitter(base_backoff, attempt, backoff_cap)
-                logger.info("Retrying in %.2fs …", delay)
-                await asyncio.sleep(delay)
-
-            # ---------------- protocol / logic errors --------------- #
-            except Exception:
-                # Do NOT retry: propagate
-                raise
+        assert last_exc is not None
+        raise last_exc
 
     # ------------------------------------------------------------------ #
     #  list_tools                                                        #
