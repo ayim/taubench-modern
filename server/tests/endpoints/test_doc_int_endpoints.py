@@ -12,6 +12,7 @@ from reducto.types.shared.parse_response import (
     ResultFullResultChunkBlock,
 )
 from reducto.types.shared.parse_usage import ParseUsage
+from sema4ai.data._data_source import ConnectionNotSetupError
 from sema4ai_docint import normalize_name
 from sema4ai_docint.extraction.reducto.exceptions import (
     ExtractFailedError,
@@ -68,6 +69,24 @@ def client(fastapi_app: FastAPI) -> TestClient:
     return TestClient(fastapi_app)
 
 
+@pytest.fixture
+def mock_docint_service() -> Mock:
+    """Create a mock DocumentIntelligenceService with proper connection structure."""
+    fake_service = Mock()
+    fake_service.ensure_setup.return_value = None
+
+    # Mock datasource with connection structure for connectivity check
+    fake_datasource = Mock()
+    fake_connection = Mock()
+    fake_http_connection = Mock()
+    fake_http_connection.login.return_value = None  # Successful login by default
+    fake_connection._http_connection = fake_http_connection
+    fake_datasource.connection.return_value = fake_connection
+    fake_service.get_docint_datasource.return_value = fake_datasource
+
+    return fake_service
+
+
 class TestDocumentIntelligenceEndpoints:
     """Tests for document intelligence endpoints."""
 
@@ -86,7 +105,9 @@ class TestDocumentIntelligenceEndpoints:
             == "Document Intelligence DataServer has not been configured"
         )
 
-    def test_ok_endpoint_succeeds_when_configured(self, client: TestClient):
+    def test_ok_endpoint_succeeds_when_configured(
+        self, client: TestClient, mock_docint_service: Mock
+    ):
         """When DIDS details are present and valid, the endpoint should succeed."""
         # Prepare valid connection details
         valid_details = DataServerDetails(
@@ -101,10 +122,41 @@ class TestDocumentIntelligenceEndpoints:
         # Patch the storage instance used by the router dependency to return valid details
         storage_instance = StorageService.get_instance()
 
-        # Stub the DI service to avoid touching real DataSource during dependency execution
-        fake_service = Mock()
-        fake_service.ensure_setup.return_value = None
-        fake_service.get_docint_datasource.return_value = Mock()
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=mock_docint_service,
+            ),
+        ):
+            response = client.get("/api/v2/document-intelligence/ok")
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+
+    def test_ok_endpoint_fails_when_data_server_offline(
+        self, client: TestClient, mock_docint_service: Mock
+    ):
+        """When DIDS details are valid but data server is unreachable, should return 412."""
+        valid_details = DataServerDetails(
+            username="testuser",
+            password=SecretString("testpass"),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
+            ],
+        )
+
+        storage_instance = StorageService.get_instance()
+
+        # Create mock service and customize it to make login fail (simulate offline server)
+        datasource = mock_docint_service.get_docint_datasource.return_value
+        http_conn = datasource.connection.return_value._http_connection
+        http_conn.login.side_effect = Exception("Connection refused")
 
         with (
             patch.object(
@@ -114,13 +166,56 @@ class TestDocumentIntelligenceEndpoints:
             ),
             patch(
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
-                return_value=fake_service,
+                return_value=mock_docint_service,
             ),
         ):
             response = client.get("/api/v2/document-intelligence/ok")
 
-        assert response.status_code == 200
-        assert response.json() == {"ok": True}
+        assert response.status_code == 412
+        error_data = response.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.PRECONDITION_FAILED.value.code
+        expected_msg = "Failed to login to Document Intelligence data source: Connection refused"
+        assert expected_msg in error_data["error"]["message"]
+
+    def test_ok_endpoint_fails_when_connection_not_setup(
+        self, client: TestClient, mock_docint_service: Mock
+    ):
+        """When datasource connection is not properly setup, should return 412."""
+        valid_details = DataServerDetails(
+            username="testuser",
+            password=SecretString("testpass"),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
+            ],
+        )
+
+        storage_instance = StorageService.get_instance()
+
+        # Create mock service and customize it to make connection() raise ConnectionNotSetupError
+        datasource = mock_docint_service.get_docint_datasource.return_value
+        datasource.connection.side_effect = ConnectionNotSetupError("Connection not setup")
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=mock_docint_service,
+            ),
+        ):
+            response = client.get("/api/v2/document-intelligence/ok")
+
+        assert response.status_code == 412
+        error_data = response.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.PRECONDITION_FAILED.value.code
+        expected_msg = "Document Intelligence datasource connection not properly configured"
+        assert expected_msg in error_data["error"]["message"]
 
     def test_upsert_document_intelligence_succeeds(self, client: TestClient):
         """POST /document-intelligence should persist details, integrations,

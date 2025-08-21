@@ -9,6 +9,7 @@ from sema4ai.actions._action import set_current_requests_contexts
 from sema4ai.actions._action_context import RequestContexts
 from sema4ai.actions._request import Request as Sema4aiRequest
 from sema4ai.data import DataSource
+from sema4ai.data._data_source import ConnectionNotSetupError
 from sema4ai_docint import SyncExtractionClient
 from sema4ai_docint.agent_server_client import AgentServerClient
 from starlette.concurrency import run_in_threadpool
@@ -16,6 +17,8 @@ from starlette.concurrency import run_in_threadpool
 from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import IntegrationKind
+from agent_platform.core.errors import ErrorCode
+from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.quotas import (
     AgentQuotaExceededError,
     MCPServerQuotaExceededError,
@@ -209,7 +212,23 @@ def get_docint_datasource(details: DIDSDetailsDependency) -> DataSource:
     unsafe global caching patterns.
     """
     service = DocumentIntelligenceService.get_instance(details)
-    return service.get_docint_datasource()
+    datasource = service.get_docint_datasource()
+
+    # Lightweight connectivity check: verify actual network connectivity
+    try:
+        datasource.connection()._http_connection.login()
+    except ConnectionNotSetupError as e:
+        raise PlatformHTTPError(
+            ErrorCode.PRECONDITION_FAILED,
+            "Document Intelligence datasource connection not properly configured.",
+        ) from e
+    except Exception as e:
+        raise PlatformHTTPError(
+            ErrorCode.PRECONDITION_FAILED,
+            f"Failed to login to Document Intelligence data source: {e!s}",
+        ) from e
+
+    return datasource
 
 
 DocIntDatasourceDependency = Annotated[DataSource, Depends(get_docint_datasource)]
