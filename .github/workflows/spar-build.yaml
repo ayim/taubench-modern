@@ -135,13 +135,13 @@ jobs:
           echo "::notice::Successfully published ${IMAGE_URI}"
 
   trigger-docker-build:
-    name: Trigger Docker build workflow
+    name: Trigger ACE Publish Workflow
     needs: [build]
     runs-on: ubuntu-24.04
     env:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     steps:
-      - name: Trigger Docker build workflow
+      - name: Trigger ACE Publish Workflow
         uses: actions/github-script@v7
         with:
           github-token: '${{ secrets.ACE_DEPLOY_WORKFLOW_TRIGGER_TOKEN }}'

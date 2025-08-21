@@ -231,30 +231,6 @@ jobs:
           prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
           generate_release_notes: false
 
-  trigger-docker-build:
-    name: Trigger Docker build workflow
-    needs: [version, upload-executables-to-s3]
-    runs-on: ubuntu-24.04
-    env:
-      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-    steps:
-      - name: Trigger Docker build workflow
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'docker-build-ace-image.yaml',
-              ref: '${{ env.BRANCH_NAME }}',
-              inputs: {
-                release_channel: 'ci',
-                agent_server_version: 'v${{ needs.version.outputs.value }}',
-                agent_server_commit: '${{ github.sha }}',
-                agent_server_branch: '${{ env.BRANCH_NAME }}',
-              }
-            })
-
   trigger-interface-publish:
     name: Open PR for agent-server-interface update
     needs: [version, upload-executables-to-s3]
