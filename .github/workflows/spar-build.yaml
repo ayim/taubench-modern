@@ -150,9 +150,9 @@ jobs:
               owner: context.repo.owner,
               repo: 'ace',
               workflow_id: 'ace-publish-v2.yml',
-              ref: 'feat/ace-spar',
+              ref: 'master',
               inputs: {
-                'branch': 'feat/ace-spar',
+                'branch': 'master',
                 'spar-version': '${{ needs.build.outputs.tag }}',
                 'prerelease': '${{ needs.build.outputs.ace-prerelease }}',
                 'invoked-by': '${{ needs.build.outputs.invoked-by }}'
