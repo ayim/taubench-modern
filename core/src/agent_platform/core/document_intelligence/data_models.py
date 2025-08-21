@@ -5,6 +5,7 @@ from typing import Any
 
 from sema4ai_docint.models.data_model import DataModel
 from sema4ai_docint.utils import normalize_name
+from sema4ai_docint.validation.models import ValidationRule
 
 
 @dataclass(frozen=True)
@@ -163,3 +164,31 @@ class UpdateDataModelRequest:
     """Request payload for updating a data model (partial)."""
 
     dataModel: PartialDataModelPayload  # noqa: N815
+
+
+@dataclass(frozen=True)
+class GenerateDataQualityChecksRequest:
+    """Request payload for generating data quality checks."""
+
+    data_model_name: str
+    description: str
+    limit: int = 1
+
+
+@dataclass(frozen=True)
+class ExecuteDataQualityChecksRequest:
+    """Request payload for executing data quality checks."""
+
+    quality_checks: list[ValidationRule]
+    document_id: str
+
+
+@dataclass(frozen=True)
+class GenerateDataQualityChecksResponse:
+    """Response payload for generating data quality checks."""
+
+    quality_checks: list[ValidationRule]
+
+    @classmethod
+    def model_validate(cls, data: list[ValidationRule]) -> GenerateDataQualityChecksResponse:
+        return cls(quality_checks=data)

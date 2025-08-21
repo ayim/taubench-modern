@@ -2236,6 +2236,282 @@ class TestParseDocumentEndpoints:
         assert expected_message_substr in err["message"].lower()
 
 
+class TestDataQualityChecksEndpoints:
+    """Tests for generate and execute data quality checks."""
+
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
+            username="user",
+            password=SecretString("pass"),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
+            ],
+        )
+
+    def _override_client_dependency(self, app: FastAPI, fake_client) -> None:
+        app.dependency_overrides[get_agent_server_client] = (
+            lambda agent_id, request=None, thread_id=None: fake_client
+        )
+
+    def test_generate_quality_checks_success(self, client: TestClient, fastapi_app: FastAPI):
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_ds = Mock()
+
+        sample_model = SimpleNamespace(
+            description="Model description",
+            views=[{"name": "v_items", "sql": "SELECT * FROM items"}],
+        )
+
+        class _FakeTable:
+            def __init__(self):
+                self.columns = ["document_id", "value"]
+                self.rows = [["d1", 1], ["d2", 2]]
+
+        class _FakeResult:
+            def to_table(self):
+                return _FakeTable()
+
+        fake_ds.execute_sql.return_value = _FakeResult()
+
+        fake_client = Mock()
+        # New endpoint validates rules into ValidationRule, so use correct keys
+        fake_rules = [
+            {"rule_name": "rule1", "sql_query": "SELECT 1", "rule_description": "desc1"},
+            {"rule_name": "rule2", "sql_query": "SELECT 2", "rule_description": "desc2"},
+            {"rule_name": "rule3", "sql_query": "SELECT 3", "rule_description": "desc3"},
+        ]
+        fake_client.generate_validation_rules.return_value = fake_rules
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=sample_model,
+            ) as mock_find_by_name,
+        ):
+            fake_service.get_docint_datasource.return_value = fake_ds
+            self._override_client_dependency(fastapi_app, fake_client)
+
+            resp = client.post(
+                "/api/v2/document-intelligence/quality-checks/generate",
+                params={"agent_id": "agent-1"},
+                json={
+                    "data_model_name": "Invoices",
+                    "description": "Generate a few checks",
+                    "limit": 2,
+                },
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "quality_checks" in body
+        assert isinstance(body["quality_checks"], list)
+        assert len(body["quality_checks"]) == 2
+        # Response items are serialized ValidationRule objects; compare by fields
+        assert body["quality_checks"] == fake_rules[:2]
+        mock_find_by_name.assert_called_once()
+        fake_client.generate_validation_rules.assert_called_once()
+
+    def test_generate_quality_checks_data_model_not_found(
+        self, client: TestClient, fastapi_app: FastAPI
+    ):
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+        fake_client = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=None,
+            ),
+        ):
+            self._override_client_dependency(fastapi_app, fake_client)
+            resp = client.post(
+                "/api/v2/document-intelligence/quality-checks/generate",
+                params={"agent_id": "agent-1"},
+                json={
+                    "data_model_name": "missing",
+                    "description": "desc",
+                    "limit": 1,
+                },
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+
+    def test_generate_quality_checks_missing_views(self, client: TestClient, fastapi_app: FastAPI):
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+        fake_client = Mock()
+
+        sample_model = SimpleNamespace(description="desc", views=None)
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=sample_model,
+            ),
+        ):
+            self._override_client_dependency(fastapi_app, fake_client)
+            resp = client.post(
+                "/api/v2/document-intelligence/quality-checks/generate",
+                params={"agent_id": "agent-1"},
+                json={
+                    "data_model_name": "Invoices",
+                    "description": "checks",
+                    "limit": 3,
+                },
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "no views have been defined for the data model" in err["message"].lower()
+
+    def test_execute_quality_checks_success(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_ds = Mock()
+        fake_service.get_docint_datasource.return_value = fake_ds
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.validate_document_extraction",
+                return_value={
+                    "overall_status": "passed",
+                    "results": [],
+                    "passed": 1,
+                    "failed": 0,
+                    "errors": 0,
+                },
+            ) as mock_validate,
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/quality-checks/execute",
+                json={
+                    "document_id": "doc-123",
+                    "quality_checks": [
+                        {
+                            "rule_name": "non_empty",
+                            "sql_query": "SELECT * FROM v WHERE id IS NOT NULL",
+                            "rule_description": "id must be present",
+                        }
+                    ],
+                },
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body == {
+            "overall_status": "passed",
+            "results": [],
+            "passed": 1,
+            "failed": 0,
+            "errors": 0,
+        }
+        mock_validate.assert_called_once()
+
+    def test_execute_quality_checks_failed_validation_returns_200(self, client: TestClient):
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_ds = Mock()
+        fake_service.get_docint_datasource.return_value = fake_ds
+
+        failed_summary = {
+            "overall_status": "failed",
+            "results": [
+                {
+                    "rule_name": "non_empty",
+                    "status": "failed",
+                    "description": "Found 2 rows with NULL id",
+                    "error_message": None,
+                    "sql_query": "SELECT * FROM v WHERE id IS NOT NULL",
+                    "context": None,
+                }
+            ],
+            "passed": 0,
+            "failed": 1,
+            "errors": 0,
+        }
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.validate_document_extraction",
+                return_value=failed_summary,
+            ) as mock_validate,
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/quality-checks/execute",
+                json={
+                    "document_id": "doc-123",
+                    "quality_checks": [
+                        {
+                            "rule_name": "non_empty",
+                            "sql_query": "SELECT * FROM v WHERE id IS NOT NULL",
+                            "rule_description": "id must be present",
+                        }
+                    ],
+                },
+            )
+
+        assert resp.status_code == 200
+        assert resp.json() == failed_summary
+        mock_validate.assert_called_once()
+
+
 class TestExtractDocumentEndpoints:
     def _valid_details(self) -> DataServerDetails:
         return DataServerDetails(

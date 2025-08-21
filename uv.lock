@@ -296,7 +296,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.2.12-py3-none-any.whl" },
+    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.3.1-py3-none-any.whl" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -3279,8 +3279,8 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.2.12"
-source = { path = "server/wheels/sema4ai_docint-0.2.12-py3-none-any.whl" }
+version = "0.3.1"
+source = { path = "server/wheels/sema4ai_docint-0.3.1-py3-none-any.whl" }
 dependencies = [
     { name = "jsonschema" },
     { name = "mindsdb-sql" },
@@ -3298,7 +3298,7 @@ dependencies = [
     { name = "sema4ai-http-helper" },
 ]
 wheels = [
-    { filename = "sema4ai_docint-0.2.12-py3-none-any.whl", hash = "sha256:469396888ddd41cdaebbab9e1eb9df734a3ae8dc37a426214222c2dce6f4f23c" },
+    { filename = "sema4ai_docint-0.3.1-py3-none-any.whl", hash = "sha256:d0c3aa3349fb0793141968ad443ace0e7a8efaea49b4ae7aed9fb0a3890fba78" },
 ]
 
 [package.metadata]
