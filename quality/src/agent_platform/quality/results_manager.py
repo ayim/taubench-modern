@@ -251,6 +251,17 @@ class QualityResultsManager:
                 with open(run_test_file, "w") as f:
                     json.dump(result_data, f, indent=2, default=self._json_default)
 
+                if result.thread_raw is not None:
+                    import yaml
+
+                    thread_messages_raw_file = (
+                        self.current_run_dir / f"{agent_name}_{test_id}.raw.yml"
+                    )
+                    with open(thread_messages_raw_file, "w") as file:
+                        yaml.dump(
+                            result.thread_raw, file, default_flow_style=False, sort_keys=False
+                        )
+
             except Exception as e:
                 logger.error(f"Failed to write test result for {test_id}: {e}")
                 # Even if writing fails, continue with status updates

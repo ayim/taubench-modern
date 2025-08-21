@@ -105,60 +105,6 @@ class QualityTestRunner:
         logger.info(f"Found {len(test_cases)} test cases")
         return test_cases
 
-    async def update_agent_platform_config(self, agent_id: str, platform: Platform) -> None:
-        """Update an agent's platform configuration to use the specified platform."""
-        logger.info(f"Updating agent {agent_id} to use platform: {platform.name}")
-
-        # Get the current agent configuration
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{self.server_url}/api/v2/agents/{agent_id}/raw")
-            response.raise_for_status()
-            agent_data = response.json()
-
-            # Create proper UpsertAgentPayload structure
-            platform_config = platform.as_platform_config()
-
-            # Fix action packages to ensure api_key is properly formatted
-            action_packages = []
-            for pkg in agent_data["action_packages"]:
-                fixed_pkg = pkg.copy()
-                # Convert api_key string to SecretString format if it's a string
-                if "api_key" in fixed_pkg and isinstance(fixed_pkg["api_key"], str):
-                    fixed_pkg["api_key"] = {"value": fixed_pkg["api_key"]}
-                action_packages.append(fixed_pkg)
-
-            update_payload = {
-                "name": agent_data["name"],
-                "description": agent_data["description"],
-                "version": agent_data["version"],
-                "user_id": agent_data["user_id"],
-                "platform_configs": [platform_config],
-                "agent_architecture": agent_data["agent_architecture"],
-                "structured_runbook": agent_data["runbook_structured"],  # Note: field name change
-                "action_packages": action_packages,
-                "mcp_servers": agent_data["mcp_servers"],
-                "question_groups": agent_data["question_groups"],
-                "observability_configs": agent_data["observability_configs"],
-                "mode": agent_data.get("mode", "conversational"),
-                "extra": agent_data.get("extra", {}),
-                "agent_id": agent_id,
-            }
-
-            # Update the agent
-            response = await client.put(
-                f"{self.server_url}/api/v2/agents/{agent_id}",
-                json=update_payload,
-            )
-
-            if response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
-                # Log the detailed validation error
-                error_detail = response.text
-                logger.error(f"Validation error (422) when updating agent: {error_detail}")
-
-            response.raise_for_status()
-
-        logger.info(f"Successfully updated agent {agent_id} platform configuration")
-
     async def run_tests_for_all_agents_fully_parallel(  # noqa: C901 PLR0915
         self, selected_agents: list[str], max_concurrent_agents: int = 2
     ) -> dict[str, list[ThreadResult]]:
@@ -327,12 +273,6 @@ class QualityTestRunner:
             platform_agent_ids = await self.orchestrator.upload_agent_with_platform_variants(
                 agent_package.zip_path, all_platforms, action_server_url, agent_package_metadata[0]
             )
-
-            # Update the platform config for each agent
-            for platform_name, agent_id in platform_agent_ids.items():
-                platform = next((p for p in all_platforms if p.name == platform_name), None)
-                if platform:
-                    await self.update_agent_platform_config(agent_id, platform)
 
             # Initialize agent testing in results manager
             self.results_manager.start_agent_testing(agent_package, test_cases)
@@ -611,15 +551,15 @@ class QualityTestRunner:
 
         try:
             # Run the conversation
-            agent_messages, workitem = await self.agent_runner.run_test_case(
-                agent_id, test_case, platform.name
-            )
+            test_run = await self.agent_runner.run_test_case(agent_id, test_case, platform.name)
 
             # Run evaluations
             evaluation_results = []
             for evaluation in test_case.evaluations:
                 try:
-                    result = await self.evaluator.evaluate(evaluation, agent_messages, workitem)
+                    result = await self.evaluator.evaluate(
+                        evaluation, test_run.agent_messages, test_run.workitem_result
+                    )
                     evaluation_results.append(result)
                 except Exception as e:
                     logger.error(f"Evaluation failed: {evaluation.kind}", error=str(e))
@@ -628,12 +568,19 @@ class QualityTestRunner:
             # Determine overall success
             success = all(result.passed for result in evaluation_results)
 
+            thread_raw = (
+                await self.agent_runner.get_thread_raw(thread_id=test_run.thread_id)
+                if test_run.thread_id is not None
+                else None
+            )
+
             return ThreadResult(
                 test_case=test_case,
                 platform=platform,
-                agent_messages=agent_messages,
+                agent_messages=test_run.agent_messages,
                 evaluation_results=evaluation_results,
                 success=success,
+                thread_raw=thread_raw,
             )
 
         except Exception as e:

@@ -220,7 +220,63 @@ class QualityOrchestrator:
             agent_data = response.json()
             agent_id = agent_data["agent_id"]
 
+        await self.update_agent_platform_config(agent_id, platform)
+
         return agent_id
+
+    async def update_agent_platform_config(self, agent_id: str, platform: Platform) -> None:
+        """Update an agent's platform configuration to use the specified platform."""
+        logger.info(f"Updating agent {agent_id} to use platform: {platform.name}")
+
+        # Get the current agent configuration
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{self.server_url}/api/v2/agents/{agent_id}/raw")
+            response.raise_for_status()
+            agent_data = response.json()
+
+            # Create proper UpsertAgentPayload structure
+            platform_config = platform.as_platform_config()
+
+            # Fix action packages to ensure api_key is properly formatted
+            action_packages = []
+            for pkg in agent_data["action_packages"]:
+                fixed_pkg = pkg.copy()
+                # Convert api_key string to SecretString format if it's a string
+                if "api_key" in fixed_pkg and isinstance(fixed_pkg["api_key"], str):
+                    fixed_pkg["api_key"] = {"value": fixed_pkg["api_key"]}
+                action_packages.append(fixed_pkg)
+
+            update_payload = {
+                "name": agent_data["name"],
+                "description": agent_data["description"],
+                "version": agent_data["version"],
+                "user_id": agent_data["user_id"],
+                "platform_configs": [platform_config],
+                "agent_architecture": agent_data["agent_architecture"],
+                "structured_runbook": agent_data["runbook_structured"],  # Note: field name change
+                "action_packages": action_packages,
+                "mcp_servers": agent_data["mcp_servers"],
+                "question_groups": agent_data["question_groups"],
+                "observability_configs": agent_data["observability_configs"],
+                "mode": agent_data.get("mode", "conversational"),
+                "extra": agent_data.get("extra", {}),
+                "agent_id": agent_id,
+            }
+
+            # Update the agent
+            response = await client.put(
+                f"{self.server_url}/api/v2/agents/{agent_id}",
+                json=update_payload,
+            )
+
+            if response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
+                # Log the detailed validation error
+                error_detail = response.text
+                logger.error(f"Validation error (422) when updating agent: {error_detail}")
+
+            response.raise_for_status()
+
+        logger.info(f"Successfully updated agent {agent_id} platform configuration")
 
     async def stop_infrastructure(self):
         """Stop all started servers."""

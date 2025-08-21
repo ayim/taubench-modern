@@ -17,6 +17,7 @@ from agent_platform.quality.models import ThreadResult
 from agent_platform.quality.oauth import OAuthRedirectServer
 from agent_platform.quality.reporter import QualityReporter
 from agent_platform.quality.runner import QualityTestRunner
+from agent_platform.quality.simulator import Simulator, Trace
 
 # Configure structured logging
 structlog.configure(
@@ -447,6 +448,62 @@ async def oauth(ctx: Context):
         await runner.oauth.update_oauth_credentials(provider=provider, credentials=credentials)
 
 
+@cli.command()
+@click.option(
+    "--trace-file",
+    required=True,
+    type=click.Path(exists=True, file_okay=True, path_type=Path),
+    help="Simulate the agent environment using an existing conversation",
+)
+@click.option("--assert-all-consumed", is_flag=True)
+@click.pass_obj
+async def replay(ctx: Context, trace_file: Path, assert_all_consumed: bool):
+    trace = Trace.from_file(trace_file)
+
+    try:
+        click.echo("🚀 Replaying conversation")
+        click.echo("-" * 40)
+        click.echo(f"{click.style('Name:', fg='green')} {trace.environment.name}")
+        click.echo(f"{click.style('Agent Name:', fg='green')} {trace.environment.agent_name}")
+        click.echo(
+            f"{click.style('Agent Server Version:', fg='green')} "
+            f"{trace.environment.agent_server_version}"
+        )
+        click.echo(f"{click.style('Platform:', fg='green')} {trace.environment.platform}")
+        click.echo("-" * 40)
+
+        simulator = Simulator(
+            test_threads_dir=ctx.threads_dir,
+            test_agents_dir=ctx.agents_dir,
+            agent_server_version=None
+            if trace.environment.agent_server_version == "latest"
+            else trace.environment.agent_server_version,
+            datadir=ctx.quality_folder,
+            server_url=ctx.agent_server_url,
+        )
+
+        # TODO allow to override trace environment
+        result = await simulator.replay_trace(
+            golden_trace=trace, assert_all_consumed=assert_all_consumed
+        )
+
+        click.echo(f"💾 Results automatically saved to {simulator.result_manager.current_run_dir}")
+
+        if result.error is not None:
+            click.echo(f"❌ Replayed failed: {result.error}", err=True)
+            sys.exit(1)
+
+        click.echo("✅ Trace replayed successfully")
+
+    except Exception as e:
+        click.echo(f"Error running reply: {e}")
+        if ctx.verbose:
+            import traceback
+
+            traceback.print_exc()
+        raise click.Abort() from None
+
+
 # Async wrapper for Click commands
 def async_command(f):
     """Decorator to make Click commands async-compatible."""
@@ -462,6 +519,7 @@ check_server.callback = async_command(check_server.callback)
 run.callback = async_command(run.callback)
 oauth.callback = async_command(oauth.callback)
 init.callback = async_command(init.callback)
+replay.callback = async_command(replay.callback)
 
 
 def find_monorepo_root() -> Path:

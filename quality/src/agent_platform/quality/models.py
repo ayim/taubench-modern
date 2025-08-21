@@ -200,6 +200,13 @@ class WorkitemResult:
 
 
 @dataclass
+class TestRunResult:
+    thread_id: str | None
+    agent_messages: list[Message]
+    workitem_result: WorkitemResult | None
+
+
+@dataclass
 class TestCase:
     """A complete test case with thread and evaluations."""
 
@@ -427,6 +434,7 @@ class ThreadResult:
     evaluation_results: list[TestResult]
     success: bool
     error: str | None = None
+    thread_raw: list[Any] | None = None
 
 
 @dataclass

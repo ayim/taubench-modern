@@ -10,6 +10,7 @@ from agent_platform.quality.models import (
     FileAttachment,
     Message,
     TestCase,
+    TestRunResult,
     Text,
     Thought,
     ToolUse,
@@ -138,7 +139,7 @@ class AgentRunner:
 
     async def run_test_case(  # noqa: PLR0915
         self, agent_id: str, test_case: TestCase, platform_name: str
-    ) -> tuple[list[Message], WorkitemResult | None]:
+    ) -> TestRunResult:
         """Run a test case against an agent and return agent messages."""
         if test_case.workitem is not None:
             logger.info(
@@ -163,8 +164,10 @@ class AgentRunner:
 
                     workitem_status_data = response.json()
 
-                return test_case.workitem.messages, WorkitemResult(
-                    status=workitem_status_data.get("status")
+                return TestRunResult(
+                    agent_messages=test_case.workitem.messages,
+                    thread_id=None,
+                    workitem_result=WorkitemResult(status=workitem_status_data.get("status")),
                 )
 
             workitem_id = None
@@ -239,7 +242,12 @@ class AgentRunner:
             agent_messages = from_api_response_to_messages(agent_message_data)
 
             logger.info(f"Agent responded with {len(agent_messages)} messages")
-            return agent_messages, WorkitemResult(status=completed_workitem.get("status"))
+
+            return TestRunResult(
+                agent_messages=agent_messages,
+                thread_id=completed_workitem.get("thread_id"),
+                workitem_result=WorkitemResult(status=completed_workitem.get("status")),
+            )
 
         if test_case.thread is not None:
             logger.info(f"Running test case with thread {test_case.thread.name}")
@@ -306,6 +314,20 @@ class AgentRunner:
                 agent_messages = from_api_response_to_messages(agent_messages_data)
 
                 logger.info(f"Agent responded with {len(agent_messages)} messages")
-                return agent_messages, None
+
+                return TestRunResult(
+                    agent_messages=agent_messages, thread_id=thread_id, workitem_result=None
+                )
 
         raise ValueError("Test case should contain either thread or workitem, found none")
+
+    async def get_thread_raw(self, thread_id: str):
+        async with httpx.AsyncClient(timeout=60.0 * 5) as client:
+            response = await client.get(
+                f"{self.server_url}/api/v2/threads/{thread_id}/state",
+            )
+            response.raise_for_status()
+
+            thread_data = response.json()
+
+        return thread_data
