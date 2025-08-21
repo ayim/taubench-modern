@@ -800,7 +800,7 @@ class AgentServerClient:
             params["output_format"] = output_format
         if order_by is not None:
             params["order_by"] = order_by
-        response = requests.get(url, json=params)
+        response = requests.post(url, json=params)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:

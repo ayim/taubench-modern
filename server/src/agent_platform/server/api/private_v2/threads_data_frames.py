@@ -355,7 +355,7 @@ class _SliceDataInput(BaseModel):
     ] = None
 
 
-@router.get("/{tid}/data-frames/slice")
+@router.post("/{tid}/data-frames/slice")
 async def slice_data_frame(  # noqa: PLR0912,C901
     user: AuthedUser,
     tid: str,
