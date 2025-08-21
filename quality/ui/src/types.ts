@@ -188,4 +188,9 @@ export interface ReplayResult {
   error?: string;
   completed_at: string;
   started_at: string;
+  evaluations: {
+    passed: boolean;
+    value: Record<string, any>;
+    error?: string;
+  }[];
 }

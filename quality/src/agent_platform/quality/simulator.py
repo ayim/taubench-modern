@@ -15,6 +15,7 @@ from agent_platform.quality.agent_client import (
     ToolExecutionResult,
     ToolExecutor,
 )
+from agent_platform.quality.conversation_judge import ConversationJudge, EvaluationResult
 from agent_platform.quality.models import (
     AgentPackage,
     FileAttachment,
@@ -112,6 +113,7 @@ class Trace:
 class ReplayResult:
     golden_trace: Trace
     success: bool
+    evaluation_results: list[EvaluationResult]
     trace: Trace | None = None
     error: str | None = None
 
@@ -266,8 +268,18 @@ class ReplayResultManager:
                 "trace": self._get_trace_as_json(result.trace)
                 if result.trace is not None
                 else None,
+                "evaluations": [self._get_eval_as_json(e) for e in result.evaluation_results],
             }
             json.dump(payload, f, indent=4)
+
+    def _get_eval_as_json(self, evaluation: EvaluationResult):
+        data = {
+            "passed": evaluation.passed,
+            "value": evaluation.value,
+            "error": evaluation.error,
+        }
+
+        return data
 
     def _get_trace_as_json(self, trace: Trace):
         environment = {
@@ -404,6 +416,26 @@ class Simulator:
 
                 if assert_all_consumed:
                     tool_executor.assert_all_consumed()
+
+                trace = Trace(
+                    environment=new_environment,
+                    tools=golden_trace.tools,
+                    messages=initial_payload + agent_messages,
+                )
+                judge = ConversationJudge(agent_server_url=self.server_url)
+
+                evaluation = await judge.evaluate(
+                    benchmark=golden_trace.messages, target=trace.messages
+                )
+                result = ReplayResult(
+                    trace=trace,
+                    golden_trace=golden_trace,
+                    success=True,
+                    evaluation_results=[evaluation],
+                )
+                self.result_manager.save_result(result)
+
+                return result
             except AssertionError as e:
                 new_agent_messages = agent.get_messages()
                 agent_messages.extend(new_agent_messages)
@@ -417,25 +449,13 @@ class Simulator:
                     trace=trace,
                     success=False,
                     error=f"{e}",
+                    # TODO it would be nice to add assert errors
+                    evaluation_results=[],
                 )
 
                 self.result_manager.save_result(result)
 
                 return result
-
-            trace = Trace(
-                environment=new_environment,
-                tools=golden_trace.tools,
-                messages=initial_payload + agent_messages,
-            )
-            result = ReplayResult(
-                trace=trace,
-                golden_trace=golden_trace,
-                success=True,
-            )
-            self.result_manager.save_result(result)
-            return result
-
         finally:
             if infrastructure_started:
                 logger.info("Stopping shared infrastructure")

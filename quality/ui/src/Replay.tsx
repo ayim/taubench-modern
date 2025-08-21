@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, Star, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SettingsButton } from './components/SettingsButton';
 import { TraceDisplay } from './components/TraceDisplay';
@@ -114,6 +114,8 @@ function Replay() {
     }
   };
 
+  const llmEval = result.evaluations[0];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -131,6 +133,65 @@ function Replay() {
             </div>
           </div>
         </div>
+
+        {llmEval && (
+          <div className={`border rounded-md p-4 border-purple-200 bg-purple-50`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                {result.evaluations[0].passed ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-500" />
+                )}
+                <span className={`font-medium text-purple-800`}>🧠 LLM Evaluation</span>
+
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">AI Assessment</span>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                {result.evaluations[0].value?.score !== undefined && (
+                  <div className="flex items-center space-x-1">
+                    <Star className="h-4 w-4 text-amber-500" />
+                    <span
+                      className={`text-sm font-bold px-2 py-1 rounded-full ${
+                        result.evaluations[0].value?.score >= 0.8
+                          ? 'bg-green-100 text-green-800'
+                          : result.evaluations[0].value?.score >= 0.6
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {result.evaluations[0].value?.score.toFixed(1)} / 10.0
+                    </span>
+                  </div>
+                )}
+                <span
+                  className={`text-xs px-3 py-1 rounded-full font-medium ${
+                    result.evaluations[0].passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {result.evaluations[0].passed ? 'PASSED' : 'FAILED'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-white rounded-md p-3 border border-purple-200">
+                <span className="text-sm font-medium text-purple-800">Assessment: </span>
+                <p className="text-sm text-gray-700 mt-1 leading-relaxed">
+                  {result.evaluations[0].value?.explanation || 'No explanation provided'}
+                </p>
+              </div>
+
+              {result.evaluations[0].error && (
+                <div className="text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                  <strong className="text-sm">Error:</strong>
+                  <p className="text-sm mt-1">{result.evaluations[0].error}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Replay Diffs</h2>

@@ -1,4 +1,4 @@
-import { ReplayResult, Trace } from '../types';
+import { Trace } from '../types';
 import { Brain, MessageSquare, Wrench, Clock } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { JsonYamlFormatter } from './JsonYamlFormatter';
