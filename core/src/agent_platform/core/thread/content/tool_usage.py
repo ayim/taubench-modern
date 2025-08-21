@@ -1,10 +1,13 @@
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.thread.content.base import ThreadMessageContent
+
+if TYPE_CHECKING:
+    from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
 @dataclass
@@ -32,6 +35,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
         "action-external",
         "mcp-external",
         "provider-side",
+        "client-side",
         "unknown",
     ] = field(
         default="unknown",
@@ -170,12 +174,18 @@ class ThreadToolUsageContent(ThreadMessageContent):
         cls,
         response_tool_use: ResponseToolUseContent,
         metadata: dict[str, Any] | None = None,
+        tool_def: "ToolDefinition | None" = None,
     ) -> "ThreadToolUsageContent":
         """Create a thread tool usage content from a response tool use content."""
+        from agent_platform.core.kernel_interfaces.thread_state import (
+            _get_sub_type_from_tool_category,
+        )
+
         return cls(
             name=response_tool_use.tool_name,
             tool_call_id=response_tool_use.tool_call_id,
             arguments_raw=response_tool_use.tool_input_raw,
+            sub_type=_get_sub_type_from_tool_category(tool_def),
             metadata=metadata or {},
         )
 

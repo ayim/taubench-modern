@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.responses.content.reasoning import ResponseReasoningContent
@@ -32,6 +32,44 @@ from agent_platform.core.thread.content import (
 )
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.tools.tool_execution_result import ToolExecutionResult
+
+
+def _get_sub_type_from_tool_category(
+    tool_def: ToolDefinition | None,
+) -> Literal[
+    "kernel-internal",
+    "aa-internal",
+    "action-external",
+    "mcp-external",
+    "provider-side",
+    "client-side",
+    "unknown",
+]:
+    """Map tool definition category to ThreadToolUsageContent sub_type."""
+    if tool_def is None:
+        return "unknown"
+
+    category_to_sub_type: dict[
+        str,
+        Literal[
+            "kernel-internal",
+            "aa-internal",
+            "action-external",
+            "mcp-external",
+            "provider-side",
+            "client-side",
+            "unknown",
+        ],
+    ] = {
+        "internal-tool": "kernel-internal",
+        "action-tool": "action-external",
+        "mcp-tool": "mcp-external",
+        "client-exec-tool": "client-side",
+        "client-info-tool": "client-side",
+        "unknown": "unknown",
+    }
+
+    return category_to_sub_type.get(tool_def.category, "unknown")
 
 
 class ThreadMessageWithThreadState:
@@ -410,6 +448,7 @@ class ThreadMessageWithThreadState:
             )
             match_as_tool_use.name = tool_use.tool_name
             match_as_tool_use.arguments_raw = tool_use.tool_input_raw
+            match_as_tool_use.sub_type = _get_sub_type_from_tool_category(tool_def)
             match_as_tool_use.pending_at = datetime.now(UTC) if completed else None
             match_as_tool_use.complete = completed
             break  # Only can match one tool use
@@ -440,6 +479,7 @@ class ThreadMessageWithThreadState:
                     name=tool_use.tool_name,
                     arguments_raw=tool_use.tool_input_raw,
                     tool_call_id=tool_use.tool_call_id,
+                    sub_type=_get_sub_type_from_tool_category(tool_def),
                     status="streaming",
                     discovered_at=datetime.now(UTC),
                     pending_at=datetime.now(UTC) if completed else None,
