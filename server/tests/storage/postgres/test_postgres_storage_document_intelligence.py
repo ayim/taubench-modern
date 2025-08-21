@@ -172,7 +172,7 @@ async def test_dids_connection_details_crud_operations(
     retrieved_details = await storage.get_dids_connection_details()
     assert retrieved_details.username == sample_data_server_details.username
     assert retrieved_details.password is not None
-    assert retrieved_details.password.value == sample_data_server_details.password
+    assert retrieved_details.password_str == sample_data_server_details.password
     assert (
         retrieved_details.data_server_endpoints == sample_data_server_details.data_server_endpoints
     )
@@ -191,7 +191,7 @@ async def test_dids_connection_details_crud_operations(
     retrieved_updated = await storage.get_dids_connection_details()
     assert retrieved_updated.username == "updated_user"
     assert retrieved_updated.password is not None
-    assert retrieved_updated.password.value == "updated_password"
+    assert retrieved_updated.password_str == "updated_password"
     assert len(retrieved_updated.data_server_endpoints) == 1
     assert retrieved_updated.data_server_endpoints[0].host == "updated-host"
     assert retrieved_updated.data_server_endpoints[0].port == 9090

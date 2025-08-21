@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal
@@ -27,10 +28,9 @@ class MissingDataConnectionDetailsError(PlatformHTTPError):
 
 
 class DataConnectionEngine(StrEnum):
-    """An engine for a data connection to the Document Intelligence Data Server"""
+    """The non-exhaustive list of engines for a data connection to the Data Server.
+    We have validation logic of the configuration for each specified engine."""
 
-    # TODO what are all of the engines we currently support? Do we need to enumerate
-    # them? Just allow pass-through?
     POSTGRES = "postgres"
 
 
@@ -52,7 +52,7 @@ class DataConnection:
     )
     """The name of the data connection"""
 
-    engine: DataConnectionEngine = field(
+    engine: str = field(
         metadata={
             "description": "The engine of the data connection",
         },
@@ -70,12 +70,14 @@ class DataConnection:
     def model_validate(cls, data: dict[str, Any]) -> "DataConnection":
         """Validate and create a DataConnection from a dictionary"""
         match data["engine"]:
-            case DataConnectionEngine.POSTGRES:
+            case DataConnectionEngine.POSTGRES.value:
                 for key in ["user", "password", "host", "port", "database"]:
                     if key not in data["configuration"]:
                         raise MissingDataConnectionDetailsError(DataConnectionEngine.POSTGRES, key)
             case _:
-                raise UnsupportedDataConnectionEngineError(data["engine"])
+                # TODO Add more engine types here as we want to enhance our validation checks
+                # over the database config.
+                pass
 
         return cls(**data)
 
@@ -94,10 +96,4 @@ class DataConnection:
 
     def build_mindsdb_parameters(self) -> str:
         """Generates the body of the PARAMETERS clause for a MindsDB data source"""
-        params = []
-        for key, value in self.configuration.items():
-            if isinstance(value, int):
-                params.append(f'"{key}": {value}')
-            else:
-                params.append(f'"{key}": "{value}"')
-        return ", \n".join(params)
+        return json.dumps(self.configuration).lstrip("{").rstrip("}")

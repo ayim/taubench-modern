@@ -81,7 +81,7 @@ async def test_initialize_data_source():
             (
                 "CREATE DATABASE" in call
                 and f"`{data_source_name}`" in call
-                and f'ENGINE = "{connection.engine.value}"' in call
+                and f'ENGINE = "{connection.engine}"' in call
                 and '"user": "postgres"' in call
                 and '"password": "pgsecret"' in call
                 and '"host": "postgres.example.com"' in call

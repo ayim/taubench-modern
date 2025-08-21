@@ -63,8 +63,8 @@ class TestDataConnection:
         assert exc_info.value.status_code == 400
         assert "host" in exc_info.value.detail
 
-    def test_invalid_engine(self):
-        """Test that model_validate errors on an invalid engine"""
+    def test_unknown_engine(self):
+        """Test that a unknown engine is allowed through with no validation logic"""
         data = {
             "id": "123",
             "name": "test",
@@ -74,8 +74,37 @@ class TestDataConnection:
             },
         }
 
-        with pytest.raises(PlatformHTTPError) as exc_info:
-            DataConnection.model_validate(data)
+        conn = DataConnection.model_validate(data)
 
-        assert exc_info.value.status_code == 400
-        assert "sqlite" in exc_info.value.detail
+        assert conn.id == "123"
+        assert conn.name == "test"
+        assert conn.engine == "sqlite"
+        assert conn.configuration == data["configuration"]
+        assert '"path": "/tmp/sqlite.db"' in conn.build_mindsdb_parameters()
+
+    def test_mysql_engine(self):
+        """Test that a MySQL engine is allowed through with no validation logic"""
+        data = {
+            "id": "123",
+            "name": "test",
+            "engine": "mysql",
+            "configuration": {
+                "user": "user",
+                "password": "pass",
+                "host": "localhost",
+                "port": 3306,
+                "database": "test",
+            },
+        }
+
+        conn = DataConnection.model_validate(data)
+
+        assert conn.id == "123"
+        assert conn.name == "test"
+        assert conn.engine == "mysql"
+        assert conn.configuration == data["configuration"]
+        assert '"user": "user"' in conn.build_mindsdb_parameters()
+        assert '"password": "pass"' in conn.build_mindsdb_parameters()
+        assert '"host": "localhost"' in conn.build_mindsdb_parameters()
+        assert '"port": 3306' in conn.build_mindsdb_parameters()
+        assert '"database": "test"' in conn.build_mindsdb_parameters()

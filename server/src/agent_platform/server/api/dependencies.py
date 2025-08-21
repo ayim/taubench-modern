@@ -176,7 +176,7 @@ async def get_dids_connection_details(storage: StorageDependency) -> DataServerD
             "Document Intelligence Data Server configuration is missing username"
         )
 
-    if not details.password or not details.password.get_secret_value().strip():
+    if not details.password_str or not details.password_str.strip():
         raise DIDSConnectionDetailsNotFoundError(
             "Document Intelligence Data Server configuration is missing password"
         )

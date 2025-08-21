@@ -121,7 +121,7 @@ class DataServerDetails:
     )
     """The username to connect to the Data Server"""
 
-    password: SecretString | None = field(
+    password: str | SecretString | None = field(
         metadata={
             "description": "The password to connect to a Data Server",
         },
@@ -147,6 +147,19 @@ class DataServerDetails:
         if isinstance(self.password, str):
             object.__setattr__(self, "password", SecretString(self.password))
 
+    @property
+    def password_str(self) -> str | None:
+        """Get the password as a string, regardless of its internal representation.
+
+        Returns:
+            The password as a string, or None if no password is set.
+        """
+        if self.password is None:
+            return None
+        if isinstance(self.password, SecretString):
+            return self.password.get_secret_value()
+        return self.password
+
     def as_datasource_connection_input(self) -> dict:
         """Convert the DataServerDetails to a datasource connection input dictionary"""
         result = {}
@@ -156,7 +169,7 @@ class DataServerDetails:
                 "host": endpoint.host,
                 "port": endpoint.port,
                 "user": self.username,
-                "password": self.password.get_secret_value() if self.password else None,
+                "password": self.password_str,
             }
 
             # As http requires a different key name, we cannot just iterate over the connections
@@ -184,7 +197,8 @@ class DataServerDetails:
         if mode == "python":
             password_value = self.password
         elif self.password is not None:
-            password_value = self.password.get_secret_value()
+            # in mode=json, unwrap the SecretString
+            password_value = self.password_str
         else:
             password_value = None
 

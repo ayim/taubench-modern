@@ -401,7 +401,7 @@ class TestDataServerEndpoint:
         assert isinstance(restored.password, SecretString)
         assert restored.password is not None
         assert original.password is not None
-        assert restored.password.get_secret_value() == original.password.get_secret_value()
+        assert restored.password_str == original.password_str
         assert len(restored.data_server_endpoints) == len(original.data_server_endpoints) == 1
         assert restored.data_server_endpoints[0].host == original.data_server_endpoints[0].host
         assert restored.data_server_endpoints[0].port == original.data_server_endpoints[0].port

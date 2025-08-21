@@ -290,6 +290,9 @@ def _format_validation_exception(validation_exc: "ValidationException") -> str:
     """
     try:
         validation_errors = validation_exc.errors()
+        # Log the raw validation errors for debugging (temporarily)
+        logger.debug("Raw validation errors: %s", validation_errors)
+
         # Redact sensitive data from validation errors before processing
         redacted_errors = _redact_secrets(validation_errors)
         error_messages = []
@@ -301,7 +304,8 @@ def _format_validation_exception(validation_exc: "ValidationException") -> str:
             else:
                 error_messages.append(error["msg"])
         return "; ".join(error_messages)
-    except Exception:
+    except Exception as e:
+        logger.debug("Exception formatting validation error: %s", e)
         return "Unknown validation error"
 
 

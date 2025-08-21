@@ -5,6 +5,7 @@ from agent_platform.server.api.private_v2.capabilities import (
     router as capabilities_router,
 )
 from agent_platform.server.api.private_v2.config import router as config_router
+from agent_platform.server.api.private_v2.data_sources import router as data_sources_router
 from agent_platform.server.api.private_v2.debug import router as debug_router
 from agent_platform.server.api.private_v2.document_intelligence import (
     router as document_intelligence_router,
@@ -97,4 +98,10 @@ router.include_router(
     work_items_router,
     prefix="/work-items",
     tags=["work-items"],
+)
+
+router.include_router(
+    data_sources_router,
+    prefix="/data-sources",
+    tags=["data-sources"],
 )

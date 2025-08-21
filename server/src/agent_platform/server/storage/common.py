@@ -30,9 +30,12 @@ class CommonMixin:
         decrypted_json = self._secret_manager.fetch(encrypted_config)
         return json.loads(decrypted_json)
 
-    def _encrypt_secret_string(self, secret_string: SecretString) -> str:
+    def _encrypt_secret_string(self, secret_string: SecretString | str) -> str:
         """Encrypt the input secret string using the secret manager."""
-        return self._secret_manager.store(secret_string.get_secret_value())
+        if isinstance(secret_string, SecretString):
+            return self._secret_manager.store(secret_string.get_secret_value())
+        else:
+            return self._secret_manager.store(secret_string)
 
     def _decrypt_secret_string(self, encrypted_secret_string: str) -> SecretString:
         """Decrypt the input secret string using the secret manager."""
