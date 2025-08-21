@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.0.34 (2025-08-21)
+
+- Fix regression in QuotasService [#713](https://github.com/Sema4AI/agent-platform/pull/713)
+- [DIN-338] Generate and execute data quality checks [#694](https://github.com/Sema4AI/agent-platform/pull/694)
+
 # Sema4.ai Agent Server 2.0.33 (2025-08-20)
 
 - DIN-418 Use reducto types in our openapi (#708)
@@ -42,7 +47,7 @@
 - [DIN-339] Enable partial updates in data model (such as quality_checks) [#639](https://github.com/Sema4AI/agent-platform/pull/639)
 - [DIN-336] Create default document layout when data model is created [#647](https://github.com/Sema4AI/agent-platform/pull/647)
 - Extend generate layout endpoint to fully create Document Layout and return it [#648](https://github.com/Sema4AI/agent-platform/pull/648)
-  
+
 # Sema4.ai Agent Server 2.0.28 (2025-08-13)
 
 - Quotas & limits [PR 498](https://github.com/Sema4AI/agent-platform/pull/498) & [PR 577](https://github.com/Sema4AI/agent-platform/pull/577)
