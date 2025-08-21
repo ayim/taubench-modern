@@ -2,7 +2,7 @@ import { createWorkroomClient, AgentOAuthPermission, operations } from '@sema4ai
 import { DocumentIntelligenceSchema } from '@sema4ai/document-intelligence-interface';
 import { WorkItemsSchema } from '@sema4ai/work-items-interface';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { paths as agentServerPaths } from '@sema4ai/agent-server-interface';
+import { paths as agentServerPaths, components as AgentServerComponents } from '@sema4ai/agent-server-interface';
 import createFetchClient, { ClientMethod, FetchResponse, MaybeOptionalInit } from 'openapi-fetch';
 import { HttpMethod, MediaType, PathsWithMethod, RequiredKeysOf } from 'openapi-typescript-helpers';
 import { UserTenant } from '~/queries/tenants';
@@ -405,81 +405,42 @@ export class AgentAPIClient {
     return this.createClient<WorkItemsSchema.paths>('events');
   }
 
-  public async inspectAgentPackageViaGateway(tenantId: string, formData: FormData): Promise<unknown> {
-    const url = new URL(`/api/tenants/${tenantId}/package`, window.location.href).href;
-    // TODO: REPLACE with Agent Fetch once the `agent-server-interface@2.0.28` is out
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
+  public async inspectAgentPackageViaGateway(
+    tenantId: string,
+    formData: FormData,
+  ): Promise<AgentServerComponents['schemas']['StatusResponse_dict_']> {
+    return await this.agentFetch(tenantId, 'post', '/api/v2/package/inspect/agent', {
+      body: formData as never,
     });
-
-    if (!response.ok) {
-      throw new RequestError(response.status, response.statusText);
-    }
-
-    return await response.json();
   }
 
-  public async deployAgentFromPackage(tenantId: string, body: unknown): Promise<unknown> {
-    const url = new URL(`/api/tenants/${tenantId}/package/deploy/agent`, window.location.href).href;
-    // TODO:  REPLACE with Agent Fetch once the `agent-server-interface@2.0.28` is out
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+  public async deployAgentFromPackage(
+    tenantId: string,
+    body: AgentServerComponents['schemas']['AgentPackagePayload'],
+  ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
+    return await this.agentFetch(tenantId, 'post', '/api/v2/package/deploy/agent', {
+      body: body as never,
     });
-    if (!response.ok) {
-      let message = response.statusText;
-      try {
-        // TODO: Once we have a interface, we can use the error from the response which would be erro: {code, message}
-        const err = await response.json();
-        message = err?.error?.message || message;
-      } catch (_e) {
-        void _e;
-      }
-      throw new RequestError(response.status, message);
-    }
-    return await response.json();
   }
 
-  public async updateAgentFromPackage(tenantId: string, aid: string, body: unknown): Promise<unknown> {
-    const url = new URL(`/api/tenants/${tenantId}/package/deploy/agent/${aid}`, window.location.href).href;
-    // TODO: REPLACE with Agent Fetch once the `agent-server-interface@2.0.28` is out
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+  public async updateAgentFromPackage(
+    tenantId: string,
+    aid: string,
+    body: AgentServerComponents['schemas']['AgentPackagePayload'],
+  ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
+    return await this.agentFetch(tenantId, 'put', '/api/v2/package/deploy/agent/{aid}', {
+      params: { path: { aid } },
+      body: body as never,
     });
-    if (!response.ok) {
-      let message = response.statusText;
-      try {
-        const err = await response.json();
-        message = err?.error?.message || message;
-      } catch (_e) {
-        void _e;
-      }
-      throw new RequestError(response.status, message);
-    }
-    return await response.json();
   }
 
-  public async deployAgentFromPackageMultipart(tenantId: string, formData: FormData): Promise<unknown> {
-    const url = new URL(`/tenants/${tenantId}/package/deploy/agent`, window.location.href).href;
-    // TODO: REPLACE with Agent Fetch once the `agent-server-interface@2.0.28` is out
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
+  public async deployAgentFromPackageMultipart(
+    tenantId: string,
+    formData: FormData,
+  ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
+    return await this.agentFetch(tenantId, 'post', '/api/v2/package/deploy/agent', {
+      body: formData as never,
     });
-    if (!response.ok) {
-      let message = response.statusText;
-      try {
-        const err = await response.json();
-        message = err?.error?.message || message;
-      } catch {
-        throw new RequestError(response.status, message);
-      }
-    }
-    return await response.json();
   }
 
   public async startStream({

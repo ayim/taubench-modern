@@ -1,14 +1,16 @@
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { Box, Header, Grid } from '@sema4ai/components';
 import { AgentIcon, AgentCard } from '@sema4ai/layouts';
 import { IconMcp } from '@sema4ai/icons/logos';
 import { IconLightning } from '@sema4ai/icons';
 import { useFormContext } from 'react-hook-form';
+import { useParams, useRouteContext } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import type { paths } from '@sema4ai/agent-server-interface';
 import { AgentDeploymentFormSchema } from './context';
-import { mockLLMProviders } from './agent-deployment';
 
 // Mock agent template type
-type MockAgentTemplate = {
+type AgentTemplate = {
   id: string;
   name: string;
   description: string;
@@ -30,18 +32,45 @@ type MockAgentTemplate = {
 };
 
 type Props = {
-  agentTemplate: MockAgentTemplate;
+  agentTemplate: AgentTemplate;
 };
 
 export const WizardStep1: FC<Props> = ({ agentTemplate }) => {
   const { watch } = useFormContext<AgentDeploymentFormSchema>();
   const formData = watch();
+  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/create' });
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  type GetPlatformResponse =
+    paths['/api/v2/platforms/{platform_id}']['get']['responses']['200']['content']['application/json'];
 
-  const selectedLLM = mockLLMProviders.find((llm) => llm.value === formData.llmId);
-  const llmLabel = selectedLLM ? selectedLLM.label : 'Not selected';
+  const llmId = formData.llmId;
+  const isPackageRef = typeof llmId === 'string' && llmId.startsWith('package:');
+
+  const platformQuery = useQuery({
+    queryKey: ['platform', tenantId, llmId],
+    queryFn: async (): Promise<GetPlatformResponse> => {
+      return (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/{platform_id}', {
+        params: { path: { platform_id: llmId as string } },
+        silent: true,
+      })) as GetPlatformResponse;
+    },
+    enabled: Boolean(llmId) && !isPackageRef,
+  });
+
+  const llmLabel = useMemo(() => {
+    if (!llmId) return 'Not selected';
+    if (isPackageRef) {
+      const [, provider, model] = String(llmId).split(':');
+      return `${provider} (${model})`;
+    }
+    if (platformQuery.data?.name) {
+      const p = platformQuery.data;
+      return `${p.name}${p.kind ? ` (${p.kind})` : ''}`;
+    }
+    if (platformQuery.isPending) return 'Loading...';
+    return String(llmId);
+  }, [llmId, isPackageRef, platformQuery.data, platformQuery.isPending]);
   const agentType = agentTemplate.metadata.mode === 'worker' ? 'Worker' : 'Conversational';
-  // counts omitted in this design
-  // No API key display in the review screen per spec
 
   return (
     <Box>

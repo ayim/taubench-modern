@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -310,7 +311,7 @@ async def inspect_action_from_package(
 # ===============================
 
 
-async def create_or_update_agent_from_package(  # noqa: C901, PLR0912
+async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
     user: AuthedUser,
     aid: str,
     payload: AgentPackagePayload,
@@ -343,6 +344,13 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912
     # Normalize and bring over langsmith config from payload (accept dict or typed)
     advanced_config = {}
     ls_obj = payload.langsmith
+    # If sent via multipart as a JSON string, coerce to dict first
+    if isinstance(ls_obj, str):
+        try:
+            parsed = json.loads(ls_obj)
+            ls_obj = parsed if isinstance(parsed, dict) else None
+        except Exception:
+            ls_obj = None
     if isinstance(ls_obj, dict):  # type: ignore[truthy-bool]
         try:
             ls_obj = AgentPackagePayloadLangsmith(**ls_obj)
@@ -357,8 +365,22 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912
     action_server_url = None
     action_server_api_key = None
     normalized_action_servers: list[AgentPackagePayloadActionServer] = []
-    if payload.action_servers:
-        for item in payload.action_servers:
+    # If action_servers came as JSON string via multipart, parse it first
+    action_servers_input = payload.action_servers
+    if isinstance(action_servers_input, str):
+        try:
+            parsed = json.loads(action_servers_input)
+            if isinstance(parsed, dict):
+                action_servers_input = [parsed]
+            elif isinstance(parsed, list):
+                action_servers_input = parsed
+            else:
+                action_servers_input = []
+        except Exception:
+            action_servers_input = []
+
+    if action_servers_input:
+        for item in action_servers_input:
             if isinstance(item, AgentPackagePayloadActionServer):
                 normalized_action_servers.append(item)
             elif isinstance(item, dict):  # type: ignore[unreachable]
@@ -372,13 +394,33 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912
     if isinstance(action_server_api_key, str):
         action_server_api_key = SecretString(action_server_api_key)
 
-    # Normalize nested fields defensively if JSON deserialization left dicts
+    # Normalize fields that may arrive as JSON strings from multipart forms
+    # mcp_servers: expecting a list of dicts or MCPServer objects
+    mcp_input = payload.mcp_servers
+    if isinstance(mcp_input, str):
+        try:
+            parsed = json.loads(mcp_input)
+            if isinstance(parsed, dict):
+                mcp_input = [parsed]
+            elif isinstance(parsed, list):
+                mcp_input = parsed
+        except Exception:
+            mcp_input = []
+
     normalized_mcp_servers = []
-    for server in payload.mcp_servers:
+    for server in mcp_input:
         if isinstance(server, dict):  # type: ignore[unreachable]
             normalized_mcp_servers.append(MCPServer.model_validate(server))
         else:
             normalized_mcp_servers.append(server)
+
+    # Normalize model in case multipart parsing left it as a JSON string
+    normalized_model = payload.model
+    if isinstance(normalized_model, str):
+        try:
+            normalized_model = json.loads(normalized_model)
+        except Exception:
+            normalized_model = None
 
     as_upsert_payload = UpsertAgentPayload(
         name=payload.name,  # Want name from payload, not agent project
@@ -406,7 +448,7 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912
             "welcome_message": agent_package.welcome_message,
             "agent_settings": agent_package.agent_settings,
         },
-        model=payload.model,
+        model=normalized_model,
         agent_architecture=AgentArchitecture(
             # Doesn't matter what we were given, all legacy architectures
             # get mapped to default for v2 & v3

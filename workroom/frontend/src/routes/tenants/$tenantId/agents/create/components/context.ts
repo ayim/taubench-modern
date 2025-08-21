@@ -50,9 +50,9 @@ export const AgentDeploymentFormSchemaStep1Schema = z.object({
 export const AgentDeploymentFormSchemaStep2Schema = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
-  workspaceId: z.string().optional(), // Made optional since we removed workspace selector
+  workspaceId: z.string().optional(),
   llmId: z.string().min(1, 'LLM setting is required'),
-  apiKey: z.string().min(1, 'API key is required'),
+  apiKey: z.string().optional(),
   oAuthProviders: z.record(z.string(), z.string().min(1)).optional(),
   feedbackRecipients: z
     .array(
@@ -91,46 +91,20 @@ export const AgentDeploymentFormSchemaStep3Schema = z.object({
   mcpServerSettings: z.array(MCPServerSettings).optional(),
 });
 
-export const AgentDeploymentFormSchemaStep4Schema = z.object({
-  documentWorkflowAssignment: z
-    .object({
-      documentName: z.string(),
-      stageId: z.string(),
-    })
-    .nullable(),
-});
-
-export const AgentDeploymentFormSchemaStep5Schema = z.object({
-  dataSources: z
-    .object({ agentTemplateDataSourceId: z.string(), dataSourceConnectionId: z.string().min(1) })
-    .array()
-    .default([]),
-});
-
 export enum AgentDeploymentStep {
   AgentOverview = 'AgentOverview',
   AgentSettings = 'AgentSettings',
   ActionSettings = 'ActionSettings',
-  Triggers = 'Triggers',
-  DataSources = 'DataSources',
 }
 
 export type AgentDeploymentFormStep1 = z.infer<typeof AgentDeploymentFormSchemaStep1Schema>;
 export type AgentDeploymentFormStep2 = z.infer<typeof AgentDeploymentFormSchemaStep2Schema>;
 export type AgentDeploymentFormStep3 = z.infer<typeof AgentDeploymentFormSchemaStep3Schema>;
-export type AgentDeploymentFormStep4 = z.infer<typeof AgentDeploymentFormSchemaStep4Schema>;
-export type AgentDeploymentFormStep5 = z.infer<typeof AgentDeploymentFormSchemaStep5Schema>;
 
 export const AgentDeploymentFormValidators: Record<AgentDeploymentStep, z.ZodSchema> = {
   AgentOverview: AgentDeploymentFormSchemaStep1Schema,
   AgentSettings: AgentDeploymentFormSchemaStep2Schema,
   ActionSettings: AgentDeploymentFormSchemaStep3Schema,
-  Triggers: AgentDeploymentFormSchemaStep4Schema,
-  DataSources: AgentDeploymentFormSchemaStep5Schema,
 };
 
-export type AgentDeploymentFormSchema = AgentDeploymentFormStep1 &
-  AgentDeploymentFormStep2 &
-  AgentDeploymentFormStep3 &
-  AgentDeploymentFormStep4 &
-  AgentDeploymentFormStep5;
+export type AgentDeploymentFormSchema = AgentDeploymentFormStep1 & AgentDeploymentFormStep2 & AgentDeploymentFormStep3;

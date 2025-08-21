@@ -53,7 +53,28 @@ async def update_platform(
     storage: StorageDependency,
 ) -> AnyPlatformParameters:
     """Update an existing platform configuration by ID."""
-    platform_params = payload.to_platform_parameters()
+    existing_params = await storage.get_platform_params(platform_id)
+
+    existing_payload = UpsertPlatformConfigPayload.from_platform_parameters(
+        existing_params, config_id=platform_id
+    )
+
+    merged_credentials: dict | None
+    if payload.credentials and existing_payload.credentials:
+        merged_credentials = {**existing_payload.credentials, **payload.credentials}
+    else:
+        merged_credentials = payload.credentials or existing_payload.credentials
+
+    merged_payload = UpsertPlatformConfigPayload(
+        id=platform_id,
+        name=payload.name or existing_payload.name,
+        kind=payload.kind or existing_payload.kind,
+        description=payload.description or existing_payload.description,
+        credentials=merged_credentials,
+        models=payload.models or existing_payload.models,
+    )
+
+    platform_params = merged_payload.to_platform_parameters()
     await storage.update_platform_params(
         platform_id,
         platform_params,

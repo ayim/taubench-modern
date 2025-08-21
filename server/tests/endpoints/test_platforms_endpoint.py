@@ -208,6 +208,34 @@ def test_update_platform(client: TestClient, sample_openai_platform_payload: dic
     assert data["kind"] == sample_openai_platform_payload["kind"]
 
 
+def test_update_platform_preserves_credentials_on_omission(
+    client: TestClient, sample_openai_platform_payload: dict
+):
+    """Omitting credentials on update should keep existing stored credentials."""
+    # Create platform with credentials
+    create_response = client.post("/api/v2/private/platforms/", json=sample_openai_platform_payload)
+    assert create_response.status_code == 200
+    platform_id = create_response.json()["platform_id"]
+
+    original_key = sample_openai_platform_payload["credentials"]["openai_api_key"]
+
+    # Update without credentials
+    updated_payload = {
+        "kind": "openai",
+        "name": "Updated Name Without Credentials",
+        "models": {"openai": ["gpt-4-1"]},
+        # credentials intentionally omitted
+    }
+
+    response = client.put(f"/api/v2/private/platforms/{platform_id}", json=updated_payload)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["name"] == "Updated Name Without Credentials"
+    # Secret should be preserved server-side when omitted in the request
+    assert data["openai_api_key"] == original_key
+
+
 def test_update_platform_not_found(client: TestClient, sample_openai_platform_payload: dict):
     """Test updating a non-existent platform returns 404."""
     non_existent_id = "00000000-0000-0000-0000-000000000000"

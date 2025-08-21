@@ -8,35 +8,30 @@ import { Steps } from './Steps';
 import { WizardStep1 } from './WizardStep1';
 import { WizardStep2 } from './WizardStep2';
 import { WizardStep3 } from './WizardStep3';
-import { WizardStep4 } from './WizardStep4';
-import { WizardStep5 } from './WizardStep5';
 import { StepNavigation } from './StepNavigation';
-
-// Mock agent template type
-type MockAgentTemplate = {
-  id: string;
-  name: string;
-  description: string;
-  metadata: { mode: 'worker' | 'conversational' };
-  actions: Array<{ id: string; name: string }>;
-  mcpServers: Array<{
-    config: {
-      name: string;
-      url: string;
-      transport: 'sse' | 'streamable-http';
-      headers: unknown;
-    };
-  }>;
-  dataSources: Array<{
-    id: string;
-    engine: string;
-    name: string;
-  }>;
-};
 
 type Props = {
   defaultValues: AgentDeploymentFormSchema;
-  agentTemplate: MockAgentTemplate;
+  agentTemplate: {
+    id: string;
+    name: string;
+    description: string;
+    metadata: { mode: 'worker' | 'conversational' };
+    actions: Array<{ id: string; name: string }>;
+    mcpServers: Array<{
+      config: {
+        name: string;
+        url: string;
+        transport: 'sse' | 'streamable-http';
+        headers: unknown;
+      };
+    }>;
+    dataSources: Array<{
+      id: string;
+      engine: string;
+      name: string;
+    }>;
+  };
   onSubmit: (payload: AgentDeploymentFormSchema) => void;
   isPending: boolean;
   title: string;
@@ -49,15 +44,13 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
 
   const [nameErrorMessage, setNameErrorMessage] = useState<string | undefined>(undefined);
 
-  const dataSources = agentTemplate.dataSources ?? [];
   const mcpServers = agentTemplate.mcpServers.map((mcpServer) => mcpServer.config);
 
-  const withTriggers = agentTemplate.metadata.mode === 'worker';
+  const withTriggers = false;
   const withActions = agentTemplate.actions.length > 0;
   const withMcpServers = mcpServers.length > 0;
-  const withDataSources = dataSources.length > 0;
+  const withDataSources = false;
 
-  // For the new 3-step flow: Review → Agent Configuration → Configure MCP
   const isFinalStep = wizardStep === AgentDeploymentStep.ActionSettings;
   const isFirstStep = wizardStep === AgentDeploymentStep.AgentOverview;
 
@@ -73,11 +66,7 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
     reset(defaultValues);
   }, [defaultValues, reset]);
 
-  // Mock agent deployments for name validation (unused for now)
-  // const agentDeployments: Array<{ id: string; name: string }> = [];
-
   const onStepSubmit = handleSubmit(async (payload, e) => {
-    // hotfix for `react-hook-forms` nested forms (Create new Secret, LLM...) triggering submit event to all parent forms
     if (e?.target !== formRef.current) {
       return;
     }
@@ -89,7 +78,6 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
     if (isFinalStep) {
       onSubmit(updatedFormValues);
     } else {
-      // New 3-step navigation flow
       switch (wizardStep) {
         case AgentDeploymentStep.AgentOverview:
           onWizarStepChange(AgentDeploymentStep.AgentSettings);
@@ -99,9 +87,6 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
           break;
         // @ts-expect-error - ActionSettings is valid but TypeScript is confused
         case AgentDeploymentStep.ActionSettings:
-          break;
-        case AgentDeploymentStep.Triggers:
-        case AgentDeploymentStep.DataSources:
           break;
         default:
           break;
@@ -117,8 +102,7 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
 
     const formValid = await trigger();
 
-    // Allow navigating from Document intelligence to allow to change Workspace
-    if (formValid || wizardStep === AgentDeploymentStep.Triggers) {
+    if (formValid) {
       setWizardStep(nextStep);
     }
   };
@@ -145,7 +129,7 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
           {/* Header matching Agents page */}
           <header className="text-center">
             <div className="flex items-center justify-center gap-2 !mb-2 h-11">
-              <img src="svg/IconAgentsPage.svg" className="h-full" />
+              <img src="/svg/IconAgentsPage.svg" className="h-full" />
               <Typography
                 lineHeight="29px"
                 fontFamily="Heldane Display"
@@ -178,10 +162,7 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
                   {wizardStep === AgentDeploymentStep.AgentOverview && <WizardStep1 agentTemplate={agentTemplate} />}
                   {wizardStep === AgentDeploymentStep.AgentSettings && <WizardStep2 errorMessage={nameErrorMessage} />}
                   {wizardStep === AgentDeploymentStep.ActionSettings && <WizardStep3 mcpServers={mcpServers} />}
-                  {wizardStep === AgentDeploymentStep.Triggers && <WizardStep4 />}
-                  {wizardStep === AgentDeploymentStep.DataSources && (
-                    <WizardStep5 agentTemplateDataSources={dataSources} />
-                  )}
+                  {/* Legacy steps removed */}
                 </Box>
 
                 <Box mb="$40">

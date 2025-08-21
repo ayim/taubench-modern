@@ -254,6 +254,95 @@ class TestCreateAgentFromPackage:
         as_legacy = AgentCompat.from_agent(created_agent, reveal_sensitive=True)
         assert as_legacy.advanced_config.get("langsmith", {}).get("api_key") == "ls-key"
 
+    @pytest.mark.asyncio
+    async def test_deploy_agent_multipart_with_json_strings(
+        self, mock_user, mock_storage, sample_agent_spec, monkeypatch
+    ):
+        """
+        Deploy endpoint should accept multipart/form-data where structured fields
+        (model, mcp_servers, action_servers, langsmith) are JSON strings, and the
+        server should coerce them before legacy conversion. This mirrors the UI behavior.
+        """
+        # Mock extraction of the package spec
+        monkeypatch.setattr(
+            "agent_platform.server.api.private_v2.package.extract_and_validate_agent_package",
+            AsyncMock(return_value=AgentPackageParsed(**sample_agent_spec)),
+        )
+
+        # Build a Starlette Request with multipart form-data
+        boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+        fields = {
+            "name": "Multipart JSON Agent",
+            "agent_package_base64": "dGVzdA==",  # minimal, bypass URL/base64 validation path
+            "public": "true",
+            "model": json.dumps(
+                {
+                    "provider": "OpenAI",
+                    "name": "gpt-4o",
+                    "config": {"openai_api_key": "sk-test"},
+                }
+            ),
+            "mcp_servers": json.dumps(
+                [
+                    {
+                        "name": "time-mcp",
+                        "url": "https://mcp.example.com/mcp",
+                        "transport": "auto",
+                        "headers": {"X": "y"},
+                    }
+                ]
+            ),
+            "action_servers": json.dumps(
+                [{"url": "https://actions.example.com", "api_key": "act"}]
+            ),
+            "langsmith": json.dumps(
+                {
+                    "api_key": "ls",
+                    "api_url": "https://ls.example.com",
+                    "project_name": "proj",
+                }
+            ),
+        }
+
+        # Compose raw multipart payload
+        def part(name: str, value: str) -> bytes:
+            return (
+                f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'
+            ).encode()
+
+        body = b"".join(part(k, v) for k, v in fields.items()) + f"--{boundary}--\r\n".encode()
+
+        async def receive():
+            return {"type": "http.request", "body": body, "more_body": False}
+
+        scope = {
+            "type": "http",
+            "http_version": "1.1",
+            "method": "POST",
+            "path": "/",
+            "headers": [(b"content-type", f"multipart/form-data; boundary={boundary}".encode())],
+            "query_string": b"",
+            "client": ("testclient", 1234),
+            "server": ("testserver", 80),
+            "scheme": "http",
+        }
+        request = Request(scope, receive)
+
+        # Execute deploy handler
+        from agent_platform.server.api.private_v2.package import deploy_agent_from_package
+
+        result = await deploy_agent_from_package(
+            user=mock_user, request=request, storage=mock_storage, _=None
+        )
+
+        assert isinstance(result, AgentCompat)
+        created_agent = mock_storage.upsert_agent.call_args[0][1]
+        # mcp converted and present
+        assert len(created_agent.mcp_servers) == 1
+        assert created_agent.mcp_servers[0].url == "https://mcp.example.com/mcp"
+        # action server propagated
+        assert created_agent.action_packages[0].url == "https://actions.example.com"
+
     async def test_create_agent_from_real_package_openai(
         self,
         mock_user,

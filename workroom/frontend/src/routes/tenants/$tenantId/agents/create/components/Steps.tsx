@@ -7,8 +7,6 @@ import {
   AgentDeploymentFormSchemaStep1Schema,
   AgentDeploymentFormSchemaStep2Schema,
   AgentDeploymentFormSchemaStep3Schema,
-  AgentDeploymentFormSchemaStep4Schema,
-  AgentDeploymentFormSchemaStep5Schema,
   AgentDeploymentStep,
 } from './context';
 
@@ -34,8 +32,6 @@ export const Steps: FC<Props> = ({ activeStep, setWizardStep }) => {
     Object.keys(AgentDeploymentFormSchemaStep1Schema.shape).some((curr) => errorKeys.includes(curr)),
     Object.keys(AgentDeploymentFormSchemaStep2Schema.shape).some((curr) => errorKeys.includes(curr)),
     Object.keys(AgentDeploymentFormSchemaStep3Schema.shape).some((curr) => errorKeys.includes(curr)),
-    Object.keys(AgentDeploymentFormSchemaStep4Schema.shape).some((curr) => errorKeys.includes(curr)),
-    Object.keys(AgentDeploymentFormSchemaStep5Schema.shape).some((curr) => errorKeys.includes(curr)),
   ];
 
   // Removed getActionSettingsStepLabel since we have fixed step labels now

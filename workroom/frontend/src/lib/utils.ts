@@ -80,6 +80,22 @@ export const getTenantWorkoomRedirect = ({
   };
 };
 
+export const beautifyLabel = (value: string): string => {
+  const id = value.split(':')[1] || value;
+  return id
+    .replace(/-/g, ' ')
+    .replace(/^gpt /, 'GPT ')
+    .replace(/^o(\d)/i, (_, d) => `O${d} `)
+    .replace(/\bmini\b/i, 'Mini')
+    .replace(/\bhigh\b/i, 'High')
+    .replace(/\bopenai service\b/i, 'OpenAI Service')
+    .replace(/\bamazon bedrock\b/i, 'Amazon Bedrock')
+    .replace(/\bazure\b/i, 'Azure')
+    .replace(/\bopenai\b/i, 'OpenAI')
+    .replace(/\bbedrock\b/i, 'Bedrock')
+    .replace(/\b(\w)/g, (m) => m.toUpperCase());
+};
+
 export const joinURL = (...parts: Array<string>): string => {
   return parts
     .join('/')
