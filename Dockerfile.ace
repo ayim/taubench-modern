@@ -18,7 +18,7 @@ ENV SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true
 
 # Install necessary dependencies
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y curl poppler-utils && \
     rm -rf /var/lib/apt/lists/*
 
 # Set the working directory

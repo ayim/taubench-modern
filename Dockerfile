@@ -45,6 +45,7 @@ RUN apt-get update && \
         curl \
         ca-certificates \
         zlib1g \
+        poppler-utils \
         && rm -rf /var/lib/apt/lists/* && \
     # Create non-root user for security
     useradd -r -s /bin/false -m -d /app agentserver
