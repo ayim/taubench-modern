@@ -52,7 +52,7 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir):
         # even some sample data).
         found_data_frames = agent_client.inspect_file_as_data_frame(
             thread_id,
-            file_id,
+            file_id=file_id,
         )
         assert len(found_data_frames) == 2, "Expected exactly two data frames in the response"
         data_frame = found_data_frames[0]
@@ -78,13 +78,20 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir):
         created = agent_client.create_data_frame_from_file(thread_id, file_id, sheet_name="Sheet2")
         assert created["sheet_name"] == "Sheet2"
 
+        with pytest.raises(
+            Exception, match="Multiple data frames found in file. Please specify sheet_name."
+        ):
+            agent_client.create_data_frame_from_file(thread_id, file_id)
+
         # Now, get the data frames in the thread
-        data_frames = agent_client.get_data_frames(thread_id)
+        data_frames = agent_client.get_data_frames(thread_id, num_samples=2)
         assert len(data_frames) == 2, "Expected exactly one data frame in the response"
         assert {data_frame["name"] for data_frame in data_frames} == {
             "sample_sheet1",
             "sample_sheet2",
         }
+        assert data_frames[0]["sample_rows"] == [["John", 25], ["Jane", 30]]
+        assert data_frames[1]["sample_rows"] == [["John", "London"], ["Jane", "Australia"]]
 
         # Now, create a data frame from computation using both data frames (join by the name)
         data_frame_response = agent_client.create_data_frame_from_sql_computation(
@@ -133,7 +140,7 @@ def test_data_frames_integration(base_url_agent_server):
         # even some sample data).
         found_data_frames = agent_client.inspect_file_as_data_frame(
             thread_id,
-            file_id,
+            file_ref="my-tabulated-data.csv",  # With name
         )
         assert len(found_data_frames) == 1, "Expected exactly one data frame in the response"
         data_frame = found_data_frames[0]
@@ -145,7 +152,9 @@ def test_data_frames_integration(base_url_agent_server):
 
         # Just with 1 sample row now.
         found_data_frames = agent_client.inspect_file_as_data_frame(
-            thread_id, file_id, num_samples=1
+            thread_id,
+            file_id=file_id,
+            num_samples=1,
         )
         assert len(found_data_frames) == 1, "Expected exactly one data frame in the response"
         data_frame = found_data_frames[0]

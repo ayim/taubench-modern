@@ -42,7 +42,7 @@ class Dependencies:
     """
 
     def __init__(self):
-        self._data_frames: "list[PlatformDataFrame]" = []  # noqa: UP037
+        self._data_frames: list[PlatformDataFrame] = []
 
     def add_data_frame_dependency(self, data_frame: "PlatformDataFrame"):
         self._data_frames.append(data_frame)
@@ -71,10 +71,10 @@ class DataFramesKernel:
 
         # Dict of data frame id to resolved data frame.
         # This is used to avoid resolving the same data frame multiple times.
-        self._resolved_data_frames: "dict[str, DataNodeResult]" = {}  # noqa: UP037
+        self._resolved_data_frames: dict[str, DataNodeResult] = {}
         self._computing_data_frames: set[str] = set()
 
-        self._data_frames: "list[PlatformDataFrame] | None" = None  # noqa: UP037
+        self._data_frames: list[PlatformDataFrame] | None = None
 
     async def get_thread(self) -> "Thread":
         return await self._storage.get_thread(self._user.user_id, self._tid)
@@ -332,10 +332,11 @@ class DataFramesKernel:
                 )
             data_reader = await create_file_data_reader(
                 self._user,
-                data_frame.file_id,
                 self._tid,
                 self._storage,
                 sheet_name=data_frame.sheet_name,
+                file_id=data_frame.file_id,
+                # file_ref=data_frame.file_ref, # TODO: Add file_ref to the platform data frame
             )
             if data_reader.has_multiple_sheets():
                 raise PlatformHTTPError(

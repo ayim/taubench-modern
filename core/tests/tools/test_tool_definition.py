@@ -96,6 +96,27 @@ def test_custom_name_and_description():
     assert tool.description == "My custom description"
 
 
+def test_multiline_docstring():
+    """Multiline docstring"""
+
+    async def foo(bar: Annotated[str, "testing"]):
+        """Docstring line 0
+        This is a multiline docstring.
+          - item 1
+          - item 2
+        """
+        return bar
+
+    tool = ToolDefinition.from_callable(
+        foo,
+    )
+    assert tool.name == "foo"
+    assert (
+        tool.description
+        == "Docstring line 0\nThis is a multiline docstring.\n  - item 1\n  - item 2"
+    )
+
+
 def test_falls_back_to_docstring():
     """If no description is given, we use the function's docstring."""
 

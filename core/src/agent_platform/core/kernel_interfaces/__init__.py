@@ -7,6 +7,7 @@ tool execution, and user interaction.
 """
 
 from agent_platform.core.kernel_interfaces.converters import ConvertersInterface
+from agent_platform.core.kernel_interfaces.data_frames import DataFramesInterface
 from agent_platform.core.kernel_interfaces.events import EventsInterface
 from agent_platform.core.kernel_interfaces.files import FilesInterface
 from agent_platform.core.kernel_interfaces.memory import MemoryInterface
@@ -23,6 +24,7 @@ from agent_platform.core.kernel_interfaces.user_interactions import (
 
 __all__ = [
     "ConvertersInterface",
+    "DataFramesInterface",
     "EventsInterface",
     "FilesInterface",
     "MemoryInterface",

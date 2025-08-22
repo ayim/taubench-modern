@@ -5,6 +5,7 @@ from agent_platform.core.context import AgentServerContext
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.kernel_interfaces import (
     ConvertersInterface,
+    DataFramesInterface,
     EventsInterface,
     FilesInterface,
     MemoryInterface,
@@ -24,6 +25,7 @@ from agent_platform.core.thread import Thread
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.user import User
 from agent_platform.server.kernel.converters import AgentServerConvertersInterface
+from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
 from agent_platform.server.kernel.events import AgentServerEventsInterface
 from agent_platform.server.kernel.files import AgentServerFilesInterface
 from agent_platform.server.kernel.memory import AgentServerMemoryInterface
@@ -108,6 +110,8 @@ class AgentServerKernel(Kernel):
             span.add_event("initialized user interactions")
             self._converters = AgentServerConvertersInterface()
             span.add_event("initialized converters")
+            self._data_frames = AgentServerDataFramesInterface()
+            span.add_event("initialized data frames")
             self._model_platforms = []
 
             # TODO: if kernel is used in init for some interfaces,
@@ -134,6 +138,8 @@ class AgentServerKernel(Kernel):
             span.add_event("attached thread state")
             self._user_interactions.attach_kernel(self)
             span.add_event("attached user interactions")
+            self._data_frames.attach_kernel(self)
+            span.add_event("attached data frames")
 
             # Go through agent.platform_configs and create a platform interface for each
             span.add_event("initializing model platforms")
@@ -177,6 +183,10 @@ class AgentServerKernel(Kernel):
     @property
     def converters(self) -> ConvertersInterface:
         return self._converters
+
+    @property
+    def data_frames(self) -> DataFramesInterface:
+        return self._data_frames
 
     @property
     def outgoing_events(self) -> EventsInterface[StreamingDelta]:

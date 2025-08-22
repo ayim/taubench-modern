@@ -80,7 +80,7 @@ class ToolDefinition:
             ValueError: If the function is not async, uses *args/**kwargs, or
                 has missing required metadata.
         """
-        from inspect import iscoroutinefunction, signature
+        from inspect import getdoc, iscoroutinefunction, signature
 
         from agent_platform.core.tools.tool_utils import build_param_schema
 
@@ -90,7 +90,7 @@ class ToolDefinition:
 
         # 2. Determine name and description
         tool_name = name or func.__name__
-        doc = description or (func.__doc__ or "").strip() or f"{tool_name} function."
+        doc = description or (getdoc(func) or "").strip() or f"{tool_name} function."
 
         # 3. Build the JSON schema for parameters
         signature = signature(func)

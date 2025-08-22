@@ -77,11 +77,11 @@ Create a new REST API:
 - If it doesn't, return an error message to the user
 - The new data frame should be added to the thread
 
-## Step 2 (current PR):
+## Step 2 (done):
 
 Create a new REST API:
 
-- threads/{thread_id}/data-frames/slice (GET)
+- threads/{thread_id}/data-frames/slice (POST)
 
 - Create a new REST API which allows the client to obtain sliced data frame contents.
   - The data sent in the wire should follow either the parquet format or the json format (passed as an 'output_format' parameter).
@@ -99,13 +99,23 @@ Implementation-wise we must:
 - Create the new REST API
 - Change DataNodeResult (in `server/src/agent_platform/server/data_frames/data_node.py`) to include a `slice` method (which receives the offset, limit, column_names and format and returns the actual data, as a bytes -- either a json converted to bytes or a parquet created from pyarrow and then converted to bytes).
 
-## Step 3 (next PR):
+## Step 3 (current PR):
 
-- Actually create the builtin tools (using the same code from the REST APIs).
+- Create the following builtin tools:
+  - Create data frame from file (always available even if no data frames are available)
+  - The ones below should only be available if there are data frames available:
+    - Create data frame from computation
+    - Delete data frame
+    - Slice data frame
 - Update the runbook system prompt so that such tools and the related dataframes are available to the agent.
+
+Note: currently requires env var "SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1" to enable feature.
 
 # Future work (not right now):
 
+- Show sample data in the summary
+- Show column types in the summary
+- Reference file with name and provide it to the API.
 - Make the result of named queries (Tables) be available as data frames automatically.
 - Create tools that allow an agent to read the slices of data frames and put it into the context.
 - Allow the user to have data frames that are backed by a database.

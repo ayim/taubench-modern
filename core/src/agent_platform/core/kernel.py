@@ -16,6 +16,7 @@ from agent_platform.core.context import AgentServerContext
 from agent_platform.core.errors.streaming import NoPlatformOrModelFoundError
 from agent_platform.core.kernel_interfaces import (
     ConvertersInterface,
+    DataFramesInterface,
     EventsInterface,
     FilesInterface,
     MemoryInterface,
@@ -294,7 +295,14 @@ class Kernel(ABC):
 
         The agent-server context is used to interact with the agent-server.
         """
-        pass
+
+    @property
+    @abstractmethod
+    def data_frames(self) -> DataFramesInterface:
+        """Interface for interacting with the agent-server's data frames.
+
+        The data frames API is used to interact with the agent-server's data frames.
+        """
 
     async def get_platform_and_model(
         self,

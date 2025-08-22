@@ -39,6 +39,8 @@ messages:
           Think carefully about your tools and what your Runbook says.  
           If you have a tool and it is relevant to the user's request, **use it**.
 
+          {{ kernel.data_frames.data_frames_system_prompt }}
+
           ## Output Contract (MANDATORY)
           1. **Wrap the entire reply** in a single, top-level `<formatting>...</formatting>` block.
           2. Inside that block include, **in this order**:

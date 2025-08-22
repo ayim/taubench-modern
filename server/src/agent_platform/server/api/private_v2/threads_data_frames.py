@@ -32,13 +32,13 @@ class _DataFrameInspectionAPI:
     created_at: Annotated[datetime.datetime, "The date and time the data frame was created."]
     column_headers: Annotated[list[str], "The headers of the columns in the data frame."]
     sample_rows: Annotated[list[Sequence[Any]], "The sample rows of the data frame."]
+    file_id: Annotated[str | None, "The ID of the file that the data frame is in."]
 
 
 @router.get("/{tid}/inspect-file-as-data-frame")
 async def inspect_file_as_data_frame(  # noqa: PLR0913
     user: AuthedUser,
     tid: str,
-    file_id: str,
     storage: StorageDependency,
     num_samples: Annotated[
         int,
@@ -54,6 +54,15 @@ async def inspect_file_as_data_frame(  # noqa: PLR0913
         """The name of the sheet to inspect. If not given and a multi-sheet
         file is given, all sheets are inspected.""",
     ] = None,
+    file_id: Annotated[
+        str | None,
+        """The ID of the file to inspect (when used, file_ref is not needed).""",
+    ] = None,
+    file_ref: Annotated[
+        str | None,
+        """The reference of the file (usually the file name) to inspect
+        (when used, file_id is not needed).""",
+    ] = None,
 ) -> list[_DataFrameInspectionAPI]:
     """Inspect a file as a data frame.
 
@@ -65,7 +74,9 @@ async def inspect_file_as_data_frame(  # noqa: PLR0913
 
     ret: list[_DataFrameInspectionAPI] = []
 
-    data_reader = await create_file_data_reader(user, file_id, tid, storage, sheet_name)
+    data_reader = await create_file_data_reader(
+        user, tid, storage, sheet_name, file_id=file_id, file_ref=file_ref
+    )
     file_metadata = data_reader.file_metadata
 
     for sheet in data_reader.iter_sheets():
@@ -73,6 +84,7 @@ async def inspect_file_as_data_frame(  # noqa: PLR0913
             _DataFrameInspectionAPI(
                 thread_id=tid,
                 name=file_metadata.file_ref,
+                file_id=file_metadata.file_id,
                 sheet_name=sheet.name,
                 num_rows=sheet.num_rows,
                 num_columns=sheet.num_columns,
@@ -103,7 +115,6 @@ class _DataFrameCreationAPI:
 async def create_data_frame_from_file(  # noqa: PLR0913
     user: AuthedUser,
     tid: str,
-    file_id: str,
     storage: StorageDependency,
     num_samples: Annotated[
         int,
@@ -121,6 +132,15 @@ async def create_data_frame_from_file(  # noqa: PLR0913
     ] = None,
     description: Annotated[str | None, "The description for the data frame."] = None,
     name: Annotated[str | None, "The name for the data frame."] = None,
+    file_id: Annotated[
+        str | None,
+        """The ID of the file to create the data frame from (when used, file_ref is not needed).""",
+    ] = None,
+    file_ref: Annotated[
+        str | None,
+        """The reference of the file (usually the file name) to create the data frame from
+        (when used, file_id is not needed).""",
+    ] = None,
 ) -> _DataFrameCreationAPI:
     """Create a data frame from a file.
 
@@ -135,7 +155,7 @@ async def create_data_frame_from_file(  # noqa: PLR0913
     from sema4ai.common.text import slugify
 
     inspected_data_frames = await inspect_file_as_data_frame(
-        user, tid, file_id, storage, num_samples, sheet_name
+        user, tid, storage, num_samples, sheet_name, file_id=file_id, file_ref=file_ref
     )
     if len(inspected_data_frames) == 0:
         raise HTTPException(status_code=400, detail="No data frames found in file")
@@ -195,7 +215,7 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         input_id_type="file",
         created_at=datetime.datetime.now(datetime.UTC),
         computation_input_sources={},
-        file_id=file_id,
+        file_id=inspected_data_frame.file_id,
         description=description,
         computation=None,
         # we could save the data as parquet, but for now, let's experiment in always

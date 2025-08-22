@@ -2,6 +2,7 @@
 Default architecture for running agents.
 """
 
+import os
 from importlib.metadata import version
 
 from agent_platform.architectures.default.thread_conversion import (
@@ -119,7 +120,7 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 
 @aa.step
-async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:
+async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
         thread_messages_to_prompt_messages,
@@ -139,6 +140,14 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     mcp_tools, mcp_issues = await kernel.tools.from_mcp_servers(
         kernel.agent.mcp_servers,
     )
+
+    # Note: leave this under a feature flag for now, as it's not ready for prime time yet.
+    if os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES") in ("1", "true"):
+        await kernel.data_frames.step_initialize()
+        data_frames_tools = kernel.data_frames.get_data_frame_tools()
+    else:
+        data_frames_tools = ()
+
     # Save any issues to state for introspection
     state.configuration_issues = [*action_issues, *mcp_issues]
 
@@ -173,6 +182,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         *action_tools,
         *mcp_tools,
         *kernel.client_tools,
+        *data_frames_tools,
     )
 
     # Let's create a new message in the thread
@@ -222,11 +232,12 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
                     if tool.kind == "tool_use"
                 ]
             )
+
             state, message = await _backup_prompt_for_invalid_format(
                 kernel,
                 state,
                 message,
-                [*action_tools, *mcp_tools, *kernel.client_tools],
+                [*action_tools, *mcp_tools, *kernel.client_tools, *data_frames_tools],
             )
     # Update the message to show that the tool calls are running in the chat
     for _, tool_call in state.pending_tool_calls:

@@ -7,8 +7,6 @@ import pytest
 if typing.TYPE_CHECKING:
     from sqlglot.dialects.dialect import DialectType
 
-    from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-
 
 def verify_safe_select(sql: str, dialect: "DialectType | None" = None) -> None:
     """
@@ -173,77 +171,12 @@ def test_ibis_pandas_computation(datadir: Path):
     ]
 
 
-class _UserStub:
-    def __init__(self):
-        from uuid import uuid4
-
-        self.user_id = str(uuid4())
-
-
-class _ThreadStub:
-    def __init__(self):
-        from uuid import uuid4
-
-        self.tid = str(uuid4())
-        self.agent_id = str(uuid4())
-        self.user = _UserStub()
-
-
-class _StorageStub:
-    def __init__(self):
-        from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-
-        self.thread = _ThreadStub()
-        self.data_frames: list[PlatformDataFrame] = []
-
-    async def get_thread(self, user_id: str, tid: str) -> _ThreadStub:
-        assert tid == self.thread.tid
-        return self.thread
-
-    async def list_data_frames(self, tid: str) -> "list[PlatformDataFrame]":
-        assert tid == self.thread.tid
-        return self.data_frames
-
-    async def save_data_frame(self, data_frame: "PlatformDataFrame") -> None:
-        self.data_frames.append(data_frame)
-
-    async def create_in_memory_data_frame(self, name: str, contents: dict[str, list]):
-        import datetime
-        import io
-        from uuid import uuid4
-
-        import pyarrow.parquet
-
-        from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-
-        pyarrow_df = pyarrow.Table.from_pydict(contents)
-
-        stream = io.BytesIO()
-        pyarrow.parquet.write_table(pyarrow_df, stream)
-
-        self.data_frames.append(
-            PlatformDataFrame(
-                data_frame_id=str(uuid4()),
-                name=name,
-                user_id=self.thread.user.user_id,
-                agent_id=self.thread.agent_id,
-                thread_id=self.thread.tid,
-                num_rows=pyarrow_df.shape[0],
-                num_columns=pyarrow_df.shape[1],
-                column_headers=list(pyarrow_df.schema.names),
-                input_id_type="in_memory",
-                created_at=datetime.datetime.now(datetime.UTC),
-                parquet_contents=stream.getvalue(),
-                computation_input_sources={},
-            )
-        )
-
-
 @pytest.mark.asyncio
 async def test_create_data_frame_from_sql_computation():
     import io
 
     import pyarrow.parquet as pq
+    from tests.data_frames.fixtures import StorageStub
 
     from agent_platform.server.auth import AuthedUser
     from agent_platform.server.data_frames.data_frames_from_computation import (
@@ -252,7 +185,7 @@ async def test_create_data_frame_from_sql_computation():
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
 
-    storage_stub = _StorageStub()
+    storage_stub = StorageStub()
     tid = storage_stub.thread.tid
 
     await storage_stub.create_in_memory_data_frame(
@@ -282,40 +215,50 @@ async def test_create_data_frame_from_sql_computation():
     assert result.platform_data_frame.column_headers == ["col1", "col2"]
     assert result.platform_data_frame.sql_dialect == "duckdb"
 
-    loaded = json.loads(result.slice(offset=0, limit=1, output_format="json"))
+    loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=1, output_format="json")))
     assert loaded == [{"col1": 1, "col2": 4}]
 
-    loaded = json.loads(result.slice(offset=0, limit=2, output_format="json"))
+    loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=2, output_format="json")))
     assert loaded == [{"col1": 1, "col2": 4}, {"col1": 2, "col2": 5}]
 
     loaded = json.loads(
-        result.slice(offset=0, limit=2, output_format="json", column_names=["col1"])
+        typing.cast(
+            bytes, result.slice(offset=0, limit=2, output_format="json", column_names=["col1"])
+        )
     )
     assert loaded == [{"col1": 1}, {"col1": 2}]
 
     loaded = json.loads(
-        result.slice(
-            offset=0,
-            limit=2,
-            output_format="json",
-            column_names=["col1"],
-            order_by="-col1",
+        typing.cast(
+            bytes,
+            result.slice(
+                offset=0,
+                limit=2,
+                output_format="json",
+                column_names=["col1"],
+                order_by="-col1",
+            ),
         )
     )
     assert loaded == [{"col1": 2}, {"col1": 1}]
 
     loaded = json.loads(
-        result.slice(
-            offset=0,
-            limit=2,
-            output_format="json",
-            column_names=["col1"],
-            order_by="col1",
+        typing.cast(
+            bytes,
+            result.slice(
+                offset=0,
+                limit=2,
+                output_format="json",
+                column_names=["col1"],
+                order_by="col1",
+            ),
         )
     )
     assert loaded == [{"col1": 1}, {"col1": 2}]
 
-    as_parquet = result.slice(offset=0, limit=2, output_format="parquet", column_names=["col1"])
+    as_parquet = typing.cast(
+        bytes, result.slice(offset=0, limit=2, output_format="parquet", column_names=["col1"])
+    )
 
     table = pq.read_table(io.BytesIO(as_parquet))
     assert table.column_names == ["col1"]
@@ -341,9 +284,9 @@ async def test_create_data_frame_from_sql_computation():
     assert result.platform_data_frame.num_rows == 1
     assert result.platform_data_frame.sql_dialect == "postgres"
 
-    loaded = json.loads(result.slice(offset=0, limit=1, output_format="json"))
+    loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=1, output_format="json")))
     assert loaded == [{"col1": 1, "col2": 4}]
 
-    loaded = json.loads(result.slice(offset=0, limit=2, output_format="json"))
+    loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=2, output_format="json")))
     # Still same (we only have one row in this query)
     assert loaded == [{"col1": 1, "col2": 4}]

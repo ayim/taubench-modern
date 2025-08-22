@@ -1,0 +1,342 @@
+import typing
+from typing import Annotated, Any
+
+from structlog import get_logger
+
+from agent_platform.core.kernel import DataFramesInterface
+from agent_platform.core.tools.tool_definition import ToolDefinition
+from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
+
+if typing.TYPE_CHECKING:
+    from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+    from agent_platform.server.auth.handlers import AuthedUser
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.storage.base import BaseStorage
+
+logger = get_logger(__name__)
+
+
+class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
+    """Handles interaction with data frames."""
+
+    def __init__(self):
+        super().__init__()
+        self._name_to_data_frame: dict[str, PlatformDataFrame] = {}
+        self._data_frame_tools: tuple[ToolDefinition, ...] = ()
+
+    async def step_initialize(self, storage: "BaseStorage|None" = None):
+        from agent_platform.server.storage.option import StorageService
+
+        try:
+            storage = StorageService.get_instance() if storage is None else storage
+            data_frames = tuple(
+                await storage.list_data_frames(thread_id=self.kernel.thread.thread_id)
+            )
+        except Exception:
+            logger.exception("Error getting data frames")
+            data_frames = ()
+
+        self._name_to_data_frame = {data_frame.name: data_frame for data_frame in data_frames}
+
+        assert storage is not None, "Storage is required to create data frame tools"
+        data_frame_tools = _DataFrameTools(
+            self.kernel.user, self.kernel.thread.thread_id, self._name_to_data_frame, storage
+        )
+        if data_frames:
+            self._data_frame_tools = (
+                ToolDefinition.from_callable(
+                    data_frame_tools.create_data_frame_from_file,
+                    name="data_frames_create_from_file",
+                ),
+                ToolDefinition.from_callable(
+                    data_frame_tools.delete_data_frame, name="data_frames_delete"
+                ),
+                ToolDefinition.from_callable(
+                    data_frame_tools.data_frame_slice, name="data_frames_slice"
+                ),
+                ToolDefinition.from_callable(
+                    data_frame_tools.create_data_frame_from_sql, name="data_frames_create_from_sql"
+                ),
+            )
+        else:
+            # Creating from a file should be always there (i.e.: the user should be able to
+            # create a data frame from a file even if there are no data frames yet).
+            self._data_frame_tools = (
+                ToolDefinition.from_callable(
+                    data_frame_tools.create_data_frame_from_file,
+                    name="data_frames_create_from_file",
+                ),
+            )
+
+    @property
+    def data_frames_system_prompt(self) -> str:
+        if not self.thread_has_data_frames:
+            # i.e.: For now return empty (so that we don't change anything in the system prompt
+            # if the user hasn't created a data frame).
+            return ""
+
+        return f"## Data Frames Summary:\n{self.data_frames_summary}"
+
+    @property
+    def data_frames_summary(self) -> str:
+        import json
+
+        if not self._name_to_data_frame:
+            return "You have no data frames to work with."
+
+        summary = [f"You have {len(self._name_to_data_frame)} data frames to work with. Details:\n"]
+        data_frames_info = []
+        for data_frame in self._name_to_data_frame.values():
+            info: dict[str, Any] = {"name": data_frame.name}
+            if data_frame.description:
+                info["description"] = data_frame.description
+            if data_frame.num_rows:
+                info["nrows"] = data_frame.num_rows
+            if data_frame.num_columns:
+                info["ncols"] = data_frame.num_columns
+            if data_frame.column_headers:
+                info["column_names"] = data_frame.column_headers
+            data_frames_info.append(info)
+        summary.append(json.dumps(data_frames_info, indent=1))
+        return "\n".join(summary)
+
+    @property
+    def thread_has_data_frames(self) -> bool:
+        return bool(self._name_to_data_frame)
+
+    def get_data_frame_tools(
+        self,
+    ) -> tuple[ToolDefinition, ...]:
+        return self._data_frame_tools
+
+
+class _DataFrameTools:
+    """Tools for data frames."""
+
+    def __init__(
+        self,
+        user: "AuthedUser",
+        tid: str,
+        name_to_data_frame: "dict[str, PlatformDataFrame]",
+        storage: "BaseStorage",
+    ):
+        assert isinstance(name_to_data_frame, dict), (
+            f"Expected a dict, got {type(name_to_data_frame)}"
+        )
+        self._user = user
+        self._tid = tid
+        self._name_to_data_frame = name_to_data_frame
+        self._storage = storage
+
+    def _create_data_frames_kernel(self) -> "DataFramesKernel":
+        from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+
+        return DataFramesKernel(self._storage, self._user, self._tid)
+
+    async def create_data_frame_from_file(
+        self,
+        data_frame_name: Annotated[str, "The name of the data frame to create."],
+        file_ref: Annotated[
+            str, "The file reference to create the data frame from (usually the file name)."
+        ],
+        sheet_name: Annotated[str | None, "The name of the sheet to inspect."] = None,
+        description: Annotated[str | None, "The description for the data frame."] = None,
+        num_samples: Annotated[int, "The number of samples to return for each data frame."] = 0,
+    ) -> dict[str, Any]:
+        """Creates a data frame from a file."""
+        from dataclasses import asdict
+
+        from agent_platform.server.api.private_v2.threads_data_frames import (
+            create_data_frame_from_file,
+        )
+
+        ret = await create_data_frame_from_file(
+            user=self._user,
+            tid=self._tid,
+            storage=self._storage,
+            file_ref=file_ref,
+            name=data_frame_name,
+            sheet_name=sheet_name,
+            description=description,
+            num_samples=num_samples,
+        )
+        ret_as_dict = asdict(ret)
+        if "created_at" in ret_as_dict:
+            ret_as_dict["created_at"] = ret_as_dict["created_at"].isoformat()
+        return ret_as_dict
+
+    async def delete_data_frame(
+        self,
+        data_frame_name: Annotated[str, "The name of the data frame to delete."],
+    ) -> dict[str, Any]:
+        """Deletes a data frame from this thread."""
+        if data_frame_name not in self._name_to_data_frame:
+            return {
+                "error_code": "data_frame_not_found",
+                "error": f"Data frame {data_frame_name!r} not found",
+            }
+
+        try:
+            await self._storage.delete_data_frame_by_name(self._tid, data_frame_name)
+            self._name_to_data_frame.pop(data_frame_name)
+        except Exception as e:
+            logger.exception(f"Error deleting data frame {data_frame_name} in thread {self._tid}")
+            return {
+                "error_code": "unable_to_delete_data_frame",
+                "error": (
+                    f"Unable to delete data frame {data_frame_name!r} in thread {self._tid}. "
+                    f"Error: {e!r}"
+                ),
+            }
+
+        return {"result": f"Data frame {data_frame_name!r} deleted"}
+
+    async def data_frame_slice(
+        self,
+        data_frame_name: Annotated[str, "The name of the data frame to slice."],
+        offset: Annotated[
+            int, "From which row it should start to collect samples (starts at 0)"
+        ] = 0,
+        limit: Annotated[int, "The number of rows to sample (max 500)"] = 10,
+        column_names: Annotated[list[str] | None, "The column names to include."] = None,
+        order_by: Annotated[str | None, "The column name to order by."] = None,
+    ) -> dict[str, Any]:
+        """Returns the data frame data from a slice of a data frame."""
+        from sema4ai.actions import Table
+
+        from agent_platform.core.errors.base import PlatformHTTPError
+
+        data_frame = self._name_to_data_frame.get(data_frame_name)
+        if data_frame is None:
+            return {
+                "error_code": "data_frame_not_found",
+                "error": f"Data frame {data_frame_name!r} not found",
+            }
+
+        if limit <= 0:
+            return {
+                "error_code": "invalid_limit",
+                "error": "limit must be > 0",
+            }
+
+        max_limit = 500
+        if limit > max_limit:
+            return {
+                "error_code": "invalid_limit",
+                "error": f"limit must be <= {max_limit}",
+            }
+
+        try:
+            data_frames_kernel = self._create_data_frames_kernel()
+            resolved_df = await data_frames_kernel.resolve_data_frame(data_frame)
+
+            sliced_data = resolved_df.slice(
+                offset=offset,
+                limit=limit,
+                column_names=column_names,
+                output_format="table",
+                order_by=order_by,
+            )
+
+            assert isinstance(sliced_data, Table), f"Expected a Table, got {type(sliced_data)}"
+            return sliced_data.model_dump()
+        except PlatformHTTPError as e:
+            logger.exception(f"Error slicing data frame {data_frame_name} in thread {self._tid}")
+            return e.to_log_context()
+        except Exception as e:
+            logger.exception(f"Error slicing data frame {data_frame_name} in thread {self._tid}")
+            return {
+                "error_code": "unable_to_sample_data_frame",
+                "error": f"Unable to sample data frame. Error: {e!r}",
+            }
+
+    async def create_data_frame_from_sql(
+        self,
+        sql_query: Annotated[
+            str,
+            """
+            A SQL query (using duckdb syntax) to execute against existing data frames.
+            Any data frame can be referenced by its name in the SQL query.
+            Some common SQL features:
+                • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
+                • Aggregate functions like COUNT, SUM, AVG, MIN, MAX
+                • String functions like CONCAT, UPPER, LOWER
+                • Math functions and operators
+                • JOIN operations (when using multiple data frames)
+                • Common Table Expressions (CTEs)
+            Examples:
+                • 'SELECT * FROM my_data_frame WHERE age > 30'
+                • 'SELECT country, COUNT(*) as count FROM my_data_frame GROUP BY country'
+                • 'SELECT name, age FROM my_data_frame ORDER BY age DESC LIMIT 10'
+                • 'SELECT UPPER(name) as name_upper FROM my_data_frame'
+                • 'SELECT * FROM my_data_frame
+                       JOIN another_data_frame ON my_data_frame.id = another_data_frame.id'
+            """,
+        ],
+        new_data_frame_name: Annotated[
+            str,
+            "The name of the new data frame to create.",
+        ],
+        new_data_frame_description: Annotated[
+            str | None,
+            "The description of the new data frame to create.",
+        ] = None,
+        num_samples: Annotated[
+            int,
+            """The number of samples to return from the newly created data frame (number of rows
+            to return). Default is 10 (max 500).
+            """,
+        ] = 10,
+    ) -> dict[str, Any]:
+        """Run a SQL query against the existing data frames and use its data to create a
+        new data frame.
+
+        A sample of the newly created data frame is returned (specified by num_samples).
+
+        Use SQL using duckdb syntax. Existing data frames are available by their name in your query.
+        DuckDB supports most common SQL operations including SELECT, WHERE, GROUP BY,
+        ORDER BY, aggregate functions, and more.
+        """
+        from sema4ai.actions import Table
+
+        from agent_platform.server.data_frames.data_frames_from_computation import (
+            create_data_frame_from_sql_computation,
+        )
+
+        try:
+            data_frames_kernel = self._create_data_frames_kernel()
+
+            resolved_df = await create_data_frame_from_sql_computation(
+                data_frames_kernel=data_frames_kernel,
+                storage=self._storage,
+                new_data_frame_name=new_data_frame_name,
+                sql_query=sql_query,
+                dialect="duckdb",
+                description=new_data_frame_description,
+            )
+
+            self._name_to_data_frame[new_data_frame_name] = resolved_df.platform_data_frame
+
+            if num_samples <= 0:
+                return {
+                    "result": f"Data frame {new_data_frame_name} created from SQL query",
+                }
+
+            sliced_data = resolved_df.slice(
+                offset=0,
+                limit=num_samples,
+                column_names=None,
+                output_format="table",
+            )
+
+            assert isinstance(sliced_data, Table), f"Expected a Table, got {type(sliced_data)}"
+
+            return {
+                "result": f"Data frame {new_data_frame_name} created from SQL query",
+                "sample_data": sliced_data.model_dump(),
+            }
+        except Exception as e:
+            return {
+                "error_code": "unable_to_create_data_frame",
+                "error": f"Unable to create data frame from SQL query. Error: {e!r}",
+            }

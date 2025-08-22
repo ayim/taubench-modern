@@ -79,6 +79,13 @@ async def check_data_frame_storage_crud(
     with pytest.raises(ValueError, match=f"Data frame {sample_data_frame.data_frame_id} not found"):
         await model_creator.storage.update_data_frame(sample_data_frame)
 
+    # Now, delete the data frame by name
+    await model_creator.storage.delete_data_frame_by_name(
+        sample_data_frame.thread_id, "updated_data_frame"
+    )
+    data_frames = await model_creator.storage.list_data_frames(sample_data_frame.thread_id)
+    assert len(data_frames) == 0
+
 
 @pytest.mark.asyncio
 async def test_data_frame_storage_crud_sqlite(

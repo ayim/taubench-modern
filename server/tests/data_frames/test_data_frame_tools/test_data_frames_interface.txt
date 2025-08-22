@@ -1,0 +1,14 @@
+## Data Frames Summary:
+You have 1 data frames to work with. Details:
+
+[
+ {
+  "name": "test_data_frame",
+  "nrows": 3,
+  "ncols": 2,
+  "column_names": [
+   "col1",
+   "col2"
+  ]
+ }
+]

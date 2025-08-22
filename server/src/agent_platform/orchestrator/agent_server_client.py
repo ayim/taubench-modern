@@ -690,11 +690,22 @@ class AgentServerClient:
     def inspect_file_as_data_frame(
         self,
         thread_id: str,
-        file_id: str,
         num_samples: int = 5,
+        *,
+        file_id: str | None = None,
+        file_ref: str | None = None,
     ) -> list[dict]:
+        if file_id is not None and file_ref is not None:
+            raise ValueError("Either file_id or file_ref must be provided, not both.")
         url = urljoin(self.base_url + "/", f"threads/{thread_id}/inspect-file-as-data-frame")
-        response = requests.get(url, params={"file_id": file_id, "num_samples": num_samples})
+        params = {}
+        if file_id is not None:
+            params["file_id"] = file_id
+        if file_ref is not None:
+            params["file_ref"] = file_ref
+        if num_samples is not None:
+            params["num_samples"] = num_samples
+        response = requests.get(url, params=params)
         try:
             response.raise_for_status()
             return response.json()
@@ -725,9 +736,9 @@ class AgentServerClient:
             ) from e
         return response.json()
 
-    def get_data_frames(self, thread_id: str) -> list[dict]:
+    def get_data_frames(self, thread_id: str, num_samples: int = 0) -> list[dict]:
         url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames")
-        response = requests.get(url)
+        response = requests.get(url, params={"num_samples": num_samples})
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:

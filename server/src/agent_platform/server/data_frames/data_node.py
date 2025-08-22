@@ -5,6 +5,7 @@ from typing import Any, Literal, Protocol
 
 if typing.TYPE_CHECKING:
     import pyarrow
+    from sema4ai.actions import Table
 
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_reader import DataReaderSheet
@@ -62,9 +63,9 @@ def _convert_pyarrow_slice_to_format(  # noqa: PLR0913
     offset: int | None,
     limit: int | None,
     column_names: list[str] | None,
-    output_format: Literal["json", "parquet"],
-    order_by: str | None = None,
-) -> bytes:
+    output_format: Literal["json", "parquet", "table"],
+    order_by: str | None,
+) -> "bytes | Table":
     available_columns = result.schema.names
 
     # Apply order by
@@ -94,9 +95,9 @@ def _convert_ibis_slice_to_format(  # noqa: PLR0913
     offset: int,
     limit: int | None,
     column_names: list[str] | None,
-    output_format: Literal["json", "parquet"],
+    output_format: Literal["json", "parquet", "table"],
     order_by: str | None = None,
-) -> bytes:
+) -> "bytes | Table":
     available_columns = list(result.columns)
     if order_by:
         order_by, desc = _parse_order_by(order_by, available_columns)
@@ -146,8 +147,8 @@ def _parse_order_by(order_by: str, available_columns: list[str]) -> tuple[str, b
 
 def _convert_arrow_to_format(
     table: Any,
-    output_format: Literal["json", "parquet"],
-) -> bytes:
+    output_format: Literal["json", "parquet", "table"],
+) -> "bytes | Table":
     import io
     import json
 
@@ -163,6 +164,20 @@ def _convert_arrow_to_format(
         buffer = io.BytesIO()
         pyarrow.parquet.write_table(table, buffer)
         return buffer.getvalue()
+    elif output_format == "table":
+        from sema4ai.actions import Table
+
+        # pyarrow stores things column-based.
+        rows = []
+        columns = list(table)
+        for row in zip(*columns, strict=True):
+            rows.append(list(v.as_py() for v in row))
+
+        new_table = Table(
+            columns=list(table.schema.names),
+            rows=rows,
+        )
+        return new_table
     else:
         raise ValueError(f"Unsupported format: {output_format}")
 
@@ -211,9 +226,9 @@ class DataNodeResult(Protocol):
         offset: int | None = None,
         limit: int | None = None,
         column_names: list[str] | None = None,
-        output_format: Literal["json", "parquet"] = "json",
+        output_format: Literal["json", "parquet", "table"] = "json",
         order_by: str | None = None,
-    ) -> bytes:
+    ) -> "bytes | Table":
         """
         Returns a slice of the data frame as bytes in the specified format.
 
@@ -221,7 +236,7 @@ class DataNodeResult(Protocol):
             offset: From which offset to start the slice (inclusive). If None, starts from 0.
             limit: The number of rows to slice. If None, goes to the end.
             column_names: List of column names to include. If None, includes all columns.
-            output_format: Output format - either "json" or "parquet".
+            output_format: Output format - either "json", "parquet", or "table".
             order_by: The column name to order by (use '-' prefix to order by descending order).
         Returns:
             The sliced data as bytes in the specified format.
@@ -264,7 +279,7 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
         column_names: list[str] | None = None,
         output_format: Literal["json", "parquet"] = "json",
         order_by: str | None = None,
-    ) -> bytes:
+    ) -> "bytes | Table":
         table: pyarrow.Table = self._reader_sheet.to_ibis()
 
         return _convert_pyarrow_slice_to_format(
@@ -277,7 +292,7 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
 
     def __init__(self, platform_data_frame: "PlatformDataFrame"):
         self._platform_data_frame = platform_data_frame
-        self.__loaded_table: "Any | None" = None  # noqa: UP037
+        self.__loaded_table: Any | None = None
         if self._platform_data_frame.parquet_contents is None:
             raise ValueError("Parquet contents are required for in-memory data frames")
         self._parquet_contents: bytes = self._platform_data_frame.parquet_contents
@@ -322,14 +337,18 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
 
     def slice(
         self,
-        offset: int | None = None,
+        offset: int = 0,
         limit: int | None = None,
         column_names: list[str] | None = None,
-        output_format: Literal["json", "parquet"] = "json",
-    ) -> bytes:
+        *,
+        order_by: str | None = None,
+        output_format: Literal["json", "parquet", "table"] = "json",
+    ) -> "bytes | Table":
         table = self._loaded_table()
 
-        return _convert_pyarrow_slice_to_format(table, offset, limit, column_names, output_format)
+        return _convert_pyarrow_slice_to_format(
+            table, offset, limit, column_names, output_format, order_by
+        )
 
 
 class DataNodeFromIbisResult(DataNodeResult):
@@ -369,8 +388,8 @@ class DataNodeFromIbisResult(DataNodeResult):
         column_names: list[str] | None = None,
         *,
         order_by: str | None = None,
-        output_format: Literal["json", "parquet"] = "json",
-    ) -> bytes:
+        output_format: Literal["json", "parquet", "table"] = "json",
+    ) -> "bytes | Table":
         # Start with the ibis result
         result = self._ibis_result
         return _convert_ibis_slice_to_format(

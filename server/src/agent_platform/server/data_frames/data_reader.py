@@ -96,7 +96,7 @@ class ExcelDataReader(FileDataReader):
         self._file_metadata = file_metadata
         self._file_bytes = file_bytes
         self._sheet_name = sheet_name
-        self.__excel_reader: "fastexcel.ExcelReader | None" = None  # noqa: UP037
+        self.__excel_reader: fastexcel.ExcelReader | None = None
         self._failed_reading_as_excel = False
 
     @property
@@ -155,7 +155,7 @@ class ExcelDataReaderSheet(DataReaderSheet):
     ):
         self._excel_reader = excel_reader
         self._sheet_name = sheet_name
-        self.__loaded_sheet: "fastexcel.ExcelSheet | None" = None  # noqa: UP037
+        self.__loaded_sheet: fastexcel.ExcelSheet | None = None
 
     @property
     def name(self) -> str:
@@ -277,7 +277,12 @@ class CsvDataReader(FileDataReader):
 
 
 async def _get_file(
-    user_id: str, file_id: str, thread_id: str, storage: "BaseStorage"
+    user_id: str,
+    thread_id: str,
+    storage: "BaseStorage",
+    *,
+    file_id: str | None = None,
+    file_ref: str | None = None,
 ) -> "tuple[UploadedFile, bytes]":
     """Get a file from the storage."""
     from agent_platform.server.file_manager.base import BaseFileManager
@@ -288,7 +293,17 @@ async def _get_file(
     from agent_platform.core.errors.base import PlatformError
 
     # Get the file metadata
-    file_metadata = await storage.get_file_by_id(file_id, user_id)
+    file_metadata: UploadedFile | None = None
+    if file_id is not None:
+        file_metadata = await storage.get_file_by_id(file_id, user_id)
+    elif file_ref is not None:
+        # To get by ref we need the actual thread object...
+        thread = await storage.get_thread(user_id, thread_id)
+        file_metadata = await storage.get_file_by_ref(thread, file_ref, user_id)
+    else:
+        raise PlatformError(
+            message="Either file_id or file_ref must be provided",
+        )
 
     # If we have no metadata, raise
     if file_metadata is None:
@@ -303,25 +318,27 @@ async def _get_file(
         )
 
     # Get the file from the storage
-    file_contents = await file_manager.read_file_contents(file_id, user_id)
+    file_contents = await file_manager.read_file_contents(file_metadata.file_id, user_id)
 
     # Return the file contents
     return file_metadata, file_contents
 
 
-async def create_file_data_reader(
+async def create_file_data_reader(  # noqa: PLR0913
     user: "AuthedUser",
-    file_id: str,
     tid: str,
     storage: "BaseStorage",
     sheet_name: str | None = None,
+    *,
+    file_id: str | None = None,
+    file_ref: str | None = None,
 ) -> "FileDataReader":
     from agent_platform.core.errors.base import PlatformError
     from agent_platform.server.storage.base import BaseStorage
 
     # Get the file from the storage
     file_metadata, file_bytes = await _get_file(
-        user.user_id, file_id, tid, typing.cast(BaseStorage, storage)
+        user.user_id, tid, typing.cast(BaseStorage, storage), file_id=file_id, file_ref=file_ref
     )
 
     # Make sure it's an appropriate file type (excel or csv)

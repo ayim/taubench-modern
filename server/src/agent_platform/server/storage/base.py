@@ -207,6 +207,21 @@ class BaseStorage(AbstractStorage, CommonMixin):
             if result.rowcount == 0:
                 raise ValueError(f"Data frame {data_frame_id} not found")
 
+    async def delete_data_frame_by_name(self, thread_id: str, data_frame_name: str) -> None:
+        """Delete a data frame by ID."""
+        data_frames = self._get_table("data_frames")
+
+        stmt = (
+            data_frames.delete()
+            .where(data_frames.c.thread_id == thread_id)
+            .where(data_frames.c.name == data_frame_name)
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            if result.rowcount == 0:
+                raise ValueError(f"Data frame {data_frame_name} not found in thread {thread_id}")
+
     async def update_data_frame(self, data_frame: "PlatformDataFrame") -> None:
         """Update a data frame."""
         data_frame.verify()
