@@ -37,9 +37,14 @@
    - Format the changelog: move items from "Unreleased" to a new release section (e.g., "# Agent Server 2.1.0").
    - Merge the version bump and changelog update into `main` using a squash merge.
    - Create and push a git tag matching the pattern `agent-server-v*` (e.g., `agent-server-v2.1.0`) on the `main` branch.
+     - :warning: **Note:** The tag **must include** the `v` prefix before the version number
    - **Automatic Release**: The tag push will automatically:
      - Build and sign executables for all platforms.
      - Deploy to GitHub Releases and CDN.
+     - Generate types for `agent-server-interface` (ASI)
+       - A Pull Request will be opened automatically
+         - The Pull Request contains the **generated types** + **a version bump to ASI** to match the released Agent Server version
+       - When the Pull Request is **approved** the updated ASI will be **published** automatically
 
 3. **Pre-Release Process** (Optional):
    - For pre-release versions (alpha, beta, rc), follow the same process but use pre-release version numbers (e.g., `agent-server-v2.1.0-alpha.1`).
