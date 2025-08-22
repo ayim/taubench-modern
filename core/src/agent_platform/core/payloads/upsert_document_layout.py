@@ -54,8 +54,14 @@ class _TranslationSchema:
 
     @classmethod
     def model_validate(cls, data: Any) -> _TranslationSchema:
-        if isinstance(data, dict) and "rules" in data:
-            return cls(rules=[_TranslationRule.model_validate(item) for item in data["rules"]])
+        # defensive copy
+        if isinstance(data, dict):
+            obj = dict(data)
+        else:
+            obj = dict(getattr(data, "__dict__", {}))
+
+        if isinstance(obj, dict) and "rules" in obj:
+            return cls(rules=[_TranslationRule.model_validate(item) for item in obj["rules"]])
         else:
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
