@@ -32,7 +32,7 @@ from agent_platform.core.data_server.data_server import (
     DataServerEndpointKind,
 )
 from agent_platform.core.data_server.data_sources import DataSources
-from agent_platform.core.errors.base import PlatformError
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import (
@@ -1241,6 +1241,49 @@ class TestUpsertLayout:
         created_layout = dummy_dl.side_effect.last_instance  # type: ignore[attr-defined]
         assert created_layout is not None
         assert created_layout.name == normalize_name(payload["name"])  # type: ignore[index]
+
+    def test_upsert_layout_reraises_platform_http_error(self, client: TestClient):
+        """Test that PlatformHTTPError from underlying components is reraised without
+        modification."""
+        payload = {
+            "name": "invoice-v1",
+            "data_model_name": "invoice",
+            "extraction_schema": {"type": "object"},
+        }
+
+        # Create a specific PlatformHTTPError to test with
+        platform_error = PlatformHTTPError(ErrorCode.BAD_REQUEST, "Invalid schema format")
+
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance"
+            ) as get_service,
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                side_effect=platform_error,
+            ) as find_by_name,
+        ):
+            fake_service = Mock()
+            fake_ds = Mock()
+            fake_service.get_docint_datasource.return_value = fake_ds
+            get_service.return_value = fake_service
+
+            response = client.post("/api/v2/document-intelligence/layouts", json=payload)
+
+        # Verify that the PlatformHTTPError is reraised without modification
+        assert response.status_code == 400  # ErrorCode.BAD_REQUEST status
+        error_data = response.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == ErrorCode.BAD_REQUEST.value.code
+        assert error_data["error"]["message"] == "Invalid schema format"
+        find_by_name.assert_called_once()
 
 
 class TestGetLayout:

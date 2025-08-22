@@ -619,6 +619,8 @@ async def upsert_layout(
             layout.insert(docint_ds)
 
         return {"ok": True}
+    except PlatformHTTPError:
+        raise
     except Exception as e:
         logger.error("Error upserting layout", error=str(e))
         raise PlatformError(ErrorCode.UNEXPECTED, f"Failed to upsert layout: {e!s}") from e
