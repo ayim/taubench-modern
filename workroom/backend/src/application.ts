@@ -13,7 +13,9 @@ import { createAssetServe, createIndexServe, initializeFrontendPlaceholders } fr
 import { initializeWebSocketProxying } from './handlers/websocket.js';
 import { createGetWorkroomMeta } from './handlers/workroom.js';
 import { createAuthMiddleware } from './middleware/auth/index.js';
+import { badPlatform } from './middleware/badRoute.js';
 import { createRequestLogger } from './middleware/logging.js';
+import { poweredByHeaders } from './middleware/poweredBy.js';
 import { createTenantExtractionMiddleware } from './middleware/tenant.js';
 import type { MonitoringContext } from './monitoring/index.js';
 
@@ -43,6 +45,7 @@ export const createApplication = async ({
 
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
+  app.use(poweredByHeaders);
   // @TODO: Lock down CORS to public domain / explicit headers
   app.use(cors());
 
@@ -171,6 +174,15 @@ export const createApplication = async ({
       targetBaseUrl: configuration.agentServerInternalUrl,
     }),
   );
+
+  // "Tombstoned" routes for ACE - these are overwritten by ACE's ingress
+  // configuration, so they should work fine there but not be called in
+  // other environments.
+  tenantRouter.get('/workroom/meta', badPlatform);
+  tenantRouter.post('/workroom/feedback', badPlatform);
+  tenantRouter.get('/osb-resource-access', badPlatform);
+  tenantRouter.get('/workroom/audit-logs', badPlatform);
+  tenantRouter.use('/api/v1', badPlatform);
 
   // Index bounce
   app.get('/', (_req, res) => {
