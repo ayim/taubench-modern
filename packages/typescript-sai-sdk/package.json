@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/sai-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sema4.ai SDK for building AI scenarios with client side tools for the UI",
   "author": "Sema4.ai",
   "license": "SEE LICENSE IN LICENSE",
@@ -19,6 +19,7 @@
   },
   "scripts": {
     "build": "npm run clean && tsc && echo '[DONE] Build complete!'",
+    "package": "npm run format:check && npm run build && npm pack",
     "clean": "rimraf dist",
     "force-clean": "rimraf dist node_modules",
     "test": "vitest run",
@@ -31,6 +32,9 @@
     "partial-json": "0.1.7",
     "tmp-promise": "3.0.3",
     "zod": "4.0.13"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "devDependencies": {
     "@types/node": "^22.10.9",

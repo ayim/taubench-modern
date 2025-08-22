@@ -54,6 +54,10 @@ export {
   // Tool Functions & Types
   createTool,
   validateTool,
+  // Scenario Context Builder
+  ScenarioContextType,
+  ScenarioContextBuilder,
+  IScenarioContextBuilder,
   // Scenario Functions
   ScenarioDefinitionBuilder,
   ScenarioBuilder,
