@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.34',
+    version: '2.0.35',
   },
   paths: {
     '/api/v2/ok': {
@@ -1836,15 +1836,6 @@ export const spec = {
             },
           },
           {
-            name: 'file_id',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'File Id',
-            },
-          },
-          {
             name: 'num_samples',
             in: 'query',
             required: false,
@@ -1868,6 +1859,38 @@ export const spec = {
                 },
               ],
               title: 'Sheet Name',
+            },
+          },
+          {
+            name: 'file_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'File Id',
+            },
+          },
+          {
+            name: 'file_ref',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'File Ref',
             },
           },
         ],
@@ -1916,15 +1939,6 @@ export const spec = {
             schema: {
               type: 'string',
               title: 'Tid',
-            },
-          },
-          {
-            name: 'file_id',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'File Id',
             },
           },
           {
@@ -1983,6 +1997,38 @@ export const spec = {
                 },
               ],
               title: 'Name',
+            },
+          },
+          {
+            name: 'file_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'File Id',
+            },
+          },
+          {
+            name: 'file_ref',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'File Ref',
             },
           },
         ],
@@ -2131,12 +2177,12 @@ export const spec = {
       },
     },
     '/api/v2/threads/{tid}/data-frames/slice': {
-      get: {
+      post: {
         tags: ['threads'],
         summary: 'Slice Data Frame',
         description:
           'Get a slice of a data frame\'s contents.\n\nArgs:\n    user: The user making the request\n    tid: The ID of the thread\n    storage: The storage to use\n    data_frame_id: The ID of the data frame to slice (mutually exclusive with data_frame_name)\n    data_frame_name: The name of the data frame to slice (mutually exclusive with data_frame_id)\n    offset: From which offset to start the slice. If not provided, starts with 0\n    limit: The number of rows to slice. If not provided, slices to the end.\n    column_names: List of column names to include. If not provided, returns all columns\n    output_format: Output format - either "json" or "parquet"\n    order_by: The column name to order by (use \'-\' prefix to order by descending order).\n\nReturns:\n    A streaming response with the sliced data in the specified format',
-        operationId: 'slice_data_frame_threads__tid__data_frames_slice_get',
+        operationId: 'slice_data_frame_threads__tid__data_frames_slice_post',
         parameters: [
           {
             name: 'tid',
@@ -4770,6 +4816,133 @@ export const spec = {
         },
       },
     },
+    '/api/v2/data-sources/list': {
+      post: {
+        tags: ['data-sources'],
+        summary: 'List Data Sources',
+        description: 'Get all data sources created by the agent-server.',
+        operationId: 'list_data_sources_data_sources_list_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/DataServerDetails',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  items: {
+                    $ref: '#/components/schemas/DataSourceDefinition',
+                  },
+                  type: 'array',
+                  title: 'Response List Data Sources Data Sources List Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/data-sources/update': {
+      post: {
+        tags: ['data-sources'],
+        summary: 'Upsert Data Source',
+        description: 'Creates the data sources on the given data server.',
+        operationId: 'upsert_data_source_data_sources_update_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/DataSources',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '201': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/data-sources/{data_source_name}': {
+      delete: {
+        tags: ['data-sources'],
+        summary: 'Delete Data Source',
+        description: 'Delete a data source.',
+        operationId:
+          'delete_data_source_data_sources__data_source_name__delete',
+        parameters: [
+          {
+            name: 'data_source_name',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Data Source Name',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/DataServerDetails',
+              },
+            },
+          },
+        },
+        responses: {
+          '204': {
+            description: 'Successful Response',
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/health': {
       get: {
         summary: 'Health',
@@ -6379,7 +6552,8 @@ export const spec = {
             description: 'The name of the data connection',
           },
           engine: {
-            $ref: '#/components/schemas/DataConnectionEngine',
+            type: 'string',
+            title: 'Engine',
             description: 'The engine of the data connection',
           },
           configuration: {
@@ -6392,13 +6566,6 @@ export const spec = {
         type: 'object',
         required: ['id', 'name', 'engine', 'configuration'],
         title: 'DataConnection',
-      },
-      DataConnectionEngine: {
-        type: 'string',
-        enum: ['postgres'],
-        title: 'DataConnectionEngine',
-        description:
-          'An engine for a data connection to the Document Intelligence Data Server',
       },
       DataModelPayload: {
         properties: {
@@ -6495,6 +6662,141 @@ export const spec = {
         type: 'object',
         required: ['name', 'description', 'schema'],
         title: 'DataModelPayload',
+      },
+      DataServerDetails: {
+        properties: {
+          username: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Username',
+            description: 'The username to connect to the Data Server',
+          },
+          password: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Password',
+            description: 'The password to connect to a Data Server',
+          },
+          data_server_endpoints: {
+            items: {
+              $ref: '#/components/schemas/DataServerEndpoint',
+            },
+            type: 'array',
+            title: 'Data Server Endpoints',
+            description: 'The connection details for a Data Server',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description:
+              'The timestamp when the connection details were last updated',
+          },
+        },
+        type: 'object',
+        required: ['username', 'password', 'data_server_endpoints'],
+        title: 'DataServerDetails',
+      },
+      DataServerEndpoint: {
+        properties: {
+          host: {
+            type: 'string',
+            title: 'Host',
+            description: 'The host address of the Data Server',
+          },
+          port: {
+            type: 'integer',
+            title: 'Port',
+            description: 'The port of this connection to the Data Server',
+          },
+          kind: {
+            $ref: '#/components/schemas/DataServerEndpointKind',
+            description: 'The kind of connection to the Data Server',
+            default: 'http',
+          },
+        },
+        type: 'object',
+        required: ['host', 'port'],
+        title: 'DataServerEndpoint',
+      },
+      DataServerEndpointKind: {
+        type: 'string',
+        enum: ['http', 'mysql'],
+        title: 'DataServerEndpointKind',
+        description: 'The protocol to the Data Server',
+      },
+      DataSourceDefinition: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          type: {
+            type: 'string',
+            title: 'Type',
+          },
+          engine: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Engine',
+          },
+          connection_data: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Connection Data',
+          },
+        },
+        type: 'object',
+        required: ['name', 'type', 'engine', 'connection_data'],
+        title: 'DataSourceDefinition',
+      },
+      DataSources: {
+        properties: {
+          data_server: {
+            $ref: '#/components/schemas/DataServerDetails',
+            description:
+              'The Data Server to which the Data Sources should be created',
+          },
+          data_sources: {
+            additionalProperties: {
+              $ref: '#/components/schemas/DataConnection',
+            },
+            type: 'object',
+            title: 'Data Sources',
+            description: 'A mapping of Data Source names to Data Connections',
+          },
+        },
+        type: 'object',
+        required: ['data_server', 'data_sources'],
+        title: 'DataSources',
       },
       DocumentLayoutBridge: {
         properties: {
@@ -10124,6 +10426,7 @@ export const spec = {
               'action-external',
               'mcp-external',
               'provider-side',
+              'client-side',
               'unknown',
             ],
             title: 'Sub Type',
@@ -11363,6 +11666,17 @@ export const spec = {
             type: 'array',
             title: 'Sample Rows',
           },
+          file_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'File Id',
+          },
         },
         type: 'object',
         required: [
@@ -11374,6 +11688,7 @@ export const spec = {
           'created_at',
           'column_headers',
           'sample_rows',
+          'file_id',
         ],
         title: '_DataFrameInspectionAPI',
       },

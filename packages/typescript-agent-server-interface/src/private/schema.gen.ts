@@ -661,6 +661,8 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    get?: never;
+    put?: never;
     /**
      * Slice Data Frame
      * @description Get a slice of a data frame's contents.
@@ -680,9 +682,7 @@ export interface paths {
      *     Returns:
      *         A streaming response with the sliced data in the specified format
      */
-    get: operations['slice_data_frame_threads__tid__data_frames_slice_get'];
-    put?: never;
-    post?: never;
+    post: operations['slice_data_frame_threads__tid__data_frames_slice_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1497,6 +1497,66 @@ export interface paths {
      */
     post: operations['complete_work_item_work_items__work_item_id__complete_post'];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/data-sources/list': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * List Data Sources
+     * @description Get all data sources created by the agent-server.
+     */
+    post: operations['list_data_sources_data_sources_list_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/data-sources/update': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Upsert Data Source
+     * @description Creates the data sources on the given data server.
+     */
+    post: operations['upsert_data_source_data_sources_update_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/data-sources/{data_source_name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Data Source
+     * @description Delete a data source.
+     */
+    delete: operations['delete_data_source_data_sources__data_source_name__delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2376,8 +2436,11 @@ export interface components {
        * @description The name of the data connection
        */
       name: string;
-      /** @description The engine of the data connection */
-      engine: components['schemas']['DataConnectionEngine'];
+      /**
+       * Engine
+       * @description The engine of the data connection
+       */
+      engine: string;
       /**
        * Configuration
        * @description The configuration of the data connection
@@ -2386,12 +2449,6 @@ export interface components {
         [key: string]: unknown;
       };
     };
-    /**
-     * DataConnectionEngine
-     * @description An engine for a data connection to the Document Intelligence Data Server
-     * @enum {string}
-     */
-    DataConnectionEngine: 'postgres';
     /** DataModelPayload */
     DataModelPayload: {
       /** Name */
@@ -2422,6 +2479,79 @@ export interface components {
       created_at?: string | null;
       /** Updated At */
       updated_at?: string | null;
+    };
+    /** DataServerDetails */
+    DataServerDetails: {
+      /**
+       * Username
+       * @description The username to connect to the Data Server
+       */
+      username: string | null;
+      /**
+       * Password
+       * @description The password to connect to a Data Server
+       */
+      password: string | components['schemas']['SecretString'] | null;
+      /**
+       * Data Server Endpoints
+       * @description The connection details for a Data Server
+       */
+      data_server_endpoints: components['schemas']['DataServerEndpoint'][];
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The timestamp when the connection details were last updated
+       */
+      updated_at?: string;
+    };
+    /** DataServerEndpoint */
+    DataServerEndpoint: {
+      /**
+       * Host
+       * @description The host address of the Data Server
+       */
+      host: string;
+      /**
+       * Port
+       * @description The port of this connection to the Data Server
+       */
+      port: number;
+      /**
+       * @description The kind of connection to the Data Server
+       * @default http
+       */
+      kind: components['schemas']['DataServerEndpointKind'];
+    };
+    /**
+     * DataServerEndpointKind
+     * @description The protocol to the Data Server
+     * @enum {string}
+     */
+    DataServerEndpointKind: 'http' | 'mysql';
+    /** DataSourceDefinition */
+    DataSourceDefinition: {
+      /** Name */
+      name: string;
+      /** Type */
+      type: string;
+      /** Engine */
+      engine: string | null;
+      /** Connection Data */
+      connection_data: {
+        [key: string]: unknown;
+      } | null;
+    };
+    /** DataSources */
+    DataSources: {
+      /** @description The Data Server to which the Data Sources should be created */
+      data_server: components['schemas']['DataServerDetails'];
+      /**
+       * Data Sources
+       * @description A mapping of Data Source names to Data Connections
+       */
+      data_sources: {
+        [key: string]: components['schemas']['DataConnection'];
+      };
     };
     /** DocumentLayoutBridge */
     DocumentLayoutBridge: {
@@ -4473,6 +4603,7 @@ export interface components {
         | 'action-external'
         | 'mcp-external'
         | 'provider-side'
+        | 'client-side'
         | 'unknown';
       /**
        * Status
@@ -5155,6 +5286,8 @@ export interface components {
       column_headers: string[];
       /** Sample Rows */
       sample_rows: unknown[][];
+      /** File Id */
+      file_id: string | null;
     };
     /** _DataServerConfig */
     _DataServerConfig: {
@@ -6582,10 +6715,11 @@ export interface operations {
   };
   inspect_file_as_data_frame_threads__tid__inspect_file_as_data_frame_get: {
     parameters: {
-      query: {
-        file_id: string;
+      query?: {
         num_samples?: number;
         sheet_name?: string | null;
+        file_id?: string | null;
+        file_ref?: string | null;
       };
       header?: never;
       path: {
@@ -6617,12 +6751,13 @@ export interface operations {
   };
   create_data_frame_from_file_threads__tid__data_frames_from_file_post: {
     parameters: {
-      query: {
-        file_id: string;
+      query?: {
         num_samples?: number;
         sheet_name?: string | null;
         description?: string | null;
         name?: string | null;
+        file_id?: string | null;
+        file_ref?: string | null;
       };
       header?: never;
       path: {
@@ -6722,7 +6857,7 @@ export interface operations {
       };
     };
   };
-  slice_data_frame_threads__tid__data_frames_slice_get: {
+  slice_data_frame_threads__tid__data_frames_slice_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -8494,6 +8629,105 @@ export interface operations {
         content: {
           'application/json': unknown;
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_data_sources_data_sources_list_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DataServerDetails'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DataSourceDefinition'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  upsert_data_source_data_sources_update_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DataSources'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_data_source_data_sources__data_source_name__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        data_source_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DataServerDetails'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

@@ -867,6 +867,7 @@ export interface components {
         | 'action-external'
         | 'mcp-external'
         | 'provider-side'
+        | 'client-side'
         | 'unknown';
       /**
        * Status

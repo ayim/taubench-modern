@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server Public API Version 2",
-    "version": "2.0.34"
+    "version": "2.0.35"
   },
   "servers": [{ "url": "/api/public/v1" }],
   "paths": {
@@ -1569,6 +1569,7 @@
               "action-external",
               "mcp-external",
               "provider-side",
+              "client-side",
               "unknown"
             ],
             "title": "Sub Type",
