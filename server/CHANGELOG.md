@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.0.36 (2025-08-22)
+
+- fix: Handle PlatformHTTPError in upsert_layout function [#734](https://github.com/Sema4AI/agent-platform/pull/734)
+- DIN-430 Fix validation when upserting DocumentLayouts [#733](https://github.com/Sema4AI/agent-platform/pull/733)
+
 # Sema4.ai Agent Server 2.0.35 (2025-08-22)
 
 - Create builtin tools for data frames. [#706](https://github.com/Sema4AI/agent-platform/pull/706)
