@@ -1,3 +1,16 @@
+# Sema4.ai Agent Server 2.0.35 (2025-08-22)
+
+- Create builtin tools for data frames. [#706](https://github.com/Sema4AI/agent-platform/pull/706)
+- Add check to `DocIntDatasourceDependency` to check we can connect before returning [#693](https://github.com/Sema4AI/agent-platform/pull/693)
+- GPT-1174 add REST API to interact with DataSources [#707](https://github.com/Sema4AI/agent-platform/pull/707)
+- Fix: Main branch has a failing unit test [#719](https://github.com/Sema4AI/agent-platform/pull/719)
+- Simen/spar-ui-dynamic-llm [#666](https://github.com/Sema4AI/agent-platform/pull/666)
+- data-frames/slice is now a POST (as we want to have json in the body, which is not good for a GET). [#717](https://github.com/Sema4AI/agent-platform/pull/717)
+- Create builtin tools for data frames. [#706](https://github.com/Sema4AI/agent-platform/pull/706)
+- GPT-1174 add REST API to interact with DataSources [#707](https://github.com/Sema4AI/agent-platform/pull/707)
+- Make MCP Client More Robust to Transient Errors [#675](https://github.com/Sema4AI/agent-platform/pull/675)
+- GPT-1143: Setup tool_use for MCP to fix no View logs issue [#700](https://github.com/Sema4AI/agent-platform/pull/700)
+
 # Sema4.ai Agent Server 2.0.34 (2025-08-21)
 
 - Fix regression in QuotasService [#713](https://github.com/Sema4AI/agent-platform/pull/713)

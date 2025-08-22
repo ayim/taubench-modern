@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12.9, <3.13"
 
 [manifest]
@@ -251,7 +251,7 @@ requires-dist = [
 
 [[package]]
 name = "agent-platform-server"
-version = "2.0.34"
+version = "2.0.35"
 source = { editable = "server" }
 dependencies = [
     { name = "agent-platform-architectures-default" },
