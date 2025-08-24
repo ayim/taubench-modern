@@ -296,7 +296,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.3.1-py3-none-any.whl" },
+    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.4.0-py3-none-any.whl" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -320,6 +320,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9d/25/4b06ea1214ddf020a28df27dc7136ac9dfaf87929d51e6f6044dd350ed67/aiobotocore-2.23.0.tar.gz", hash = "sha256:0333931365a6c7053aee292fe6ef50c74690c4ae06bb019afdf706cb6f2f5e32", size = 115825, upload-time = "2025-06-12T23:46:38.055Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/43/ccf9b29669cdb09fd4bfc0a8effeb2973b22a0f3c3be4142d0b485975d11/aiobotocore-2.23.0-py3-none-any.whl", hash = "sha256:8202cebbf147804a083a02bc282fbfda873bfdd0065fd34b64784acb7757b66e", size = 84161, upload-time = "2025-06-12T23:46:36.305Z" },
+]
+
+[[package]]
+name = "aiofiles"
+version = "24.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/03/a88171e277e8caa88a4c77808c20ebb04ba74cc4681bf1e9416c862de237/aiofiles-24.1.0.tar.gz", hash = "sha256:22a075c9e5a3810f0c2e48f3008c94d68c65d763b9b03857924c99e57355166c", size = 30247, upload-time = "2024-06-24T11:02:03.584Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/45/30bb92d442636f570cb5651bc661f52b610e2eec3f891a5dc3a4c3667db0/aiofiles-24.1.0-py3-none-any.whl", hash = "sha256:b4ec55f4195e3eb5d7abd1bf7e061763e864dd4954231fb8539a0ef8bb8260e5", size = 15896, upload-time = "2024-06-24T11:02:01.529Z" },
 ]
 
 [[package]]
@@ -3279,9 +3288,11 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.3.1"
-source = { path = "server/wheels/sema4ai_docint-0.3.1-py3-none-any.whl" }
+version = "0.4.0"
+source = { path = "server/wheels/sema4ai_docint-0.4.0-py3-none-any.whl" }
 dependencies = [
+    { name = "aiofiles" },
+    { name = "aiohttp" },
     { name = "jsonschema" },
     { name = "mindsdb-sql" },
     { name = "openpyxl" },
@@ -3298,11 +3309,13 @@ dependencies = [
     { name = "sema4ai-http-helper" },
 ]
 wheels = [
-    { filename = "sema4ai_docint-0.3.1-py3-none-any.whl", hash = "sha256:d0c3aa3349fb0793141968ad443ace0e7a8efaea49b4ae7aed9fb0a3890fba78" },
+    { filename = "sema4ai_docint-0.4.0-py3-none-any.whl", hash = "sha256:fb907468c76241ed6ae6c046b52069cbdf691d858ea8337d3535e2c837a34476" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "aiofiles", specifier = ">=24.1.0" },
+    { name = "aiohttp", specifier = ">=3.10.0" },
     { name = "jsonschema", specifier = ">=4.0.0" },
     { name = "mindsdb-sql", specifier = "==0.21.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },

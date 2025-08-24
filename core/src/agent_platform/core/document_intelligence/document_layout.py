@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 from sema4ai_docint.models import Mapping, MappingRow
 
+from agent_platform.core.files.files import UploadedFile
+
 if TYPE_CHECKING:
     from sema4ai_docint.models import DocumentLayout
 
@@ -140,3 +142,17 @@ class DocumentLayoutBridge:
                 "updated_at": _parse_dt(document_layout.updated_at),
             }
         )
+
+
+@dataclass(frozen=True)
+class IngestDocumentResponse:
+    document: dict[str, Any]
+    uploaded_file: UploadedFile | None = None
+
+    @classmethod
+    def model_validate(
+        cls,
+        data: dict[str, Any],
+        uploaded_file: UploadedFile | None = None,
+    ) -> IngestDocumentResponse:
+        return cls(document=data, uploaded_file=uploaded_file)

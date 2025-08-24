@@ -1,3 +1,4 @@
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
 
@@ -34,9 +35,11 @@ from agent_platform.core.data_server.data_server import (
 from agent_platform.core.data_server.data_sources import DataSources
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.core.files.files import UploadedFile
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import (
     get_agent_server_client,
+    get_di_service,
     get_file_manager,
 )
 from agent_platform.server.api.private_v2 import document_intelligence
@@ -3321,3 +3324,319 @@ class TestExtractDocumentEndpoints:
         err = resp.json()["error"]
         assert err["code"] == expected_code.value.code
         assert expected_message_substr in err["message"].lower()
+
+
+class TestIngestDocument:
+    def _valid_details(self) -> DataServerDetails:
+        return DataServerDetails(
+            username="testuser",
+            password=SecretString("testpass"),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
+            ],
+        )
+
+    def test_ingest_document_success(self, client: TestClient, fastapi_app: FastAPI):
+        storage_instance = StorageService.get_instance()
+
+        valid_details = self._valid_details()
+
+        thread = SimpleNamespace(id="thread-1")
+        uploaded = UploadedFile(
+            file_id="new-file-999",
+            file_path="/tmp/file",
+            file_ref="file-ref-999",
+            file_hash="h",
+            file_size_raw=5,
+            mime_type="text/plain",
+            created_at=datetime.utcnow(),
+            embedded=False,
+        )
+
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_docint_ds = Mock()
+        fake_service.get_docint_datasource.return_value = fake_docint_ds
+
+        fake_file_manager = Mock()
+        fake_file_manager.upload = AsyncMock(return_value=[uploaded])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"payload")
+
+        fake_extraction_client = Mock()
+
+        fake_agent_client = Mock()
+        fake_di_service = Mock()
+        fake_document_result = {"id": "doc-123", "status": "ok"}
+
+        layout = SimpleNamespace(
+            extraction_schema={"type": "object"},
+            translation_schema={
+                "rules": [{"mode": "rename", "source": "field1", "target": "field_one"}]
+            },
+        )
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=SimpleNamespace(name="data-model-1"),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=layout,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.get_agent_server_client",
+            ) as _get_agent_client,
+        ):
+            fastapi_app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
+            fastapi_app.dependency_overrides[get_di_service] = lambda: fake_di_service
+            _get_agent_client.return_value = fake_agent_client
+            fake_di_service.document.ingest.return_value = fake_document_result
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/ingest",
+                params={
+                    "thread_id": "thread-1",
+                    "agent_id": "agent-1",
+                    "data_model_name": "data-model-1",
+                    "layout_name": "layout-1",
+                },
+                files={"file": ("test.txt", b"hello", "text/plain")},
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["document"] == fake_document_result
+        assert body["uploaded_file"]["file_id"] == "new-file-999"
+
+    def test_ingest_document_failure_when_thread_not_found(
+        self,
+        client: TestClient,
+        fastapi_app: FastAPI,
+    ):
+        storage_instance = StorageService.get_instance()
+
+        valid_details = self._valid_details()
+
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        fake_file_manager = Mock()
+        fake_agent_client = Mock()
+        fake_extraction_client = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    ),
+                ),
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=None)),
+        ):
+            fastapi_app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
+            fastapi_app.dependency_overrides[get_agent_server_client] = (
+                lambda agent_id, request=None, thread_id=None: fake_agent_client
+            )
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/ingest",
+                params={
+                    "thread_id": "missing-thread",
+                    "agent_id": "agent-1",
+                    "data_model_name": "dm-1",
+                    "layout_name": "layout-1",
+                },
+                data={"file": "file-ref"},
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "thread missing-thread not found" in err["message"].lower()
+
+    def test_ingest_document_failure_when_file_not_found(
+        self,
+        client: TestClient,
+        fastapi_app: FastAPI,
+    ):
+        storage_instance = StorageService.get_instance()
+
+        valid_details = self._valid_details()
+
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        thread = SimpleNamespace(id="thread-1")
+
+        fake_file_manager = Mock()
+        fake_agent_client = Mock()
+        fake_extraction_client = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=None),
+            ),
+        ):
+            fastapi_app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
+            fastapi_app.dependency_overrides[get_agent_server_client] = (
+                lambda agent_id, request=None, thread_id=None: fake_agent_client
+            )
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/ingest",
+                params={
+                    "thread_id": "thread-1",
+                    "agent_id": "agent-1",
+                    "data_model_name": "dm-1",
+                    "layout_name": "layout-1",
+                },
+                data={"file": "unknown-file"},
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "file unknown-file not found (storage)" in err["message"].lower()
+
+    def test_ingest_document_failure_when_data_model_not_found(
+        self,
+        client: TestClient,
+        fastapi_app: FastAPI,
+    ):
+        storage_instance = StorageService.get_instance()
+
+        valid_details = self._valid_details()
+
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        thread = SimpleNamespace(id="thread-1")
+        stored = SimpleNamespace(file_ref="file-ref-123")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
+        fake_agent_client = Mock()
+        fake_extraction_client = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                return_value=fake_extraction_client,
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("k")
+                    )
+                ),
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=stored),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=None,
+            ),
+        ):
+            fastapi_app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
+            fastapi_app.dependency_overrides[get_agent_server_client] = (
+                lambda agent_id, request=None, thread_id=None: fake_agent_client
+            )
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/ingest",
+                params={
+                    "thread_id": "thread-1",
+                    "agent_id": "agent-1",
+                    "data_model_name": "data-model-1",
+                    "layout_name": "layout-1",
+                },
+                data={"file": "file-ref-xyz"},
+            )
+
+        assert resp.status_code == 500
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.UNEXPECTED.value.code

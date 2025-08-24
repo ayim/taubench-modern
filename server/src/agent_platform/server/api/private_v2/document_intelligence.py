@@ -40,6 +40,7 @@ from agent_platform.core.document_intelligence.data_models import (
 )
 from agent_platform.core.document_intelligence.document_layout import (
     DocumentLayoutBridge,
+    IngestDocumentResponse,
 )
 from agent_platform.core.document_intelligence.integrations import IntegrationKind
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
@@ -56,6 +57,7 @@ from agent_platform.core.payloads.document_intelligence import (
 from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
+    DIDependency,
     DocIntDatasourceDependency,
     ExtractionClientDependency,
     FileManagerDependency,
@@ -1099,3 +1101,51 @@ async def extract_document(  # noqa: PLR0913
 
     extract_result = extract_response.result
     return extract_result[0]
+
+
+@router.post("/documents/ingest")
+async def ingest_document(  # noqa: PLR0913
+    user: AuthedUser,
+    file: str | UploadFile,
+    thread_id: str,
+    data_model_name: str,
+    layout_name: str,
+    storage: StorageDependency,
+    docint_ds: DocIntDatasourceDependency,
+    file_manager: FileManagerDependency,
+    di_service: DIDependency,
+) -> IngestDocumentResponse:
+    """Ingest a new document into the Document Intelligence database."""
+    # get thread
+    thread = await storage.get_thread(user.user_id, thread_id)
+    if not thread:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"Thread {thread_id} not found",
+        )
+    uploaded_file, new_file = await _get_or_upload_file(
+        file,
+        thread=thread,
+        user_id=user.user_id,
+        storage=storage,
+        file_manager=file_manager,
+    )
+
+    try:
+        response_data = await run_in_threadpool(
+            di_service.document.ingest,
+            uploaded_file.file_ref,
+            data_model_name,
+            layout_name,
+        )
+        return IngestDocumentResponse.model_validate(
+            response_data,
+            uploaded_file if new_file else None,
+        )
+
+    except Exception as e:
+        logger.error(f"Error processing document: {e!s}")
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED,
+            message=f"Failed to process document: {e!s}",
+        ) from e

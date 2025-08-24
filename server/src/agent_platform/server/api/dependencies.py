@@ -10,7 +10,7 @@ from sema4ai.actions._action_context import RequestContexts
 from sema4ai.actions._request import Request as Sema4aiRequest
 from sema4ai.data import DataSource
 from sema4ai.data._data_source import ConnectionNotSetupError
-from sema4ai_docint import SyncExtractionClient
+from sema4ai_docint import DIService, SyncExtractionClient, build_di_service
 from sema4ai_docint.agent_server_client import AgentServerClient
 from starlette.concurrency import run_in_threadpool
 
@@ -293,3 +293,19 @@ async def get_extraction_client(storage: StorageDependency) -> SyncExtractionCli
 
 
 ExtractionClientDependency = Annotated[SyncExtractionClient, Depends(get_extraction_client)]
+
+
+async def get_di_service(
+    datasource: DocIntDatasourceDependency,
+    storage: StorageDependency,
+    _agent_client: AgentServerClientDependency,  # ensures request contexts + env are set
+) -> "DIService":
+    reducto_integ = await storage.get_document_intelligence_integration(IntegrationKind.REDUCTO)
+    di = build_di_service(
+        datasource=datasource,
+        sema4_api_key=reducto_integ.api_key.get_secret_value(),
+    )
+    return di
+
+
+DIDependency = Annotated["DIService", Depends(get_di_service)]
