@@ -244,9 +244,12 @@ async def get_agent_server_client(
     SEMA4AI_FILE_MANAGEMENT_URL if it is not already set.
     """
     # Set the file management URL to the current server instance
+    base_url = str(request.base_url)
     if not os.environ.get("SEMA4AI_FILE_MANAGEMENT_URL"):
-        base_url = str(request.base_url)
         os.environ["SEMA4AI_FILE_MANAGEMENT_URL"] = urljoin(base_url, "api/v2")
+
+    if not os.environ.get("SEMA4AI_AGENTS_SERVICE_URL"):
+        os.environ["SEMA4AI_AGENTS_SERVICE_URL"] = base_url
 
     # Inject the request context to make the action code work
     # Build an action request from the FastAPI request
