@@ -256,7 +256,7 @@ class TestDataServerEndpoint:
 
         expected = {
             "http": {
-                "url": "api.example.com:8080",
+                "url": "http://api.example.com:8080",
                 "port": 8080,
                 "user": "testuser",
                 "password": "secret123",
@@ -309,7 +309,7 @@ class TestDataServerEndpoint:
 
         expected = {
             "http": {
-                "url": "api.example.com:8080",
+                "url": "http://api.example.com:8080",
                 "port": 8080,
                 "user": "testuser",
                 "password": "secret123",

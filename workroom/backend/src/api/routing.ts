@@ -121,6 +121,9 @@ function getRouteMap(): {
     'get /api/v2/document-intelligence/layouts/{layout_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'delete /api/v2/document-intelligence/layouts/{layout_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/document-intelligence/layouts/{layout_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/threads/{tid}/data-frames/slice': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/quality-checks/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/quality-checks/execute': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
 
     // #region Disallowed Routes
     'get /api/v2/health': [DISALLOWED],

@@ -7,6 +7,7 @@ import createRouter from 'express-promise-router';
 import { createGetACEUser } from './auth/oidc.js';
 import type { Configuration } from './configuration.js';
 import { createGetAgentMeta, createProxyHandler } from './handlers/agents.js';
+import { createConfigureDocumentIntelligence } from './handlers/document-intelligence.js';
 import { createHealthCheck } from './handlers/health.js';
 import { createGetMeta, createGetSparTenantsList } from './handlers/meta.js';
 import { createAssetServe, createIndexServe, initializeFrontendPlaceholders } from './handlers/static.js';
@@ -173,6 +174,14 @@ export const createApplication = async ({
       rewriteAgentServerPath: (_current, getParam) => `/api/v2/agents/${getParam('agentId')}/agent-details`,
       targetBaseUrl: configuration.agentServerInternalUrl,
     }),
+  );
+
+  // Document Intelligence routes
+  tenantRouter.post(
+    '/configure-document-intelligence',
+    createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+    express.json(),
+    createConfigureDocumentIntelligence({ configuration, monitoring }),
   );
 
   // "Tombstoned" routes for ACE - these are overwritten by ACE's ingress

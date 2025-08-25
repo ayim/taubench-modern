@@ -2,7 +2,11 @@ import { createWorkroomClient, AgentOAuthPermission, operations } from '@sema4ai
 import { DocumentIntelligenceSchema } from '@sema4ai/document-intelligence-interface';
 import { WorkItemsSchema } from '@sema4ai/work-items-interface';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { paths as agentServerPaths, components as AgentServerComponents } from '@sema4ai/agent-server-interface';
+import {
+  paths as agentServerPaths,
+  components as AgentServerComponents,
+  operations as AgentServerOperations,
+} from '@sema4ai/agent-server-interface';
 import createFetchClient, { ClientMethod, FetchResponse, MaybeOptionalInit } from 'openapi-fetch';
 import { HttpMethod, MediaType, PathsWithMethod, RequiredKeysOf } from 'openapi-typescript-helpers';
 import { UserTenant } from '~/queries/tenants';
@@ -23,6 +27,9 @@ type WorkroomToken = {
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 type EmptyObjectType = {};
+
+export type AgentServerConfigType =
+  AgentServerOperations['set_config_config__post']['requestBody']['content']['application/json']['config_type'];
 
 export class AgentAPIClient {
   private getUserToken: () => Promise<string | undefined>;

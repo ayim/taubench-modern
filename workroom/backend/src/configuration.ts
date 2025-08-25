@@ -1,7 +1,10 @@
 import { exhaustiveCheck, parseEnvVariable, parseEnvVariableInteger } from '@sema4ai/robocloud-shared-utils';
+import z from 'zod';
 
 export interface Configuration {
   agentServerInternalUrl: string;
+  controlPlaneUrl: string | null;
+  dataServer: { mode: 'disabled' } | { mode: 'cloud' } | { mode: 'local'; configurationFilePath: string };
   auth: {
     tokenIssuer: string;
   } & (
@@ -36,6 +39,8 @@ export interface Configuration {
   port: number;
 }
 
+const DataServerMode = z.enum(['disabled', 'cloud', 'local']);
+
 export const getConfiguration = (): Configuration => {
   const port = parseEnvVariableInteger('SEMA4AI_WORKROOM_PORT');
 
@@ -53,6 +58,50 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const agentServerInternalUrl = parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_URL');
+  const controlPlaneUrl: Configuration['controlPlaneUrl'] = process.env.SEMA4AI_WORKROOM_CONTROL_PLANE_URL
+    ? parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL')
+    : null;
+
+  const dataServer = ((): Configuration['dataServer'] => {
+    const dataServerMode: Configuration['dataServer']['mode'] = process.env.SEMA4AI_WORKROOM_DATA_SERVER_MODE
+      ? DataServerMode.parse(parseEnvVariable('SEMA4AI_WORKROOM_DATA_SERVER_MODE'))
+      : 'disabled';
+
+    switch (dataServerMode) {
+      case 'disabled': {
+        return {
+          mode: 'disabled',
+        };
+      }
+      case 'cloud': {
+        if (controlPlaneUrl === null) {
+          throw new Error(
+            'SEMA4AI_WORKROOM_DATA_SERVER_MODE is set to "cloud" but SEMA4AI_WORKROOM_CONTROL_PLANE_URL was not provided',
+          );
+        }
+        return {
+          mode: 'cloud',
+        };
+      }
+      case 'local': {
+        const dataServerConfigurationPath: string | null = process.env.SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH
+          ? parseEnvVariable('SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH')
+          : null;
+        if (dataServerConfigurationPath === null) {
+          throw new Error(
+            'SEMA4AI_WORKROOM_DATA_SERVER_MODE is set to "local" but SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH was not provided',
+          );
+        }
+        return {
+          mode: 'local',
+          configurationFilePath: dataServerConfigurationPath,
+        };
+      }
+      default: {
+        exhaustiveCheck(dataServerMode);
+      }
+    }
+  })();
 
   const auth = ((): Configuration['auth'] => {
     const mode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE');
@@ -136,7 +185,9 @@ export const getConfiguration = (): Configuration => {
 
   return {
     agentServerInternalUrl,
+    controlPlaneUrl,
     auth,
+    dataServer,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
     legacyRoutingUrl,
     metaUrl,

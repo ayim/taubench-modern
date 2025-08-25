@@ -14,6 +14,8 @@ x-env-spar: &template-env-spar
     # Workroom
     SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
     SEMA4AI_WORKROOM_AUTH_MODE: none
+    SEMA4AI_WORKROOM_DATA_SERVER_MODE: local
+    SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH: /app/data-server-config.json
     SEMA4AI_WORKROOM_PORT: 8001
 
 x-service-spar: &template-service-spar
@@ -45,6 +47,8 @@ x-service-spar: &template-service-spar
             condition: service_healthy
         otel-collector:
             condition: service_started
+    volumes:
+        - ./data-server/data-server-local-config.json:/app/data-server-config.json
 
 services:
     postgres:
@@ -60,6 +64,7 @@ services:
             - '5432'
         volumes:
             - postgres_data:/var/lib/postgresql/data
+            - ./data-server/data-server-create-pg-db.sql:/docker-entrypoint-initdb.d/data-server-create-pg-db.sql
         healthcheck:
             test: ['CMD-SHELL', 'pg_isready -U agents -d agents']
             interval: 5s
@@ -67,6 +72,27 @@ services:
             retries: 5
             start_period: 15s
         restart: unless-stopped
+
+    # data-server:
+    #     image: '024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:1.1.15_3d9d266.20250821T091212Z'
+    #     container_name: data-server
+    #     environment:
+    #         SKIP_CONFIGURATION: 'true'
+    #     ports:
+    #         - "47334:47334"
+    #         - "47335:47335"
+    #     expose:
+    #         - "47334"
+    #         - "47335"
+    #     volumes:
+    #         - ./data-server/data-server-local-config.json:/root/config.json
+    #     healthcheck:
+    #         test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+    #         interval: 5s
+    #         timeout: 5s
+    #         retries: 6
+    #         start_period: 60s
+    #     restart: unless-stopped
 
 #region Telemetry
     influx-db:

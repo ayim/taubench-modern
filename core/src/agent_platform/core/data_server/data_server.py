@@ -177,7 +177,7 @@ class DataServerDetails:
             match endpoint.kind:
                 case DataServerEndpointKind.HTTP:
                     result["http"] = {
-                        "url": endpoint.full_address,
+                        "url": f"http://{endpoint.full_address}",
                         **base_connection,
                     }
                     result["http"].pop("host")  # Remove host as it is already in the url

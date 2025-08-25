@@ -7,8 +7,8 @@ export const createGetWorkroomMeta =
     res.json({
       features: {
         documentIntelligence: {
-          enabled: false,
-          reason: 'Doc Intel not available in SPAR YET',
+          enabled: configuration.dataServer.mode !== 'disabled',
+          reason: configuration.dataServer.mode === 'disabled' ? 'Doc Intel is disabled for this environment' : null,
         },
         developerMode: {
           enabled: configuration.legacyRoutingUrl !== null,

@@ -27,6 +27,10 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   userIdentity: {
     cacheTTL: 300,
   },
+  controlPlaneUrl: null,
+  dataServer: {
+    mode: 'disabled',
+  },
 });
 
 describe('application', () => {

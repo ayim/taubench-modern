@@ -5,6 +5,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { getGetConfigQueryOptions, useUpdateConfigMutation } from '~/queries/settings';
 import { notNil } from '@sema4ai/robocloud-shared-utils';
 import { successToast } from '~/utils/toasts';
+import { AgentServerConfigType } from '~/lib/AgentAPIClient';
 
 const beautifyConfigType = (key: string): string => {
   switch (key) {
@@ -34,14 +35,14 @@ export const Route = createFileRoute('/tenants/$tenantId/settings/')({
 
 function Settings() {
   const { config, tenantId } = Route.useLoaderData();
-  const formProps = useForm<Record<string, string>>({
+  const formProps = useForm<Record<AgentServerConfigType, string>>({
     defaultValues: Object.fromEntries(config.map(({ config_type, config_value }) => [config_type, config_value])),
   });
 
   const { mutateAsync: updateConfig, isPending: isUpdatingConfig } = useUpdateConfigMutation();
 
   const onSubmit = formProps.handleSubmit(async (data) => {
-    const transformedConfig = Object.entries(data)
+    const transformedConfig = (Object.entries(data) as [AgentServerConfigType, string][])
       .map(([config_type, current_value]) => {
         const { isDirty } = formProps.getFieldState(config_type);
 
