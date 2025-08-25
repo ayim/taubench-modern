@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
+from reducto.types.shared.parse_response import ResultFullResult as ParseResult
+from reducto.types.shared.split_response import Result as SplitResult
 from sema4ai_docint import normalize_name
+from sema4ai_docint.extraction.reducto.async_ import JobStatus, JobType
 
 from agent_platform.core.document_intelligence.document_layout import DocumentLayoutBridge
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
@@ -96,3 +99,45 @@ class ExtractDocumentPayload:
             file_name=file_name,
             thread_id=thread_id,
         )
+
+
+# Extraction Client Job result types
+
+
+@dataclass(frozen=True)
+class JobStartResponsePayload:
+    job_id: str
+    job_type: JobType
+    uploaded_file: UploadedFile | None = None
+
+
+@dataclass(frozen=True)
+class JobStatusResponsePayload:
+    job_id: str
+    # Matches Reducto's types.job_get_response.JobGetResponse.status
+    status: JobStatus
+    # URL to fetch the result when job is complete (only present when status is COMPLETED)
+    result_url: str | None = None
+
+
+# Response types for get_job_result endpoint
+@dataclass(frozen=True)
+class ParseJobResult:
+    result: ParseResult
+    job_type: Literal["parse"] = "parse"
+
+
+@dataclass(frozen=True)
+class ExtractJobResult:
+    result: dict[str, Any]  # Extract results are untyped objects
+    job_type: Literal["extract"] = "extract"
+
+
+@dataclass(frozen=True)
+class SplitJobResult:
+    result: SplitResult
+    job_type: Literal["split"] = "split"
+
+
+# Union type for job results
+JobResult = ParseJobResult | ExtractJobResult | SplitJobResult

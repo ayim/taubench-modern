@@ -296,7 +296,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.4.0-py3-none-any.whl" },
+    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.4.2-py3-none-any.whl" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -2319,18 +2319,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pdf2image"
-version = "1.17.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pillow" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/00/d8/b280f01045555dc257b8153c00dee3bc75830f91a744cd5f84ef3a0a64b1/pdf2image-1.17.0.tar.gz", hash = "sha256:eaa959bc116b420dd7ec415fcae49b98100dda3dd18cd2fdfa86d09f112f6d57", size = 12811, upload-time = "2024-01-07T20:33:01.965Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/62/33/61766ae033518957f877ab246f87ca30a85b778ebaad65b7f74fa7e52988/pdf2image-1.17.0-py3-none-any.whl", hash = "sha256:ecdd58d7afb810dffe21ef2b1bbc057ef434dabbac6c33778a38a3f7744a27e2", size = 11618, upload-time = "2024-01-07T20:32:59.957Z" },
-]
-
-[[package]]
 name = "pefile"
 version = "2023.2.7"
 source = { registry = "https://pypi.org/simple" }
@@ -2753,6 +2741,20 @@ wheels = [
 [package.optional-dependencies]
 crypto = [
     { name = "cryptography" },
+]
+
+[[package]]
+name = "pymupdf"
+version = "1.26.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/35/031556dfc0d332d8e9ed9b61ca105138606d3f8971b9eb02e20118629334/pymupdf-1.26.4.tar.gz", hash = "sha256:be13a066d42bfaed343a488168656637c4d9843ddc63b768dc827c9dfc6b9989", size = 83077563, upload-time = "2025-08-25T14:20:29.499Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/ae/3be722886cc7be2093585cd94f466db1199133ab005645a7a567b249560f/pymupdf-1.26.4-cp39-abi3-macosx_10_9_x86_64.whl", hash = "sha256:cb95562a0a63ce906fd788bdad5239063b63068cf4a991684f43acb09052cb99", size = 23061974, upload-time = "2025-08-25T14:16:58.811Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/b0/9a451d837e1fe18ecdbfbc34a6499f153c8a008763229cc634725383a93f/pymupdf-1.26.4-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:67e9e6b45832c33726651c2a031e9a20108fd9e759140b9e843f934de813a7ff", size = 22410112, upload-time = "2025-08-25T14:17:24.511Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/c6/d3cfafc75d383603884edeabe4821a549345df954a88d79e6764e2c87601/pymupdf-1.26.4-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:973a6dda61ebd34040e4df3753bf004b669017663fbbfdaa294d44eceba98de0", size = 24060686, upload-time = "2025-08-25T14:17:56.536Z" },
+    { url = "https://files.pythonhosted.org/packages/72/08/035e9d22c801e801bba50c6745bc90ba8696a042fe2c68793e28bf0c3b07/pymupdf-1.26.4-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:299a49797df5b558e695647fa791329ba3911cbbb31ed65f24a6266c118ef1a7", size = 24265046, upload-time = "2025-08-25T14:18:21.238Z" },
+    { url = "https://files.pythonhosted.org/packages/28/8c/c201e4846ec0fb6ae5d52aa3a5d66f9355f0c69fb94230265714df0de65e/pymupdf-1.26.4-cp39-abi3-win32.whl", hash = "sha256:51b38379aad8c71bd7a8dd24d93fbe7580c2a5d9d7e1f9cd29ebbba315aa1bd1", size = 17127332, upload-time = "2025-08-25T14:18:39.132Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/c4/87d27b108c2f6d773aa5183c5ae367b2a99296ea4bc16eb79f453c679e30/pymupdf-1.26.4-cp39-abi3-win_amd64.whl", hash = "sha256:0b6345a93a9afd28de2567e433055e873205c52e6b920b129ca50e836a3aeec6", size = 18743491, upload-time = "2025-08-25T14:19:01.104Z" },
 ]
 
 [[package]]
@@ -3288,8 +3290,8 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.4.0"
-source = { path = "server/wheels/sema4ai_docint-0.4.0-py3-none-any.whl" }
+version = "0.4.2"
+source = { path = "server/wheels/sema4ai_docint-0.4.2-py3-none-any.whl" }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp" },
@@ -3297,8 +3299,9 @@ dependencies = [
     { name = "mindsdb-sql" },
     { name = "openpyxl" },
     { name = "pandas" },
-    { name = "pdf2image" },
+    { name = "pillow" },
     { name = "pydantic" },
+    { name = "pymupdf" },
     { name = "python-docx" },
     { name = "python-dotenv" },
     { name = "reductoai" },
@@ -3309,7 +3312,7 @@ dependencies = [
     { name = "sema4ai-http-helper" },
 ]
 wheels = [
-    { filename = "sema4ai_docint-0.4.0-py3-none-any.whl", hash = "sha256:fb907468c76241ed6ae6c046b52069cbdf691d858ea8337d3535e2c837a34476" },
+    { filename = "sema4ai_docint-0.4.2-py3-none-any.whl", hash = "sha256:aa6f43c4daeb4af498a83a160e74fe7a947e4d764102fc3ee4bf74970f4f454c" },
 ]
 
 [package.metadata]
@@ -3320,16 +3323,17 @@ requires-dist = [
     { name = "mindsdb-sql", specifier = "==0.21.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.2.3" },
-    { name = "pdf2image", specifier = ">=1.17.0" },
+    { name = "pillow", specifier = ">=10.0.0" },
     { name = "pydantic", specifier = ">=2.11,<3" },
+    { name = "pymupdf", specifier = ">=1.24.10" },
     { name = "python-docx", specifier = "==0.8.11" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "reductoai", specifier = "==0.9.0" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "scikit-learn", specifier = ">=1.7.0" },
-    { name = "sema4ai-actions", specifier = ">=1.3.8" },
-    { name = "sema4ai-data", specifier = ">=1.0.2" },
-    { name = "sema4ai-http-helper", specifier = ">=2.1.0" },
+    { name = "sema4ai-actions", specifier = "==1.4.1" },
+    { name = "sema4ai-data", specifier = "==1.0.7" },
+    { name = "sema4ai-http-helper", specifier = "==2.1.0" },
 ]
 
 [[package]]

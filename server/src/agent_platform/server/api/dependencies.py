@@ -1,7 +1,8 @@
 import base64
 import json
 import os
-from typing import Annotated
+from collections.abc import AsyncGenerator
+from typing import Annotated, Any
 from urllib.parse import urljoin
 
 from fastapi import Depends, Request, UploadFile
@@ -10,8 +11,9 @@ from sema4ai.actions._action_context import RequestContexts
 from sema4ai.actions._request import Request as Sema4aiRequest
 from sema4ai.data import DataSource
 from sema4ai.data._data_source import ConnectionNotSetupError
-from sema4ai_docint import DIService, SyncExtractionClient, build_di_service
+from sema4ai_docint import DIService, build_di_service
 from sema4ai_docint.agent_server_client import AgentServerClient
+from sema4ai_docint.extraction.reducto.async_ import AsyncExtractionClient
 from starlette.concurrency import run_in_threadpool
 
 from agent_platform.core.configurations.quotas import QuotasService
@@ -283,19 +285,27 @@ async def get_agent_server_client(
 AgentServerClientDependency = Annotated[AgentServerClient, Depends(get_agent_server_client)]
 
 
-async def get_extraction_client(storage: StorageDependency) -> SyncExtractionClient:
-    """Get an extraction client from the sema4ai-docint package for use in DIv2."""
+async def get_async_extraction_client(
+    storage: StorageDependency,
+) -> AsyncGenerator[AsyncExtractionClient, Any]:
+    """Get an async extraction client from the sema4ai-docint package for use in DIv2."""
+    # TODO: Consider performance gains from switching this depedency to use a singleton
+    # service pattern like storage. In such a scenario, we would want to pay attention
+    # to changes in the reducto integration configuration.
     reducto_integration = await storage.get_document_intelligence_integration(
         IntegrationKind.REDUCTO
     )
-    return SyncExtractionClient(
+    async with AsyncExtractionClient(
         reducto_integration.api_key.get_secret_value(),
         disable_ssl_verification=False,
         base_url=reducto_integration.endpoint,
-    )
+    ) as client:
+        yield client
 
 
-ExtractionClientDependency = Annotated[SyncExtractionClient, Depends(get_extraction_client)]
+AsyncExtractionClientDependency = Annotated[
+    AsyncExtractionClient, Depends(get_async_extraction_client)
+]
 
 
 async def get_di_service(

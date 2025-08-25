@@ -5,16 +5,18 @@ from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from reducto.types import ExtractResponse, ParseResponse
 from reducto.types.shared.bounding_box import BoundingBox
 from reducto.types.shared.parse_response import (
-    ParseResponse,
     ResultFullResult,
     ResultFullResultChunk,
     ResultFullResultChunkBlock,
 )
+from reducto.types.shared.parse_response import ResultFullResult as ParseResult
 from reducto.types.shared.parse_usage import ParseUsage
 from sema4ai.data._data_source import ConnectionNotSetupError
 from sema4ai_docint import normalize_name
+from sema4ai_docint.extraction.reducto.async_ import Job, JobStatus, JobType
 from sema4ai_docint.extraction.reducto.exceptions import (
     ExtractFailedError,
     UploadForbiddenError,
@@ -35,7 +37,11 @@ from agent_platform.core.data_server.data_server import (
 from agent_platform.core.data_server.data_sources import DataSources
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
-from agent_platform.core.files.files import UploadedFile
+from agent_platform.core.files import UploadedFile
+from agent_platform.core.payloads.document_intelligence import (
+    ExtractJobResult,
+    ParseJobResult,
+)
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import (
     get_agent_server_client,
@@ -46,6 +52,45 @@ from agent_platform.server.api.private_v2 import document_intelligence
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.storage.option import StorageService
+
+
+def create_mock_async_extraction_client_class(mock_client):
+    """Create a mock AsyncExtractionClient class that returns the mock client."""
+
+    class MockAsyncExtractionClient:
+        """Mock for AsyncExtractionClient that supports async context manager protocol."""
+
+        @classmethod
+        def _new_async_reducto_client(cls, *args, **kwargs):
+            """Mock the class method that the real constructor calls."""
+            mock_client = AsyncMock()
+            # Configure the mock to return a proper response object
+            # The real code expects: upload_resp = await self._client.post(...) then
+            # resp = upload_resp.json()
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json = Mock(return_value={"presigned_url": "https://example.com/upload"})
+            mock_response.raise_for_status = Mock()
+            mock_client.post = AsyncMock(return_value=mock_response)
+            mock_client.close = AsyncMock()
+            return mock_client
+
+        def __init__(self, *args, **kwargs):
+            # Mock the constructor behavior without calling the real implementation
+            self._client = self._new_async_reducto_client()
+
+        async def __aenter__(self):
+            return mock_client
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            return None
+
+    return MockAsyncExtractionClient
+
+
+async def create_mock_async_extraction_client_dependency(mock_client):
+    """Create a mock async generator for the get_async_extraction_client dependency."""
+    yield mock_client
 
 
 @pytest.fixture
@@ -2091,9 +2136,15 @@ class TestParseDocumentEndpoints:
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored_file])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"file-bytes")
 
+        # Create a mock Job that will be returned by start_parse
+        mock_job = Mock()
+        mock_job.job_id = "parse-job-123"
+        mock_job.job_type = JobType.PARSE
+        mock_job.result = AsyncMock(return_value=parse_response)
+
         fake_extraction_client = Mock()
-        fake_extraction_client.upload.return_value = "https://files.example.com/u/abc"
-        fake_extraction_client.parse.return_value = parse_response
+        fake_extraction_client.upload = AsyncMock(return_value="https://files.example.com/u/abc")
+        fake_extraction_client.start_parse = AsyncMock(return_value=mock_job)
 
         with (
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
@@ -2116,8 +2167,8 @@ class TestParseDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
         ):
             resp = client.post(
@@ -2140,9 +2191,15 @@ class TestParseDocumentEndpoints:
         fake_file_manager.upload = AsyncMock(return_value=[uploaded])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"payload")
 
+        # Create a mock Job that will be returned by start_parse
+        mock_job = Mock()
+        mock_job.job_id = "parse-job-456"
+        mock_job.job_type = JobType.PARSE
+        mock_job.result = AsyncMock(return_value=parse_response)
+
         fake_extraction_client = Mock()
-        fake_extraction_client.upload.return_value = "https://files.example.com/u/def"
-        fake_extraction_client.parse.return_value = parse_response
+        fake_extraction_client.upload = AsyncMock(return_value="https://files.example.com/u/def")
+        fake_extraction_client.start_parse = AsyncMock(return_value=mock_job)
 
         with (
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
@@ -2160,8 +2217,8 @@ class TestParseDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
         ):
             resp = client.post(
@@ -2196,8 +2253,8 @@ class TestParseDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
         ):
             resp = client.post(
@@ -2239,8 +2296,8 @@ class TestParseDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
         ):
             resp = client.post(
@@ -2285,8 +2342,8 @@ class TestParseDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
         ):
             resp = client.post(
@@ -2339,7 +2396,7 @@ class TestParseDocumentEndpoints:
 
         fake_extraction_client = Mock()
         # Raise during upload/parse block
-        fake_extraction_client.upload.side_effect = raised
+        fake_extraction_client.upload = AsyncMock(side_effect=raised)
 
         with (
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
@@ -2362,8 +2419,8 @@ class TestParseDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
         ):
             resp = client.post(
@@ -2653,6 +2710,448 @@ class TestDataQualityChecksEndpoints:
         mock_validate.assert_called_once()
 
 
+class TestAsyncDocumentEndpoints:
+    """Tests for async document intelligence endpoints."""
+
+    def test_parse_async_returns_job_immediately(self, client: TestClient):
+        """Test that parse/async returns job_id and job_type immediately without waiting."""
+        storage_instance = StorageService.get_instance()
+
+        # Use Mock objects instead of SimpleNamespace for proper attribute access
+        thread = Mock(id="thread-1")
+        uploaded = UploadedFile(
+            file_id="new-file-123",
+            file_path="/test/path",
+            file_ref="ref-123",
+            file_hash="test-hash",
+            file_size_raw=1024,
+            mime_type="application/pdf",
+            created_at=datetime.now(),
+        )
+
+        fake_file_manager = Mock()
+        fake_file_manager.upload = AsyncMock(return_value=[uploaded])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"test-content")
+
+        # Create a proper Job instance (not just a Mock)
+        mock_job = Job(job_id="parse-job-456", job_type=JobType.PARSE, client=Mock())
+
+        fake_async_extraction_client = Mock()
+        fake_async_extraction_client.upload = AsyncMock(return_value="doc-url-789")
+        fake_async_extraction_client.start_parse = AsyncMock(return_value=mock_job)
+
+        # Mock the integration as a dict instead of SimpleNamespace
+        mock_integration = Mock()
+        mock_integration.endpoint = "https://reducto"
+        mock_integration.api_key = SecretString("key")
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(return_value=mock_integration),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_async_extraction_client),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse/async",
+                params={"thread_id": "thread-1"},
+                files={"file": ("test.pdf", b"pdf-content", "application/pdf")},
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["job_id"] == "parse-job-456"
+        assert body["job_type"] == JobType.PARSE
+        assert "uploaded_file" in body
+        assert body["uploaded_file"]["file_id"] == "new-file-123"
+
+        # Verify async methods were called
+        fake_async_extraction_client.upload.assert_awaited_once()
+        fake_async_extraction_client.start_parse.assert_awaited_once()
+
+    def test_extract_async_with_layout_returns_job(self, client: TestClient):
+        """Test that extract/async with layout returns job_id and job_type immediately."""
+        storage_instance = StorageService.get_instance()
+
+        # Use Mock objects instead of SimpleNamespace for proper attribute access
+        thread = Mock(id="t1")
+        stored = Mock(file_id="f1", file_ref="r1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"doc-bytes")
+
+        # Create a proper Job instance (not just a Mock)
+        mock_job = Job(job_id="extract-job-789", job_type=JobType.EXTRACT, client=Mock())
+
+        fake_async_extraction_client = Mock()
+        fake_async_extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT = "BASE"
+        fake_async_extraction_client.upload = AsyncMock(return_value="doc-id-123")
+        fake_async_extraction_client.start_extract = AsyncMock(return_value=mock_job)
+
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        valid_details = DataServerDetails(
+            username="user",
+            password=SecretString("pass"),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
+            ],
+        )
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=valid_details),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_async_extraction_client),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=Mock(name="invoice_model", prompt="Model prompt"),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                return_value=Mock(
+                    extraction_schema={"type": "object"},
+                    system_prompt="Layout prompt",
+                    extraction_config={"mode": "fast"},
+                ),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=Mock(
+                        endpoint="https://reducto",
+                        api_key=SecretString("key"),
+                    )
+                ),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract/async",
+                json={
+                    "thread_id": "t1",
+                    "file_name": "r1",
+                    "data_model_name": "invoice_model",
+                    "layout_name": "invoice_layout",
+                },
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["job_id"] == "extract-job-789"
+        assert body["job_type"] == JobType.EXTRACT
+        assert body["uploaded_file"] is None  # No new upload for existing file
+
+        fake_async_extraction_client.start_extract.assert_awaited_once()
+
+    def test_get_job_status_pending(self, client: TestClient):
+        """Test getting status of a pending job."""
+        fake_async_extraction_client = Mock()
+        fake_async_extraction_client.get_job_status = AsyncMock(return_value="Pending")
+
+        with (
+            patch(
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_async_extraction_client),
+            ),
+            patch.object(
+                StorageService.get_instance(),
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("key")
+                    )
+                ),
+            ),
+        ):
+            resp = client.get(
+                "/api/v2/document-intelligence/jobs/test-job-123/status",
+                params={"job_type": "parse"},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"job_id": "test-job-123", "status": "Pending", "result_url": None}
+        # The actual implementation uses Job.status() which calls client.get_job_status
+        # But since we're creating a real Job object, we need to mock the right thing
+
+    def test_get_job_result_parse_type(self, client: TestClient):
+        """Test getting result of a completed parse job."""
+        # Create a mock ParseResponse object
+        mock_parse_response = Mock(spec=ParseResponse)
+        mock_parse_result = Mock(spec=ParseResult)
+        mock_parse_result.pages = [{"content": "parsed text"}]  # This is what the test expects
+        mock_parse_response.result = mock_parse_result
+
+        # Mock the extraction client Job.result() method returning the ParseResponse
+        fake_async_extraction_client = Mock()
+        # The job.result() method should return the ParseResponse, not wait_for_job
+
+        with (
+            patch(
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_async_extraction_client),
+            ),
+            patch.object(
+                StorageService.get_instance(),
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("key")
+                    )
+                ),
+            ),
+            # Mock the Job class and its result method
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.Job"
+            ) as mock_job_class,
+            # Mock the _create_job_result function to return what we expect
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence._create_job_result"
+            ) as mock_create_job_result,
+        ):
+            # Configure the Job mock to return our mocked response
+            mock_job_instance = Mock()
+            mock_job_instance.result = AsyncMock(return_value=mock_parse_response)
+            # Mock status to return COMPLETED so get_job_result doesn't return 404
+
+            mock_job_instance.status = AsyncMock(return_value=JobStatus.COMPLETED)
+            mock_job_class.return_value = mock_job_instance
+
+            # Configure _create_job_result to return the expected ParseJobResult
+
+            expected_parse_result = {"pages": [{"content": "parsed text"}]}
+            mock_create_job_result.return_value = ParseJobResult(result=expected_parse_result)  # type: ignore
+
+            resp = client.get(
+                "/api/v2/document-intelligence/jobs/parse-job-456/result",
+                params={"job_type": "parse"},
+            )
+
+        assert resp.status_code == 200
+        # The endpoint returns the ParseJobResult with both result and job_type
+        expected_response = {"result": expected_parse_result, "job_type": "parse"}
+        assert resp.json() == expected_response
+
+    def test_get_job_result_extract_type(self, client: TestClient):
+        """Test getting result of a completed extract job."""
+        # Mock extract result
+        mock_extract_result = {"extracted_data": {"invoice_id": "INV-123"}}
+
+        # Create a mock ExtractResponse object
+        mock_extract_response = Mock(spec=ExtractResponse)
+        mock_extract_response.result = [mock_extract_result]
+
+        # Mock the extraction client (needed for dependency injection)
+        fake_async_extraction_client = Mock()
+
+        with (
+            patch(
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_async_extraction_client),
+            ),
+            patch.object(
+                StorageService.get_instance(),
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("key")
+                    )
+                ),
+            ),
+            # Mock the Job class and its result method
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.Job"
+            ) as mock_job_class,
+            # Mock the _create_job_result function to return what we expect
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence._create_job_result"
+            ) as mock_create_job_result,
+        ):
+            # Configure the Job mock to return our mocked ExtractResponse
+            mock_job_instance = Mock()
+            mock_job_instance.result = AsyncMock(return_value=mock_extract_response)
+            # Mock status to return COMPLETED so get_job_result doesn't return 404
+
+            mock_job_instance.status = AsyncMock(return_value=JobStatus.COMPLETED)
+            mock_job_class.return_value = mock_job_instance
+
+            # Configure _create_job_result to return the expected ExtractJobResult
+
+            mock_create_job_result.return_value = ExtractJobResult(result=mock_extract_result)
+
+            resp = client.get(
+                "/api/v2/document-intelligence/jobs/extract-job-789/result",
+                params={"job_type": "extract"},
+            )
+
+        assert resp.status_code == 200
+        # The endpoint returns the ExtractJobResult with both result and job_type
+        expected_response = {"result": mock_extract_result, "job_type": "extract"}
+        assert resp.json() == expected_response
+
+    def test_get_job_result_missing_job_type(self, client: TestClient):
+        """Test that job_type query parameter is required."""
+        with patch.object(
+            StorageService.get_instance(),
+            "get_document_intelligence_integration",
+            new=AsyncMock(
+                return_value=SimpleNamespace(
+                    endpoint="https://reducto", api_key=SecretString("key")
+                )
+            ),
+        ):
+            resp = client.get("/api/v2/document-intelligence/jobs/job-123/result")
+
+        assert resp.status_code == 422
+        error = resp.json()["error"]
+        assert error["code"] == ErrorCode.UNPROCESSABLE_ENTITY.value.code
+
+    def test_get_job_result_invalid_job_type(self, client: TestClient):
+        """Test that invalid job_type is rejected."""
+        with patch.object(
+            StorageService.get_instance(),
+            "get_document_intelligence_integration",
+            new=AsyncMock(
+                return_value=SimpleNamespace(
+                    endpoint="https://reducto", api_key=SecretString("key")
+                )
+            ),
+        ):
+            resp = client.get(
+                "/api/v2/document-intelligence/jobs/job-123/result",
+                params={"job_type": "invalid_type"},
+            )
+
+        assert resp.status_code == 422
+        error = resp.json()["error"]
+        assert error["code"] == ErrorCode.UNPROCESSABLE_ENTITY.value.code
+
+    def test_get_job_result_job_failed(self, client: TestClient):
+        """Test getting result when job failed."""
+        # Mock the extraction client
+        fake_async_extraction_client = Mock()
+
+        with (
+            patch(
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_async_extraction_client),
+            ),
+            patch.object(
+                StorageService.get_instance(),
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto", api_key=SecretString("key")
+                    )
+                ),
+            ),
+            # Mock the Job class to return FAILED status
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.Job"
+            ) as mock_job_class,
+        ):
+            # Configure the Job mock to return FAILED status
+            mock_job_instance = Mock()
+
+            mock_job_instance.status = AsyncMock(return_value=JobStatus.FAILED)
+            mock_job_class.return_value = mock_job_instance
+
+            resp = client.get(
+                "/api/v2/document-intelligence/jobs/job-123/result",
+                params={"job_type": "parse"},
+            )
+
+        assert resp.status_code == 422
+        error = resp.json()["error"]
+        assert error["code"] == ErrorCode.UNPROCESSABLE_ENTITY.value.code
+        assert "failed" in error["message"].lower()
+
+    def test_parse_async_with_file_ref(self, client: TestClient):
+        """Test async parse with existing file reference."""
+        storage_instance = StorageService.get_instance()
+
+        # Use Mock objects instead of SimpleNamespace for proper attribute access
+        thread = Mock(id="thread-1")
+        stored = Mock(file_id="existing-file-456", file_ref="ref-456")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"existing-content")
+
+        # Create a proper Job instance (not just a Mock)
+        mock_job = Job(job_id="parse-job-789", job_type=JobType.PARSE, client=Mock())
+
+        fake_async_extraction_client = Mock()
+        fake_async_extraction_client.upload = AsyncMock(return_value="doc-url-999")
+        fake_async_extraction_client.start_parse = AsyncMock(return_value=mock_job)
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=stored),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=Mock(endpoint="https://reducto", api_key=SecretString("key"))
+                ),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_async_extraction_client),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/parse/async",
+                params={"thread_id": "thread-1"},
+                data={"file": "ref-456"},
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["job_id"] == "parse-job-789"
+        assert body["job_type"] == JobType.PARSE
+        assert body["uploaded_file"] is None  # No new file uploaded
+
+        fake_file_manager.refresh_file_paths.assert_awaited_once()
+        fake_async_extraction_client.start_parse.assert_awaited_once()
+
+
 class TestExtractDocumentEndpoints:
     def _valid_details(self) -> DataServerDetails:
         return DataServerDetails(
@@ -2675,18 +3174,31 @@ class TestExtractDocumentEndpoints:
     def test_extract_with_layout_name_success(self, client: TestClient):
         storage_instance = StorageService.get_instance()
 
-        # Fakes
-        thread = SimpleNamespace(id="thread-1")
-        stored = SimpleNamespace(file_id="fid-1", file_ref="ref-1")
+        # Fakes - Use Mock objects instead of SimpleNamespace for proper attribute access
+        thread = Mock(id="thread-1")
+        stored = Mock(file_id="fid-1", file_ref="ref-1")
 
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"bytes")
 
+        # Create a mock Job instance for start_extract return
+        mock_job = Mock()
+        mock_job.job_id = "extract-job-123"
+        mock_job.job_type = JobType.EXTRACT
+
+        # Create a mock ExtractResponse object that job.result() will return
+        mock_extract_response = Mock(spec=ExtractResponse)
+        mock_extract_response.result = [{"extracted": "data"}]
+        # Mock job.result() to return the extract response (this is what extract endpoint calls now)
+        mock_job.result = AsyncMock(return_value=mock_extract_response)
+
         fake_extraction_client = Mock()
         fake_extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT = "BASE"
-        fake_extraction_client.upload.return_value = "doc-1"
-        fake_extraction_client.extract.return_value = SimpleNamespace(result=[{"ok": True}])
+        fake_extraction_client.upload = AsyncMock(return_value="doc-1")
+        fake_extraction_client.extract = AsyncMock(return_value=Mock(result=[{"ok": True}]))
+        fake_extraction_client.start_extract = AsyncMock(return_value=mock_job)
+        fake_extraction_client.wait_for_job = AsyncMock(return_value=mock_extract_response)
 
         fake_service = Mock()
         fake_service.ensure_setup.return_value = None
@@ -2713,16 +3225,16 @@ class TestExtractDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
-                return_value=SimpleNamespace(name=normalize_name(data_model_name), prompt="DM P"),
+                return_value=Mock(name=normalize_name(data_model_name), prompt="DM P"),
             ) as mock_find_model,
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
-                return_value=SimpleNamespace(
+                return_value=Mock(
                     extraction_schema={"type": "object"},
                     system_prompt="LAYOUT P",
                     extraction_config={"mode": "strict"},
@@ -2750,15 +3262,15 @@ class TestExtractDocumentEndpoints:
             )
 
         assert resp.status_code == 200
-        assert resp.json() == {"ok": True}
+        assert resp.json() == {"extracted": "data"}
 
         # Ensure lookups used normalized names
         mock_find_model.assert_called_once()
         mock_find_layout.assert_called_once()
 
-        # Ensure extract called with merged prompt and schema/config
-        fake_extraction_client.extract.assert_called_once()
-        _, kwargs = fake_extraction_client.extract.call_args
+        # Ensure start_extract called with merged prompt and schema/config
+        fake_extraction_client.start_extract.assert_called_once()
+        _, kwargs = fake_extraction_client.start_extract.call_args
         assert kwargs["schema"] == {"type": "object"}
         assert kwargs["extraction_config"] == {"mode": "strict"}
         assert kwargs["system_prompt"].startswith("BASE")
@@ -2768,17 +3280,31 @@ class TestExtractDocumentEndpoints:
     def test_extract_with_document_layout_payload_success(self, client: TestClient):
         storage_instance = StorageService.get_instance()
 
-        thread = SimpleNamespace(id="t1")
-        stored = SimpleNamespace(file_id="f1", file_ref="r1")
+        # Use Mock objects instead of SimpleNamespace for proper attribute access
+        thread = Mock(id="t1")
+        stored = Mock(file_id="f1", file_ref="r1")
 
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"payload")
 
+        # Create a mock Job instance for start_extract return
+        mock_job = Mock()
+        mock_job.job_id = "extract-job-456"
+        mock_job.job_type = JobType.EXTRACT
+
+        # Create a mock ExtractResponse object that job.result() will return
+        mock_extract_response = Mock(spec=ExtractResponse)
+        mock_extract_response.result = [{"data": 1}]
+        # Mock job.result() to return the extract response (this is what extract endpoint calls now)
+        mock_job.result = AsyncMock(return_value=mock_extract_response)
+
         fake_extraction_client = Mock()
         fake_extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT = "BASE"
-        fake_extraction_client.upload.return_value = "doc-7"
-        fake_extraction_client.extract.return_value = SimpleNamespace(result=[{"data": 1}])
+        fake_extraction_client.upload = AsyncMock(return_value="doc-7")
+        fake_extraction_client.extract = AsyncMock(return_value=Mock(result=[{"data": 1}]))
+        fake_extraction_client.start_extract = AsyncMock(return_value=mock_job)
+        fake_extraction_client.wait_for_job = AsyncMock(return_value=mock_extract_response)
 
         fake_service = Mock()
         fake_service.get_docint_datasource.return_value = Mock()
@@ -2800,8 +3326,8 @@ class TestExtractDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
             patch.object(
                 storage_instance,
@@ -2831,8 +3357,8 @@ class TestExtractDocumentEndpoints:
 
         assert resp.status_code == 200
         assert resp.json() == {"data": 1}
-        fake_extraction_client.extract.assert_called_once()
-        _, kwargs = fake_extraction_client.extract.call_args
+        fake_extraction_client.start_extract.assert_called_once()
+        _, kwargs = fake_extraction_client.start_extract.call_args
         assert kwargs["schema"] == {"type": "object"}
         assert kwargs["extraction_config"] == {"k": "v"}
         assert kwargs["system_prompt"].startswith("BASE")
@@ -2976,7 +3502,7 @@ class TestExtractDocumentEndpoints:
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
-                return_value=SimpleNamespace(name="dm", prompt=None),
+                return_value=Mock(name="dm", prompt=None),
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
@@ -3010,7 +3536,7 @@ class TestExtractDocumentEndpoints:
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"x")
 
         fake_extraction_client = Mock()
-        fake_extraction_client.upload.return_value = "doc"
+        fake_extraction_client.upload = AsyncMock(return_value="doc")
 
         with (
             patch.object(
@@ -3030,11 +3556,11 @@ class TestExtractDocumentEndpoints:
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
-                return_value=SimpleNamespace(name="dm", prompt=None),
+                return_value=Mock(name="dm", prompt=None),
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
-                return_value=SimpleNamespace(
+                return_value=Mock(
                     extraction_schema=None,
                     system_prompt=None,
                     extraction_config=None,
@@ -3045,8 +3571,8 @@ class TestExtractDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
             patch.object(
                 storage_instance,
@@ -3118,11 +3644,11 @@ class TestExtractDocumentEndpoints:
             patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
-                return_value=SimpleNamespace(name="dm", prompt=None),
+                return_value=Mock(name="dm", prompt=None),
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
-                return_value=SimpleNamespace(
+                return_value=Mock(
                     extraction_schema={},
                     system_prompt=None,
                     extraction_config=None,
@@ -3133,8 +3659,8 @@ class TestExtractDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
             patch.object(
                 storage_instance,
@@ -3168,7 +3694,11 @@ class TestExtractDocumentEndpoints:
                 ErrorCode.UNPROCESSABLE_ENTITY,
                 "document extraction failed",
             ),
-            (Exception("network"), ErrorCode.UNEXPECTED, "something went wrong"),
+            (
+                Exception("network"),
+                ErrorCode.UNEXPECTED,
+                "something went wrong while processing the file",
+            ),
         ],
     )
     def test_extract_job_errors_map(
@@ -3180,16 +3710,25 @@ class TestExtractDocumentEndpoints:
     ):
         storage_instance = StorageService.get_instance()
 
-        thread = SimpleNamespace(id="t1")
-        stored = SimpleNamespace(file_id="f1")
+        thread = Mock(id="t1")
+        stored = Mock(file_id="f1")
 
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"b")
 
+        # Create a proper Job instance for start_extract return
+        mock_job = Mock()
+        mock_job.job_id = "extract-job-error"
+        mock_job.job_type = JobType.EXTRACT
+        # Mock the result method to raise the exception (this is what extract endpoint calls now)
+        mock_job.result = AsyncMock(side_effect=raised)
+
         fake_extraction_client = Mock()
-        fake_extraction_client.upload.return_value = "doc"
-        fake_extraction_client.extract.side_effect = raised
+        fake_extraction_client.upload = AsyncMock(return_value="doc")
+        fake_extraction_client.extract = AsyncMock(side_effect=raised)
+        fake_extraction_client.start_extract = AsyncMock(return_value=mock_job)
+        fake_extraction_client.wait_for_job = AsyncMock(side_effect=raised)
 
         fake_service = Mock()
         fake_service.get_docint_datasource.return_value = Mock()
@@ -3208,11 +3747,11 @@ class TestExtractDocumentEndpoints:
             patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
-                return_value=SimpleNamespace(name="dm", prompt=None),
+                return_value=Mock(name="dm", prompt=None),
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
-                return_value=SimpleNamespace(
+                return_value=Mock(
                     extraction_schema={},
                     system_prompt=None,
                     extraction_config=None,
@@ -3223,8 +3762,8 @@ class TestExtractDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
             patch.object(
                 storage_instance,
@@ -3286,9 +3825,15 @@ class TestExtractDocumentEndpoints:
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[uploaded])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"file-bytes")
 
+        # Create a mock Job that will be returned by start_parse
+        mock_job = Mock()
+        mock_job.job_id = "parse-job-error"
+        mock_job.job_type = JobType.PARSE
+        mock_job.result = AsyncMock(side_effect=raised)
+
         fake_extraction_client = Mock()
-        fake_extraction_client.upload.return_value = "https://files.example.com/u/ghi"
-        fake_extraction_client.parse.side_effect = raised
+        fake_extraction_client.upload = AsyncMock(return_value="https://files.example.com/u/ghi")
+        fake_extraction_client.start_parse = AsyncMock(return_value=mock_job)
 
         with (
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
@@ -3311,8 +3856,8 @@ class TestExtractDocumentEndpoints:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
-                return_value=fake_extraction_client,
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
         ):
             resp = client.post(
@@ -3401,7 +3946,7 @@ class TestIngestDocument:
                 return_value=fake_file_manager,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
                 return_value=fake_extraction_client,
             ),
             patch(
@@ -3464,7 +4009,7 @@ class TestIngestDocument:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
                 return_value=fake_extraction_client,
             ),
             patch.object(
@@ -3528,7 +4073,7 @@ class TestIngestDocument:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
                 return_value=fake_extraction_client,
             ),
             patch.object(
@@ -3599,7 +4144,7 @@ class TestIngestDocument:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.dependencies.SyncExtractionClient",
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
                 return_value=fake_extraction_client,
             ),
             patch.object(

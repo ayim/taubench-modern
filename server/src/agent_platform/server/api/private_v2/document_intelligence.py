@@ -1,11 +1,13 @@
 import json
-from typing import Any, NoReturn, cast
+from typing import Any, NoReturn
 
-from fastapi import APIRouter, UploadFile
-from reducto.types import ParseResponse
-from reducto.types.shared.parse_response import ResultFullResult
+from fastapi import APIRouter, Request, UploadFile
+from reducto.types import ExtractResponse, ParseResponse, SplitResponse
+from reducto.types.shared.parse_response import ResultFullResult as ParseResult
+from reducto.types.shared.split_response import Result as SplitResult
 from sema4ai.data import DataSource
 from sema4ai_docint import ValidationRule, ValidationSummary, validate_document_extraction
+from sema4ai_docint.extraction.reducto.async_ import AsyncExtractionClient, Job, JobStatus, JobType
 from sema4ai_docint.extraction.reducto.exceptions import (
     ExtractFailedError,
     UploadForbiddenError,
@@ -52,14 +54,20 @@ from agent_platform.core.payloads import (
 )
 from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
+    ExtractJobResult,
     GenerateLayoutResponsePayload,
+    JobResult,
+    JobStartResponsePayload,
+    JobStatusResponsePayload,
+    ParseJobResult,
+    SplitJobResult,
 )
 from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
+    AsyncExtractionClientDependency,
     DIDependency,
     DocIntDatasourceDependency,
-    ExtractionClientDependency,
     FileManagerDependency,
     StorageDependency,
 )
@@ -268,20 +276,33 @@ def _raise_mapped_reducto_error(
     ) from error
 
 
-async def _upload_and_parse(
+async def _upload_and_start_parse(
     *,
     file_manager: FileManagerDependency,
-    extraction_client: ExtractionClientDependency,
+    extraction_client: AsyncExtractionClient,
     uploaded_file: Any,
     user_id: str,
     thread_id: str,
-) -> ParseResponse:
+) -> Job:
+    """Upload file and start parse job using AsyncExtractionClient.
+
+    Args:
+        file_manager: File manager dependency
+        extraction_client: Async extraction client instance
+        uploaded_file: The uploaded file to parse
+        user_id: User ID
+        thread_id: Thread ID
+
+    Returns:
+        Job handle for the parse operation
+    """
     try:
         file_contents = await file_manager.read_file_contents(uploaded_file.file_id, user_id)
-        reducto_uploaded_file_url = extraction_client.upload(
+        reducto_uploaded_file_url = await extraction_client.upload(
             file_contents, content_length=len(file_contents)
         )
-        return extraction_client.parse(reducto_uploaded_file_url)
+
+        return await extraction_client.start_parse(reducto_uploaded_file_url)
     except PlatformHTTPError:
         raise
     except Exception as e:
@@ -915,12 +936,12 @@ async def parse_document(  # noqa: PLR0913
     thread_id: str,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
-    extraction_client: ExtractionClientDependency,
-) -> ResultFullResult:
+    extraction_client: AsyncExtractionClientDependency,
+) -> ParseResult:
     """Parse a new document using the Document Intelligence database.
 
-    This endpoint is used to parse a new document. To parse a document that already
-    exists, use the `/documents/{document_id}/parse` endpoint.
+    This endpoint is used to parse a new document. It now uses the async client
+    for better server performance.
     """
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
@@ -932,7 +953,7 @@ async def parse_document(  # noqa: PLR0913
         file_manager=file_manager,
     )
 
-    parse_response: ParseResponse = await _upload_and_parse(
+    job = await _upload_and_start_parse(
         file_manager=file_manager,
         extraction_client=extraction_client,
         uploaded_file=uploaded_file,
@@ -940,14 +961,74 @@ async def parse_document(  # noqa: PLR0913
         thread_id=thread_id,
     )
 
-    # sema4ai-docint guarantees a ResultFullResult and not a ResultURLResult.
-    if not isinstance(parse_response.result, ResultFullResult):
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED,
-            message="Parse response is not a ResultFullResult",
+    # For synchronous parse, wait for completion (unlike get_job_result endpoint)
+    try:
+        result = await job.result(poll_interval=3.0)
+        job_result = _create_job_result(result)
+        if isinstance(job_result, ParseJobResult):
+            return job_result.result
+        else:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNEXPECTED,
+                message="Parse response is not a ParseJobResult",
+            )
+    except PlatformHTTPError:
+        raise
+    except Exception as e:
+        _raise_mapped_reducto_error(
+            e,
+            uploaded_file=uploaded_file,
+            user_id=user.user_id,
+            thread_id=thread_id,
         )
 
-    return cast(ResultFullResult, parse_response.result)
+
+@router.post("/documents/parse/async")
+async def parse_document_async(  # noqa: PLR0913
+    user: AuthedUser,
+    file: UploadFile | str,  # a direct upload or a file ref
+    thread_id: str,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    extraction_client: AsyncExtractionClientDependency,
+) -> JobStartResponsePayload:
+    """Parse a document asynchronously, returning a job handle.
+
+    This endpoint immediately returns a job handle that can be used to track
+    the parsing progress and retrieve results when complete.
+
+    Returns:
+        A response containing:
+        - job_id: The ID of the parsing job
+        - job_type: The type of job ("parse")
+        - uploaded_file: The uploaded file info (if a new file was uploaded)
+
+    Note:
+        When checking job status or results, pass job_type="parse" as a query parameter.
+    """
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
+
+    uploaded_file, new_file = await _get_or_upload_file(
+        file,
+        thread=thread,
+        user_id=user.user_id,
+        storage=storage,
+        file_manager=file_manager,
+    )
+
+    job = await _upload_and_start_parse(
+        file_manager=file_manager,
+        extraction_client=extraction_client,
+        uploaded_file=uploaded_file,
+        user_id=user.user_id,
+        thread_id=thread_id,
+    )
+
+    return JobStartResponsePayload(
+        job_id=job.job_id,
+        job_type=JobType.PARSE,
+        uploaded_file=uploaded_file if new_file else None,
+    )
 
 
 async def _resolve_extract_request(
@@ -1018,19 +1099,31 @@ async def _resolve_extract_request(
     return thread_id, file, document_layout, data_model_prompt
 
 
-async def _upload_and_extract(  # noqa: PLR0913
+async def _upload_and_start_extract(  # noqa: PLR0913
     uploaded_file: UploadedFile,
     user_id: str,
     thread_id: str,
     document_layout: DocumentLayout,
     file_manager: FileManagerDependency,
-    extraction_client: ExtractionClientDependency,
+    extraction_client: AsyncExtractionClient,
     data_model_prompt: str | None = None,
-):
-    """Upload a file and extract it using the Document Intelligence database."""
+) -> Job:
+    """Async version of upload and extract using AsyncExtractionClient.
+
+    Args:
+        uploaded_file: The uploaded file to extract from
+        user_id: User ID
+        thread_id: Thread ID
+        document_layout: Document layout with extraction schema
+        file_manager: File manager dependency
+        extraction_client: Async extraction client instance
+        data_model_prompt: Optional data model prompt
+    """
     try:
         file_contents = await file_manager.read_file_contents(uploaded_file.file_id, user_id)
-        reducto_doc_id = extraction_client.upload(file_contents, content_length=len(file_contents))
+        reducto_doc_id = await extraction_client.upload(
+            file_contents, content_length=len(file_contents)
+        )
 
         # Ready extraction schema
         schema = document_layout.extraction_schema
@@ -1051,7 +1144,8 @@ async def _upload_and_extract(  # noqa: PLR0913
         logger.info(
             f"Extracting document {reducto_doc_id} with schema {schema} and prompt {prompt}"
         )
-        return extraction_client.extract(
+
+        return await extraction_client.start_extract(
             reducto_doc_id,
             schema=schema,
             system_prompt=prompt,
@@ -1074,10 +1168,13 @@ async def extract_document(  # noqa: PLR0913
     payload: ExtractDocumentPayload,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
-    extraction_client: ExtractionClientDependency,
+    extraction_client: AsyncExtractionClientDependency,
     docint_ds: DocIntDatasourceDependency,
-):
-    """Extract from an existing document using the Document Intelligence database."""
+) -> dict[str, Any]:
+    """Extract structured data from an existing document.
+
+    Returns extracted data formatted according to the document's data model schema.
+    """
     # This endpoint deviates from other endpoints because it uses a JSON payload so it
     # cannot accept a multipart/form-data request that includes a file.
 
@@ -1089,7 +1186,7 @@ async def extract_document(  # noqa: PLR0913
         user=user,
     )
 
-    extract_response = await _upload_and_extract(
+    extract_response = await _upload_and_start_extract(
         uploaded_file=file,
         user_id=user.user_id,
         thread_id=thread_id,
@@ -1099,8 +1196,224 @@ async def extract_document(  # noqa: PLR0913
         data_model_prompt=data_model_prompt,
     )
 
-    extract_result = extract_response.result
-    return extract_result[0]
+    try:
+        result = await extract_response.result(poll_interval=3.0)
+        job_result = _create_job_result(result)
+        if isinstance(job_result, ExtractJobResult):
+            return job_result.result
+        else:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNEXPECTED,
+                message="Extract response is not a ExtractJobResult",
+            )
+    except PlatformHTTPError:
+        raise
+    except Exception as e:
+        _raise_mapped_reducto_error(
+            e,
+            uploaded_file=file,
+            user_id=user.user_id,
+            thread_id=thread_id,
+        )
+
+
+@router.post("/documents/extract/async")
+async def extract_document_async(  # noqa: PLR0913
+    user: AuthedUser,
+    payload: ExtractDocumentPayload,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    extraction_client: AsyncExtractionClientDependency,
+    docint_ds: DocIntDatasourceDependency,
+) -> JobStartResponsePayload:
+    """Extract from a document asynchronously, returning a job handle.
+
+    This endpoint immediately returns a job handle that can be used to track
+    the extraction progress and retrieve results when complete.
+
+    Returns:
+        A response containing:
+        - job_id: The ID of the extraction job
+        - job_type: The type of job ("extract")
+
+    Note:
+        When checking job status or results, pass job_type="extract" as a query parameter.
+    """
+    thread_id, file, document_layout, data_model_prompt = await _resolve_extract_request(
+        payload=payload,
+        docint_ds=docint_ds,
+        storage=storage,
+        file_manager=file_manager,
+        user=user,
+    )
+
+    job = await _upload_and_start_extract(
+        uploaded_file=file,
+        user_id=user.user_id,
+        thread_id=thread_id,
+        document_layout=document_layout,
+        file_manager=file_manager,
+        extraction_client=extraction_client,
+        data_model_prompt=data_model_prompt,
+    )
+
+    return JobStartResponsePayload(
+        job_id=job.job_id,
+        job_type=JobType.EXTRACT,
+    )
+
+
+# Job Management Endpoints
+
+
+def _create_job_result(result: Any) -> JobResult:
+    """Create the appropriate JobResult type based on the result object type.
+
+    Args:
+        job_type: The type of job (used for error context only)
+        result: The raw result from the async client
+
+    Returns:
+        The properly typed JobResult (ParseJobResult, ExtractJobResult, or SplitJobResult)
+
+    Raises:
+        PlatformHTTPError: If the result type is unexpected
+    """
+    match result:
+        case ParseResponse(result=ParseResult() as parse_result):
+            return ParseJobResult(result=parse_result)
+        case ExtractResponse() as extract_resp:
+            # Reducto's ExtractResponse is just a list of objects so we can't easily type it,
+            # though it should match the data model's schema.
+            return ExtractJobResult(result=extract_resp.result[0])  # type: ignore
+        case SplitResponse(result=SplitResult() as split_result):
+            return SplitJobResult(result=split_result)
+        case _:
+            raise PlatformHTTPError(
+                ErrorCode.UNEXPECTED,
+                f"Unexpected result type {type(result)}",
+            )
+
+
+@router.get("/jobs/{job_id}/status")
+async def get_job_status(
+    job_id: str,
+    job_type: JobType,
+    request: Request,
+    user: AuthedUser,
+    extraction_client: AsyncExtractionClientDependency,
+) -> JobStatusResponsePayload:
+    """Get the status of an asynchronous job.
+
+    Args:
+        job_id: The ID of the job
+        job_type: The type of job (JobType.PARSE, JobType.EXTRACT, or JobType.SPLIT)
+
+    Returns:
+        A response containing:
+        - job_id: The ID of the job
+        - status: The current status ("Pending", "Idle", "Completed", "Failed")
+        - result_url: URL to fetch the result (only present when status is "Completed")
+    """
+    try:
+        # Reconstruct the Job object
+        job = Job(job_id=job_id, job_type=job_type, client=extraction_client)
+        status = await job.status()
+
+        # Construct result URL if job is completed
+        result_url = None
+        if status == JobStatus.COMPLETED:
+            # Construct the URL to the result endpoint
+            base_url = str(request.url_for("get_job_result", job_id=job_id))
+            result_url = f"{base_url}?job_type={job_type.value}"
+
+        return JobStatusResponsePayload(
+            job_id=job_id,
+            status=status,
+            result_url=result_url,
+        )
+    except Exception as e:
+        logger.error(f"Failed to get job status for {job_id}: {e}")
+        raise PlatformHTTPError(
+            ErrorCode.NOT_FOUND,
+            f"Job {job_id} not found or inaccessible",
+        ) from e
+
+
+@router.get("/jobs/{job_id}/result")
+async def get_job_result(
+    job_id: str,
+    job_type: JobType,
+    user: AuthedUser,
+    extraction_client: AsyncExtractionClientDependency,
+) -> JobResult:
+    """Get the result of a completed asynchronous job.
+
+    This endpoint returns immediately based on the current job status:
+    HTTP Status Codes:
+        200: Job completed successfully - returns JobResult
+        404: Job not found OR result not available yet (job still processing)
+        422: Job failed
+
+    Args:
+        job_id: The ID of the job
+        job_type: The type of job (JobType.PARSE, JobType.EXTRACT, or JobType.SPLIT)
+
+    Returns:
+        The job result (parse or extract result) when complete.
+        For parse jobs, this returns the localized parse response.
+        For extract jobs, this returns the extraction results.
+
+    Raises:
+        PlatformHTTPError: If the job is still processing, failed, or not found.
+    """
+    try:
+        # Reconstruct the Job object with proper type information
+        job = Job(job_id=job_id, job_type=job_type, client=extraction_client)
+
+        # Check job status first
+        status = await job.status()
+
+        match status:
+            case JobStatus.COMPLETED:
+                # Job is complete, get result without polling
+                result = await job.result()  # This should return immediately since job is done
+                return _create_job_result(result)
+            case JobStatus.PENDING | JobStatus.IDLE:
+                # Job still processing - result resource doesn't exist yet
+                raise PlatformHTTPError(
+                    ErrorCode.NOT_FOUND,
+                    "Job result not available yet - job is still processing",
+                )
+            case JobStatus.FAILED:
+                # Job failed - return 422
+                raise PlatformHTTPError(
+                    ErrorCode.UNPROCESSABLE_ENTITY,
+                    f"Job {job_id} failed",
+                )
+            case _:
+                # Unknown status
+                raise PlatformHTTPError(
+                    ErrorCode.UNEXPECTED,
+                    f"Unknown job status: {status}",
+                )
+
+    except PlatformHTTPError:
+        # Re-raise PlatformHTTPErrors (including our status-based errors above)
+        raise
+    except ExtractFailedError as e:
+        logger.error(f"Job {job_id} extraction failed: {e}")
+        reason = getattr(e, "reason", None)
+        raise PlatformHTTPError(
+            ErrorCode.UNPROCESSABLE_ENTITY,
+            f"Job {job_id} failed: {reason or str(e)}",
+        ) from e
+    except Exception as e:
+        logger.error(f"Failed to get job result for {job_id}: {e}")
+        raise PlatformHTTPError(
+            ErrorCode.NOT_FOUND,
+            f"Job {job_id} not found or inaccessible",
+        ) from e
 
 
 @router.post("/documents/ingest")
