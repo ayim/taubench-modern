@@ -336,7 +336,7 @@ class DataFramesKernel:
                 self._storage,
                 sheet_name=data_frame.sheet_name,
                 file_id=data_frame.file_id,
-                # file_ref=data_frame.file_ref, # TODO: Add file_ref to the platform data frame
+                file_ref=data_frame.file_ref,
             )
             if data_reader.has_multiple_sheets():
                 raise PlatformHTTPError(
@@ -344,7 +344,8 @@ class DataFramesKernel:
                     message=(
                         "More than one sheet loaded when trying to load a single data "
                         f"frame (sheet_name passed: {data_frame.sheet_name}, file_id: "
-                        f"{data_frame.file_id}, thread_id: {self._tid}, data_frame.name: "
+                        f"{data_frame.file_id}, file_ref: {data_frame.file_ref}, "
+                        f"thread_id: {self._tid}, data_frame.name: "
                         f"{data_frame.name}, data_frame_id: {data_frame.data_frame_id})"
                     ),
                 )

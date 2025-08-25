@@ -294,9 +294,9 @@ async def _get_file(
 
     # Get the file metadata
     file_metadata: UploadedFile | None = None
-    if file_id is not None:
+    if file_id:
         file_metadata = await storage.get_file_by_id(file_id, user_id)
-    elif file_ref is not None:
+    elif file_ref:
         # To get by ref we need the actual thread object...
         thread = await storage.get_thread(user_id, thread_id)
         file_metadata = await storage.get_file_by_ref(thread, file_ref, user_id)

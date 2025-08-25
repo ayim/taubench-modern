@@ -1,0 +1,22 @@
+{
+  "name": "joined_data",
+  "sheet_name": null,
+  "description": "Joined data from both sheets",
+  "num_rows": 2,
+  "num_columns": 4,
+  "column_headers": [
+    "name",
+    "age",
+    "Name",
+    "Location"
+  ],
+  "sample_rows": [],
+  "input_id_type": "sql_computation",
+  "parent_data_frame_ids": [
+    "sample_sheet1",
+    "sample_sheet2"
+  ],
+  "file_ref": null,
+  "sql_dialect": "duckdb",
+  "sql_query": "\n                SELECT * FROM sample_sheet1\n                JOIN sample_sheet2 ON sample_sheet1.name = sample_sheet2.Name\n            "
+}

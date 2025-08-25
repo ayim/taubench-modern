@@ -1,0 +1,17 @@
+{
+  "name": "sample_sheet2",
+  "sheet_name": "Sheet2",
+  "description": null,
+  "num_rows": 2,
+  "num_columns": 2,
+  "column_headers": [
+    "Name",
+    "Location"
+  ],
+  "sample_rows": [],
+  "input_id_type": "file",
+  "parent_data_frame_ids": null,
+  "file_ref": "sample.xlsx",
+  "sql_dialect": null,
+  "sql_query": null
+}

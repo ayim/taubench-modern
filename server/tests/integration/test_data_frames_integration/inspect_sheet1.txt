@@ -1,0 +1,21 @@
+{
+  "name": "sample.xlsx",
+  "sheet_name": "Sheet1",
+  "num_rows": 2,
+  "num_columns": 2,
+  "column_headers": [
+    "name",
+    "age"
+  ],
+  "sample_rows": [
+    [
+      "John",
+      25.0
+    ],
+    [
+      "Jane",
+      30.0
+    ]
+  ],
+  "file_ref": "sample.xlsx"
+}

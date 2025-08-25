@@ -1,3 +1,3 @@
-from .data_frames import DataFrameSource, PlatformDataFrame
+from .data_frames import DataFrameSource, ExtraDataFrameData, PlatformDataFrame
 
-__all__ = ["DataFrameSource", "PlatformDataFrame"]
+__all__ = ["DataFrameSource", "ExtraDataFrameData", "PlatformDataFrame"]

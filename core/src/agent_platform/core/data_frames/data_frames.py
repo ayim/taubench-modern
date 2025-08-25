@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypedDict
 
 
 @dataclass
@@ -29,6 +29,14 @@ class DataFrameSource:
             source_type=data["source_type"],
             source_id=data["source_id"],
         )
+
+
+class ExtraDataFrameData(TypedDict, total=False):
+    """Extra data for a data frame."""
+
+    sql_dialect: str | None
+    """The dialect of the SQL query that was used to create the data frame
+    (can be set when the input_id_type is "sql_computation")."""
 
 
 @dataclass
@@ -87,6 +95,10 @@ class PlatformDataFrame:
     file_id: str | None = None
     """The reference input (file id). Only available if input_id_type is "file"."""
 
+    file_ref: str | None = None
+    """The reference of the file (usually the file name) to create the data frame from
+    (when used, file_id is not needed)."""
+
     sheet_name: str | None = None
     """The name of the sheet that the data frame is in (only available if input_id_type is "file"
     and the file is an excel file, not csv)."""
@@ -102,15 +114,15 @@ class PlatformDataFrame:
     """The contents of the data frame in parquet format (only available if we actually decide
     to instantiate the data frame and store it for future use, otherwise it must be recomputed)."""
 
-    extra_data: dict | None = None
+    extra_data: ExtraDataFrameData | None = None
     """Extra data to be stored in the database. This is a free-form field that can be used to
     store any additional data that is not covered by the other fields. The dict may only contain
     data that can be serialized to JSON."""
 
     @classmethod
-    def build_extra_data(cls, sql_dialect: str | None = None) -> dict:
+    def build_extra_data(cls, sql_dialect: str | None = None) -> ExtraDataFrameData:
         """Build the extra data for the data frame."""
-        extra_data = {}
+        extra_data: ExtraDataFrameData = {}
         if sql_dialect is not None:
             extra_data["sql_dialect"] = sql_dialect
         return extra_data
@@ -120,6 +132,7 @@ class PlatformDataFrame:
         """The dialect of the SQL query that was used to create the data frame
         (can be set when the input_id_type is "sql_computation").
         """
+        dialect = None
         if self.extra_data is not None:
             dialect = self.extra_data.get("sql_dialect")
 
@@ -128,7 +141,7 @@ class PlatformDataFrame:
     def __post_init__(self) -> None:
         self.verify()
 
-    def verify(self) -> None:
+    def verify(self) -> None:  # noqa: C901
         """
         If changes are made outside, this method can be called to verify the data frame is valid.
         """
@@ -173,6 +186,8 @@ class PlatformDataFrame:
             assert isinstance(self.sheet_name, str)
         if self.file_id is not None:
             assert isinstance(self.file_id, str)
+        if self.file_ref is not None:
+            assert isinstance(self.file_ref, str)
         if self.description is not None:
             assert isinstance(self.description, str)
         if self.computation is not None:
@@ -201,6 +216,7 @@ class PlatformDataFrame:
         }
 
         result["file_id"] = self.file_id
+        result["file_ref"] = self.file_ref
         result["description"] = self.description
         result["computation"] = self.computation
         result["parquet_contents"] = self.parquet_contents
@@ -247,6 +263,7 @@ class PlatformDataFrame:
             created_at=created_at,
             computation_input_sources=computation_input_sources,
             file_id=data.get("file_id"),
+            file_ref=data.get("file_ref"),
             sheet_name=data.get("sheet_name"),
             description=data.get("description"),
             computation=data.get("computation"),

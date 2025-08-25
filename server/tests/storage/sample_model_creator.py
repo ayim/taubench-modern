@@ -3,7 +3,10 @@ from pathlib import Path
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.agent import Agent
-    from agent_platform.core.data_frames import DataFrameSource, PlatformDataFrame
+    from agent_platform.core.data_frames import (
+        DataFrameSource,
+        PlatformDataFrame,
+    )
     from agent_platform.core.files import UploadedFile
     from agent_platform.core.thread import Thread
     from agent_platform.server.storage.postgres import PostgresStorage
@@ -172,7 +175,11 @@ class SampleModelCreator:
         from datetime import UTC, datetime
         from uuid import uuid4
 
-        from agent_platform.core.data_frames.data_frames import DataFrameSource, PlatformDataFrame
+        from agent_platform.core.data_frames.data_frames import (
+            DataFrameSource,
+            ExtraDataFrameData,
+            PlatformDataFrame,
+        )
 
         sample_user_id = await self.get_user_id()
 
@@ -208,7 +215,7 @@ class SampleModelCreator:
             computation=None,
             parquet_contents=b"test_parquet_content",
             sheet_name="Sheet1",
-            extra_data={"key": "value"},
+            extra_data=typing.cast(ExtraDataFrameData, {"key": "value"}),
         )
         await self.storage.save_data_frame(self.sample_data_frame)
         return self.sample_data_frame

@@ -1,0 +1,1 @@
+ALTER TABLE v2."data_frames" ADD COLUMN file_ref TEXT DEFAULT NULL;

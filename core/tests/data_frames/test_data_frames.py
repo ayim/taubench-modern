@@ -5,6 +5,20 @@ import pytest
 from agent_platform.core.data_frames.data_frames import DataFrameSource, PlatformDataFrame
 
 
+# Convert bytes to base64 for JSON serialization (the parquet_contents is a bytes object)
+def convert_bytes_to_base64(obj):
+    import base64
+
+    if isinstance(obj, bytes):
+        return base64.b64encode(obj).decode("utf-8")
+    elif isinstance(obj, dict):
+        return {k: convert_bytes_to_base64(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_bytes_to_base64(item) for item in obj]
+    else:
+        return obj
+
+
 def test_data_frame_source_basic_model_dump_and_validate():
     """Test 1: Basic test for DataFrameSource model_dump and model_validate."""
     # Create a DataFrameSource instance
@@ -24,8 +38,10 @@ def test_data_frame_source_basic_model_dump_and_validate():
     assert validated.model_dump() == dumped
 
 
-def test_data_frame_basic_model_dump_and_validate():
+def test_data_frame_basic_model_dump_and_validate(file_regression):
     """Test 1: Basic test for PlatformDataFrame model_dump and model_validate."""
+    import json
+
     # Create a PlatformDataFrame instance with minimal required fields
     created_at = datetime.datetime(2023, 1, 1, 12, 0, 0)
     source = DataFrameSource(source_type="data_frame", source_id="source-456")
@@ -47,28 +63,7 @@ def test_data_frame_basic_model_dump_and_validate():
 
     # Test model_dump
     dumped = data_frame.model_dump()
-    expected = {
-        "data_frame_id": "df-123",
-        "user_id": "user-456",
-        "agent_id": "agent-789",
-        "thread_id": "thread-101",
-        "num_rows": 100,
-        "num_columns": 5,
-        "column_headers": ["col1", "col2", "col3", "col4", "col5"],
-        "name": "Test_PlatformDataFrame",
-        "input_id_type": "sql_computation",
-        "created_at": "2023-01-01T12:00:00",
-        "computation_input_sources": {
-            "source1": {"source_type": "data_frame", "source_id": "source-456"}
-        },
-        "sheet_name": None,
-        "extra_data": None,
-        "computation": "SELECT * FROM source1",
-        "parquet_contents": None,
-        "description": None,
-        "file_id": None,
-    }
-    assert dumped == expected
+    file_regression.check(json.dumps(convert_bytes_to_base64(dumped), indent=2))
 
     # Test model_validate
     validated = PlatformDataFrame.model_validate(dumped)
@@ -84,11 +79,13 @@ def test_data_frame_basic_model_dump_and_validate():
     assert validated.computation_input_sources["source1"].source_id == "source-456"
 
     # Test round-trip
-    assert validated.model_dump() == dumped
+    file_regression.check(json.dumps(convert_bytes_to_base64(dumped), indent=2))
 
 
-def test_data_frame_complex_model_dump_and_validate():
+def test_data_frame_complex_model_dump_and_validate(file_regression):
     """Test 2: Complex test for PlatformDataFrame with all optional fields."""
+    import json
+
     # Create a complex PlatformDataFrame instance with all fields
     created_at = datetime.datetime(2023, 6, 15, 14, 30, 45, 123456)
     source1 = DataFrameSource(source_type="data_frame", source_id="frame-001")
@@ -115,29 +112,9 @@ def test_data_frame_complex_model_dump_and_validate():
 
     # Test model_dump
     dumped = data_frame.model_dump()
-    expected = {
-        "data_frame_id": "complex-df-789",
-        "user_id": "complex-user-123",
-        "agent_id": "complex-agent-456",
-        "thread_id": "complex-thread-789",
-        "num_rows": 1000,
-        "num_columns": 25,
-        "column_headers": ["col1", "col2", "col3", "col4", "col5"],
-        "name": "Complex_Test_PlatformDataFrame",
-        "input_id_type": "file",
-        "created_at": "2023-06-15T14:30:45.123456",
-        "computation_input_sources": {
-            "source1": {"source_type": "data_frame", "source_id": "frame-001"},
-            "source2": {"source_type": "data_frame", "source_id": "source-002"},
-        },
-        "file_id": "file-123",
-        "description": "A comprehensive test data frame with all fields populated",
-        "computation": "SELECT * FROM complex_table WHERE active = true",
-        "parquet_contents": b"fake_parquet_data_here",
-        "sheet_name": "Sheet1",
-        "extra_data": None,
-    }
-    assert dumped == expected
+
+    dumped_for_json = convert_bytes_to_base64(dumped)
+    file_regression.check(json.dumps(dumped_for_json, indent=2))
 
     # Test model_validate
     validated = PlatformDataFrame.model_validate(dumped)
@@ -158,7 +135,9 @@ def test_data_frame_complex_model_dump_and_validate():
     assert validated.computation_input_sources["source2"].source_type == "data_frame"
 
     # Test round-trip
-    assert validated.model_dump() == dumped
+    validated_dumped = validated.model_dump()
+    validated_dumped_for_json = convert_bytes_to_base64(validated_dumped)
+    file_regression.check(json.dumps(validated_dumped_for_json, indent=2))
 
 
 def test_data_frame_error_handling():

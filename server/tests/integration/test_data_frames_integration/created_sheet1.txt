@@ -1,0 +1,17 @@
+{
+  "name": "sample_sheet1",
+  "sheet_name": "Sheet1",
+  "description": null,
+  "num_rows": 2,
+  "num_columns": 2,
+  "column_headers": [
+    "name",
+    "age"
+  ],
+  "sample_rows": [],
+  "input_id_type": "file",
+  "parent_data_frame_ids": null,
+  "file_ref": "sample.xlsx",
+  "sql_dialect": null,
+  "sql_query": null
+}

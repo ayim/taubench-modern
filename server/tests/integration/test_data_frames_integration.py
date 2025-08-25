@@ -23,8 +23,31 @@ def check_upload_response(thread_response) -> str:
     return file_id
 
 
+# Convert bytes to base64 for JSON serialization (the parquet_contents is a bytes object)
+def convert_bytes_to_base64(obj):
+    import base64
+
+    if isinstance(obj, bytes):
+        return base64.b64encode(obj).decode("utf-8")
+    elif isinstance(obj, dict):
+        return {k: convert_bytes_to_base64(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_bytes_to_base64(item) for item in obj]
+    else:
+        return obj
+
+
+def remove_changed_fields(data_frame_response):
+    data_frame_response.pop("thread_id", None)
+    data_frame_response.pop("created_at", None)
+    data_frame_response.pop("file_id", None)
+    data_frame_response.pop("data_frame_id", None)
+
+
 @pytest.mark.integration
-def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir):
+def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, file_regression):
+    import json
+
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
@@ -57,26 +80,33 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir):
         assert len(found_data_frames) == 2, "Expected exactly two data frames in the response"
         data_frame = found_data_frames[0]
         assert data_frame["sheet_name"] == "Sheet1"
-        assert data_frame["name"] == "sample.xlsx"
-        assert data_frame["num_rows"] == 2
-        assert data_frame["num_columns"] == 2
-        assert data_frame["column_headers"] == ["name", "age"]
-        assert data_frame["sample_rows"] == [["John", 25], ["Jane", 30]]
+        remove_changed_fields(data_frame)
+        file_regression.check(
+            json.dumps(convert_bytes_to_base64(data_frame), indent=2), basename="inspect_sheet1"
+        )
 
         data_frame = found_data_frames[1]
         assert data_frame["sheet_name"] == "Sheet2"
-        assert data_frame["name"] == "sample.xlsx"
-        assert data_frame["num_rows"] == 2
-        assert data_frame["num_columns"] == 2
-        assert data_frame["column_headers"] == ["Name", "Location"]
-        assert data_frame["sample_rows"] == [["John", "London"], ["Jane", "Australia"]]
+        remove_changed_fields(data_frame)
+        file_regression.check(
+            json.dumps(convert_bytes_to_base64(data_frame), indent=2), basename="inspect_sheet2"
+        )
 
         # And later if the inspection is fine, we can create a data frame from the file id
         # and sheet name.
         created = agent_client.create_data_frame_from_file(thread_id, file_id, sheet_name="Sheet1")
         assert created["sheet_name"] == "Sheet1"
+        remove_changed_fields(created)
+        file_regression.check(
+            json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet1"
+        )
+
         created = agent_client.create_data_frame_from_file(thread_id, file_id, sheet_name="Sheet2")
         assert created["sheet_name"] == "Sheet2"
+        remove_changed_fields(created)
+        file_regression.check(
+            json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet2"
+        )
 
         with pytest.raises(
             Exception, match="Multiple data frames found in file. Please specify sheet_name."
@@ -108,6 +138,11 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir):
         assert data_frame_response["num_columns"] == 4
         assert data_frame_response["column_headers"] == ["name", "age", "Name", "Location"]
         assert data_frame_response["data_frame_id"] is not None
+        remove_changed_fields(data_frame_response)
+        file_regression.check(
+            json.dumps(convert_bytes_to_base64(data_frame_response), indent=2),
+            basename="joined_data",
+        )
 
 
 @pytest.mark.integration

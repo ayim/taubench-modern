@@ -188,6 +188,7 @@
       "name": "PyDev Test Template",
       "request": "test-template",
       "args": ["--capture=no", "--force-regen", "--tb=short"]
+      // "args": ["--capture=no", "--regen-all", "--tb=short"]
     }
   ],
   "inputs": [

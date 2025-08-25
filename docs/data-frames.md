@@ -111,22 +111,24 @@ Implementation-wise we must:
 
 Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to enable feature.
 
-## Step 4 (current PR):
+## Step 4 (done):
 
 - Use `agent_settings.enable_data_frames` for feature flag to enable data frames for specific agents
   - Env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` can be kept as is, which would enable data frames for all agents
   - The setting in the `agent_settings` should be named `enable_data_frames` (boolean)
   - If either `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES` is set or `agent_settings.enable_data_frames` is set to `true` then the data frames feature is enabled for the agent.
 
+# Step 5 (current PR)
+
+- Provide more info for the UI (in the `_DataFrameCreationAPI`):
+  - If a data frame was created from file then file reference (input_id_type = "file")
+  - If a data frame was created from different data frames then parent data frame ids (input_id_type = "sql_computation")
+  - If a data frame was created from an in-memory data frame no additional info is needed (input_id_type = "in_memory")
+
 # Future work (not right now):
 
 - Show sample data in the summary
 - Show column types in the summary
-- Reference file with name and provide it to the API.
-- More info for the UI:
-  - some reference in Data frame from what it was created
-    - if it was created from file then file id
-    - if created from different data frame then parent data frame id
 - Don't remove tools after they were added into the context
 - Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)
 - Make the result of named queries (Tables) be available as data frames automatically.

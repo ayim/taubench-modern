@@ -33,6 +33,7 @@ class _DataFrameInspectionAPI:
     column_headers: Annotated[list[str], "The headers of the columns in the data frame."]
     sample_rows: Annotated[list[Sequence[Any]], "The sample rows of the data frame."]
     file_id: Annotated[str | None, "The ID of the file that the data frame is in."]
+    file_ref: Annotated[str | None, "The reference of the file that the data frame is in."]
 
 
 @router.get("/{tid}/inspect-file-as-data-frame")
@@ -85,6 +86,7 @@ async def inspect_file_as_data_frame(  # noqa: PLR0913
                 thread_id=tid,
                 name=file_metadata.file_ref,
                 file_id=file_metadata.file_id,
+                file_ref=file_metadata.file_ref,
                 sheet_name=sheet.name,
                 num_rows=sheet.num_rows,
                 num_columns=sheet.num_columns,
@@ -99,16 +101,48 @@ async def inspect_file_as_data_frame(  # noqa: PLR0913
 
 @dataclasses.dataclass
 class _DataFrameCreationAPI:
-    data_frame_id: str
-    thread_id: str
-    name: str
-    sheet_name: str | None
-    description: str | None
-    num_rows: int
-    num_columns: int
-    created_at: datetime.datetime
-    column_headers: list[str]
-    sample_rows: list[Sequence[Any]]
+    data_frame_id: Annotated[str, "The ID of the data frame."]
+    thread_id: Annotated[str, "The ID of the thread that the data frame is in."]
+    name: Annotated[str, "The name of the data frame."]
+    sheet_name: Annotated[
+        str | None,
+        """The name of the sheet that the data frame is in (None if not applicable, i.e.:
+        if the data frame is a .csv, not excel).""",
+    ]
+    description: Annotated[str | None, "The description for the data frame."]
+    num_rows: Annotated[int, "The number of rows in the data frame."]
+    num_columns: Annotated[int, "The number of columns in the data frame."]
+    created_at: Annotated[datetime.datetime, "The date and time the data frame was created."]
+    column_headers: Annotated[list[str], "The headers of the columns in the data frame."]
+    sample_rows: Annotated[list[Sequence[Any]], "The sample rows of the data frame."]
+    input_id_type: Annotated[
+        Literal["file", "sql_computation", "in_memory"],
+        "The type of the input ID.",
+    ]
+    parent_data_frame_ids: Annotated[
+        list[str] | None,
+        """The IDs of the data frames that were used to create the data frame (None if not
+        applicable).""",
+    ]
+    file_id: Annotated[
+        str | None,
+        "The ID of the file that the data frame is in (only available if input_id_type is 'file').",
+    ]
+    file_ref: Annotated[
+        str | None,
+        """The reference of the file that the data frame is in (only available if input_id_type
+        is 'file').""",
+    ]
+    sql_dialect: Annotated[
+        str | None,
+        """The dialect of the SQL query that was used to create the data frame (only available
+        if input_id_type is 'sql_computation').""",
+    ]
+    sql_query: Annotated[
+        str | None,
+        """The SQL query that was used to create the data frame (only available if input_id_type
+        is 'sql_computation').""",
+    ]
 
 
 @router.post("/{tid}/data-frames/from-file")
@@ -216,6 +250,7 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         created_at=datetime.datetime.now(datetime.UTC),
         computation_input_sources={},
         file_id=inspected_data_frame.file_id,
+        file_ref=inspected_data_frame.file_ref,
         description=description,
         computation=None,
         # we could save the data as parquet, but for now, let's experiment in always
@@ -236,6 +271,12 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         created_at=data_frame.created_at,
         column_headers=data_frame.column_headers,
         sample_rows=inspected_data_frame.sample_rows,
+        file_id=data_frame.file_id,
+        file_ref=data_frame.file_ref,
+        input_id_type="file",
+        parent_data_frame_ids=None,
+        sql_dialect=None,
+        sql_query=None,
     )
 
 
@@ -280,6 +321,14 @@ async def get_thread_data_frames(
             created_at=data_frame.created_at,
             column_headers=data_frame.column_headers,
             sample_rows=[],  # It'll be loaded later if needed
+            file_id=data_frame.file_id,
+            file_ref=data_frame.file_ref,
+            input_id_type=data_frame.input_id_type,
+            parent_data_frame_ids=list(data_frame.computation_input_sources.keys()),
+            sql_dialect=data_frame.sql_dialect,
+            sql_query=data_frame.computation
+            if data_frame.input_id_type == "sql_computation"
+            else None,
         )
 
         if num_samples != 0:
@@ -359,6 +408,14 @@ async def create_data_frame_from_sql_computation(
         created_at=platform_data_frame.created_at,
         column_headers=platform_data_frame.column_headers,
         sample_rows=resolved_df.list_sample_rows(num_samples),
+        file_id=platform_data_frame.file_id,
+        file_ref=platform_data_frame.file_ref,
+        input_id_type="sql_computation",
+        parent_data_frame_ids=list(platform_data_frame.computation_input_sources.keys()),
+        sql_dialect=platform_data_frame.sql_dialect,
+        sql_query=platform_data_frame.computation
+        if platform_data_frame.input_id_type == "sql_computation"
+        else None,
     )
 
 
