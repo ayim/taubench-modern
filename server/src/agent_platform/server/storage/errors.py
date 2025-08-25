@@ -210,3 +210,10 @@ class DocumentIntelligenceIntegrationNotFoundError(PlatformHTTPError):
         self, message: str = "A document intelligence integration with the given ID was not found"
     ):
         super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
+
+
+class ConfigDecryptionError(PlatformHTTPError):
+    """Failed to decrypt a configuration."""
+
+    def __init__(self, message: str = "Failed to decrypt configuration"):
+        super().__init__(error_code=ErrorCode.UNEXPECTED, message=message)

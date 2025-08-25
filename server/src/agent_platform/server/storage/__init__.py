@@ -2,6 +2,7 @@ from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
     AgentWithNameAlreadyExistsError,
+    ConfigDecryptionError,
     InvalidUUIDError,
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
@@ -22,6 +23,7 @@ __all__ = [
     "AgentNotFoundError",
     "AgentWithNameAlreadyExistsError",
     "BaseStorage",
+    "ConfigDecryptionError",
     "InvalidUUIDError",
     "MCPServerNotFoundError",
     "MCPServerWithNameAlreadyExistsError",

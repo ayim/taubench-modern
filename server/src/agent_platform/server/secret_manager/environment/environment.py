@@ -103,9 +103,10 @@ class EnvironmentSecretManager(BaseSecretManager):
             # If data was encrypted with fallback key, use fallback to decrypt
             if encrypted_key_id == "fallback" and self._fallback_envelope_encryption is not None:
                 return self._fallback_envelope_encryption.decrypt(encrypted_data)
-            else:
-                return self._envelope_encryption.decrypt(encrypted_data)
 
-        except Exception:
+        except Exception as e:
             # If metadata parsing fails, fall back to primary encryption
-            return self._envelope_encryption.decrypt(encrypted_data)
+            logger.error(f"Metadata parsing failed, falling back to primary encryption: {e}")
+
+        # Default to primary encryption for both non-fallback keys and parsing failures
+        return self._envelope_encryption.decrypt(encrypted_data)

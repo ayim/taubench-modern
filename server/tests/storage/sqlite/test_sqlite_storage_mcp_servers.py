@@ -1,7 +1,10 @@
+from unittest.mock import patch
+
 import pytest
 
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.server.storage.errors import (
+    ConfigDecryptionError,
     InvalidUUIDError,
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
@@ -229,6 +232,126 @@ async def test_get_mcp_server_by_name(
     # Test getting non-existent server
     result_none = await storage.get_mcp_server_by_name("non-existent-server", MCPServerSource.API)
     assert result_none is None
+
+
+@pytest.mark.asyncio
+async def test_list_mcp_servers_with_decryption_error(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+) -> None:
+    """Test that list_mcp_servers handles decryption errors gracefully."""
+
+    # Create valid servers
+    await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    await storage.create_mcp_server(sample_mcp_server_stdio, MCPServerSource.FILE)
+
+    # Verify both servers exist normally
+    servers_dict = await storage.list_mcp_servers()
+    assert len(servers_dict) == 2
+
+    # Mock _decrypt_config to fail for the first server but succeed for the second
+    with patch.object(storage, "_decrypt_config") as mock_decrypt:
+
+        def side_effect(encrypted_config):
+            # Simulate failure on first call, success on second
+            if mock_decrypt.call_count == 1:
+                raise Exception("Decryption failed - invalid tag")
+            else:
+                # Call the real method for the second server
+                return storage.__class__._decrypt_config(storage, encrypted_config)
+
+        mock_decrypt.side_effect = side_effect
+
+        # List servers should only return the successfully decrypted one
+        servers_dict_partial = await storage.list_mcp_servers()
+        assert len(servers_dict_partial) == 1
+
+        # Verify the second server is returned
+        remaining_server = next(iter(servers_dict_partial.values()))
+        assert remaining_server.name in [sample_mcp_server_http.name, sample_mcp_server_stdio.name]
+
+
+@pytest.mark.asyncio
+async def test_list_mcp_servers_with_metadata_decryption_error(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+) -> None:
+    """Test that list_mcp_servers_with_metadata handles decryption errors gracefully."""
+
+    # Create valid servers
+    await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    await storage.create_mcp_server(sample_mcp_server_stdio, MCPServerSource.FILE)
+
+    # Verify both servers exist normally
+    servers_dict = await storage.list_mcp_servers_with_metadata()
+    assert len(servers_dict) == 2
+
+    # Mock _decrypt_config to fail for all servers
+    with patch.object(storage, "_decrypt_config") as mock_decrypt:
+        mock_decrypt.side_effect = Exception("Decryption failed - invalid tag")
+
+        # List servers should return empty dict when all decryptions fail
+        servers_dict_empty = await storage.list_mcp_servers_with_metadata()
+        assert len(servers_dict_empty) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_mcp_server_with_decryption_error(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_mcp_server_http: MCPServer,
+) -> None:
+    """Test that get_mcp_server handles decryption errors properly."""
+
+    # Create valid server
+    server_id = await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+
+    # Verify server exists normally
+    server = await storage.get_mcp_server(server_id)
+    assert server.name == sample_mcp_server_http.name
+
+    # Mock _decrypt_config to fail
+    with patch.object(storage, "_decrypt_config") as mock_decrypt:
+        mock_decrypt.side_effect = Exception("Decryption failed - invalid tag")
+
+        # get_mcp_server should raise ConfigDecryptionError
+        with pytest.raises(ConfigDecryptionError) as exc_info:
+            await storage.get_mcp_server(server_id)
+
+        assert "Failed to decrypt MCP server configuration" in str(exc_info.value)
+        assert server_id in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_get_mcp_server_with_metadata_decryption_error(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_mcp_server_http: MCPServer,
+) -> None:
+    """Test that get_mcp_server_with_metadata handles decryption errors properly."""
+
+    # Create valid server
+    server_id = await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+
+    # Verify server exists normally
+    server, source = await storage.get_mcp_server_with_metadata(server_id)
+    assert server.name == sample_mcp_server_http.name
+    assert source == MCPServerSource.API
+
+    # Mock _decrypt_config to fail
+    with patch.object(storage, "_decrypt_config") as mock_decrypt:
+        mock_decrypt.side_effect = Exception("Decryption failed - invalid tag")
+
+        # get_mcp_server_with_metadata should raise ConfigDecryptionError
+        with pytest.raises(ConfigDecryptionError) as exc_info:
+            await storage.get_mcp_server_with_metadata(server_id)
+
+        assert "Failed to decrypt MCP server configuration" in str(exc_info.value)
+        assert server_id in str(exc_info.value)
 
 
 @pytest.mark.asyncio

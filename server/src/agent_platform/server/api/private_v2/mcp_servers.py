@@ -9,6 +9,7 @@ from agent_platform.core.payloads import MCPServerResponse
 from agent_platform.server.api.dependencies import MCPQuotaCheck, StorageDependency
 from agent_platform.server.env_vars import SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE
 from agent_platform.server.storage import (
+    ConfigDecryptionError,
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
 )
@@ -167,11 +168,16 @@ async def list_mcp_servers(
     except Exception as e:
         logger.error(f"Failed to sync file-based MCP servers in list endpoint: {e}")
 
-    servers_with_metadata = await storage.list_mcp_servers_with_metadata()
-    return {
-        server_id: MCPServerResponse.from_mcp_server(server_id, source, mcp_server)
-        for server_id, (mcp_server, source) in servers_with_metadata.items()
-    }
+    try:
+        servers_with_metadata = await storage.list_mcp_servers_with_metadata()
+        return {
+            server_id: MCPServerResponse.from_mcp_server(server_id, source, mcp_server)
+            for server_id, (mcp_server, source) in servers_with_metadata.items()
+        }
+    except Exception as e:
+        # Log unexpected errors during listing
+        logger.error(f"Unexpected error while listing MCP servers: {e}")
+        raise
 
 
 @router.get("/{mcp_server_id}", response_model=MCPServerResponse)
@@ -193,6 +199,13 @@ async def get_mcp_server(
         raise HTTPException(
             status_code=404,
             detail=f"MCP server {mcp_server_id} not found",
+        ) from e
+    except ConfigDecryptionError as e:
+        logger.error(f"Failed to decrypt MCP server configuration for {mcp_server_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Configuration data for MCP server {mcp_server_id} is corrupted and cannot be "
+            "decrypted",
         ) from e
 
 

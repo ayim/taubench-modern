@@ -3,6 +3,8 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+from agent_platform.server.storage.errors import ConfigDecryptionError
+
 
 def skip_postgres_enum_issue(request):
     """Skip test for PostgreSQL in full test suite due to enum caching issue."""
@@ -563,3 +565,73 @@ def test_upsert_mcp_server_has_quota_check():
     # Verify the parameter annotation contains the quota check
     quota_param = sig.parameters["_"]
     assert "check_mcp_server_quota" in str(quota_param.annotation)
+
+
+def test_get_mcp_server_decryption_error(
+    client: TestClient, sample_mcp_server_payload: dict, storage
+):
+    """Test GET MCP server endpoint with decryption error."""
+    # First create an MCP server
+    response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
+    assert response.status_code == 200
+    server_id = response.json()["mcp_server_id"]
+
+    # Mock the storage method to raise ConfigDecryptionError
+    with patch.object(storage, "get_mcp_server_with_metadata") as mock_get_metadata:
+        mock_get_metadata.side_effect = ConfigDecryptionError(
+            f"Failed to decrypt MCP server configuration for {server_id}"
+        )
+
+        # Mock the sync function to avoid side effects
+        with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
+            # Make the request
+            response = client.get(f"/api/v2/private/mcp-servers/{server_id}")
+
+        # Should return 500 with proper error message
+        assert response.status_code == 500
+        response_data = response.json()
+        # Check if it's in the standard error format {"error": {"message": "..."}}
+        if "error" in response_data:
+            error_message = response_data["error"]["message"]
+        else:
+            error_message = response_data.get("detail", "")
+
+        assert "corrupted and cannot be decrypted" in error_message
+        assert server_id in error_message
+
+
+def test_list_mcp_servers_with_partial_decryption_failure(
+    client: TestClient, sample_mcp_server_payload: dict, storage
+):
+    """Test LIST MCP servers endpoint continues to work when some servers have decryption errors."""
+    # First create an MCP server
+    response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
+    assert response.status_code == 200
+
+    # Mock the storage method to return partial results (simulate some entries skipped due to
+    # decryption errors)
+    from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
+
+    # Simulate that only one server is returned (others were skipped due to decryption errors)
+    mock_server = MCPServer.model_validate(
+        {
+            "name": "working-server",
+            "transport": "streamable-http",
+            "url": "https://working.example.com/mcp",
+        }
+    )
+
+    with patch.object(storage, "list_mcp_servers_with_metadata") as mock_list_metadata:
+        mock_list_metadata.return_value = {"working-server-id": (mock_server, MCPServerSource.API)}
+
+        # Mock the sync function to avoid side effects
+        with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
+            # Make the request
+            response = client.get("/api/v2/private/mcp-servers/")
+
+        # Should succeed and return only the working server
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert "working-server-id" in data
+        assert data["working-server-id"]["name"] == "working-server"

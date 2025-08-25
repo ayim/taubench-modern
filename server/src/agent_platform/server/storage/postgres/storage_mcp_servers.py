@@ -3,10 +3,12 @@ from datetime import UTC, datetime
 
 from psycopg.errors import UniqueViolation
 from psycopg.sql import SQL
+from structlog import get_logger
 
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
+    ConfigDecryptionError,
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
     RecordAlreadyExistsError,
@@ -16,6 +18,8 @@ from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL MCP server operations."""
+
+    _logger = get_logger(__name__)
 
     async def create_mcp_server(self, mcp_server: MCPServer, source: MCPServerSource) -> str:
         """Create a new MCP server. Returns the generated MCP server ID."""
@@ -76,8 +80,13 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Decrypt and return the MCP server from enc_config
             encrypted_config = row["enc_config"]
-            config_dict = self._decrypt_config(encrypted_config)
-            return MCPServer.model_validate(config_dict)
+            try:
+                config_dict = self._decrypt_config(encrypted_config)
+                return MCPServer.model_validate(config_dict)
+            except Exception as e:
+                raise ConfigDecryptionError(
+                    f"Failed to decrypt MCP server configuration for {mcp_server_id}"
+                ) from e
 
     async def get_mcp_server_with_metadata(
         self, mcp_server_id: str
@@ -102,10 +111,15 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Decrypt and return the MCP server and source
             encrypted_config = row["enc_config"]
-            config_dict = self._decrypt_config(encrypted_config)
-            mcp_server = MCPServer.model_validate(config_dict)
-            source = MCPServerSource(row["source"])
-            return mcp_server, source
+            try:
+                config_dict = self._decrypt_config(encrypted_config)
+                mcp_server = MCPServer.model_validate(config_dict)
+                source = MCPServerSource(row["source"])
+                return mcp_server, source
+            except Exception as e:
+                raise ConfigDecryptionError(
+                    f"Failed to decrypt MCP server configuration for {mcp_server_id}"
+                ) from e
 
     async def list_mcp_servers(self) -> dict[str, MCPServer]:
         """List all MCP servers."""
@@ -128,8 +142,15 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
             for row in rows:
                 server_id = str(row["mcp_server_id"])
                 encrypted_config = row["enc_config"]
-                config_dict = self._decrypt_config(encrypted_config)
-                result[server_id] = MCPServer.model_validate(config_dict)
+                try:
+                    config_dict = self._decrypt_config(encrypted_config)
+                    result[server_id] = MCPServer.model_validate(config_dict)
+                except Exception as e:
+                    # Skip corrupted entries but log for monitoring
+                    self._logger.warning(
+                        f"Skipping MCP server {server_id} due to decryption failure: {e}"
+                    )
+                    continue
             return result
 
     async def list_mcp_servers_with_metadata(self) -> dict[str, tuple[MCPServer, MCPServerSource]]:
@@ -153,10 +174,17 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
             for row in rows:
                 server_id = str(row["mcp_server_id"])
                 encrypted_config = row["enc_config"]
-                config_dict = self._decrypt_config(encrypted_config)
-                mcp_server = MCPServer.model_validate(config_dict)
-                source = MCPServerSource(row["source"])
-                result[server_id] = (mcp_server, source)
+                try:
+                    config_dict = self._decrypt_config(encrypted_config)
+                    mcp_server = MCPServer.model_validate(config_dict)
+                    source = MCPServerSource(row["source"])
+                    result[server_id] = (mcp_server, source)
+                except Exception as e:
+                    # Skip corrupted entries but log for monitoring
+                    self._logger.warning(
+                        f"Skipping MCP server {server_id} due to decryption failure: {e}"
+                    )
+                    continue
             return result
 
     async def get_mcp_server_by_name(
@@ -179,13 +207,19 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Decrypt and return the MCP server ID, config, and source
             encrypted_config = row["enc_config"]
-            config_dict = self._decrypt_config(encrypted_config)
-            mcp_server = MCPServer.model_validate(config_dict)
-            return (
-                str(row["mcp_server_id"]),
-                mcp_server,
-                MCPServerSource(row["source"]),
-            )
+            try:
+                config_dict = self._decrypt_config(encrypted_config)
+                mcp_server = MCPServer.model_validate(config_dict)
+                return (
+                    str(row["mcp_server_id"]),
+                    mcp_server,
+                    MCPServerSource(row["source"]),
+                )
+            except Exception as e:
+                raise ConfigDecryptionError(
+                    f"Failed to decrypt MCP server configuration for '{name}' with source "
+                    f"'{source.value}'"
+                ) from e
 
     async def list_mcp_servers_by_source(self, source: MCPServerSource) -> dict[str, str]:
         """List MCP servers by source"""

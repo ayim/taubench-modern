@@ -7,6 +7,7 @@ from structlog import get_logger
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
+    ConfigDecryptionError,
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
     RecordAlreadyExistsError,
@@ -88,8 +89,13 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Decrypt and return the MCP server from enc_config
             encrypted_config = row[0]
-            config_dict = self._decrypt_config(encrypted_config)
-            return MCPServer.model_validate(config_dict)
+            try:
+                config_dict = self._decrypt_config(encrypted_config)
+                return MCPServer.model_validate(config_dict)
+            except Exception as e:
+                raise ConfigDecryptionError(
+                    f"Failed to decrypt MCP server configuration for {mcp_server_id}"
+                ) from e
 
     async def get_mcp_server_with_metadata(
         self, mcp_server_id: str
@@ -114,10 +120,15 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Decrypt and return the MCP server and source
             encrypted_config = row[0]
-            config_dict = self._decrypt_config(encrypted_config)
-            mcp_server = MCPServer.model_validate(config_dict)
-            source = MCPServerSource(row[1])
-            return mcp_server, source
+            try:
+                config_dict = self._decrypt_config(encrypted_config)
+                mcp_server = MCPServer.model_validate(config_dict)
+                source = MCPServerSource(row[1])
+                return mcp_server, source
+            except Exception as e:
+                raise ConfigDecryptionError(
+                    f"Failed to decrypt MCP server configuration for {mcp_server_id}"
+                ) from e
 
     async def list_mcp_servers(self) -> dict[str, MCPServer]:
         """List all MCP servers."""
@@ -140,8 +151,15 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
             for row in rows:
                 server_id = row[0]
                 encrypted_config = row[1]
-                config_dict = self._decrypt_config(encrypted_config)
-                result[server_id] = MCPServer.model_validate(config_dict)
+                try:
+                    config_dict = self._decrypt_config(encrypted_config)
+                    result[server_id] = MCPServer.model_validate(config_dict)
+                except Exception as e:
+                    # Skip corrupted entries but log for monitoring
+                    self._logger.warning(
+                        f"Skipping MCP server {server_id} due to decryption failure: {e}"
+                    )
+                    continue
             return result
 
     async def list_mcp_servers_with_metadata(self) -> dict[str, tuple[MCPServer, MCPServerSource]]:
@@ -165,10 +183,17 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
             for row in rows:
                 server_id = row[0]
                 encrypted_config = row[1]
-                config_dict = self._decrypt_config(encrypted_config)
-                mcp_server = MCPServer.model_validate(config_dict)
-                source = MCPServerSource(row[2])
-                result[server_id] = (mcp_server, source)
+                try:
+                    config_dict = self._decrypt_config(encrypted_config)
+                    mcp_server = MCPServer.model_validate(config_dict)
+                    source = MCPServerSource(row[2])
+                    result[server_id] = (mcp_server, source)
+                except Exception as e:
+                    # Skip corrupted entries but log for monitoring
+                    self._logger.warning(
+                        f"Skipping MCP server {server_id} due to decryption failure: {e}"
+                    )
+                    continue
             return result
 
     async def get_mcp_server_by_name(
@@ -191,9 +216,15 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Decrypt and return the MCP server ID, config, and source
             encrypted_config = row[1]
-            config_dict = self._decrypt_config(encrypted_config)
-            mcp_server = MCPServer.model_validate(config_dict)
-            return row[0], mcp_server, MCPServerSource(row[2])
+            try:
+                config_dict = self._decrypt_config(encrypted_config)
+                mcp_server = MCPServer.model_validate(config_dict)
+                return row[0], mcp_server, MCPServerSource(row[2])
+            except Exception as e:
+                raise ConfigDecryptionError(
+                    f"Failed to decrypt MCP server configuration for '{name}' with source "
+                    f"'{source.value}'"
+                ) from e
 
     async def list_mcp_servers_by_source(self, source: MCPServerSource) -> dict[str, str]:
         """List MCP servers by source"""
