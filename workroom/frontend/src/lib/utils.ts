@@ -67,16 +67,11 @@ export const getTenantWorkoomRedirect = ({
     return null;
   }
 
-  const isMatchingTenantWorkroom = location.origin === tenant.environment.workroom_url;
-
-  if (isMatchingTenantWorkroom) {
-    return null;
-  }
-
-  const targetWorkRoomURL = `${tenant.environment.workroom_url}${location.pathname}${location.search}${location.hash}`;
+  const tenantRedirectUrl = new URL(tenant.environment.workroom_url);
+  tenantRedirectUrl.pathname = `/tenants/${tenant.id}/home`;
 
   return {
-    href: targetWorkRoomURL,
+    href: tenantRedirectUrl.toString(),
   };
 };
 

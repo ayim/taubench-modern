@@ -3,44 +3,32 @@ import { Avatar, Box, Divider, Menu } from '@sema4ai/components';
 import { IconChevronDown, IconLogOut } from '@sema4ai/icons';
 import { IconSema4 } from '@sema4ai/icons/logos';
 import { useAuth } from '@sema4ai/robocloud-ui-utils';
-import { Link, useParams, useRouter } from '@tanstack/react-router';
-import { FC, memo } from 'react';
+import { useParams } from '@tanstack/react-router';
+import { FC, memo, useMemo } from 'react';
 import { useListUserTenantsQuery, UserTenant } from '~/queries/tenants';
 import { useAuth as useAuthContext } from '~/components/ProtectedRoute';
 import { useTenantContext } from '~/lib/tenantContext';
 import { getTenantWorkoomRedirect } from '~/lib/utils';
 
 const MenuItem: FC<{ tenant: UserTenant }> = memo(({ tenant }) => {
-  const router = useRouter();
+  const workroomRedirect = useMemo(
+    () =>
+      getTenantWorkoomRedirect({
+        tenant,
+        location: window.location,
+      }),
+    [tenant],
+  );
 
   return (
-    <Link
-      to="/tenants/$tenantId/home"
-      params={{ tenantId: tenant.id }}
-      tabIndex={-1}
-      onClick={() => {
-        const workroomRedirect = getTenantWorkoomRedirect({
-          tenant,
-          location: window.location,
-        });
-
-        if (workroomRedirect) {
-          router.navigate({ to: workroomRedirect.href, replace: true });
-          return;
-        }
-      }}
+    <Menu.Link
+      key={tenant.id}
+      href={workroomRedirect?.href ?? '#'}
+      className="!w-full"
+      icon={<Avatar placeholder={tenant.name} size="small" />}
     >
-      {({ isActive }: { isActive: boolean }) => (
-        <Menu.Item
-          key={tenant.id}
-          aria-selected={isActive}
-          className="!w-full"
-          icon={<Avatar placeholder={tenant.name} size="small" />}
-        >
-          {tenant.name}
-        </Menu.Item>
-      )}
-    </Link>
+      {tenant.name}
+    </Menu.Link>
   );
 });
 
