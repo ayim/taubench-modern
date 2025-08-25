@@ -1,5 +1,5 @@
 import { ScenarioTool, ScenarioToolSchema } from './types';
-import { JsonSchemaProperty } from '../agent-prompt/tools';
+import { JsonSchemaProperty, ToolSchema } from '../agent-prompt/tools';
 
 // Type for tool definition builder
 interface ToolDefinitionBuilder {
@@ -9,6 +9,8 @@ interface ToolDefinitionBuilder {
   setDescription(description: string): ToolDefinitionBuilder;
   // Set the callback function for the tool
   setCallback(callback: (input: any) => any): ToolDefinitionBuilder;
+  // Set the category of the tool
+  setCategory(category: (typeof ToolSchema.shape.category.options)[number]): ToolDefinitionBuilder;
 
   // Add properties to the tool input schema
   addProperty(name: string, property: JsonSchemaProperty): ToolDefinitionBuilder;
@@ -40,6 +42,7 @@ class ToolBuilder implements ToolDefinitionBuilder {
       properties: {},
       required: [],
     },
+    category: 'client-info-tool',
   };
 
   // Set the name and description of the tool
@@ -57,6 +60,12 @@ class ToolBuilder implements ToolDefinitionBuilder {
   // Set the callback function for the tool
   setCallback(callback: (input: any) => any): ToolDefinitionBuilder {
     this.tool.callback = callback;
+    return this;
+  }
+
+  // Set the category of the tool
+  setCategory(category: (typeof ToolSchema.shape.category.options)[number]): ToolDefinitionBuilder {
+    this.tool.category = category;
     return this;
   }
 

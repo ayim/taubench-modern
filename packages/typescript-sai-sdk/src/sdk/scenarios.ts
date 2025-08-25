@@ -128,6 +128,7 @@ export class ScenarioBuilder implements ScenarioDefinitionBuilder {
       callback: () => {
         return this.execute();
       },
+      category: 'client-exec-tool', // We keep this as client-exec-tool as Scenarios can be used as tools that execute client side code
     };
   }
 

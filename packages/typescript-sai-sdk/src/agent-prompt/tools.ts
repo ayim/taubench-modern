@@ -22,6 +22,7 @@ export const ToolSchema = z.object({
   name: z.string(), // Name of the tool - used as identifier for the tool
   description: z.string(), // Description of the tool
   input_schema: JsonSchemaSchema, // Schema for the tool input - used to validate the tool input
+  category: z.enum(['internal-tool', 'action-tool', 'mcp-tool', 'client-exec-tool', 'client-info-tool']), // Category of the tool
 });
 
 // Type exports
