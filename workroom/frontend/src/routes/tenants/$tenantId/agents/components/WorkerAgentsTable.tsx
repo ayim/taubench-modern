@@ -34,14 +34,19 @@ type Props = {
   agentAPIClient: AgentAPIClient;
 };
 
+// Helper function to check if a status is in a specific array
+const isStatusInArray = (status: string, validStatuses: WorkItemStatus[]) => {
+  return validStatuses.includes(status as WorkItemStatus);
+};
+
 // Mapping statuses to work item categories
 const statusCategoryMapping = {
-  needsAttention: ['RETRY_REQUIRED'],
-  failed: ['FAILED'],
-  inQueue: ['NEW'],
-  processing: ['IN_PROGRESS', 'USER_COLLABORATION_NEEDED', 'REQUIRES_FURTHER_REVIEW'],
-  totalProcessed: ['SUCCESS', 'COMPLETED_WITH_MANUAL_INTERVENTION'],
-};
+  needsAttention: ['NEEDS_REVIEW', 'CANCELLED'],
+  failed: ['ERROR'],
+  inQueue: ['PRECREATED'],
+  processing: ['EXECUTING', 'INDETERMINATE', 'PENDING'],
+  totalProcessed: ['COMPLETED'],
+} satisfies Record<string, WorkItemStatus[]>;
 
 const WorkerAgentsTable: FC<Props> = ({ agents, agentAPIClient }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/' });
@@ -59,27 +64,27 @@ const WorkerAgentsTable: FC<Props> = ({ agents, agentAPIClient }) => {
     const fetchWorkItemsForAgents = async () => {
       const agentPromises = agents.map(async (agent) => {
         try {
-          const workItems = await apiClient.getWorkItems({ agent_id: agent.id });
+          const workItems = (await apiClient.getWorkItemList({ agent_id: agent.id })).records;
 
           const needsAttention = workItems
-            .filter((item) => statusCategoryMapping.needsAttention.includes(item.status as WorkItemStatus))
-            .map((item) => item.id);
+            .filter((item) => item.status && isStatusInArray(item.status, statusCategoryMapping.needsAttention))
+            .map((item) => item.work_item_id);
 
           const failed = workItems
-            .filter((item) => statusCategoryMapping.failed.includes(item.status as WorkItemStatus))
-            .map((item) => item.id);
+            .filter((item) => item.status && isStatusInArray(item.status, statusCategoryMapping.failed))
+            .map((item) => item.work_item_id);
 
           const inQueue = workItems
-            .filter((item) => statusCategoryMapping.inQueue.includes(item.status as WorkItemStatus))
-            .map((item) => item.id);
+            .filter((item) => item.status && isStatusInArray(item.status, statusCategoryMapping.inQueue))
+            .map((item) => item.work_item_id);
 
           const processing = workItems
-            .filter((item) => statusCategoryMapping.processing.includes(item.status as WorkItemStatus))
-            .map((item) => item.id);
+            .filter((item) => item.status && isStatusInArray(item.status, statusCategoryMapping.processing))
+            .map((item) => item.work_item_id);
 
           const totalProcessed = workItems
-            .filter((item) => statusCategoryMapping.totalProcessed.includes(item.status as WorkItemStatus))
-            .map((item) => item.id);
+            .filter((item) => item.status && isStatusInArray(item.status, statusCategoryMapping.totalProcessed))
+            .map((item) => item.work_item_id);
 
           return {
             id: agent.id,
