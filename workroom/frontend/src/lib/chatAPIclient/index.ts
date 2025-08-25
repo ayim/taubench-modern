@@ -27,24 +27,6 @@ export const getChatAPIClient = (
         { params: { path: { documentId, documentTypeName, workspaceId: tenantId } } },
       );
     },
-    getWorkItemStatus: async (name) => {
-      return agentAPIClient.agentEventsFetch(tenantId, 'get', '/api/v1/workitems/', {
-        params: { query: { name } },
-        errorMsg: 'Failed to fetch work item status',
-      });
-    },
-    getWorkItems: async (queryOptions) => {
-      return agentAPIClient.agentEventsFetch(tenantId, 'get', '/api/v1/workitems/list/', {
-        params: { query: queryOptions },
-      });
-    },
-    updateWorkItemStatus: async (name, status) => {
-      return agentAPIClient.agentEventsFetch(tenantId, 'put', '/api/v1/workitems/', {
-        // get correct values added in spec
-        body: { name, status },
-        errorMsg: 'Failed to update work item status',
-      });
-    },
     getChatList: async (queryOptions) => {
       const data = (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/', {
         params: { query: queryOptions },
