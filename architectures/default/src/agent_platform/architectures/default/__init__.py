@@ -120,7 +120,7 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 
 @aa.step
-async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901
+async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0912
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
         thread_messages_to_prompt_messages,
@@ -142,7 +142,13 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     )
 
     # Note: leave this under a feature flag for now, as it's not ready for prime time yet.
-    if os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES") in ("1", "true"):
+    # Check if data frames are enabled via environment variable or agent settings
+    enable_data_frames = os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES") in ("1", "true")
+    if not enable_data_frames:
+        agent_settings = kernel.agent.extra.get("agent_settings", {})
+        enable_data_frames = agent_settings.get("enable_data_frames", False)
+
+    if enable_data_frames:
         await kernel.data_frames.step_initialize()
         data_frames_tools = kernel.data_frames.get_data_frame_tools()
     else:

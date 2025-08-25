@@ -99,7 +99,7 @@ Implementation-wise we must:
 - Create the new REST API
 - Change DataNodeResult (in `server/src/agent_platform/server/data_frames/data_node.py`) to include a `slice` method (which receives the offset, limit, column_names and format and returns the actual data, as a bytes -- either a json converted to bytes or a parquet created from pyarrow and then converted to bytes).
 
-## Step 3 (current PR):
+## Step 3 (done):
 
 - Create the following builtin tools:
   - Create data frame from file (always available even if no data frames are available)
@@ -109,15 +109,27 @@ Implementation-wise we must:
     - Slice data frame
 - Update the runbook system prompt so that such tools and the related dataframes are available to the agent.
 
-Note: currently requires env var "SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1" to enable feature.
+Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to enable feature.
+
+## Step 4 (current PR):
+
+- Use `agent_settings.enable_data_frames` for feature flag to enable data frames for specific agents
+  - Env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` can be kept as is, which would enable data frames for all agents
+  - The setting in the `agent_settings` should be named `enable_data_frames` (boolean)
+  - If either `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES` is set or `agent_settings.enable_data_frames` is set to `true` then the data frames feature is enabled for the agent.
 
 # Future work (not right now):
 
 - Show sample data in the summary
 - Show column types in the summary
 - Reference file with name and provide it to the API.
+- More info for the UI:
+  - some reference in Data frame from what it was created
+    - if it was created from file then file id
+    - if created from different data frame then parent data frame id
+- Don't remove tools after they were added into the context
+- Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)
 - Make the result of named queries (Tables) be available as data frames automatically.
-- Create tools that allow an agent to read the slices of data frames and put it into the context.
 - Allow the user to have data frames that are backed by a database.
 - Investigate shortcomings of the "just SQL" approach and see if an approach using "sanitized but possibly unsafe python code" can be better.
   - Investigate shortcomings of only accepting "postgres" as the input of the SQL query (when does the sqlglot translation layer used by ibis fail?)
