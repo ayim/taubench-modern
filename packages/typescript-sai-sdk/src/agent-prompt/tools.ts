@@ -29,3 +29,4 @@ export const ToolSchema = z.object({
 export type JsonSchemaProperty = z.infer<typeof JsonSchemaPropertySchema>;
 export type JsonSchema = z.infer<typeof JsonSchemaSchema>;
 export type Tool = z.infer<typeof ToolSchema>;
+export type ToolCategory = z.infer<typeof ToolSchema.shape.category>;

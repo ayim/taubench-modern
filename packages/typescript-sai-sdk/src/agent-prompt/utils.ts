@@ -14,6 +14,7 @@ import {
   ConversationHistorySpecialMessage,
   DocumentsSpecialMessage,
   MemoriesSpecialMessage,
+  ToolCategory,
 } from './index';
 
 /**
@@ -110,6 +111,7 @@ export function createTool(
   description: string,
   properties: Record<string, any>,
   required: string[] = [],
+  category: ToolCategory = 'client-info-tool',
 ): Tool {
   return {
     name,
@@ -119,6 +121,7 @@ export function createTool(
       properties,
       required,
     },
+    category,
   };
 }
 
