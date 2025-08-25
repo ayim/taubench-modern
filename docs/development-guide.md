@@ -35,9 +35,27 @@
 
    - Once features are merged into `main`, update the version in `server/pyproject.toml` following [Semantic Versioning](#semantic-versioning).
    - Format the changelog: move items from "Unreleased" to a new release section (e.g., "# Agent Server 2.1.0").
+
+     **IMPORTANT**:
+
+     - We don't currently update the changelog or check that the process is followed, so, to release,
+       you **must** check if the changelog is up to date yourself (meaning: manually check the changes
+       already there and create the changelog entry, maybe with an LLM based on the commits found).
+
+     To do that run (changing the `2.0.34` with the old version):
+
+     ```bash
+
+        git log --oneline agent-server-v2.0.34..HEAD -- server
+        git log --oneline agent-server-v2.0.34..HEAD -- core
+     ```
+
+     to see the changes and then update the changelog accordingly.
+
    - Merge the version bump and changelog update into `main` using a squash merge.
    - Create and push a git tag matching the pattern `agent-server-v*` (e.g., `agent-server-v2.1.0`) on the `main` branch.
      - :warning: **Note:** The tag **must include** the `v` prefix before the version number
+     - Example: `git tag agent-server-v2.0.35`
    - **Automatic Release**: The tag push will automatically:
      - Build and sign executables for all platforms.
      - Deploy to GitHub Releases and CDN.
