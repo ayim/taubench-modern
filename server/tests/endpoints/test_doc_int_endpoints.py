@@ -721,12 +721,16 @@ class TestDataModelEndpoints:
         assert "quality_checks" not in body[0]
         mocked_find_all.assert_called_once()
 
-    def test_create_data_model_success(self, client: TestClient):
+    def test_create_data_model_success(self, client: TestClient, fastapi_app: FastAPI):
         storage_instance = StorageService.get_instance()
         valid_details = self._valid_details()
         fake_service = Mock()
         fake_service.ensure_setup.return_value = None
         fake_service.get_docint_datasource.return_value = Mock()
+
+        # Mock DI service dependency (same pattern as ingest tests)
+        fake_di_service = Mock()
+        fake_di_service.data_model.create_from_schema = Mock(return_value={"name": "invoices"})
 
         payload = self._sample_data_model_payload()
 
@@ -741,34 +745,36 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.insert",
-                return_value=None,
-            ) as mocked_insert,
-            patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
                 side_effect=[None, SimpleNamespace(**self._sample_data_model_dict())],
             ) as mocked_find_by_name,
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.upsert_layout",
-                return_value={"ok": True},
-            ) as mocked_upsert_layout,
         ):
-            resp = client.post("/api/v2/document-intelligence/data-models", json=payload)
+            # Override DI dependency
+            fastapi_app.dependency_overrides[get_di_service] = lambda: fake_di_service
+            resp = client.post(
+                "/api/v2/document-intelligence/data-models",
+                json=payload,
+            )
 
         assert resp.status_code == 201
         body = resp.json()
         assert body["dataModel"]["name"] == "invoices"
         assert body["dataModel"]["schema"]["type"] == "object"
-        mocked_insert.assert_called_once()
         mocked_find_by_name.assert_called()
-        mocked_upsert_layout.assert_called_once()
+        fake_di_service.data_model.create_from_schema.assert_called_once()
 
-    def test_create_data_model_failure_when_not_found_after_insert(self, client: TestClient):
+    def test_create_data_model_failure_when_not_found_after_insert(
+        self, client: TestClient, fastapi_app: FastAPI
+    ):
         storage_instance = StorageService.get_instance()
         valid_details = self._valid_details()
         fake_service = Mock()
         fake_service.ensure_setup.return_value = None
         fake_service.get_docint_datasource.return_value = Mock()
+
+        # Mock DI service dependency
+        fake_di_service = Mock()
+        fake_di_service.data_model.create_from_schema = Mock(return_value={"name": "invoices"})
 
         payload = self._sample_data_model_payload()
 
@@ -781,10 +787,6 @@ class TestDataModelEndpoints:
             patch(
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
                 return_value=fake_service,
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.insert",
-                return_value=None,
             ),
             # This patch is to simulate the case of an internal error when the model is not
             # found right after creation.
@@ -793,6 +795,7 @@ class TestDataModelEndpoints:
                 return_value=None,
             ),
         ):
+            fastapi_app.dependency_overrides[get_di_service] = lambda: fake_di_service
             resp = client.post("/api/v2/document-intelligence/data-models", json=payload)
 
         assert resp.status_code == 500

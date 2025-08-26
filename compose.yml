@@ -73,26 +73,27 @@ services:
             start_period: 15s
         restart: unless-stopped
 
-    # data-server:
-    #     image: '024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:1.1.15_3d9d266.20250821T091212Z'
-    #     container_name: data-server
-    #     environment:
-    #         SKIP_CONFIGURATION: 'true'
-    #     ports:
-    #         - "47334:47334"
-    #         - "47335:47335"
-    #     expose:
-    #         - "47334"
-    #         - "47335"
-    #     volumes:
-    #         - ./data-server/data-server-local-config.json:/root/config.json
-    #     healthcheck:
-    #         test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-    #         interval: 5s
-    #         timeout: 5s
-    #         retries: 6
-    #         start_period: 60s
-    #     restart: unless-stopped
+    data-server:
+        image: '024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:1.1.15_3d9d266.20250821T091212Z'
+        container_name: data-server
+        platform: linux/amd64
+        environment:
+            SKIP_CONFIGURATION: 'true'
+        ports:
+            - "47334:47334"
+            - "47335:47335"
+        expose:
+            - "47334"
+            - "47335"
+        volumes:
+            - ./data-server/data-server-local-config.json:/root/config.json
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+            interval: 5s
+            timeout: 5s
+            retries: 6
+            start_period: 60s
+        restart: unless-stopped
 
 #region Telemetry
     influx-db:

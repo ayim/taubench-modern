@@ -32,7 +32,6 @@ from agent_platform.core.document_intelligence import (
 )
 from agent_platform.core.document_intelligence.data_models import (
     CreateDataModelRequest,
-    DataModelPayload,
     ExecuteDataQualityChecksRequest,
     GenerateDataQualityChecksRequest,
     GenerateDataQualityChecksResponse,
@@ -398,7 +397,11 @@ async def list_data_models(docint_ds: DocIntDatasourceDependency):
 
 
 @router.post("/data-models", status_code=201)
-async def create_data_model(payload: CreateDataModelRequest, docint_ds: DocIntDatasourceDependency):
+async def create_data_model(
+    payload: CreateDataModelRequest,
+    docint_ds: DocIntDatasourceDependency,
+    di_service: DIDependency,
+) -> dict[str, Any]:
     try:
         existing = DataModel.find_by_name(docint_ds, payload.dataModel.name)
         if existing is not None:
@@ -406,31 +409,18 @@ async def create_data_model(payload: CreateDataModelRequest, docint_ds: DocIntDa
                 ErrorCode.CONFLICT, f"Data model already exists: {payload.dataModel.name}"
             )
 
-        normalized = DataModelPayload.model_validate(payload.dataModel)
-        model = normalized.to_data_model()
-        model.insert(docint_ds)
-        if payload.dataModel.views is not None:
-            for view in payload.dataModel.views:
-                docint_ds.execute_sql(view["sql"])
-
-        created = DataModel.find_by_name(docint_ds, normalized.name)
-        if created is None:
-            raise PlatformHTTPError(ErrorCode.UNEXPECTED, "Failed to load created data model")
-
-        # Create a default layout for the data model
-        upsert_layout_payload = DocumentLayoutPayload.model_validate(
-            {
-                "data_model_name": created.name,
-                "name": f"default_{created.name}",
-                "summary": f"Default layout for data model {created.name}",
-                "extraction_schema": created.model_schema,
-            }
+        result = await run_in_threadpool(
+            di_service.data_model.create_from_schema,
+            normalize_name(payload.dataModel.name),
+            payload.dataModel.description,
+            json.dumps(payload.dataModel.schema),
         )
-        await upsert_layout(
-            payload=upsert_layout_payload,
-            docint_ds=docint_ds,
-        )
-        return {"dataModel": model_to_spec_dict(created)}
+        model = DataModel.find_by_name(docint_ds, result["name"])
+        if model is None:
+            raise PlatformHTTPError(
+                ErrorCode.UNEXPECTED, f"Data model not found: {payload.dataModel.name}"
+            )
+        return {"dataModel": model_to_spec_dict(model)}
     except PlatformHTTPError:
         raise
     except Exception as e:
