@@ -2,6 +2,23 @@ name: Build and publish SPAR Docker image
 
 on:
   push:
+    paths:
+      # Workroom
+      - 'workroom/**'
+      # Shared
+      - '.github/workflows/spar-build.yml'
+      - 'Dockerfile.spar'
+      - '.dockerignore'
+      - 'scripts/spar-healthcheck.sh'
+      - 'scripts/entrypoint-spar.sh'
+      # Agent Server
+      - 'server/**'
+      - 'core/**'
+      - 'architectures/**'
+      - 'scripts/build_exe.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
