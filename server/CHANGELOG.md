@@ -1,3 +1,14 @@
+# Sema4.ai Agent Server 2.0.37 (2025-08-25)
+
+- [DIN-447] Use DI Service to create a data model (#748)
+- Update parse and extract to use async client; add job flow endpoints (#705)
+- [DataFrames] Provide more information for the UI (#746)
+- Use `agent_settings.enable_data_frames` for feature flag to enable data frames for specific agents (#726)
+- Skip the undecryptable rows and list the decryptable ones with error message (#695)
+- Doc intel configuration view (#735)
+- feat(tools): Enhance Tool functionality with ToolCategory type (#743)
+- [DIN-337] Add ingest endpoint (#738)
+
 # Sema4.ai Agent Server 2.0.36 (2025-08-22)
 
 - fix: Handle PlatformHTTPError in upsert_layout function [#734](https://github.com/Sema4AI/agent-platform/pull/734)
