@@ -48,6 +48,7 @@ jobs:
         id: update-openapi-specs
         env:
           PORT: '8888'
+          NPM_TOKEN: ${{ secrets.NPMJS_READ_ONLY_TOKEN }}
         run: |
           private_openapi_json="$(realpath "${PRIVATE_OPENAPI_JSON}")"
           public_openapi_json="$(realpath "${PUBLIC_OPENAPI_JSON}")"

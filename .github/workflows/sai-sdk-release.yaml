@@ -32,6 +32,7 @@ jobs:
         run: |
           cat << EOF > "./.npmrc"
             registry=https://registry.npmjs.org/
+            //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
             @robocorp:registry=https://npm.pkg.github.com/
             @sema4ai:registry=https://npm.pkg.github.com/
             //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
