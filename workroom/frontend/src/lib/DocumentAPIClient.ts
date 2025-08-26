@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ActionType,
   DocClass,
@@ -10,6 +11,8 @@ import {
 import { AgentAPIClient } from './AgentAPIClient';
 import { errorToast, successToast } from '~/utils/toasts';
 import { SortDirection } from '@sema4ai/components';
+
+type TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS = any;
 
 export const getDocumentAPIClient = (tenantId: string, agentAPIClient: AgentAPIClient): DocumentAPI => ({
   getDocumentTypesList: async () => {
@@ -391,6 +394,165 @@ export const getDocumentAPIClient = (tenantId: string, agentAPIClient: AgentAPIC
         errorMsg: 'Failed to get LLM Debugging result',
       },
     );
+  },
+
+  // New Document Intelligence V2 endpoints
+  getDataModels: async () => {
+    return agentAPIClient.agentFetch(
+      tenantId,
+      'get',
+      '/api/v2/document-intelligence/data-models',
+    ) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  createDataModel: async (modelData: any) => {
+    return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/document-intelligence/data-models', {
+      body: modelData,
+    } as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  getDataModel: async (modelName: string) => {
+    return agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/document-intelligence/data-models/{model_name}', {
+      params: { path: { model_name: modelName } },
+    }) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  updateDataModel: async (modelName: string, modelData: any) => {
+    return agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/document-intelligence/data-models/{model_name}', {
+      params: { path: { model_name: modelName } },
+      body: modelData,
+    }) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  deleteDataModel: async (modelName: string) => {
+    return agentAPIClient.agentFetch(tenantId, 'delete', '/api/v2/document-intelligence/data-models/{model_name}', {
+      params: { path: { model_name: modelName } },
+    }) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  // Document Layout endpoints
+  getAllLayouts: async () => {
+    return agentAPIClient.agentFetch(
+      tenantId,
+      'get',
+      '/api/v2/document-intelligence/layouts',
+    ) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  upsertLayout: async (layoutData: any) => {
+    return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/document-intelligence/layouts', {
+      body: layoutData,
+    }) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  // Note: Server doesn't have PUT /layouts endpoint for updates
+  // Updates are done through upsertLayout (POST) which handles both create and update
+
+  generateLayoutFromFile: async (documentData: any) => {
+    return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/document-intelligence/layouts/generate', {
+      params: {
+        query: {
+          data_model_name: documentData.data_model_name,
+          thread_id: documentData.thread_id,
+          agent_id: documentData.agent_id,
+        },
+      },
+      body: documentData.formData,
+    }) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  generateDataModelFromDocument: async (documentData: any) => {
+    return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/document-intelligence/data-models/generate', {
+      params: { query: { thread_id: documentData.thread_id, agent_id: documentData.agent_id } },
+      body: documentData.formData,
+    }) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  parseDocument: async (documentData: any) => {
+    return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/document-intelligence/documents/parse', {
+      params: {
+        query: {
+          thread_id: documentData.thread_id,
+        },
+      },
+      body: documentData.formData,
+    }) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  extractDataFromDocument: async (documentData: any) => {
+    return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/document-intelligence/documents/extract', {
+      body: {
+        thread_id: documentData.thread_id,
+        file_name: documentData.file_name || documentData.file?.name,
+        data_model_name: documentData.data_model_name,
+        // You need to provide either layout_name OR document_layout, not both
+        layout_name: documentData.layout_name,
+        // OR if you want to provide a custom layout inline:
+        // document_layout: documentData.document_layout,
+      },
+    });
+  },
+
+  downloadThreadFile: async (tid: string, file_ref: string) => {
+    const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/{tid}/files/download/', {
+      params: { path: { tid }, query: { file_ref } },
+      parseAs: 'stream',
+      errorMsg: 'Failed to download file from thread',
+    });
+
+    const reader = response?.getReader();
+    if (!reader) return null;
+
+    const chunks: Uint8Array[] = [];
+    let done = false;
+
+    while (!done) {
+      const { value, done: streamDone } = await reader.read();
+      if (value) chunks.push(value);
+      done = streamDone;
+    }
+
+    const blob = new Blob(chunks);
+    return blob as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
+  },
+
+  // Data Quality Check endpoints
+  generateDataQualityChecks: async (requestData: {
+    agent_id: string;
+    data_model_name: string;
+    thread_id?: string;
+    description: string;
+    limit?: number;
+  }) => {
+    return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/document-intelligence/quality-checks/generate', {
+      params: {
+        query: {
+          agent_id: requestData.agent_id,
+          thread_id: requestData.thread_id,
+        },
+      },
+      body: {
+        data_model_name: requestData.data_model_name,
+        description: requestData.description,
+        limit: requestData.limit ?? 1,
+      },
+    });
+  },
+
+  executeDataQualityChecks: async (requestData: {
+    quality_checks: Array<{
+      rule_name: string;
+      rule_description: string;
+      sql_query: string;
+    }>;
+    document_id: string;
+  }) => {
+    return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/document-intelligence/quality-checks/execute', {
+      body: {
+        quality_checks: requestData.quality_checks,
+        document_id: requestData.document_id,
+      },
+    }) as TODO_FIX_ME_MISMATCH_AGENT_SERVER_INTERFACE_AND_AGENT_COMPONENTS;
   },
 
   onSuccess: (message: string) => successToast(message),

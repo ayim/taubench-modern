@@ -10,6 +10,8 @@
     "build:backend": "tsc --project backend/tsconfig.build.json",
     "clean": "rm -rf ./dist",
     "dev": "dotenv tsx watch ./backend/src/index.ts",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write .",
     "dev:backend": "dotenv tsx watch ./backend/src/index.ts",
     "dev:frontend": "vite build --watch --config vite.config.ts",
     "lint": "npm run lint:backend && npm run lint:frontend",
@@ -24,7 +26,7 @@
   },
   "dependencies": {
     "@isaacs/ttlcache": "^1.4.1",
-    "@sema4ai/agent-server-interface": "^2.0.34",
+    "@sema4ai/agent-server-interface": "^2.0.37",
     "@sema4ai/robocloud-auth-utils": "^4.0.9",
     "@sema4ai/robocloud-shared-utils": "^1.10.1",
     "@sema4ai/robocloud-sign-interface": "^2.0.2",
@@ -35,9 +37,10 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@codemirror/lang-json": "^6.0.2",
     "@hookform/resolvers": "^5.2.1",
     "@microsoft/fetch-event-source": "^2.0.1",
-    "@sema4ai/agent-components": "^6.9.1",
+    "@sema4ai/agent-components": "^6.10.1",
     "@sema4ai/components": "^1.5.1",
     "@sema4ai/document-intelligence-interface": "^1.3.9",
     "@sema4ai/icons": "^1.3.0",
@@ -78,6 +81,7 @@
     "postcss": "^8.4.38",
     "postcss-loader": "^8.1.1",
     "postcss-preset-env": "^9.5.4",
+    "prettier": "^3.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.62.0",

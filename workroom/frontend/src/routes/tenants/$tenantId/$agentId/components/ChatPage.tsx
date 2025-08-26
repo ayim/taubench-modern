@@ -1,5 +1,10 @@
 import { AgentOAuthPermission, operations } from '@sema4ai/workroom-interface';
-import { ApiClientProvider, ChatPage as ChatPageComponent, OAuthOptions } from '@sema4ai/agent-components';
+import {
+  ApiClientProvider,
+  DocumentAPIProvider,
+  ChatPage as ChatPageComponent,
+  OAuthOptions,
+} from '@sema4ai/agent-components';
 import '@sema4ai/agent-components/index.css';
 import { OAuthProvider, OAuthProviderSettings } from '@sema4ai/oauth-client';
 
@@ -9,6 +14,7 @@ import { queryClient } from '~/components/providers/QueryClient';
 import { AgentAPIClient } from '~/lib/AgentAPIClient';
 import { getChatAPIClient } from '~/lib/chatAPIclient';
 import { useTenantContext } from '~/lib/tenantContext';
+import { getDocumentAPIClient } from '~/lib/DocumentAPIClient';
 import { useDeleteOAuthConnection } from '~/queries/oauth';
 import { getListAgentPermissionsQueryKey } from '~/queries/permissions';
 import { isProviderConfigured } from '~/utils';
@@ -159,20 +165,24 @@ export const ChatPage: FC<Props> = ({
       : initialReadOnlyMode;
   }, [agentMeta?.workroomUi, initialReadOnlyMode]);
 
+  const documentClient = useMemo(() => getDocumentAPIClient(tenantId, agentAPIClient), [tenantId, agentAPIClient]);
+
   return (
-    <ApiClientProvider value={apiClient}>
-      <ChatPageComponent
-        tenantId={tenantId}
-        agentId={agentId}
-        threadId={threadId}
-        workitemId={workItemId}
-        oAuthOptions={oAuthOptions}
-        navigateToThread={navigateToThread}
-        readOnlyMode={readOnlyMode}
-        agentAvatarUrl={branding?.agentAvatarUrl}
-        navigateToDocumentDashboard={navigateToDocumentDashboard}
-        initialThreadMessage={initialThreadMessage}
-      />
-    </ApiClientProvider>
+    <DocumentAPIProvider value={documentClient}>
+      <ApiClientProvider value={apiClient}>
+        <ChatPageComponent
+          tenantId={tenantId}
+          agentId={agentId}
+          threadId={threadId}
+          workitemId={workItemId}
+          oAuthOptions={oAuthOptions}
+          navigateToThread={navigateToThread}
+          readOnlyMode={readOnlyMode}
+          agentAvatarUrl={branding?.agentAvatarUrl}
+          navigateToDocumentDashboard={navigateToDocumentDashboard}
+          initialThreadMessage={initialThreadMessage}
+        />
+      </ApiClientProvider>
+    </DocumentAPIProvider>
   );
 };

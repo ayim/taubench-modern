@@ -162,7 +162,7 @@ export const getChatAPIClient = (
       const reader = response?.getReader();
       if (!reader) return;
 
-      const chunks: Uint8Array[] = [];
+      const chunks: BlobPart[] = [];
       let done = false;
 
       while (!done) {
@@ -244,6 +244,21 @@ export const getChatAPIClient = (
           });
         }
       : undefined,
+    getDataFrames() {
+      throw Error('Not Implemented');
+    },
+    createDataFrame() {
+      throw Error('Not Implemented');
+    },
+    getDataFrameSlice() {
+      throw Error('Not Implemented');
+    },
+    inspectDataFrameFile() {
+      throw Error('Not Implemented');
+    },
+    downloadThreadFile() {
+      throw Error('Not Implemented');
+    },
   };
 
   // Conditionally adding showFullActionLogs callback
