@@ -63,15 +63,17 @@ export const getTenantWorkoomRedirect = ({
     return null;
   }
 
-  if (!tenant.environment.workroom_url) {
+  // Pick the correct redirect URL. On newer ACEs (>=1.5.0) the tenant_workroom_url value will be set to a URL
+  // like so: https://<host>/tenants/<tenantId> - whereas on older ACEs, workroom_url will be set to:
+  // https://<host>
+  const tenantRedirectUrl = tenant.environment.tenant_workroom_url ?? tenant.environment.workroom_url ?? null;
+
+  if (tenantRedirectUrl === null) {
     return null;
   }
 
-  const tenantRedirectUrl = new URL(tenant.environment.workroom_url);
-  tenantRedirectUrl.pathname = `/tenants/${tenant.id}/home`;
-
   return {
-    href: tenantRedirectUrl.toString(),
+    href: tenantRedirectUrl,
   };
 };
 

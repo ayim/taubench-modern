@@ -67,7 +67,7 @@ describe('getTenantWorkoomRedirect', () => {
     expect(workroomRedirect).toBeNull();
   });
 
-  it('redirects to the tenant workroom URL when the current workroom does not match the tenant workroom', () => {
+  it('returns the correct redirect target for legacy ACE tenants', () => {
     const workroomRedirect = getTenantWorkoomRedirect({
       tenant: {
         id: 'a0a96e3d-34fe-4f97-ae9b-75cc2d523aa8',
@@ -91,8 +91,37 @@ describe('getTenantWorkoomRedirect', () => {
     });
 
     expect(workroomRedirect).not.toBeNull();
+    expect(workroomRedirect?.href).toBe('https://agents-ee803305.dev-ci1-ee803305.sema4ai.work');
+  });
+
+  it('returns the correct redirect target for current ACE tenants', () => {
+    const workroomRedirect = getTenantWorkoomRedirect({
+      tenant: {
+        id: 'a0a96e3d-34fe-4f97-ae9b-75cc2d523aa8',
+        name: 'CI1',
+        organization: {
+          id: 'ee803305-b10b-4951-beab-3b8cd7788e47',
+          name: 'CI1 Platform Team',
+        },
+        environment: {
+          id: 'bf30909a-4b7a-4faa-bf41-c47659f4dd19',
+          url: 'https://ace-bf30909a.dev-ci1-ee803305.sema4ai.work',
+          workroom_url: 'https://agents-ee803305.dev-ci1-ee803305.sema4ai.work',
+          tenant_workroom_url:
+            'https://agents-ee803305.dev-ci1-ee803305.sema4ai.work/tenants/a0a96e3d-34fe-4f97-ae9b-75cc2d523aa8',
+        },
+      },
+      location: getLocationMock({
+        origin: 'https://ace-02cf969d.dev-ci1-ee803305.sema4ai.work',
+        pathname: '/fc3c59e1-f592-4e3f-87e2-f4b017fb1073/home',
+        search: '?tab=logs',
+        hash: '#test-hash-value',
+      }),
+    });
+
+    expect(workroomRedirect).not.toBeNull();
     expect(workroomRedirect?.href).toBe(
-      'https://agents-ee803305.dev-ci1-ee803305.sema4ai.work/tenants/a0a96e3d-34fe-4f97-ae9b-75cc2d523aa8/home',
+      'https://agents-ee803305.dev-ci1-ee803305.sema4ai.work/tenants/a0a96e3d-34fe-4f97-ae9b-75cc2d523aa8',
     );
   });
 });

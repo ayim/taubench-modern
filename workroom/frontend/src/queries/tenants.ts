@@ -16,6 +16,7 @@ export interface UserTenant {
     id: string;
     url: string;
     workroom_url?: string; // only present on ACE
+    tenant_workroom_url?: string | null; // only present on ACE >=1.5.0
   };
 }
 
