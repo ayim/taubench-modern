@@ -14,6 +14,10 @@ export const TenantContext = createContext<
       enabled: false,
       reason: '',
     },
+    mcpServersManagement: {
+      enabled: false,
+      reason: '',
+    },
     agentDetails: {
       enabled: false,
       reason: '',

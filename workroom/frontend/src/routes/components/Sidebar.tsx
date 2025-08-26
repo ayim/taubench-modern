@@ -10,7 +10,7 @@ import {
   IconUnorderedList,
   IconWorkers,
 } from '@sema4ai/icons';
-import { Link as LinkBase, LinkComponentProps, useMatch, useParams } from '@tanstack/react-router';
+import { Link as LinkBase, useMatch, useParams } from '@tanstack/react-router';
 import { FC, memo, ReactNode, useEffect, useMemo, useState } from 'react';
 import { useMeta } from '~/hooks/meta';
 import { useTenantContext } from '~/lib/tenantContext';
@@ -26,15 +26,7 @@ const linkActiveProp = {
   className: cn('[&>*]:!bg-[rgba(var(--color-background-subtle))]', '[&_*]:!text-[rgba(var(--color-content-primary))]'),
 };
 
-const Link: FC<LinkComponentProps> = ({ className, ...rest }) => {
-  return (
-    <LinkBase
-      className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]', className)}
-      activeProps={linkActiveProp}
-      {...rest}
-    />
-  );
-};
+// Removed custom Link wrapper to preserve TanStack Router generics for params
 
 const CustomDivider: FC = memo(() => {
   return (
@@ -49,7 +41,12 @@ const AgentEntryLink: FC<{ agent: Agent }> = memo(({ agent }) => {
 
   // TODO: v2 integration, remove this nullish coalescing in agent.id 2 places
   return (
-    <Link to="/tenants/$tenantId/$agentId" params={{ tenantId, agentId: agent.id ?? '' }}>
+    <LinkBase
+      to="/tenants/$tenantId/$agentId"
+      params={{ tenantId, agentId: agent.id ?? '' }}
+      className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+      activeProps={linkActiveProp}
+    >
       <SideNavigation.Item
         icon={<Circle identifier={agent.id ?? ''} />}
         className={cn('group-[:not(:hover)]/sidebar:!pl-[10px] !transition-[padding-left] ')}
@@ -57,7 +54,7 @@ const AgentEntryLink: FC<{ agent: Agent }> = memo(({ agent }) => {
       >
         {agent.name}
       </SideNavigation.Item>
-    </Link>
+    </LinkBase>
   );
 });
 
@@ -114,9 +111,14 @@ const HomeLink: FC = memo(() => {
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/tenants/$tenantId/home" params={{ tenantId }}>
+      <LinkBase
+        to="/tenants/$tenantId/home"
+        params={{ tenantId }}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
         <SideNavigation.Item icon={<IconHome />}>Home</SideNavigation.Item>
-      </Link>
+      </LinkBase>
     </SideNavigation.ItemGroup>
   );
 });
@@ -126,9 +128,14 @@ const AgentsLink: FC = memo(() => {
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/tenants/$tenantId/agents" params={{ tenantId }}>
+      <LinkBase
+        to="/tenants/$tenantId/agents"
+        params={{ tenantId }}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
         <SideNavigation.Item icon={<IconAgents />}>Agents</SideNavigation.Item>
-      </Link>
+      </LinkBase>
     </SideNavigation.ItemGroup>
   );
 });
@@ -138,9 +145,14 @@ const DocumentsLink: FC = memo(() => {
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/tenants/$tenantId/documents" params={{ tenantId }}>
+      <LinkBase
+        to="/tenants/$tenantId/documents"
+        params={{ tenantId }}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
         <SideNavigation.Item icon={<IconDocumentIntelligence />}>Documents</SideNavigation.Item>
-      </Link>
+      </LinkBase>
     </SideNavigation.ItemGroup>
   );
 });
@@ -149,9 +161,14 @@ const WorkItemsLink: FC = memo(() => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/tenants/$tenantId/workItems" params={{ tenantId }}>
+      <LinkBase
+        to="/tenants/$tenantId/workItems"
+        params={{ tenantId }}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
         <SideNavigation.Item icon={<IconUnorderedList />}>Work Items</SideNavigation.Item>
-      </Link>
+      </LinkBase>
     </SideNavigation.ItemGroup>
   );
 });
@@ -161,9 +178,31 @@ const SettingsLink: FC = memo(() => {
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/tenants/$tenantId/settings" params={{ tenantId }}>
+      <LinkBase
+        to="/tenants/$tenantId/settings"
+        params={{ tenantId }}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
         <SideNavigation.Item icon={<IconSettings2 />}>Settings</SideNavigation.Item>
-      </Link>
+      </LinkBase>
+    </SideNavigation.ItemGroup>
+  );
+});
+
+const McpServersLink: FC = memo(() => {
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
+
+  return (
+    <SideNavigation.ItemGroup>
+      <LinkBase
+        to={'/tenants/$tenantId/mcp-servers' as unknown as never}
+        params={{ tenantId } as unknown as never}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
+        <SideNavigation.Item icon={<IconSettings2 />}>MCP servers</SideNavigation.Item>
+      </LinkBase>
     </SideNavigation.ItemGroup>
   );
 });
@@ -173,9 +212,14 @@ const HelpLink: FC = memo(() => {
 
   return (
     <SideNavigation.ItemGroup>
-      <Link to="/tenants/$tenantId/help" params={{ tenantId }}>
+      <LinkBase
+        to="/tenants/$tenantId/help"
+        params={{ tenantId }}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
         <SideNavigation.Item icon={<IconHelpCircle />}>Help</SideNavigation.Item>
-      </Link>
+      </LinkBase>
     </SideNavigation.ItemGroup>
   );
 });
@@ -266,6 +310,7 @@ export const Sidebar: FC<SideBarProps> = memo(({ agents }) => {
       <AgentsLink />
       {features.documentIntelligence.enabled && <DocumentsLink />}
       <WorkItemsLink />
+      {features.mcpServersManagement?.enabled && <McpServersLink />}
       {agents.length > 0 && (
         <>
           <CustomDivider />

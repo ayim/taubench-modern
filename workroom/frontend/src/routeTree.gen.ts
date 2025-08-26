@@ -17,6 +17,7 @@ import { Route as TenantsTenantIdOauthRouteImport } from './routes/tenants/$tena
 import { Route as TenantsTenantIdAgentIdRouteImport } from './routes/tenants/$tenantId/$agentId'
 import { Route as TenantsTenantIdWorkItemsIndexRouteImport } from './routes/tenants/$tenantId/workItems/index'
 import { Route as TenantsTenantIdSettingsIndexRouteImport } from './routes/tenants/$tenantId/settings/index'
+import { Route as TenantsTenantIdMcpServersIndexRouteImport } from './routes/tenants/$tenantId/mcp-servers/index'
 import { Route as TenantsTenantIdHomeIndexRouteImport } from './routes/tenants/$tenantId/home/index'
 import { Route as TenantsTenantIdHelpIndexRouteImport } from './routes/tenants/$tenantId/help/index'
 import { Route as TenantsTenantIdDocumentsIndexRouteImport } from './routes/tenants/$tenantId/documents/index'
@@ -73,6 +74,12 @@ const TenantsTenantIdSettingsIndexRoute =
   TenantsTenantIdSettingsIndexRouteImport.update({
     id: '/settings/',
     path: '/settings/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdMcpServersIndexRoute =
+  TenantsTenantIdMcpServersIndexRouteImport.update({
+    id: '/mcp-servers/',
+    path: '/mcp-servers/',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdHomeIndexRoute =
@@ -171,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/documents': typeof TenantsTenantIdDocumentsIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
   '/tenants/$tenantId/settings': typeof TenantsTenantIdSettingsIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
@@ -192,6 +200,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/documents': typeof TenantsTenantIdDocumentsIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
   '/tenants/$tenantId/settings': typeof TenantsTenantIdSettingsIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
@@ -216,6 +225,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/documents/': typeof TenantsTenantIdDocumentsIndexRoute
   '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/mcp-servers/': typeof TenantsTenantIdMcpServersIndexRoute
   '/tenants/$tenantId/settings/': typeof TenantsTenantIdSettingsIndexRoute
   '/tenants/$tenantId/workItems/': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/documents'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
+    | '/tenants/$tenantId/mcp-servers'
     | '/tenants/$tenantId/settings'
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/settings/llm/$platformId'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/documents'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
+    | '/tenants/$tenantId/mcp-servers'
     | '/tenants/$tenantId/settings'
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/settings/llm/$platformId'
@@ -285,6 +297,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/documents/'
     | '/tenants/$tenantId/help/'
     | '/tenants/$tenantId/home/'
+    | '/tenants/$tenantId/mcp-servers/'
     | '/tenants/$tenantId/settings/'
     | '/tenants/$tenantId/workItems/'
     | '/tenants/$tenantId/settings/llm/$platformId'
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/tenants/$tenantId/settings'
       preLoaderRoute: typeof TenantsTenantIdSettingsIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/mcp-servers/': {
+      id: '/tenants/$tenantId/mcp-servers/'
+      path: '/mcp-servers'
+      fullPath: '/tenants/$tenantId/mcp-servers'
+      preLoaderRoute: typeof TenantsTenantIdMcpServersIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/home/': {
@@ -510,6 +530,7 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdDocumentsIndexRoute: typeof TenantsTenantIdDocumentsIndexRoute
   TenantsTenantIdHelpIndexRoute: typeof TenantsTenantIdHelpIndexRoute
   TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute
+  TenantsTenantIdMcpServersIndexRoute: typeof TenantsTenantIdMcpServersIndexRoute
   TenantsTenantIdSettingsIndexRoute: typeof TenantsTenantIdSettingsIndexRoute
   TenantsTenantIdWorkItemsIndexRoute: typeof TenantsTenantIdWorkItemsIndexRoute
 }
@@ -530,6 +551,7 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdDocumentsIndexRoute: TenantsTenantIdDocumentsIndexRoute,
   TenantsTenantIdHelpIndexRoute: TenantsTenantIdHelpIndexRoute,
   TenantsTenantIdHomeIndexRoute: TenantsTenantIdHomeIndexRoute,
+  TenantsTenantIdMcpServersIndexRoute: TenantsTenantIdMcpServersIndexRoute,
   TenantsTenantIdSettingsIndexRoute: TenantsTenantIdSettingsIndexRoute,
   TenantsTenantIdWorkItemsIndexRoute: TenantsTenantIdWorkItemsIndexRoute,
 }
