@@ -84,7 +84,6 @@ jobs:
       - run: make sync
 
       - name: Run SPAR integration tests
-        working-directory: server
         run: |
           # Run tests marked with spar
           uv run pytest -v -m spar
