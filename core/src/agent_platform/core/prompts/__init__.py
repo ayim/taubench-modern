@@ -21,12 +21,6 @@ from agent_platform.core.prompts.special import (
     DocumentsSpecialMessage,
     MemoriesSpecialMessage,
 )
-from agent_platform.core.prompts.utils import (
-    count_role_indicator_tokens,
-    count_tokens_approx,
-    count_tools_tokens,
-    format_tool_use_for_token_counting,
-)
 
 AnyPromptMessage = (
     PromptUserMessage
@@ -68,9 +62,5 @@ __all__ = [
     "PromptToolUseContent",
     "PromptUserMessage",
     "UserPromptMessageContent",
-    "count_role_indicator_tokens",
-    "count_tokens_approx",
-    "count_tools_tokens",
-    "format_tool_use_for_token_counting",
     "select_prompt",
 ]

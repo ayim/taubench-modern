@@ -363,7 +363,7 @@ async def test_truncation_finalizer_with_platform():
     # Verify truncation occurred
     truncated_text = prompt.messages[1].content[0].content[0].text  # type: ignore
     assert len(truncated_text) < len(original_text)
-    assert "[Tool result truncated due to length constraints]" in truncated_text
+    assert "[Truncated...]" in truncated_text
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -355,18 +355,6 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                     # to the caller so that normal error-handling flow can take over.
                     raise
 
-    async def count_tokens(self, prompt: Prompt, model: str) -> int:
-        """Count the tokens in a prompt.
-
-        Args:
-            prompt: The prompt to count the tokens of.
-            model: The model to use to count the tokens.
-
-        Returns:
-            The number of tokens in the prompt.
-        """
-        return await self._internal_client.count_tokens(prompt, model)
-
     def _generate_metadata(self, model, streaming: bool = False) -> dict[str, Any]:
         metadata = self.kernel.get_standard_span_attributes(
             # Here, model and provider attributes are needed for LangSmith purposes.

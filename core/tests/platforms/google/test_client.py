@@ -447,16 +447,6 @@ class TestGoogleClient:
         )
         mock_models.generate_content_stream = async_stream
 
-        async_count = AsyncMock()
-
-        async def mock_count_tokens(**kwargs):
-            result = MagicMock()
-            result.total_tokens = 50
-            return result
-
-        async_count.side_effect = mock_count_tokens
-        mock_models.count_tokens = async_count
-
         async_embed = AsyncMock()
 
         async def mock_embed_content(**kwargs):
@@ -745,20 +735,13 @@ class TestGoogleClient:
         embedding_model = "models/text-embedding-004"
 
         # Create flags to track if functions were called
-        count_tokens_called = False
         embed_content_called = False
-
-        async def mock_count_tokens(*args, **kwargs):
-            nonlocal count_tokens_called
-            count_tokens_called = True
-            return MagicMock()
 
         async def mock_embed_content(*args, **kwargs):
             nonlocal embed_content_called
             embed_content_called = True
             return MagicMock()
 
-        google_client._google_client.aio.models.count_tokens = mock_count_tokens
         google_client._google_client.aio.models.embed_content = mock_embed_content
 
         with patch.object(
@@ -769,7 +752,6 @@ class TestGoogleClient:
             result = await google_client.create_embeddings([], embedding_model)
 
             # Verify no API calls made (no errors)
-            assert not count_tokens_called, "count_tokens should not be called"
             assert not embed_content_called, "embed_content should not be called"
 
             # Verify result structure

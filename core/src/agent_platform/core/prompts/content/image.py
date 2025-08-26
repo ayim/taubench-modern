@@ -240,8 +240,12 @@ class PromptImageContent(PromptMessageContent):
 
     def count_tokens_approx(self) -> int:
         """Counts the approximate number of tokens in the image content."""
-        # TODO: Implement this, we do not currently count image content
-        return 0
+        # For OpenAI models, images are often processed in tiles or patches
+        # (e.g., 512x512 chunks). A real impl here would download or decode the
+        # image, and then compute how many such patches it contains, and then
+        # scale the token count accordingly (being careful to do so in such a way
+        # that also roughly matches how Claude/Gemini/etc. process images).
+        return 5096
 
     @classmethod
     def model_validate(cls, data: dict) -> "PromptImageContent":

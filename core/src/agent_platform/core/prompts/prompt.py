@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field, fields
 from importlib.resources.abc import Traversable
 from pathlib import Path
@@ -14,11 +15,6 @@ from agent_platform.core.prompts.special import (
     DocumentsSpecialMessage,
     MemoriesSpecialMessage,
     SpecialPromptMessage,
-)
-from agent_platform.core.prompts.utils import (
-    count_role_indicator_tokens,
-    count_tokens_approx,
-    count_tools_tokens,
 )
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
@@ -421,36 +417,24 @@ class Prompt:
 
         return to_pretty_yaml(self, width, include)
 
-    def count_tokens_approx(self, model: str | None = None) -> int:
+    def count_tokens_approx(self) -> int:
         """Approximate the number of tokens in the prompt.
 
         This method uses each content type's own token counting method and adds
-        tokens for role indicators (system, user, assistant). It also counts
-        tokens for the tools provided to the model.
-
-        Args:
-            model: Optional model name to use for tiktoken. Defaults to "gpt-3.5-turbo".
-
-        Returns:
-            int: Estimated token count
+        tokens for the system instructions and any tools provided to the model.
         """
-        model_name = model or "gpt-3.5-turbo"
-        token_count = 0
+        # Start w/ a small fudge factor
+        token_count = 100
 
         # Count system instruction if present
         if self.system_instruction:
-            # Count tokens for the system role indicator
-            token_count += count_role_indicator_tokens("system", model_name)
             # Count tokens for the system instruction text
-            token_count += count_tokens_approx(self.system_instruction, model_name)
+            token_count += PromptTextContent.count_tokens_in_text(self.system_instruction)
 
         # Count messages (skipping special messages)
         for msg in self.messages:
             if isinstance(msg, PromptUserMessage | PromptAgentMessage):
-                # Add tokens for role indicator
-                role = "user" if isinstance(msg, PromptUserMessage) else "assistant"
-                token_count += count_role_indicator_tokens(role, model_name)
-
+                token_count += 30  # Role indicators/other small overhead per message
                 # Count tokens in each content item
                 for content in msg.content:
                     # Use the content's own token counting method
@@ -458,9 +442,13 @@ class Prompt:
 
         # Count tools
         if self.tools:
-            # Use the tools directly, the utility function can now handle
-            # ToolDefinition objects
-            token_count += count_tools_tokens(self.tools, model_name)
+            token_count += 20 * len(self.tools)  # Small fudge factor for tools
+            for tool in self.tools:
+                token_count += PromptTextContent.count_tokens_in_text(
+                    f"Tool: {tool.name}\n"
+                    f"Description: {tool.description}\n"
+                    f"Parameters: {json.dumps(tool.input_schema, indent=2)}"
+                )
 
         return token_count
 

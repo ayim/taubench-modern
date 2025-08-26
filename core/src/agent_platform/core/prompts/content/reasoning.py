@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from agent_platform.core.prompts.content.base import PromptMessageContent
-from agent_platform.core.prompts.utils import count_tokens_approx
+from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.utils import assert_literal_value_valid
 
 
@@ -95,7 +95,20 @@ class PromptReasoningContent(PromptMessageContent):
         Returns:
             int: Estimated token count
         """
-        return count_tokens_approx(self.reasoning or "\n\n".join(self.summary or []))
+        # This probably looks a little funny... we can get reasoning in many
+        # ways, and we're trying to account for them all. Some models give
+        # us unredacted reasoning; othere's the content in chunks; other's
+        # still a summary; and other's give the fully reasoning but only
+        # in an encrypted form. Here's we mash everything we might get together
+        # to try and have an (aggressive) over-estimate of what we might be sending.
+        # (How models use reasoning in prompts is also tricky... depending on message
+        # ordering reasoning tokens we send as input may be silently dropped.)
+        raw_reasoning_text = self.reasoning or ""
+        raw_reasoning_text += "\n\n" + "\n\n".join(self.summary or [])
+        raw_reasoning_text += "\n\n" + "\n\n".join(self.content or [])
+        raw_reasoning_text += "\n\n" + (self.redacted_content or "")
+        raw_reasoning_text += "\n\n" + (self.encrypted_content or "")
+        return PromptTextContent.count_tokens_in_text(raw_reasoning_text)
 
     @classmethod
     def model_validate(cls, data: dict) -> "PromptReasoningContent":

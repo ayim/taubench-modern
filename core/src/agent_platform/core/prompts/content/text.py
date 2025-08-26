@@ -1,9 +1,13 @@
+import math
 from dataclasses import dataclass, field
 from typing import Literal
 
+from structlog import get_logger
+
 from agent_platform.core.prompts.content.base import PromptMessageContent
-from agent_platform.core.prompts.utils import count_tokens_approx
 from agent_platform.core.utils import assert_literal_value_valid
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -43,22 +47,32 @@ class PromptTextContent(PromptMessageContent):
         }
 
     def count_tokens_approx(self) -> int:
-        """Counts the approximate number of tokens in the text content.
-
-        This method uses the shared token counting utility which attempts to use
-        tiktoken (the OpenAI tokenizer) if available, otherwise falls back to a
-        heuristic calculation.
-
-        Returns:
-            int: Estimated token count
-        """
-        return count_tokens_approx(self.text)
+        """Counts the approximate number of tokens in the text content."""
+        return PromptTextContent.count_tokens_in_text(self.text)
 
     @classmethod
     def model_validate(cls, data: dict) -> "PromptTextContent":
         """Create a text content from a dictionary."""
         data = data.copy()
         return cls(**data)
+
+    @staticmethod
+    def count_tokens_in_text(text: str, safety_factor: float = 1.3) -> int:
+        """Counts the approximate number of tokens in the text content."""
+        from tiktoken import get_encoding
+
+        try:
+            encoding = get_encoding("o200k_base")
+            return math.ceil(len(encoding.encode(text)) * safety_factor)
+        except Exception as e:
+            logger.error(f"Error counting tokens in text: {e!r}")
+            # Fallback to conservative heuristic:
+            # Estimate based on characters and words, pick the bigger of the two
+            # and then inflate it by a safety factor so we don't undershoot. This
+            # hueristics is the one recommended by OpenAI for their API.
+            char_count = len(text)
+            word_count = len(text.split())
+            return math.ceil(max(char_count / 4, word_count / 0.75) * safety_factor)
 
 
 # Register this content type with the base class

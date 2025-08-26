@@ -420,6 +420,85 @@ class PlatformModelConfigs(Configuration):
         ),
     )
 
+    # MODELS TO CONTEXT WINDOW SIZES
+    # Used to determine how many tokens a model can handle in a single request.
+    models_to_context_window_sizes: dict[str, int] = field(
+        default_factory=lambda: {
+            # Azure OpenAI
+            "azure/openai/gpt-4-1": 128_000,
+            "azure/openai/gpt-4-1-mini": 128_000,
+            "azure/openai/gpt-4o": 128_000,
+            "azure/openai/gpt-4o-mini": 128_000,
+            "azure/openai/gpt-4o-chatgpt": 128_000,
+            "azure/openai/o3-high": 200_000,
+            "azure/openai/o3-low": 200_000,
+            "azure/openai/o4-mini-high": 200_000,
+            "azure/openai/o4-mini-low": 200_000,
+            "azure/openai/text-embedding-3-small": 8_000,
+            "azure/openai/text-embedding-3-large": 8_000,
+            # Amazon Bedrock
+            "bedrock/anthropic/claude-4-sonnet": 200_000,
+            "bedrock/anthropic/claude-4-opus": 200_000,
+            "bedrock/anthropic/claude-3-7-sonnet": 200_000,
+            "bedrock/anthropic/claude-3-5-sonnet": 200_000,
+            "bedrock/anthropic/claude-3-5-haiku": 200_000,
+            "bedrock/deepseek/deepseek-r1": 128_000,
+            "bedrock/meta/llama-4-scout": 128_000,
+            "bedrock/meta/llama-4-maverick": 128_000,
+            "bedrock/cohere/command-r-plus": 128_000,
+            "bedrock/amazon/titan-embed-text-v2": 8_000,
+            "bedrock/amazon/titan-embed-text-v1": 8_000,
+            "bedrock/cohere/cohere-embed-english-v3": 8_000,
+            "bedrock/cohere/cohere-embed-multilingual-v3": 8_000,
+            # Snowflake Cortex
+            "cortex/anthropic/claude-3-5-sonnet": 200_000,
+            "cortex/anthropic/claude-3-7-sonnet": 200_000,
+            "cortex/anthropic/claude-4-opus": 200_000,
+            "cortex/anthropic/claude-4-sonnet": 200_000,
+            "cortex/openai/o4-mini-high": 200_000,
+            "cortex/openai/o4-mini-low": 200_000,
+            "cortex/openai/gpt-4-1": 128_000,
+            "cortex/deepseek/deepseek-r1": 128_000,
+            "cortex/meta/llama-4-scout": 128_000,
+            "cortex/meta/llama-4-maverick": 128_000,
+            "cortex/snowflake/snowflake-arctic-embed-m": 8_000,
+            "cortex/snowflake/snowflake-arctic-embed-l": 8_000,
+            "cortex/voyage/voyage-multilingual": 8_000,
+            # OpenAI
+            "openai/openai/gpt-4-5": 128_000,
+            "openai/openai/gpt-4-1": 128_000,
+            "openai/openai/gpt-4-1-mini": 128_000,
+            "openai/openai/gpt-4-1-nano": 32_000,
+            "openai/openai/gpt-4o": 128_000,
+            "openai/openai/gpt-4o-mini": 128_000,
+            "openai/openai/gpt-4o-chatgpt": 128_000,
+            "openai/openai/o4-mini-high": 200_000,
+            "openai/openai/o4-mini-low": 200_000,
+            "openai/openai/o3-high": 200_000,
+            "openai/openai/o3-low": 200_000,
+            "openai/openai/text-embedding-3-small": 8_000,
+            "openai/openai/text-embedding-3-large": 8_000,
+            # Google
+            "google/google/gemini-2-5-pro": 1_000_000,
+            "google/google/gemini-2-0-flash": 1_000_000,
+            "google/google/gemini-2-0-flash-lite": 1_000_000,
+            "google/google/text-embedding-004": 8_000,
+            # Groq
+            "groq/meta/llama-3-3-instruct-70b": 128_000,
+            "groq/meta/llama-4-scout": 128_000,
+            "groq/meta/llama-4-maverick": 128_000,
+            "groq/moonshotai/kimi-k2": 128_000,
+            "groq/openai/gpt-oss-120b": 128_000,
+            "groq/openai/gpt-oss-20b": 128_000,
+            # Reducto (these are kinda weird... effectively unlimited)
+            "reducto/reducto/reducto-standard-parse": 10_000_000,
+            "reducto/reducto/reducto-standard-extract": 10_000_000,
+        },
+        metadata=FieldMetadata(
+            description="A mapping of model names to their context window sizes.",
+        ),
+    )
+
 
 def resolve_provider_from_model_name(
     model_name: str,

@@ -99,9 +99,6 @@ class ReductoClient(
     def _init_parsers(self) -> ReductoParsers:
         return ReductoParsers()
 
-    async def count_tokens(self, prompt: ReductoPrompt, model: str) -> int:
-        return 0
-
     async def generate_response(
         self,
         prompt: ReductoPrompt,

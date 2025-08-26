@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
 import structlog
 
 from agent_platform.core.configurations import Configuration, FieldMetadata
+from agent_platform.core.platforms.configs import PlatformModelConfigs
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
 from agent_platform.core.prompts.finalizers.base import BaseFinalizer
 from agent_platform.core.prompts.messages import (
@@ -39,11 +40,42 @@ class TruncationConfig(Configuration):
     )
     """Minimum number of tokens to preserve when truncating tool results."""
 
+    text_truncation_token_floor: int = field(
+        default=512,
+        metadata=FieldMetadata(
+            description="Minimum number of tokens to preserve when truncating plain text.",
+        ),
+    )
+    """Minimum number of tokens to preserve when truncating plain text."""
+
+    truncation_suffix: str = field(
+        default="[Truncated...]",
+        metadata=FieldMetadata(
+            description="Suffix to add to truncated text.",
+        ),
+    )
+    """Suffix to add to truncated text."""
+
+    max_truncation_passes: int = field(
+        default=3,
+        metadata=FieldMetadata(
+            description="Maximum number of truncation passes to perform.",
+        ),
+    )
+    """Maximum number of truncation passes to perform."""
+
 
 class TruncationItem(TypedDict):
+    # tool_name is empty string ("") for non-tool text items
     tool_name: str
     tokens: int
     text_contents: list[PromptTextContent]
+    # lower index == older message
+    message_index: int
+    # "tool" or "text" (plain PromptTextContent)
+    item_type: Literal["tool", "text"]
+    # per-item floor (tool vs text)
+    floor: int
 
 
 class TruncationFinalizer(BaseFinalizer):
@@ -63,6 +95,13 @@ class TruncationFinalizer(BaseFinalizer):
         - `platform`: (keyword, optional) PlatformInterface instance (required
             for context window info)
 
+    Behavior:
+        - Collects truncatable content from:
+          * Tool results (only their inner PromptTextContent portions)
+          * Plain top-level PromptTextContent (non-tool)
+        - Prefers truncating **older** messages first (lower message_index).
+        - Respects per-item floors (tool vs plain text).
+
     Usage:
 
     ```python
@@ -81,6 +120,9 @@ class TruncationFinalizer(BaseFinalizer):
         self,
         token_budget_percentage: float | None = None,
         truncation_token_floor: int | None = None,
+        text_truncation_token_floor: int | None = None,
+        truncation_suffix: str | None = None,
+        max_truncation_passes: int | None = None,
         *args,
         **kwargs,
     ):
@@ -88,9 +130,22 @@ class TruncationFinalizer(BaseFinalizer):
             token_budget_percentage = TruncationConfig.token_budget_percentage
         if truncation_token_floor is None:
             truncation_token_floor = TruncationConfig.truncation_token_floor
+        if text_truncation_token_floor is None:
+            text_truncation_token_floor = TruncationConfig.text_truncation_token_floor
+        if truncation_suffix is None:
+            truncation_suffix = TruncationConfig.truncation_suffix
+        if max_truncation_passes is None:
+            max_truncation_passes = TruncationConfig.max_truncation_passes
 
         self.token_budget_percentage = token_budget_percentage
         self.truncation_token_floor = truncation_token_floor
+        self.text_truncation_token_floor = text_truncation_token_floor
+        self.truncation_suffix = truncation_suffix
+        self.max_truncation_passes = max_truncation_passes
+        # Cache the suffix token cost during initialization
+        self._suffix_token_cost = (
+            PromptTextContent(text=self.truncation_suffix).count_tokens_approx() + 10
+        )
         super().__init__(*args, **kwargs)
 
     async def __call__(
@@ -128,13 +183,18 @@ class TruncationFinalizer(BaseFinalizer):
             return messages
         platform = cast("PlatformInterface", platform)
 
-        # Sets default to one of the most common context windows.
         model_name = kwargs.get("model", "gpt-4-1")
-        max_tokens = 128_000  # Default to 128k tokens
         try:
-            max_tokens = platform.client.model_map.model_context_windows.get(model_name) or 128_000
+            max_tokens = (
+                PlatformModelConfigs.models_to_context_window_sizes.get(model_name, None)
+                or platform.client.model_map.model_context_windows.get(model_name, None)
+                or 128_000
+            )
+            logger.info(f"Using model context window: {max_tokens} tokens for model: {model_name}")
         except (AttributeError, KeyError):
-            logger.warning("No model context window found for model: %s", model_name)
+            logger.warning(f"No model context window found for model: {model_name}")
+            logger.warning("Falling back to default context window of 128_000 tokens")
+            max_tokens = 128_000
 
         max_token_budget = int(max_tokens * self.token_budget_percentage)
 
@@ -151,7 +211,7 @@ class TruncationFinalizer(BaseFinalizer):
             stop_sequences=prompt.stop_sequences,
             top_p=prompt.top_p,
         )
-        current_token_count = hydrated_prompt.count_tokens_approx(model=model_name)
+        current_token_count = hydrated_prompt.count_tokens_approx()
 
         if current_token_count <= max_token_budget:
             return messages
@@ -167,18 +227,28 @@ class TruncationFinalizer(BaseFinalizer):
             logger.warning("No content found to truncate. Prompt will exceed token budget.")
             return messages
 
-        # Sort by token count, with largest first
-        truncatable_content.sort(key=lambda x: x["tokens"], reverse=True)
+        # Log some info about the largest items (by tokens) for visibility.
+        for item in sorted(truncatable_content, key=lambda x: x["tokens"], reverse=True)[:3]:
+            label = (
+                f"{item['item_type']}:{item['tool_name']}"
+                if item["item_type"] == "tool"
+                else "text"
+            )
+            logger.info(f"Largest truncatable item -> {label} using {item['tokens']} tokens")
 
-        # Log some info about the largest tool results.
-        for item in truncatable_content[:3]:
-            logger.info(f"Large Tool Result: {item['tool_name']} using {item['tokens']} tokens")
-
-        # Apply truncation
-        tokens_to_reduce = self._truncate_content(truncatable_content, tokens_to_reduce)
+        # Apply truncation (oldest-first greedy with per-item floors)
+        remaining = self._truncate_content(truncatable_content, tokens_to_reduce)
+        passes = 1
+        while remaining > 0 and passes < self.max_truncation_passes:
+            prev = remaining
+            remaining = self._truncate_content(truncatable_content, remaining)
+            # No progress? break to avoid spin
+            if remaining >= prev:
+                break
+            passes += 1
 
         # Recount tokens with the hydrated prompt (not the original one)
-        new_token_count = hydrated_prompt.count_tokens_approx(model=model_name)
+        new_token_count = hydrated_prompt.count_tokens_approx()
         logger.info(
             f"After truncation: {new_token_count} tokens "
             f"(reduced by {current_token_count - new_token_count})"
@@ -187,143 +257,167 @@ class TruncationFinalizer(BaseFinalizer):
         return messages
 
     def _collect_truncatable_content(self, messages: list["MessageType"]) -> list[TruncationItem]:
-        """Collect tool results with content length greater than 0.
+        """Collect tool results and plain text contents with length > 0.
 
         Args:
             messages: List of messages to analyze
 
         Returns:
-            List of dictionaries containing tool result information
+            List of dictionaries containing truncation info
         """
         truncatable_content: list[TruncationItem] = []
 
-        for message in messages:
+        for msg_idx, message in enumerate(messages):
             if isinstance(message, SpecialPromptMessage):
                 continue
 
             for content in message.content:
                 if isinstance(content, PromptToolResultContent):
-                    # Handle tool result content - extract text content for truncation
-                    tool_token_count = content.count_tokens_approx()
-                    if tool_token_count > 0:
-                        # Extract any text content items from the tool result
-                        text_contents = [
-                            item for item in content.content if isinstance(item, PromptTextContent)
-                        ]
-                        # Only include if there are text contents with actual content
-                        if text_contents and any(len(tc.text) > 0 for tc in text_contents):
-                            truncatable_content.append(
-                                TruncationItem(
-                                    tool_name=content.tool_name,
-                                    tokens=tool_token_count,
-                                    text_contents=text_contents,
-                                )
+                    # Extract only text items from the tool result (what we can actually shrink)
+                    text_contents = [
+                        item for item in content.content if isinstance(item, PromptTextContent)
+                    ]
+                    tool_text_tokens = sum(tc.count_tokens_approx() for tc in text_contents)
+                    if (
+                        text_contents
+                        and tool_text_tokens > 0
+                        and any(tc.text for tc in text_contents)
+                    ):
+                        truncatable_content.append(
+                            TruncationItem(
+                                tool_name=content.tool_name,
+                                tokens=tool_text_tokens,
+                                text_contents=text_contents,
+                                message_index=msg_idx,
+                                item_type="tool",
+                                floor=self.truncation_token_floor,
                             )
+                        )
+                elif isinstance(content, PromptTextContent):
+                    # Plain top-level text content (non-tool)
+                    tok = content.count_tokens_approx()
+                    if tok > 0 and content.text:
+                        truncatable_content.append(
+                            TruncationItem(
+                                tool_name="",
+                                tokens=tok,
+                                text_contents=[content],
+                                message_index=msg_idx,
+                                item_type="text",
+                                floor=self.text_truncation_token_floor,
+                            )
+                        )
 
         return truncatable_content
 
     def _truncate_content(
-        self, truncatable_content: list[TruncationItem], tokens_to_reduce: int
+        self,
+        truncatable_content: list[TruncationItem],
+        tokens_to_reduce: int,
     ) -> int:
-        """Proportionally truncate tool result contents based on the configured floor.
+        """Greedy oldest-first truncation with per-item floors.
 
-        This method distributes the token reduction across all tool results proportionally
-        to their current size, while ensuring each tool result maintains at least
-        the truncation_token_floor number of tokens.
-
-        Args:
-            truncatable_content: List of tool result content items to truncate
-            tokens_to_reduce: Number of tokens that need to be reduced
-
-        Returns:
-            Remaining tokens that still need to be reduced (should be 0 or close to 0)
+        We walk items ordered by (older first, larger first) and reduce each
+        item toward its floor until we satisfy the reduction or run out of room.
         """
-        if not truncatable_content:
+        if not truncatable_content or tokens_to_reduce <= 0:
             return tokens_to_reduce
 
-        # Calculate total tokens available for reduction (above the floor)
-        total_reducible_tokens = 0
-        for item in truncatable_content:
-            current_tokens = item["tokens"]
-            reducible_tokens = max(0, current_tokens - self.truncation_token_floor)
-            total_reducible_tokens += reducible_tokens
-
-        if total_reducible_tokens == 0:
-            logger.warning("No tokens can be reduced while respecting the truncation floor")
-            return tokens_to_reduce
-
-        # Calculate how much we can actually reduce
-        actual_tokens_to_reduce = min(tokens_to_reduce, total_reducible_tokens)
-
-        logger.info(
-            f"Proportionally reducing {actual_tokens_to_reduce} tokens across "
-            f"{len(truncatable_content)} tool results (floor: {self.truncation_token_floor})"
+        # oldest (lower message_index) first; for equal age, larger first
+        ordered = sorted(
+            truncatable_content,
+            key=lambda x: (x["message_index"], -x["tokens"]),
         )
 
-        # Apply proportional truncation to each item
-        for item in truncatable_content:
+        remaining = tokens_to_reduce
+        for item in ordered:
+            if remaining <= 0:
+                break
+
             current_tokens = item["tokens"]
-            reducible_tokens = max(0, current_tokens - self.truncation_token_floor)
-
-            if reducible_tokens == 0:
+            reducible = max(0, current_tokens - item["floor"])
+            if reducible <= 0:
                 continue
 
-            # Calculate this item's share of the reduction based on total reducible tokens
-            share_ratio = reducible_tokens / total_reducible_tokens
-            tokens_to_reduce_from_item = int(actual_tokens_to_reduce * share_ratio)
-            # Ensure we never try to reduce more than what's reducible for this item
-            tokens_to_reduce_from_item = min(tokens_to_reduce_from_item, reducible_tokens)
+            take = min(remaining, reducible) + self._suffix_token_cost
+            target_tokens = current_tokens - take
+            target_tokens = max(target_tokens, item["floor"])
 
-            if tokens_to_reduce_from_item <= 0:
-                continue
+            # Apply truncation to this item
+            self._truncate_item_to_target(item, target_tokens)
 
-            # Calculate target tokens for this item
-            target_tokens = current_tokens - tokens_to_reduce_from_item
-            target_tokens = max(target_tokens, self.truncation_token_floor)
+            # Update remaining based on actual savings
+            saved = max(0, current_tokens - item["tokens"])
+            remaining -= saved
 
-            # Apply truncation to text contents within this item
-            text_contents = item["text_contents"]
-            if text_contents:
-                self._truncate_item_to_target(item, target_tokens)
+            label = (
+                f"{item['item_type']}:{item['tool_name']}"
+                if item["item_type"] == "tool"
+                else "text"
+            )
+            logger.info(
+                f"Oldest-first truncation -> {label} "
+                f"(msg #{item['message_index']}): {current_tokens} "
+                f"-> {item['tokens']} (saved {saved})"
+            )
 
-        return max(0, tokens_to_reduce - actual_tokens_to_reduce)
+        if remaining > 0:
+            logger.warning(
+                f"Unable to meet full reduction while respecting floors. Remaining: {remaining}",
+            )
+        return remaining
 
     def _truncate_item_to_target(self, item: TruncationItem, target_token_count: int) -> None:
-        """Truncate a single tool result item to approximately the target token count.
+        """Truncate a single item (tool result text or plain text) to approx the target token count.
 
         Args:
-            item: The tool result item to truncate
+            item: The truncation item
             target_token_count: Target number of tokens for this item
         """
         if not item["text_contents"]:
             return
 
-        if item["tokens"] <= target_token_count:
+        # Recompute current tokens in case prior passes mutated content
+        current_tokens = sum(tc.count_tokens_approx() for tc in item["text_contents"])
+        if current_tokens <= target_token_count:
+            item["tokens"] = current_tokens
+            return
+
+        # Avoid division by zero; if there's content but token count is 0, do nothing.
+        if current_tokens <= 0:
+            item["tokens"] = 0
             return
 
         # Calculate reduction ratio for this item
-        reduction_ratio = target_token_count / item["tokens"]
+        reduction_ratio = max(0.0, min(1.0, target_token_count / current_tokens))
 
         for text_content in item["text_contents"]:
+            original_len = len(text_content.text)
+            if original_len == 0:
+                continue
+
             # Estimate characters to keep based on token ratio
             # This is an approximation since token-to-character ratio varies
-            chars_to_keep = int(len(text_content.text) * reduction_ratio)
-            chars_to_keep = max(1, chars_to_keep)  # Keep at least 1 character
+            chars_to_keep = int(original_len * reduction_ratio)
+            chars_to_keep = max(
+                1,
+                min(chars_to_keep, original_len),
+            )  # Keep at least 1 char, at most length
 
-            if chars_to_keep < len(text_content.text):
+            if chars_to_keep < original_len:
                 old_token_count, new_token_count = self._truncate_text_content(
                     text_content, chars_to_keep
                 )
                 tokens_saved = old_token_count - new_token_count
+                if tokens_saved > 0:
+                    logger.info(
+                        f"Truncated {item['item_type']}:{item['tool_name'] or 'text'} "
+                        f"from {old_token_count} to {new_token_count} tokens "
+                        f"(saved {tokens_saved})"
+                    )
 
-                logger.info(
-                    f"Truncated tool result {item['tool_name']} from "
-                    f"{old_token_count} to {new_token_count} tokens (saved {tokens_saved})"
-                )
-
-        # Update the item's token count after truncation.
-        new_total_token_count = sum(tc.count_tokens_approx() for tc in item["text_contents"])
-        item["tokens"] = new_total_token_count
+        # Update the item's token count after truncation (sum of text contents).
+        item["tokens"] = sum(tc.count_tokens_approx() for tc in item["text_contents"])
 
     def _truncate_text_content(
         self, text_content: PromptTextContent, chars_to_keep: int
@@ -339,10 +433,7 @@ class TruncationFinalizer(BaseFinalizer):
         """
         old_token_count = text_content.count_tokens_approx()
 
-        truncated_text = (
-            f"{text_content.text[:chars_to_keep]}... "
-            f"[Tool result truncated due to length constraints]"
-        )
+        truncated_text = f"{text_content.text[:chars_to_keep]}{self.truncation_suffix}"
 
         # Update the text content
         # We need to use __setattr__ because these are frozen dataclasses

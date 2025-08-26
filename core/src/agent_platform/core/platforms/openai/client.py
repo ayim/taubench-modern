@@ -127,6 +127,18 @@ class OpenAIClient(
                     data={"model": model},
                 )
             case BadRequestError():
+                # Better error for context length exceeded
+                if error.code == "context_length_exceeded":
+                    return error_type(
+                        error_code=ErrorCode.BAD_REQUEST,
+                        message=(
+                            f"The request to model '{model}' was rejected because it "
+                            f"exceeded the context length limit. Please try again with a "
+                            f"shorter request.\n\nDetails: {error.message}"
+                        ),
+                        data={"model": model, "error_message": error.message},
+                    )
+
                 return error_type(
                     error_code=ErrorCode.BAD_REQUEST,
                     message=f"Something went wrong while sending the request to OpenAI model "
@@ -177,58 +189,6 @@ class OpenAIClient(
             case _:
                 # For any other unexpected errors, re-raise them
                 raise error
-
-    async def count_tokens(
-        self,
-        prompt: OpenAIPrompt,
-        model: str,
-    ) -> int:
-        """Count the tokens in a prompt.
-
-        Args:
-            prompt: The prompt to count the tokens of.
-            model: The model to use to count the tokens.
-
-        Returns:
-            The number of tokens in the prompt.
-        """
-        import tiktoken
-
-        # TODO: for now, we don't really care to get the model
-        # right here. Tiktoken internal map is out of date
-        encoding = tiktoken.encoding_for_model("gpt-4o")
-
-        # Get the request dictionary
-        request = prompt.as_platform_request(model)
-
-        # Format messages into a string representation
-        messages_str = ""
-        for msg in request.get("messages", []):
-            role = msg.get("role", "")
-            content = msg.get("content", "")
-            if isinstance(content, list):
-                # Handle multimodal content
-                content = " ".join(
-                    item.get("text", "") if isinstance(item, dict) else str(item)
-                    for item in content
-                )
-            messages_str += f"{role}: {content}\n"
-
-        # Add tools if present
-        if "tools" in request:
-            tools_str = "tools:\n"
-            for tool in request["tools"]:
-                if "function" in tool:
-                    func = tool["function"]
-                    tools_str += f"function: {func.get('name', '')}\n"
-                    tools_str += f"description: {func.get('description', '')}\n"
-                    if "parameters" in func:
-                        tools_str += f"parameters: {func['parameters']}\n"
-            messages_str += tools_str
-
-        # Encode the formatted string
-        encoded_prompt = encoding.encode(messages_str)
-        return len(encoded_prompt)
 
     async def generate_response(
         self,

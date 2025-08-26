@@ -79,7 +79,9 @@ class PromptToolResultContent(PromptMessageContent):
 
         This method sums the token counts of all content items in the tool result.
         """
-        return sum(item.count_tokens_approx() for item in self.content)
+        # We add a small fudge factor here, as the format in which this is rendered
+        # into the provider-side prompt might include some extra tokens
+        return sum(100 + item.count_tokens_approx() for item in self.content) + 30
 
     @classmethod
     def model_validate(cls, data: dict) -> "PromptToolResultContent":

@@ -242,17 +242,10 @@ class BedrockClient(
         return BedrockParsers()
 
     # ------------------------------------------------------------------#
-    # Token counting --- still unsupported natively
-    # ------------------------------------------------------------------#
-
-    async def count_tokens(self, prompt: BedrockPrompt, model: str) -> int:
-        raise NotImplementedError("Bedrock does not expose a tokeniser.")
-
-    # ------------------------------------------------------------------#
     # Error handling
     # ------------------------------------------------------------------#
 
-    def _handle_bedrock_error(
+    def _handle_bedrock_error(  # noqa: PLR0911
         self,
         error: Exception,
         model: str,
@@ -318,6 +311,17 @@ class BedrockClient(
             # Region info for AccessDenied to satisfy tests
             if code == "AccessDeniedException":
                 data["region"] = self._parameters.region_name
+            if "Input is too long" in message:
+                # Handle context length exceeded better
+                return err_cls(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=(
+                        f"The request to model '{model}' was rejected because it "
+                        f"exceeded the context length limit. Please try again with a "
+                        f"shorter request.\n\nDetails: {message}"
+                    ),
+                    data={"model": model, "error_message": message},
+                )
 
             return err_cls(
                 error_code=err_code,

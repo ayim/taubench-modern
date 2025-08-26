@@ -105,7 +105,7 @@ async def test_generate_response_truncates_tool_results(mock_platform_client, mo
     # Verify truncation occurred
     truncated_text = converted_prompt.messages[1].content[0].content[0].text  # type: ignore
     assert len(truncated_text) < len(original_text)
-    assert "[Tool result truncated due to length constraints]" in truncated_text
+    assert "[Truncated...]" in truncated_text
 
 
 @pytest.mark.asyncio
@@ -160,7 +160,7 @@ async def test_stream_response_truncates_tool_results(mock_platform_client, mock
     # Verify truncation occurred
     truncated_text = converted_prompt.messages[1].content[0].content[0].text  # type: ignore
     assert len(truncated_text) < len(original_text)
-    assert "[Tool result truncated due to length constraints]" in truncated_text
+    assert "[Truncated...]" in truncated_text
 
 
 @pytest.mark.asyncio
@@ -278,7 +278,7 @@ async def test_stream_raw_response_truncates_tool_results(mock_platform_client, 
     # Verify truncation occurred
     truncated_text = converted_prompt.messages[1].content[0].content[0].text  # type: ignore
     assert len(truncated_text) < len(original_text)
-    assert "[Tool result truncated due to length constraints]" in truncated_text
+    assert "[Truncated...]" in truncated_text
 
 
 @pytest.mark.asyncio

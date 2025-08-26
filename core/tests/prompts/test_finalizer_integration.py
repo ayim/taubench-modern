@@ -140,7 +140,7 @@ async def test_prompt_finalize_with_default_finalizers(mock_kernel, mock_platfor
     tool_result = agent_message.content[1]  # type: ignore
     assert isinstance(tool_result, PromptToolResultContent)
     tool_result_text = tool_result.content[0].text  # type: ignore
-    assert "[Tool result truncated due to length constraints]" in tool_result_text
+    assert "[Truncated...]" in tool_result_text
 
 
 @pytest.mark.asyncio
@@ -219,7 +219,7 @@ async def test_prompt_finalize_with_finalizer_kwargs(mock_kernel, mock_platform)
 
     # Verify truncation occurred with the custom parameters
     tool_result_text = finalized_prompt.messages[1].content[0].content[0].text  # type: ignore
-    assert "[Tool result truncated due to length constraints]" in tool_result_text
+    assert "[Truncated...]" in tool_result_text
     # Should be heavily truncated due to aggressive settings
     assert len(tool_result_text) < len(large_result) * 0.5
 
@@ -290,7 +290,7 @@ async def test_prompt_finalize_kwargs_precedence(mock_kernel, mock_platform):
 
     # Verify truncation occurred (proving global platform was used)
     tool_result_text = finalized_prompt.messages[1].content[0].content[0].text  # type: ignore
-    assert "[Tool result truncated due to length constraints]" in tool_result_text
+    assert "[Truncated...]" in tool_result_text
 
 
 @pytest.mark.asyncio
@@ -367,7 +367,7 @@ async def test_prompt_finalize_with_truncation(mock_kernel, mock_platform):
     tool_result_text = tool_result.content[0].text
 
     # Verify that the tool result was actually truncated
-    assert "[Tool result truncated due to length constraints]" in tool_result_text
+    assert "[Truncated...]" in tool_result_text
 
     # The truncated text should be much shorter than the original
     original_large_result = "This is a very large tool result with lots of data. " * 800
@@ -434,7 +434,7 @@ async def test_prompt_finalize_with_custom_truncation_params(mock_kernel, mock_p
     # The large tool result should have been heavily truncated
     tool_result_text = finalized_prompt.messages[2].content[0].content[0].text  # type: ignore
     assert tool_result_text is not None
-    assert "[Tool result truncated due to length constraints]" in tool_result_text
+    assert "[Truncated...]" in tool_result_text
 
     # With our extremely aggressive settings, truncation should be very significant
     assert len(tool_result_text) < len(large_result)
@@ -499,7 +499,7 @@ async def test_truncation_with_multiple_content_items(mock_kernel, mock_platform
             original_text = [text1, text2, text3][i]
 
             # Check if this item was truncated
-            if "[Tool result truncated due to length constraints]" in content_item.text:
+            if "[Truncated...]" in content_item.text:
                 truncated_count += 1
                 # Verify original text was much longer
                 assert len(content_item.text) < len(original_text)

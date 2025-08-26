@@ -219,14 +219,6 @@ class MockPlatformClient(PlatformClient):
         """Initialize mock parameters."""
         return MockPlatformParameters()
 
-    async def count_tokens(
-        self,
-        prompt: PlatformPrompt,
-        model: str,
-    ) -> int:
-        """Mock count tokens implementation."""
-        return 42
-
     async def generate_response(
         self,
         prompt: PlatformPrompt,
