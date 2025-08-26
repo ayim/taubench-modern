@@ -305,6 +305,13 @@ curl --request POST -L \
 }'
 ```
 
+### Configuring Document Intelligence v2 Data Server
+
+In order to use the DIv2 endpoints, you will need to configure the data connection and Reducto API key. This can be done via the workroom UI. Navigate to [Document Intelligence](http://localhost:8001/tenants/spar/documentIntelligence) and fill in the following fields:
+
+- **Reducto API key**: this is available within the Sema4.ai 1Password vault (as of writing this README, we have been primarily using the vault item labled `PROD DocIntel v2: Sema4 API Key - Internal testing (Reducto)`)
+- **Bring your own Database**: for the data server brought up as part of the SPAR stack, use the connection string: `postgresql://agents:agents@postgres:5432/data`
+
 ## 🚀 GCP Deployment
 
 The Agent Platform includes a comprehensive Google Cloud Platform deployment system supporting multi-developer environments, security controls, and flexible deployment profiles.
