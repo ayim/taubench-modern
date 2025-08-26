@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.36',
+    version: '2.0.37',
   },
   paths: {
     '/api/v2/ok': {
@@ -2982,7 +2982,35 @@ export const spec = {
         tags: ['document-intelligence'],
         summary: 'Create Data Model',
         operationId: 'create_data_model_document_intelligence_data_models_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Thread Id',
+            },
+          },
+        ],
         requestBody: {
+          required: true,
           content: {
             'application/json': {
               schema: {
@@ -2990,14 +3018,18 @@ export const spec = {
               },
             },
           },
-          required: true,
         },
         responses: {
           '201': {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  type: 'object',
+                  additionalProperties: true,
+                  title:
+                    'Response Create Data Model Document Intelligence Data Models Post',
+                },
               },
             },
           },
@@ -3595,7 +3627,7 @@ export const spec = {
         tags: ['document-intelligence'],
         summary: 'Parse Document',
         description:
-          'Parse a new document using the Document Intelligence database.\n\nThis endpoint is used to parse a new document. To parse a document that already\nexists, use the `/documents/{document_id}/parse` endpoint.',
+          'Parse a new document using the Document Intelligence database.\n\nThis endpoint is used to parse a new document. It now uses the async client\nfor better server performance.',
         operationId:
           'parse_document_document_intelligence_documents_parse_post',
         parameters: [
@@ -3643,12 +3675,65 @@ export const spec = {
         },
       },
     },
+    '/api/v2/document-intelligence/documents/parse/async': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Parse Document Async',
+        description:
+          'Parse a document asynchronously, returning a job handle.\n\nThis endpoint immediately returns a job handle that can be used to track\nthe parsing progress and retrieve results when complete.\n\nReturns:\n    A response containing:\n    - job_id: The ID of the parsing job\n    - job_type: The type of job ("parse")\n    - uploaded_file: The uploaded file info (if a new file was uploaded)\n\nNote:\n    When checking job status or results, pass job_type="parse" as a query parameter.',
+        operationId:
+          'parse_document_async_document_intelligence_documents_parse_async_post',
+        parameters: [
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_parse_document_async_document_intelligence_documents_parse_async_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/JobStartResponsePayload',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/document-intelligence/documents/extract': {
       post: {
         tags: ['document-intelligence'],
         summary: 'Extract Document',
         description:
-          'Extract from an existing document using the Document Intelligence database.',
+          "Extract structured data from an existing document.\n\nReturns extracted data formatted according to the document's data model schema.",
         operationId:
           'extract_document_document_intelligence_documents_extract_post',
         requestBody: {
@@ -3666,7 +3751,248 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  additionalProperties: true,
+                  type: 'object',
+                  title:
+                    'Response Extract Document Document Intelligence Documents Extract Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/documents/extract/async': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Extract Document Async',
+        description:
+          'Extract from a document asynchronously, returning a job handle.\n\nThis endpoint immediately returns a job handle that can be used to track\nthe extraction progress and retrieve results when complete.\n\nReturns:\n    A response containing:\n    - job_id: The ID of the extraction job\n    - job_type: The type of job ("extract")\n\nNote:\n    When checking job status or results, pass job_type="extract" as a query parameter.',
+        operationId:
+          'extract_document_async_document_intelligence_documents_extract_async_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ExtractDocumentPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/JobStartResponsePayload',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/jobs/{job_id}/status': {
+      get: {
+        tags: ['document-intelligence'],
+        summary: 'Get Job Status',
+        description:
+          'Get the status of an asynchronous job.\n\nArgs:\n    job_id: The ID of the job\n    job_type: The type of job (JobType.PARSE, JobType.EXTRACT, or JobType.SPLIT)\n\nReturns:\n    A response containing:\n    - job_id: The ID of the job\n    - status: The current status ("Pending", "Idle", "Completed", "Failed")\n    - result_url: URL to fetch the result (only present when status is "Completed")',
+        operationId:
+          'get_job_status_document_intelligence_jobs__job_id__status_get',
+        parameters: [
+          {
+            name: 'job_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Job Id',
+            },
+          },
+          {
+            name: 'job_type',
+            in: 'query',
+            required: true,
+            schema: {
+              $ref: '#/components/schemas/JobType',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/JobStatusResponsePayload',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/jobs/{job_id}/result': {
+      get: {
+        tags: ['document-intelligence'],
+        summary: 'Get Job Result',
+        description:
+          'Get the result of a completed asynchronous job.\n\nThis endpoint returns immediately based on the current job status:\nHTTP Status Codes:\n    200: Job completed successfully - returns JobResult\n    404: Job not found OR result not available yet (job still processing)\n    422: Job failed\n\nArgs:\n    job_id: The ID of the job\n    job_type: The type of job (JobType.PARSE, JobType.EXTRACT, or JobType.SPLIT)\n\nReturns:\n    The job result (parse or extract result) when complete.\n    For parse jobs, this returns the localized parse response.\n    For extract jobs, this returns the extraction results.\n\nRaises:\n    PlatformHTTPError: If the job is still processing, failed, or not found.',
+        operationId:
+          'get_job_result_document_intelligence_jobs__job_id__result_get',
+        parameters: [
+          {
+            name: 'job_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Job Id',
+            },
+          },
+          {
+            name: 'job_type',
+            in: 'query',
+            required: true,
+            schema: {
+              $ref: '#/components/schemas/JobType',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/ParseJobResult',
+                    },
+                    {
+                      $ref: '#/components/schemas/ExtractJobResult',
+                    },
+                    {
+                      $ref: '#/components/schemas/SplitJobResult',
+                    },
+                  ],
+                  title:
+                    'Response Get Job Result Document Intelligence Jobs  Job Id  Result Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/documents/ingest': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Ingest Document',
+        description:
+          'Ingest a new document into the Document Intelligence database.',
+        operationId:
+          'ingest_document_document_intelligence_documents_ingest_post',
+        parameters: [
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+          {
+            name: 'data_model_name',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Data Model Name',
+            },
+          },
+          {
+            name: 'layout_name',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Layout Name',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_ingest_document_document_intelligence_documents_ingest_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/IngestDocumentResponse',
+                },
               },
             },
           },
@@ -6011,6 +6337,47 @@ export const spec = {
           title:
             'Body_generate_layout_from_file_document_intelligence_layouts_generate_post',
         },
+      Body_ingest_document_document_intelligence_documents_ingest_post: {
+        properties: {
+          file: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'string',
+                format: 'binary',
+              },
+            ],
+            title: 'File',
+          },
+        },
+        type: 'object',
+        required: ['file'],
+        title:
+          'Body_ingest_document_document_intelligence_documents_ingest_post',
+      },
+      Body_parse_document_async_document_intelligence_documents_parse_async_post:
+        {
+          properties: {
+            file: {
+              anyOf: [
+                {
+                  type: 'string',
+                  format: 'binary',
+                },
+                {
+                  type: 'string',
+                },
+              ],
+              title: 'File',
+            },
+          },
+          type: 'object',
+          required: ['file'],
+          title:
+            'Body_parse_document_async_document_intelligence_documents_parse_async_post',
+        },
       Body_parse_document_document_intelligence_documents_parse_post: {
         properties: {
           file: {
@@ -7130,6 +7497,24 @@ export const spec = {
         required: ['thread_id', 'file_name'],
         title: 'ExtractDocumentPayload',
       },
+      ExtractJobResult: {
+        properties: {
+          result: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Result',
+          },
+          job_type: {
+            type: 'string',
+            const: 'extract',
+            title: 'Job Type',
+            default: 'extract',
+          },
+        },
+        type: 'object',
+        required: ['result'],
+        title: 'ExtractJobResult',
+      },
       ForkThreadPayload: {
         properties: {
           message_id: {
@@ -7350,6 +7735,28 @@ export const spec = {
         type: 'object',
         title: 'GroqPlatformParameters',
       },
+      IngestDocumentResponse: {
+        properties: {
+          document: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Document',
+          },
+          uploaded_file: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/UploadedFile',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: ['document'],
+        title: 'IngestDocumentResponse',
+      },
       InitiateStreamPayload: {
         properties: {
           agent_id: {
@@ -7415,6 +7822,68 @@ export const spec = {
         title: 'IntegrationKind',
         description:
           'Supported integration kinds for Document Intelligence Data Server',
+      },
+      JobStartResponsePayload: {
+        properties: {
+          job_id: {
+            type: 'string',
+            title: 'Job Id',
+          },
+          job_type: {
+            $ref: '#/components/schemas/JobType',
+          },
+          uploaded_file: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/UploadedFile',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: ['job_id', 'job_type'],
+        title: 'JobStartResponsePayload',
+      },
+      JobStatus: {
+        type: 'string',
+        enum: ['Pending', 'Completed', 'Failed', 'Idle'],
+        title: 'JobStatus',
+        description: 'Status of a job submitted to Reducto for processing.',
+      },
+      JobStatusResponsePayload: {
+        properties: {
+          job_id: {
+            type: 'string',
+            title: 'Job Id',
+          },
+          status: {
+            $ref: '#/components/schemas/JobStatus',
+          },
+          result_url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Result Url',
+          },
+        },
+        type: 'object',
+        required: ['job_id', 'status'],
+        title: 'JobStatusResponsePayload',
+      },
+      JobType: {
+        type: 'string',
+        enum: ['parse', 'extract', 'split'],
+        title: 'JobType',
+        description:
+          'Types of jobs that can be submitted for async processing.',
       },
       ListMCPToolsRequest: {
         properties: {
@@ -8378,6 +8847,22 @@ export const spec = {
         },
         type: 'object',
         title: 'OpenAIPlatformParameters',
+      },
+      ParseJobResult: {
+        properties: {
+          result: {
+            $ref: '#/components/schemas/ResultFullResult',
+          },
+          job_type: {
+            type: 'string',
+            const: 'parse',
+            title: 'Job Type',
+            default: 'parse',
+          },
+        },
+        type: 'object',
+        required: ['result'],
+        title: 'ParseJobResult',
       },
       PartialDataModelPayload: {
         properties: {
@@ -9430,6 +9915,38 @@ export const spec = {
         required: ['tool_call_id', 'tool_name', 'tool_input_raw'],
         title: 'ResponseToolUseContent',
       },
+      Result: {
+        properties: {
+          section_mapping: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'integer',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Section Mapping',
+          },
+          splits: {
+            items: {
+              $ref: '#/components/schemas/ResultSplit',
+            },
+            type: 'array',
+            title: 'Splits',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['splits'],
+        title: 'Result',
+      },
       ResultFullResult: {
         properties: {
           chunks: {
@@ -9642,6 +10159,82 @@ export const spec = {
         required: ['bbox', 'text'],
         title: 'ResultFullResultOcrWord',
       },
+      ResultSplit: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          pages: {
+            items: {
+              type: 'integer',
+            },
+            type: 'array',
+            title: 'Pages',
+          },
+          conf: {
+            anyOf: [
+              {
+                type: 'string',
+                enum: ['high', 'low'],
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Conf',
+          },
+          partitions: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ResultSplitPartition',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Partitions',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['name', 'pages'],
+        title: 'ResultSplit',
+      },
+      ResultSplitPartition: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          pages: {
+            items: {
+              type: 'integer',
+            },
+            type: 'array',
+            title: 'Pages',
+          },
+          conf: {
+            anyOf: [
+              {
+                type: 'string',
+                enum: ['high', 'low'],
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Conf',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['name', 'pages'],
+        title: 'ResultSplitPartition',
+      },
       Run: {
         properties: {
           run_id: {
@@ -9844,6 +10437,22 @@ export const spec = {
         type: 'object',
         required: ['value'],
         title: 'SecretString',
+      },
+      SplitJobResult: {
+        properties: {
+          result: {
+            $ref: '#/components/schemas/Result',
+          },
+          job_type: {
+            type: 'string',
+            const: 'split',
+            title: 'Job Type',
+            default: 'split',
+          },
+        },
+        type: 'object',
+        required: ['result'],
+        title: 'SplitJobResult',
       },
       StatusError: {
         properties: {
@@ -11601,6 +12210,69 @@ export const spec = {
             type: 'array',
             title: 'Sample Rows',
           },
+          input_id_type: {
+            type: 'string',
+            enum: ['file', 'sql_computation', 'in_memory'],
+            title: 'Input Id Type',
+          },
+          parent_data_frame_ids: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Parent Data Frame Ids',
+          },
+          file_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'File Id',
+          },
+          file_ref: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'File Ref',
+          },
+          sql_dialect: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sql Dialect',
+          },
+          sql_query: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sql Query',
+          },
         },
         type: 'object',
         required: [
@@ -11614,6 +12286,12 @@ export const spec = {
           'created_at',
           'column_headers',
           'sample_rows',
+          'input_id_type',
+          'parent_data_frame_ids',
+          'file_id',
+          'file_ref',
+          'sql_dialect',
+          'sql_query',
         ],
         title: '_DataFrameCreationAPI',
       },
@@ -11677,6 +12355,17 @@ export const spec = {
             ],
             title: 'File Id',
           },
+          file_ref: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'File Ref',
+          },
         },
         type: 'object',
         required: [
@@ -11689,6 +12378,7 @@ export const spec = {
           'column_headers',
           'sample_rows',
           'file_id',
+          'file_ref',
         ],
         title: '_DataFrameInspectionAPI',
       },

@@ -1174,10 +1174,42 @@ export interface paths {
      * Parse Document
      * @description Parse a new document using the Document Intelligence database.
      *
-     *     This endpoint is used to parse a new document. To parse a document that already
-     *     exists, use the `/documents/{document_id}/parse` endpoint.
+     *     This endpoint is used to parse a new document. It now uses the async client
+     *     for better server performance.
      */
     post: operations['parse_document_document_intelligence_documents_parse_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/documents/parse/async': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Parse Document Async
+     * @description Parse a document asynchronously, returning a job handle.
+     *
+     *     This endpoint immediately returns a job handle that can be used to track
+     *     the parsing progress and retrieve results when complete.
+     *
+     *     Returns:
+     *         A response containing:
+     *         - job_id: The ID of the parsing job
+     *         - job_type: The type of job ("parse")
+     *         - uploaded_file: The uploaded file info (if a new file was uploaded)
+     *
+     *     Note:
+     *         When checking job status or results, pass job_type="parse" as a query parameter.
+     */
+    post: operations['parse_document_async_document_intelligence_documents_parse_async_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1195,9 +1227,130 @@ export interface paths {
     put?: never;
     /**
      * Extract Document
-     * @description Extract from an existing document using the Document Intelligence database.
+     * @description Extract structured data from an existing document.
+     *
+     *     Returns extracted data formatted according to the document's data model schema.
      */
     post: operations['extract_document_document_intelligence_documents_extract_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/documents/extract/async': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Extract Document Async
+     * @description Extract from a document asynchronously, returning a job handle.
+     *
+     *     This endpoint immediately returns a job handle that can be used to track
+     *     the extraction progress and retrieve results when complete.
+     *
+     *     Returns:
+     *         A response containing:
+     *         - job_id: The ID of the extraction job
+     *         - job_type: The type of job ("extract")
+     *
+     *     Note:
+     *         When checking job status or results, pass job_type="extract" as a query parameter.
+     */
+    post: operations['extract_document_async_document_intelligence_documents_extract_async_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/jobs/{job_id}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Job Status
+     * @description Get the status of an asynchronous job.
+     *
+     *     Args:
+     *         job_id: The ID of the job
+     *         job_type: The type of job (JobType.PARSE, JobType.EXTRACT, or JobType.SPLIT)
+     *
+     *     Returns:
+     *         A response containing:
+     *         - job_id: The ID of the job
+     *         - status: The current status ("Pending", "Idle", "Completed", "Failed")
+     *         - result_url: URL to fetch the result (only present when status is "Completed")
+     */
+    get: operations['get_job_status_document_intelligence_jobs__job_id__status_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/jobs/{job_id}/result': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Job Result
+     * @description Get the result of a completed asynchronous job.
+     *
+     *     This endpoint returns immediately based on the current job status:
+     *     HTTP Status Codes:
+     *         200: Job completed successfully - returns JobResult
+     *         404: Job not found OR result not available yet (job still processing)
+     *         422: Job failed
+     *
+     *     Args:
+     *         job_id: The ID of the job
+     *         job_type: The type of job (JobType.PARSE, JobType.EXTRACT, or JobType.SPLIT)
+     *
+     *     Returns:
+     *         The job result (parse or extract result) when complete.
+     *         For parse jobs, this returns the localized parse response.
+     *         For extract jobs, this returns the extraction results.
+     *
+     *     Raises:
+     *         PlatformHTTPError: If the job is still processing, failed, or not found.
+     */
+    get: operations['get_job_result_document_intelligence_jobs__job_id__result_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/document-intelligence/documents/ingest': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Ingest Document
+     * @description Ingest a new document into the Document Intelligence database.
+     */
+    post: operations['ingest_document_document_intelligence_documents_ingest_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2168,6 +2321,16 @@ export interface components {
       /** File */
       file: string;
     };
+    /** Body_ingest_document_document_intelligence_documents_ingest_post */
+    Body_ingest_document_document_intelligence_documents_ingest_post: {
+      /** File */
+      file: string;
+    };
+    /** Body_parse_document_async_document_intelligence_documents_parse_async_post */
+    Body_parse_document_async_document_intelligence_documents_parse_async_post: {
+      /** File */
+      file: string;
+    };
     /** Body_parse_document_document_intelligence_documents_parse_post */
     Body_parse_document_document_intelligence_documents_parse_post: {
       /** File */
@@ -2659,6 +2822,19 @@ export interface components {
       layout_name?: string | null;
       document_layout?: components['schemas']['DocumentLayoutPayload'] | null;
     };
+    /** ExtractJobResult */
+    ExtractJobResult: {
+      /** Result */
+      result: {
+        [key: string]: unknown;
+      };
+      /**
+       * Job Type
+       * @default extract
+       * @constant
+       */
+      job_type: 'extract';
+    };
     /** ForkThreadPayload */
     ForkThreadPayload: {
       /**
@@ -2783,6 +2959,14 @@ export interface components {
       /** @description The Groq API key. If not provided, it will be attempted to be inferred from the environment. */
       groq_api_key?: components['schemas']['SecretString'] | null;
     };
+    /** IngestDocumentResponse */
+    IngestDocumentResponse: {
+      /** Document */
+      document: {
+        [key: string]: unknown;
+      };
+      uploaded_file?: components['schemas']['UploadedFile'] | null;
+    };
     /** InitiateStreamPayload */
     InitiateStreamPayload: {
       /**
@@ -2824,6 +3008,33 @@ export interface components {
      * @enum {string}
      */
     IntegrationKind: 'reducto';
+    /** JobStartResponsePayload */
+    JobStartResponsePayload: {
+      /** Job Id */
+      job_id: string;
+      job_type: components['schemas']['JobType'];
+      uploaded_file?: components['schemas']['UploadedFile'] | null;
+    };
+    /**
+     * JobStatus
+     * @description Status of a job submitted to Reducto for processing.
+     * @enum {string}
+     */
+    JobStatus: 'Pending' | 'Completed' | 'Failed' | 'Idle';
+    /** JobStatusResponsePayload */
+    JobStatusResponsePayload: {
+      /** Job Id */
+      job_id: string;
+      status: components['schemas']['JobStatus'];
+      /** Result Url */
+      result_url?: string | null;
+    };
+    /**
+     * JobType
+     * @description Types of jobs that can be submitted for async processing.
+     * @enum {string}
+     */
+    JobType: 'parse' | 'extract' | 'split';
     /** ListMCPToolsRequest */
     ListMCPToolsRequest: {
       /**
@@ -3273,6 +3484,16 @@ export interface components {
       platform_id?: string;
       /** @description The OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       openai_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /** ParseJobResult */
+    ParseJobResult: {
+      result: components['schemas']['ResultFullResult'];
+      /**
+       * Job Type
+       * @default parse
+       * @constant
+       */
+      job_type: 'parse';
     };
     /** PartialDataModelPayload */
     PartialDataModelPayload: {
@@ -3927,6 +4148,17 @@ export interface components {
        */
       tool_input_raw: string;
     };
+    /** Result */
+    Result: {
+      /** Section Mapping */
+      section_mapping?: {
+        [key: string]: number[];
+      } | null;
+      /** Splits */
+      splits: components['schemas']['ResultSplit'][];
+    } & {
+      [key: string]: unknown;
+    };
     /** ResultFullResult */
     ResultFullResult: {
       /** Chunks */
@@ -4011,6 +4243,30 @@ export interface components {
       text: string;
       /** Confidence */
       confidence?: number | null;
+    } & {
+      [key: string]: unknown;
+    };
+    /** ResultSplit */
+    ResultSplit: {
+      /** Name */
+      name: string;
+      /** Pages */
+      pages: number[];
+      /** Conf */
+      conf?: ('high' | 'low') | null;
+      /** Partitions */
+      partitions?: components['schemas']['ResultSplitPartition'][] | null;
+    } & {
+      [key: string]: unknown;
+    };
+    /** ResultSplitPartition */
+    ResultSplitPartition: {
+      /** Name */
+      name: string;
+      /** Pages */
+      pages: number[];
+      /** Conf */
+      conf?: ('high' | 'low') | null;
     } & {
       [key: string]: unknown;
     };
@@ -4169,6 +4425,16 @@ export interface components {
        * @description The secret string value.
        */
       value: string;
+    };
+    /** SplitJobResult */
+    SplitJobResult: {
+      result: components['schemas']['Result'];
+      /**
+       * Job Type
+       * @default split
+       * @constant
+       */
+      job_type: 'split';
     };
     /**
      * StatusError
@@ -5264,6 +5530,21 @@ export interface components {
       column_headers: string[];
       /** Sample Rows */
       sample_rows: unknown[][];
+      /**
+       * Input Id Type
+       * @enum {string}
+       */
+      input_id_type: 'file' | 'sql_computation' | 'in_memory';
+      /** Parent Data Frame Ids */
+      parent_data_frame_ids: string[] | null;
+      /** File Id */
+      file_id: string | null;
+      /** File Ref */
+      file_ref: string | null;
+      /** Sql Dialect */
+      sql_dialect: string | null;
+      /** Sql Query */
+      sql_query: string | null;
     };
     /** _DataFrameInspectionAPI */
     _DataFrameInspectionAPI: {
@@ -5288,6 +5569,8 @@ export interface components {
       sample_rows: unknown[][];
       /** File Id */
       file_id: string | null;
+      /** File Ref */
+      file_ref: string | null;
     };
     /** _DataServerConfig */
     _DataServerConfig: {
@@ -7463,7 +7746,10 @@ export interface operations {
   };
   create_data_model_document_intelligence_data_models_post: {
     parameters: {
-      query?: never;
+      query: {
+        agent_id: string;
+        thread_id?: string | null;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -7480,7 +7766,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */
@@ -7924,6 +8212,41 @@ export interface operations {
       };
     };
   };
+  parse_document_async_document_intelligence_documents_parse_async_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_parse_document_async_document_intelligence_documents_parse_async_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JobStartResponsePayload'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   extract_document_document_intelligence_documents_extract_post: {
     parameters: {
       query?: never;
@@ -7943,7 +8266,149 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  extract_document_async_document_intelligence_documents_extract_async_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ExtractDocumentPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JobStartResponsePayload'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_job_status_document_intelligence_jobs__job_id__status_get: {
+    parameters: {
+      query: {
+        job_type: components['schemas']['JobType'];
+      };
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JobStatusResponsePayload'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_job_result_document_intelligence_jobs__job_id__result_get: {
+    parameters: {
+      query: {
+        job_type: components['schemas']['JobType'];
+      };
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json':
+            | components['schemas']['ParseJobResult']
+            | components['schemas']['ExtractJobResult']
+            | components['schemas']['SplitJobResult'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  ingest_document_document_intelligence_documents_ingest_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+        data_model_name: string;
+        layout_name: string;
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_ingest_document_document_intelligence_documents_ingest_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['IngestDocumentResponse'];
         };
       };
       /** @description Validation Error */
