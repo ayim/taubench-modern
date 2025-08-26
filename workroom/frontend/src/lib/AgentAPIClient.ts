@@ -25,6 +25,11 @@ type WorkroomToken = {
   expiresAt: string;
 };
 
+type SPAR_upsertDocumentIntelligenceConfigurationPayload = {
+  postgresConnectionUrl: string;
+  integrations: { type: 'reducto'; api_key: string; endpoint: string }[];
+};
+
 // eslint-disable-next-line @typescript-eslint/ban-types
 type EmptyObjectType = {};
 
@@ -586,5 +591,80 @@ export class AgentAPIClient {
     const url = resolveWorkroomURL(`agents/api/v2/runs/${agentId}/stream`, environmentUrl);
 
     return { url, token: workroomToken, withBearerTokenAuth };
+  }
+
+  public async getDocumentIntelligenceConfiguration({
+    tenantId,
+  }: {
+    tenantId: string;
+  }): Promise<
+    { configured: true } | { configured: false; error: { error_id?: string; code: string; message: string } }
+  > {
+    try {
+      await this.agentFetch(tenantId, 'get', '/api/v2/document-intelligence/ok');
+
+      return { configured: true };
+    } catch (e) {
+      const error = e as Error;
+      return {
+        configured: false,
+        error: {
+          code: 'unexpected_error',
+          message: `${error.name}:${error.message}`,
+        },
+      };
+    }
+  }
+
+  public async clearDocumentIntelligenceConfiguration({ tenantId }: { tenantId: string }): Promise<{ deleted: true }> {
+    await this.agentFetch(tenantId, 'delete', '/api/v2/document-intelligence');
+
+    return { deleted: true };
+  }
+
+  public async SPAR_upsertDocumentIntelligenceConfiguration({
+    tenantId,
+    configuration,
+  }: {
+    tenantId: string;
+    configuration: {
+      reductoApiKey: string;
+      reductoEndpoint: string;
+      postgresConnectionUrl: string;
+    };
+  }): Promise<null> {
+    const tenant = await this.getTenant(tenantId);
+    if (!tenant) {
+      throw new RequestError(404, 'Workspace not found');
+    }
+
+    const workroomToken = await this.getWorkroomToken();
+
+    const environmentUrl = getTenantEnvironmentUrl(tenant);
+    const url = resolveWorkroomURL('configure-document-intelligence', environmentUrl);
+
+    const documentIntelligenceConfigResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${workroomToken}`,
+      },
+      body: JSON.stringify({
+        postgresConnectionUrl: configuration.postgresConnectionUrl,
+        integrations: [
+          { type: 'reducto', api_key: configuration.reductoApiKey, endpoint: configuration.reductoEndpoint },
+        ],
+      } satisfies SPAR_upsertDocumentIntelligenceConfigurationPayload),
+    });
+
+    const documentIntelligenceConfig = (await documentIntelligenceConfigResponse.json()) as null | {
+      error: { code: string; message: string };
+    };
+
+    if (documentIntelligenceConfig?.error) {
+      throw Error(documentIntelligenceConfig.error.message);
+    }
+
+    return null;
   }
 }

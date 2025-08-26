@@ -303,7 +303,9 @@ export const createConfigureDocumentIntelligence =
       monitoring.logger.error('Failed to parse request body', {
         errorMessage: bodyParseResult.error.message,
       });
-      return res.status(400).send(`Failed to parse request body: ${bodyParseResult.error.message}`);
+      return res.status(400).json({
+        error: { code: 'bad_request', message: `Failed to parse request body: ${bodyParseResult.error.message}` },
+      });
     }
 
     const { integrations, postgresConnectionUrl } = bodyParseResult.data;
@@ -313,9 +315,12 @@ export const createConfigureDocumentIntelligence =
       monitoring.logger.error('Failed to parse postgres connection URL', {
         errorCause: postgresConnectionUrlParseResult.error.code,
       });
-      return res
-        .status(400)
-        .send(`Failed to parse postgres connection URL: ${postgresConnectionUrlParseResult.error.code}`);
+      return res.status(400).json({
+        error: {
+          code: 'bad_request',
+          message: `Failed to parse postgres connection URL: ${postgresConnectionUrlParseResult.error.code}`,
+        },
+      });
     }
     const postgresConfiguration = postgresConnectionUrlParseResult.data;
 
@@ -324,7 +329,12 @@ export const createConfigureDocumentIntelligence =
       monitoring.logger.error('Failed to get Data Server credentials', {
         errorCause: dataServerCredentials.error.code,
       });
-      return res.status(500).send('Failed to get Data Server credentials');
+      return res.status(500).json({
+        error: {
+          code: 'unexpected_error',
+          message: 'Failed to get Data Server credentials',
+        },
+      });
     }
 
     const agentSDK = createAgentSDK({
@@ -352,8 +362,10 @@ export const createConfigureDocumentIntelligence =
       monitoring.logger.error('Failed to configure Document Intelligence on Agent Server:', {
         errorMessage: agentServerResponse.error.error.message,
       });
-      return res.status(500).send('Failed to configure Document Intelligence on Agent Server');
+      return res.status(500).json({
+        error: { code: 'unexpected_error', message: 'Failed to configure Document Intelligence on Agent Server' },
+      });
     }
 
-    return res.status(200).send();
+    return res.status(200).json(null);
   };

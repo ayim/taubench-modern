@@ -143,16 +143,9 @@ export const ChatPage: FC<Props> = ({
     [navigate],
   );
 
-  const navigateToDocumentDashboard = useCallback(
-    (documentType: string, tabName: string) => {
-      navigate({
-        to: '/tenants/$tenantId/documents/documentType',
-        params: { tenantId },
-        search: { tabName, type: documentType },
-      });
-    },
-    [tenantId, navigate],
-  );
+  const navigateToDocumentDashboard = useCallback(() => {
+    alert('Unsupported');
+  }, []);
 
   const readOnlyMode = useMemo(() => {
     if (!agentMeta?.workroomUi) {

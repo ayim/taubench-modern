@@ -20,12 +20,11 @@ import { Route as TenantsTenantIdSettingsIndexRouteImport } from './routes/tenan
 import { Route as TenantsTenantIdMcpServersIndexRouteImport } from './routes/tenants/$tenantId/mcp-servers/index'
 import { Route as TenantsTenantIdHomeIndexRouteImport } from './routes/tenants/$tenantId/home/index'
 import { Route as TenantsTenantIdHelpIndexRouteImport } from './routes/tenants/$tenantId/help/index'
-import { Route as TenantsTenantIdDocumentsIndexRouteImport } from './routes/tenants/$tenantId/documents/index'
+import { Route as TenantsTenantIdDocumentIntelligenceIndexRouteImport } from './routes/tenants/$tenantId/documentIntelligence/index'
 import { Route as TenantsTenantIdAuditLogsIndexRouteImport } from './routes/tenants/$tenantId/auditLogs/index'
 import { Route as TenantsTenantIdAgentsIndexRouteImport } from './routes/tenants/$tenantId/agents/index'
 import { Route as TenantsTenantIdAgentIdIndexRouteImport } from './routes/tenants/$tenantId/$agentId/index'
 import { Route as TenantsTenantIdSettingsLlmRouteImport } from './routes/tenants/$tenantId/settings/llm'
-import { Route as TenantsTenantIdDocumentsDocumentTypeRouteImport } from './routes/tenants/$tenantId/documents/documentType'
 import { Route as TenantsTenantIdAgentsCreateRouteImport } from './routes/tenants/$tenantId/agents/create'
 import { Route as TenantsTenantIdAgentIdThreadIdRouteImport } from './routes/tenants/$tenantId/$agentId/$threadId'
 import { Route as TenantsTenantIdSettingsLlmNewRouteImport } from './routes/tenants/$tenantId/settings/llm/new'
@@ -94,10 +93,10 @@ const TenantsTenantIdHelpIndexRoute =
     path: '/help/',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
-const TenantsTenantIdDocumentsIndexRoute =
-  TenantsTenantIdDocumentsIndexRouteImport.update({
-    id: '/documents/',
-    path: '/documents/',
+const TenantsTenantIdDocumentIntelligenceIndexRoute =
+  TenantsTenantIdDocumentIntelligenceIndexRouteImport.update({
+    id: '/documentIntelligence/',
+    path: '/documentIntelligence/',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdAuditLogsIndexRoute =
@@ -122,12 +121,6 @@ const TenantsTenantIdSettingsLlmRoute =
   TenantsTenantIdSettingsLlmRouteImport.update({
     id: '/settings/llm',
     path: '/settings/llm',
-    getParentRoute: () => TenantsTenantIdRoute,
-  } as any)
-const TenantsTenantIdDocumentsDocumentTypeRoute =
-  TenantsTenantIdDocumentsDocumentTypeRouteImport.update({
-    id: '/documents/documentType',
-    path: '/documents/documentType',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdAgentsCreateRoute =
@@ -170,12 +163,11 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute
   '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren
-  '/tenants/$tenantId/documents/documentType': typeof TenantsTenantIdDocumentsDocumentTypeRoute
   '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren
   '/tenants/$tenantId/$agentId/': typeof TenantsTenantIdAgentIdIndexRoute
   '/tenants/$tenantId/agents': typeof TenantsTenantIdAgentsIndexRoute
   '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
-  '/tenants/$tenantId/documents': typeof TenantsTenantIdDocumentsIndexRoute
+  '/tenants/$tenantId/documentIntelligence': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
@@ -192,12 +184,11 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute
   '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren
-  '/tenants/$tenantId/documents/documentType': typeof TenantsTenantIdDocumentsDocumentTypeRoute
   '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren
   '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdIndexRoute
   '/tenants/$tenantId/agents': typeof TenantsTenantIdAgentsIndexRoute
   '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
-  '/tenants/$tenantId/documents': typeof TenantsTenantIdDocumentsIndexRoute
+  '/tenants/$tenantId/documentIntelligence': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
@@ -217,12 +208,11 @@ export interface FileRoutesById {
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute
   '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren
-  '/tenants/$tenantId/documents/documentType': typeof TenantsTenantIdDocumentsDocumentTypeRoute
   '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren
   '/tenants/$tenantId/$agentId/': typeof TenantsTenantIdAgentIdIndexRoute
   '/tenants/$tenantId/agents/': typeof TenantsTenantIdAgentsIndexRoute
   '/tenants/$tenantId/auditLogs/': typeof TenantsTenantIdAuditLogsIndexRoute
-  '/tenants/$tenantId/documents/': typeof TenantsTenantIdDocumentsIndexRoute
+  '/tenants/$tenantId/documentIntelligence/': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/mcp-servers/': typeof TenantsTenantIdMcpServersIndexRoute
@@ -243,12 +233,11 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/$agentId/$threadId'
     | '/tenants/$tenantId/agents/create'
-    | '/tenants/$tenantId/documents/documentType'
     | '/tenants/$tenantId/settings/llm'
     | '/tenants/$tenantId/$agentId/'
     | '/tenants/$tenantId/agents'
     | '/tenants/$tenantId/auditLogs'
-    | '/tenants/$tenantId/documents'
+    | '/tenants/$tenantId/documentIntelligence'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
     | '/tenants/$tenantId/mcp-servers'
@@ -265,12 +254,11 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId'
     | '/tenants/$tenantId/$agentId/$threadId'
     | '/tenants/$tenantId/agents/create'
-    | '/tenants/$tenantId/documents/documentType'
     | '/tenants/$tenantId/settings/llm'
     | '/tenants/$tenantId/$agentId'
     | '/tenants/$tenantId/agents'
     | '/tenants/$tenantId/auditLogs'
-    | '/tenants/$tenantId/documents'
+    | '/tenants/$tenantId/documentIntelligence'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
     | '/tenants/$tenantId/mcp-servers'
@@ -289,12 +277,11 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/$agentId/$threadId'
     | '/tenants/$tenantId/agents/create'
-    | '/tenants/$tenantId/documents/documentType'
     | '/tenants/$tenantId/settings/llm'
     | '/tenants/$tenantId/$agentId/'
     | '/tenants/$tenantId/agents/'
     | '/tenants/$tenantId/auditLogs/'
-    | '/tenants/$tenantId/documents/'
+    | '/tenants/$tenantId/documentIntelligence/'
     | '/tenants/$tenantId/help/'
     | '/tenants/$tenantId/home/'
     | '/tenants/$tenantId/mcp-servers/'
@@ -388,11 +375,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdHelpIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
-    '/tenants/$tenantId/documents/': {
-      id: '/tenants/$tenantId/documents/'
-      path: '/documents'
-      fullPath: '/tenants/$tenantId/documents'
-      preLoaderRoute: typeof TenantsTenantIdDocumentsIndexRouteImport
+    '/tenants/$tenantId/documentIntelligence/': {
+      id: '/tenants/$tenantId/documentIntelligence/'
+      path: '/documentIntelligence'
+      fullPath: '/tenants/$tenantId/documentIntelligence'
+      preLoaderRoute: typeof TenantsTenantIdDocumentIntelligenceIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/auditLogs/': {
@@ -421,13 +408,6 @@ declare module '@tanstack/react-router' {
       path: '/settings/llm'
       fullPath: '/tenants/$tenantId/settings/llm'
       preLoaderRoute: typeof TenantsTenantIdSettingsLlmRouteImport
-      parentRoute: typeof TenantsTenantIdRoute
-    }
-    '/tenants/$tenantId/documents/documentType': {
-      id: '/tenants/$tenantId/documents/documentType'
-      path: '/documents/documentType'
-      fullPath: '/tenants/$tenantId/documents/documentType'
-      preLoaderRoute: typeof TenantsTenantIdDocumentsDocumentTypeRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/agents/create': {
@@ -523,11 +503,10 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdSignoutCallbackRoute: typeof TenantsTenantIdSignoutCallbackRoute
   TenantsTenantIdIndexRoute: typeof TenantsTenantIdIndexRoute
   TenantsTenantIdAgentsCreateRoute: typeof TenantsTenantIdAgentsCreateRouteWithChildren
-  TenantsTenantIdDocumentsDocumentTypeRoute: typeof TenantsTenantIdDocumentsDocumentTypeRoute
   TenantsTenantIdSettingsLlmRoute: typeof TenantsTenantIdSettingsLlmRouteWithChildren
   TenantsTenantIdAgentsIndexRoute: typeof TenantsTenantIdAgentsIndexRoute
   TenantsTenantIdAuditLogsIndexRoute: typeof TenantsTenantIdAuditLogsIndexRoute
-  TenantsTenantIdDocumentsIndexRoute: typeof TenantsTenantIdDocumentsIndexRoute
+  TenantsTenantIdDocumentIntelligenceIndexRoute: typeof TenantsTenantIdDocumentIntelligenceIndexRoute
   TenantsTenantIdHelpIndexRoute: typeof TenantsTenantIdHelpIndexRoute
   TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute
   TenantsTenantIdMcpServersIndexRoute: typeof TenantsTenantIdMcpServersIndexRoute
@@ -543,12 +522,11 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdIndexRoute: TenantsTenantIdIndexRoute,
   TenantsTenantIdAgentsCreateRoute:
     TenantsTenantIdAgentsCreateRouteWithChildren,
-  TenantsTenantIdDocumentsDocumentTypeRoute:
-    TenantsTenantIdDocumentsDocumentTypeRoute,
   TenantsTenantIdSettingsLlmRoute: TenantsTenantIdSettingsLlmRouteWithChildren,
   TenantsTenantIdAgentsIndexRoute: TenantsTenantIdAgentsIndexRoute,
   TenantsTenantIdAuditLogsIndexRoute: TenantsTenantIdAuditLogsIndexRoute,
-  TenantsTenantIdDocumentsIndexRoute: TenantsTenantIdDocumentsIndexRoute,
+  TenantsTenantIdDocumentIntelligenceIndexRoute:
+    TenantsTenantIdDocumentIntelligenceIndexRoute,
   TenantsTenantIdHelpIndexRoute: TenantsTenantIdHelpIndexRoute,
   TenantsTenantIdHomeIndexRoute: TenantsTenantIdHomeIndexRoute,
   TenantsTenantIdMcpServersIndexRoute: TenantsTenantIdMcpServersIndexRoute,

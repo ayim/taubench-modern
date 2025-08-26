@@ -1,5 +1,7 @@
 import { exhaustiveCheck, parseEnvVariable, parseEnvVariableInteger } from '@sema4ai/robocloud-shared-utils';
-import z from 'zod';
+import type { operations } from '@sema4ai/workroom-interface';
+
+export type WorkroomMeta = operations['getWorkroomMeta']['responses']['200']['content']['application/json'];
 
 export interface Configuration {
   agentServerInternalUrl: string;
@@ -37,9 +39,8 @@ export interface Configuration {
     cacheTTL: number;
   };
   port: number;
+  workroomMeta: WorkroomMeta;
 }
-
-const DataServerMode = z.enum(['disabled', 'cloud', 'local']);
 
 export const getConfiguration = (): Configuration => {
   const port = parseEnvVariableInteger('SEMA4AI_WORKROOM_PORT');
@@ -63,44 +64,26 @@ export const getConfiguration = (): Configuration => {
     : null;
 
   const dataServer = ((): Configuration['dataServer'] => {
-    const dataServerMode: Configuration['dataServer']['mode'] = process.env.SEMA4AI_WORKROOM_DATA_SERVER_MODE
-      ? DataServerMode.parse(parseEnvVariable('SEMA4AI_WORKROOM_DATA_SERVER_MODE'))
-      : 'disabled';
+    const dataServerConfigurationPath: string | null = process.env.SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH
+      ? parseEnvVariable('SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH')
+      : null;
 
-    switch (dataServerMode) {
-      case 'disabled': {
-        return {
-          mode: 'disabled',
-        };
-      }
-      case 'cloud': {
-        if (controlPlaneUrl === null) {
-          throw new Error(
-            'SEMA4AI_WORKROOM_DATA_SERVER_MODE is set to "cloud" but SEMA4AI_WORKROOM_CONTROL_PLANE_URL was not provided',
-          );
-        }
-        return {
-          mode: 'cloud',
-        };
-      }
-      case 'local': {
-        const dataServerConfigurationPath: string | null = process.env.SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH
-          ? parseEnvVariable('SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH')
-          : null;
-        if (dataServerConfigurationPath === null) {
-          throw new Error(
-            'SEMA4AI_WORKROOM_DATA_SERVER_MODE is set to "local" but SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH was not provided',
-          );
-        }
-        return {
-          mode: 'local',
-          configurationFilePath: dataServerConfigurationPath,
-        };
-      }
-      default: {
-        exhaustiveCheck(dataServerMode);
-      }
+    if (dataServerConfigurationPath) {
+      return {
+        mode: 'local',
+        configurationFilePath: dataServerConfigurationPath,
+      };
     }
+
+    if (controlPlaneUrl) {
+      return {
+        mode: 'cloud',
+      };
+    }
+
+    return {
+      mode: 'disabled',
+    };
   })();
 
   const auth = ((): Configuration['auth'] => {
@@ -183,6 +166,11 @@ export const getConfiguration = (): Configuration => {
     ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_ROUTER_URL')
     : null;
 
+  const sparOnlyFeature =
+    process.env.SEMA4AI_ENABLE_SPAR_ONLY_FEATURES === 'true'
+      ? { enabled: false, reason: 'This feature is not available for this deployment' }
+      : { enabled: true, reason: null };
+
   return {
     agentServerInternalUrl,
     controlPlaneUrl,
@@ -195,6 +183,25 @@ export const getConfiguration = (): Configuration => {
     tenant,
     userIdentity: {
       cacheTTL: 30 * 1000, // 30 seconds
+    },
+    workroomMeta: {
+      features: {
+        mcpServersManagement: sparOnlyFeature,
+        deploymentWizard: sparOnlyFeature,
+        settings: sparOnlyFeature,
+        documentIntelligence: {
+          enabled: dataServer.mode !== 'disabled',
+          reason: dataServer.mode === 'disabled' ? 'Doc Intel is disabled for this environment' : null,
+        },
+        developerMode: {
+          enabled: true,
+          reason: null,
+        },
+        agentDetails: {
+          enabled: true,
+          reason: null,
+        },
+      },
     },
   };
 };

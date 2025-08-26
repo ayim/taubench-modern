@@ -146,12 +146,28 @@ const DocumentsLink: FC = memo(() => {
   return (
     <SideNavigation.ItemGroup>
       <LinkBase
-        to="/tenants/$tenantId/documents"
+        to="/tenants/$tenantId/documentIntelligence"
         params={{ tenantId }}
         className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
         activeProps={linkActiveProp}
       >
-        <SideNavigation.Item icon={<IconDocumentIntelligence />}>Documents</SideNavigation.Item>
+        <SideNavigation.Item icon={<IconDocumentIntelligence />}>Document Intelligence</SideNavigation.Item>
+      </LinkBase>
+    </SideNavigation.ItemGroup>
+  );
+});
+
+const AgentDeploymentLink: FC = memo(() => {
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
+  return (
+    <SideNavigation.ItemGroup>
+      <LinkBase
+        to="/tenants/$tenantId/agents/create"
+        params={{ tenantId }}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
+        <SideNavigation.Item icon={<IconAgents />}>Create Agent</SideNavigation.Item>
       </LinkBase>
     </SideNavigation.ItemGroup>
   );
@@ -307,16 +323,20 @@ export const Sidebar: FC<SideBarProps> = memo(({ agents }) => {
       borderWidth="0 1px 0 0"
     >
       <HomeLink />
+
       <AgentsLink />
       {features.documentIntelligence.enabled && <DocumentsLink />}
       <WorkItemsLink />
-      {features.mcpServersManagement?.enabled && <McpServersLink />}
+      {features.settings.enabled && <SettingsLink />}
+      {features.mcpServersManagement.enabled && <McpServersLink />}
+      {features.deploymentWizard.enabled && <AgentDeploymentLink />}
       {agents.length > 0 && (
         <>
           <CustomDivider />
           <MyAgentsItems agents={agents} />
         </>
       )}
+
       <Box mt="auto" />
       {SHOW_PLACEHOLDER_PAGES && <SettingsLink />}
       {SHOW_PLACEHOLDER_PAGES && <HelpLink />}

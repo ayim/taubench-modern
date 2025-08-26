@@ -31,6 +31,34 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   dataServer: {
     mode: 'disabled',
   },
+  workroomMeta: {
+    features: {
+      mcpServersManagement: {
+        enabled: true,
+        reason: null,
+      },
+      deploymentWizard: {
+        enabled: true,
+        reason: null,
+      },
+      settings: {
+        enabled: true,
+        reason: null,
+      },
+      documentIntelligence: {
+        enabled: true,
+        reason: null,
+      },
+      developerMode: {
+        enabled: true,
+        reason: null,
+      },
+      agentDetails: {
+        enabled: true,
+        reason: null,
+      },
+    },
+  },
 });
 
 describe('application', () => {
