@@ -145,18 +145,100 @@ Both the agent server and workroom (interaction UI) are available in this reposi
 
 #### Requirements
 
-To develop with the Workroom application, you must have **NodeJS** and **NPM** installed, with valid Sema4.ai authentication configured with which to use to install packages needed by Workroom and associated dependencies:
+To develop the Workroom application, you must have **NodeJS** and **NPM** installed, with valid Sema4.ai authentication configured with which to install packages needed by Workroom and associated dependencies.
 
-1. You should have a `~/.npmrc` file with the following structure:
+1. You **must** have an `~/.npmrc` file.
 
-   _This is needed for both local and docker-based development_
+    _This is needed for both local and docker-based development._
 
-   ```
-   //npm.pkg.github.com/:_authToken=ghp_<snip>
-   @sema4ai:registry=https://npm.pkg.github.com/
-   ```
+    You must generate a Personal Access Token (PAT) in [GitHub settings](https://github.com/settings/tokens). The token must be granted access to at least the `read:packages` scope.
 
-2. Create a `.env` file in `./workroom` by copying the example file. Run this command from the `workroom` directory:
+    The structure of the `~/.npmrc` file should be as follows:
+
+    ```
+    //npm.pkg.github.com/:_authToken=ghp_<snip>
+    @sema4ai:registry=https://npm.pkg.github.com/
+    ```
+
+1. You need to set up a GitHub Container Registry (GHCR) Docker **credential helper**.
+
+    The helper will be used for authentication when retrieving Docker images from our GHCR repository.
+
+    It retrieves your PAT from `~/.npmrc` and automatically authenticates against the registry when pulling images.
+
+    The following snippet will create `/usr/local/bin/docker-credential-gh` and make it executable.
+
+    **Copy** the snippet to your clipboard, **paste** it in your terminal and press **Enter.**
+
+    The script uses `sudo` to create the file, so it will ask for your password.
+
+    ```shell
+    sudo tee /usr/local/bin/docker-credential-gh > /dev/null << 'EOX'
+    #!/usr/bin/env bash
+
+    set -euo pipefail
+
+    action="${1:-}"
+
+    case "${action}" in
+      get)
+        read -r registry_url || true
+
+        if [[ ! "${registry_url}" =~ ghcr\.io ]]; then
+          echo "Error: This credential helper only supports ghcr.io" >&2
+          exit 1
+        fi
+
+        token=$(grep '//npm.pkg.github.com/:_authToken=' ~/.npmrc | head -n1 | cut -d= -f2)
+        if [ -z "${token}" ]; then
+          echo "Error: Failed to get PAT from npmrc" >&2
+          exit 1
+        fi
+
+        username=$(curl -s -H "Authorization: Bearer ${token}" https://api.github.com/user | awk -F'"' '/"login":/ {print $4}')
+
+        cat <<EOF
+    {
+      "Username": "${username}",
+      "Secret": "${token}"
+    }
+    EOF
+        ;;
+
+      store)
+        cat > /dev/null
+        ;;
+
+      erase)
+        cat > /dev/null
+        ;;
+
+      *)
+        echo "Usage: $0 {get|store|erase}" >&2
+        echo "This is a Docker credential helper. It's not meant to be run directly." >&2
+        exit 1
+        ;;
+    esac
+    EOX
+    sudo chmod +x /usr/local/bin/docker-credential-gh
+    ```
+
+    After you've run the previous snippet, configure the Docker CLI to use the credential helper by editing `~/.docker/config.json` and adding the following entry.
+
+    If the file doesn't exist, **create** it.
+
+    **Note:** Make sure to include the trailing comma (`,`) on the preceding line!
+
+    ```
+      ...
+      },
+      "credHelpers": {
+        "ghcr.io": "gh"
+      }
+    }
+    ```
+
+1. Create a `.env` file in `./workroom` by copying the example file. Run this command from the `workroom` directory:
 
    ```
    cp .env.example .env
@@ -166,7 +248,7 @@ To develop with the Workroom application, you must have **NodeJS** and **NPM** i
 
    _Note that copying the `.env.auth.example` file will setup Workroom to use authentication._
 
-3. Run `npm install` inside the `workroom` directory
+1. Run `npm install` inside the `workroom` directory
 
 > [!NOTE]
 > The `.env` file in `./workroom` is only necessary for non-docker-based Workroom development. If using workroom via Docker, you don't need to touch these files.

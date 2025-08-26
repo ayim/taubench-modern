@@ -74,7 +74,7 @@ services:
         restart: unless-stopped
 
     data-server:
-        image: '024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:1.1.15_3d9d266.20250821T091212Z'
+        image: 'ghcr.io/sema4ai/data-server:1.1.15_efa662b.20250826t085307z'
         container_name: data-server
         platform: linux/amd64
         environment:
