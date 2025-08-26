@@ -78,6 +78,7 @@ markers = [
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
     "postgresql: marks tests that require PostgreSQL (deselect with '-m \"not postgresql\"')",
     "cloud: marks tests that require cloud storage (deselect with '-m \"not cloud\"')",
+    "spar: marks tests that run against an active spar-no-auth docker SPAR profile (deselect with '-m \"not spar\"')",
 ]
 filterwarnings = [
     # Ignore pkg_resources/declare_namespace deprecation warnings from snowflake-snowpark-python

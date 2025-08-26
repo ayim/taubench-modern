@@ -1,12 +1,17 @@
 import itertools
 import os
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from functools import partial
-from typing import Literal
+from typing import Any, Literal
 from urllib.parse import urljoin
 
 import requests
+from sema4ai_docint.extraction.reducto.async_ import JobType
+
+from agent_platform.core.payloads.upsert_document_intelligence_config import (
+    UpsertDocumentIntelligenceConfigPayload,
+)
 
 HEADER_INDEX = 0
 
@@ -797,8 +802,6 @@ class AgentServerClient:
         output_format: Literal["json", "parquet"] = "json",
         order_by: str | None = None,
     ) -> bytes:
-        from typing import Any
-
         url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames/slice")
         params: dict[str, Any] = {"data_frame_id": data_frame_id}
         if offset is not None:
@@ -819,3 +822,93 @@ class AgentServerClient:
                 f"Error getting data frame slice: {response.status_code} {response.text}",
             ) from e
         return response.content
+
+    def configure_document_intelligence(
+        self, doc_int_config: UpsertDocumentIntelligenceConfigPayload
+    ):
+        url = urljoin(self.base_url + "/", "document-intelligence")
+        response = requests.post(url, json=asdict(doc_int_config))
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error configuring document intelligence: {response.status_code} {response.text}",
+            ) from e
+        return response
+
+    def parse_document(self, file_ref: str, thread_id: str) -> dict:
+        """Parse a document using Document Intelligence.
+
+        Args:
+            file_ref: Reference to the file that already exists in the thread
+            thread_id: ID of the thread containing the file
+
+        Returns:
+            The parsed document result
+        """
+        url = urljoin(
+            self.base_url + "/",
+            f"document-intelligence/documents/parse?thread_id={thread_id}",
+        )
+        headers = {
+            "Accept": "application/json",
+        }
+
+        response = requests.post(url, headers=headers, data={"file": file_ref})
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error parsing document: {response.status_code} {response.text}",
+            ) from e
+        result = response.json()
+        print_success("Document parsed successfully")
+        return result
+
+    def start_async_document_parse(self, file_ref: str, thread_id: str) -> dict:
+        url = urljoin(
+            self.base_url + "/",
+            f"document-intelligence/documents/parse/async?thread_id={thread_id}",
+        )
+        headers = {
+            "Accept": "application/json",
+        }
+        response = requests.post(url, headers=headers, data={"file": file_ref})
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error starting document parse job: {response.status_code} {response.text}",
+            ) from e
+        result = response.json()
+        print_success("Document parse job started successfully")
+        return result
+
+    # Job status and result
+    def get_job_status(self, job_id: str, job_type: JobType) -> dict:
+        url = urljoin(
+            self.base_url + "/",
+            f"document-intelligence/jobs/{job_id}/status?job_type={job_type.value}",
+        )
+        response = requests.get(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting job status: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def get_job_result(self, job_id: str, job_type: JobType) -> dict:
+        url = urljoin(
+            self.base_url + "/",
+            f"document-intelligence/jobs/{job_id}/result?job_type={job_type.value}",
+        )
+        response = requests.get(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting job result: {response.status_code} {response.text}",
+            ) from e
+        return response.json()

@@ -1,0 +1,109 @@
+name: SPAR Integration Tests
+
+on:
+  push:
+    paths:
+      # Workroom
+      - 'workroom/**'
+      # Shared
+      - '.github/workflows/spar-test.yaml'
+      - 'Dockerfile.spar'
+      - '.dockerignore'
+      - 'scripts/spar-healthcheck.sh'
+      - 'scripts/entrypoint-spar.sh'
+      # Agent Server
+      - 'server/**'
+      - 'core/**'
+      - 'architectures/**'
+      - 'scripts/build_exe.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  spar-integration-tests:
+    name: Run SPAR Integration Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+
+      - name: Create .npmrc file for Docker build
+        shell: bash
+        run: |
+          cat << EOF > ~/.npmrc
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_READ_PACKAGES }}
+          EOF
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_PAT_READ_PACKAGES }}
+
+      - name: Prepare environment
+        run: |
+          # Ensure required directories exist
+          mkdir -p observability/dev/otlp-output
+
+      - name: Start SPAR stack
+        run: |
+          # Start the SPAR stack in the background
+          COMPOSE_PROFILES=spar-no-auth docker compose up --build -d
+
+      - name: Wait for SPAR stack to be healthy
+        run: ./scripts/wait-for-spar-health.sh
+
+      - run: make sync
+
+      - name: Run SPAR integration tests
+        working-directory: server
+        run: |
+          # Run tests marked with spar
+          uv run pytest -v -m spar
+        env:
+          # API keys for external services (tests will be skipped if not available)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REDUCTO_API_KEY: ${{ secrets.REDUCTO_API_KEY }}
+          REDUCTO_ENDPOINT: ${{ vars.REDUCTO_ENDPOINT || 'https://backend.sema4.ai/reducto' }}
+
+      - name: Stop SPAR stack
+        if: always()
+        run: |
+          docker compose down -v
+          docker compose ps
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Docker Compose Logs ==="
+          docker compose logs
+          echo "=== Container Status ==="
+          docker compose ps -a
