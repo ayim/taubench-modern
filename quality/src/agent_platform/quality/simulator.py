@@ -1,5 +1,4 @@
 import json
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -225,22 +224,25 @@ class ReplayToolExecutor(ToolExecutor):
             raise AssertionError(f"{remaining} recorded tool call(s) were not executed.")
 
 
-def sublist_until_last(
-    messages: list["Message"], condition: Callable[["Message"], bool]
-) -> list["Message"]:
-    """
-    Returns a slice of `messages` starting at index 0 and ending at the last element
-    that satisfies `condition` (inclusive).
-    If no element matches, returns an empty list.
-    """
-    last_index = None
-    for i, msg in enumerate(messages):
-        if condition(msg):
-            last_index = i
+def get_user_messages(
+    messages: list["Message"], start_index: int
+) -> tuple[list["Message"], int | None]:
+    n = len(messages)
+    if not (0 <= start_index < n) or messages[start_index].role != "user":
+        raise ValueError(f"start_index={start_index} out of range or not a user message")
 
-    if last_index is None:
-        return []
-    return messages[: last_index + 1]
+    i = start_index
+    while i < n and messages[i].role == "user":
+        i += 1
+    users_block = messages[start_index:i]
+
+    j = i
+    while j < n and messages[j].role == "agent":
+        j += 1
+
+    next_user_index = j if j < n and messages[j].role == "user" else None
+
+    return users_block, next_user_index
 
 
 class ReplayResultManager:
@@ -348,7 +350,7 @@ class Simulator:
 
         self.result_manager = ReplayResultManager(datadir=datadir)
 
-    async def replay_trace(
+    async def replay_trace(  # noqa: PLR0915
         self,
         golden_trace: Trace,
         assert_all_consumed: bool = False,
@@ -397,65 +399,85 @@ class Simulator:
                 )
                 for tool in golden_trace.tools
             ]
-            agent = AgentClient(
-                thread_name="Testing websockets",
-                agent_id=agent_id,
-                agent_server_base_url=agent_server_url,
-                tools=client_tools,
-                tool_executor=tool_executor,
+
+            messages = []
+            next_user_message_index = 0
+
+            turn_id = 0
+
+            while True:
+                print(f">> Turn {turn_id}: getting user messages")
+
+                if next_user_message_index is None:
+                    logger.info("No further user messages. Terminating...")
+                    break
+
+                user_messages, next_user_message_index = get_user_messages(
+                    golden_trace.messages, next_user_message_index
+                )
+
+                messages.extend(user_messages)
+                print(user_messages)
+
+                agent = AgentClient(
+                    thread_name="Testing websockets",
+                    agent_id=agent_id,
+                    agent_server_base_url=agent_server_url,
+                    tools=client_tools,
+                    tool_executor=tool_executor,
+                )
+
+                try:
+                    print(f">> Turn {turn_id}: waiting for agent response")
+                    # TODO get messages in a stream-y way
+                    new_agent_messages = await agent.run_once(user_messages)
+                    messages.extend(new_agent_messages)
+
+                    if assert_all_consumed:
+                        tool_executor.assert_all_consumed()
+                except AssertionError as e:
+                    print(f">> Turn {turn_id}: simulation error. Terminating...")
+                    new_agent_messages = agent.get_messages()
+                    messages.extend(new_agent_messages)
+                    trace = Trace(
+                        environment=new_environment,
+                        tools=golden_trace.tools,
+                        messages=messages,
+                    )
+                    result = ReplayResult(
+                        golden_trace=golden_trace,
+                        trace=trace,
+                        success=False,
+                        error=f"{e}",
+                        # TODO it would be nice to add assert errors
+                        evaluation_results=[],
+                    )
+
+                    self.result_manager.save_result(result)
+
+                    return result
+
+                turn_id += 1
+
+            trace = Trace(
+                environment=new_environment,
+                tools=golden_trace.tools,
+                messages=messages,
             )
+            judge = ConversationJudge(agent_server_url=self.server_url)
 
-            # TODO for now we consider a single turn conversation: user request/agent response
-            initial_payload = sublist_until_last(golden_trace.messages, lambda m: m.role == "user")
+            evaluation = await judge.evaluate(
+                benchmark=golden_trace.messages, target=trace.messages
+            )
+            result = ReplayResult(
+                trace=trace,
+                golden_trace=golden_trace,
+                success=evaluation.passed,
+                evaluation_results=[evaluation],
+            )
+            self.result_manager.save_result(result)
 
-            agent_messages = []
-            try:
-                # TODO get messages in a stream-y way
-                new_agent_messages = await agent.run_once(initial_payload)
-                agent_messages.extend(new_agent_messages)
-
-                if assert_all_consumed:
-                    tool_executor.assert_all_consumed()
-
-                trace = Trace(
-                    environment=new_environment,
-                    tools=golden_trace.tools,
-                    messages=initial_payload + agent_messages,
-                )
-                judge = ConversationJudge(agent_server_url=self.server_url)
-
-                evaluation = await judge.evaluate(
-                    benchmark=golden_trace.messages, target=trace.messages
-                )
-                result = ReplayResult(
-                    trace=trace,
-                    golden_trace=golden_trace,
-                    success=True,
-                    evaluation_results=[evaluation],
-                )
-                self.result_manager.save_result(result)
-
-                return result
-            except AssertionError as e:
-                new_agent_messages = agent.get_messages()
-                agent_messages.extend(new_agent_messages)
-                trace = Trace(
-                    environment=new_environment,
-                    tools=golden_trace.tools,
-                    messages=initial_payload + agent_messages,
-                )
-                result = ReplayResult(
-                    golden_trace=golden_trace,
-                    trace=trace,
-                    success=False,
-                    error=f"{e}",
-                    # TODO it would be nice to add assert errors
-                    evaluation_results=[],
-                )
-
-                self.result_manager.save_result(result)
-
-                return result
+            return result
         finally:
             if infrastructure_started:
                 logger.info("Stopping shared infrastructure")
