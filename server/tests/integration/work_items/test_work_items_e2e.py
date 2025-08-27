@@ -1,9 +1,11 @@
+import json
 from io import BytesIO
 
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from httpx import AsyncClient
 
+from agent_platform.core.thread.thread import Thread
 from agent_platform.core.work_items.work_item import WorkItemStatus
 from agent_platform.server.work_items.callbacks import _compute_signature
 from agent_platform.server.work_items.rest import WorkItemsListResponse
@@ -14,10 +16,37 @@ from server.tests.integration.work_items.helper_functions import (
 )
 
 
+async def _verify_payload_in_thread_messages(
+    base_url: str, agent_id: str, thread_id: str, expected_payload_data: dict
+) -> None:
+    """Verify that the expected payload data appears in the thread messages."""
+    async with AsyncClient(base_url=f"{base_url}/api/v2") as messages_client:
+        resp = await messages_client.get(f"/threads/{thread_id}/state")
+        assert resp.status_code == 200
+        thread = Thread.model_validate(resp.json())
+
+        # Filter to only ThreadTextContext, and get the actual text
+        text_contents = [
+            content.as_text_content()
+            for message in thread.messages
+            for content in message.content
+            if content.kind == "text"
+        ]
+
+        # Look for a text content with the payload
+        expected_text = json.dumps(expected_payload_data)
+        found = any(expected_text in text_content for text_content in text_contents)
+
+        assert found, (
+            f"Expected to find payload {expected_payload_data} in thread messages, "
+            f"but it was not found. Messages: {thread.messages}"
+        )
+
+
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_work_items_e2e(  # noqa: PLR0915
+async def test_work_items_with_file_e2e(  # noqa: PLR0915
     base_url_agent_server_workitems_matrix: str,
     openai_api_key: str,
     callback_server,
@@ -192,6 +221,118 @@ async def test_work_items_e2e(  # noqa: PLR0915
             assert final_desc_resp.status_code == 200
             assert final_desc_resp.json()["work_item_id"] == work_item_id
             assert final_desc_resp.json()["status"] == final_status.value
+
+            # 9. Verify payload made it into thread messages after completion
+            thread_id = final_work_item["thread_id"]
+            assert thread_id is not None, "Thread ID should not be None after completion"
+
+        # Verify that the payload made it into the thread messages
+        expected_payload_data = {"task": "simple_math", "test_type": "e2e_comprehensive"}
+        await _verify_payload_in_thread_messages(
+            base_url_agent_server_workitems_matrix, agent_id, thread_id, expected_payload_data
+        )
+
+        # Make sure the private v2 work-items endpoint is working:
+        async with AsyncClient(
+            base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
+        ) as client:
+            v2_list_resp = await client.get("/work-items/")
+            assert v2_list_resp.status_code == 200
+            v2_listed_items = v2_list_resp.json()["records"]
+            v2_work_item_ids = [wi["work_item_id"] for wi in v2_listed_items]
+            assert work_item_id in v2_work_item_ids
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_items_e2e(
+    base_url_agent_server_workitems_matrix: str,
+    openai_api_key: str,
+    callback_server,
+):
+    # Create agent for this test run
+    with AgentServerClient(base_url_agent_server_workitems_matrix) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4.1"]},
+                }
+            ],
+            runbook="""
+            You are a helpful assistant. Always respond with exactly what the user asks for.
+            """,
+        )
+
+        work_items_url = f"{base_url_agent_server_workitems_matrix}/api/public/v1/work-items"
+
+        async with AsyncClient(base_url=work_items_url) as client:
+            # Create a work item
+            create_payload = {
+                "agent_id": agent_id,
+                "messages": make_text_message("What is 2+2?"),
+                "payload": {"task": "simple_math", "test_type": "e2e_comprehensive"},
+            }
+
+            create_resp = await client.post("/", json=create_payload)
+            assert create_resp.status_code == 200
+            work_item = create_resp.json()
+
+            # Verify work item is now PENDING with agent
+            assert work_item["status"] in [
+                WorkItemStatus.PENDING.value,
+                WorkItemStatus.EXECUTING.value,
+            ]
+            assert work_item["agent_id"] == agent_id
+            assert work_item["work_item_id"] is not None
+            work_item_id = work_item["work_item_id"]
+
+            # Wait for main work item to reach final status
+            # Note: The judge can return either COMPLETED or NEEDS_REVIEW
+            async def _is_final_status():
+                r = await client.get(f"/{work_item_id}")
+                assert r.status_code == 200
+                status = WorkItemStatus(r.json()["status"])
+                return status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+
+            await _wait_until(_is_final_status, interval=1.0, timeout=120)
+
+            # Get final work item state
+            final_resp = await client.get(f"/{work_item_id}?results=true")
+            assert final_resp.status_code == 200
+            final_work_item = final_resp.json()
+
+            final_status = WorkItemStatus(final_work_item["status"])
+            assert final_status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW], (
+                f"Expected COMPLETED or NEEDS_REVIEW status, got {final_status}. "
+                f"The judge can return either status for simple questions."
+            )
+            assert final_work_item["thread_id"] is not None
+
+            # Final endpoint verification - ensure we can still query the completed work item
+            final_list_resp = await client.get("/")
+            assert final_list_resp.status_code == 200
+            final_listed_items = WorkItemsListResponse.model_validate(final_list_resp.json())
+            final_work_item_ids = [wi.work_item_id for wi in final_listed_items.records]
+            assert work_item_id in final_work_item_ids
+
+            # Verify final describe still works
+            final_desc_resp = await client.get(f"/{work_item_id}")
+            assert final_desc_resp.status_code == 200
+            assert final_desc_resp.json()["work_item_id"] == work_item_id
+            assert final_desc_resp.json()["status"] == final_status.value
+
+            # Verify payload made it into thread messages after completion
+            thread_id = final_work_item["thread_id"]
+            assert thread_id is not None, "Thread ID should not be None after completion"
+
+        # Verify that the payload made it into the thread messages
+        expected_payload_data = {"task": "simple_math", "test_type": "e2e_comprehensive"}
+        await _verify_payload_in_thread_messages(
+            base_url_agent_server_workitems_matrix, agent_id, thread_id, expected_payload_data
+        )
 
         # Make sure the private v2 work-items endpoint is working:
         async with AsyncClient(

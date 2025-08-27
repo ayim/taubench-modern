@@ -1,3 +1,4 @@
+import json
 from uuid import uuid4
 
 import pytest
@@ -195,6 +196,93 @@ def test_work_item_to_initiate_stream_payload():
         "from_work_item": True,
         "work_item_id": work_item.work_item_id,
     }
+
+
+def test_work_item_to_initiate_stream_payload_with_payload():
+    """Test that non-empty payload gets added as a thread message."""
+    initial_msg = ThreadMessage(content=[ThreadTextContent(text="Initial request")], role="user")
+    test_payload = {"key": "value", "data": [1, 2, 3]}
+
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        agent_id=str(uuid4()),
+        thread_id=str(uuid4()),
+        user_id=str(uuid4()),
+        created_by=str(uuid4()),
+        status=WorkItemStatus.EXECUTING,
+        initial_messages=[initial_msg],
+        messages=[initial_msg],
+        payload=test_payload,
+    )
+
+    stream_payload = work_item.to_initiate_stream_payload()
+
+    # Should have original message + payload message
+    assert len(stream_payload.messages) == 2
+    assert stream_payload.messages[0] == initial_msg
+
+    # Check payload message
+    payload_msg = stream_payload.messages[1]
+    assert payload_msg.role == "user"
+    assert len(payload_msg.content) == 1
+    assert json.dumps(test_payload) in payload_msg.content[0].as_text_content()
+
+
+def test_work_item_to_initiate_stream_payload_with_empty_payload():
+    """Test that empty payload ({}) is not added to thread messages."""
+    initial_msg = ThreadMessage(content=[ThreadTextContent(text="Initial request")], role="user")
+
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        agent_id=str(uuid4()),
+        thread_id=str(uuid4()),
+        user_id=str(uuid4()),
+        created_by=str(uuid4()),
+        status=WorkItemStatus.EXECUTING,
+        initial_messages=[initial_msg],
+        messages=[initial_msg],
+        payload={},  # Empty dict
+    )
+
+    stream_payload = work_item.to_initiate_stream_payload()
+
+    # Should only have original message, no payload message
+    assert len(stream_payload.messages) == 1
+    assert stream_payload.messages[0] == initial_msg
+
+
+def test_work_item_to_initiate_stream_payload_payload_with_messages():
+    """Test that payload message is properly ordered with existing messages."""
+    initial_msg = ThreadMessage(content=[ThreadTextContent(text="Initial request")], role="user")
+    file_msg = ThreadMessage(
+        content=[ThreadTextContent(text="Uploaded [file.txt](https://example.com/file.txt)")],
+        role="user",
+    )
+    test_payload = {"task": "process", "priority": "high"}
+
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        agent_id=str(uuid4()),
+        thread_id=str(uuid4()),
+        user_id=str(uuid4()),
+        created_by=str(uuid4()),
+        status=WorkItemStatus.EXECUTING,
+        initial_messages=[initial_msg],
+        messages=[initial_msg, file_msg],
+        payload=test_payload,
+    )
+
+    stream_payload = work_item.to_initiate_stream_payload()
+
+    # Should have original messages, file messages, and payload messages.
+    assert len(stream_payload.messages) == 3
+    assert stream_payload.messages[0] == initial_msg
+    assert stream_payload.messages[1] == file_msg
+
+    payload_msg = stream_payload.messages[2]
+    assert payload_msg.role == "user"
+    assert len(payload_msg.content) == 1
+    assert json.dumps(test_payload) in payload_msg.content[0].as_text_content()
 
 
 def test_work_item_model_validate_field_parsing():

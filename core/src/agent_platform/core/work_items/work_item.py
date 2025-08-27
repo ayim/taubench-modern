@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -6,6 +7,7 @@ from uuid import UUID
 
 from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.text import ThreadTextContent
 
 
 class WorkItemStatus(StrEnum):
@@ -336,12 +338,25 @@ class WorkItem:
             agent_id=self.agent_id or "",
             thread_id=self.thread_id,
             name=f"Work Item {self.work_item_id}",
-            messages=self.messages,
+            messages=self._build_messages_for_thread(),
             metadata={
                 "from_work_item": True,
                 "work_item_id": self.work_item_id,
             },
         )
+
+    def _build_messages_for_thread(self) -> list[ThreadMessage]:
+        messages_for_thread = self.messages.copy()
+        if self.payload:
+            messages_for_thread.append(
+                ThreadMessage(
+                    role="user",
+                    content=[
+                        ThreadTextContent(text=f"Work item payload: {json.dumps(self.payload)}")
+                    ],
+                )
+            )
+        return messages_for_thread
 
     @classmethod
     def model_validate(cls, data: dict) -> "WorkItem":  # noqa: C901, PLR0912

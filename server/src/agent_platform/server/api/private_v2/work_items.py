@@ -28,7 +28,6 @@ from agent_platform.server.api.private_v2.threads import (
 )
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemConfig
-from agent_platform.server.work_items.background_worker import _validate_success
 from agent_platform.server.work_items.callbacks import _build_work_item_url
 from agent_platform.server.work_items.rest import WorkItemsListResponse
 from agent_platform.server.work_items.state_machine import WorkItemStateMachine
@@ -97,6 +96,7 @@ async def create_work_item(
         # Ensure the requested callbacks are supported by the WorkItems service
         payload.callbacks = await _validate_callbacks(payload.callbacks)
         work_item.callbacks = payload.callbacks
+        work_item.payload = payload.payload
 
         # set agent ID as it wouldn't have been set before.
         work_item.agent_id = payload.agent_id
@@ -108,6 +108,7 @@ async def create_work_item(
         work_item.messages = [
             ThreadMessage.model_validate(msg.model_dump()) for msg in payload.messages
         ]
+
         await storage.update_work_item(work_item)
         # set work item status to pending
         await storage.update_work_item_status(
@@ -438,6 +439,8 @@ async def preview_work_item(
     storage: StorageDependency,
 ):
     """Preview the status of a work item during a dry run."""
+    from agent_platform.server.work_items.background_worker import _validate_success
+
     system_user, _created = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     work_item = CreateWorkItemPayload.to_work_item(
         payload=payload,
