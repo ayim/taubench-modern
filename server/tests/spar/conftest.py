@@ -16,6 +16,8 @@ from agent_platform.core.payloads.upsert_document_intelligence_config import (
     _IntegrationInput,
     _MysqlConfig,
 )
+from agent_platform.server.secret_manager.base import BaseSecretManager
+from agent_platform.server.secret_manager.option import SecretService
 
 SPAR_RESOURCES_PATH = Path(__file__).parent / "resources"
 
@@ -121,3 +123,13 @@ def agent_factory(agent_server_client: AgentServerClient, openai_api_key: str) -
 @pytest.fixture
 def spar_resources_path() -> Path:
     return SPAR_RESOURCES_PATH
+
+
+@pytest.fixture
+def spar_postgres_url() -> str:
+    return os.getenv("POSTGRES_URL", "postgresql://agents:agents@localhost:5432/agents")
+
+
+@pytest.fixture
+def secret_service() -> BaseSecretManager:
+    return SecretService.get_instance()
