@@ -298,3 +298,16 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
 
             # 3. Return the count
             return row["count"]
+
+    async def count_agents_by_mode(self, mode: str) -> int:
+        """Count the number of agents by mode."""
+        async with self._cursor() as cur:
+            # 1. Get the count
+            await cur.execute("SELECT COUNT(*) FROM v2.agent WHERE mode = %(mode)s", {"mode": mode})
+
+            # 2. No results?
+            if not (row := await cur.fetchone()):
+                return 0
+
+            # 3. Return the count
+            return row["count"]

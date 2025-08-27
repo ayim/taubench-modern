@@ -190,6 +190,9 @@ def create_app() -> FastAPI:
         return {
             "agentCount": await storage.count_agents(),
             "threadCount": await storage.count_threads(),
+            "conversationalAgentCount": await storage.count_agents_by_mode("conversational"),
+            "workerAgentCount": await storage.count_agents_by_mode("worker"),
+            "messageCount": await storage.count_messages(),
         }
 
     mcp_app = mcp.streamable_http_app()

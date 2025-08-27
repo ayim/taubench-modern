@@ -203,6 +203,14 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                 return row["count"]
         return 0
 
+    async def count_messages(self) -> int:
+        """Count the number of messages across all threads."""
+        async with self._cursor() as cur:
+            await cur.execute("SELECT COUNT(*) FROM v2.thread_message")
+            if row := await cur.fetchone():
+                return row["count"]
+        return 0
+
     async def delete_threads_for_agent(
         self,
         user_id: str,

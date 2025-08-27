@@ -193,6 +193,13 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
             row = await cur.fetchone()
         return row["cnt"] if row else 0
 
+    async def count_messages(self) -> int:
+        """Count the number of messages."""
+        async with self._cursor() as cur:
+            await cur.execute("SELECT COUNT(*) AS cnt FROM v2_thread_message")
+            row = await cur.fetchone()
+        return row["cnt"] if row else 0
+
     async def delete_threads_for_agent(
         self,
         user_id: str,

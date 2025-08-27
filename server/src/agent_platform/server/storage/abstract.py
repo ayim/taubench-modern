@@ -79,6 +79,10 @@ class AbstractStorage(ABC):
         """Count the number of agents."""
 
     @abstractmethod
+    async def count_agents_by_mode(self, mode: str) -> int:
+        """Count the number of agents by mode."""
+
+    @abstractmethod
     async def list_all_agents(self) -> list[Agent]:
         """List all agents for all users."""
 
@@ -142,6 +146,10 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def count_threads(self) -> int:
         """Count the number of threads."""
+
+    @abstractmethod
+    async def count_messages(self) -> int:
+        """Count the number of messages."""
 
     @abstractmethod
     async def delete_threads_for_agent(

@@ -370,6 +370,15 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
             row = await cur.fetchone()
         return row["cnt"] if row else 0
 
+    async def count_agents_by_mode(self, mode: str) -> int:
+        """Count the number of agents by mode."""
+        async with self._cursor() as cur:
+            await cur.execute(
+                "SELECT COUNT(*) AS cnt FROM v2_agent WHERE mode = :mode", {"mode": mode}
+            )
+            row = await cur.fetchone()
+        return row["cnt"] if row else 0
+
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------

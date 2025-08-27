@@ -23,11 +23,27 @@ async def test_count_operations(
     # Initial counts should be 0.
     assert await storage.count_agents() == 0
     assert await storage.count_threads() == 0
+    assert await storage.count_agents_by_mode("conversational") == 0
+    assert await storage.count_agents_by_mode("worker") == 0
+    assert await storage.count_messages() == 0
 
     await storage.upsert_agent(sample_user_id, sample_agent)
     await storage.upsert_thread(sample_user_id, sample_thread)
     assert await storage.count_agents() == 1
     assert await storage.count_threads() == 1
+    assert await storage.count_agents_by_mode("conversational") == 1
+    assert await storage.count_agents_by_mode("worker") == 0
+    assert await storage.count_messages() == len(sample_thread.messages)
+
+    # Create a worker agent to test worker count
+    worker_agent = Agent.model_validate(
+        sample_agent.model_dump()
+        | {"agent_id": str(uuid4()), "name": "Test Worker Agent", "mode": "worker"}
+    )
+    await storage.upsert_agent(sample_user_id, worker_agent)
+    assert await storage.count_agents() == 2
+    assert await storage.count_agents_by_mode("conversational") == 1
+    assert await storage.count_agents_by_mode("worker") == 1
 
 
 @pytest.mark.asyncio
