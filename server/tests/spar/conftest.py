@@ -47,7 +47,7 @@ def reducto_endpoint() -> str:
 @pytest.fixture
 def spar_agent_server_base_url() -> str:
     # TODO: Should this read the compose file and just get it from there just to be safe?
-    return os.getenv("SEMA4AI_WORKROOM_AGENT_SERVER_URL", "http://localhost:8000")
+    return os.getenv("SEMA4AI_WORKROOM_AGENT_SERVER_URL", "http://localhost:8000/api/v2")
 
 
 @pytest.fixture
@@ -90,7 +90,7 @@ def agent_server_client_with_doc_int(
                     "password": "agents",
                     "host": "postgres",
                     "port": 5432,
-                    "database": "data",
+                    "database": "agents",
                 },
             ),
         ],
@@ -113,6 +113,7 @@ def agent_factory(agent_server_client: AgentServerClient, openai_api_key: str) -
         agent_id = agent_server_client.create_agent_and_return_agent_id(
             platform_configs=platform_configs,
             runbook=runbook,
+            document_intelligence="v2",
         )
         agents.append((agent_server_client, agent_id))
         return agent_id
@@ -133,3 +134,39 @@ def spar_postgres_url() -> str:
 @pytest.fixture
 def secret_service() -> BaseSecretManager:
     return SecretService.get_instance()
+
+
+@pytest.fixture
+def data_model_cleanup(
+    spar_agent_server_base_url: str,
+) -> Generator[Callable[[str, str], None], Any, Any]:
+    """
+    Fixture that provides a cleanup function for data models and automatically
+    cleans up any registered models when the test finishes.
+
+    Usage in test:
+        cleanup_func = data_model_cleanup
+        # ... create your data model ...
+        cleanup_func(model_name, agent_id)  # Register for cleanup
+    """
+    cleanup_list: list[tuple[str, str]] = []  # [(model_name, agent_id), ...]
+
+    def register_for_cleanup(model_name: str, agent_id: str) -> None:
+        """Register a data model for cleanup after the test."""
+        cleanup_list.append((model_name, agent_id))
+
+    yield register_for_cleanup
+
+    # Cleanup all registered data models
+    for model_name, agent_id in cleanup_list:
+        try:
+            import httpx
+
+            delete_resp = httpx.delete(
+                f"{spar_agent_server_base_url}/document-intelligence/data-models/{model_name}?agent_id={agent_id}",
+                timeout=30,
+            )
+            if delete_resp.status_code not in (200, 404):
+                print(f"Warning: Failed to delete data model {model_name}: {delete_resp.text}")
+        except Exception as e:
+            print(f"Warning: Exception during data model cleanup for {model_name}: {e}")

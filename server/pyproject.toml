@@ -42,3 +42,8 @@ packages = ["src/agent_platform"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "jsonschema>=4.24.0",
+]

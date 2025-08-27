@@ -427,7 +427,7 @@ class AgentServerClient:
                     f"Error deleting all files from thread: {response.status_code} {response.text}",
                 ) from e
 
-    def create_agent_and_return_agent_id(
+    def create_agent_and_return_agent_id(  # noqa: PLR0913
         self,
         *,
         name: str = "",
@@ -435,6 +435,7 @@ class AgentServerClient:
         runbook: str = "This is a test runbook",
         description: str = "This is a test agent",
         platform_configs: list[dict] | None = None,
+        document_intelligence: str | None = None,
     ) -> str:
         print_header("CREATING AGENT")
 
@@ -469,6 +470,9 @@ class AgentServerClient:
                 "test": "test",
             },
         }
+
+        if document_intelligence:
+            data["document_intelligence"] = document_intelligence
 
         response = requests.post(url, headers=headers, json=data)
         if response.status_code == requests.codes.ok:
