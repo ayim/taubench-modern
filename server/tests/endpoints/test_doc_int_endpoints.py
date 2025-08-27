@@ -2477,13 +2477,17 @@ class TestDataQualityChecksEndpoints:
         fake_ds.execute_sql.return_value = _FakeResult()
 
         fake_client = Mock()
-        # New endpoint validates rules into ValidationRule, so use correct keys
         fake_rules = [
             {"rule_name": "rule1", "sql_query": "SELECT 1", "rule_description": "desc1"},
             {"rule_name": "rule2", "sql_query": "SELECT 2", "rule_description": "desc2"},
             {"rule_name": "rule3", "sql_query": "SELECT 3", "rule_description": "desc3"},
         ]
-        fake_client.generate_validation_rules.return_value = fake_rules
+
+        def _gen_rules(*args, **kwargs):
+            limit = kwargs.get("limit_count", 1)
+            return fake_rules[:limit]
+
+        fake_client.generate_validation_rules.side_effect = _gen_rules
 
         with (
             patch.object(
@@ -2570,6 +2574,48 @@ class TestDataQualityChecksEndpoints:
         fake_client = Mock()
 
         sample_model = SimpleNamespace(description="desc", views=None)
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                return_value=sample_model,
+            ),
+        ):
+            self._override_client_dependency(fastapi_app, fake_client)
+            resp = client.post(
+                "/api/v2/document-intelligence/quality-checks/generate",
+                params={"agent_id": "agent-1"},
+                json={
+                    "data_model_name": "Invoices",
+                    "description": "checks",
+                    "limit": 3,
+                },
+            )
+
+        assert resp.status_code == 404
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.NOT_FOUND.value.code
+        assert "no views have been defined for the data model" in err["message"].lower()
+
+    def test_generate_quality_checks_missing_views_empty_list(
+        self, client: TestClient, fastapi_app: FastAPI
+    ):
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+        fake_client = Mock()
+
+        sample_model = SimpleNamespace(description="desc", views=[])
 
         with (
             patch.object(

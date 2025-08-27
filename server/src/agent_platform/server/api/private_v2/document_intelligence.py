@@ -20,7 +20,6 @@ from sema4ai_docint.models import DocumentLayout, Mapping, MappingRow, initializ
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME, PROJECT_NAME
 from sema4ai_docint.models.data_model import DataModel
 from sema4ai_docint.utils import normalize_name, validate_schema
-from sema4ai_docint.validation import gather_view_metadata_with_samples
 from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
@@ -499,26 +498,27 @@ async def generate_quality_checks(
         if not data_model:
             raise PlatformHTTPError(ErrorCode.NOT_FOUND, f"Data model not found: {data_model_name}")
         views = data_model.views
-        if views is None:
+        if not views:
             raise PlatformHTTPError(
                 ErrorCode.NOT_FOUND,
                 f"No views have been defined for the data model: {payload.data_model_name}",
             )
-        view_reference_data = gather_view_metadata_with_samples(data_model, docint_ds)
-
         validation_rules = await run_in_threadpool(
             agent_server_client.generate_validation_rules,
-            data_model.description,
-            payload.description,
-            views,
-            view_reference_data,
-            PROJECT_NAME,
+            rules_description=payload.description,
+            data_model=data_model,
+            datasource=docint_ds,
+            database_name=PROJECT_NAME,
+            limit_count=payload.limit,
         )
-        logger.info(f"Generated {len(validation_rules)} data quality checks")
-        limited_validation_rules = [
-            ValidationRule.model_validate(rule) for rule in validation_rules[: payload.limit]
-        ]
-        return GenerateDataQualityChecksResponse(quality_checks=limited_validation_rules)
+        # we only return the first `limit` rules,
+        # so we need to log a warning if we didn't generate enough
+        if len(validation_rules) < payload.limit:
+            logger.warning(
+                f"Generated {len(validation_rules)} data quality checks, expected {payload.limit}"
+            )
+        final_validation_rules = [ValidationRule.model_validate(rule) for rule in validation_rules]
+        return GenerateDataQualityChecksResponse(quality_checks=final_validation_rules)
     except PlatformHTTPError:
         raise
     except Exception as e:
