@@ -1,4 +1,4 @@
-import { ApiClient } from '@sema4ai/agent-components';
+import { ApiClient, DataFrame } from '@sema4ai/agent-components';
 import { Agent, Thread } from '~/types';
 import { errorToast, successToast, warnToast } from '~/utils/toasts';
 import { AgentAPIClient } from '../AgentAPIClient';
@@ -244,17 +244,88 @@ export const getChatAPIClient = (
           });
         }
       : undefined,
-    getDataFrames() {
-      throw Error('Not Implemented');
+    getDataFrames: async (params: { tid: string }, options?: { num_samples?: number }) => {
+      const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/{tid}/data-frames', {
+        params: {
+          path: { tid: params.tid },
+          query: { num_samples: options?.num_samples },
+        },
+      });
+
+      return response;
     },
-    createDataFrame() {
-      throw Error('Not Implemented');
+    createDataFrame: async (
+      params: { tid: string; file_id: string },
+      options?: { sheet_name?: string; name?: string; description?: string; num_samples?: number },
+    ) => {
+      const response = await agentAPIClient.agentFetch(
+        tenantId,
+        'post',
+        '/api/v2/threads/{tid}/data-frames/from-file',
+        {
+          params: {
+            path: { tid: params.tid },
+            query: {
+              file_id: params.file_id,
+              sheet_name: options?.sheet_name,
+              name: options?.name,
+              description: options?.description,
+              num_samples: options?.num_samples,
+            },
+          },
+        },
+      );
+
+      return response;
     },
-    getDataFrameSlice() {
-      throw Error('Not Implemented');
+    getDataFrameSlice: async (
+      params: { tid: string; data_frame_id: string; offset: number },
+      options?: {
+        data_frame_name?: string;
+        output_format?: 'json' | 'parquet';
+        limit?: number;
+        column_names?: string[];
+        order_by?: string;
+      },
+    ) => {
+      const response = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/{tid}/data-frames/slice', {
+        params: {
+          path: { tid: params.tid },
+        },
+        body: {
+          data_frame_id: params.data_frame_id,
+          offset: params.offset,
+          limit: options?.limit,
+          column_names: options?.column_names,
+          data_frame_name: options?.data_frame_name,
+          order_by: options?.order_by,
+          output_format: options?.output_format ?? 'json',
+        },
+      });
+
+      return response as Record<string, string>[] | null;
     },
-    inspectDataFrameFile() {
-      throw Error('Not Implemented');
+    inspectDataFrameFile: async (
+      params: { tid: string; file_id: string },
+      options?: { sheet_name?: string; num_samples?: number },
+    ) => {
+      const response = await agentAPIClient.agentFetch(
+        tenantId,
+        'get',
+        '/api/v2/threads/{tid}/inspect-file-as-data-frame',
+        {
+          params: {
+            path: { tid: params.tid },
+            query: {
+              file_id: params.file_id,
+              num_samples: options?.num_samples,
+              sheet_name: options?.sheet_name,
+            },
+          },
+        },
+      );
+
+      return response as Omit<DataFrame, 'data_frame_id' | 'description'>[];
     },
     downloadThreadFile() {
       throw Error('Not Implemented');

@@ -41,7 +41,7 @@
     "@hookform/resolvers": "^5.2.1",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@sema4ai/agent-components": "^6.10.1",
-    "@sema4ai/components": "^1.5.1",
+    "@sema4ai/components": "^1.5.2",
     "@sema4ai/document-intelligence-interface": "^1.3.9",
     "@sema4ai/icons": "^1.3.0",
     "@sema4ai/layouts": "^1.0.0",
