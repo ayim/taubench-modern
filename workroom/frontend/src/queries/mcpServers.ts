@@ -6,6 +6,7 @@ import { useRouteContext } from '@tanstack/react-router';
 export type ListMcpServersResponse =
   paths['/api/v2/mcp-servers/']['get']['responses']['200']['content']['application/json'];
 export type McpServerResponse = components['schemas']['MCPServerResponse'];
+export type CreateMcpServerBody = paths['/api/v2/mcp-servers/']['post']['requestBody']['content']['application/json'];
 
 export const getListMcpServersQueryOptions = ({ tenantId, agentAPIClient }: QueryProps<{ tenantId: string }>) =>
   queryOptions({
@@ -26,6 +27,23 @@ export const useDeleteMcpServerMutation = () => {
       await agentAPIClient.agentFetch(tenantId, 'delete', '/api/v2/mcp-servers/{mcp_server_id}', {
         params: { path: { mcp_server_id: mcpServerId } },
         errorMsg: 'Failed to delete MCP server',
+      });
+    },
+    onSuccess: async (_data, { tenantId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });
+    },
+  });
+};
+
+export const useCreateMcpServerMutation = () => {
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ tenantId, body }: { tenantId: string; body: CreateMcpServerBody }) => {
+      return await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/mcp-servers/', {
+        body,
+        silent: true,
       });
     },
     onSuccess: async (_data, { tenantId }) => {

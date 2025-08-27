@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute, useNavigate, useParams, useRouteContext } from '@tanstack/react-router';
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
 import { Box, Button, Dialog, Header, Scroll } from '@sema4ai/components';
@@ -13,13 +14,17 @@ export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/')({
 
 function RouteComponent() {
   const { tenantId } = useParams({ from: '/tenants/$tenantId/mcp-servers/' });
-  useRouteContext({ from: '/tenants/$tenantId' });
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string } | null>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const deleteMutation = useDeleteMcpServerMutation();
 
-  const response = Route.useLoaderData();
+  const { data } = useSuspenseQuery(getListMcpServersQueryOptions({ agentAPIClient, tenantId }));
+
+  const response =
+    data ?? (queryClient.getQueryData(['mcp-servers', tenantId]) as ReturnType<typeof Route.useLoaderData>);
   const items = (response ? Object.values(response) : []).map((srv) => ({
     id: srv.mcp_server_id,
     name: srv.name,
@@ -53,7 +58,12 @@ function RouteComponent() {
 
           <Box borderWidth="1px" borderColor="grey80" borderRadius="$8" p="$16" mb="$32" backgroundColor="white">
             <Box mt="$8">
-              <McpServersTable items={items} onQuery={onSearchQueryUpdate} onDelete={(i) => setDeleteTarget(i)} />
+              <McpServersTable
+                items={items}
+                onQuery={onSearchQueryUpdate}
+                onCreate={() => navigate({ to: '/tenants/$tenantId/mcp-servers/new', params: { tenantId } })}
+                onDelete={(i) => setDeleteTarget(i)}
+              />
             </Box>
           </Box>
         </Box>

@@ -8,214 +8,241 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root';
-import { Route as TenantsTenantIdRouteImport } from './routes/tenants/$tenantId';
-import { Route as TenantsTenantIdIndexRouteImport } from './routes/tenants/$tenantId/index';
-import { Route as TenantIdDocIntelIndexRouteImport } from './routes/$tenantId/docIntel/index';
-import { Route as TenantsTenantIdSignoutCallbackRouteImport } from './routes/tenants/$tenantId/signout-callback';
-import { Route as TenantsTenantIdSigninCallbackRouteImport } from './routes/tenants/$tenantId/signin-callback';
-import { Route as TenantsTenantIdOauthRouteImport } from './routes/tenants/$tenantId/oauth';
-import { Route as TenantsTenantIdAgentIdRouteImport } from './routes/tenants/$tenantId/$agentId';
-import { Route as TenantsTenantIdWorkItemsIndexRouteImport } from './routes/tenants/$tenantId/workItems/index';
-import { Route as TenantsTenantIdSettingsIndexRouteImport } from './routes/tenants/$tenantId/settings/index';
-import { Route as TenantsTenantIdMcpServersIndexRouteImport } from './routes/tenants/$tenantId/mcp-servers/index';
-import { Route as TenantsTenantIdHomeIndexRouteImport } from './routes/tenants/$tenantId/home/index';
-import { Route as TenantsTenantIdHelpIndexRouteImport } from './routes/tenants/$tenantId/help/index';
-import { Route as TenantsTenantIdDocumentIntelligenceIndexRouteImport } from './routes/tenants/$tenantId/documentIntelligence/index';
-import { Route as TenantsTenantIdAuditLogsIndexRouteImport } from './routes/tenants/$tenantId/auditLogs/index';
-import { Route as TenantsTenantIdAgentsIndexRouteImport } from './routes/tenants/$tenantId/agents/index';
-import { Route as TenantsTenantIdAgentIdIndexRouteImport } from './routes/tenants/$tenantId/$agentId/index';
-import { Route as TenantsTenantIdSettingsLlmRouteImport } from './routes/tenants/$tenantId/settings/llm';
-import { Route as TenantsTenantIdAgentsCreateRouteImport } from './routes/tenants/$tenantId/agents/create';
-import { Route as TenantsTenantIdAgentIdThreadIdRouteImport } from './routes/tenants/$tenantId/$agentId/$threadId';
-import { Route as TenantsTenantIdSettingsLlmNewRouteImport } from './routes/tenants/$tenantId/settings/llm/new';
-import { Route as TenantsTenantIdSettingsLlmPlatformIdRouteImport } from './routes/tenants/$tenantId/settings/llm/$platformId';
-import { Route as TenantsTenantIdAgentsCreateLlmsNewRouteImport } from './routes/tenants/$tenantId/agents/create/llms.new';
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as TenantsTenantIdRouteImport } from './routes/tenants/$tenantId'
+import { Route as TenantsTenantIdIndexRouteImport } from './routes/tenants/$tenantId/index'
+import { Route as TenantIdDocIntelIndexRouteImport } from './routes/$tenantId/docIntel/index'
+import { Route as TenantsTenantIdSignoutCallbackRouteImport } from './routes/tenants/$tenantId/signout-callback'
+import { Route as TenantsTenantIdSigninCallbackRouteImport } from './routes/tenants/$tenantId/signin-callback'
+import { Route as TenantsTenantIdOauthRouteImport } from './routes/tenants/$tenantId/oauth'
+import { Route as TenantsTenantIdAgentIdRouteImport } from './routes/tenants/$tenantId/$agentId'
+import { Route as TenantsTenantIdWorkItemsIndexRouteImport } from './routes/tenants/$tenantId/workItems/index'
+import { Route as TenantsTenantIdSettingsIndexRouteImport } from './routes/tenants/$tenantId/settings/index'
+import { Route as TenantsTenantIdMcpServersIndexRouteImport } from './routes/tenants/$tenantId/mcp-servers/index'
+import { Route as TenantsTenantIdHomeIndexRouteImport } from './routes/tenants/$tenantId/home/index'
+import { Route as TenantsTenantIdHelpIndexRouteImport } from './routes/tenants/$tenantId/help/index'
+import { Route as TenantsTenantIdDocumentIntelligenceIndexRouteImport } from './routes/tenants/$tenantId/documentIntelligence/index'
+import { Route as TenantsTenantIdAuditLogsIndexRouteImport } from './routes/tenants/$tenantId/auditLogs/index'
+import { Route as TenantsTenantIdAgentsIndexRouteImport } from './routes/tenants/$tenantId/agents/index'
+import { Route as TenantsTenantIdAgentIdIndexRouteImport } from './routes/tenants/$tenantId/$agentId/index'
+import { Route as TenantsTenantIdSettingsLlmRouteImport } from './routes/tenants/$tenantId/settings/llm'
+import { Route as TenantsTenantIdMcpServersNewRouteImport } from './routes/tenants/$tenantId/mcp-servers/new'
+import { Route as TenantsTenantIdAgentsCreateRouteImport } from './routes/tenants/$tenantId/agents/create'
+import { Route as TenantsTenantIdAgentIdThreadIdRouteImport } from './routes/tenants/$tenantId/$agentId/$threadId'
+import { Route as TenantsTenantIdSettingsLlmNewRouteImport } from './routes/tenants/$tenantId/settings/llm/new'
+import { Route as TenantsTenantIdSettingsLlmPlatformIdRouteImport } from './routes/tenants/$tenantId/settings/llm/$platformId'
+import { Route as TenantsTenantIdAgentsCreateLlmsNewRouteImport } from './routes/tenants/$tenantId/agents/create/llms.new'
 
 const TenantsTenantIdRoute = TenantsTenantIdRouteImport.update({
   id: '/tenants/$tenantId',
   path: '/tenants/$tenantId',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const TenantsTenantIdIndexRoute = TenantsTenantIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => TenantsTenantIdRoute,
-} as any);
+} as any)
 const TenantIdDocIntelIndexRoute = TenantIdDocIntelIndexRouteImport.update({
   id: '/$tenantId/docIntel/',
   path: '/$tenantId/docIntel/',
   getParentRoute: () => rootRouteImport,
-} as any);
-const TenantsTenantIdSignoutCallbackRoute = TenantsTenantIdSignoutCallbackRouteImport.update({
-  id: '/signout-callback',
-  path: '/signout-callback',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdSigninCallbackRoute = TenantsTenantIdSigninCallbackRouteImport.update({
-  id: '/signin-callback',
-  path: '/signin-callback',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
+} as any)
+const TenantsTenantIdSignoutCallbackRoute =
+  TenantsTenantIdSignoutCallbackRouteImport.update({
+    id: '/signout-callback',
+    path: '/signout-callback',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdSigninCallbackRoute =
+  TenantsTenantIdSigninCallbackRouteImport.update({
+    id: '/signin-callback',
+    path: '/signin-callback',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
 const TenantsTenantIdOauthRoute = TenantsTenantIdOauthRouteImport.update({
   id: '/oauth',
   path: '/oauth',
   getParentRoute: () => TenantsTenantIdRoute,
-} as any);
+} as any)
 const TenantsTenantIdAgentIdRoute = TenantsTenantIdAgentIdRouteImport.update({
   id: '/$agentId',
   path: '/$agentId',
   getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdWorkItemsIndexRoute = TenantsTenantIdWorkItemsIndexRouteImport.update({
-  id: '/workItems/',
-  path: '/workItems/',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdSettingsIndexRoute = TenantsTenantIdSettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdMcpServersIndexRoute = TenantsTenantIdMcpServersIndexRouteImport.update({
-  id: '/mcp-servers/',
-  path: '/mcp-servers/',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdHomeIndexRoute = TenantsTenantIdHomeIndexRouteImport.update({
-  id: '/home/',
-  path: '/home/',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdHelpIndexRoute = TenantsTenantIdHelpIndexRouteImport.update({
-  id: '/help/',
-  path: '/help/',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdDocumentIntelligenceIndexRoute = TenantsTenantIdDocumentIntelligenceIndexRouteImport.update({
-  id: '/documentIntelligence/',
-  path: '/documentIntelligence/',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdAuditLogsIndexRoute = TenantsTenantIdAuditLogsIndexRouteImport.update({
-  id: '/auditLogs/',
-  path: '/auditLogs/',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdAgentsIndexRoute = TenantsTenantIdAgentsIndexRouteImport.update({
-  id: '/agents/',
-  path: '/agents/',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdAgentIdIndexRoute = TenantsTenantIdAgentIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => TenantsTenantIdAgentIdRoute,
-} as any);
-const TenantsTenantIdSettingsLlmRoute = TenantsTenantIdSettingsLlmRouteImport.update({
-  id: '/settings/llm',
-  path: '/settings/llm',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdAgentsCreateRoute = TenantsTenantIdAgentsCreateRouteImport.update({
-  id: '/agents/create',
-  path: '/agents/create',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any);
-const TenantsTenantIdAgentIdThreadIdRoute = TenantsTenantIdAgentIdThreadIdRouteImport.update({
-  id: '/$threadId',
-  path: '/$threadId',
-  getParentRoute: () => TenantsTenantIdAgentIdRoute,
-} as any);
-const TenantsTenantIdSettingsLlmNewRoute = TenantsTenantIdSettingsLlmNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => TenantsTenantIdSettingsLlmRoute,
-} as any);
-const TenantsTenantIdSettingsLlmPlatformIdRoute = TenantsTenantIdSettingsLlmPlatformIdRouteImport.update({
-  id: '/$platformId',
-  path: '/$platformId',
-  getParentRoute: () => TenantsTenantIdSettingsLlmRoute,
-} as any);
-const TenantsTenantIdAgentsCreateLlmsNewRoute = TenantsTenantIdAgentsCreateLlmsNewRouteImport.update({
-  id: '/llms/new',
-  path: '/llms/new',
-  getParentRoute: () => TenantsTenantIdAgentsCreateRoute,
-} as any);
+} as any)
+const TenantsTenantIdWorkItemsIndexRoute =
+  TenantsTenantIdWorkItemsIndexRouteImport.update({
+    id: '/workItems/',
+    path: '/workItems/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdSettingsIndexRoute =
+  TenantsTenantIdSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdMcpServersIndexRoute =
+  TenantsTenantIdMcpServersIndexRouteImport.update({
+    id: '/mcp-servers/',
+    path: '/mcp-servers/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdHomeIndexRoute =
+  TenantsTenantIdHomeIndexRouteImport.update({
+    id: '/home/',
+    path: '/home/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdHelpIndexRoute =
+  TenantsTenantIdHelpIndexRouteImport.update({
+    id: '/help/',
+    path: '/help/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdDocumentIntelligenceIndexRoute =
+  TenantsTenantIdDocumentIntelligenceIndexRouteImport.update({
+    id: '/documentIntelligence/',
+    path: '/documentIntelligence/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdAuditLogsIndexRoute =
+  TenantsTenantIdAuditLogsIndexRouteImport.update({
+    id: '/auditLogs/',
+    path: '/auditLogs/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdAgentsIndexRoute =
+  TenantsTenantIdAgentsIndexRouteImport.update({
+    id: '/agents/',
+    path: '/agents/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdAgentIdIndexRoute =
+  TenantsTenantIdAgentIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => TenantsTenantIdAgentIdRoute,
+  } as any)
+const TenantsTenantIdSettingsLlmRoute =
+  TenantsTenantIdSettingsLlmRouteImport.update({
+    id: '/settings/llm',
+    path: '/settings/llm',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdMcpServersNewRoute =
+  TenantsTenantIdMcpServersNewRouteImport.update({
+    id: '/mcp-servers/new',
+    path: '/mcp-servers/new',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdAgentsCreateRoute =
+  TenantsTenantIdAgentsCreateRouteImport.update({
+    id: '/agents/create',
+    path: '/agents/create',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdAgentIdThreadIdRoute =
+  TenantsTenantIdAgentIdThreadIdRouteImport.update({
+    id: '/$threadId',
+    path: '/$threadId',
+    getParentRoute: () => TenantsTenantIdAgentIdRoute,
+  } as any)
+const TenantsTenantIdSettingsLlmNewRoute =
+  TenantsTenantIdSettingsLlmNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => TenantsTenantIdSettingsLlmRoute,
+  } as any)
+const TenantsTenantIdSettingsLlmPlatformIdRoute =
+  TenantsTenantIdSettingsLlmPlatformIdRouteImport.update({
+    id: '/$platformId',
+    path: '/$platformId',
+    getParentRoute: () => TenantsTenantIdSettingsLlmRoute,
+  } as any)
+const TenantsTenantIdAgentsCreateLlmsNewRoute =
+  TenantsTenantIdAgentsCreateLlmsNewRouteImport.update({
+    id: '/llms/new',
+    path: '/llms/new',
+    getParentRoute: () => TenantsTenantIdAgentsCreateRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/tenants/$tenantId': typeof TenantsTenantIdRouteWithChildren;
-  '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdRouteWithChildren;
-  '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute;
-  '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute;
-  '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute;
-  '/$tenantId/docIntel': typeof TenantIdDocIntelIndexRoute;
-  '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute;
-  '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute;
-  '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren;
-  '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren;
-  '/tenants/$tenantId/$agentId/': typeof TenantsTenantIdAgentIdIndexRoute;
-  '/tenants/$tenantId/agents': typeof TenantsTenantIdAgentsIndexRoute;
-  '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute;
-  '/tenants/$tenantId/documentIntelligence': typeof TenantsTenantIdDocumentIntelligenceIndexRoute;
-  '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute;
-  '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute;
-  '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute;
-  '/tenants/$tenantId/settings': typeof TenantsTenantIdSettingsIndexRoute;
-  '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute;
-  '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute;
-  '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute;
-  '/tenants/$tenantId/agents/create/llms/new': typeof TenantsTenantIdAgentsCreateLlmsNewRoute;
+  '/tenants/$tenantId': typeof TenantsTenantIdRouteWithChildren
+  '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdRouteWithChildren
+  '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute
+  '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
+  '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
+  '/$tenantId/docIntel': typeof TenantIdDocIntelIndexRoute
+  '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
+  '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute
+  '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren
+  '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
+  '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren
+  '/tenants/$tenantId/$agentId/': typeof TenantsTenantIdAgentIdIndexRoute
+  '/tenants/$tenantId/agents': typeof TenantsTenantIdAgentsIndexRoute
+  '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
+  '/tenants/$tenantId/documentIntelligence': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
+  '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
+  '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
+  '/tenants/$tenantId/settings': typeof TenantsTenantIdSettingsIndexRoute
+  '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
+  '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
+  '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute
+  '/tenants/$tenantId/agents/create/llms/new': typeof TenantsTenantIdAgentsCreateLlmsNewRoute
 }
 export interface FileRoutesByTo {
-  '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute;
-  '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute;
-  '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute;
-  '/$tenantId/docIntel': typeof TenantIdDocIntelIndexRoute;
-  '/tenants/$tenantId': typeof TenantsTenantIdIndexRoute;
-  '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute;
-  '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren;
-  '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren;
-  '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdIndexRoute;
-  '/tenants/$tenantId/agents': typeof TenantsTenantIdAgentsIndexRoute;
-  '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute;
-  '/tenants/$tenantId/documentIntelligence': typeof TenantsTenantIdDocumentIntelligenceIndexRoute;
-  '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute;
-  '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute;
-  '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute;
-  '/tenants/$tenantId/settings': typeof TenantsTenantIdSettingsIndexRoute;
-  '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute;
-  '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute;
-  '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute;
-  '/tenants/$tenantId/agents/create/llms/new': typeof TenantsTenantIdAgentsCreateLlmsNewRoute;
+  '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute
+  '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
+  '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
+  '/$tenantId/docIntel': typeof TenantIdDocIntelIndexRoute
+  '/tenants/$tenantId': typeof TenantsTenantIdIndexRoute
+  '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute
+  '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren
+  '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
+  '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren
+  '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdIndexRoute
+  '/tenants/$tenantId/agents': typeof TenantsTenantIdAgentsIndexRoute
+  '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
+  '/tenants/$tenantId/documentIntelligence': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
+  '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
+  '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
+  '/tenants/$tenantId/settings': typeof TenantsTenantIdSettingsIndexRoute
+  '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
+  '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
+  '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute
+  '/tenants/$tenantId/agents/create/llms/new': typeof TenantsTenantIdAgentsCreateLlmsNewRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  '/tenants/$tenantId': typeof TenantsTenantIdRouteWithChildren;
-  '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdRouteWithChildren;
-  '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute;
-  '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute;
-  '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute;
-  '/$tenantId/docIntel/': typeof TenantIdDocIntelIndexRoute;
-  '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute;
-  '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute;
-  '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren;
-  '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren;
-  '/tenants/$tenantId/$agentId/': typeof TenantsTenantIdAgentIdIndexRoute;
-  '/tenants/$tenantId/agents/': typeof TenantsTenantIdAgentsIndexRoute;
-  '/tenants/$tenantId/auditLogs/': typeof TenantsTenantIdAuditLogsIndexRoute;
-  '/tenants/$tenantId/documentIntelligence/': typeof TenantsTenantIdDocumentIntelligenceIndexRoute;
-  '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute;
-  '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute;
-  '/tenants/$tenantId/mcp-servers/': typeof TenantsTenantIdMcpServersIndexRoute;
-  '/tenants/$tenantId/settings/': typeof TenantsTenantIdSettingsIndexRoute;
-  '/tenants/$tenantId/workItems/': typeof TenantsTenantIdWorkItemsIndexRoute;
-  '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute;
-  '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute;
-  '/tenants/$tenantId/agents/create/llms/new': typeof TenantsTenantIdAgentsCreateLlmsNewRoute;
+  __root__: typeof rootRouteImport
+  '/tenants/$tenantId': typeof TenantsTenantIdRouteWithChildren
+  '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdRouteWithChildren
+  '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute
+  '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
+  '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
+  '/$tenantId/docIntel/': typeof TenantIdDocIntelIndexRoute
+  '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
+  '/tenants/$tenantId/$agentId/$threadId': typeof TenantsTenantIdAgentIdThreadIdRoute
+  '/tenants/$tenantId/agents/create': typeof TenantsTenantIdAgentsCreateRouteWithChildren
+  '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
+  '/tenants/$tenantId/settings/llm': typeof TenantsTenantIdSettingsLlmRouteWithChildren
+  '/tenants/$tenantId/$agentId/': typeof TenantsTenantIdAgentIdIndexRoute
+  '/tenants/$tenantId/agents/': typeof TenantsTenantIdAgentsIndexRoute
+  '/tenants/$tenantId/auditLogs/': typeof TenantsTenantIdAuditLogsIndexRoute
+  '/tenants/$tenantId/documentIntelligence/': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
+  '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
+  '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/mcp-servers/': typeof TenantsTenantIdMcpServersIndexRoute
+  '/tenants/$tenantId/settings/': typeof TenantsTenantIdSettingsIndexRoute
+  '/tenants/$tenantId/workItems/': typeof TenantsTenantIdWorkItemsIndexRoute
+  '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
+  '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute
+  '/tenants/$tenantId/agents/create/llms/new': typeof TenantsTenantIdAgentsCreateLlmsNewRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/tenants/$tenantId'
     | '/tenants/$tenantId/$agentId'
@@ -226,6 +253,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/$agentId/$threadId'
     | '/tenants/$tenantId/agents/create'
+    | '/tenants/$tenantId/mcp-servers/new'
     | '/tenants/$tenantId/settings/llm'
     | '/tenants/$tenantId/$agentId/'
     | '/tenants/$tenantId/agents'
@@ -238,8 +266,8 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/settings/llm/$platformId'
     | '/tenants/$tenantId/settings/llm/new'
-    | '/tenants/$tenantId/agents/create/llms/new';
-  fileRoutesByTo: FileRoutesByTo;
+    | '/tenants/$tenantId/agents/create/llms/new'
+  fileRoutesByTo: FileRoutesByTo
   to:
     | '/tenants/$tenantId/oauth'
     | '/tenants/$tenantId/signin-callback'
@@ -248,6 +276,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId'
     | '/tenants/$tenantId/$agentId/$threadId'
     | '/tenants/$tenantId/agents/create'
+    | '/tenants/$tenantId/mcp-servers/new'
     | '/tenants/$tenantId/settings/llm'
     | '/tenants/$tenantId/$agentId'
     | '/tenants/$tenantId/agents'
@@ -260,7 +289,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/settings/llm/$platformId'
     | '/tenants/$tenantId/settings/llm/new'
-    | '/tenants/$tenantId/agents/create/llms/new';
+    | '/tenants/$tenantId/agents/create/llms/new'
   id:
     | '__root__'
     | '/tenants/$tenantId'
@@ -272,6 +301,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/$agentId/$threadId'
     | '/tenants/$tenantId/agents/create'
+    | '/tenants/$tenantId/mcp-servers/new'
     | '/tenants/$tenantId/settings/llm'
     | '/tenants/$tenantId/$agentId/'
     | '/tenants/$tenantId/agents/'
@@ -284,229 +314,245 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/workItems/'
     | '/tenants/$tenantId/settings/llm/$platformId'
     | '/tenants/$tenantId/settings/llm/new'
-    | '/tenants/$tenantId/agents/create/llms/new';
-  fileRoutesById: FileRoutesById;
+    | '/tenants/$tenantId/agents/create/llms/new'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  TenantsTenantIdRoute: typeof TenantsTenantIdRouteWithChildren;
-  TenantIdDocIntelIndexRoute: typeof TenantIdDocIntelIndexRoute;
+  TenantsTenantIdRoute: typeof TenantsTenantIdRouteWithChildren
+  TenantIdDocIntelIndexRoute: typeof TenantIdDocIntelIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/tenants/$tenantId': {
-      id: '/tenants/$tenantId';
-      path: '/tenants/$tenantId';
-      fullPath: '/tenants/$tenantId';
-      preLoaderRoute: typeof TenantsTenantIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/tenants/$tenantId'
+      path: '/tenants/$tenantId'
+      fullPath: '/tenants/$tenantId'
+      preLoaderRoute: typeof TenantsTenantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tenants/$tenantId/': {
-      id: '/tenants/$tenantId/';
-      path: '/';
-      fullPath: '/tenants/$tenantId/';
-      preLoaderRoute: typeof TenantsTenantIdIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/'
+      path: '/'
+      fullPath: '/tenants/$tenantId/'
+      preLoaderRoute: typeof TenantsTenantIdIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/$tenantId/docIntel/': {
-      id: '/$tenantId/docIntel/';
-      path: '/$tenantId/docIntel';
-      fullPath: '/$tenantId/docIntel';
-      preLoaderRoute: typeof TenantIdDocIntelIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/$tenantId/docIntel/'
+      path: '/$tenantId/docIntel'
+      fullPath: '/$tenantId/docIntel'
+      preLoaderRoute: typeof TenantIdDocIntelIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tenants/$tenantId/signout-callback': {
-      id: '/tenants/$tenantId/signout-callback';
-      path: '/signout-callback';
-      fullPath: '/tenants/$tenantId/signout-callback';
-      preLoaderRoute: typeof TenantsTenantIdSignoutCallbackRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/signout-callback'
+      path: '/signout-callback'
+      fullPath: '/tenants/$tenantId/signout-callback'
+      preLoaderRoute: typeof TenantsTenantIdSignoutCallbackRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/signin-callback': {
-      id: '/tenants/$tenantId/signin-callback';
-      path: '/signin-callback';
-      fullPath: '/tenants/$tenantId/signin-callback';
-      preLoaderRoute: typeof TenantsTenantIdSigninCallbackRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/signin-callback'
+      path: '/signin-callback'
+      fullPath: '/tenants/$tenantId/signin-callback'
+      preLoaderRoute: typeof TenantsTenantIdSigninCallbackRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/oauth': {
-      id: '/tenants/$tenantId/oauth';
-      path: '/oauth';
-      fullPath: '/tenants/$tenantId/oauth';
-      preLoaderRoute: typeof TenantsTenantIdOauthRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/oauth'
+      path: '/oauth'
+      fullPath: '/tenants/$tenantId/oauth'
+      preLoaderRoute: typeof TenantsTenantIdOauthRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/$agentId': {
-      id: '/tenants/$tenantId/$agentId';
-      path: '/$agentId';
-      fullPath: '/tenants/$tenantId/$agentId';
-      preLoaderRoute: typeof TenantsTenantIdAgentIdRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/$agentId'
+      path: '/$agentId'
+      fullPath: '/tenants/$tenantId/$agentId'
+      preLoaderRoute: typeof TenantsTenantIdAgentIdRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/workItems/': {
-      id: '/tenants/$tenantId/workItems/';
-      path: '/workItems';
-      fullPath: '/tenants/$tenantId/workItems';
-      preLoaderRoute: typeof TenantsTenantIdWorkItemsIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/workItems/'
+      path: '/workItems'
+      fullPath: '/tenants/$tenantId/workItems'
+      preLoaderRoute: typeof TenantsTenantIdWorkItemsIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/settings/': {
-      id: '/tenants/$tenantId/settings/';
-      path: '/settings';
-      fullPath: '/tenants/$tenantId/settings';
-      preLoaderRoute: typeof TenantsTenantIdSettingsIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/settings/'
+      path: '/settings'
+      fullPath: '/tenants/$tenantId/settings'
+      preLoaderRoute: typeof TenantsTenantIdSettingsIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/mcp-servers/': {
-      id: '/tenants/$tenantId/mcp-servers/';
-      path: '/mcp-servers';
-      fullPath: '/tenants/$tenantId/mcp-servers';
-      preLoaderRoute: typeof TenantsTenantIdMcpServersIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/mcp-servers/'
+      path: '/mcp-servers'
+      fullPath: '/tenants/$tenantId/mcp-servers'
+      preLoaderRoute: typeof TenantsTenantIdMcpServersIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/home/': {
-      id: '/tenants/$tenantId/home/';
-      path: '/home';
-      fullPath: '/tenants/$tenantId/home';
-      preLoaderRoute: typeof TenantsTenantIdHomeIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/home/'
+      path: '/home'
+      fullPath: '/tenants/$tenantId/home'
+      preLoaderRoute: typeof TenantsTenantIdHomeIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/help/': {
-      id: '/tenants/$tenantId/help/';
-      path: '/help';
-      fullPath: '/tenants/$tenantId/help';
-      preLoaderRoute: typeof TenantsTenantIdHelpIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/help/'
+      path: '/help'
+      fullPath: '/tenants/$tenantId/help'
+      preLoaderRoute: typeof TenantsTenantIdHelpIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/documentIntelligence/': {
-      id: '/tenants/$tenantId/documentIntelligence/';
-      path: '/documentIntelligence';
-      fullPath: '/tenants/$tenantId/documentIntelligence';
-      preLoaderRoute: typeof TenantsTenantIdDocumentIntelligenceIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/documentIntelligence/'
+      path: '/documentIntelligence'
+      fullPath: '/tenants/$tenantId/documentIntelligence'
+      preLoaderRoute: typeof TenantsTenantIdDocumentIntelligenceIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/auditLogs/': {
-      id: '/tenants/$tenantId/auditLogs/';
-      path: '/auditLogs';
-      fullPath: '/tenants/$tenantId/auditLogs';
-      preLoaderRoute: typeof TenantsTenantIdAuditLogsIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/auditLogs/'
+      path: '/auditLogs'
+      fullPath: '/tenants/$tenantId/auditLogs'
+      preLoaderRoute: typeof TenantsTenantIdAuditLogsIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/agents/': {
-      id: '/tenants/$tenantId/agents/';
-      path: '/agents';
-      fullPath: '/tenants/$tenantId/agents';
-      preLoaderRoute: typeof TenantsTenantIdAgentsIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/agents/'
+      path: '/agents'
+      fullPath: '/tenants/$tenantId/agents'
+      preLoaderRoute: typeof TenantsTenantIdAgentsIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/$agentId/': {
-      id: '/tenants/$tenantId/$agentId/';
-      path: '/';
-      fullPath: '/tenants/$tenantId/$agentId/';
-      preLoaderRoute: typeof TenantsTenantIdAgentIdIndexRouteImport;
-      parentRoute: typeof TenantsTenantIdAgentIdRoute;
-    };
+      id: '/tenants/$tenantId/$agentId/'
+      path: '/'
+      fullPath: '/tenants/$tenantId/$agentId/'
+      preLoaderRoute: typeof TenantsTenantIdAgentIdIndexRouteImport
+      parentRoute: typeof TenantsTenantIdAgentIdRoute
+    }
     '/tenants/$tenantId/settings/llm': {
-      id: '/tenants/$tenantId/settings/llm';
-      path: '/settings/llm';
-      fullPath: '/tenants/$tenantId/settings/llm';
-      preLoaderRoute: typeof TenantsTenantIdSettingsLlmRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/settings/llm'
+      path: '/settings/llm'
+      fullPath: '/tenants/$tenantId/settings/llm'
+      preLoaderRoute: typeof TenantsTenantIdSettingsLlmRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/mcp-servers/new': {
+      id: '/tenants/$tenantId/mcp-servers/new'
+      path: '/mcp-servers/new'
+      fullPath: '/tenants/$tenantId/mcp-servers/new'
+      preLoaderRoute: typeof TenantsTenantIdMcpServersNewRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/agents/create': {
-      id: '/tenants/$tenantId/agents/create';
-      path: '/agents/create';
-      fullPath: '/tenants/$tenantId/agents/create';
-      preLoaderRoute: typeof TenantsTenantIdAgentsCreateRouteImport;
-      parentRoute: typeof TenantsTenantIdRoute;
-    };
+      id: '/tenants/$tenantId/agents/create'
+      path: '/agents/create'
+      fullPath: '/tenants/$tenantId/agents/create'
+      preLoaderRoute: typeof TenantsTenantIdAgentsCreateRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/$agentId/$threadId': {
-      id: '/tenants/$tenantId/$agentId/$threadId';
-      path: '/$threadId';
-      fullPath: '/tenants/$tenantId/$agentId/$threadId';
-      preLoaderRoute: typeof TenantsTenantIdAgentIdThreadIdRouteImport;
-      parentRoute: typeof TenantsTenantIdAgentIdRoute;
-    };
+      id: '/tenants/$tenantId/$agentId/$threadId'
+      path: '/$threadId'
+      fullPath: '/tenants/$tenantId/$agentId/$threadId'
+      preLoaderRoute: typeof TenantsTenantIdAgentIdThreadIdRouteImport
+      parentRoute: typeof TenantsTenantIdAgentIdRoute
+    }
     '/tenants/$tenantId/settings/llm/new': {
-      id: '/tenants/$tenantId/settings/llm/new';
-      path: '/new';
-      fullPath: '/tenants/$tenantId/settings/llm/new';
-      preLoaderRoute: typeof TenantsTenantIdSettingsLlmNewRouteImport;
-      parentRoute: typeof TenantsTenantIdSettingsLlmRoute;
-    };
+      id: '/tenants/$tenantId/settings/llm/new'
+      path: '/new'
+      fullPath: '/tenants/$tenantId/settings/llm/new'
+      preLoaderRoute: typeof TenantsTenantIdSettingsLlmNewRouteImport
+      parentRoute: typeof TenantsTenantIdSettingsLlmRoute
+    }
     '/tenants/$tenantId/settings/llm/$platformId': {
-      id: '/tenants/$tenantId/settings/llm/$platformId';
-      path: '/$platformId';
-      fullPath: '/tenants/$tenantId/settings/llm/$platformId';
-      preLoaderRoute: typeof TenantsTenantIdSettingsLlmPlatformIdRouteImport;
-      parentRoute: typeof TenantsTenantIdSettingsLlmRoute;
-    };
+      id: '/tenants/$tenantId/settings/llm/$platformId'
+      path: '/$platformId'
+      fullPath: '/tenants/$tenantId/settings/llm/$platformId'
+      preLoaderRoute: typeof TenantsTenantIdSettingsLlmPlatformIdRouteImport
+      parentRoute: typeof TenantsTenantIdSettingsLlmRoute
+    }
     '/tenants/$tenantId/agents/create/llms/new': {
-      id: '/tenants/$tenantId/agents/create/llms/new';
-      path: '/llms/new';
-      fullPath: '/tenants/$tenantId/agents/create/llms/new';
-      preLoaderRoute: typeof TenantsTenantIdAgentsCreateLlmsNewRouteImport;
-      parentRoute: typeof TenantsTenantIdAgentsCreateRoute;
-    };
+      id: '/tenants/$tenantId/agents/create/llms/new'
+      path: '/llms/new'
+      fullPath: '/tenants/$tenantId/agents/create/llms/new'
+      preLoaderRoute: typeof TenantsTenantIdAgentsCreateLlmsNewRouteImport
+      parentRoute: typeof TenantsTenantIdAgentsCreateRoute
+    }
   }
 }
 
 interface TenantsTenantIdAgentIdRouteChildren {
-  TenantsTenantIdAgentIdThreadIdRoute: typeof TenantsTenantIdAgentIdThreadIdRoute;
-  TenantsTenantIdAgentIdIndexRoute: typeof TenantsTenantIdAgentIdIndexRoute;
+  TenantsTenantIdAgentIdThreadIdRoute: typeof TenantsTenantIdAgentIdThreadIdRoute
+  TenantsTenantIdAgentIdIndexRoute: typeof TenantsTenantIdAgentIdIndexRoute
 }
 
-const TenantsTenantIdAgentIdRouteChildren: TenantsTenantIdAgentIdRouteChildren = {
-  TenantsTenantIdAgentIdThreadIdRoute: TenantsTenantIdAgentIdThreadIdRoute,
-  TenantsTenantIdAgentIdIndexRoute: TenantsTenantIdAgentIdIndexRoute,
-};
+const TenantsTenantIdAgentIdRouteChildren: TenantsTenantIdAgentIdRouteChildren =
+  {
+    TenantsTenantIdAgentIdThreadIdRoute: TenantsTenantIdAgentIdThreadIdRoute,
+    TenantsTenantIdAgentIdIndexRoute: TenantsTenantIdAgentIdIndexRoute,
+  }
 
-const TenantsTenantIdAgentIdRouteWithChildren = TenantsTenantIdAgentIdRoute._addFileChildren(
-  TenantsTenantIdAgentIdRouteChildren,
-);
+const TenantsTenantIdAgentIdRouteWithChildren =
+  TenantsTenantIdAgentIdRoute._addFileChildren(
+    TenantsTenantIdAgentIdRouteChildren,
+  )
 
 interface TenantsTenantIdAgentsCreateRouteChildren {
-  TenantsTenantIdAgentsCreateLlmsNewRoute: typeof TenantsTenantIdAgentsCreateLlmsNewRoute;
+  TenantsTenantIdAgentsCreateLlmsNewRoute: typeof TenantsTenantIdAgentsCreateLlmsNewRoute
 }
 
-const TenantsTenantIdAgentsCreateRouteChildren: TenantsTenantIdAgentsCreateRouteChildren = {
-  TenantsTenantIdAgentsCreateLlmsNewRoute: TenantsTenantIdAgentsCreateLlmsNewRoute,
-};
+const TenantsTenantIdAgentsCreateRouteChildren: TenantsTenantIdAgentsCreateRouteChildren =
+  {
+    TenantsTenantIdAgentsCreateLlmsNewRoute:
+      TenantsTenantIdAgentsCreateLlmsNewRoute,
+  }
 
-const TenantsTenantIdAgentsCreateRouteWithChildren = TenantsTenantIdAgentsCreateRoute._addFileChildren(
-  TenantsTenantIdAgentsCreateRouteChildren,
-);
+const TenantsTenantIdAgentsCreateRouteWithChildren =
+  TenantsTenantIdAgentsCreateRoute._addFileChildren(
+    TenantsTenantIdAgentsCreateRouteChildren,
+  )
 
 interface TenantsTenantIdSettingsLlmRouteChildren {
-  TenantsTenantIdSettingsLlmPlatformIdRoute: typeof TenantsTenantIdSettingsLlmPlatformIdRoute;
-  TenantsTenantIdSettingsLlmNewRoute: typeof TenantsTenantIdSettingsLlmNewRoute;
+  TenantsTenantIdSettingsLlmPlatformIdRoute: typeof TenantsTenantIdSettingsLlmPlatformIdRoute
+  TenantsTenantIdSettingsLlmNewRoute: typeof TenantsTenantIdSettingsLlmNewRoute
 }
 
-const TenantsTenantIdSettingsLlmRouteChildren: TenantsTenantIdSettingsLlmRouteChildren = {
-  TenantsTenantIdSettingsLlmPlatformIdRoute: TenantsTenantIdSettingsLlmPlatformIdRoute,
-  TenantsTenantIdSettingsLlmNewRoute: TenantsTenantIdSettingsLlmNewRoute,
-};
+const TenantsTenantIdSettingsLlmRouteChildren: TenantsTenantIdSettingsLlmRouteChildren =
+  {
+    TenantsTenantIdSettingsLlmPlatformIdRoute:
+      TenantsTenantIdSettingsLlmPlatformIdRoute,
+    TenantsTenantIdSettingsLlmNewRoute: TenantsTenantIdSettingsLlmNewRoute,
+  }
 
-const TenantsTenantIdSettingsLlmRouteWithChildren = TenantsTenantIdSettingsLlmRoute._addFileChildren(
-  TenantsTenantIdSettingsLlmRouteChildren,
-);
+const TenantsTenantIdSettingsLlmRouteWithChildren =
+  TenantsTenantIdSettingsLlmRoute._addFileChildren(
+    TenantsTenantIdSettingsLlmRouteChildren,
+  )
 
 interface TenantsTenantIdRouteChildren {
-  TenantsTenantIdAgentIdRoute: typeof TenantsTenantIdAgentIdRouteWithChildren;
-  TenantsTenantIdOauthRoute: typeof TenantsTenantIdOauthRoute;
-  TenantsTenantIdSigninCallbackRoute: typeof TenantsTenantIdSigninCallbackRoute;
-  TenantsTenantIdSignoutCallbackRoute: typeof TenantsTenantIdSignoutCallbackRoute;
-  TenantsTenantIdIndexRoute: typeof TenantsTenantIdIndexRoute;
-  TenantsTenantIdAgentsCreateRoute: typeof TenantsTenantIdAgentsCreateRouteWithChildren;
-  TenantsTenantIdSettingsLlmRoute: typeof TenantsTenantIdSettingsLlmRouteWithChildren;
-  TenantsTenantIdAgentsIndexRoute: typeof TenantsTenantIdAgentsIndexRoute;
-  TenantsTenantIdAuditLogsIndexRoute: typeof TenantsTenantIdAuditLogsIndexRoute;
-  TenantsTenantIdDocumentIntelligenceIndexRoute: typeof TenantsTenantIdDocumentIntelligenceIndexRoute;
-  TenantsTenantIdHelpIndexRoute: typeof TenantsTenantIdHelpIndexRoute;
-  TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute;
-  TenantsTenantIdMcpServersIndexRoute: typeof TenantsTenantIdMcpServersIndexRoute;
-  TenantsTenantIdSettingsIndexRoute: typeof TenantsTenantIdSettingsIndexRoute;
-  TenantsTenantIdWorkItemsIndexRoute: typeof TenantsTenantIdWorkItemsIndexRoute;
+  TenantsTenantIdAgentIdRoute: typeof TenantsTenantIdAgentIdRouteWithChildren
+  TenantsTenantIdOauthRoute: typeof TenantsTenantIdOauthRoute
+  TenantsTenantIdSigninCallbackRoute: typeof TenantsTenantIdSigninCallbackRoute
+  TenantsTenantIdSignoutCallbackRoute: typeof TenantsTenantIdSignoutCallbackRoute
+  TenantsTenantIdIndexRoute: typeof TenantsTenantIdIndexRoute
+  TenantsTenantIdAgentsCreateRoute: typeof TenantsTenantIdAgentsCreateRouteWithChildren
+  TenantsTenantIdMcpServersNewRoute: typeof TenantsTenantIdMcpServersNewRoute
+  TenantsTenantIdSettingsLlmRoute: typeof TenantsTenantIdSettingsLlmRouteWithChildren
+  TenantsTenantIdAgentsIndexRoute: typeof TenantsTenantIdAgentsIndexRoute
+  TenantsTenantIdAuditLogsIndexRoute: typeof TenantsTenantIdAuditLogsIndexRoute
+  TenantsTenantIdDocumentIntelligenceIndexRoute: typeof TenantsTenantIdDocumentIntelligenceIndexRoute
+  TenantsTenantIdHelpIndexRoute: typeof TenantsTenantIdHelpIndexRoute
+  TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute
+  TenantsTenantIdMcpServersIndexRoute: typeof TenantsTenantIdMcpServersIndexRoute
+  TenantsTenantIdSettingsIndexRoute: typeof TenantsTenantIdSettingsIndexRoute
+  TenantsTenantIdWorkItemsIndexRoute: typeof TenantsTenantIdWorkItemsIndexRoute
 }
 
 const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
@@ -515,22 +561,29 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdSigninCallbackRoute: TenantsTenantIdSigninCallbackRoute,
   TenantsTenantIdSignoutCallbackRoute: TenantsTenantIdSignoutCallbackRoute,
   TenantsTenantIdIndexRoute: TenantsTenantIdIndexRoute,
-  TenantsTenantIdAgentsCreateRoute: TenantsTenantIdAgentsCreateRouteWithChildren,
+  TenantsTenantIdAgentsCreateRoute:
+    TenantsTenantIdAgentsCreateRouteWithChildren,
+  TenantsTenantIdMcpServersNewRoute: TenantsTenantIdMcpServersNewRoute,
   TenantsTenantIdSettingsLlmRoute: TenantsTenantIdSettingsLlmRouteWithChildren,
   TenantsTenantIdAgentsIndexRoute: TenantsTenantIdAgentsIndexRoute,
   TenantsTenantIdAuditLogsIndexRoute: TenantsTenantIdAuditLogsIndexRoute,
-  TenantsTenantIdDocumentIntelligenceIndexRoute: TenantsTenantIdDocumentIntelligenceIndexRoute,
+  TenantsTenantIdDocumentIntelligenceIndexRoute:
+    TenantsTenantIdDocumentIntelligenceIndexRoute,
   TenantsTenantIdHelpIndexRoute: TenantsTenantIdHelpIndexRoute,
   TenantsTenantIdHomeIndexRoute: TenantsTenantIdHomeIndexRoute,
   TenantsTenantIdMcpServersIndexRoute: TenantsTenantIdMcpServersIndexRoute,
   TenantsTenantIdSettingsIndexRoute: TenantsTenantIdSettingsIndexRoute,
   TenantsTenantIdWorkItemsIndexRoute: TenantsTenantIdWorkItemsIndexRoute,
-};
+}
 
-const TenantsTenantIdRouteWithChildren = TenantsTenantIdRoute._addFileChildren(TenantsTenantIdRouteChildren);
+const TenantsTenantIdRouteWithChildren = TenantsTenantIdRoute._addFileChildren(
+  TenantsTenantIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   TenantsTenantIdRoute: TenantsTenantIdRouteWithChildren,
   TenantIdDocIntelIndexRoute: TenantIdDocIntelIndexRoute,
-};
-export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
+}
+export const routeTree = rootRouteImport
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
