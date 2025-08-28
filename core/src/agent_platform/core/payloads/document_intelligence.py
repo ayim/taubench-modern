@@ -20,6 +20,12 @@ class GenerateLayoutResponsePayload:
 
 
 @dataclass(frozen=True)
+class GenerateSchemaResponsePayload:
+    schema: dict[str, Any]
+    file: UploadedFile | None = None
+
+
+@dataclass(frozen=True)
 class ExtractDocumentPayload:
     """Payload for extracting a document."""
 
@@ -27,7 +33,7 @@ class ExtractDocumentPayload:
     thread_id: str
     file_name: str
 
-    # Data model related fields.
+    # Data model related fields (required when layout_name is provided)
     data_model_name: str | None = None
     data_model_prompt: str | None = None
 
@@ -36,8 +42,8 @@ class ExtractDocumentPayload:
     document_layout: DocumentLayoutPayload | None = None
 
     @classmethod
-    def model_validate(cls, data: Any) -> ExtractDocumentPayload:
-        # Complexiy warning comes from number of if branches for validation and is not
+    def model_validate(cls, data: Any) -> ExtractDocumentPayload:  # noqa: C901
+        # Complexity warning comes from number of if branches for validation and is not
         # worth refactoring for.
         if isinstance(data, dict):
             obj = dict(data)
@@ -50,16 +56,17 @@ class ExtractDocumentPayload:
         if thread_id is None or file_name is None:
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
-                message="thread_id and file are required",
+                message="thread_id and file_name are required",
             )
 
-        # Validate layout fields and ensure we have a data model name if we have a layout name
-        if obj.get("layout_name") is None and obj.get("document_layout") is None:
+        # Validate layout fields: layout_name or document_layout must be provided
+        document_layout = obj.get("document_layout")
+        if obj.get("layout_name") is None and document_layout is None:
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
                 message="One of layout_name or document_layout must be provided",
             )
-        if obj.get("layout_name") is not None and obj.get("document_layout") is not None:
+        if obj.get("layout_name") is not None and document_layout is not None:
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
                 message="layout_name and document_layout cannot both be provided",
@@ -70,17 +77,16 @@ class ExtractDocumentPayload:
                 message="data_model_name is required when layout_name is provided",
             )
 
-        if obj.get("document_layout") is not None and not isinstance(
-            obj.get("document_layout"), dict | DocumentLayoutPayload
-        ):
-            raise PlatformHTTPError(
-                error_code=ErrorCode.BAD_REQUEST,
-                message="The 'document_layout' field must be a dictionary or DocumentLayoutPayload",
-            )
-
-        # If we were given a document layout, let's validate it
-        if obj.get("document_layout") is not None:
-            DocumentLayoutPayload.model_validate(obj.get("document_layout"))
+        if document_layout is not None:
+            if not isinstance(document_layout, dict | DocumentLayoutPayload):
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message="The 'document_layout' field must be a dictionary or "
+                    "DocumentLayoutPayload",
+                )
+            # Validate the document layout
+            if isinstance(document_layout, dict):
+                document_layout = DocumentLayoutPayload.model_validate(document_layout)
 
         # Normalize names if provided
         data_model_name: str | None = None
@@ -94,7 +100,7 @@ class ExtractDocumentPayload:
             data_model_name=data_model_name,
             data_model_prompt=obj.get("data_model_prompt"),
             layout_name=layout_name,
-            document_layout=obj.get("document_layout"),
+            document_layout=document_layout,
             file_name=file_name,
             thread_id=thread_id,
         )

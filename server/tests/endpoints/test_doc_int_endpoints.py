@@ -1964,11 +1964,15 @@ class TestGenerateDataModelFromDocument:
 
         fake_thread = Mock()
 
-        class Uploaded:
-            def __init__(self, file_ref: str):
-                self.file_ref = file_ref
-
-        fake_uploaded = Uploaded("uploaded-ref-123")
+        fake_uploaded = UploadedFile(
+            file_id="file-123",
+            file_path="/path/to/file.pdf",
+            file_ref="uploaded-ref-123",
+            file_hash="hash123",
+            file_size_raw=1024,
+            mime_type="application/pdf",
+            created_at=datetime.now(),
+        )
 
         fake_file_manager = Mock()
         fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])
@@ -2090,6 +2094,122 @@ class TestGenerateDataModelFromDocument:
         mock_get_file_by_ref.assert_awaited()
         fake_file_manager.refresh_file_paths.assert_awaited()
         fake_client.generate_schema_from_document.assert_called_once()
+
+
+class TestGenerateExtractionSchemaFromDocument:
+    """Tests for the generate_extraction_schema_from_document endpoint."""
+
+    def _override_dependencies(self, app: FastAPI, fake_file_manager, fake_client) -> None:
+        app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
+        app.dependency_overrides[get_agent_server_client] = (
+            lambda agent_id, request=None, thread_id=None: fake_client
+        )
+
+    def test_generate_schema_from_document_direct_upload(
+        self, client: TestClient, fastapi_app: FastAPI
+    ):
+        """Uploading a file directly should upload via file manager and return uploaded_file."""
+        storage_instance = StorageService.get_instance()
+
+        fake_thread = Mock()
+
+        fake_uploaded = UploadedFile(
+            file_id="file-123",
+            file_path="/path/to/file.pdf",
+            file_ref="uploaded-ref-123",
+            file_hash="hash123",
+            file_size_raw=1024,
+            mime_type="application/pdf",
+            created_at=datetime.now(),
+        )
+
+        fake_file_manager = Mock()
+        fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])
+
+        fake_client = Mock()
+        fake_client.generate_extraction_schema = Mock(
+            return_value='{"type": "object", "properties": {}}'
+        )
+
+        with patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)):
+            self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
+
+            response = client.post(
+                "/api/v2/document-intelligence/documents/generate-schema",
+                params={
+                    "thread_id": "thread-1",
+                    "agent_id": "agent-123",
+                },
+                files={
+                    "file": (
+                        "sample.pdf",
+                        b"%PDF-1.4\n...",
+                        "application/pdf",
+                    )
+                },
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert "schema" in body
+        assert "file" in body
+        assert body["schema"] == {"type": "object", "properties": {}}
+        assert body["file"]["file_ref"] == "uploaded-ref-123"
+
+        fake_file_manager.upload.assert_awaited()
+        fake_client.generate_extraction_schema.assert_called_once()
+
+    def test_generate_schema_from_document_with_file_ref(
+        self, client: TestClient, fastapi_app: FastAPI
+    ):
+        """Providing a file ref should resolve from storage and not return uploaded_file."""
+        storage_instance = StorageService.get_instance()
+
+        fake_thread = Mock()
+
+        class StoredFile:
+            def __init__(self, file_ref: str):
+                self.file_ref = file_ref
+
+        original_stored = StoredFile("file-ref-xyz")
+        refreshed_stored = StoredFile("file-ref-xyz-refreshed")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[refreshed_stored])
+
+        fake_client = Mock()
+        fake_client.generate_extraction_schema = Mock(
+            return_value='{"type": "object", "properties": {"field": {"type": "string"}}}'
+        )
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=original_stored),
+            ) as mock_get_file_by_ref,
+        ):
+            self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
+
+            response = client.post(
+                "/api/v2/document-intelligence/documents/generate-schema",
+                params={
+                    "thread_id": "thread-2",
+                    "agent_id": "agent-456",
+                },
+                data={"file": "file-ref-xyz"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert "schema" in body
+        assert body["file"] is None  # When using file ref, no new file is created
+        assert body["schema"] == {"type": "object", "properties": {"field": {"type": "string"}}}
+
+        mock_get_file_by_ref.assert_awaited()
+        fake_file_manager.refresh_file_paths.assert_awaited()
+        fake_client.generate_extraction_schema.assert_called_once()
 
 
 @pytest.fixture
@@ -3441,7 +3561,34 @@ class TestExtractDocumentEndpoints:
                     "document_layout": {"name": "a", "data_model_name": "b"},
                 },
                 400,
-            ),  # both provided - custom validation
+            ),  # both layout_name and document_layout provided - custom validation
+            (
+                {
+                    "thread_id": "t",
+                    "file_name": "f",
+                    "extraction_schema": {"type": "object"},
+                    "layout_name": "l",
+                },
+                400,
+            ),  # extraction_schema with layout_name - custom validation
+            (
+                {
+                    "thread_id": "t",
+                    "file_name": "f",
+                    "extraction_schema": {"type": "object"},
+                    "data_model_name": "dm",
+                },
+                400,
+            ),  # extraction_schema with data_model_name - custom validation
+            (
+                {
+                    "thread_id": "t",
+                    "file_name": "f",
+                    "extraction_schema": {"type": "object"},
+                    "document_layout": {"name": "a", "data_model_name": "b"},
+                },
+                400,
+            ),  # extraction_schema with document_layout - custom validation
         ],
     )
     def test_extract_validation_errors(
@@ -3644,10 +3791,10 @@ class TestExtractDocumentEndpoints:
                 },
             )
 
-        assert resp.status_code == 500
+        assert resp.status_code == 400
         err = resp.json()["error"]
-        assert err["code"] == ErrorCode.UNEXPECTED.value.code
-        assert "no extraction schema" in err["message"].lower()
+        assert err["code"] == ErrorCode.BAD_REQUEST.value.code
+        assert "extraction_schema could not be resolved" in err["message"]
 
     @pytest.mark.parametrize(
         ("raised", "expected_code", "expected_message_substr"),
@@ -3837,6 +3984,100 @@ class TestExtractDocumentEndpoints:
         err = resp.json()["error"]
         assert err["code"] == expected_code.value.code
         assert expected_message_substr in err["message"].lower()
+
+    def test_extract_with_document_layout_success(self, client: TestClient):
+        """Test extraction using document_layout with extraction schema."""
+        storage_instance = StorageService.get_instance()
+
+        # Use Mock objects instead of SimpleNamespace for proper attribute access
+        thread = Mock(id="thread-1")
+        stored = Mock(file_id="fid-1", file_ref="ref-1")
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"bytes")
+
+        # Create a mock Job instance for start_extract return
+        mock_job = Mock()
+        mock_job.job_id = "extract-job-raw"
+        mock_job.job_type = JobType.EXTRACT
+
+        # Create a mock ExtractResponse object that job.result() will return
+        mock_extract_response = Mock(spec=ExtractResponse)
+        mock_extract_response.result = [{"extracted": "raw_data"}]
+        # Mock job.result() to return the extract response
+        mock_job.result = AsyncMock(return_value=mock_extract_response)
+
+        fake_extraction_client = Mock()
+        fake_extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT = "BASE"
+        fake_extraction_client.upload = AsyncMock(return_value="doc-1")
+        fake_extraction_client.start_extract = AsyncMock(return_value=mock_job)
+
+        fake_service = Mock()
+        fake_service.ensure_setup.return_value = None
+        fake_service.get_docint_datasource.return_value = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
+            patch(
+                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
+                return_value=fake_file_manager,
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.AsyncExtractionClient",
+                new=create_mock_async_extraction_client_class(fake_extraction_client),
+            ),
+            patch.object(
+                storage_instance,
+                "get_document_intelligence_integration",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        endpoint="https://reducto",
+                        api_key=SecretString("k"),
+                    )
+                ),
+            ),
+        ):
+            resp = client.post(
+                "/api/v2/document-intelligence/documents/extract",
+                json={
+                    "thread_id": "thread-1",
+                    "file_name": "file-xyz",
+                    "document_layout": {
+                        "extraction_schema": {
+                            "type": "object",
+                            "properties": {"field1": {"type": "string"}},
+                        },
+                        "prompt": "Custom raw prompt",
+                        "extraction_config": {"mode": "raw"},
+                    },
+                },
+            )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"extracted": "raw_data"}
+
+        # Ensure start_extract called with schema and config from document_layout
+        fake_extraction_client.start_extract.assert_called_once()
+        _, kwargs = fake_extraction_client.start_extract.call_args
+        assert kwargs["schema"] == {"type": "object", "properties": {"field1": {"type": "string"}}}
+        assert kwargs["extraction_config"] == {"mode": "raw"}
+        assert kwargs["system_prompt"].startswith("BASE")
+        assert "Custom raw prompt" in kwargs["system_prompt"]
+
+        # Ensure we didn't try to look up data models or layouts
+        # (since we provided document_layout directly)
+        assert len([call for call in fake_service.mock_calls if "DataModel" in str(call)]) == 0
 
     @pytest.mark.parametrize(
         ("raised", "expected_code", "expected_message_substr"),

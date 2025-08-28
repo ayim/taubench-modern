@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from fastapi import APIRouter, Request, UploadFile
@@ -53,6 +54,7 @@ from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
     ExtractJobResult,
     GenerateLayoutResponsePayload,
+    GenerateSchemaResponsePayload,
     JobResult,
     JobStartResponsePayload,
     JobStatusResponsePayload,
@@ -615,7 +617,18 @@ async def upsert_layout(
     try:
         normalized = DocumentLayoutPayload.model_validate(payload)
 
-        # Try to find existing layout
+        # Try to find existing layout (ensure required fields are present)
+        if normalized.data_model_name is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="data_model_name is required for document layout creation",
+            )
+        if normalized.name is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="name is required for document layout creation",
+            )
+
         existing = DocumentLayout.find_by_name(
             docint_ds, normalized.data_model_name, normalized.name
         )
@@ -921,6 +934,43 @@ async def generate_data_model_from_document(  # noqa: PLR0913
         }
 
 
+@router.post("/documents/generate-schema")
+async def generate_extraction_schema_from_document(  # noqa: PLR0913
+    file: UploadFile | str,
+    thread_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    agent_server_client: AgentServerClientDependency,
+) -> GenerateSchemaResponsePayload:
+    """Generate an extraction schema from a document."""
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
+
+    uploaded_file, new_file = await _get_or_upload_file(
+        file,
+        thread=thread,
+        user_id=user.user_id,
+        storage=storage,
+        file_manager=file_manager,
+    )
+
+    try:
+        schema = await run_in_threadpool(
+            agent_server_client.generate_extraction_schema,
+            uploaded_file.file_ref,
+        )
+
+        return GenerateSchemaResponsePayload(
+            schema=validate_schema(schema),
+            file=uploaded_file if new_file else None,
+        )
+    except Exception as e:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED,
+            message="Failed to generate extraction schema",
+        ) from e
+
+
 # Reducto (extract, parse ...) endpoints
 
 
@@ -1026,20 +1076,95 @@ async def parse_document_async(  # noqa: PLR0913
     )
 
 
+async def _get_data_model_prompt_and_document_layout(
+    payload: ExtractDocumentPayload,
+    docint_ds: DocIntDatasourceDependency,
+) -> tuple[str, DocumentLayout]:
+    """Get the data model prompt and document layout from the payload."""
+    data_model_prompt: str = ""
+    document_layout: DocumentLayout | None = None
+
+    # Handle layout_name approach (requires data_model_name)
+    if payload.layout_name:
+        if not payload.data_model_name:
+            # This should not happen as we validate the payload before, but needed for type safety
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="data_model_name is required when layout_name is provided",
+            )
+
+        data_model = DataModel.find_by_name(docint_ds, payload.data_model_name)
+        if not data_model:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"Data model {payload.data_model_name} not found",
+            )
+        data_model_prompt = data_model.prompt or ""
+
+        document_layout = DocumentLayout.find_by_name(
+            docint_ds, data_model.name, payload.layout_name
+        )
+        if not document_layout:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=f"Layout {payload.layout_name} not found",
+            )
+
+        return data_model_prompt, document_layout
+    else:
+        # We must have a document_layout
+        if payload.document_layout is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="document_layout is required when layout_name is not provided",
+            )
+
+        # For extraction requests, we can use a partial document layout without name/data_model_name
+        # We'll create a minimal DocumentLayout object with just the extraction fields
+        document_layout = DocumentLayout(
+            name=payload.document_layout.name or "extraction_layout",
+            data_model=payload.document_layout.data_model_name or "extraction_model",
+            extraction_schema=payload.document_layout.extraction_schema,
+            translation_schema=payload.document_layout.wrap_translation_schema(),
+            summary=payload.document_layout.summary,
+            extraction_config=payload.document_layout.extraction_config,
+            system_prompt=payload.document_layout.prompt,
+        )
+
+        # Get data model prompt if data_model_name was provided
+        if payload.data_model_name:
+            data_model = DataModel.find_by_name(docint_ds, payload.data_model_name)
+            if not data_model:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Data model {payload.data_model_name} not found",
+                )
+            data_model_prompt = data_model.prompt or ""
+
+        return data_model_prompt, document_layout
+
+
+@dataclass
+class ResolvedExtractRequest:
+    thread_id: str
+    uploaded_file: UploadedFile
+    extraction_schema: dict[str, Any]
+    extraction_system_prompt: str | None
+    extraction_config: dict[str, Any] | None
+    data_model_prompt: str | None
+
+
 async def _resolve_extract_request(
     payload: ExtractDocumentPayload,
     docint_ds: DocIntDatasourceDependency,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     user: AuthedUser,
-) -> tuple[str, UploadedFile, DocumentLayout, str]:
+) -> ResolvedExtractRequest:
     """Handles the extraction payload.
 
-    If the payload is valid, the returned values will be:
-    - thread_id: The thread ID from the payload.
-    - uploaded_file: The uploaded file from the payload.
-    - document_layout: The document layout from the payload.
-    - data_model_prompt: The data model prompt from the payload.
+    If the payload is valid, the returned values will be resolved from the payload or the
+    document layout as a ResolvedExtractRequest object.
     """
     valid_payload = ExtractDocumentPayload.model_validate(payload)
 
@@ -1053,108 +1178,81 @@ async def _resolve_extract_request(
         file_manager=file_manager,
     )
 
-    # Get data model prompt and document layout
-    data_model_prompt: str = ""
-    document_layout: DocumentLayout | None = None
+    # Get the data model prompt and document layout (handles both new and legacy approaches)
+    data_model_prompt, document_layout = await _get_data_model_prompt_and_document_layout(
+        valid_payload, docint_ds
+    )
 
-    data_model: DataModel | None = None
-    if valid_payload.data_model_name:
-        data_model = DataModel.find_by_name(docint_ds, valid_payload.data_model_name)
-        if not data_model:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.NOT_FOUND,
-                message=f"Data model {valid_payload.data_model_name} not found",
-            )
-        data_model_prompt = data_model.prompt or ""
+    # Extract the fields from the document layout
+    extraction_schema = document_layout.extraction_schema
+    extraction_system_prompt = document_layout.system_prompt
+    extraction_config = document_layout.extraction_config
 
-    if valid_payload.layout_name:
-        if not data_model:
-            # This check will likely never happen as we validate the payload before
-            raise PlatformHTTPError(
-                error_code=ErrorCode.BAD_REQUEST,
-                message="data_model_name is required when layout_name is provided",
-            )
-        document_layout = DocumentLayout.find_by_name(
-            docint_ds, data_model.name, valid_payload.layout_name
+    if extraction_schema is None:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="extraction_schema could not be resolved from the payload or "
+            "the document layout",
         )
-        if not document_layout:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.NOT_FOUND,
-                message=f"Layout {valid_payload.layout_name} not found",
-            )
-    else:
-        # We must have been given a document layout based on payload's initial validation
-        if valid_payload.document_layout is None:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.BAD_REQUEST,
-                message="document_layout is required when layout_name is not provided",
-            )
-        document_layout = valid_payload.document_layout.to_document_layout()
 
-    # We've already validated that document_layout is not None
-    return thread_id, file, document_layout, data_model_prompt  # type: ignore
+    return ResolvedExtractRequest(
+        thread_id=thread_id,
+        uploaded_file=file,
+        extraction_schema=extraction_schema,
+        extraction_system_prompt=extraction_system_prompt,
+        extraction_config=extraction_config,
+        data_model_prompt=data_model_prompt,
+    )
 
 
-async def _upload_and_start_extract(  # noqa: PLR0913
-    uploaded_file: UploadedFile,
+async def _upload_and_start_extract(
+    request: ResolvedExtractRequest,
     user_id: str,
-    thread_id: str,
-    document_layout: DocumentLayout,
     file_manager: FileManagerDependency,
     extraction_client: AsyncExtractionClient,
-    data_model_prompt: str | None = None,
 ) -> Job:
     """Async version of upload and extract using AsyncExtractionClient.
 
     Args:
-        uploaded_file: The uploaded file to extract from
+        request: The resolved extract request
         user_id: User ID
-        thread_id: Thread ID
-        document_layout: Document layout with extraction schema
         file_manager: File manager dependency
         extraction_client: Async extraction client instance
-        data_model_prompt: Optional data model prompt
     """
     try:
-        file_contents = await file_manager.read_file_contents(uploaded_file.file_id, user_id)
+        file_contents = await file_manager.read_file_contents(
+            request.uploaded_file.file_id, user_id
+        )
         reducto_doc_id = await extraction_client.upload(
             file_contents, content_length=len(file_contents)
         )
 
-        # Ready extraction schema
-        schema = document_layout.extraction_schema
-        if schema is None:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.UNEXPECTED,
-                message="Document layout has no extraction schema",
-            )
-        schema = dict(schema)
-
         # Figure out prompt
         prompt = extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT
-        if data_model_prompt:
-            prompt = f"{prompt}\n\n{data_model_prompt}"
-        if document_layout.system_prompt:
-            prompt = f"{prompt}\n\n{document_layout.system_prompt}"
+        if request.data_model_prompt:
+            prompt = f"{prompt}\n\n{request.data_model_prompt}"
+        if request.extraction_system_prompt:
+            prompt = f"{prompt}\n\n{request.extraction_system_prompt}"
 
         logger.info(
-            f"Extracting document {reducto_doc_id} with schema {schema} and prompt {prompt}"
+            f"Extracting document {reducto_doc_id} with schema {request.extraction_schema} "
+            f"and prompt {prompt}"
         )
 
         return await extraction_client.start_extract(
             reducto_doc_id,
-            schema=schema,
+            schema=request.extraction_schema,
             system_prompt=prompt,
-            extraction_config=document_layout.extraction_config,
+            extraction_config=request.extraction_config,
         )
     except PlatformHTTPError:
         raise
     except Exception as e:
         _raise_mapped_reducto_error(
             e,
-            uploaded_file=uploaded_file,
+            uploaded_file=request.uploaded_file,
             user_id=user_id,
-            thread_id=thread_id,
+            thread_id=request.thread_id,
         )
 
 
@@ -1174,7 +1272,7 @@ async def extract_document(  # noqa: PLR0913
     # This endpoint deviates from other endpoints because it uses a JSON payload so it
     # cannot accept a multipart/form-data request that includes a file.
 
-    thread_id, file, document_layout, data_model_prompt = await _resolve_extract_request(
+    request = await _resolve_extract_request(
         payload=payload,
         docint_ds=docint_ds,
         storage=storage,
@@ -1183,13 +1281,10 @@ async def extract_document(  # noqa: PLR0913
     )
 
     extract_response = await _upload_and_start_extract(
-        uploaded_file=file,
+        request=request,
         user_id=user.user_id,
-        thread_id=thread_id,
-        document_layout=document_layout,
         file_manager=file_manager,
         extraction_client=extraction_client,
-        data_model_prompt=data_model_prompt,
     )
 
     try:
@@ -1207,9 +1302,9 @@ async def extract_document(  # noqa: PLR0913
     except Exception as e:
         _raise_mapped_reducto_error(
             e,
-            uploaded_file=file,
+            uploaded_file=request.uploaded_file,
             user_id=user.user_id,
-            thread_id=thread_id,
+            thread_id=request.thread_id,
         )
 
 
@@ -1235,7 +1330,7 @@ async def extract_document_async(  # noqa: PLR0913
     Note:
         When checking job status or results, pass job_type="extract" as a query parameter.
     """
-    thread_id, file, document_layout, data_model_prompt = await _resolve_extract_request(
+    request = await _resolve_extract_request(
         payload=payload,
         docint_ds=docint_ds,
         storage=storage,
@@ -1244,13 +1339,10 @@ async def extract_document_async(  # noqa: PLR0913
     )
 
     job = await _upload_and_start_extract(
-        uploaded_file=file,
+        request=request,
         user_id=user.user_id,
-        thread_id=thread_id,
-        document_layout=document_layout,
         file_manager=file_manager,
         extraction_client=extraction_client,
-        data_model_prompt=data_model_prompt,
     )
 
     return JobStartResponsePayload(

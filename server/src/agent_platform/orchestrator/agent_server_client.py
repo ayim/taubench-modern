@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 import requests
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
+from agent_platform.core.payloads.document_intelligence import ExtractDocumentPayload
 from agent_platform.core.payloads.upsert_document_intelligence_config import (
     UpsertDocumentIntelligenceConfigPayload,
 )
@@ -840,6 +841,28 @@ class AgentServerClient:
             ) from e
         return response
 
+    def generate_extraction_schema(self, file_ref: str, thread_id: str, agent_id: str) -> dict:
+        url = urljoin(
+            self.base_url + "/",
+            f"document-intelligence/documents/generate-schema?thread_id={thread_id}&agent_id={agent_id}",
+        )
+
+        headers = {
+            "Accept": "application/json",
+        }
+
+        response = requests.post(url, headers=headers, data={"file": file_ref})
+
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error generating extraction schema: {response.status_code} {response.text}",
+            ) from e
+        result = response.json()
+        print_success("Extraction schema generated successfully")
+        return result
+
     def parse_document(self, file_ref: str, thread_id: str) -> dict:
         """Parse a document using Document Intelligence.
 
@@ -886,6 +909,44 @@ class AgentServerClient:
             ) from e
         result = response.json()
         print_success("Document parse job started successfully")
+        return result
+
+    def extract_document(self, extract_request: ExtractDocumentPayload) -> dict:
+        url = urljoin(
+            self.base_url + "/",
+            "document-intelligence/documents/extract",
+        )
+        headers = {
+            "Accept": "application/json",
+        }
+        response = requests.post(url, headers=headers, json=asdict(extract_request))
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error extracting document: {response.status_code} {response.text}",
+            ) from e
+        result = response.json()
+        print_success("Document extracted successfully")
+        return result
+
+    def start_async_document_extract(self, extract_request: ExtractDocumentPayload) -> dict:
+        url = urljoin(
+            self.base_url + "/",
+            "document-intelligence/documents/extract/async",
+        )
+        headers = {
+            "Accept": "application/json",
+        }
+        response = requests.post(url, headers=headers, json=asdict(extract_request))
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error starting document extract job: {response.status_code} {response.text}",
+            ) from e
+        result = response.json()
+        print_success("Document extract job started successfully")
         return result
 
     # Job status and result

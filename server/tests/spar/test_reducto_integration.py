@@ -2,11 +2,23 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from time import sleep
+from typing import TypedDict
 
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from reducto.types.shared.parse_response import ResultFullResult as ParseResult
 from sema4ai_docint.extraction.reducto.async_ import JobType
+
+from agent_platform.core.payloads.document_intelligence import (
+    DocumentLayoutPayload,
+    ExtractDocumentPayload,
+)
+
+
+class ExtractionSchemaResult(TypedDict):
+    file: None
+    schema: dict
+    resource_name: str
 
 
 @dataclass
@@ -95,14 +107,14 @@ class TestReductoIntegration:
         agent_factory: Callable[[], str],
         spar_resources_path: Path,
         resource_name: str,
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str, str]:
         agent_id = agent_factory()
         thread_id = agent_server_client_with_doc_int.create_thread_and_return_thread_id(agent_id)
         resource_path = spar_resources_path / resource_name
         file_upload_result = upload_file_to_thread(
             agent_server_client_with_doc_int, thread_id, resource_path
         )
-        return thread_id, file_upload_result.file_ref
+        return thread_id, file_upload_result.file_ref, agent_id
 
     @pytest.mark.parametrize("resource_name", ["tables.pdf"])
     def test_document_parse(
@@ -112,7 +124,7 @@ class TestReductoIntegration:
         spar_resources_path: Path,
         resource_name: str,
     ):
-        thread_id, file_ref = self._upload_resource_to_new_agent_thread(
+        thread_id, file_ref, _ = self._upload_resource_to_new_agent_thread(
             agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
         )
 
@@ -130,7 +142,7 @@ class TestReductoIntegration:
         spar_resources_path: Path,
         resource_name: str,
     ):
-        thread_id, file_ref = self._upload_resource_to_new_agent_thread(
+        thread_id, file_ref, _ = self._upload_resource_to_new_agent_thread(
             agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
         )
 
@@ -167,3 +179,79 @@ class TestReductoIntegration:
         assert "job_type" in result_result
         assert result_result["job_type"] == JobType.PARSE.value
         self._assert_tables_pdf_parse_result(result_result["result"])
+
+    @pytest.fixture
+    def extraction_schema_result(
+        self,
+        request: pytest.FixtureRequest,
+        agent_server_client_with_doc_int: AgentServerClient,
+        agent_factory: Callable[[], str],
+        spar_resources_path: Path,
+    ) -> ExtractionSchemaResult:
+        """Fixture that generates extraction schema from the parametrized document."""
+        resource_name: str = request.param
+        thread_id, file_ref, agent_id = self._upload_resource_to_new_agent_thread(
+            agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
+        )
+
+        # generate the extraction schema
+        extraction_schema = agent_server_client_with_doc_int.generate_extraction_schema(
+            file_ref, thread_id, agent_id
+        )
+        return {
+            "file": extraction_schema["file"],
+            "schema": extraction_schema["schema"],
+            "resource_name": resource_name,
+        }
+
+    @pytest.mark.parametrize("extraction_schema_result", ["tables.pdf"], indirect=True)
+    def test_generate_extraction_schema_from_document(
+        self,
+        extraction_schema_result: ExtractionSchemaResult,
+    ):
+        """Test that the generated extraction schema has the expected structure."""
+
+        schema = extraction_schema_result["schema"]
+
+        assert schema["type"] == "object"
+        assert "properties" in schema
+        assert "required" in schema
+        assert "tables" in schema["required"]
+
+        # Minimal checking, I found that the exact schema could vary a lot so there is little
+        # point in checking the exact schema
+        tables_prop = schema["properties"]["tables"]
+        assert tables_prop["type"] == "array"
+        assert "description" in tables_prop
+        assert "items" in tables_prop
+
+    @pytest.mark.parametrize("extraction_schema_result", ["tables.pdf"], indirect=True)
+    def test_extract_document_with_transient_schema(
+        self,
+        extraction_schema_result: ExtractionSchemaResult,
+        agent_server_client_with_doc_int: AgentServerClient,
+        agent_factory: Callable[[], str],
+        spar_resources_path: Path,
+    ):
+        """Test that the document can be extracted with a transient schema."""
+        resource_name = extraction_schema_result["resource_name"]
+
+        thread_id, _, _ = self._upload_resource_to_new_agent_thread(
+            agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
+        )
+
+        # Create a document layout with the extraction schema
+        document_layout = DocumentLayoutPayload(
+            extraction_schema=extraction_schema_result["schema"],
+        )
+        extract_request = ExtractDocumentPayload(
+            file_name=resource_name,
+            thread_id=thread_id,
+            document_layout=document_layout,
+        )
+
+        extract_results = agent_server_client_with_doc_int.extract_document(extract_request)
+
+        # Validate that we got results
+        assert extract_results is not None
+        assert isinstance(extract_results, dict)

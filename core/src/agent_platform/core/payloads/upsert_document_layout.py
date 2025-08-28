@@ -76,10 +76,14 @@ class _TranslationSchema:
 class DocumentLayoutPayload:
     """Payload matching the OpenAPI reference for the Layout object except our fields
     will use snake_case.
+
+    Note: name and data_model_name are made optional to support partial payloads
+    for extraction requests. When used as a complete layout payload, these should
+    be provided and validated at the usage site.
     """
 
-    name: str
-    data_model_name: str
+    name: str | None = None
+    data_model_name: str | None = None
     extraction_schema: dict[str, Any] | None = None
     translation_schema: _TranslationSchema | list[_TranslationRule] | None = None
     summary: str | None = None
@@ -97,11 +101,16 @@ class DocumentLayoutPayload:
         else:
             obj = dict(getattr(data, "__dict__", {}))
 
-        name = normalize_name(str(obj.get("name")))
+        name: str | None = None
+        data_model_name: str | None = None
         if isinstance(data, DocumentLayout):
+            name = data.name
             data_model_name = data.data_model
         else:
-            data_model_name = normalize_name(str(obj.get("data_model_name")))
+            if obj.get("name") is not None:
+                name = normalize_name(str(obj.get("name")))
+            if obj.get("data_model_name") is not None:
+                data_model_name = normalize_name(str(obj.get("data_model_name")))
 
         extraction_schema = obj.get("extraction_schema")
         translation_schema_in = obj.get("translation_schema")
@@ -143,6 +152,12 @@ class DocumentLayoutPayload:
 
     def to_document_layout(self) -> DocumentLayout:
         translation_schema_wrapped = self.wrap_translation_schema()
+
+        # Ensure name and data_model_name are provided when converting to DocumentLayout
+        if self.name is None:
+            raise ValueError("name is required when converting to DocumentLayout")
+        if self.data_model_name is None:
+            raise ValueError("data_model_name is required when converting to DocumentLayout")
 
         return DocumentLayout(
             name=self.name,
