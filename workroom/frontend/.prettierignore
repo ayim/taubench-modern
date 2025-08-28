@@ -1,0 +1,8 @@
+# Ignore build outputs and deps (Prettier ignores node_modules by default, but add for clarity)
+node_modules/
+dist/
+build/
+
+# Ignore generated router file
+**/routeTree.gen.ts
+

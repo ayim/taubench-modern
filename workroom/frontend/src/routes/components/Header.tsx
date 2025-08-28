@@ -73,7 +73,9 @@ export const Header = () => {
         placement="bottom-end"
         initialFocus={1}
       >
-        {tenants?.map((tenant) => <MenuItem tenant={tenant} key={tenant.id} />)}
+        {tenants?.map((tenant) => (
+          <MenuItem tenant={tenant} key={tenant.id} />
+        ))}
 
         <Divider />
 

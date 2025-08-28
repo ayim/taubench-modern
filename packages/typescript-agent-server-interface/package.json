@@ -9,7 +9,9 @@
   "scripts": {
     "prebuild": "npm run test",
     "build": "npm run generate && tsc && npm run copy-legacy-types",
-    "format": "prettier --write \"**/*.{ts,json}\"",
+    "format": "prettier \"**/*.{ts,tsx,js,json,md,css}\" --write",
+    "format:fix": "npm run format",
+    "format:check": "prettier \"**/*.{ts,tsx,js,json,md,css}\" --check",
     "generate:private": "ts-node ./scripts/generate.ts ./private.openapi.json \"private\"",
     "generate:public": "ts-node ./scripts/generate.ts ./public.openapi.json \"public\"",
     "generate:all": "npm run generate:private && npm run generate:public",

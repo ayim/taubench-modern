@@ -8,6 +8,12 @@
       "dependsOn": ["^build"]
     },
     "lint": {},
-    "test": {}
+    "test": {},
+    "format": {
+      "outputs": []
+    },
+    "format:check": {
+      "outputs": []
+    }
   }
 }

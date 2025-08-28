@@ -41,14 +41,6 @@ jobs:
               - '!agent-spec/**'
               - '!client-sdks/golang/agent-cli/**'
 
-  format_check:
-    name: Check formatting with prettier
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check formatting
-        run: npx prettier@3.5.3 . --check
-
   version:
     name: Determine the version suffix for the PR build
     runs-on: ubuntu-24.04

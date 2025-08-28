@@ -1,0 +1,8 @@
+# Ignore build outputs and deps
+node_modules/
+dist/
+build/
+
+# Ignore generated router trees
+**/routeTree.gen.ts
+

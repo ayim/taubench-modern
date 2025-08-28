@@ -9,13 +9,16 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "format": "turbo run format",
+    "format:check": "turbo run format:check"
   },
   "workspaces": [
     "backend",
     "frontend"
   ],
   "devDependencies": {
+    "prettier": "^3.5.3",
     "turbo": "^2.5.5"
   }
 }

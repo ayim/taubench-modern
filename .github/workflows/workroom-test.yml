@@ -28,14 +28,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: './workroom/package-lock.json'
-
-      - name: Create .npmrc file
+      - &create_npmrc
+        name: Create .npmrc file
         shell: bash
         run: |
           cat << EOF > .npmrc
@@ -44,6 +38,13 @@ jobs:
           @sema4ai:registry=https://npm.pkg.github.com/
           //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_PACKAGE_READ_TOKEN }}
           EOF
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: './workroom/package-lock.json'
 
       - name: Install dependencies
         shell: bash
@@ -60,7 +61,7 @@ jobs:
         run: |
           npm run test
 
-  test-format:
+  lint:
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -77,23 +78,41 @@ jobs:
           node-version: '24'
           cache: 'npm'
           cache-dependency-path: './workroom/package-lock.json'
-
-      - name: Create .npmrc file
-        shell: bash
-        run: |
-          cat << EOF > .npmrc
-          registry=https://registry.npmjs.org/
-          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
-          @sema4ai:registry=https://npm.pkg.github.com/
-          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_PACKAGE_READ_TOKEN }}
-          EOF
-
+      - *create_npmrc
       - name: Install dependencies
         shell: bash
         run: |
           npm ci
 
-      - name: Run linting
+      - name: Run lint
         shell: bash
         run: |
           npm run lint
+
+  format-check:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ./workroom
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: './workroom/package-lock.json'
+      - *create_npmrc
+      - name: Install dependencies
+        shell: bash
+        run: |
+          npm ci
+
+      - name: Run formatting check
+        shell: bash
+        run: |
+          npm run format:check
