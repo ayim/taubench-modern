@@ -1,5 +1,6 @@
 import { UserTenant } from '~/queries/tenants';
 import { getBasePath } from '~/utils/base';
+import type { CreateMcpServerBody, McpServerResponse, UpdateMcpServerBody } from '~/queries/mcpServers';
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -108,3 +109,68 @@ export const resolveWorkroomURL = (
   path: string,
   baseUrl: string = `${window.location.protocol}//${window.location.host}`,
 ): string => joinURL(baseUrl, getBasePath(), path);
+
+export type HeaderEntry = { key: string; value?: string; type?: 'string' | 'secret' };
+
+export function entriesToHeaders(entries: HeaderEntry[] | undefined | null): Record<string, string> {
+  const normalized = (entries || [])
+    .filter((entry) => entry && typeof entry.key === 'string' && entry.key.trim().length > 0)
+    .map((entry) => [entry.key, entry.value ?? '']);
+  return Object.fromEntries(normalized);
+}
+
+export function headersToEntries(headers?: Record<string, string | undefined> | null): HeaderEntry[] {
+  if (!headers) return [];
+  return Object.entries(headers).map(([key, value]) => ({ key, value: value ?? '', type: 'string' }));
+}
+
+export function buildCreateMcpBody(values: {
+  name: string;
+  transport: CreateMcpServerBody['transport'];
+  url?: string;
+  headerEntries?: HeaderEntry[];
+}): CreateMcpServerBody {
+  const headers = entriesToHeaders(values.headerEntries);
+  return {
+    name: values.name,
+    transport: values.transport,
+    url: values.url || undefined,
+    headers: Object.keys(headers).length ? headers : undefined,
+  } as CreateMcpServerBody;
+}
+
+export function buildUpdateMcpBody(
+  values: {
+    name: string;
+    transport: UpdateMcpServerBody['transport'];
+    url?: string;
+    headerEntries?: HeaderEntry[];
+    command?: string;
+    argsText?: string;
+    cwd?: string;
+  },
+  initial: McpServerResponse,
+): UpdateMcpServerBody {
+  const headers = entriesToHeaders(values.headerEntries);
+  const base: UpdateMcpServerBody = {
+    name: values.name,
+    transport: values.transport,
+    url: values.transport === 'stdio' ? null : values.url || null,
+    headers: Object.keys(headers).length ? headers : null,
+  } as UpdateMcpServerBody;
+
+  if (values.transport === 'stdio') {
+    const parsedArgs = (values.argsText || '')
+      .split(/\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    (base as unknown as { command?: string }).command = values.command || undefined;
+    (base as unknown as { args?: string[] | null }).args = parsedArgs.length ? parsedArgs : null;
+    (base as unknown as { cwd?: string | null }).cwd = values.cwd ?? null;
+    (base as unknown as { env?: Record<string, unknown> | null }).env =
+      ((initial as unknown as { env?: Record<string, unknown> | null }).env ?? null) || null;
+  }
+
+  return base;
+}

@@ -62,6 +62,7 @@ function RouteComponent() {
                 items={items}
                 onQuery={onSearchQueryUpdate}
                 onCreate={() => navigate({ to: '/tenants/$tenantId/mcp-servers/new', params: { tenantId } })}
+                onEdit={(i) => navigate({ to: `/tenants/${tenantId}/mcp-servers/${i.id}` })}
                 onDelete={(i) => setDeleteTarget(i)}
               />
             </Box>

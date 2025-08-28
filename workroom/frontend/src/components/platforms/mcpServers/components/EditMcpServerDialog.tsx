@@ -2,16 +2,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, Dialog, Form, Input, Select } from '@sema4ai/components';
 import { IconPlus, IconTrash } from '@sema4ai/icons';
 import { useParams } from '@tanstack/react-router';
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useCreateMcpServerMutation, type CreateMcpServerBody } from '~/queries/mcpServers';
-import { buildCreateMcpBody } from '~/lib/utils';
+import { McpServerResponse, useUpdateMcpServerMutation, type UpdateMcpServerBody } from '~/queries/mcpServers';
+import { buildUpdateMcpBody, headersToEntries } from '~/lib/utils';
 import { errorToast, successToast } from '~/utils/toasts';
 
-type Props = { open: boolean; onClose: () => void };
+type Props = { open: boolean; onClose: () => void; initial: McpServerResponse };
 
-type Transport = CreateMcpServerBody['transport'];
+type Transport = UpdateMcpServerBody['transport'];
 const transportValues = ['auto', 'stdio', 'sse', 'streamable-http'] as const satisfies readonly Transport[];
 
 const keyValueSchema = z.object({
@@ -20,52 +20,94 @@ const keyValueSchema = z.object({
   type: z.enum(['string', 'secret']).optional().default('string'),
 });
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  transport: z.enum(transportValues),
-  url: z.string().min(1, 'URL is required'),
-  headersKV: z.array(keyValueSchema).default([]),
-});
+const formSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    transport: z.enum(transportValues),
+    url: z.string().optional(),
+    headersKV: z.array(keyValueSchema).default([]),
+    command: z.string().optional(),
+    argsText: z.string().optional(),
+    cwd: z.string().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.transport === 'stdio') {
+      if (!values.command || !values.command.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['command'], message: 'Command is required for stdio' });
+      }
+    } else {
+      if (!values.url || !values.url.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['url'], message: 'URL is required for this transport' });
+      }
+    }
+  });
 
 type FormValues = z.input<typeof formSchema>;
 
-export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
+export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
-  const mutation = useCreateMcpServerMutation();
+  const mutation = useUpdateMcpServerMutation();
+
+  const defaultHeadersKV = useMemo(() => {
+    const headers: Record<string, string | undefined> =
+      (initial as unknown as { server?: { headers?: Record<string, string> } }).server?.headers ||
+      (initial.headers as Record<string, string> | undefined) ||
+      {};
+    return headersToEntries(headers);
+  }, [initial]);
+
   const form = useForm<FormValues, unknown, FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', transport: 'auto', url: '', headersKV: [] },
+    defaultValues: {
+      name: initial.name ?? '',
+      transport: (initial.transport as Transport) ?? 'auto',
+      url: (initial.url as string | undefined) ?? undefined,
+      headersKV: defaultHeadersKV,
+      command: (initial as unknown as { command?: string | null }).command ?? undefined,
+      argsText: ((initial as unknown as { args?: string[] | null }).args || [])?.join(' ') || undefined,
+      cwd: (initial as unknown as { cwd?: string | null }).cwd ?? undefined,
+    },
     mode: 'onChange',
   });
+
+  const transportValue = form.watch('transport');
 
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
 
   const onSubmit = form.handleSubmit((values: FormValues) => {
-    const body: CreateMcpServerBody = buildCreateMcpBody({
-      name: values.name,
-      transport: values.transport,
-      url: values.url,
-      headerEntries: values.headersKV,
-    });
+    const body: UpdateMcpServerBody = buildUpdateMcpBody(
+      {
+        name: values.name,
+        transport: values.transport,
+        url: values.url,
+        headerEntries: values.headersKV,
+        command: values.command,
+        argsText: values.argsText,
+        cwd: values.cwd,
+      },
+      initial,
+    );
+
+    const mcpServerId = initial.mcp_server_id as string;
 
     mutation.mutate(
-      { tenantId, body },
+      { tenantId, mcpServerId, body },
       {
         onSuccess: () => {
-          successToast('MCP server created');
+          successToast('MCP server updated');
           onClose();
         },
-        onError: (e) => errorToast(e instanceof Error ? e.message : 'Failed to save MCP server'),
+        onError: (e) => errorToast(e instanceof Error ? e.message : 'Failed to update MCP server'),
       },
     );
   });
 
   return (
-    <Dialog open={open} size="medium" width={900} onClose={() => onClose()}>
+    <Dialog open={open} size="medium" width={900} onClose={onClose}>
       <Form onSubmit={onSubmit} gap="$12" busy={mutation.isPending}>
         <Dialog.Header>
-          <Dialog.Header.Title title="New MCP server" />
-          <Dialog.Header.Description>Configure an MCP server for your workspace.</Dialog.Header.Description>
+          <Dialog.Header.Title title="Edit MCP server" />
+          <Dialog.Header.Description>Update an MCP server for your workspace.</Dialog.Header.Description>
         </Dialog.Header>
         <Dialog.Content>
           <Form.Fieldset>
@@ -96,10 +138,33 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                 <Input
                   label="URL"
                   placeholder="URL"
+                  disabled={transportValue === 'stdio'}
                   {...form.register('url')}
                   error={form.formState.errors.url?.message}
                 />
               </Box>
+              {transportValue === 'stdio' && (
+                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <Input
+                    label="Command"
+                    placeholder="Executable or script"
+                    {...form.register('command')}
+                    error={form.formState.errors.command?.message}
+                  />
+                  <Input
+                    label="Args"
+                    placeholder="e.g. --flag value"
+                    {...form.register('argsText')}
+                    error={form.formState.errors.argsText?.message}
+                  />
+                  <Input
+                    label="CWD"
+                    placeholder="/path/to/working/dir"
+                    {...form.register('cwd')}
+                    error={form.formState.errors.cwd?.message}
+                  />
+                </Box>
+              )}
             </Box>
 
             <Box>
@@ -160,15 +225,13 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                 </Button>
               </Box>
             </Box>
-
-            {/* Simplified: no environment variables or working directory */}
           </Form.Fieldset>
         </Dialog.Content>
         <Dialog.Actions>
           <Button variant="primary" type="submit" round loading={mutation.isPending}>
-            Create
+            Save
           </Button>
-          <Button variant="outline" type="button" round onClick={() => onClose()}>
+          <Button variant="outline" type="button" round onClick={onClose}>
             Cancel
           </Button>
         </Dialog.Actions>
