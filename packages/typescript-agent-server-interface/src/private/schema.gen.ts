@@ -1161,6 +1161,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/documents/generate-schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Extraction Schema From Document
+     * @description Generate an extraction schema from a document.
+     */
+    post: operations['generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/documents/parse': {
     parameters: {
       query?: never;
@@ -2316,6 +2336,11 @@ export interface components {
       /** File */
       file: string;
     };
+    /** Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post */
+    Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post: {
+      /** File */
+      file: string;
+    };
     /** Body_generate_layout_from_file_document_intelligence_layouts_generate_post */
     Body_generate_layout_from_file_document_intelligence_layouts_generate_post: {
       /** File */
@@ -2716,36 +2741,12 @@ export interface components {
         [key: string]: components['schemas']['DataConnection'];
       };
     };
-    /** DocumentLayoutBridge */
-    DocumentLayoutBridge: {
-      /** Name */
-      name: string;
-      /** Data Model */
-      data_model: string;
-      /** Summary */
-      summary?: string | null;
-      /** Extraction Schema */
-      extraction_schema?: {
-        [key: string]: unknown;
-      } | null;
-      translation_schema?: components['schemas']['Mapping'] | null;
-      /** Extraction Config */
-      extraction_config?: {
-        [key: string]: unknown;
-      } | null;
-      /** System Prompt */
-      system_prompt?: string | null;
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
-    };
     /** DocumentLayoutPayload */
     DocumentLayoutPayload: {
       /** Name */
-      name: string;
+      name?: string | null;
       /** Data Model Name */
-      data_model_name: string;
+      data_model_name?: string | null;
       /** Extraction Schema */
       extraction_schema?: {
         [key: string]: unknown;
@@ -2864,6 +2865,19 @@ export interface components {
     GenerateDataQualityChecksResponse: {
       /** Quality Checks */
       quality_checks: components['schemas']['ValidationRule'][];
+    };
+    /** GenerateLayoutResponsePayload */
+    GenerateLayoutResponsePayload: {
+      layout: components['schemas']['DocumentLayoutPayload'];
+      file?: components['schemas']['UploadedFile'] | null;
+    };
+    /** GenerateSchemaResponsePayload */
+    GenerateSchemaResponsePayload: {
+      /** Schema */
+      schema: {
+        [key: string]: unknown;
+      };
+      file?: components['schemas']['UploadedFile'] | null;
     };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
@@ -3287,52 +3301,6 @@ export interface components {
       description?: string | null;
       /** Value */
       value?: string | null;
-    };
-    /**
-     * Mapping
-     * @description An object that describes the mapping from one JSON object to another.
-     *
-     *     Attributes
-     *     ----------
-     *     rules : list[MappingRow]
-     *         List of mapping rules to apply for the transformation.
-     */
-    Mapping: {
-      /** Rules */
-      rules: components['schemas']['MappingRow'][];
-    };
-    /**
-     * MappingRow
-     * @description An object that describes the mapping of one field in a Mapping.
-     *
-     *     Attributes
-     *     ----------
-     *     source : str
-     *         Dotted JSON path in the source document.
-     *         Use `[*]` to denote "all elements" of an array, e.g. `order.items[*]`.
-     *     target : str
-     *         Dotted path in the output object where the value(s) should be written.
-     *     mode : Optional[str], default None
-     *         * flatten – emit one new output object per element and merge `extras`.
-     *     transform : Optional[str], default None
-     *         Optional cast or conversion (e.g. "int", "float", "timestamp").
-     *     extras : dict[str, str], default {}
-     *         Only used when mode == "flatten".
-     *         Maps new field-names → relative paths of attributes to lift.
-     */
-    MappingRow: {
-      /** Source */
-      source: string;
-      /** Target */
-      target: string;
-      /** Mode */
-      mode?: 'flatten' | null;
-      /** Transform */
-      transform?: ('int' | 'float' | 'str' | 'bool') | null;
-      /** Extras */
-      extras?: {
-        [key: string]: string;
-      };
     };
     /** MemoriesParams */
     MemoriesParams: {
@@ -8023,7 +7991,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['DocumentLayoutBridge'];
+          'application/json': components['schemas']['DocumentLayoutPayload'];
         };
       };
       /** @description Validation Error */
@@ -8130,7 +8098,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['GenerateLayoutResponsePayload'];
         };
       };
       /** @description Validation Error */
@@ -8167,6 +8135,42 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GenerateSchemaResponsePayload'];
         };
       };
       /** @description Validation Error */

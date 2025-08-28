@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.38',
+    version: '2.0.39',
   },
   paths: {
     '/api/v2/ok': {
@@ -3372,7 +3372,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/DocumentLayoutBridge',
+                  $ref: '#/components/schemas/DocumentLayoutPayload',
                 },
               },
             },
@@ -3546,7 +3546,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/GenerateLayoutResponsePayload',
+                },
               },
             },
           },
@@ -3606,6 +3608,67 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/document-intelligence/documents/generate-schema': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Generate Extraction Schema From Document',
+        description: 'Generate an extraction schema from a document.',
+        operationId:
+          'generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post',
+        parameters: [
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/GenerateSchemaResponsePayload',
+                },
               },
             },
           },
@@ -6316,6 +6379,27 @@ export const spec = {
           title:
             'Body_generate_data_model_from_document_document_intelligence_data_models_generate_post',
         },
+      Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post:
+        {
+          properties: {
+            file: {
+              anyOf: [
+                {
+                  type: 'string',
+                  format: 'binary',
+                },
+                {
+                  type: 'string',
+                },
+              ],
+              title: 'File',
+            },
+          },
+          type: 'object',
+          required: ['file'],
+          title:
+            'Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post',
+        },
       Body_generate_layout_from_file_document_intelligence_layouts_generate_post:
         {
           properties: {
@@ -7165,109 +7249,28 @@ export const spec = {
         required: ['data_server', 'data_sources'],
         title: 'DataSources',
       },
-      DocumentLayoutBridge: {
-        properties: {
-          name: {
-            type: 'string',
-            title: 'Name',
-          },
-          data_model: {
-            type: 'string',
-            title: 'Data Model',
-          },
-          summary: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Summary',
-          },
-          extraction_schema: {
-            anyOf: [
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Extraction Schema',
-          },
-          translation_schema: {
-            anyOf: [
-              {
-                $ref: '#/components/schemas/Mapping',
-              },
-              {
-                type: 'null',
-              },
-            ],
-          },
-          extraction_config: {
-            anyOf: [
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Extraction Config',
-          },
-          system_prompt: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'System Prompt',
-          },
-          created_at: {
-            anyOf: [
-              {
-                type: 'string',
-                format: 'date-time',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Created At',
-          },
-          updated_at: {
-            anyOf: [
-              {
-                type: 'string',
-                format: 'date-time',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Updated At',
-          },
-        },
-        type: 'object',
-        required: ['name', 'data_model'],
-        title: 'DocumentLayoutBridge',
-      },
       DocumentLayoutPayload: {
         properties: {
           name: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Name',
           },
           data_model_name: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Data Model Name',
           },
           extraction_schema: {
@@ -7357,7 +7360,6 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['name', 'data_model_name'],
         title: 'DocumentLayoutPayload',
       },
       DocumentLayoutSummary: {
@@ -7572,6 +7574,48 @@ export const spec = {
         type: 'object',
         required: ['quality_checks'],
         title: 'GenerateDataQualityChecksResponse',
+      },
+      GenerateLayoutResponsePayload: {
+        properties: {
+          layout: {
+            $ref: '#/components/schemas/DocumentLayoutPayload',
+          },
+          file: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/UploadedFile',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: ['layout'],
+        title: 'GenerateLayoutResponsePayload',
+      },
+      GenerateSchemaResponsePayload: {
+        properties: {
+          schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Schema',
+          },
+          file: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/UploadedFile',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: ['schema'],
+        title: 'GenerateSchemaResponsePayload',
       },
       GooglePlatformParameters: {
         properties: {
@@ -8530,70 +8574,6 @@ export const spec = {
         },
         type: 'object',
         title: 'MCPVariableTypeString',
-      },
-      Mapping: {
-        properties: {
-          rules: {
-            items: {
-              $ref: '#/components/schemas/MappingRow',
-            },
-            type: 'array',
-            title: 'Rules',
-          },
-        },
-        type: 'object',
-        required: ['rules'],
-        title: 'Mapping',
-        description:
-          'An object that describes the mapping from one JSON object to another.\n\nAttributes\n----------\nrules : list[MappingRow]\n    List of mapping rules to apply for the transformation.',
-      },
-      MappingRow: {
-        properties: {
-          source: {
-            type: 'string',
-            title: 'Source',
-          },
-          target: {
-            type: 'string',
-            title: 'Target',
-          },
-          mode: {
-            anyOf: [
-              {
-                type: 'string',
-                const: 'flatten',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Mode',
-          },
-          transform: {
-            anyOf: [
-              {
-                type: 'string',
-                enum: ['int', 'float', 'str', 'bool'],
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Transform',
-          },
-          extras: {
-            additionalProperties: {
-              type: 'string',
-            },
-            type: 'object',
-            title: 'Extras',
-          },
-        },
-        type: 'object',
-        required: ['source', 'target'],
-        title: 'MappingRow',
-        description:
-          'An object that describes the mapping of one field in a Mapping.\n\nAttributes\n----------\nsource : str\n    Dotted JSON path in the source document.\n    Use `[*]` to denote "all elements" of an array, e.g. `order.items[*]`.\ntarget : str\n    Dotted path in the output object where the value(s) should be written.\nmode : Optional[str], default None\n    * flatten – emit one new output object per element and merge `extras`.\ntransform : Optional[str], default None\n    Optional cast or conversion (e.g. "int", "float", "timestamp").\nextras : dict[str, str], default {}\n    Only used when mode == "flatten".\n    Maps new field-names → relative paths of attributes to lift.',
       },
       MemoriesParams: {
         properties: {
