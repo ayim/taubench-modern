@@ -29,7 +29,6 @@ permissions:
   id-token: write
 
 env:
-  SPAR_VERSION: '1.0.0'
   ECR_REGION: 'us-east-1'
   ECR_ACCOUNT: '024848458368' # releases-dev
   AWS_ROLE_ARN: 'arn:aws:iam::024848458368:role/github-action-for-ace-repositories-ci'
@@ -50,16 +49,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch version
+        id: fetch-version
+        run: |
+          VERSION="$(cat ./server/pyproject.toml | sed -n 's/^version = "\(.*\)"/\1/p')"
+          echo "Fetched agent-server version: $VERSION"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
       - name: Generate build metadata
         id: build-metadata
         env:
           BRANCH_NAME: '${{ github.head_ref || github.ref_name }}'
+          VERSION: ${{ steps.fetch-version.outputs.version }}
         run: |
-          spar_version="${{ env.SPAR_VERSION }}"
+          spar_version="${VERSION}"
           commit_hash=$(git rev-parse --short HEAD)
           timestamp=$(date -u +"%Y%m%dT%H%M%SZ")
-
           build_details="${commit_hash}.${timestamp}"
+
+          echo "Preparing metadata for version: ${spar_version}"
 
           if [[ "${{ github.event_name }}" == "push" && "${BRANCH_NAME}" == "main" ]]; then
             # Merge to main; Publish a CI ACE release
