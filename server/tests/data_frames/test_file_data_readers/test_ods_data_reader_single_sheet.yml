@@ -1,0 +1,32 @@
+- ' Sales': 4000.0
+  COGS: 5000.0
+  Country: Portugal
+  Date: 2014-01-01
+  Discount Band: None
+  Discounts: 0.0
+  Gross Sales: 91.0
+  Manufacturing Price: 3.0
+  Month Name: January
+  Month Number: 1.0
+  Product: wool
+  Profit: 4000.0
+  Sale Price: 20.0
+  Segment: Public
+  Units Sold: 1500.5
+  Year: '2014'
+- ' Sales': 5000.0
+  COGS: 4000.0
+  Country: Italy
+  Date: 2014-01-01
+  Discount Band: None
+  Discounts: 0.0
+  Gross Sales: 88.0
+  Manufacturing Price: 3.0
+  Month Name: January
+  Month Number: 1.0
+  Product: lead
+  Profit: 5000.0
+  Sale Price: 20.0
+  Segment: Private
+  Units Sold: 1500.3
+  Year: '2014'

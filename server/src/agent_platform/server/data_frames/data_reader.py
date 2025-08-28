@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 _excel_mime_types = [
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/vnd.ms-excel",
+    "application/vnd.oasis.opendocument.spreadsheet",
 ]
 
 _all_mime_types = [  # noqa: RUF005

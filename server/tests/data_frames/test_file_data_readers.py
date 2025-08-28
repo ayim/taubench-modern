@@ -151,3 +151,31 @@ def test_excel_data_reader_single_sheet(datadir: Path):
     assert sheet.column_headers == ["name", "age"]
     assert sheet.list_sample_rows(1) == [("John", 25)]
     assert sheet.list_sample_rows(5) == [("John", 25), ("Jane", 30)]
+
+
+def test_ods_data_reader_single_sheet(datadir: Path, data_regression):
+    from datetime import UTC, datetime
+
+    from agent_platform.core.files.files import UploadedFile
+    from agent_platform.server.data_frames.data_reader import ExcelDataReader
+
+    file_metadata = UploadedFile(
+        file_id="123",
+        file_ref="example.ods",
+        file_hash="123",
+        file_size_raw=100,
+        mime_type="application/vnd.oasis.opendocument.spreadsheet",
+        created_at=datetime.now(UTC),
+        file_path=None,
+        file_path_expiration=None,
+        embedded=False,
+    )
+    file_bytes = (datadir / "example.ods").read_bytes()
+    reader = ExcelDataReader(file_metadata, file_bytes, sheet_name="Sheet1")
+    assert reader.has_multiple_sheets() is False
+    sheet = next(reader.iter_sheets())
+    assert sheet.name == "Sheet1"
+    assert sheet.num_columns == 16
+
+    as_ibis = sheet.to_ibis()
+    data_regression.check(as_ibis.to_pylist())

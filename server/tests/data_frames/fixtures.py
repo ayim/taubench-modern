@@ -90,6 +90,36 @@ class StorageStub:
             )
         )
 
+    async def create_in_memory_data_frame_from_parquet_contents(self, name: str, contents: bytes):
+        import datetime
+        import io
+        from uuid import uuid4
+
+        import pyarrow.parquet
+
+        from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+
+        # Read the parquet contents into a pyarrow table
+        stream = io.BytesIO(contents)
+        pyarrow_df = pyarrow.parquet.read_table(stream)
+
+        self.data_frames.append(
+            PlatformDataFrame(
+                data_frame_id=str(uuid4()),
+                name=name,
+                user_id=self.thread.user.user_id,
+                agent_id=self.thread.agent_id,
+                thread_id=self.thread.tid,
+                num_rows=pyarrow_df.shape[0],
+                num_columns=pyarrow_df.shape[1],
+                column_headers=list(pyarrow_df.schema.names),
+                input_id_type="in_memory",
+                created_at=datetime.datetime.now(datetime.UTC),
+                parquet_contents=contents,
+                computation_input_sources={},
+            )
+        )
+
 
 class KernelStub:
     def __init__(self, thread: ThreadStub, user: UserStub):

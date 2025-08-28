@@ -1,0 +1,70 @@
+{
+  "name": "cloned_sheet1",
+  "sheet_name": null,
+  "description": "Cloned sheet1",
+  "num_rows": 2,
+  "num_columns": 16,
+  "column_headers": [
+    "Segment",
+    "Country",
+    "Product",
+    "Discount Band",
+    "Units Sold",
+    "Manufacturing Price",
+    "Sale Price",
+    "Gross Sales",
+    "Discounts",
+    " Sales",
+    "COGS",
+    "Profit",
+    "Date",
+    "Month Number",
+    "Month Name",
+    "Year"
+  ],
+  "sample_rows": [
+    [
+      "Segment",
+      "Country",
+      "Product",
+      "Discount Band",
+      "Units Sold",
+      "Manufacturing Price",
+      "Sale Price",
+      "Gross Sales",
+      "Discounts",
+      " Sales",
+      "COGS",
+      "Profit",
+      "Date",
+      "Month Number",
+      "Month Name",
+      "Year"
+    ],
+    [
+      "Segment",
+      "Country",
+      "Product",
+      "Discount Band",
+      "Units Sold",
+      "Manufacturing Price",
+      "Sale Price",
+      "Gross Sales",
+      "Discounts",
+      " Sales",
+      "COGS",
+      "Profit",
+      "Date",
+      "Month Number",
+      "Month Name",
+      "Year"
+    ]
+  ],
+  "input_id_type": "sql_computation",
+  "parent_data_frame_ids": [
+    "example_sheet1"
+  ],
+  "file_ref": null,
+  "sql_dialect": "duckdb",
+  "sql_query": "\n                SELECT * FROM example_sheet1\n            "
+}

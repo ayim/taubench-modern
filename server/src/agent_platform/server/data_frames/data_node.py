@@ -1,3 +1,4 @@
+import datetime
 import typing
 from abc import abstractmethod
 from collections.abc import Sequence
@@ -157,8 +158,15 @@ def _convert_arrow_to_format(
     # Convert to the requested format
     if output_format == "json":
         # Convert to list of dictionaries and then to JSON
-        data = table.to_pylist()
-        return json.dumps(data, default=str).encode("utf-8")
+        data = []
+        columns = list(table)
+        for row in zip(*columns, strict=True):
+            row_data = {}
+            for k, v in zip(table.schema.names, row, strict=True):
+                row_data[k] = _convert_to_valid_json_types(v.as_py())
+            data.append(row_data)
+
+        return json.dumps(data).encode("utf-8")
     elif output_format == "parquet":
         # Convert to parquet format
         buffer = io.BytesIO()
@@ -171,7 +179,7 @@ def _convert_arrow_to_format(
         rows = []
         columns = list(table)
         for row in zip(*columns, strict=True):
-            rows.append(list(v.as_py() for v in row))
+            rows.append(list(_convert_to_valid_json_types(v.as_py()) for v in row))
 
         new_table = Table(
             columns=list(table.schema.names),
@@ -180,6 +188,26 @@ def _convert_arrow_to_format(
         return new_table
     else:
         raise ValueError(f"Unsupported format: {output_format}")
+
+
+_VALID_PY_TYPES = int | float | bool | str | None
+
+
+def _convert_to_valid_json_types(as_py: Any) -> str | int | float | bool | list | dict | None:
+    if isinstance(as_py, _VALID_PY_TYPES):
+        return as_py
+    if isinstance(as_py, datetime.datetime):
+        return as_py.isoformat()
+    elif isinstance(as_py, list):
+        return [_convert_to_valid_json_types(v) for v in as_py]
+    elif isinstance(as_py, dict):
+        return {
+            _convert_to_valid_json_types(k): _convert_to_valid_json_types(v)
+            for k, v in as_py.items()
+        }
+    else:
+        # Fallback to string (uuid, etc.)
+        return str(as_py)
 
 
 class DataNodeResult(Protocol):
@@ -359,7 +387,7 @@ class DataNodeFromIbisResult(DataNodeResult):
         self._ibis_result = ibis_result
 
     def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
-        table = self._ibis_result.sample(num_samples).to_pyarrow()
+        table = self._ibis_result.limit(num_samples).to_pyarrow()
         return [tuple(row) for row in table.to_pylist()]
 
     @property

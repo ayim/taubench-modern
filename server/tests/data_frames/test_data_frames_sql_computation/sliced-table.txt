@@ -1,0 +1,40 @@
+{
+  "columns": [
+    "Segment",
+    "Country",
+    "Product",
+    "Discount Band",
+    "Units Sold",
+    "Manufacturing Price",
+    "Sale Price",
+    "Gross Sales",
+    "Discounts",
+    " Sales",
+    "COGS",
+    "Profit",
+    "Date",
+    "Month Number",
+    "Month Name",
+    "Year"
+  ],
+  "rows": [
+    [
+      "Public",
+      "Portugal",
+      "wool",
+      "None",
+      1500.5,
+      3.0,
+      20.0,
+      91.0,
+      0.0,
+      4000.0,
+      5000.0,
+      4000.0,
+      "2014-01-01",
+      1.0,
+      "January",
+      "2014"
+    ]
+  ]
+}

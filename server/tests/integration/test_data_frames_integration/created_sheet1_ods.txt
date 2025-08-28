@@ -1,0 +1,31 @@
+{
+  "name": "example_sheet1",
+  "sheet_name": "Sheet1",
+  "description": null,
+  "num_rows": 2,
+  "num_columns": 16,
+  "column_headers": [
+    "Segment",
+    "Country",
+    "Product",
+    "Discount Band",
+    "Units Sold",
+    "Manufacturing Price",
+    "Sale Price",
+    "Gross Sales",
+    "Discounts",
+    " Sales",
+    "COGS",
+    "Profit",
+    "Date",
+    "Month Number",
+    "Month Name",
+    "Year"
+  ],
+  "sample_rows": [],
+  "input_id_type": "file",
+  "parent_data_frame_ids": null,
+  "file_ref": "example.ods",
+  "sql_dialect": null,
+  "sql_query": null
+}

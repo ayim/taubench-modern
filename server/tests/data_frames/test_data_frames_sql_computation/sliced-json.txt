@@ -1,0 +1,1 @@
+[{"Segment": "Public", "Country": "Portugal", "Product": "wool", "Discount Band": "None", "Units Sold": 1500.5, "Manufacturing Price": 3.0, "Sale Price": 20.0, "Gross Sales": 91.0, "Discounts": 0.0, " Sales": 4000.0, "COGS": 5000.0, "Profit": 4000.0, "Date": "2014-01-01", "Month Number": 1.0, "Month Name": "January", "Year": "2014"}]

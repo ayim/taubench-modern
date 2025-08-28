@@ -18,6 +18,7 @@ def check_upload_response(thread_response) -> str:
         "text/tab-separated-values",
         "application/vnd.ms-excel",  # Even for a .csv this is what can be received in Windows.
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.oasis.opendocument.spreadsheet",  # open office (.ods)
     ), f"Unexpected mime type: {mime_type}"
 
     return file_id
@@ -44,6 +45,74 @@ def remove_changed_fields(data_frame_response):
     data_frame_response.pop("data_frame_id", None)
 
 
+def _upload_file_to_thread(agent_client, thread_id, file):
+    thread_response = agent_client.upload_file_to_thread(
+        thread_id,
+        str(file),
+        embedded=False,
+    )
+    file_id = check_upload_response(thread_response)
+    found_data_frames = agent_client.inspect_file_as_data_frame(
+        thread_id,
+        file_id=file_id,
+    )
+    return file_id, found_data_frames
+
+
+@pytest.mark.integration
+def test_data_frames_integration_with_date(base_url_agent_server, datadir, file_regression):
+    import json
+
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4.1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        file_id_ods, found_data_frames = _upload_file_to_thread(
+            agent_client, thread_id, datadir / "example.ods"
+        )
+        assert len(found_data_frames) == 1, "Expected exactly one data frame in the response"
+
+        created = agent_client.create_data_frame_from_file(
+            thread_id, file_id_ods, sheet_name="Sheet1"
+        )
+        assert created["sheet_name"] == "Sheet1"
+        remove_changed_fields(created)
+        file_regression.check(
+            json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet1_ods"
+        )
+
+        # Now, create a data frame from computation using both data frames (join by the name)
+        agent_client.create_data_frame_from_sql_computation(
+            thread_id=thread_id,
+            name="cloned_sheet1",
+            description="Cloned sheet1",
+            sql_query=f"""
+                SELECT * FROM {created["name"]}
+            """,
+        )
+
+        # Now, get the data frames in the thread
+        data_frames = agent_client.get_data_frames(thread_id, num_samples=2)
+        assert len(data_frames) == 2
+        data_frame_cloned_sheet1 = next(df for df in data_frames if df["name"] == "cloned_sheet1")
+        remove_changed_fields(data_frame_cloned_sheet1)
+        file_regression.check(
+            json.dumps(convert_bytes_to_base64(data_frame_cloned_sheet1), indent=2),
+            basename="cloned_sheet1",
+        )
+
+
 @pytest.mark.integration
 def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, file_regression):
     import json
@@ -62,21 +131,12 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, fil
             ],
         )
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
-
-        thread_response = agent_client.upload_file_to_thread(
-            thread_id,
-            str(datadir / "sample.xlsx"),
-            embedded=False,
+        file_id_xlsx, found_data_frames = _upload_file_to_thread(
+            agent_client, thread_id, datadir / "sample.xlsx"
         )
-
-        file_id = check_upload_response(thread_response)
 
         # We should be able to inspect the file as a data frame (to get the sheets, columns and
         # even some sample data).
-        found_data_frames = agent_client.inspect_file_as_data_frame(
-            thread_id,
-            file_id=file_id,
-        )
         assert len(found_data_frames) == 2, "Expected exactly two data frames in the response"
         data_frame = found_data_frames[0]
         assert data_frame["sheet_name"] == "Sheet1"
@@ -94,14 +154,18 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, fil
 
         # And later if the inspection is fine, we can create a data frame from the file id
         # and sheet name.
-        created = agent_client.create_data_frame_from_file(thread_id, file_id, sheet_name="Sheet1")
+        created = agent_client.create_data_frame_from_file(
+            thread_id, file_id_xlsx, sheet_name="Sheet1"
+        )
         assert created["sheet_name"] == "Sheet1"
         remove_changed_fields(created)
         file_regression.check(
             json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet1"
         )
 
-        created = agent_client.create_data_frame_from_file(thread_id, file_id, sheet_name="Sheet2")
+        created = agent_client.create_data_frame_from_file(
+            thread_id, file_id_xlsx, sheet_name="Sheet2"
+        )
         assert created["sheet_name"] == "Sheet2"
         remove_changed_fields(created)
         file_regression.check(
@@ -111,7 +175,7 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, fil
         with pytest.raises(
             Exception, match="Multiple data frames found in file. Please specify sheet_name."
         ):
-            agent_client.create_data_frame_from_file(thread_id, file_id)
+            agent_client.create_data_frame_from_file(thread_id, file_id_xlsx)
 
         # Now, get the data frames in the thread
         data_frames = agent_client.get_data_frames(thread_id, num_samples=2)

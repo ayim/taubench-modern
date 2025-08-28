@@ -290,3 +290,86 @@ async def test_create_data_frame_from_sql_computation():
     loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=2, output_format="json")))
     # Still same (we only have one row in this query)
     assert loaded == [{"col1": 1, "col2": 4}]
+
+
+def _read_from_excel_as_parquet(file_path: Path) -> bytes:
+    import io
+    from datetime import UTC, datetime
+
+    import pyarrow
+    import pyarrow.parquet as pq
+
+    from agent_platform.core.files.files import UploadedFile
+    from agent_platform.server.data_frames.data_reader import ExcelDataReader
+
+    file_metadata = UploadedFile(
+        file_id="123",
+        file_ref="example.ods",
+        file_hash="123",
+        file_size_raw=100,
+        mime_type="application/vnd.oasis.opendocument.spreadsheet",
+        created_at=datetime.now(UTC),
+        file_path=None,
+        file_path_expiration=None,
+        embedded=False,
+    )
+    file_bytes = file_path.read_bytes()
+    reader = ExcelDataReader(file_metadata, file_bytes, sheet_name="Sheet1")
+    assert reader.has_multiple_sheets() is False
+    sheet = next(reader.iter_sheets())
+    assert sheet.name == "Sheet1"
+    assert sheet.num_columns == 16
+
+    as_ibis = sheet.to_ibis()
+
+    # Convert pyarrow.lib.RecordBatch to Table, then to parquet format in-memory
+    buffer = io.BytesIO()
+    table = pyarrow.Table.from_batches([as_ibis])
+    pq.write_table(table, buffer)
+    return buffer.getvalue()
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_sql_computation_with_dates(datadir: Path, file_regression):
+    from sema4ai.actions import Table
+    from tests.data_frames.fixtures import StorageStub
+
+    from agent_platform.server.auth.handlers import AuthedUser
+    from agent_platform.server.data_frames.data_frames_from_computation import (
+        create_data_frame_from_sql_computation,
+    )
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.storage.base import BaseStorage
+
+    storage_stub = StorageStub()
+    tid = storage_stub.thread.tid
+
+    parquet_contents = _read_from_excel_as_parquet(datadir / "example.ods")
+
+    await storage_stub.create_in_memory_data_frame_from_parquet_contents(
+        name="in_memory_data_frame", contents=parquet_contents
+    )
+
+    new_data_frame_name = "test_data_frame"
+    sql_query = "SELECT * FROM in_memory_data_frame"
+    description = "Test data frame"
+
+    base_storage = typing.cast(BaseStorage, storage_stub)
+    user = typing.cast(AuthedUser, storage_stub.thread.user)
+
+    data_node = await create_data_frame_from_sql_computation(
+        DataFramesKernel(base_storage, user, tid),
+        base_storage,
+        new_data_frame_name,
+        sql_query,
+        dialect="duckdb",
+        description=description,
+    )
+    sliced = typing.cast(Table, data_node.slice(offset=0, limit=1, output_format="table"))
+    file_regression.check(json.dumps(sliced.model_dump(), indent=2), basename="sliced-table")
+
+    data_node.list_sample_rows(num_samples=2)
+
+    sliced_json = typing.cast(bytes, data_node.slice(offset=0, limit=1, output_format="json"))
+
+    file_regression.check(sliced_json.decode("utf-8"), basename="sliced-json")
