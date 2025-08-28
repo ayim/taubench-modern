@@ -8,7 +8,6 @@ from reducto.types.shared.split_response import Result as SplitResult
 from sema4ai_docint import normalize_name
 from sema4ai_docint.extraction.reducto.async_ import JobStatus, JobType
 
-from agent_platform.core.document_intelligence.document_layout import DocumentLayoutBridge
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.payloads.upsert_document_layout import DocumentLayoutPayload
@@ -16,7 +15,7 @@ from agent_platform.core.payloads.upsert_document_layout import DocumentLayoutPa
 
 @dataclass(frozen=True)
 class GenerateLayoutResponsePayload:
-    layout: DocumentLayoutBridge
+    layout: DocumentLayoutPayload
     file: UploadedFile | None = None
 
 

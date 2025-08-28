@@ -39,7 +39,6 @@ from agent_platform.core.document_intelligence.data_models import (
     summary_from_model,
 )
 from agent_platform.core.document_intelligence.document_layout import (
-    DocumentLayoutBridge,
     IngestDocumentResponse,
 )
 from agent_platform.core.document_intelligence.integrations import IntegrationKind
@@ -567,7 +566,7 @@ async def get_layout(
     layout_name: str,
     data_model_name: str,
     docint_ds: DocIntDatasourceDependency,
-) -> DocumentLayoutBridge:
+) -> DocumentLayoutPayload:
     """Get a layout by name and data model from the Document Intelligence database."""
     try:
         # Normalize the names
@@ -586,8 +585,8 @@ async def get_layout(
                 f"model '{normalized_data_model_name}'",
             )
 
-        # Convert DocumentLayout to DocumentLayoutBridge
-        return DocumentLayoutBridge.from_document_layout(document_layout)
+        # Convert DocumentLayout to DocumentLayoutPayload
+        return DocumentLayoutPayload.model_validate(document_layout)
 
     except PlatformHTTPError:
         raise
@@ -787,7 +786,7 @@ async def generate_layout_from_file(  # noqa: PLR0913
     file_manager: FileManagerDependency,
     docint_ds: DocIntDatasourceDependency,
     agent_server_client: AgentServerClientDependency,
-):
+) -> GenerateLayoutResponsePayload:
     """Generate a layout from a document."""
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
@@ -844,13 +843,19 @@ async def generate_layout_from_file(  # noqa: PLR0913
     )
 
     # Generate layout
-    layout = DocumentLayoutBridge.model_validate(
+    layout = DocumentLayoutPayload.model_validate(
         {
             "name": layout_name,
-            "data_model": data_model.name,
+            "data_model_name": data_model.name,
             "summary": summary,
             "extraction_schema": extraction_schema,
             "translation_schema": translation_rules,
+            # We don't generate some fields OOTB.
+            "extraction_config": None,
+            "prompt": None,
+            # These fields are only set when being persisted into the database.
+            "created_at": None,
+            "updated_at": None,
         }
     )
 
@@ -1086,7 +1091,8 @@ async def _resolve_extract_request(
             )
         document_layout = valid_payload.document_layout.to_document_layout()
 
-    return thread_id, file, document_layout, data_model_prompt
+    # We've already validated that document_layout is not None
+    return thread_id, file, document_layout, data_model_prompt  # type: ignore
 
 
 async def _upload_and_start_extract(  # noqa: PLR0913

@@ -15,7 +15,7 @@ from reducto.types.shared.parse_response import (
 from reducto.types.shared.parse_response import ResultFullResult as ParseResult
 from reducto.types.shared.parse_usage import ParseUsage
 from sema4ai.data._data_source import ConnectionNotSetupError
-from sema4ai_docint import normalize_name
+from sema4ai_docint import DocumentLayout, normalize_name
 from sema4ai_docint.extraction.reducto.async_ import Job, JobStatus, JobType
 from sema4ai_docint.extraction.reducto.exceptions import (
     ExtractFailedError,
@@ -42,6 +42,7 @@ from agent_platform.core.payloads.document_intelligence import (
     ExtractJobResult,
     ParseJobResult,
 )
+from agent_platform.core.payloads.upsert_document_layout import DocumentLayoutPayload
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import (
     get_agent_server_client,
@@ -1254,44 +1255,37 @@ class TestUpsertLayout:
                 "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
                 return_value=None,
             ) as find_by_name,
-            patch(
-                "agent_platform.core.payloads.upsert_document_layout.DocumentLayout",
-            ) as dummy_dl,
         ):
-            # Configure a simple dummy DocumentLayout class to capture instance attributes
-            class _DummyDL:
-                last_instance = None
+            created_layout = None
+            from sema4ai_docint.models import DocumentLayout
 
-                def __init__(self, name, data_model, **kwargs):
-                    self.name = name
-                    self.data_model = data_model
-                    # Optionally capture expected attributes if provided
-                    self.extraction_schema = kwargs.get("extraction_schema")
-                    self.translation_schema = kwargs.get("translation_schema")
-                    self.summary = kwargs.get("summary")
-                    self.extraction_config = kwargs.get("extraction_config")
-                    self.system_prompt = kwargs.get("system_prompt")
-                    _DummyDL.last_instance = self
+            original_insert = DocumentLayout.insert
 
-                def insert(self, ds):
-                    return None
+            def mock_insert(self, ds):
+                nonlocal created_layout
+                created_layout = self
 
-            dummy_dl.side_effect = _DummyDL
+            try:
+                DocumentLayout.insert = mock_insert
 
-            fake_service = Mock()
-            fake_ds = Mock()
-            fake_service.get_docint_datasource.return_value = fake_ds
-            get_service.return_value = fake_service
+                fake_service = Mock()
+                fake_ds = Mock()
+                fake_service.get_docint_datasource.return_value = fake_ds
+                get_service.return_value = fake_service
 
-            response = client.post("/api/v2/document-intelligence/layouts", json=payload)
+                response = client.post("/api/v2/document-intelligence/layouts", json=payload)
 
-        assert response.status_code == 200
-        assert response.json() == {"ok": True}
-        find_by_name.assert_called_once()
-        # Ensure the created layout instance had normalized name
-        created_layout = dummy_dl.side_effect.last_instance  # type: ignore[attr-defined]
-        assert created_layout is not None
-        assert created_layout.name == normalize_name(payload["name"])  # type: ignore[index]
+                assert response.status_code == 200
+                assert response.json() == {"ok": True}
+                find_by_name.assert_called_once()
+
+                # Verify the created layout has normalized names
+                assert created_layout is not None
+                assert created_layout.name == normalize_name(payload["name"])  # type: ignore[index]
+                assert created_layout.data_model == normalize_name(payload["data_model_name"])  # type: ignore[index]
+            finally:
+                # Restore the original insert method
+                DocumentLayout.insert = original_insert
 
     def test_upsert_layout_reraises_platform_http_error(self, client: TestClient):
         """Test that PlatformHTTPError from underlying components is reraised without
@@ -1358,7 +1352,7 @@ class TestGetLayout:
         storage_instance = StorageService.get_instance()
 
         # Mock data that represents a DocumentLayout from the database
-        mock_document_layout = SimpleNamespace(
+        mock_document_layout = DocumentLayout(
             name="test_layout",
             data_model="test_model",
             summary="Test layout summary",
@@ -1394,20 +1388,20 @@ class TestGetLayout:
             )
 
         assert resp.status_code == 200
-        response_data = resp.json()
+        actual_layout = DocumentLayoutPayload.model_validate(resp.json())
 
-        # Verify the response structure matches DocumentLayoutBridge
-        assert response_data["name"] == "test_layout"
-        assert response_data["data_model"] == "test_model"
-        assert response_data["summary"] == "Test layout summary"
-        assert response_data["extraction_schema"] == {
+        # Verify the response structure matches DocumentLayoutPayload
+        assert actual_layout.name == "test_layout"
+        assert actual_layout.data_model_name == "test_model"
+        assert actual_layout.summary == "Test layout summary"
+        assert actual_layout.extraction_schema == {
             "type": "object",
             "properties": {"field1": {"type": "string"}},
         }
-        assert response_data["extraction_config"] == {"mode": "strict"}
-        assert response_data["system_prompt"] == "Custom system prompt"
-        assert "created_at" in response_data
-        assert "updated_at" in response_data
+        assert actual_layout.extraction_config == {"mode": "strict"}
+        assert actual_layout.prompt == "Custom system prompt"
+        assert actual_layout.created_at
+        assert actual_layout.updated_at
 
         # Verify the database query was called correctly
         mock_find.assert_called_once()
@@ -1859,11 +1853,17 @@ class TestGenerateLayoutFromFile:
 
         fake_thread = Mock()
 
-        class Uploaded:
-            def __init__(self, file_ref: str):
-                self.file_ref = file_ref
-
-        fake_uploaded = Uploaded("uploaded-ref-123")
+        # Create a proper UploadedFile instance for testing
+        fake_uploaded = UploadedFile(
+            file_id="test-file-id",
+            file_path="/tmp/sample.pdf",
+            file_ref="uploaded-ref-123",
+            file_hash="test-hash",
+            file_size_raw=1024,
+            mime_type="application/pdf",
+            created_at=datetime.now(),
+            embedded=False,
+        )
 
         fake_file_manager = Mock()
         fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])

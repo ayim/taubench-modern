@@ -6,7 +6,6 @@ from typing import Any
 from sema4ai_docint import normalize_name
 from sema4ai_docint.models import DocumentLayout
 
-from agent_platform.core.document_intelligence.document_layout import DocumentLayoutBridge
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
 
@@ -99,12 +98,16 @@ class DocumentLayoutPayload:
             obj = dict(getattr(data, "__dict__", {}))
 
         name = normalize_name(str(obj.get("name")))
-        data_model_name = normalize_name(str(obj.get("data_model_name")))
+        if isinstance(data, DocumentLayout):
+            data_model_name = data.data_model
+        else:
+            data_model_name = normalize_name(str(obj.get("data_model_name")))
+
         extraction_schema = obj.get("extraction_schema")
         translation_schema_in = obj.get("translation_schema")
         summary = obj.get("summary")
         extraction_config = obj.get("extraction_config")
-        prompt = obj.get("prompt")
+        prompt = obj.get("prompt") or obj.get("system_prompt")
         created_at = obj.get("created_at")
         updated_at = obj.get("updated_at")
 
@@ -149,21 +152,4 @@ class DocumentLayoutPayload:
             summary=self.summary,
             extraction_config=self.extraction_config,
             system_prompt=self.prompt,
-        )
-
-    def to_document_layout_bridge(self) -> DocumentLayoutBridge:
-        translation_schema_wrapped = self.wrap_translation_schema()
-
-        return DocumentLayoutBridge.model_validate(
-            {
-                "name": self.name,
-                "data_model": self.data_model_name,
-                "extraction_schema": self.extraction_schema,
-                "translation_schema": translation_schema_wrapped,
-                "summary": self.summary,
-                "extraction_config": self.extraction_config,
-                "system_prompt": self.prompt,
-                "created_at": self.created_at,
-                "updated_at": self.updated_at,
-            }
         )
