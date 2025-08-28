@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.37',
+    version: '2.0.38',
   },
   paths: {
     '/api/v2/ok': {
@@ -11817,6 +11817,7 @@ export const spec = {
         properties: {
           overall_status: {
             type: 'string',
+            enum: ['passed', 'failed'],
             title: 'Overall Status',
           },
           results: {

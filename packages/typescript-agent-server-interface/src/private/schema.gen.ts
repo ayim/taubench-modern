@@ -5320,8 +5320,11 @@ export interface components {
      *         errors: Number of validation errors
      */
     ValidationSummary: {
-      /** Overall Status */
-      overall_status: string;
+      /**
+       * Overall Status
+       * @enum {string}
+       */
+      overall_status: 'passed' | 'failed';
       /** Results */
       results: components['schemas']['ValidationResult'][];
       /** Passed */
