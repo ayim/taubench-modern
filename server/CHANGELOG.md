@@ -1,3 +1,14 @@
+# Sema4.ai Agent Server 2.0.38 (2025-08-27)
+
+- DIN-451 Update `generate_quality_checks` endpoint to fail on empty views array (#779)
+- GPT-1176 Automatically push workitem `payload` into thread if given (#777)
+- DEV-2177: Extend metrics endpoint with granular telemetry data (#758)
+- CON-1350: Data Frames sidebar in workroom (#662)
+- GPT-1193 Truncation Overhaul (#747)
+- feat: doc intel UI configuration (#751)
+- feat(workroom-selector): Handle new tenant workspace url (#755)
+- Regression harness: multi turn conversations (#727)
+
 # Sema4.ai Agent Server 2.0.37 (2025-08-25)
 
 - [DIN-447] Use DI Service to create a data model (#748)
