@@ -1,3 +1,9 @@
+# Sema4.ai Agent Server 2.0.39 (2025-08-28)
+
+- DIN-454 Drop the DocumentLayoutBridge and unify document layout payloads between endpoints [#781](https://github.com/Sema4AI/agent-platform/pull/781)
+- Allow redirects to support MCP endpoints [#791](https://github.com/Sema4AI/agent-platform/pull/791)
+- Implement `/documents/generate-schema` to provide an extraction schema for use extracting transiently [#780](https://github.com/Sema4AI/agent-platform/pull/780)
+
 # Sema4.ai Agent Server 2.0.38 (2025-08-27)
 
 - DIN-451 Update `generate_quality_checks` endpoint to fail on empty views array (#779)
