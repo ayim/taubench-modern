@@ -215,8 +215,10 @@ export const createApplication = async ({
 
     const viteDevServer = await import('vite').then((vite) =>
       vite.createServer({
-        configFile: resolve(import.meta.dirname, '../../vite.config.ts'),
-        server: { middlewareMode: true },
+        configFile: resolve(import.meta.dirname, '../../frontend/vite.config.ts'),
+        server: {
+          middlewareMode: true,
+        },
       }),
     );
     app.use(viteDevServer.middlewares);

@@ -20,8 +20,9 @@ indent_size = 2
 [.github/**/*.yml]
 indent_size = 2
 
-[{package.json,package-lock.json}]
+[{package.json,package-lock.json,turbo.json}]
 insert_final_newline = false
+indent_size = 2
 
 [Makefile]
 indent_style = tab

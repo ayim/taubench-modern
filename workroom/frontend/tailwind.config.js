@@ -79,8 +79,8 @@ if (!agentComponentPath.includes('node_modules')) {
 
 export default {
   content: [
-    './frontend/index.html',
-    './frontend/src/**/*.{js,ts,jsx,tsx}',
+    path.resolve(__dirname, './index.html'),
+    path.resolve(__dirname, './src/**/*.{js,ts,jsx,tsx}'),
     `${agentComponentPath}/**/*.{js,ts,jsx,tsx,html,css}`,
   ],
   theme: {

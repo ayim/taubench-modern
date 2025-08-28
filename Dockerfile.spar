@@ -34,14 +34,13 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-COPY workroom/package*.json workroom/vite.config.ts workroom/tailwind.config.js workroom/postcss.config.js ./
+COPY workroom/package*.json workroom/turbo.json ./
+COPY workroom/frontend frontend
+COPY workroom/backend backend
 
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=secret,id=npmrc,dst=/app/.npmrc \
     npm ci --include=dev
-
-COPY workroom/frontend frontend
-COPY workroom/backend backend
 
 RUN --mount=type=cache,target=/app/node_modules/.vite \
     npm run build && \

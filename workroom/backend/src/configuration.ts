@@ -31,6 +31,7 @@ export interface Configuration {
   frontendMode: 'disk' | 'middleware';
   legacyRoutingUrl: string | null;
   metaUrl: string | null;
+  port: number;
   tenant: {
     tenantId: string;
     tenantName: string;
@@ -38,7 +39,6 @@ export interface Configuration {
   userIdentity: {
     cacheTTL: number;
   };
-  port: number;
   workroomMeta: WorkroomMeta;
 }
 

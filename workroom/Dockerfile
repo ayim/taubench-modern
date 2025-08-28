@@ -10,7 +10,7 @@ WORKDIR /app
 
 COPY frontend frontend
 COPY backend backend
-COPY package*.json vite.config.ts tailwind.config.js postcss.config.js ./
+COPY package*.json turbo.json ./
 
 RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc npm ci --include=dev && \
     npm run build && \

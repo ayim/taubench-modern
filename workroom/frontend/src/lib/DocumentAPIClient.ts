@@ -503,7 +503,7 @@ export const getDocumentAPIClient = (tenantId: string, agentAPIClient: AgentAPIC
     const reader = response?.getReader();
     if (!reader) return null;
 
-    const chunks: Uint8Array[] = [];
+    const chunks: BlobPart[] = [];
     let done = false;
 
     while (!done) {

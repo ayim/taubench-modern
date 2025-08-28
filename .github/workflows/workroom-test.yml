@@ -50,15 +50,15 @@ jobs:
         run: |
           npm ci
 
-      - name: Build frontend
+      - name: Build projects
         shell: bash
         run: |
-          npm run build:frontend
+          npm run build
 
       - name: Run tests
         shell: bash
         run: |
-          npm run test:specs && npm run test:types
+          npm run test
 
   test-format:
     runs-on: ubuntu-24.04
