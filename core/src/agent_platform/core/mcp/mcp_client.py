@@ -406,7 +406,7 @@ class MCPClient:
         target_url = self.target_server.url or ""
         expect_sse = self.target_server.transport == "sse"
 
-        async with httpx.AsyncClient(follow_redirects=False) as c:
+        async with httpx.AsyncClient(follow_redirects=True) as c:
             ok = await self._probe_endpoint(c, target_url, expect_sse=expect_sse)
 
         if not ok:
