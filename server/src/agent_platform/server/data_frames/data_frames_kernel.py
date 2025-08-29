@@ -51,6 +51,31 @@ class Dependencies:
         return iter(self._data_frames)
 
 
+def extract_variable_names_required_from_sql_computation(
+    sql_query: str, dialect: str
+) -> "set[str]":
+    import sqlglot
+
+    from agent_platform.core.errors.base import PlatformError
+
+    expressions = sqlglot.parse(sql_query, dialect=dialect)
+    if len(expressions) != 1:
+        raise PlatformError(
+            message=f"SQL query must be a single expression. Found: {len(expressions)} "
+            f"SQL query: {sql_query!r}"
+        )
+    expr = expressions[0]
+    if expr is None or not hasattr(expr, "key"):
+        raise PlatformError(message=f"SQL query is not a valid expression: {sql_query!r}")
+    tables = expr.find_all(sqlglot.expressions.Table)  # type: ignore
+
+    required_variable_names = {t.name for t in tables if t.name}
+    cte_tables = expr.find_all(sqlglot.expressions.CTE)  # type: ignore
+    for cte in cte_tables:
+        required_variable_names.discard(cte.alias)
+    return required_variable_names
+
+
 class DataFramesKernel:
     """
     A kernel for data frames.
@@ -96,29 +121,6 @@ class DataFramesKernel:
     def user_id(self) -> str:
         return self._user.user_id
 
-    def _extract_variable_names_required_from_sql_computation(
-        self, sql_query: str, dialect: str
-    ) -> "set[str]":
-        import sqlglot
-
-        from agent_platform.core.errors.base import PlatformError
-
-        expressions = sqlglot.parse(sql_query, dialect=dialect)
-        if len(expressions) != 1:
-            raise PlatformError(
-                message=f"SQL query must be a single expression. Found: {len(expressions)} "
-                f"SQL query: {sql_query!r}"
-            )
-        expr = expressions[0]
-        if expr is None or not hasattr(expr, "key"):
-            raise PlatformError(message=f"SQL query is not a valid expression: {sql_query!r}")
-        if expr.key != "select":
-            raise PlatformError(message=f"SQL is not a SELECT statement: {sql_query}")
-        tables = expr.find_all(sqlglot.expressions.Table)  # type: ignore
-
-        required_variable_names = {t.name for t in tables}
-        return required_variable_names
-
     async def _compute_data_frame_dependencies(
         self,
         data_frame: "PlatformDataFrame",
@@ -153,7 +155,7 @@ class DataFramesKernel:
                     f"defined, which is needed to materialize it. Data frame name: "
                     f"{data_frame.name}, id: {data_frame.data_frame_id}"
                 )
-            required_variable_names = self._extract_variable_names_required_from_sql_computation(
+            required_variable_names = extract_variable_names_required_from_sql_computation(
                 sql_query, dialect=data_frame.sql_dialect
             )
 
@@ -191,7 +193,7 @@ class DataFramesKernel:
             )
 
     @recursion_guard
-    async def _resolve_sql_computation_data_frame(  # noqa: PLR0912, C901
+    async def _resolve_sql_computation_data_frame(  # noqa: PLR0912, C901, PLR0915
         self, data_frame: "PlatformDataFrame"
     ) -> "DataNodeResult":
         import asyncio
@@ -199,12 +201,17 @@ class DataFramesKernel:
         from typing import Any
 
         import ibis
+        import sqlglot
 
         from agent_platform.core.errors.base import PlatformError
         from agent_platform.server.data_frames.data_node import (
             DataNodeFromIbisResult,
             DataNodeResult,
             SupportedIbisBackends,
+        )
+        from agent_platform.server.data_frames.sql_manipulation import (
+            build_ctes,
+            update_with_clause,
         )
 
         if data_frame.data_frame_id in self._resolved_data_frames:
@@ -270,25 +277,29 @@ class DataFramesKernel:
         # Now, we need to go on to the computation (deps should be in order already).
         # We have to add preconditions as:
         # WITH df AS (
-        #   {con.compile(df)}
+        #   {dep_sql_query}
         # ),
         # df2 AS (
-        #   {con.compile(df2)}
+        #   {dep_sql_query}
         # )
-        full_sql_query = []
+        name_to_cte_ast: dict[str, Any] = {}
         for df in do_later:
-            # Note: ibis uses sqlglot internally, so, it should format the sql
-            # appropriately for the database dialect (regardless of the input sql dialect).
-            precondition_sql = con.compile(con.sql(df.computation, dialect=df.sql_dialect))
-            if not full_sql_query:
-                full_sql_query.append(f"WITH {df.name} AS (")
-            else:
-                full_sql_query.append(f",\n{df.name} AS (")
-            full_sql_query.append(precondition_sql)
-            full_sql_query.append(")")
+            # Use sqlglot directly to parse and format the SQL for the target dialect
+            expressions = sqlglot.parse(df.computation, dialect=df.sql_dialect)
+            if len(expressions) != 1:
+                raise PlatformError(
+                    message=f"SQL query must be a single expression. Found: {len(expressions)} "
+                    f"SQL query: {df.computation!r}"
+                )
 
-        full_sql_query.append(sql_query)
-        full_sql_query_str = "\n".join(full_sql_query)
+            # Now, create the cte with sqlglot
+            cte_sql_ast = expressions[0]
+            name_to_cte_ast[df.name] = cte_sql_ast
+
+        ctes = build_ctes(name_to_cte_ast=name_to_cte_ast)
+        main_sql_ast = sqlglot.parse_one(sql_query, dialect=data_frame.sql_dialect)
+        main_sql_ast = update_with_clause(main_sql_ast, ctes)
+        full_sql_query_str = main_sql_ast.sql(dialect=data_frame.sql_dialect, pretty=True)
 
         # Execute the SQL query using ibis
         try:

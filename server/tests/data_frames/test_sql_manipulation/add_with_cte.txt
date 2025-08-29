@@ -1,0 +1,20 @@
+WITH cte1 AS (
+  SELECT
+    id,
+    total
+  FROM orders
+  WHERE
+    total > 100
+), cte2 AS (
+  SELECT
+    user_id,
+    country
+  FROM users
+  WHERE
+    country = 'BR'
+)
+SELECT
+  *
+FROM cte1
+INNER JOIN cte3
+  ON cte1.id = cte3.id

@@ -41,7 +41,11 @@ async def create_data_frame_from_sql_computation(  # noqa: PLR0913
 
     from agent_platform.core.data_frames.data_frames import DataFrameSource, PlatformDataFrame
     from agent_platform.core.errors.base import PlatformError
+    from agent_platform.server.data_frames.data_frames_kernel import (
+        extract_variable_names_required_from_sql_computation,
+    )
     from agent_platform.server.data_frames.data_node import DataNodeResult
+    from agent_platform.server.data_frames.sql_manipulation import get_destructive_reasons
 
     expressions = sqlglot.parse(sql_query, dialect=dialect)
     if len(expressions) != 1:
@@ -54,13 +58,14 @@ async def create_data_frame_from_sql_computation(  # noqa: PLR0913
     if expr is None or not hasattr(expr, "key"):
         raise PlatformError(message=f"SQL query is not a valid expression: {sql_query!r}")
 
-    if expr.key != "select":
+    reasons = get_destructive_reasons(expr)
+    if reasons:
         raise PlatformError(
-            message=f"SQL is not a SELECT statement: {sql_query} (Found: {expr.key})"
+            message=f"Unable to create data frame from SQL query: {sql_query} (Errors: {reasons})"
         )
-    tables = expr.find_all(sqlglot.expressions.Table)  # type: ignore
 
-    required_table_names = {t.name for t in tables}
+    required_table_names = extract_variable_names_required_from_sql_computation(sql_query, dialect)
+
     computation_input_sources: dict[str, DataFrameSource] = {}
 
     # Get the thread to find the agent_id

@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from agent_platform.core.errors.base import PlatformError
+
 if typing.TYPE_CHECKING:
     from sqlglot.dialects.dialect import DialectType
 
@@ -373,3 +375,198 @@ async def test_create_data_frame_from_sql_computation_with_dates(datadir: Path, 
     sliced_json = typing.cast(bytes, data_node.slice(offset=0, limit=1, output_format="json"))
 
     file_regression.check(sliced_json.decode("utf-8"), basename="sliced-json")
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
+    from sema4ai.actions import Table
+    from tests.data_frames.fixtures import StorageStub
+
+    from agent_platform.server.auth import AuthedUser
+    from agent_platform.server.data_frames.data_frames_from_computation import (
+        create_data_frame_from_sql_computation,
+    )
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.storage.base import BaseStorage
+
+    storage_stub = StorageStub()
+    tid = storage_stub.thread.tid
+
+    await storage_stub.create_in_memory_data_frame(
+        name="in_memory_data_frame1", contents={"col1": [1, 2, 3], "col2": [4, 5, 6]}
+    )
+    await storage_stub.create_in_memory_data_frame(
+        name="in_memory_data_frame2", contents={"col1": [1, 2, 3], "col3": [7, 8, 9]}
+    )
+
+    new_data_frame_name = "test_data_frame"
+    sql_query = """
+    WITH cte AS (
+        SELECT * FROM in_memory_data_frame1
+        WHERE col1 <= 2
+    ),
+    cte2 AS (
+        SELECT * FROM in_memory_data_frame2
+        WHERE col1 <= 2
+    )
+    SELECT cte.col1, cte.col2, cte2.col3
+    FROM cte
+    JOIN cte2 ON cte.col1 = cte2.col1
+    """
+    description = "Test data frame"
+
+    base_storage = typing.cast(BaseStorage, storage_stub)
+    user = typing.cast(AuthedUser, storage_stub.thread.user)
+
+    result = await create_data_frame_from_sql_computation(
+        DataFramesKernel(base_storage, user, tid),
+        base_storage,
+        new_data_frame_name,
+        sql_query,
+        dialect="duckdb",
+        description=description,
+    )
+
+    sliced_table = typing.cast(Table, result.slice(offset=0, limit=1, output_format="table"))
+    file_regression.check(
+        json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte"
+    )
+
+    # Now do a new cte on top of the previous one
+    new_data_frame_name = "test_data_frame_2"
+    sql_query = """
+    WITH cte AS (
+        SELECT * FROM test_data_frame
+        WHERE col1 <= 1
+    )
+    SELECT * FROM cte
+    """
+    description = "Test data frame 2"
+
+    result = await create_data_frame_from_sql_computation(
+        DataFramesKernel(base_storage, user, tid),
+        base_storage,
+        new_data_frame_name,
+        sql_query,
+        dialect="duckdb",
+        description=description,
+    )
+
+    sliced_table = typing.cast(Table, result.slice(offset=0, limit=1, output_format="table"))
+    file_regression.check(
+        json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte-2"
+    )
+
+
+async def check(
+    sql_query,
+    file_regression,
+    *,
+    dialect: str = "duckdb",
+    create_data_frames: dict[str, dict] | None = None,
+):
+    """
+    Check that the sql query can be executed and that the result is as expected.
+    Args:
+        create_data_frames: dict[str, dict]
+            A dictionary of data frames to create. The key is the name of the data frame and the
+            value is a dictionary of column name to column values.
+    """
+    from sema4ai.actions import Table
+    from tests.data_frames.fixtures import StorageStub
+
+    from agent_platform.server.auth import AuthedUser
+    from agent_platform.server.data_frames.data_frames_from_computation import (
+        create_data_frame_from_sql_computation,
+    )
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.storage.base import BaseStorage
+
+    storage_stub = StorageStub()
+    tid = storage_stub.thread.tid
+
+    if create_data_frames is not None:
+        for name, contents in create_data_frames.items():
+            await storage_stub.create_in_memory_data_frame(name=name, contents=contents)
+
+    new_data_frame_name = "test_data_frame"
+    description = "Test data frame"
+
+    base_storage = typing.cast(BaseStorage, storage_stub)
+    user = typing.cast(AuthedUser, storage_stub.thread.user)
+
+    result = await create_data_frame_from_sql_computation(
+        DataFramesKernel(base_storage, user, tid),
+        base_storage,
+        new_data_frame_name,
+        sql_query,
+        dialect=dialect,
+        description=description,
+    )
+
+    sliced_table = typing.cast(Table, result.slice(offset=0, limit=10, output_format="table"))
+    file_regression.check(json.dumps(sliced_table.model_dump(), indent=2))
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_no_input(file_regression):
+    await check("SELECT 1", file_regression)
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_values(file_regression):
+    await check("SELECT * FROM (VALUES (1), (2)) AS v(x)", file_regression)
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_func(file_regression):
+    await check("SELECT * FROM generate_series(1, 3) AS g(i)", file_regression)
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_unnest(file_regression):
+    await check("SELECT * FROM UNNEST([1, 2, 3]) AS u", file_regression)
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_union(file_regression):
+    await check(
+        """
+SELECT * FROM a
+UNION ALL
+SELECT * FROM b""",
+        file_regression,
+        create_data_frames={"a": {"col1": [1, 2, 3]}, "b": {"col1": [4, 5, 6]}},
+    )
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_scope_alias(file_regression):
+    # This fails in duckdb: it cannot deal with this structure (but we do go on to execute it)
+    with pytest.raises(PlatformError, match="Catalog Error: Table with name w does not exist!"):
+        await check(
+            """
+SELECT * FROM w
+WHERE EXISTS (
+  WITH w AS (SELECT 1)
+  SELECT 1
+)""",
+            file_regression,
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_wrapper(file_regression):
+    # This fails at parsing
+    with pytest.raises(PlatformError, match="Parser Error: syntax error at or near"):
+        await check(
+            "SELECT * FROM TABLE(generator(rowcount => 10))", file_regression, dialect="snowflake"
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_dual(file_regression):
+    # Currently this fails in our part... we could make it go a bit forward
+    # and ignore that table, but then it'll fail just a bit later as duckdb doesn't support it.
+    with pytest.raises(PlatformError, match="not found"):
+        await check("SELECT 1 FROM DUAL", file_regression, dialect="oracle")

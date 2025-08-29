@@ -118,7 +118,7 @@ Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to 
   - The setting in the `agent_settings` should be named `enable_data_frames` (boolean)
   - If either `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES` is set or `agent_settings.enable_data_frames` is set to `true` then the data frames feature is enabled for the agent.
 
-# Step 5 (current PR)
+# Step 5 (done):
 
 - Provide more info for the UI (in the `_DataFrameCreationAPI`):
   - If a data frame was created from file then file reference (input_id_type = "file")
@@ -134,4 +134,4 @@ Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to 
 - Make the result of named queries (Tables) be available as data frames automatically.
 - Allow the user to have data frames that are backed by a database.
 - Investigate shortcomings of the "just SQL" approach and see if an approach using "sanitized but possibly unsafe python code" can be better.
-  - Investigate shortcomings of only accepting "postgres" as the input of the SQL query (when does the sqlglot translation layer used by ibis fail?)
+  - See: https://github.com/Sema4AI/agent-platform/pull/794#issuecomment-3234347346 for use-cases to test.
