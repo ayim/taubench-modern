@@ -22,7 +22,7 @@ const getAgentComponentConditions = () => {
   if (!filePath.includes('node_modules')) {
     return {
       conditions: ['source', 'module', 'import', 'default'],
-      dedupe: ['react', '@sema4ai/theme', '@codemirror/state', '@codemirror/lang-json', '@tanstack/react-query'],
+      dedupe: ['react', '@sema4ai/theme', '@codemirror/state', '@tanstack/react-query'],
     };
   }
 

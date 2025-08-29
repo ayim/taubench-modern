@@ -120,7 +120,7 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 
 @aa.step
-async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0912
+async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0912, PLR0915
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
         thread_messages_to_prompt_messages,
@@ -152,7 +152,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         await kernel.data_frames.step_initialize()
         data_frames_tools = kernel.data_frames.get_data_frame_tools()
     else:
-        data_frames_tools = ()
+        data_frames_tools = []
 
     # Save any issues to state for introspection
     state.configuration_issues = [*action_issues, *mcp_issues]
@@ -183,16 +183,16 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         state=state,
     )
 
+    tools = action_tools + mcp_tools + kernel.client_tools + data_frames_tools
     # And let's add the tools to the prompt
-    conversation_prompt = conversation_prompt.with_tools(
-        *action_tools,
-        *mcp_tools,
-        *kernel.client_tools,
-        *data_frames_tools,
-    )
+    conversation_prompt = conversation_prompt.with_tools(*tools)
 
     # Let's create a new message in the thread
     message = await kernel.thread_state.new_agent_message()
+
+    message.agent_metadata["platform"] = platform.name
+    message.agent_metadata["model"] = model
+    message.agent_metadata["tools"] = [tool.model_dump() for tool in tools]
 
     # And use the formatted prompt, model, and message to receive a stream
     # of output from the model as it processes the conversation
