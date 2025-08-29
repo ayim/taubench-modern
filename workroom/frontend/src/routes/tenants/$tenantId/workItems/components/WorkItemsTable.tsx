@@ -62,9 +62,12 @@ const WorkItemsTable: FC<Props> = () => {
             ? (mapAgentsById[workItem.agent_id]?.name ?? workItem.agent_id)
             : workItem.agent_id;
 
+          const agentMode = workItem.agent_id ? mapAgentsById[workItem.agent_id]?.mode : undefined;
+
           return {
             ...workItem,
             agent_name: agentName,
+            agent_mode: agentMode,
           };
         },
       ),

@@ -183,9 +183,16 @@ const CELL_COMPONENT_MAPPING: CellComponentMappingType = {
 
   'view-work-item': memo(({ rowData }) => {
     // Check if work_item_url exists and if there's a thread
-    const workItemUrl = rowData.work_item_url;
+    let workItemUrl = rowData.work_item_url;
     const hasValidUrl = workItemUrl && workItemUrl.trim() !== '';
 
+    if (hasValidUrl && workItemUrl && rowData.thread_id && rowData.work_item_id && rowData.agent_mode === 'worker') {
+      const lastSlashIndex = workItemUrl.lastIndexOf('/');
+      if (lastSlashIndex !== -1) {
+        const baseUrl = workItemUrl.substring(0, lastSlashIndex);
+        workItemUrl = `${baseUrl}/${rowData.work_item_id}_${rowData.thread_id}`;
+      }
+    }
     // Show the button if there's a URL (temporarily)
     const shouldShowButton = hasValidUrl;
 

@@ -7,4 +7,5 @@ export type WorkItem = components['schemas']['WorkItem'] & {
   work_item_id: string;
   work_item_url?: string;
   created_at?: string;
+  agent_mode?: 'worker' | 'conversational';
 };
