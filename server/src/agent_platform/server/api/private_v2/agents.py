@@ -189,6 +189,7 @@ async def create_agent(
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id)
     await storage.upsert_agent(user.user_id, agent)
+
     return AgentCompat.from_agent(agent)
 
 
@@ -242,6 +243,7 @@ async def update_agent(
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
+
     ToolDefinitionCache().clear_for_agent(agent)
     return AgentCompat.from_agent(agent)
 
@@ -271,6 +273,7 @@ async def update_agent_raw(
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
+
     ToolDefinitionCache().clear_for_agent(agent)
     return AgentCompat.from_agent(agent, reveal_sensitive=True)
 

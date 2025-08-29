@@ -229,18 +229,52 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
     async def list_mcp_servers_by_source(self, source: MCPServerSource) -> dict[str, str]:
         """List MCP servers by source"""
         async with self._cursor() as cur:
-            # 2. Get all MCP servers for this user with the specified source
+            # 2. Get all MCP servers by source
             await cur.execute(
                 """
-                SELECT name, mcp_server_id FROM v2_mcp_server
+                SELECT mcp_server_id, name FROM v2_mcp_server
                 WHERE source = ?
+                ORDER BY created_at DESC
                 """,
                 (source.value,),
             )
 
-            # 3. Return as dict of name -> mcp_server_id
+            # 3. No MCP servers found?
+            if not (rows := await cur.fetchall()):
+                return {}
+
+            # 4. Return the MCP servers as a dict of name -> id
+            return {row[1]: row[0] for row in rows}
+
+    async def get_mcp_servers_by_ids(self, mcp_server_ids: list[str]) -> dict[str, MCPServer]:
+        """Get multiple MCP servers by their IDs."""
+        if not mcp_server_ids:
+            return {}
+
+        # Validate all UUIDs
+        for mcp_server_id in mcp_server_ids:
+            self._validate_uuid(mcp_server_id)
+
+        # Create placeholders for the IN clause
+        placeholders = ",".join("?" * len(mcp_server_ids))
+
+        async with self._cursor() as cur:
+            await cur.execute(
+                f"""
+                SELECT mcp_server_id, enc_config FROM v2_mcp_server
+                WHERE mcp_server_id IN ({placeholders})
+                """,
+                mcp_server_ids,
+            )
+
             rows = await cur.fetchall()
-            return {row[0]: row[1] for row in rows}
+            result = {}
+            for row in rows:
+                server_id = row[0]
+                encrypted_config = row[1]
+                config_dict = self._decrypt_config(encrypted_config)
+                result[server_id] = MCPServer.model_validate(config_dict)
+            return result
 
     async def update_mcp_server(
         self,

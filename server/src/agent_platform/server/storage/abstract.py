@@ -86,6 +86,16 @@ class AbstractStorage(ABC):
     async def list_all_agents(self) -> list[Agent]:
         """List all agents for all users."""
 
+    @abstractmethod
+    async def get_agent_mcp_server_ids(self, agent_id: str) -> list[str]:
+        """Get MCP server IDs associated with an agent."""
+
+    @abstractmethod
+    async def associate_mcp_servers_with_agent(
+        self, agent_id: str, mcp_server_ids: list[str]
+    ) -> None:
+        """Associate MCP servers with an agent."""
+
     # -------------------------
     # Methods for threads
     # -------------------------

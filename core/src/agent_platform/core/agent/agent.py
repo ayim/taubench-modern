@@ -67,6 +67,14 @@ class Agent:
     )
     """The Model Context Protocol (MCP) servers this agent uses."""
 
+    mcp_server_ids: list[str] = field(
+        metadata={
+            "description": "The IDs of Model Context Protocol (MCP) servers this agent uses.",
+        },
+        default_factory=list,
+    )
+    """The IDs of Model Context Protocol (MCP) servers this agent uses."""
+
     question_groups: list[QuestionGroup] = field(
         metadata={"description": "The question groups of the agent."},
         default_factory=list,
@@ -176,6 +184,7 @@ class Agent:
                 action_package.model_dump() for action_package in self.action_packages
             ],
             "mcp_servers": [mcp_server.model_dump() for mcp_server in self.mcp_servers],
+            "mcp_server_ids": self.mcp_server_ids,
             "agent_architecture": self.agent_architecture.model_dump(),
             "created_at": self.created_at.isoformat(),
             "description": self.description,

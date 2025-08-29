@@ -280,6 +280,42 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # Convert rows to Agent objects
         return [Agent.model_validate(dict(row)) for row in rows]
 
+    async def get_agent_mcp_server_ids(self, agent_id: str) -> list[str]:
+        """Get MCP server IDs associated with an agent."""
+        agent_mcp_server = self._get_table("agent_mcp_server")
+
+        stmt = (
+            sa.select(agent_mcp_server.c.mcp_server_id)
+            .select_from(agent_mcp_server)
+            .where(agent_mcp_server.c.agent_id == agent_id)
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [str(row["mcp_server_id"]) for row in rows]
+
+    async def associate_mcp_servers_with_agent(
+        self, agent_id: str, mcp_server_ids: list[str]
+    ) -> None:
+        """Associate MCP servers with an agent."""
+        agent_mcp_server = self._get_table("agent_mcp_server")
+
+        async with self.engine.begin() as conn:
+            # First, remove existing associations
+            delete_stmt = sa.delete(agent_mcp_server).where(agent_mcp_server.c.agent_id == agent_id)
+            await conn.execute(delete_stmt)
+
+            # Then add new associations
+            if mcp_server_ids:
+                insert_data = [
+                    {"agent_id": agent_id, "mcp_server_id": mcp_server_id}
+                    for mcp_server_id in mcp_server_ids
+                ]
+                insert_stmt = sa.insert(agent_mcp_server).values(insert_data)
+                await conn.execute(insert_stmt)
+
     # -------------------------------------------------------------------------
     # Document Intelligence convenience methods
     # -------------------------------------------------------------------------

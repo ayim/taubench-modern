@@ -42,7 +42,14 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Agent.model_validate(self._convert_agent_json_fields(dict(row))) for row in rows]
+
+        agents = []
+        for row in rows:
+            agent = Agent.model_validate(self._convert_agent_json_fields(dict(row)))
+            agent = await self._populate_agent_mcp_servers(agent)
+            agents.append(agent)
+
+        return agents
 
     async def get_agent(self, user_id: str, agent_id: str) -> Agent:
         """Get an agent by ID, raising errors if not found or no access."""
@@ -75,7 +82,10 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         # Convert JSON columns and return
         row_dict = dict(row)
         row_dict.pop("has_access", None)
-        return Agent.model_validate(self._convert_agent_json_fields(row_dict))
+        agent = Agent.model_validate(self._convert_agent_json_fields(row_dict))
+
+        # Populate MCP servers from join table
+        return await self._populate_agent_mcp_servers(agent)
 
     async def get_agent_by_name(self, user_id: str, name: str) -> Agent:
         """Get an agent by name."""
@@ -103,7 +113,10 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
 
         row_dict = dict(row)
         row_dict.pop("has_access", None)
-        return Agent.model_validate(self._convert_agent_json_fields(row_dict))
+        agent = Agent.model_validate(self._convert_agent_json_fields(row_dict))
+
+        # Populate MCP servers from join table
+        return await self._populate_agent_mcp_servers(agent)
 
     async def upsert_agent(self, user_id: str, agent: Agent) -> None:  # noqa: C901, PLR0912
         """Create or update an agent, avoiding false-positives on
@@ -283,6 +296,10 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
             )
             raise StorageError(f"An unexpected error occurred: {e}") from e
 
+        # Handle MCP server associations if the agent has mcp_server_ids
+        if hasattr(agent, "mcp_server_ids") and agent.mcp_server_ids:
+            await self.associate_mcp_servers_with_agent(agent.agent_id, agent.mcp_server_ids)
+
     async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         try:
@@ -423,3 +440,45 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
             else:
                 agent_dict[field] = {}
         return agent_dict
+
+    async def _populate_agent_mcp_servers(self, agent: Agent) -> Agent:
+        """Populate MCP servers for an agent using both join table and JSON column."""
+        # 1. Fetch global MCP server IDs from the join table
+        mcp_server_ids = await self.get_agent_mcp_server_ids(agent.agent_id)
+
+        # 2. Parse agent-specific/resolved MCP servers from the JSON column
+        resolved_mcp_servers = []
+        if hasattr(agent, "mcp_servers") and agent.mcp_servers:
+            import json
+
+            from agent_platform.core.mcp.mcp_server import MCPServer
+
+            try:
+                # If mcp_servers is already a list of MCPServer objects, use them
+                if isinstance(agent.mcp_servers, list) and all(
+                    isinstance(s, MCPServer) for s in agent.mcp_servers
+                ):
+                    resolved_mcp_servers = agent.mcp_servers
+                else:
+                    # Parse the JSON and create MCPServer objects
+                    mcp_servers_data = agent.mcp_servers
+                    if isinstance(mcp_servers_data, str):
+                        mcp_servers_data = json.loads(mcp_servers_data)
+
+                    for server_data in mcp_servers_data:
+                        if isinstance(server_data, dict):
+                            resolved_mcp_servers.append(MCPServer.model_validate(server_data))
+            except Exception as e:
+                # Log error but continue
+                import structlog
+
+                logger = structlog.get_logger(__name__)
+                logger.warning(
+                    f"Failed to parse resolved MCP servers from JSON for agent "
+                    f"{agent.agent_id}: {e}"
+                )
+
+        # Return agent with:
+        # - mcp_server_ids: Global MCP server IDs from join table
+        # - mcp_servers: Agent-specific/resolved MCP server configs from JSON column
+        return agent.copy(mcp_servers=resolved_mcp_servers, mcp_server_ids=mcp_server_ids)

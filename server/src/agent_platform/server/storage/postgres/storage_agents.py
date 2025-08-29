@@ -33,8 +33,13 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
             if not (rows := await cur.fetchall()):
                 return []
 
-            # 4. Return the agents
-            return [Agent.model_validate(row) for row in rows]
+            # 4. Populate MCP servers and return the agents
+            agents = []
+            for row in rows:
+                agent = Agent.model_validate(row)
+                agent = await self._populate_agent_mcp_servers(agent)
+                agents.append(agent)
+            return agents
 
     async def get_agent(self, user_id: str, agent_id: str) -> Agent:
         """Get an agent by ID."""
@@ -62,8 +67,9 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                     f"User {user_id} does not have access to agent {agent_id}",
                 )
 
-            # 5. Return the agent
-            return Agent.model_validate(row)
+            # 5. Return the agent with populated MCP servers
+            agent = Agent.model_validate(row)
+            return await self._populate_agent_mcp_servers(agent)
 
     async def get_agent_by_name(self, user_id: str, name: str) -> Agent:
         """Get an agent by name."""
@@ -91,8 +97,9 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                     f"User {user_id} does not have access to agent {name}",
                 )
 
-            # Return the agent
-            return Agent.model_validate(row)
+            # Return the agent with populated MCP servers
+            agent = Agent.model_validate(row)
+            return await self._populate_agent_mcp_servers(agent)
 
     async def upsert_agent(self, user_id: str, agent: Agent) -> None:
         """Create or update an agent, avoiding false-positives on
@@ -217,6 +224,10 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                 ) from e
             raise
 
+        # Handle MCP server associations if the agent has mcp_server_ids
+        if hasattr(agent, "mcp_server_ids") and agent.mcp_server_ids:
+            await self.associate_mcp_servers_with_agent(agent.agent_id, agent.mcp_server_ids)
+
     async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         try:
@@ -298,6 +309,48 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
 
             # 3. Return the count
             return row["count"]
+
+    async def _populate_agent_mcp_servers(self, agent: Agent) -> Agent:
+        """Populate MCP servers for an agent using both join table and JSON column."""
+        # 1. Fetch global MCP server IDs from the join table
+        mcp_server_ids = await self.get_agent_mcp_server_ids(agent.agent_id)
+
+        # 2. Parse agent-specific/resolved MCP servers from the JSON column
+        resolved_mcp_servers = []
+        if hasattr(agent, "mcp_servers") and agent.mcp_servers:
+            import json
+
+            from agent_platform.core.mcp.mcp_server import MCPServer
+
+            try:
+                # If mcp_servers is already a list of MCPServer objects, use them
+                if isinstance(agent.mcp_servers, list) and all(
+                    isinstance(s, MCPServer) for s in agent.mcp_servers
+                ):
+                    resolved_mcp_servers = agent.mcp_servers
+                else:
+                    # Parse the JSON and create MCPServer objects
+                    mcp_servers_data = agent.mcp_servers
+                    if isinstance(mcp_servers_data, str):
+                        mcp_servers_data = json.loads(mcp_servers_data)
+
+                    for server_data in mcp_servers_data:
+                        if isinstance(server_data, dict):
+                            resolved_mcp_servers.append(MCPServer.model_validate(server_data))
+            except Exception as e:
+                # Log error but continue
+                import structlog
+
+                logger = structlog.get_logger(__name__)
+                logger.warning(
+                    f"Failed to parse resolved MCP servers from JSON for agent "
+                    f"{agent.agent_id}: {e}"
+                )
+
+        # Return agent with:
+        # - mcp_server_ids: Global MCP server IDs from join table
+        # - mcp_servers: Agent-specific/resolved MCP server configs from JSON column
+        return agent.copy(mcp_servers=resolved_mcp_servers, mcp_server_ids=mcp_server_ids)
 
     async def count_agents_by_mode(self, mode: str) -> int:
         """Count the number of agents by mode."""

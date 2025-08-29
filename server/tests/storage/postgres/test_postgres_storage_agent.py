@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.thread import Thread
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
@@ -303,3 +304,174 @@ async def test_agent_filter_by_user(
     agent_ids_a = {agent.agent_id for agent in agents_a}
     assert agent_a.agent_id in agent_ids_a
     assert agent_b.agent_id not in agent_ids_a
+
+
+@pytest.mark.asyncio
+async def test_agent_mcp_server_operations(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+) -> None:
+    """Test MCP server operations including association, retrieval, and updates."""
+    # Create MCP servers first
+    await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    await storage.create_mcp_server(sample_mcp_server_stdio, MCPServerSource.API)
+
+    # Get the server IDs
+    servers_dict = await storage.list_mcp_servers()
+    server_ids = list(servers_dict.keys())
+    assert len(server_ids) == 2
+
+    # Create agent without MCP server associations
+    agent = Agent.model_validate(sample_agent.model_dump() | {"mcp_server_ids": []})
+    await storage.upsert_agent(sample_user_id, agent)
+
+    # Initially, agent should have no MCP server associations
+    initial_ids = await storage.get_agent_mcp_server_ids(agent.agent_id)
+    assert initial_ids == []
+
+    # Associate MCP servers with the agent
+    await storage.associate_mcp_servers_with_agent(agent.agent_id, server_ids)
+
+    # Verify the associations were created
+    associated_ids = await storage.get_agent_mcp_server_ids(agent.agent_id)
+    assert len(associated_ids) == 2
+    assert set(associated_ids) == set(server_ids)
+
+    # Test updating associations (should replace existing ones)
+    new_server_ids = [server_ids[0]]  # Only keep the first server
+    await storage.associate_mcp_servers_with_agent(agent.agent_id, new_server_ids)
+
+    updated_ids = await storage.get_agent_mcp_server_ids(agent.agent_id)
+    assert len(updated_ids) == 1
+    assert updated_ids == new_server_ids
+
+    # Test with agent that has no MCP servers
+    agent_without_mcp = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Test Agent Without MCP",
+            "mcp_server_ids": [],
+        }
+    )
+    await storage.upsert_agent(sample_user_id, agent_without_mcp)
+
+    empty_ids = await storage.get_agent_mcp_server_ids(agent_without_mcp.agent_id)
+    assert empty_ids == []
+
+
+@pytest.mark.asyncio
+async def test_agent_mcp_server_population(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+) -> None:
+    """Test populating MCP servers from different sources (join table and JSON)."""
+    # Create MCP server for join table association
+    await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    servers_dict = await storage.list_mcp_servers()
+    server_id = next(iter(servers_dict.keys()))
+
+    # Test 1: Agent with join table associations only
+    agent_join = Agent.model_validate(sample_agent.model_dump() | {"mcp_server_ids": [server_id]})
+    await storage.upsert_agent(sample_user_id, agent_join)
+    await storage.associate_mcp_servers_with_agent(agent_join.agent_id, [server_id])
+
+    populated_agent_join = await storage._populate_agent_mcp_servers(agent_join)
+    assert populated_agent_join.mcp_server_ids == [server_id]
+    assert populated_agent_join.mcp_servers == []
+
+    # Test 2: Agent with JSON-based MCP servers only
+    agent_json = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "JSON Agent",
+            "mcp_server_ids": [],
+            "mcp_servers": [sample_mcp_server_stdio.model_dump()],
+        }
+    )
+    await storage.upsert_agent(sample_user_id, agent_json)
+
+    populated_agent_json = await storage._populate_agent_mcp_servers(agent_json)
+    assert populated_agent_json.mcp_server_ids == []
+    assert len(populated_agent_json.mcp_servers) == 1
+    assert populated_agent_json.mcp_servers[0].name == sample_mcp_server_stdio.name
+
+    # Test 3: Agent with both join table and JSON-based servers
+    agent_both = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Both Agent",
+            "mcp_server_ids": [server_id],
+            "mcp_servers": [sample_mcp_server_stdio.model_dump()],
+        }
+    )
+    await storage.upsert_agent(sample_user_id, agent_both)
+    await storage.associate_mcp_servers_with_agent(agent_both.agent_id, [server_id])
+
+    populated_agent_both = await storage._populate_agent_mcp_servers(agent_both)
+    assert populated_agent_both.mcp_server_ids == [server_id]
+    assert len(populated_agent_both.mcp_servers) == 1
+    assert populated_agent_both.mcp_servers[0].name == sample_mcp_server_stdio.name
+
+
+@pytest.mark.asyncio
+async def test_agent_crud_with_mcp_servers(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+) -> None:
+    """Test CRUD operations with MCP server associations."""
+    # Create MCP servers first
+    await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    await storage.create_mcp_server(sample_mcp_server_stdio, MCPServerSource.API)
+
+    # Get the server IDs
+    servers_dict = await storage.list_mcp_servers()
+    server_ids = list(servers_dict.keys())
+    assert len(server_ids) == 2
+
+    # Test 1: Create agent with MCP server associations
+    agent = Agent.model_validate(sample_agent.model_dump() | {"mcp_server_ids": server_ids})
+    await storage.upsert_agent(sample_user_id, agent)
+
+    # Verify the associations were created
+    associated_ids = await storage.get_agent_mcp_server_ids(agent.agent_id)
+    assert len(associated_ids) == 2
+    assert set(associated_ids) == set(server_ids)
+
+    # Test 2: Update agent with different MCP server associations
+    updated_agent = Agent.model_validate(agent.model_dump() | {"mcp_server_ids": [server_ids[0]]})
+    await storage.upsert_agent(sample_user_id, updated_agent)
+
+    # Verify the associations were updated
+    updated_associated_ids = await storage.get_agent_mcp_server_ids(agent.agent_id)
+    assert len(updated_associated_ids) == 1
+    assert updated_associated_ids == [server_ids[0]]
+
+    # Test 3: Verify list_agents and get_agent populate MCP server information
+    agents = await storage.list_agents(sample_user_id)
+    assert len(agents) == 1
+    retrieved_agent_list = agents[0]
+    assert retrieved_agent_list.agent_id == agent.agent_id
+    assert retrieved_agent_list.mcp_server_ids == [server_ids[0]]
+
+    retrieved_agent_get = await storage.get_agent(sample_user_id, agent.agent_id)
+    assert retrieved_agent_get.agent_id == agent.agent_id
+    assert retrieved_agent_get.mcp_server_ids == [server_ids[0]]
+
+    # Test 4: Delete agent and verify MCP server associations are cascaded
+    await storage.delete_agent(sample_user_id, agent.agent_id)
+
+    # Verify the association was cascaded (removed)
+    empty_ids = await storage.get_agent_mcp_server_ids(agent.agent_id)
+    assert empty_ids == []

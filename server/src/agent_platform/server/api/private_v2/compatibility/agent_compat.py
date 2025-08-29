@@ -323,6 +323,7 @@ class AgentCompat(Agent):
                 MCPServerCompat.from_mcp_server(s, reveal_sensitive=reveal_sensitive)
                 for s in agent.mcp_servers
             ],
+            mcp_server_ids=agent.mcp_server_ids,
             agent_architecture=agent.agent_architecture,
             question_groups=agent.question_groups,
             platform_configs=masked_platform_configs,
