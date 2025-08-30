@@ -149,7 +149,7 @@ class TestDocumentLayouts:
 
         # Upsert the data model so it can be used to generate a layout
         create_payload = CreateDataModelRequest(
-            dataModel=DataModelPayload(
+            data_model=DataModelPayload(
                 name=data_model_name,
                 description=f"An Example {data_model_name} document",
                 schema=data_model_schema,
@@ -161,7 +161,7 @@ class TestDocumentLayouts:
             params={"agent_id": agent_id},
         )
         response.raise_for_status()
-        assert response.json()["dataModel"]["name"] == data_model_name
+        assert response.json()["data_model"]["name"] == data_model_name
         data_model_cleanup(data_model_name, agent_id)
 
         # Generate a layout for the second file
