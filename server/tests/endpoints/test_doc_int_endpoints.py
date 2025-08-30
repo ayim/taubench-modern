@@ -643,7 +643,7 @@ class TestDataModelEndpoints:
 
     def _sample_data_model_payload(self) -> dict:
         return {
-            "dataModel": {
+            "data_model": {
                 "name": "invoices",
                 "description": "Invoice data model",
                 "schema": {"type": "object", "properties": {"id": {"type": "string"}}},
@@ -654,7 +654,7 @@ class TestDataModelEndpoints:
                         "columns": [{"name": "id", "type": "string"}],
                     }
                 ],
-                "qualityChecks": [
+                "quality_checks": [
                     {"name": "non_empty_id", "query": "SELECT ...", "description": "no empty id"}
                 ],
                 "prompt": "extract invoices",
@@ -759,8 +759,8 @@ class TestDataModelEndpoints:
 
         assert resp.status_code == 201
         body = resp.json()
-        assert body["dataModel"]["name"] == "invoices"
-        assert body["dataModel"]["schema"]["type"] == "object"
+        assert body["data_model"]["name"] == "invoices"
+        assert body["data_model"]["schema"]["type"] == "object"
         mocked_find_by_name.assert_called()
         fake_di_service.data_model.create_from_schema.assert_called_once()
 
@@ -828,7 +828,7 @@ class TestDataModelEndpoints:
             resp = client.get("/api/v2/document-intelligence/data-models/invoices")
 
         assert resp.status_code == 200
-        assert resp.json()["dataModel"]["name"] == "invoices"
+        assert resp.json()["data_model"]["name"] == "invoices"
 
     def test_get_data_model_not_found(self, client: TestClient):
         storage_instance = StorageService.get_instance()
@@ -973,7 +973,7 @@ class TestDataModelEndpoints:
             },
         ]
 
-        payload = {"dataModel": {"qualityChecks": new_quality_checks}}
+        payload = {"data_model": {"quality_checks": new_quality_checks}}
 
         with (
             patch.object(
@@ -1022,8 +1022,8 @@ class TestDataModelEndpoints:
             {"name": "no_empty_id", "query": "SELECT ...", "description": "no empty id"}
         ]
 
-        # Only provide qualityChecks in the payload
-        payload = {"dataModel": {"qualityChecks": inserted_quality_checks}}
+        # Only provide quality_checks in the payload
+        payload = {"data_model": {"quality_checks": inserted_quality_checks}}
 
         with (
             patch.object(

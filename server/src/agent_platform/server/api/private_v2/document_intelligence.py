@@ -403,24 +403,24 @@ async def create_data_model(
     di_service: DIDependency,
 ) -> dict[str, Any]:
     try:
-        existing = DataModel.find_by_name(docint_ds, payload.dataModel.name)
+        existing = DataModel.find_by_name(docint_ds, payload.data_model.name)
         if existing is not None:
             raise PlatformHTTPError(
-                ErrorCode.CONFLICT, f"Data model already exists: {payload.dataModel.name}"
+                ErrorCode.CONFLICT, f"Data model already exists: {payload.data_model.name}"
             )
 
         result = await run_in_threadpool(
             di_service.data_model.create_from_schema,
-            normalize_name(payload.dataModel.name),
-            payload.dataModel.description,
-            json.dumps(payload.dataModel.schema),
+            normalize_name(payload.data_model.name),
+            payload.data_model.description,
+            json.dumps(payload.data_model.schema),
         )
         model = DataModel.find_by_name(docint_ds, result["name"])
         if model is None:
             raise PlatformHTTPError(
-                ErrorCode.UNEXPECTED, f"Data model not found: {payload.dataModel.name}"
+                ErrorCode.UNEXPECTED, f"Data model not found: {payload.data_model.name}"
             )
-        return {"dataModel": model_to_spec_dict(model)}
+        return {"data_model": model_to_spec_dict(model)}
     except PlatformHTTPError:
         raise
     except Exception as e:
@@ -433,7 +433,7 @@ async def get_data_model(model_name: str, docint_ds: DocIntDatasourceDependency)
         model = DataModel.find_by_name(docint_ds, model_name)
         if model is None:
             raise PlatformHTTPError(ErrorCode.NOT_FOUND, f"Data model not found: {model_name}")
-        return {"dataModel": model_to_spec_dict(model)}
+        return {"data_model": model_to_spec_dict(model)}
     except PlatformHTTPError:
         raise
     except Exception as e:
@@ -449,18 +449,18 @@ async def update_data_model(
         if existing is None:
             raise PlatformHTTPError(ErrorCode.NOT_FOUND, f"Data model not found: {model_name}")
 
-        if payload.dataModel.description:
-            existing.description = payload.dataModel.description
-        if payload.dataModel.schema:
-            existing.model_schema = payload.dataModel.schema
-        if payload.dataModel.views:
-            existing.views = payload.dataModel.views
-        if payload.dataModel.quality_checks:
-            existing.quality_checks = payload.dataModel.quality_checks
-        if payload.dataModel.prompt:
-            existing.prompt = payload.dataModel.prompt
-        if payload.dataModel.summary:
-            existing.summary = payload.dataModel.summary
+        if payload.data_model.description:
+            existing.description = payload.data_model.description
+        if payload.data_model.schema:
+            existing.model_schema = payload.data_model.schema
+        if payload.data_model.views:
+            existing.views = payload.data_model.views
+        if payload.data_model.quality_checks:
+            existing.quality_checks = payload.data_model.quality_checks
+        if payload.data_model.prompt:
+            existing.prompt = payload.data_model.prompt
+        if payload.data_model.summary:
+            existing.summary = payload.data_model.summary
 
         existing.update(docint_ds)
         return {"ok": True}

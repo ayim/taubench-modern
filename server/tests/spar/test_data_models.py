@@ -69,7 +69,7 @@ class TestDataModels:
         # 2) Create the data model using the generated schema
         model_name = f"test_ski_rental_{uuid.uuid4().hex[:8]}"
         create_payload = CreateDataModelRequest(
-            dataModel=DataModelPayload(
+            data_model=DataModelPayload(
                 name=model_name,
                 description="An Example Ski Rental equipment safety report",
                 schema=gen_body["model_schema"],
@@ -83,29 +83,29 @@ class TestDataModels:
         # Expect 201 Created
         assert create_resp.status_code == 201, create_resp.text
         created = create_resp.json()
-        assert "dataModel" in created
-        assert created["dataModel"]["name"]
+        assert "data_model" in created
+        assert created["data_model"]["name"]
 
         # Register for cleanup - this ensures deletion regardless of test outcome
         data_model_cleanup(model_name, agent_id)
 
         # Verify the response model is as we expect.
-        assert isinstance(created["dataModel"]["views"], list)
-        assert len(created["dataModel"]["views"]) == 1
-        assert isinstance(created["dataModel"]["qualityChecks"], list)
-        assert len(created["dataModel"]["qualityChecks"]) == 0
-        assert created["dataModel"]["prompt"] is None, (
+        assert isinstance(created["data_model"]["views"], list)
+        assert len(created["data_model"]["views"]) == 1
+        assert isinstance(created["data_model"]["quality_checks"], list)
+        assert len(created["data_model"]["quality_checks"]) == 0
+        assert created["data_model"]["prompt"] is None, (
             "Prompt was not provided and should not be set"
         )
-        assert created["dataModel"]["summary"], "Summary should be auto-generated"
+        assert created["data_model"]["summary"], "Summary should be auto-generated"
 
-        assert created["dataModel"]["createdAt"] is not None
-        created_at = datetime.fromisoformat(created["dataModel"]["createdAt"]).replace(
+        assert created["data_model"]["created_at"] is not None
+        created_at = datetime.fromisoformat(created["data_model"]["created_at"]).replace(
             tzinfo=pytz.UTC
         )
 
-        assert created["dataModel"]["updatedAt"] is not None
-        updated_at = datetime.fromisoformat(created["dataModel"]["updatedAt"]).replace(
+        assert created["data_model"]["updated_at"] is not None
+        updated_at = datetime.fromisoformat(created["data_model"]["updated_at"]).replace(
             tzinfo=pytz.UTC
         )
 
@@ -122,7 +122,7 @@ class TestDataModels:
                 assert len(row["views"]) == 1
                 assert len(row["quality_checks"]) == 0
                 assert row["prompt"] is None
-                assert row["summary"] == created["dataModel"]["summary"]
+                assert row["summary"] == created["data_model"]["summary"]
                 # Make sure to compare UTC timestamps
                 assert row["created_at"].replace(tzinfo=pytz.UTC) == created_at
                 assert row["updated_at"].replace(tzinfo=pytz.UTC) == updated_at

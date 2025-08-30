@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from sema4ai_docint.models.data_model import DataModel
@@ -10,19 +10,13 @@ from sema4ai_docint.validation.models import ValidationRule
 
 @dataclass(frozen=True)
 class DataModelPayload:
-    """Payload matching the OpenAPI reference for the DataModel object.
-
-    Field names use the reference spec (camelCase) but are normalized here to
-    snake_case and converted to the underlying `DataModel` model as needed.
-    """
+    """Payload for the DataModel object."""
 
     name: str
     description: str
     schema: dict[str, Any]
     views: list[dict[str, Any]] | None = None
-    quality_checks: list[dict[str, str]] | None = field(
-        default=None, metadata={"alias": "qualityChecks"}
-    )
+    quality_checks: list[dict[str, str]] | None = None
     prompt: str | None = None
     summary: str | None = None
     created_at: str | None = None
@@ -36,16 +30,15 @@ class DataModelPayload:
         else:
             obj = dict(getattr(data, "__dict__", {}))
 
-        # Accept both camelCase (spec) and snake_case (internal) keys
         name = normalize_name(str(obj.get("name")))
         description = obj.get("description")
-        schema = obj.get("schema", obj.get("model_schema"))
+        schema = obj.get("schema")
         views = obj.get("views")
-        quality_checks = obj.get("qualityChecks", obj.get("quality_checks"))
+        quality_checks = obj.get("quality_checks")
         prompt = obj.get("prompt")
         summary = obj.get("summary")
-        created_at = obj.get("createdAt", obj.get("created_at"))
-        updated_at = obj.get("updatedAt", obj.get("updated_at"))
+        created_at = obj.get("created_at")
+        updated_at = obj.get("updated_at")
 
         if not name:
             raise ValueError("DataModel.name is required")
@@ -81,17 +74,17 @@ class DataModelPayload:
 
 
 def model_to_spec_dict(model: DataModel) -> dict[str, Any]:
-    """Convert internal DataModel to an API response dict using camelCase keys."""
+    """Convert internal DataModel to an API response dict using snake_case keys."""
     return {
         "name": getattr(model, "name", None),
         "description": getattr(model, "description", None),
         "schema": getattr(model, "model_schema", None),
         "views": getattr(model, "views", None),
-        "qualityChecks": getattr(model, "quality_checks", None),
+        "quality_checks": getattr(model, "quality_checks", None),
         "prompt": getattr(model, "prompt", None),
         "summary": getattr(model, "summary", None),
-        "createdAt": getattr(model, "created_at", None),
-        "updatedAt": getattr(model, "updated_at", None),
+        "created_at": getattr(model, "created_at", None),
+        "updated_at": getattr(model, "updated_at", None),
     }
 
 
@@ -108,22 +101,17 @@ def summary_from_model(model: DataModel) -> dict[str, Any]:
 class CreateDataModelRequest:
     """Request payload for creating a data model."""
 
-    dataModel: DataModelPayload  # noqa: N815
+    data_model: DataModelPayload
 
 
 @dataclass(frozen=True)
 class PartialDataModelPayload:
-    """Payload for partial updates of a DataModel (all fields optional).
-
-    Accepts both camelCase (spec) and snake_case (internal) keys.
-    """
+    """Payload for partial updates of a DataModel (all fields optional)."""
 
     description: str | None = None
     schema: dict[str, Any] | None = None
     views: list[dict[str, Any]] | None = None
-    quality_checks: list[dict[str, str]] | None = field(
-        default=None, metadata={"alias": "qualityChecks"}
-    )
+    quality_checks: list[dict[str, str]] | None = None
     prompt: str | None = None
     summary: str | None = None
     created_at: str | None = None
@@ -137,15 +125,14 @@ class PartialDataModelPayload:
         else:
             obj = dict(getattr(data, "__dict__", {}))
 
-        # Accept both camelCase (spec) and snake_case (internal) keys
         description = obj.get("description")
-        schema = obj.get("schema", obj.get("model_schema"))
+        schema = obj.get("schema")
         views = obj.get("views")
-        quality_checks = obj.get("qualityChecks", obj.get("quality_checks"))
+        quality_checks = obj.get("quality_checks")
         prompt = obj.get("prompt")
         summary = obj.get("summary")
-        created_at = obj.get("createdAt", obj.get("created_at"))
-        updated_at = obj.get("updatedAt", obj.get("updated_at"))
+        created_at = obj.get("created_at")
+        updated_at = obj.get("updated_at")
 
         return cls(
             description=str(description) if description is not None else None,
@@ -163,7 +150,7 @@ class PartialDataModelPayload:
 class UpdateDataModelRequest:
     """Request payload for updating a data model (partial)."""
 
-    dataModel: PartialDataModelPayload  # noqa: N815
+    data_model: PartialDataModelPayload
 
 
 @dataclass(frozen=True)
