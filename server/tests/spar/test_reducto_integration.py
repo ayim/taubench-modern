@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from dataclasses import dataclass
 from pathlib import Path
 from time import sleep
 from typing import TypedDict
@@ -14,29 +13,13 @@ from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
 )
 
+from .helpers import upload_file_to_thread
+
 
 class ExtractionSchemaResult(TypedDict):
     file: None
     schema: dict
     resource_name: str
-
-
-@dataclass
-class FileUploadResult:
-    file_id: str
-    file_ref: str
-
-
-def upload_file_to_thread(
-    agent_server_client: AgentServerClient, thread_id: str, file_path: str | Path
-) -> FileUploadResult:
-    file_response = agent_server_client.upload_file_to_thread(thread_id, str(file_path))
-    file_upload_result = file_response.json()
-    file_id = file_upload_result[0]["file_id"]
-    file_ref = file_upload_result[0]["file_ref"]
-    assert isinstance(file_id, str)
-    assert isinstance(file_ref, str)
-    return FileUploadResult(file_id, file_ref)
 
 
 @pytest.mark.spar

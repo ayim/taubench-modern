@@ -170,3 +170,40 @@ def data_model_cleanup(
                 print(f"Warning: Failed to delete data model {model_name}: {delete_resp.text}")
         except Exception as e:
             print(f"Warning: Exception during data model cleanup for {model_name}: {e}")
+
+
+@pytest.fixture
+def layout_cleanup(
+    spar_agent_server_base_url: str,
+) -> Generator[Callable[[str, str], None], Any, Any]:
+    """
+    Class-scoped fixture that provides a cleanup function for document layouts.
+    All layouts registered during the test class will be cleaned up when the class finishes.
+
+    Usage in test class:
+        def test_something(self, layout_cleanup):
+            # ... create your layout ...
+            layout_cleanup(layout_name, data_model_name)  # Register for cleanup
+    """
+    cleanup_list: list[tuple[str, str]] = []  # [(layout_name, data_model_name), ...]
+
+    def register_for_cleanup(layout_name: str, data_model_name: str) -> None:
+        """Register a layout for cleanup after the test class."""
+        cleanup_list.append((layout_name, data_model_name))
+
+    yield register_for_cleanup
+
+    # Cleanup all registered layouts
+    for layout_name, data_model_name in cleanup_list:
+        try:
+            import requests
+
+            delete_resp = requests.delete(
+                f"{spar_agent_server_base_url}/document-intelligence/layouts/{layout_name}",
+                params={"data_model_name": data_model_name},
+                timeout=30,
+            )
+            if delete_resp.status_code not in (200, 404):
+                print(f"Warning: Failed to delete layout {layout_name}: {delete_resp.text}")
+        except Exception as e:
+            print(f"Warning: Exception during layout cleanup for {layout_name}: {e}")
