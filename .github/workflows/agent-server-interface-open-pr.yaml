@@ -44,6 +44,16 @@ jobs:
         with:
           node-version: '20.19.4'
 
+      - name: Create .npmrc
+        shell: bash
+        run: |
+          cat << EOF > ~/.npmrc
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_READ_PACKAGES }}
+          EOF
+
       - name: Update OpenAPI Specs, Generate Types
         id: update-openapi-specs
         env:
