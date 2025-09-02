@@ -33,6 +33,8 @@ Public surface
 """
 
 import asyncio
+import base64
+import json
 import os
 import random
 import re
@@ -56,6 +58,11 @@ from mcp.types import CallToolRequest, CallToolRequestParams, CallToolResult, Cl
 from structlog.stdlib import BoundLogger, get_logger
 
 from agent_platform.core.configurations import Configuration, FieldMetadata
+from agent_platform.core.mcp.mcp_types import (
+    MCPVariables,
+    MCPVariableTypeOAuth2Secret,
+    MCPVariableTypeSecret,
+)
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
@@ -204,10 +211,16 @@ class MCPClient:
             target_headers: dict[str, str] = {
                 key: value if isinstance(value, str) else value.value or ""
                 for key, value in target_server.headers.items()
+                if not isinstance(value, MCPVariableTypeSecret | MCPVariableTypeOAuth2Secret)
             }
             self._headers.update(target_headers)
         if additional_headers:
             self._headers.update(additional_headers)
+
+        # Add X-Action-Context header if not already present and if we have secrets to send
+        # Only add for sema4ai_action_server type
+        if target_server.type == "sema4ai_action_server":
+            self._ensure_action_context_header(target_server.headers)
 
         self._session: ClientSession | None = None
         self._get_session_id_cb: Callable[[], str | None] | None = None
@@ -257,6 +270,42 @@ class MCPClient:
         if self._get_session_id_cb:
             return self._get_session_id_cb()
         return None
+
+    # ------------------------------------------------------------------ #
+    #  Header preparation                                                #
+    # ------------------------------------------------------------------ #
+
+    def _ensure_action_context_header(self, target_headers: MCPVariables | None) -> None:
+        """
+        Add X-Action-Context header if not already present.
+        Ref: https://github.com/Sema4AI/actions/blob/master/action_server/docs/guides/07-secrets.md#passing-secrets-as-environment-variables-or-headers
+        """
+        if target_headers is None:
+            return
+
+        existing_action_context = None
+        for header_name in target_headers:
+            if header_name.lower() == "x-action-context":
+                existing_action_context = header_name
+                return
+
+        if existing_action_context:
+            return
+
+        # Only process headers that are MCP secret types
+        secrets = {}
+        for header_name, header_value in target_headers.items():
+            if isinstance(header_value, MCPVariableTypeSecret | MCPVariableTypeOAuth2Secret):
+                secrets[header_name] = header_value.value
+
+        # If we have secrets, create the X-Action-Context header
+        if secrets:
+            action_context = {"secrets": secrets}
+            x_action_context_value = base64.b64encode(
+                json.dumps(action_context).encode("utf-8")
+            ).decode("ascii")
+
+            self._headers["X-Action-Context"] = x_action_context_value
 
     # ------------------------------------------------------------------ #
     #  Connect / close                                                   #

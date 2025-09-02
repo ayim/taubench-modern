@@ -273,6 +273,7 @@ def test_mcp_server_model_dump_and_validate_roundtrip():
         "env",
         "cwd",
         "force_serial_tool_calls",
+        "type",
     }
     assert dumped_url["headers"] == {
         "KEY_WITH_VALUE": "value",
@@ -330,6 +331,7 @@ def test_mcp_server_model_dump_and_validate_roundtrip():
         "env",
         "cwd",
         "force_serial_tool_calls",
+        "type",
     }
     assert dumped_cmd["env"] == {
         "KEY_WITH_VALUE": "value",
@@ -410,6 +412,7 @@ def test_mcp_server_model_dump_and_validate_roundtrip_with_secrets():
         "env",
         "cwd",
         "force_serial_tool_calls",
+        "type",
     }
     assert dumped_url["headers"] == {
         "KEY_WITH_VALUE": "value",
@@ -468,6 +471,7 @@ def test_mcp_server_model_dump_and_validate_roundtrip_with_secrets():
         "env",
         "cwd",
         "force_serial_tool_calls",
+        "type",
     }
     assert dumped_cmd["env"] == {
         "KEY_WITH_VALUE": "value",

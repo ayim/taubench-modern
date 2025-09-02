@@ -1067,3 +1067,113 @@ async def test_call_tool_does_not_retry_on_400(monkeypatch):
         await client.call_tool("dummy", attempts=5, base_backoff=0)
     assert calls == 1  # no retry
     await done()
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_context_header_creates_header_when_not_present():
+    """
+    Test that _ensure_action_context_header creates X-Action-Context header
+    when it doesn't already exist and there are MCP secret type headers to process.
+    """
+    from agent_platform.core.mcp.mcp_types import MCPVariableTypeOAuth2Secret, MCPVariableTypeSecret
+
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={
+            "X-API-Key": MCPVariableTypeSecret(value="api-key-value", description="API key"),
+            "X-OAuth-Token": MCPVariableTypeOAuth2Secret(
+                provider="google", scopes=["read"], value="oauth-token", description="OAuth token"
+            ),
+            "Content-Type": "application/json",
+        },
+        type="sema4ai_action_server",
+    )
+    client = MCPClient(target_server=server)
+    assert "X-Action-Context" in client._headers
+
+    import base64
+    import json
+
+    x_action_context_value = client._headers["X-Action-Context"]
+    decoded_value = base64.b64decode(x_action_context_value).decode("utf-8")
+    action_context = json.loads(decoded_value)
+
+    assert "secrets" in action_context
+    assert "X-API-Key" in action_context["secrets"]
+    assert "X-OAuth-Token" in action_context["secrets"]
+    assert "Content-Type" not in action_context["secrets"]
+
+    assert action_context["secrets"]["X-API-Key"] == "api-key-value"
+    assert action_context["secrets"]["X-OAuth-Token"] == "oauth-token"
+
+
+@pytest.mark.asyncio
+async def test_no_action_context_header_when_type_generic_mcp():
+    """
+    Test that _ensure_action_context_header creates X-Action-Context header
+    when it doesn't already exist and there are MCP secret type headers to process.
+    """
+    from agent_platform.core.mcp.mcp_types import MCPVariableTypeOAuth2Secret, MCPVariableTypeSecret
+
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={
+            "X-API-Key": MCPVariableTypeSecret(value="api-key-value", description="API key"),
+            "X-OAuth-Token": MCPVariableTypeOAuth2Secret(
+                provider="google", scopes=["read"], value="oauth-token", description="OAuth token"
+            ),
+            "Content-Type": "application/json",
+        },
+    )
+    client = MCPClient(target_server=server)
+    assert "X-Action-Context" not in client._headers
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_context_header_does_not_override_existing():
+    """
+    Test that _ensure_action_context_header does not override existing
+    X-Action-Context header.
+    """
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={
+            "Authorization": "Bearer server-token",
+            "X-Action-Context": "existing-base64-encoded-value",
+            "Content-Type": "application/json",
+        },
+        type="sema4ai_action_server",
+    )
+
+    client = MCPClient(target_server=server)
+
+    assert client._headers["X-Action-Context"] == "existing-base64-encoded-value"
+    assert client._headers["Authorization"] == "Bearer server-token"
+    assert client._headers["Content-Type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_context_header_no_secrets_no_header():
+    """
+    Test that _ensure_action_context_header does not create X-Action-Context header
+    when there are no MCP secret type headers.
+    """
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={
+            "Authorization": "Bearer server-token",
+            "Content-Type": "application/json",
+        },
+        type="sema4ai_action_server",
+    )
+
+    client = MCPClient(target_server=server)
+
+    assert "X-Action-Context" not in client._headers
+
+    assert client._headers["Authorization"] == "Bearer server-token"
+    assert client._headers["Content-Type"] == "application/json"

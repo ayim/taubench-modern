@@ -81,7 +81,9 @@ class MCPServer:
 
     cwd: str | None = field(
         default=None,
-        metadata={"description": "The working directory to run the MCP server command in."},
+        metadata={
+            "description": "The working directory to run the MCP server command in.",
+        },
     )
     """The working directory to run the MCP server command in."""
 
@@ -94,6 +96,16 @@ class MCPServer:
     )
     """If True, all tool calls are executed under a lock to support servers
     that cannot interleave multiple requests."""
+
+    type: Literal["generic_mcp", "sema4ai_action_server"] = field(
+        default="generic_mcp",
+        metadata={
+            "description": "The type of MCP server. If 'sema4ai_action_server', "
+            "X-Action-Context headers will be added for secret handling."
+        },
+    )
+    """The type of MCP server. If 'sema4ai_action_server', X-Action-Context
+    headers will be added for secret handling."""
 
     def __post_init__(self):
         # If neither url nor command are provided, raise an error
@@ -158,6 +170,7 @@ class MCPServer:
             cwd=self.cwd,
             force_serial_tool_calls=self.force_serial_tool_calls,
             transport=self.transport,
+            type=self.type,
         )
 
     def model_dump(self) -> dict:
@@ -176,6 +189,7 @@ class MCPServer:
             "cwd": self.cwd or None,
             # generic
             "force_serial_tool_calls": self.force_serial_tool_calls,
+            "type": self.type,
         }
 
     async def to_tool_definitions(
@@ -198,4 +212,5 @@ class MCPServer:
             data["headers"] = deserialize_mcp_variables(data["headers"])
         if "env" in data:
             data["env"] = deserialize_mcp_variables(data["env"])
+
         return cls(**data)
