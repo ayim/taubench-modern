@@ -1,3 +1,13 @@
+# Sema4.ai Agent Server 2.0.40 (2025-09-02)
+
+- [Data Frames] Fix TypeError: can only concatenate list (not tuple) to list [#806](https://github.com/Sema4AI/agent-platform/pull/806)
+- [Data Frames] Improve SQL handling (accept CTEs, union, ...) [#794](https://github.com/Sema4AI/agent-platform/pull/794)
+- [Data Frames] Fix issue collecting dates, use proper API to get sample data, support open office sheets. [#790](https://github.com/Sema4AI/agent-platform/pull/790)
+- [DIN-461] Use snake_case instead of camelCase for data models [#798](https://github.com/Sema4AI/agent-platform/pull/798)
+- Create an integration test to test the generate layout flow via SPAR [#795](https://github.com/Sema4AI/agent-platform/pull/795)
+- GPT-1115: Unnest MCP Server config from agent table [#740](https://github.com/Sema4AI/agent-platform/pull/740)
+- Manage secrets in MCP Server. Send relevant headers in x-action-context  [#803](https://github.com/Sema4AI/agent-platform/pull/803)
+
 # Sema4.ai Agent Server 2.0.39 (2025-08-28)
 
 - DIN-454 Drop the DocumentLayoutBridge and unify document layout payloads between endpoints [#781](https://github.com/Sema4AI/agent-platform/pull/781)

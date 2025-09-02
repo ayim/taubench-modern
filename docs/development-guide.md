@@ -34,6 +34,7 @@
 2. **Release Process**:
 
    - Once features are merged into `main`, update the version in `server/pyproject.toml` following [Semantic Versioning](#semantic-versioning).
+   - Run `make sync` to update the lockfile.
    - Format the changelog: move items from "Unreleased" to a new release section (e.g., "# Agent Server 2.1.0").
 
      **IMPORTANT**:
