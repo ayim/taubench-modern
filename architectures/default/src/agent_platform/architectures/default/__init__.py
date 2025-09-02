@@ -120,7 +120,7 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 
 @aa.step
-async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0912, PLR0915
+async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0915
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
         thread_messages_to_prompt_messages,
@@ -148,11 +148,10 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         agent_settings = kernel.agent.extra.get("agent_settings", {})
         enable_data_frames = agent_settings.get("enable_data_frames", False)
 
+    data_frames_tools: tuple[ToolDefinition, ...] = ()
     if enable_data_frames:
         await kernel.data_frames.step_initialize()
         data_frames_tools = kernel.data_frames.get_data_frame_tools()
-    else:
-        data_frames_tools = []
 
     # Save any issues to state for introspection
     state.configuration_issues = [*action_issues, *mcp_issues]
@@ -183,7 +182,9 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         state=state,
     )
 
-    tools = action_tools + mcp_tools + kernel.client_tools + data_frames_tools
+    tools: list[ToolDefinition] = action_tools + mcp_tools + kernel.client_tools
+    tools.extend(data_frames_tools)
+
     # And let's add the tools to the prompt
     conversation_prompt = conversation_prompt.with_tools(*tools)
 

@@ -313,19 +313,21 @@ def test_data_frames_integration(base_url_agent_server):
 
 
 @pytest.mark.integration
-def test_data_frames_computation_integration_success(base_url_agent_server):
+def test_data_frames_computation_integration_success(
+    base_url_agent_server_with_data_frames, openai_api_key
+):
     """Test creating a data frame from computation with valid SQL query."""
     import json
 
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
-    with AgentServerClient(base_url_agent_server) as agent_client:
+    with AgentServerClient(base_url_agent_server_with_data_frames) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
             action_packages=[],
             platform_configs=[
                 {
                     "kind": "openai",
-                    "openai_api_key": "unused",
+                    "openai_api_key": openai_api_key,
                     "models": {"openai": ["gpt-4.1"]},
                 },
             ],
@@ -439,3 +441,13 @@ def test_data_frames_computation_integration_success(base_url_agent_server):
 
         loaded = json.loads(slice_response)
         assert loaded == [{"age": 35}]
+
+        result, tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            "Can you let me know what data frames you have?",
+        )
+        result_found = str(result)
+
+        if "my_data" not in result_found.lower() and "filtered_data" not in result_found.lower():
+            raise Exception("Data frames not found in the response. Found: " + result_found)

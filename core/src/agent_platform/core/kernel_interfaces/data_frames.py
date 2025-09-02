@@ -26,5 +26,5 @@ class DataFramesInterface(ABC):
         """Get a prompt to be added to the system prompt for the data frames."""
 
     @abstractmethod
-    def get_data_frame_tools(self) -> "list[ToolDefinition]":
+    def get_data_frame_tools(self) -> "tuple[ToolDefinition, ...]":
         """Get tools related to data frames."""

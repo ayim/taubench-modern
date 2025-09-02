@@ -78,6 +78,16 @@ def base_url_agent_server(tmpdir, logs_dir, files_location):
 
 
 @pytest.fixture
+def base_url_agent_server_with_data_frames(tmpdir, logs_dir, files_location):
+    env_vars = {
+        "SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES": "true",
+    }
+
+    with start_agent_server(tmpdir, logs_dir, env=env_vars) as url:
+        yield url
+
+
+@pytest.fixture
 def base_url_agent_server_with_async_actions(tmpdir, logs_dir, files_location):
     """Fixture that starts agent server with async actions enabled."""
 

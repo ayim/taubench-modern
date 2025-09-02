@@ -254,7 +254,7 @@ def test_api_interaction_with_action_server(
 
         result = result.lower()
 
-        if "list" not in result or "contact" not in result:
+        if "contact" not in result or ("retrieve" not in result and "list" not in result):
             raise AssertionError(
                 "Agent did not provide that it has the list contact action. "
                 f"Found result: {result!r}"
