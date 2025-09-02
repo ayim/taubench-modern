@@ -1,12 +1,13 @@
 import typing
 from abc import abstractmethod
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from typing import Any
 
 from structlog.stdlib import get_logger
 
 if typing.TYPE_CHECKING:
     import fastexcel
+    from sema4ai.actions import Row
 
     from agent_platform.core.files import UploadedFile
     from agent_platform.server.auth.handlers import AuthedUser
@@ -56,7 +57,7 @@ class DataReaderSheet:
         """
 
     @abstractmethod
-    def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
+    def list_sample_rows(self, num_samples: int) -> "list[Row]":
         """
         A list of sample rows from the sheet.
         """
@@ -186,7 +187,7 @@ class ExcelDataReaderSheet(DataReaderSheet):
             ]
         return [c.name for c in self._loaded_sheet().available_columns()]
 
-    def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
+    def list_sample_rows(self, num_samples: int) -> "list[Row]":
         if self.__loaded_sheet is None:
             loaded_sheet = self._excel_reader.load_sheet(self._sheet_name, n_rows=num_samples)
             return self._load_samples(loaded_sheet.to_arrow())
@@ -194,8 +195,16 @@ class ExcelDataReaderSheet(DataReaderSheet):
         loaded_sheet = self._loaded_sheet()
         return self._load_samples(loaded_sheet.to_arrow()[:num_samples])
 
-    def _load_samples(self, batch) -> list[Sequence[Any]]:
-        return list(zip(*[col.to_pylist() for col in batch.columns], strict=True))
+    def _load_samples(self, batch) -> "list[Row]":
+        from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
+
+        return typing.cast(
+            "list[Row]",
+            [
+                convert_to_valid_json_types(list(row))
+                for row in zip(*[col.to_pylist() for col in batch.columns], strict=True)
+            ],
+        )
 
     def to_ibis(self) -> Any:
         return self._loaded_sheet().to_arrow()
@@ -240,16 +249,24 @@ class CsvDataReaderSheet(DataReaderSheet):
         )
         return list(reader.schema.names)
 
-    def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
+    def list_sample_rows(self, num_samples: int) -> "list[Row]":
         import io
 
         import pyarrow.csv
+
+        from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
 
         table = pyarrow.csv.read_csv(
             io.BytesIO(self._file_bytes),
             pyarrow.csv.ReadOptions(),
         )[:num_samples]
-        return list(zip(*[col.to_pylist() for col in table.columns], strict=True))
+        return typing.cast(
+            "list[Row]",
+            [
+                convert_to_valid_json_types(list(row))
+                for row in zip(*[col.to_pylist() for col in table.columns], strict=True)
+            ],
+        )
 
     def to_ibis(self) -> Any:
         import io

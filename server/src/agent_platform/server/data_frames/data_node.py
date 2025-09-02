@@ -6,7 +6,7 @@ from typing import Any, Literal, Protocol
 
 if typing.TYPE_CHECKING:
     import pyarrow
-    from sema4ai.actions import Table
+    from sema4ai.actions import Row, Table
 
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_reader import DataReaderSheet
@@ -163,7 +163,7 @@ def _convert_arrow_to_format(
         for row in zip(*columns, strict=True):
             row_data = {}
             for k, v in zip(table.schema.names, row, strict=True):
-                row_data[k] = _convert_to_valid_json_types(v.as_py())
+                row_data[k] = convert_to_valid_json_types(v.as_py())
             data.append(row_data)
 
         return json.dumps(data).encode("utf-8")
@@ -179,7 +179,7 @@ def _convert_arrow_to_format(
         rows = []
         columns = list(table)
         for row in zip(*columns, strict=True):
-            rows.append(list(_convert_to_valid_json_types(v.as_py()) for v in row))
+            rows.append(list(convert_to_valid_json_types(v.as_py()) for v in row))
 
         new_table = Table(
             columns=list(table.schema.names),
@@ -193,17 +193,16 @@ def _convert_arrow_to_format(
 _VALID_PY_TYPES = int | float | bool | str | None
 
 
-def _convert_to_valid_json_types(as_py: Any) -> str | int | float | bool | list | dict | None:
+def convert_to_valid_json_types(as_py: Any) -> str | int | float | bool | list | dict | None:
     if isinstance(as_py, _VALID_PY_TYPES):
         return as_py
     if isinstance(as_py, datetime.datetime):
         return as_py.isoformat()
-    elif isinstance(as_py, list):
-        return [_convert_to_valid_json_types(v) for v in as_py]
+    elif isinstance(as_py, list | tuple):
+        return [convert_to_valid_json_types(v) for v in as_py]
     elif isinstance(as_py, dict):
         return {
-            _convert_to_valid_json_types(k): _convert_to_valid_json_types(v)
-            for k, v in as_py.items()
+            convert_to_valid_json_types(k): convert_to_valid_json_types(v) for k, v in as_py.items()
         }
     else:
         # Fallback to string (uuid, etc.)
@@ -218,7 +217,7 @@ class DataNodeResult(Protocol):
     required_backend: SupportedIbisBackends
 
     @abstractmethod
-    def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
+    def list_sample_rows(self, num_samples: int) -> "list[Row]":
         pass
 
     @property
@@ -278,7 +277,7 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
         self._platform_data_frame = platform_data_frame
         self._reader_sheet = reader_sheet
 
-    def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
+    def list_sample_rows(self, num_samples: int) -> "list[Row]":
         return self._reader_sheet.list_sample_rows(num_samples)
 
     @property
@@ -335,14 +334,14 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
             self.__loaded_table = pyarrow.parquet.read_table(stream)
         return self.__loaded_table
 
-    def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
+    def list_sample_rows(self, num_samples: int) -> "list[Row]":
         table = self._loaded_table()
         # Get sample rows using pyarrow
         if num_samples >= table.num_rows:
             # Return all rows
-            return [tuple(row) for row in table.to_pylist()]
+            return [list(row) for row in table.to_pylist()]
         else:
-            return [tuple(row) for row in table.slice(0, num_samples).to_pylist()]
+            return [list(row) for row in table.slice(0, num_samples).to_pylist()]
 
     @property
     def num_rows(self) -> int:
@@ -388,7 +387,7 @@ class DataNodeFromIbisResult(DataNodeResult):
 
     def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
         table = self._ibis_result.limit(num_samples).to_pyarrow()
-        return [tuple(row) for row in table.to_pylist()]
+        return [list(row) for row in table.to_pylist()]
 
     @property
     def num_rows(self) -> int:

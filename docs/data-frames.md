@@ -9,6 +9,12 @@ Also, a data frame could be created automatically if some action/tool returns ta
 (i.e.: an action/mcp tool that returns an object with a Response[Table(columns, rows)] or just
 Table(columns, rows) shape).
 
+# Notes for development:
+
+- `pytest` is used to run tests and tests should be done top-level (i.e.: not inside a class)
+- `pytest` should be run with `uv run python -m pytest <args>` from the root of the project.
+- The tests shouldn't be extensive, they should be focused on the new code and the new functionality.
+
 # References:
 
 [Miro board: Internals behind the Data Model API in Agent Server](https://miro.com/app/board/uXjVImChMn0=/?moveToWidget=3458764636556067436&cot=14)
@@ -125,13 +131,22 @@ Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to 
   - If a data frame was created from different data frames then parent data frame ids (input_id_type = "sql_computation")
   - If a data frame was created from an in-memory data frame no additional info is needed (input_id_type = "in_memory")
 
+# Step 6 (current PR)
+
+- Show sample data in the LLM summary
+
 # Future work (not right now):
 
-- Show sample data in the summary
-- Show column types in the summary
+- Show column types in the LLM summary
 - Don't remove tools after they were added into the context
 - Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)
 - Make the result of named queries (Tables) be available as data frames automatically.
 - Allow the user to have data frames that are backed by a database.
 - Investigate shortcomings of the "just SQL" approach and see if an approach using "sanitized but possibly unsafe python code" can be better.
   - See: https://github.com/Sema4AI/agent-platform/pull/794#issuecomment-3234347346 for use-cases to test.
+- Create a data model. Things to keep in mind:
+  - For categorical columns, if there's a small set of allowed values, what are those values?
+  - For numerical columns, some basic stats (like min/max/median sorta deal).
+  - Semantic description of the columns.
+- Update settings to use new settings flavor:
+  See example: https://github.com/Sema4AI/agent-platform/blob/main/core/src/agent_platform/core/configurations/quotas.py

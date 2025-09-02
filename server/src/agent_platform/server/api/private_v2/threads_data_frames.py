@@ -1,8 +1,7 @@
 import dataclasses
 import datetime
 import typing
-from collections.abc import Sequence
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from fastapi import HTTPException, Response
 from fastapi.routing import APIRouter
@@ -31,7 +30,7 @@ class _DataFrameInspectionAPI:
     num_columns: Annotated[int, "The number of columns in the data frame."]
     created_at: Annotated[datetime.datetime, "The date and time the data frame was created."]
     column_headers: Annotated[list[str], "The headers of the columns in the data frame."]
-    sample_rows: Annotated[list[Sequence[Any]], "The sample rows of the data frame."]
+    sample_rows: Annotated[list[list], "The sample rows of the data frame."]
     file_id: Annotated[str | None, "The ID of the file that the data frame is in."]
     file_ref: Annotated[str | None, "The reference of the file that the data frame is in."]
 
@@ -114,7 +113,7 @@ class _DataFrameCreationAPI:
     num_columns: Annotated[int, "The number of columns in the data frame."]
     created_at: Annotated[datetime.datetime, "The date and time the data frame was created."]
     column_headers: Annotated[list[str], "The headers of the columns in the data frame."]
-    sample_rows: Annotated[list[Sequence[Any]], "The sample rows of the data frame."]
+    sample_rows: Annotated[list[list], "The sample rows of the data frame."]
     input_id_type: Annotated[
         Literal["file", "sql_computation", "in_memory"],
         "The type of the input ID.",
@@ -185,11 +184,17 @@ async def create_data_frame_from_file(  # noqa: PLR0913
     import os.path
     import uuid
 
+    from agent_platform.core.data_frames.data_frames import DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT
     from agent_platform.core.errors.base import PlatformError
     from sema4ai.common.text import slugify
 
+    if num_samples < 0:
+        use_num_samples = num_samples
+    else:
+        use_num_samples = max(num_samples, DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT)
+
     inspected_data_frames = await inspect_file_as_data_frame(
-        user, tid, storage, num_samples, sheet_name, file_id=file_id, file_ref=file_ref
+        user, tid, storage, use_num_samples, sheet_name, file_id=file_id, file_ref=file_ref
     )
     if len(inspected_data_frames) == 0:
         raise HTTPException(status_code=400, detail="No data frames found in file")
@@ -256,6 +261,9 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         # we could save the data as parquet, but for now, let's experiment in always
         # rebuilding the full data whenever asked.
         parquet_contents=None,
+        extra_data=PlatformDataFrame.build_extra_data(
+            sample_rows=inspected_data_frame.sample_rows[:DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT],
+        ),
     )
 
     await base_storage.save_data_frame(data_frame)
@@ -377,7 +385,7 @@ async def create_data_frame_from_sql_computation(
         The created data frame information
     """
     from agent_platform.server.data_frames.data_frames_from_computation import (
-        create_data_frame_from_sql_computation,
+        create_data_frame_from_sql_computation_api,
     )
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
@@ -386,13 +394,14 @@ async def create_data_frame_from_sql_computation(
 
     data_frames_kernel = DataFramesKernel(base_storage, user, tid)
 
-    resolved_df = await create_data_frame_from_sql_computation(
+    resolved_df, samples_table = await create_data_frame_from_sql_computation_api(
         data_frames_kernel=data_frames_kernel,
         storage=base_storage,
         new_data_frame_name=payload.new_data_frame_name,
         sql_query=payload.sql_query,
         dialect=payload.sql_dialect,
         description=payload.description,
+        num_samples=num_samples,
     )
 
     platform_data_frame = resolved_df.platform_data_frame
@@ -407,7 +416,7 @@ async def create_data_frame_from_sql_computation(
         num_columns=platform_data_frame.num_columns,
         created_at=platform_data_frame.created_at,
         column_headers=platform_data_frame.column_headers,
-        sample_rows=resolved_df.list_sample_rows(num_samples),
+        sample_rows=samples_table.rows,
         file_id=platform_data_frame.file_id,
         file_ref=platform_data_frame.file_ref,
         input_id_type="sql_computation",

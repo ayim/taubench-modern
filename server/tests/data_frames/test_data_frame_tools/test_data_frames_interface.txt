@@ -9,6 +9,20 @@ You have 1 data frames to work with. Details:
   "column_names": [
    "col1",
    "col2"
+  ],
+  "sample_data": [
+   [
+    1,
+    4
+   ],
+   [
+    2,
+    5
+   ],
+   [
+    3,
+    6
+   ]
   ]
  }
 ]

@@ -8,7 +8,16 @@
     "Name",
     "Location"
   ],
-  "sample_rows": [],
+  "sample_rows": [
+    [
+      "John",
+      "London"
+    ],
+    [
+      "Jane",
+      "Australia"
+    ]
+  ],
   "input_id_type": "file",
   "parent_data_frame_ids": null,
   "file_ref": "sample.xlsx",

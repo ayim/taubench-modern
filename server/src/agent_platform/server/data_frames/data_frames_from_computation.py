@@ -5,6 +5,8 @@ import uuid
 from structlog.stdlib import get_logger
 
 if typing.TYPE_CHECKING:
+    from sema4ai.actions import Table
+
     from agent_platform.server.storage.base import BaseStorage
 
     from .data_frames_kernel import DataFramesKernel
@@ -13,14 +15,15 @@ if typing.TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-async def create_data_frame_from_sql_computation(  # noqa: PLR0913
+async def create_data_frame_from_sql_computation_api(  # noqa: PLR0913
     data_frames_kernel: "DataFramesKernel",
     storage: "BaseStorage",
     new_data_frame_name: str,
     sql_query: str,
     dialect: str,
     description: str | None = None,
-) -> "DataNodeResult":
+    num_samples: int = 0,
+) -> "tuple[DataNodeResult, Table]":
     """Create a new data frame from existing data frames using a SQL query.
 
     Args:
@@ -29,17 +32,26 @@ async def create_data_frame_from_sql_computation(  # noqa: PLR0913
         sql_query: The SQL query to execute
         description: Optional description for the new data frame
         dialect: The dialect of the SQL query to use ("postgres", "mysql", "sqlite", etc).
-
+        num_samples: The number of rows to return from the data frame.
+            Note: Internally we always have to preload some samples to save in the
+            data frame, but if the caller will require more, we'll actually load that many
+            samples (but then just save the internally required number of samples in the data
+            frame).
     Returns:
         A node which can later be queried for the data (the platform data frame is
-        available in it).
+        available in it) and a table with the number of samples required.
 
     Raises:
         PlatformError: If the computation fails or data frames are not found.
     """
     import sqlglot
+    from sema4ai.actions import Table
 
-    from agent_platform.core.data_frames.data_frames import DataFrameSource, PlatformDataFrame
+    from agent_platform.core.data_frames.data_frames import (
+        DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT,
+        DataFrameSource,
+        PlatformDataFrame,
+    )
     from agent_platform.core.errors.base import PlatformError
     from agent_platform.server.data_frames.data_frames_kernel import (
         extract_variable_names_required_from_sql_computation,
@@ -114,12 +126,31 @@ async def create_data_frame_from_sql_computation(  # noqa: PLR0913
 
     resolved_df: DataNodeResult = await data_frames_kernel.resolve_data_frame(data_frame)
 
+    if num_samples > 0:
+        use_num_samples = max(num_samples, DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT)
+    else:
+        use_num_samples = DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT
+
+    # We always have to compute the data frame and cache a few samples which will
+    # always be provided to the LLM.
+    sliced_data = typing.cast(
+        Table,
+        resolved_df.slice(
+            offset=0,
+            limit=use_num_samples,
+            column_names=None,
+            output_format="table",
+        ),
+    )
+
     # Update the data frame with the computed data frame now that it's materialized
     data_frame.num_rows = resolved_df.num_rows
     data_frame.num_columns = resolved_df.num_columns
     data_frame.column_headers = resolved_df.column_headers
+    data_frame.patch_extra_data(sample_rows=sliced_data.rows[:DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT])
 
     # Save the data frame to storage
     await storage.save_data_frame(data_frame)
 
-    return resolved_df
+    new_rows = sliced_data.rows[:num_samples]
+    return resolved_df, Table(columns=sliced_data.columns, rows=new_rows)

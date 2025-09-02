@@ -1,6 +1,10 @@
 import datetime
+import typing
 from dataclasses import dataclass
 from typing import Literal, TypedDict
+
+if typing.TYPE_CHECKING:
+    from sema4ai.actions._table import Row
 
 
 @dataclass
@@ -31,12 +35,28 @@ class DataFrameSource:
         )
 
 
+class _Sentinel:
+    """A sentinel value."""
+
+
+_SENTINEL = _Sentinel()
+
+
 class ExtraDataFrameData(TypedDict, total=False):
     """Extra data for a data frame."""
 
     sql_dialect: str | None
     """The dialect of the SQL query that was used to create the data frame
     (can be set when the input_id_type is "sql_computation")."""
+
+    sample_rows: "list[Row] | None"
+    """The sample rows for the data frame."""
+
+
+# The maximum number of rows to return to the LLM when using a data frame
+# (this is the amount of samples that we'll always preload and save in the data
+# frame)
+DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT = 10
 
 
 @dataclass
@@ -120,12 +140,49 @@ class PlatformDataFrame:
     data that can be serialized to JSON."""
 
     @classmethod
-    def build_extra_data(cls, sql_dialect: str | None = None) -> ExtraDataFrameData:
+    def build_extra_data(
+        cls,
+        *,
+        sql_dialect: str | None = None,
+        sample_rows: "list[Row] | None" = None,
+    ) -> ExtraDataFrameData:
         """Build the extra data for the data frame."""
         extra_data: ExtraDataFrameData = {}
+
         if sql_dialect is not None:
             extra_data["sql_dialect"] = sql_dialect
+
+        if sample_rows is not None:
+            extra_data["sample_rows"] = sample_rows
+
         return extra_data
+
+    def patch_extra_data(
+        self,
+        *,
+        sql_dialect: str | None | _Sentinel = _SENTINEL,
+        sample_rows: "list[Row] | None | _Sentinel" = _SENTINEL,
+    ) -> None:
+        """Patch the extra data for the data frame."""
+        initial: ExtraDataFrameData
+        if self.extra_data is None:
+            initial = {}
+        else:
+            initial = self.extra_data
+
+        if not isinstance(sql_dialect, _Sentinel):
+            if sql_dialect is None:
+                initial.pop("sql_dialect", None)
+            else:
+                initial["sql_dialect"] = sql_dialect
+
+        if not isinstance(sample_rows, _Sentinel):
+            if sample_rows is None:
+                initial.pop("sample_rows", None)
+            else:
+                initial["sample_rows"] = sample_rows
+
+        self.extra_data = initial
 
     @property
     def sql_dialect(self) -> str:
@@ -137,6 +194,13 @@ class PlatformDataFrame:
             dialect = self.extra_data.get("sql_dialect")
 
         return dialect or "duckdb"
+
+    @property
+    def sample_rows(self) -> "list[Row]":
+        """The sample rows for the data frame."""
+        if self.extra_data is None:
+            return []
+        return self.extra_data.get("sample_rows") or []
 
     def __post_init__(self) -> None:
         self.verify()

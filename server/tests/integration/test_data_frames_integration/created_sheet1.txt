@@ -8,7 +8,16 @@
     "name",
     "age"
   ],
-  "sample_rows": [],
+  "sample_rows": [
+    [
+      "John",
+      25.0
+    ],
+    [
+      "Jane",
+      30.0
+    ]
+  ],
   "input_id_type": "file",
   "parent_data_frame_ids": null,
   "file_ref": "sample.xlsx",

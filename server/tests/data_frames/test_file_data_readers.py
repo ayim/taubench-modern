@@ -26,9 +26,9 @@ def test_csv_data_reader():
     assert sheet.num_rows == 2
     assert sheet.num_columns == 2
     assert sheet.column_headers == ["name", "age"]
-    assert sheet.list_sample_rows(1) == [("John", 25)]
-    assert sheet.list_sample_rows(2) == [("John", 25), ("Jane", 30)]
-    assert sheet.list_sample_rows(5) == [("John", 25), ("Jane", 30)]
+    assert sheet.list_sample_rows(1) == [["John", 25]]
+    assert sheet.list_sample_rows(2) == [["John", 25], ["Jane", 30]]
+    assert sheet.list_sample_rows(5) == [["John", 25], ["Jane", 30]]
     assert sheet.to_ibis().to_pylist() == [
         {"name": "John", "age": 25},
         {"name": "Jane", "age": 30},
@@ -60,9 +60,9 @@ def test_excel_to_csv_fallback():
     assert sheet.num_rows == 2
     assert sheet.num_columns == 2
     assert sheet.column_headers == ["name", "age"]
-    assert sheet.list_sample_rows(1) == [("John", 25)]
-    assert sheet.list_sample_rows(2) == [("John", 25), ("Jane", 30)]
-    assert sheet.list_sample_rows(5) == [("John", 25), ("Jane", 30)]
+    assert sheet.list_sample_rows(1) == [["John", 25]]
+    assert sheet.list_sample_rows(2) == [["John", 25], ["Jane", 30]]
+    assert sheet.list_sample_rows(5) == [["John", 25], ["Jane", 30]]
     assert sheet.to_ibis().to_pylist() == [
         {"name": "John", "age": 25},
         {"name": "Jane", "age": 30},
@@ -95,8 +95,8 @@ def test_excel_data_reader(datadir: Path):
     assert sheet.name == "Sheet1"
     assert sheet.num_columns == 2
     assert sheet.column_headers == ["name", "age"]
-    assert sheet.list_sample_rows(1) == [("John", 25)]
-    assert sheet.list_sample_rows(2) == [("John", 25), ("Jane", 30)]
+    assert sheet.list_sample_rows(1) == [["John", 25]]
+    assert sheet.list_sample_rows(2) == [["John", 25], ["Jane", 30]]
 
     # These always load the full content.
     assert sheet.num_rows == 2
@@ -108,8 +108,8 @@ def test_excel_data_reader(datadir: Path):
     # Try after the full content is loaded.
     assert sheet.num_columns == 2
     assert sheet.column_headers == ["name", "age"]
-    assert sheet.list_sample_rows(1) == [("John", 25)]
-    assert sheet.list_sample_rows(5) == [("John", 25), ("Jane", 30)]
+    assert sheet.list_sample_rows(1) == [["John", 25]]
+    assert sheet.list_sample_rows(5) == [["John", 25], ["Jane", 30]]
 
 
 def test_excel_data_reader_single_sheet(datadir: Path):
@@ -136,8 +136,8 @@ def test_excel_data_reader_single_sheet(datadir: Path):
     assert sheet.name == "Sheet1"
     assert sheet.num_columns == 2
     assert sheet.column_headers == ["name", "age"]
-    assert sheet.list_sample_rows(1) == [("John", 25)]
-    assert sheet.list_sample_rows(2) == [("John", 25), ("Jane", 30)]
+    assert sheet.list_sample_rows(1) == [["John", 25]]
+    assert sheet.list_sample_rows(2) == [["John", 25], ["Jane", 30]]
 
     # These always load the full content.
     assert sheet.num_rows == 2
@@ -149,8 +149,8 @@ def test_excel_data_reader_single_sheet(datadir: Path):
     # Try after the full content is loaded.
     assert sheet.num_columns == 2
     assert sheet.column_headers == ["name", "age"]
-    assert sheet.list_sample_rows(1) == [("John", 25)]
-    assert sheet.list_sample_rows(5) == [("John", 25), ("Jane", 30)]
+    assert sheet.list_sample_rows(1) == [["John", 25]]
+    assert sheet.list_sample_rows(5) == [["John", 25], ["Jane", 30]]
 
 
 def test_ods_data_reader_single_sheet(datadir: Path, data_regression):

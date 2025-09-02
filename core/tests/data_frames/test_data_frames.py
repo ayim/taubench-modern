@@ -218,3 +218,44 @@ def test_data_frame_error_handling():
     assert dumped["description"] is None
     assert dumped["parquet_contents"] is None
     assert dumped["extra_data"] == {"key": "value"}
+
+
+def test_data_frame_patch_extra_data():
+    """Test 4: Test that the extra data is properly patched."""
+    data_frame = PlatformDataFrame(
+        data_frame_id="df-123",
+        user_id="user-456",
+        agent_id="agent-789",
+        thread_id="thread-101",
+        num_rows=100,
+        num_columns=5,
+        column_headers=["col1", "col2", "col3", "col4", "col5"],
+        name="Test_PlatformDataFrame",
+        input_id_type="sql_computation",
+        created_at=datetime.datetime.now(datetime.UTC),
+        computation_input_sources={},
+        computation="SELECT * FROM source1",
+    )
+    data_frame.patch_extra_data(sql_dialect="sqlite")
+    assert data_frame.extra_data == {"sql_dialect": "sqlite"}
+
+    data_frame.patch_extra_data(sample_rows=[["row1", "row2", "row3"]])
+    assert data_frame.extra_data == {
+        "sql_dialect": "sqlite",
+        "sample_rows": [["row1", "row2", "row3"]],
+    }
+
+    data_frame.patch_extra_data(
+        sql_dialect="sqlite", sample_rows=[["row1", "row2", "row3", "row4", "row5"]]
+    )
+    assert data_frame.extra_data == {
+        "sql_dialect": "sqlite",
+        "sample_rows": [["row1", "row2", "row3", "row4", "row5"]],
+    }
+
+    data_frame.patch_extra_data(sample_rows=None)
+    assert data_frame.extra_data == {"sql_dialect": "sqlite"}
+    data_frame.patch_extra_data(sql_dialect=None)
+    assert data_frame.extra_data == {}
+    data_frame.patch_extra_data(sample_rows=None)
+    assert data_frame.extra_data == {}

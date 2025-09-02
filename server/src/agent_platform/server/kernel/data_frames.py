@@ -96,6 +96,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 info["ncols"] = data_frame.num_columns
             if data_frame.column_headers:
                 info["column_names"] = data_frame.column_headers
+            if data_frame.sample_rows:
+                info["sample_data"] = data_frame.sample_rows
             data_frames_info.append(info)
         summary.append(json.dumps(data_frames_info, indent=1))
         return "\n".join(summary)
@@ -300,19 +302,20 @@ class _DataFrameTools:
         from sema4ai.actions import Table
 
         from agent_platform.server.data_frames.data_frames_from_computation import (
-            create_data_frame_from_sql_computation,
+            create_data_frame_from_sql_computation_api,
         )
 
         try:
             data_frames_kernel = self._create_data_frames_kernel()
 
-            resolved_df = await create_data_frame_from_sql_computation(
+            resolved_df, samples_table = await create_data_frame_from_sql_computation_api(
                 data_frames_kernel=data_frames_kernel,
                 storage=self._storage,
                 new_data_frame_name=new_data_frame_name,
                 sql_query=sql_query,
                 dialect="duckdb",
                 description=new_data_frame_description,
+                num_samples=num_samples if num_samples > 0 else 0,
             )
 
             self._name_to_data_frame[new_data_frame_name] = resolved_df.platform_data_frame

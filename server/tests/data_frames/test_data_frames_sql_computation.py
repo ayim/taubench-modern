@@ -174,7 +174,7 @@ def test_ibis_pandas_computation(datadir: Path):
 
 
 @pytest.mark.asyncio
-async def test_create_data_frame_from_sql_computation():
+async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
     import io
 
     import pyarrow.parquet as pq
@@ -182,7 +182,7 @@ async def test_create_data_frame_from_sql_computation():
 
     from agent_platform.server.auth import AuthedUser
     from agent_platform.server.data_frames.data_frames_from_computation import (
-        create_data_frame_from_sql_computation,
+        create_data_frame_from_sql_computation_api,
     )
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
@@ -201,16 +201,20 @@ async def test_create_data_frame_from_sql_computation():
     base_storage = typing.cast(BaseStorage, storage_stub)
     user = typing.cast(AuthedUser, storage_stub.thread.user)
 
-    result = await create_data_frame_from_sql_computation(
+    result, sliced_data = await create_data_frame_from_sql_computation_api(
         DataFramesKernel(base_storage, user, tid),
         base_storage,
         new_data_frame_name,
         sql_query,
         dialect="duckdb",
         description=description,
+        num_samples=1,
     )
 
+    assert sliced_data.rows == [[1, 4]]  # First row only
+
     assert result.platform_data_frame.name == new_data_frame_name
+    assert result.platform_data_frame.sample_rows == [[1, 4], [2, 5]]
     assert storage_stub.data_frames[-1].name == new_data_frame_name
 
     assert result.platform_data_frame.num_rows == 2
@@ -271,7 +275,7 @@ async def test_create_data_frame_from_sql_computation():
     sql_query = "SELECT * FROM test_data_frame WHERE col1 <= 1"
     description = "Test data frame 2"
 
-    result = await create_data_frame_from_sql_computation(
+    result, sliced_data = await create_data_frame_from_sql_computation_api(
         DataFramesKernel(base_storage, user, tid),
         base_storage,
         new_data_frame_name,
@@ -280,7 +284,10 @@ async def test_create_data_frame_from_sql_computation():
         description=description,
     )
 
+    assert sliced_data.rows == []  # No rows requested
+
     assert result.platform_data_frame.name == new_data_frame_name
+    assert result.platform_data_frame.sample_rows == [[1, 4]]
     assert storage_stub.data_frames[-1].name == new_data_frame_name
 
     assert result.platform_data_frame.num_rows == 1
@@ -338,7 +345,7 @@ async def test_create_data_frame_from_sql_computation_with_dates(datadir: Path, 
 
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.data_frames_from_computation import (
-        create_data_frame_from_sql_computation,
+        create_data_frame_from_sql_computation_api,
     )
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
@@ -359,7 +366,7 @@ async def test_create_data_frame_from_sql_computation_with_dates(datadir: Path, 
     base_storage = typing.cast(BaseStorage, storage_stub)
     user = typing.cast(AuthedUser, storage_stub.thread.user)
 
-    data_node = await create_data_frame_from_sql_computation(
+    data_node, _sliced_data = await create_data_frame_from_sql_computation_api(
         DataFramesKernel(base_storage, user, tid),
         base_storage,
         new_data_frame_name,
@@ -384,7 +391,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
 
     from agent_platform.server.auth import AuthedUser
     from agent_platform.server.data_frames.data_frames_from_computation import (
-        create_data_frame_from_sql_computation,
+        create_data_frame_from_sql_computation_api,
     )
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
@@ -418,7 +425,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
     base_storage = typing.cast(BaseStorage, storage_stub)
     user = typing.cast(AuthedUser, storage_stub.thread.user)
 
-    result = await create_data_frame_from_sql_computation(
+    result, _sliced_data = await create_data_frame_from_sql_computation_api(
         DataFramesKernel(base_storage, user, tid),
         base_storage,
         new_data_frame_name,
@@ -443,7 +450,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
     """
     description = "Test data frame 2"
 
-    result = await create_data_frame_from_sql_computation(
+    result, _sliced_data = await create_data_frame_from_sql_computation_api(
         DataFramesKernel(base_storage, user, tid),
         base_storage,
         new_data_frame_name,
@@ -477,7 +484,7 @@ async def check(
 
     from agent_platform.server.auth import AuthedUser
     from agent_platform.server.data_frames.data_frames_from_computation import (
-        create_data_frame_from_sql_computation,
+        create_data_frame_from_sql_computation_api,
     )
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
@@ -495,7 +502,7 @@ async def check(
     base_storage = typing.cast(BaseStorage, storage_stub)
     user = typing.cast(AuthedUser, storage_stub.thread.user)
 
-    result = await create_data_frame_from_sql_computation(
+    result, _sliced_data = await create_data_frame_from_sql_computation_api(
         DataFramesKernel(base_storage, user, tid),
         base_storage,
         new_data_frame_name,

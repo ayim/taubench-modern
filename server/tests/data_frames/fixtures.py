@@ -65,13 +65,20 @@ class StorageStub:
         from uuid import uuid4
 
         import pyarrow.parquet
+        from sema4ai.actions import Table
 
         from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+        from agent_platform.server.data_frames.data_node import _convert_pyarrow_slice_to_format
 
         pyarrow_df = pyarrow.Table.from_pydict(contents)
 
         stream = io.BytesIO()
         pyarrow.parquet.write_table(pyarrow_df, stream)
+
+        table = typing.cast(
+            Table, _convert_pyarrow_slice_to_format(pyarrow_df, None, 10, None, "table", None)
+        )
+        sample_rows = table.rows[:10]
 
         self.data_frames.append(
             PlatformDataFrame(
@@ -87,6 +94,7 @@ class StorageStub:
                 created_at=datetime.datetime.now(datetime.UTC),
                 parquet_contents=stream.getvalue(),
                 computation_input_sources={},
+                extra_data=PlatformDataFrame.build_extra_data(sample_rows=sample_rows),
             )
         )
 
