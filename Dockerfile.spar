@@ -35,6 +35,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 COPY workroom/package*.json workroom/turbo.json ./
+COPY workroom/packages packages
 COPY workroom/frontend frontend
 COPY workroom/backend backend
 
@@ -91,6 +92,7 @@ RUN chmod +x /usr/local/bin/agent-server
 
 COPY --from=workroom-builder /app/package.json ./workroom/package.json
 COPY --from=workroom-builder /app/node_modules ./workroom/node_modules
+COPY --from=workroom-builder /app/packages ./workroom/packages
 COPY --from=workroom-builder /app/frontend/dist ./workroom/frontend/dist
 COPY --from=workroom-builder /app/frontend/public ./workroom/frontend/public
 COPY --from=workroom-builder /app/backend/dist ./workroom/backend/dist

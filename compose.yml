@@ -52,7 +52,6 @@ x-service-spar: &template-service-spar
 services:
     postgres:
         image: postgres:17
-        container_name: postgres
         environment:
             POSTGRES_DB: agents
             POSTGRES_USER: agents
@@ -74,7 +73,6 @@ services:
 
     data-server:
         image: 'ghcr.io/sema4ai/data-server:1.1.15_efa662b.20250826t085307z'
-        container_name: data-server
         platform: linux/amd64
         environment:
             SKIP_CONFIGURATION: 'true'
@@ -96,7 +94,6 @@ services:
 
 #region Telemetry
     influx-db:
-        container_name: influx
         image: influxdb:2
         environment:
             DOCKER_INFLUXDB_INIT_MODE: setup
@@ -120,7 +117,6 @@ services:
             retries: 5
             start_period: 10s
     otel-collector:
-        container_name: otel-collector
         image: otel/opentelemetry-collector-contrib:0.130.0
         platform: linux/amd64
         command:
@@ -142,13 +138,11 @@ services:
 #region SPAR
     spar-no-auth:
         <<: *template-service-spar
-        container_name: spar-no-auth
         profiles:
             - spar-no-auth
 
     agent-server-no-auth:
         <<: *template-service-spar
-        container_name: agent-server-no-auth
         environment:
             <<: *template-env-spar
             DISABLED_SERVICE: workroom
@@ -162,7 +156,6 @@ services:
 
     agent-server-auth:
         <<: *template-service-spar
-        container_name: spar-auth
         environment:
             <<: *template-env-spar
             AUTH_TYPE: jwt_local

@@ -15,7 +15,8 @@
   },
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "packages/*"
   ],
   "devDependencies": {
     "prettier": "^3.5.3",

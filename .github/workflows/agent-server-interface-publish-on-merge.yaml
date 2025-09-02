@@ -35,7 +35,7 @@ jobs:
           scope: '@sema4ai'
 
       - name: Publish
-        working-directory: packages/typescript-agent-server-interface
+        working-directory: workroom/packages/agent-server-interface
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

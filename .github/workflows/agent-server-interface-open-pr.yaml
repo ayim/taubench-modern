@@ -12,8 +12,8 @@ concurrency: ${{ github.workflow }}-${{ inputs.agent_server_version }}
 
 env:
   BRANCH_PREFIX: 'ci/interface-release-v'
-  PRIVATE_OPENAPI_JSON: 'packages/typescript-agent-server-interface/private.openapi.json'
-  PUBLIC_OPENAPI_JSON: 'packages/typescript-agent-server-interface/public.openapi.json'
+  PRIVATE_OPENAPI_JSON: 'workroom/packages/agent-server-interface/private.openapi.json'
+  PUBLIC_OPENAPI_JSON: 'workroom/packages/agent-server-interface/public.openapi.json'
 
 run-name: 'Create PR for Agent Server Interface v${{ inputs.agent_server_version }}'
 
@@ -94,7 +94,7 @@ jobs:
 
           # Generate TS types for the interface #########################################
           echo "Generating TS types for the interface..."
-          cd ./packages/typescript-agent-server-interface
+          cd ./workroom/packages/agent-server-interface
           npm ci &> /dev/null
           npm run build
           echo
@@ -105,7 +105,7 @@ jobs:
           private_openapi_json="$(realpath "${PRIVATE_OPENAPI_JSON}")"
           public_openapi_json="$(realpath "${PUBLIC_OPENAPI_JSON}")"
 
-          cd ./packages/typescript-agent-server-interface
+          cd ./workroom/packages/agent-server-interface
 
           # Sanity check: All three must be equal #######################################
           # - Agent Server version
