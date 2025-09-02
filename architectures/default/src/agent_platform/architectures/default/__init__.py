@@ -150,7 +150,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
 
     data_frames_tools: tuple[ToolDefinition, ...] = ()
     if enable_data_frames:
-        await kernel.data_frames.step_initialize()
+        await kernel.data_frames.step_initialize(state=state)
         data_frames_tools = kernel.data_frames.get_data_frame_tools()
 
     # Save any issues to state for introspection

@@ -99,3 +99,10 @@ class ArchState(aa.StateBase):
 
     This is used to track the agent's progress and to determine
     when the agent has finished processing the user's request."""
+
+    # Note: it's a string not a boolean so that we can easily add more states in the future.
+    data_frames_tools_state: Literal["enabled", ""] = field(
+        default="",
+    )
+    """The state of the data frames tools. Note that after enabled we cannot go back to
+    disabling it (tools cannot be removed from the context)"""

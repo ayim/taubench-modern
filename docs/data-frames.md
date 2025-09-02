@@ -131,14 +131,17 @@ Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to 
   - If a data frame was created from different data frames then parent data frame ids (input_id_type = "sql_computation")
   - If a data frame was created from an in-memory data frame no additional info is needed (input_id_type = "in_memory")
 
-# Step 6 (current PR)
+# Step 6 (done)
 
 - Show sample data in the LLM summary
+
+# Step 7 (current PR)
+
+- Don't remove tools after they were added into the context
 
 # Future work (not right now):
 
 - Show column types in the LLM summary
-- Don't remove tools after they were added into the context
 - Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)
 - Make the result of named queries (Tables) be available as data frames automatically.
 - Allow the user to have data frames that are backed by a database.

@@ -1,15 +1,23 @@
 import typing
 from abc import ABC, abstractmethod
+from typing import Literal, Protocol
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.tools.tool_definition import ToolDefinition
+
+
+class DataFrameArchState(Protocol):
+    """Protocol for the architecture state required for data frames."""
+
+    # Note: it's a string not a boolean so that we can easily add more states in the future.
+    data_frames_tools_state: Literal["enabled", ""]
 
 
 class DataFramesInterface(ABC):
     """Interface for data frames."""
 
     @abstractmethod
-    async def step_initialize(self) -> None:
+    async def step_initialize(self, state: DataFrameArchState) -> None:
         """Caches all data frames internally and builds internal data.
         MUST be called before each processing step for data frames and tools
         to be correctly cached."""

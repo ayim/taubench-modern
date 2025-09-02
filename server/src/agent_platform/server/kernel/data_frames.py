@@ -9,6 +9,7 @@ from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+    from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
@@ -24,8 +25,14 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         self._name_to_data_frame: dict[str, PlatformDataFrame] = {}
         self._data_frame_tools: tuple[ToolDefinition, ...] = ()
 
-    async def step_initialize(self, storage: "BaseStorage|None" = None):
+    async def step_initialize(
+        self, *, storage: "BaseStorage|None" = None, state: "DataFrameArchState"
+    ):
+        from typing import Literal
+
         from agent_platform.server.storage.option import StorageService
+
+        previous_state: Literal["enabled", ""] = state.data_frames_tools_state
 
         try:
             storage = StorageService.get_instance() if storage is None else storage
@@ -42,7 +49,10 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         data_frame_tools = _DataFrameTools(
             self.kernel.user, self.kernel.thread.thread_id, self._name_to_data_frame, storage
         )
-        if data_frames:
+        if data_frames or previous_state == "enabled":
+            if not previous_state:
+                state.data_frames_tools_state = "enabled"
+
             self._data_frame_tools = (
                 ToolDefinition.from_callable(
                     data_frame_tools.create_data_frame_from_file,
