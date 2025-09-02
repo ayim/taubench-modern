@@ -2000,6 +2000,11 @@ export interface components {
       /** Mcp Servers */
       mcp_servers?: components['schemas']['MCPServerCompat'][];
       /**
+       * Mcp Server Ids
+       * @description The IDs of Model Context Protocol (MCP) servers this agent uses.
+       */
+      mcp_server_ids?: string[];
+      /**
        * Question Groups
        * @description The question groups of the agent.
        */
@@ -2580,7 +2585,7 @@ export interface components {
     };
     /** CreateDataModelRequest */
     CreateDataModelRequest: {
-      dataModel: components['schemas']['DataModelPayload'];
+      data_model: components['schemas']['DataModelPayload'];
     };
     /** CreateWorkItemPayload */
     CreateWorkItemPayload: {
@@ -2653,8 +2658,8 @@ export interface components {
             [key: string]: unknown;
           }[]
         | null;
-      /** Qualitychecks */
-      qualityChecks?:
+      /** Quality Checks */
+      quality_checks?:
         | {
             [key: string]: string;
           }[]
@@ -3125,6 +3130,13 @@ export interface components {
        * @default false
        */
       force_serial_tool_calls: boolean;
+      /**
+       * Type
+       * @description The type of MCP server. If 'sema4ai_action_server', X-Action-Context headers will be added for secret handling.
+       * @default generic_mcp
+       * @enum {string}
+       */
+      type: 'generic_mcp' | 'sema4ai_action_server';
     };
     /** MCPServerCompat */
     MCPServerCompat: {
@@ -3477,8 +3489,8 @@ export interface components {
             [key: string]: unknown;
           }[]
         | null;
-      /** Qualitychecks */
-      qualityChecks?:
+      /** Quality Checks */
+      quality_checks?:
         | {
             [key: string]: string;
           }[]
@@ -4995,7 +5007,7 @@ export interface components {
     };
     /** UpdateDataModelRequest */
     UpdateDataModelRequest: {
-      dataModel: components['schemas']['PartialDataModelPayload'];
+      data_model: components['schemas']['PartialDataModelPayload'];
     };
     /** UploadedFile */
     UploadedFile: {
@@ -5082,6 +5094,11 @@ export interface components {
        * @description The Model Context Protocol (MCP) servers this agent uses.
        */
       mcp_servers?: components['schemas']['MCPServer'][];
+      /**
+       * Mcp Server Ids
+       * @description The IDs of Model Context Protocol (MCP) servers this agent uses.
+       */
+      mcp_server_ids?: string[];
       /**
        * Question Groups
        * @description The question groups of the agent.

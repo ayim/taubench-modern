@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.39',
+    version: '2.0.40',
   },
   paths: {
     '/api/v2/ok': {
@@ -5768,6 +5768,15 @@ export const spec = {
             type: 'array',
             title: 'Mcp Servers',
           },
+          mcp_server_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Mcp Server Ids',
+            description:
+              'The IDs of Model Context Protocol (MCP) servers this agent uses.',
+          },
           question_groups: {
             items: {
               $ref: '#/components/schemas/QuestionGroup',
@@ -6927,12 +6936,12 @@ export const spec = {
       },
       CreateDataModelRequest: {
         properties: {
-          dataModel: {
+          data_model: {
             $ref: '#/components/schemas/DataModelPayload',
           },
         },
         type: 'object',
-        required: ['dataModel'],
+        required: ['data_model'],
         title: 'CreateDataModelRequest',
       },
       CreateWorkItemPayload: {
@@ -7048,7 +7057,7 @@ export const spec = {
             ],
             title: 'Views',
           },
-          qualityChecks: {
+          quality_checks: {
             anyOf: [
               {
                 items: {
@@ -7063,7 +7072,7 @@ export const spec = {
                 type: 'null',
               },
             ],
-            title: 'Qualitychecks',
+            title: 'Quality Checks',
           },
           prompt: {
             anyOf: [
@@ -8114,6 +8123,14 @@ export const spec = {
               'If True, all tool calls are executed under a lock to support servers that cannot interleave multiple requests.',
             default: false,
           },
+          type: {
+            type: 'string',
+            enum: ['generic_mcp', 'sema4ai_action_server'],
+            title: 'Type',
+            description:
+              "The type of MCP server. If 'sema4ai_action_server', X-Action-Context headers will be added for secret handling.",
+            default: 'generic_mcp',
+          },
         },
         type: 'object',
         required: ['name'],
@@ -8884,7 +8901,7 @@ export const spec = {
             ],
             title: 'Views',
           },
-          qualityChecks: {
+          quality_checks: {
             anyOf: [
               {
                 items: {
@@ -8899,7 +8916,7 @@ export const spec = {
                 type: 'null',
               },
             ],
-            title: 'Qualitychecks',
+            title: 'Quality Checks',
           },
           prompt: {
             anyOf: [
@@ -11252,12 +11269,12 @@ export const spec = {
       },
       UpdateDataModelRequest: {
         properties: {
-          dataModel: {
+          data_model: {
             $ref: '#/components/schemas/PartialDataModelPayload',
           },
         },
         type: 'object',
-        required: ['dataModel'],
+        required: ['data_model'],
         title: 'UpdateDataModelRequest',
       },
       UploadedFile: {
@@ -11471,6 +11488,15 @@ export const spec = {
             title: 'Mcp Servers',
             description:
               'The Model Context Protocol (MCP) servers this agent uses.',
+          },
+          mcp_server_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Mcp Server Ids',
+            description:
+              'The IDs of Model Context Protocol (MCP) servers this agent uses.',
           },
           question_groups: {
             items: {
