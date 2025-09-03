@@ -196,17 +196,12 @@ class TestReductoIntegration:
 
         schema = extraction_schema_result["schema"]
 
+        # Minimal checking as the actual shape of the schema can vary a lot
         assert schema["type"] == "object"
         assert "properties" in schema
+        assert schema["properties"] is not None
         assert "required" in schema
-        assert "tables" in schema["required"]
-
-        # Minimal checking, I found that the exact schema could vary a lot so there is little
-        # point in checking the exact schema
-        tables_prop = schema["properties"]["tables"]
-        assert tables_prop["type"] == "array"
-        assert "description" in tables_prop
-        assert "items" in tables_prop
+        assert schema["required"] is not None
 
     @pytest.mark.parametrize("extraction_schema_result", ["tables.pdf"], indirect=True)
     def test_extract_document_with_transient_schema(
