@@ -23,10 +23,9 @@ MODELS_WITH_TOOL_INPUT = [
     for m in GoogleModelMap.distinct_llm_model_ids_with_tool_input()
     if m not in GoogleModelMap.distinct_llm_model_ids_with_audio_input()
 ]
-ALL_MODELS = sorted(set(GoogleModelMap.distinct_llm_model_ids()))
 TEST_MODELS = [
-    "gemini-2.5-flash-preview-04-17-high",
-    "gemini-2.5-flash-preview-04-17-low",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
 ]
 
 # -------------------------------------------------------------------------
@@ -54,14 +53,13 @@ TEST_CASES = [
         "models": MODELS_WITH_TEXT_INPUT,
         "cassette_suffix": "basic_prompt_with_three_messages",
     },
-    # Enable tool-related tests - Google Gemini now supports tools
-    # {
-    #     "case_name": "one_tool",
-    #     "prompt_fixture": "basic_prompt_with_one_tool",
-    #     "response_fixture": "response_to_basic_prompt_with_one_tool",
-    #     "models": MODELS_WITH_TOOL_INPUT,
-    #     "cassette_suffix": "basic_prompt_with_one_tool",
-    # },
+    {
+        "case_name": "one_tool",
+        "prompt_fixture": "basic_prompt_with_one_tool",
+        "response_fixture": "response_to_basic_prompt_with_one_tool",
+        "models": MODELS_WITH_TOOL_INPUT,
+        "cassette_suffix": "basic_prompt_with_one_tool",
+    },
     {
         "case_name": "tool_no_args",
         "prompt_fixture": "basic_prompt_tool_no_args",
@@ -134,7 +132,7 @@ def normalize_response(response: ResponseMessage) -> ResponseMessage:
 # TESTS
 # -------------------------------------------------------------------------
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
-@pytest.mark.parametrize("model_id", ALL_MODELS)
+@pytest.mark.parametrize("model_id", TEST_MODELS)
 async def test_google_generate_responses(request, google_client, case, model_id):
     """
     Test each (case, model_id) for generating responses (non-stream).
@@ -169,7 +167,7 @@ async def test_google_generate_responses(request, google_client, case, model_id)
 
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
-@pytest.mark.parametrize("model_id", ALL_MODELS)
+@pytest.mark.parametrize("model_id", TEST_MODELS)
 async def test_google_stream_responses(request, google_client, case, model_id):
     """
     Test each (case, model_id) for streaming responses.

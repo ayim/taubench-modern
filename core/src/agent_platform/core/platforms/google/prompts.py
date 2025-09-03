@@ -83,6 +83,9 @@ class GooglePrompt(PlatformPrompt):
             elif model.endswith("-low"):
                 thinking_budget = 1024
                 logger.info(f"Using {model} with low thinking budget (1024)")
+            elif "pro" in model:
+                thinking_budget = 4096
+                logger.info(f"Using {model} with pro thinking budget (4096)")
             else:
                 logger.info(f"Using {model} with default thinking budget (0)")
         else:

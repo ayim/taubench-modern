@@ -16,6 +16,8 @@ class GoogleModelMap(PlatformModelMap):
         default_factory=lambda: {
             # Gemini models (LLM)
             # "gemini-2.5-pro-preview": "gemini-2.5-pro-preview-05-06",
+            "gemini-2.5-flash": "gemini-2.5-flash",
+            "gemini-2.5-pro": "gemini-2.5-pro",
             "gemini-2.0-flash": "gemini-2.0-flash",
             "gemini-2.0-flash-lite": "gemini-2.0-flash-lite",
             "gemini-1.5-pro": "gemini-1.5-pro",
@@ -39,6 +41,8 @@ class GoogleModelMap(PlatformModelMap):
     models_to_type: dict[str, str] = field(
         default_factory=lambda: {
             # Gemini models (LLM)
+            "gemini-2.5-flash": "llm",
+            "gemini-2.5-pro": "llm",
             "gemini-2.5-pro-preview": "llm",
             "gemini-2.5-flash-preview-04-17-high": "llm",
             "gemini-2.5-flash-preview-04-17-low": "llm",
@@ -71,6 +75,20 @@ class GoogleModelMap(PlatformModelMap):
             #     "video",
             #     "tools",
             # ],
+            "gemini-2.5-flash": [
+                "text",
+                "audio",
+                "images",
+                "video",
+                "tools",
+            ],
+            "gemini-2.5-pro": [
+                "text",
+                "audio",
+                "images",
+                "video",
+                "tools",
+            ],
             "gemini-2.5-flash-preview-04-17-high": [
                 "text",
                 "audio",
@@ -115,6 +133,8 @@ class GoogleModelMap(PlatformModelMap):
         default_factory=lambda: {
             # Gemini models (LLM)
             # "gemini-2.5-pro-preview": ["text"],
+            "gemini-2.5-flash": ["text"],
+            "gemini-2.5-pro": ["text"],
             "gemini-2.5-flash-preview-04-17-high": ["text"],
             "gemini-2.5-flash-preview-04-17-low": ["text"],
             # 2.0 Flash lists image output as experimental.
@@ -143,6 +163,8 @@ class GoogleModelMap(PlatformModelMap):
         default_factory=lambda: {
             # Gemini models (LLM)
             # "gemini-2.5-pro-preview": "gemini",
+            "gemini-2.5-flash": "gemini",
+            "gemini-2.5-pro": "gemini",
             "gemini-2.0-flash": "gemini",
             "gemini-2.0-flash-lite": "gemini",
             "gemini-1.5-pro": "gemini",
@@ -162,6 +184,8 @@ class GoogleModelMap(PlatformModelMap):
         default_factory=lambda: {
             # Gemini models (LLM)
             # "gemini-2.5-pro-preview": 1_048_576,
+            "gemini-2.5-flash": 1_048_576,
+            "gemini-2.5-pro": 1_048_576,
             "gemini-2.0-flash": 1_048_576,
             "gemini-2.0-flash-lite": 1_048_576,
             "gemini-1.5-pro": 2_097_152,

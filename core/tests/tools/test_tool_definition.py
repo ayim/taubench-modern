@@ -311,7 +311,6 @@ def test_dataclass_complex_with_list_and_nested_person():
     person_schema = complex_schema["properties"]["person"]
     assert person_schema["type"] == "object"
     assert "name" in person_schema["required"]
-    assert "age" in person_schema["required"]  # age is required, but nullable
     assert "null" in person_schema["properties"]["age"]["type"]
 
     enum_schema = complex_schema["properties"]["enum_value"]

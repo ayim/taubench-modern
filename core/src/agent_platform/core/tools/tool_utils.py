@@ -1,4 +1,4 @@
-from dataclasses import is_dataclass
+from dataclasses import MISSING, is_dataclass
 from enum import Enum
 from types import UnionType
 from typing import (
@@ -169,8 +169,8 @@ def build_dataclass_schema(
     for field in fields(cls):
         field_name = field.name
         field_type = field.type
-        # is_required if no default
-        if field.default is field.default_factory or field.default is None:
+        # is_required if BOTH default and default_factory are missing
+        if field.default is MISSING and field.default_factory is MISSING:
             # This logic might need refinement for your use case
             required.append(field_name)
 

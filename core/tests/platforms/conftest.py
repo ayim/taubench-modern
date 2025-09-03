@@ -26,9 +26,9 @@ from agent_platform.core.tools import ToolDefinition
 class _Book:
     title: Annotated[str, "The title of the book"]
     author: Annotated[str, "The author's name"]
-    category: Annotated[str | None, "The category of the book"]
     # Showing example of using field(metadata={"description": ...})
     year: int = field(metadata={"description": "Year the book was published"})
+    category: Annotated[str | None, "The category of the book"] = None
 
 
 async def _add_book(book: Annotated[_Book, "The book to add to the database"]):

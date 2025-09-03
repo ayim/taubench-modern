@@ -120,13 +120,10 @@ def _install_patches():  # noqa: C901, PLR0915
     def patched_build_response(vcr_request, vcr_response, history):
         """Build an aiohttp MockClientResponse tolerant of older/newer cassette formats.
 
-        We have two cassette layouts floating around in the repo:
+        Two cassette layouts are supported:
         1. The default aiohttp layout (``status`` / ``body`` / optional ``url``).
         2. The httpx layout produced by our custom httpx patch
            (``status_code`` / ``content`` / ``http_version``).
-
-        The stock ``build_response`` assumes #1.  When fed #2 it raises a
-        ``TypeError`` because ``url`` is missing (``URL(None)``).
 
         Strategy:
         • If ``url`` is missing, fall back to the *request* URL.
@@ -189,6 +186,136 @@ def _install_patches():  # noqa: C901, PLR0915
 
 # -------------------------------------------------------------------------
 # Final VCR setup
+CASSETTE_ROOT_DIR = "core/tests/fixtures/vcr_cassettes"
+
+
+class ZipArchivePersister:
+    """
+    Persist all cassettes inside ZIP archives to reduce PR noise.
+
+    Archive selection:
+    - For any cassette under ``platforms/<platform>/...``, use
+      ``<platform>_cassettes.zip`` (e.g. ``platforms/groq/...`` → ``groq_cassettes.zip``).
+    - For any other cassette path, use ``all_cassettes.zip``.
+
+    Reading: try the selected archive first; if the entry isn't present (or the
+    archive doesn't exist), fall back to the filesystem path for backward compatibility.
+    Writing: always (over)write the entry in the selected archive.
+    """
+
+    cassette_library_dir = CASSETTE_ROOT_DIR
+    default_archive_name = "all_cassettes.zip"
+
+    @classmethod
+    def _relative(cls, path: str) -> str:
+        base = os.path.abspath(cls.cassette_library_dir)
+        try:
+            abs_path = os.path.abspath(path)
+            rel = os.path.relpath(abs_path, base)
+        except Exception:
+            # Fallback to original path normalization
+            rel = path
+        rel = rel.replace(os.sep, "/")
+        if rel.startswith("./"):
+            rel = rel[2:]
+        return rel
+
+    @classmethod
+    def _select_archive(cls, path: str):
+        rel = cls._relative(path)
+        if rel.startswith("platforms/"):
+            parts = rel.split("/", 3)
+            if len(parts) >= 2 and parts[1]:
+                platform = parts[1]
+                return os.path.join(
+                    cls.cassette_library_dir,
+                    f"{platform}_cassettes.zip",
+                ), rel
+        return os.path.join(cls.cassette_library_dir, cls.default_archive_name), rel
+
+    @classmethod
+    def load_cassette(cls, path, serializer):
+        import zipfile
+
+        from vcr.persisters.filesystem import FilesystemPersister
+        from vcr.serialize import deserialize as vcr_deserialize
+
+        archive_path, rel = cls._select_archive(path)
+        if os.path.exists(archive_path):
+            try:
+                with zipfile.ZipFile(archive_path, mode="r") as zf:
+                    try:
+                        data = zf.read(rel)
+                    except KeyError:
+                        data = None
+            except zipfile.BadZipFile as err:
+                # Match FilesystemPersister semantics and let VCR decide based on record_mode
+                raise ValueError("Can't read Cassette, Encoding is broken") from err
+            if data is not None:
+                try:
+                    # serializer expects text
+                    text = data.decode("utf-8")
+                    return vcr_deserialize(text, serializer)
+                except Exception as err:
+                    # Treat bad deserialize the same way FilesystemPersister does
+                    raise ValueError("Can't read Cassette, Encoding is broken") from err
+        # Not found in archive or archive missing: fall back to filesystem
+        try:
+            return FilesystemPersister.load_cassette(path, serializer)
+        except Exception as err:
+            # Signal "cassette not found" compatibly with VCR expectations
+            raise ValueError("Cassette not found.") from err
+
+    @classmethod
+    def save_cassette(cls, path, cassette_dict, serializer):
+        import shutil
+        import tempfile
+        import zipfile
+
+        from vcr.serialize import serialize as vcr_serialize
+
+        archive_path, rel = cls._select_archive(path)
+
+        os.makedirs(os.path.dirname(archive_path), exist_ok=True)
+
+        data = vcr_serialize(cassette_dict, serializer)
+        if not isinstance(data, bytes | bytearray):
+            data = data.encode("utf-8")
+
+        # Replace-or-write entry "rel" into archive without duplicating
+        if not os.path.exists(archive_path):
+            with zipfile.ZipFile(archive_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr(rel, data)
+            return
+
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            with (
+                zipfile.ZipFile(archive_path, mode="r") as zf_in,
+                zipfile.ZipFile(
+                    tmp_path,
+                    mode="w",
+                    compression=zipfile.ZIP_DEFLATED,
+                ) as zf_out,
+            ):
+                for info in zf_in.infolist():
+                    if info.filename == rel:
+                        continue
+                    zf_out.writestr(info, zf_in.read(info.filename))
+                zf_out.writestr(rel, data)
+            shutil.move(tmp_path, archive_path)
+        finally:
+            try:
+                os.remove(tmp_path)
+            except FileNotFoundError:
+                pass
+
+
+# -------------------------------------------------------------------------
+# Final VCR setup
+
+
 def get_vcr_record_mode():
     from vcr.record_mode import RecordMode
 
@@ -244,7 +371,7 @@ def patched_vcr(cassette_path: str, **use_kwargs):
         return request
 
     our_vcr = vcr.VCR(
-        cassette_library_dir="core/tests/fixtures/vcr_cassettes",
+        cassette_library_dir=CASSETTE_ROOT_DIR,
         record_mode=get_vcr_record_mode(),
         # TODO: locally, on OSX, some interaction between this
         # and file-related integration tests? Easiest fix is to
@@ -265,6 +392,10 @@ def patched_vcr(cassette_path: str, **use_kwargs):
             _remove_headers_we_dont_care_about,
         ],
     )
+
+    # Ensure our zip persister is actually used for all cassettes
+    our_vcr.register_persister(ZipArchivePersister)
+    our_vcr.persister = ZipArchivePersister
 
     undo_patches = _install_patches()
     try:

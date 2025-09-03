@@ -206,7 +206,7 @@ test-vcr-record-new:  check-env ## Run tests with pytest and record VCR cassette
 	@NUM_EXISTING_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
 	echo "Found $$NUM_EXISTING_CASSETTES existing cassettes!"; \
 	echo "Running tests and recording new VCR cassettes..."; \
-	VCR_RECORD=new_episodes uv run pytest -v ; \
+	VCR_RECORD=new_episodes uv run pytest -v -m "not integration" ; \
 	NUM_NEW_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
 	echo "Recorded $$(( NUM_NEW_CASSETTES - NUM_EXISTING_CASSETTES )) new cassettes!"; \
 	echo "Total cassettes: $$NUM_NEW_CASSETTES"
@@ -216,7 +216,7 @@ test-vcr-record-fresh:  check-env ## Run tests with pytest and record VCR casset
 	@rm -rf core/tests/fixtures/vcr_cassettes/*
 	@rm -rf server/tests/fixtures/vcr_cassettes/*
 	@echo "Running tests and recording fresh VCR cassettes..."
-	VCR_RECORD=all uv run pytest -v
+	VCR_RECORD=all uv run pytest -v -m "not integration"
 	@NUM_NEW_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
 	echo "Recorded $$NUM_NEW_CASSETTES cassettes!"
 
