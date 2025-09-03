@@ -173,6 +173,22 @@ const AgentDeploymentLink: FC = memo(() => {
   );
 });
 
+const AgentEvalsLink: FC = memo(() => {
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
+  return (
+    <SideNavigation.ItemGroup>
+      <LinkBase
+        to="/tenants/$tenantId/agentEvals"
+        params={{ tenantId }}
+        className={cn('w-full hover:[&>*]:!bg-[rgba(var(--color-background-subtle))]')}
+        activeProps={linkActiveProp}
+      >
+        <SideNavigation.Item icon={<IconAgents />}>Evals</SideNavigation.Item>
+      </LinkBase>
+    </SideNavigation.ItemGroup>
+  );
+});
+
 const WorkItemsLink: FC = memo(() => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   return (
@@ -330,6 +346,7 @@ export const Sidebar: FC<SideBarProps> = memo(({ agents }) => {
       {features.settings.enabled && <SettingsLink />}
       {features.mcpServersManagement.enabled && <McpServersLink />}
       {features.deploymentWizard.enabled && <AgentDeploymentLink />}
+      {features.agentEvals.enabled && <AgentEvalsLink />}
       {agents.length > 0 && (
         <>
           <CustomDivider />

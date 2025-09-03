@@ -33,6 +33,10 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   },
   workroomMeta: {
     features: {
+      agentEvals: {
+        enabled: true,
+        reason: null,
+      },
       mcpServersManagement: {
         enabled: true,
         reason: null,

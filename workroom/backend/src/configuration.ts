@@ -189,6 +189,7 @@ export const getConfiguration = (): Configuration => {
         mcpServersManagement: sparOnlyFeature,
         deploymentWizard: sparOnlyFeature,
         settings: sparOnlyFeature,
+        agentEvals: sparOnlyFeature,
         documentIntelligence: {
           enabled: dataServer.mode !== 'disabled',
           reason: dataServer.mode === 'disabled' ? 'Doc Intel is disabled for this environment' : null,

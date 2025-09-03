@@ -6,6 +6,10 @@ export const TenantContext = createContext<
   operations['getWorkroomMeta']['responses'][200]['content']['application/json'] & Pick<Meta, 'branding'>
 >({
   features: {
+    agentEvals: {
+      enabled: false,
+      reason: '',
+    },
     settings: {
       enabled: false,
       reason: '',
