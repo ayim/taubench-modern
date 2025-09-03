@@ -55,4 +55,5 @@ class UpsertThreadPayload(Thread):
             agent_id=payload.agent_id,
             messages=payload.messages,
             metadata=payload.metadata,
+            work_item_id=payload.work_item_id,
         )

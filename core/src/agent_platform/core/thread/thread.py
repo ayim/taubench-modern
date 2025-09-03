@@ -62,6 +62,12 @@ class Thread:
     )
     """Arbitrary thread-level metadata."""
 
+    work_item_id: str | None = field(
+        default=None,
+        metadata={"description": "The work item ID associated with this thread."},
+    )
+    """The work item ID associated with this thread."""
+
     def add_message(self, message: ThreadMessage) -> None:
         """Adds a new message to the thread.  Updates `updated_at` to reflect
         that the thread has changed.
@@ -87,6 +93,7 @@ class Thread:
             created_at=self.created_at,
             updated_at=self.updated_at,
             metadata=self.metadata,
+            work_item_id=self.work_item_id,
         )
 
     def model_dump(self) -> dict:
@@ -99,6 +106,7 @@ class Thread:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "metadata": self.metadata,
+            "work_item_id": self.work_item_id,
             "messages": [msg.model_dump() for msg in self.messages],
         }
 

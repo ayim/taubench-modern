@@ -123,6 +123,8 @@ async def patch_thread(
         thread.agent_id = payload.agent_id
     if payload.metadata is not None:
         thread.metadata = payload.metadata
+    if payload.work_item_id is not None:
+        thread.work_item_id = payload.work_item_id
     if payload.messages is not None:
         # Convert and replace messages only if explicitly provided
         thread.messages = payload.messages

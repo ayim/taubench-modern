@@ -175,6 +175,7 @@ async def run_agent(item: WorkItem) -> bool:
         name=f"Work Item {item.work_item_id}",
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
+        work_item_id=item.work_item_id,
     )
     await storage.upsert_thread(system_user.user_id, thread)
 

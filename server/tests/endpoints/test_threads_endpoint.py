@@ -234,8 +234,9 @@ def test_get_thread_state(client: TestClient, mock_storage: MockStorage):
     """Test getting a thread with its messages."""
     thread_id = str(uuid.uuid4())
     agent_id = str(uuid.uuid4())
+    work_item_id = str(uuid.uuid4())
 
-    # Create a test thread with a message
+    # Create a test thread with a message and work_item_id
     message = ThreadMessage(
         message_id=str(uuid.uuid4()),
         role="user",
@@ -246,6 +247,7 @@ def test_get_thread_state(client: TestClient, mock_storage: MockStorage):
         name="Test Thread",
         agent_id=agent_id,
         user_id="test_user",
+        work_item_id=work_item_id,
         messages=[message],
     )
 
@@ -260,6 +262,53 @@ def test_get_thread_state(client: TestClient, mock_storage: MockStorage):
     assert thread_data["thread_id"] == thread_id
     assert thread_data["name"] == "Test Thread"
     assert thread_data["agent_id"] == agent_id
+    # Verify that work_item_id is included in the response
+    assert "work_item_id" in thread_data
+    assert thread_data["work_item_id"] == work_item_id
+    # Verify that messages are included in the response
+    assert "messages" in thread_data
+    assert len(thread_data["messages"]) == 1
+    assert thread_data["messages"][0]["role"] == "user"
+    assert thread_data["messages"][0]["content"][0]["text"] == "Hello"
+
+    # Verify that get_thread was called
+    assert mock_storage.call_count["get_thread"] == 1
+
+
+def test_get_thread_state_without_work_item_id(client: TestClient, mock_storage: MockStorage):
+    """Test getting a thread state when work_item_id is None."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+
+    # Create a test thread with a message but no work_item_id
+    message = ThreadMessage(
+        message_id=str(uuid.uuid4()),
+        role="user",
+        content=[ThreadTextContent(text="Hello")],
+    )
+    thread = Thread(
+        thread_id=thread_id,
+        name="Test Thread",
+        agent_id=agent_id,
+        user_id="test_user",
+        work_item_id=None,  # Explicitly set to None
+        messages=[message],
+    )
+
+    # Add thread to storage
+    mock_storage.threads[thread_id] = thread
+
+    # Get thread state
+    response = client.get(f"/threads/{thread_id}/state")
+
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    assert thread_data["thread_id"] == thread_id
+    assert thread_data["name"] == "Test Thread"
+    assert thread_data["agent_id"] == agent_id
+    # Verify that work_item_id is included in the response but is None
+    assert "work_item_id" in thread_data
+    assert thread_data["work_item_id"] is None
     # Verify that messages are included in the response
     assert "messages" in thread_data
     assert len(thread_data["messages"]) == 1
@@ -378,6 +427,46 @@ def test_update_thread(client: TestClient, mock_storage: MockStorage):
     # Verify that get_thread and upsert_thread were called
     assert mock_storage.call_count["get_thread"] >= 1
     assert mock_storage.call_count["upsert_thread"] == 1
+
+
+def test_thread_with_work_item_id(client: TestClient, mock_storage: MockStorage):
+    """Test creating and updating a thread with work_item_id."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+    work_item_id = "work_item_123"
+
+    # Create a thread with work_item_id
+    thread = Thread(
+        thread_id=thread_id,
+        name="Test Thread",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[],
+        work_item_id=work_item_id,
+    )
+
+    # Add thread to storage
+    mock_storage.threads[thread_id] = thread
+
+    # Get thread and verify work_item_id is returned
+    response = client.get(f"/threads/{thread_id}")
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    assert thread_data["work_item_id"] == work_item_id
+
+    # Update thread work_item_id via PATCH
+    new_work_item_id = "work_item_456"
+    response = client.patch(
+        f"/threads/{thread_id}",
+        json={"work_item_id": new_work_item_id},
+    )
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    assert thread_data["work_item_id"] == new_work_item_id
+
+    # Verify that the thread was updated in storage
+    updated_thread = mock_storage.threads[thread_id]
+    assert updated_thread.work_item_id == new_work_item_id
 
 
 def test_update_thread_not_found(client: TestClient, mock_storage: MockStorage):

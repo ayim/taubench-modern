@@ -45,6 +45,66 @@ class TestThread:
         assert data["messages"][0]["content"][0]["text"] == "Msg1"
         assert data["messages"][1]["content"][0]["text"] == "Msg2"
 
+    def test_model_dump_includes_work_item_id(self):
+        # Create a thread with work_item_id
+        thread = Thread(
+            thread_id="thread-123",
+            name="Test Thread",
+            agent_id="agent-456",
+            user_id="user-789",
+            work_item_id="work-item-123",
+            messages=[
+                ThreadMessage(
+                    message_id="msg-1",
+                    role="user",
+                    content=[ThreadTextContent(text="Hello")],
+                )
+            ],
+        )
+
+        # Test that work_item_id is accessible
+        assert thread.work_item_id == "work-item-123"
+
+        # Test model_dump includes work_item_id field
+        serialized = thread.model_dump()
+        assert "work_item_id" in serialized
+        assert serialized["work_item_id"] == "work-item-123"
+
+        # Test model_validate with work_item_id field
+        data = {
+            "thread_id": "thread-456",
+            "name": "Another Thread",
+            "agent_id": "agent-789",
+            "user_id": "user-123",
+            "work_item_id": "work-item-456",
+            "messages": [],
+            "created_at": "2023-01-01T00:00:00Z",
+            "updated_at": "2023-01-01T00:00:00Z",
+            "metadata": {},
+        }
+        validated_thread = Thread.model_validate(data)
+        assert validated_thread.work_item_id == "work-item-456"
+
+        # Test with None work_item_id
+        thread_no_work_item = Thread(
+            thread_id="thread-789",
+            name="Thread Without Work Item",
+            agent_id="agent-123",
+            user_id="user-456",
+            work_item_id=None,
+            messages=[],
+        )
+        assert thread_no_work_item.work_item_id is None
+
+        serialized_none = thread_no_work_item.model_dump()
+        assert "work_item_id" in serialized_none
+        assert serialized_none["work_item_id"] is None
+
+        # Test copy method includes work_item_id
+        copied_thread = thread.copy()
+        assert copied_thread.work_item_id == thread.work_item_id
+        assert copied_thread.work_item_id == "work-item-123"
+
     def test_get_last_n_messages_empty_thread(self):
         thread = Thread(user_id="dummy", agent_id="dummy", name="test-thread")
         assert thread.get_last_n_messages(1) == []

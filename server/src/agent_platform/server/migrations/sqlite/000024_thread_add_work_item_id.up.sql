@@ -1,0 +1,1 @@
+ALTER TABLE v2_thread ADD COLUMN work_item_id TEXT DEFAULT NULL;

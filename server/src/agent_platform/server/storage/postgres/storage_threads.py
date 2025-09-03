@@ -129,17 +129,18 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                 await cur.execute(
                     """INSERT INTO v2.thread
                     (thread_id, name, user_id, agent_id,
-                    created_at, updated_at, metadata)
+                    created_at, updated_at, metadata, work_item_id)
                     VALUES (%(thread_id)s::uuid, %(name)s, %(user_id)s::uuid,
                             %(agent_id)s::uuid, %(created_at)s, %(updated_at)s,
-                            %(metadata)s)
+                            %(metadata)s, %(work_item_id)s)
                     ON CONFLICT (thread_id)
                     DO UPDATE SET
                         name = EXCLUDED.name,
                         user_id = EXCLUDED.user_id,
                         agent_id = EXCLUDED.agent_id,
                         updated_at = EXCLUDED.updated_at,
-                        metadata = EXCLUDED.metadata
+                        metadata = EXCLUDED.metadata,
+                        work_item_id = EXCLUDED.work_item_id
                     WHERE v2.check_user_access(v2.thread.user_id, %(user_id)s::uuid)""",
                     thread_dict,
                 )

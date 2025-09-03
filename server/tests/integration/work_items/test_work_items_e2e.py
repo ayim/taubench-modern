@@ -17,13 +17,18 @@ from server.tests.integration.work_items.helper_functions import (
 
 
 async def _verify_payload_in_thread_messages(
-    base_url: str, agent_id: str, thread_id: str, expected_payload_data: dict
+    base_url: str, agent_id: str, thread_id: str, expected_payload_data: dict, work_item_id: str
 ) -> None:
     """Verify that the expected payload data appears in the thread messages."""
     async with AsyncClient(base_url=f"{base_url}/api/v2") as messages_client:
         resp = await messages_client.get(f"/threads/{thread_id}/state")
         assert resp.status_code == 200
         thread = Thread.model_validate(resp.json())
+
+        # Verify that the thread has the correct work_item_id
+        assert thread.work_item_id == work_item_id, (
+            f"Expected thread work_item_id to be {work_item_id}, but got {thread.work_item_id}"
+        )
 
         # Filter to only ThreadTextContext, and get the actual text
         text_contents = [
@@ -229,7 +234,11 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
         # Verify that the payload made it into the thread messages
         expected_payload_data = {"task": "simple_math", "test_type": "e2e_comprehensive"}
         await _verify_payload_in_thread_messages(
-            base_url_agent_server_workitems_matrix, agent_id, thread_id, expected_payload_data
+            base_url_agent_server_workitems_matrix,
+            agent_id,
+            thread_id,
+            expected_payload_data,
+            work_item_id,
         )
 
         # Make sure the private v2 work-items endpoint is working:
@@ -241,6 +250,17 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
             v2_listed_items = v2_list_resp.json()["records"]
             v2_work_item_ids = [wi["work_item_id"] for wi in v2_listed_items]
             assert work_item_id in v2_work_item_ids
+
+        # Verify that the thread retrieved from the API has the correct work_item_id
+        async with AsyncClient(
+            base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
+        ) as client:
+            thread_resp = await client.get(f"/threads/{thread_id}/state")
+            assert thread_resp.status_code == 200
+            thread_data = thread_resp.json()
+            assert thread_data["work_item_id"] == work_item_id, (
+                f"Expected thread {work_item_id=}, but got {thread_data.get('work_item_id')}"
+            )
 
 
 @pytest.mark.integration
@@ -331,7 +351,11 @@ async def test_work_items_e2e(
         # Verify that the payload made it into the thread messages
         expected_payload_data = {"task": "simple_math", "test_type": "e2e_comprehensive"}
         await _verify_payload_in_thread_messages(
-            base_url_agent_server_workitems_matrix, agent_id, thread_id, expected_payload_data
+            base_url_agent_server_workitems_matrix,
+            agent_id,
+            thread_id,
+            expected_payload_data,
+            work_item_id,
         )
 
         # Make sure the private v2 work-items endpoint is working:

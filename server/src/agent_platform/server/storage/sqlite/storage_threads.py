@@ -121,18 +121,19 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     """
                     INSERT INTO v2_thread (
                         thread_id, name, user_id, agent_id,
-                        created_at, updated_at, metadata
+                        created_at, updated_at, metadata, work_item_id
                     )
                     VALUES (
                         :thread_id, :name, :user_id, :agent_id,
-                        :created_at, :updated_at, :metadata
+                        :created_at, :updated_at, :metadata, :work_item_id
                     )
                     ON CONFLICT(thread_id) DO UPDATE SET
                         name = excluded.name,
                         user_id = excluded.user_id,
                         agent_id = excluded.agent_id,
                         updated_at = excluded.updated_at,
-                        metadata = excluded.metadata
+                        metadata = excluded.metadata,
+                        work_item_id = excluded.work_item_id
                     WHERE v2_check_user_access(v2_thread.user_id, :user_id) = 1
                     """,
                     thread_dict,

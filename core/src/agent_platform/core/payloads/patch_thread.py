@@ -30,3 +30,9 @@ class PatchThreadPayload:
         metadata={"description": "The new metadata for this thread."},
     )
     """The new metadata for this thread."""
+
+    work_item_id: str | None = field(
+        default=None,
+        metadata={"description": "The work item ID associated with this thread."},
+    )
+    """The work item ID associated with this thread."""
