@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.mcp.mcp_client import MCPClient
 from agent_platform.core.mcp.mcp_types import (
     MCPVariables,
@@ -197,9 +198,12 @@ class MCPServer:
         # Additional headers to be added to the request at
         # tool definition time
         additional_headers: dict | None = None,
+        data_server_details: DataServerDetails | None = None,
     ) -> list[ToolDefinition]:
         """Converts the MCP server to a list of tool definitions."""
-        async with MCPClient(self, additional_headers=additional_headers) as client:
+        async with MCPClient(
+            self, additional_headers=additional_headers, data_server_details=data_server_details
+        ) as client:
             tools = await client.list_tools()
         return tools
 

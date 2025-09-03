@@ -477,10 +477,20 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         tools: list[ToolDefinition] = []
         issues: list[str] = []
 
+        # Get data server details for MCP context
+        data_server_details = None
+        try:
+            if hasattr(self, "kernel") and self.kernel and hasattr(self.kernel, "storage"):
+                data_server_details = await self.kernel.storage.get_dids_connection_details()
+        except Exception as e:
+            # Log but continue without data context - this allows MCP servers to work
+            # even when data server details are unavailable
+            logger.error(f"Could not retrieve data server details for MCP context: {e}")
+
         async def safe(srv: MCPServer):
             try:
                 logger.info(f"Fetching tool definitions from MCP server: {srv.url}")
-                return await srv.to_tool_definitions(additional_headers), None
+                return await srv.to_tool_definitions(additional_headers, data_server_details), None
             except Exception as exc:
                 detailed = (
                     "Error acquiring tool definitions from MCP server:"

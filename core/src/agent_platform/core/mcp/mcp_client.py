@@ -58,6 +58,7 @@ from mcp.types import CallToolRequest, CallToolRequestParams, CallToolResult, Cl
 from structlog.stdlib import BoundLogger, get_logger
 
 from agent_platform.core.configurations import Configuration, FieldMetadata
+from agent_platform.core.data_server.data_server import DataServerDetails, DataServerEndpointKind
 from agent_platform.core.mcp.mcp_types import (
     MCPVariables,
     MCPVariableTypeOAuth2Secret,
@@ -67,6 +68,7 @@ from agent_platform.core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
     from agent_platform.core.mcp.mcp_server import MCPServer
+    from agent_platform.server.api.dependencies import StorageDependency
 
 
 # --------------------------------------------------------------------------- #
@@ -200,10 +202,14 @@ class MCPClient:
     # ------------------------------------------------------------------ #
 
     def __init__(
-        self, target_server: "MCPServer", additional_headers: dict[str, str] | None = None
+        self,
+        target_server: "MCPServer",
+        additional_headers: dict[str, str] | None = None,
+        data_server_details: DataServerDetails | None = None,
     ) -> None:
         self._cfg = MCPClientConfiguration  # class-level singleton per ConfigMeta
         self.target_server = target_server
+        self.data_server_details = data_server_details
 
         # Merge headers from server config and additional headers
         self._headers: dict[str, str] = {}
@@ -217,10 +223,12 @@ class MCPClient:
         if additional_headers:
             self._headers.update(additional_headers)
 
-        # Add X-Action-Context header if not already present and if we have secrets to send
-        # Only add for sema4ai_action_server type
         if target_server.type == "sema4ai_action_server":
+            # Add X-Action-Context header if not already present and if we have secrets to send
             self._ensure_action_context_header(target_server.headers)
+            if data_server_details:
+                # Add X-Data-Context header if we have data server details
+                self._ensure_data_context_header()
 
         self._session: ClientSession | None = None
         self._get_session_id_cb: Callable[[], str | None] | None = None
@@ -249,6 +257,29 @@ class MCPClient:
     #  Public properties                                                 #
     # ------------------------------------------------------------------ #
 
+    @classmethod
+    async def with_data_context(
+        cls,
+        target_server: "MCPServer",
+        storage: "StorageDependency",
+        additional_headers: dict[str, str] | None = None,
+    ) -> "MCPClient":
+        """
+        Create an MCPClient with data server details automatically included.
+
+        This is a convenience method that evaluates get_dids_connection_details()
+        and creates the client with the appropriate data context.
+        """
+        try:
+            from agent_platform.server.api.dependencies import get_dids_connection_details
+
+            data_server_details = await get_dids_connection_details(storage)
+            return cls(target_server, additional_headers, data_server_details)
+        except Exception:
+            # If we can't get data server details, create client without them
+            # This allows the client to work even when data context is unavailable
+            return cls(target_server, additional_headers, None)
+
     @property
     def is_connected(self) -> bool:
         return self._connected and self._session is not None
@@ -274,6 +305,46 @@ class MCPClient:
     # ------------------------------------------------------------------ #
     #  Header preparation                                                #
     # ------------------------------------------------------------------ #
+
+    def _ensure_data_context_header(self) -> None:
+        """
+        Creates the encrypted x-data-context header value based on data server credentials.
+        """
+        if not self.data_server_details:
+            return
+
+        if (
+            not self.data_server_details.username
+            or not self.data_server_details.password_str
+            or not self.data_server_details.data_server_endpoints
+        ):
+            return
+
+        data_context = {"data-server": {}}
+
+        for endpoint in self.data_server_details.data_server_endpoints:
+            if endpoint.kind == DataServerEndpointKind.HTTP:
+                data_context["data-server"]["http"] = {
+                    "url": f"http://{endpoint.full_address}",
+                    "user": self.data_server_details.username,
+                    "password": self.data_server_details.password_str,
+                }
+            elif endpoint.kind == DataServerEndpointKind.MYSQL:
+                data_context["data-server"]["mysql"] = {
+                    "host": endpoint.host,
+                    "port": endpoint.port,
+                    "user": self.data_server_details.username,
+                    "password": self.data_server_details.password_str,
+                }
+
+        if data_context["data-server"]:
+            payload_to_encrypt = json.dumps(data_context)
+            x_data_context_value = base64.b64encode(payload_to_encrypt.encode("utf-8")).decode(
+                "ascii"
+            )
+
+            self._headers["X-Data-Context"] = x_data_context_value
+            logger.info("X-Data-Context header added to the headers")
 
     def _ensure_action_context_header(self, target_headers: MCPVariables | None) -> None:
         """
@@ -306,6 +377,7 @@ class MCPClient:
             ).decode("ascii")
 
             self._headers["X-Action-Context"] = x_action_context_value
+            logger.info("X-Action-Context header added to the headers")
 
     # ------------------------------------------------------------------ #
     #  Connect / close                                                   #

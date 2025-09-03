@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.storage import ScopedStorage
@@ -47,4 +48,9 @@ class StorageInterface(ABC):
     @abstractmethod
     async def get_file_by_id(self, file_id: str) -> UploadedFile | None:
         """Gets a file by its ID."""
+        pass
+
+    @abstractmethod
+    async def get_dids_connection_details(self) -> DataServerDetails:
+        """Get the DIDS connection details from storage."""
         pass

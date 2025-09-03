@@ -1177,3 +1177,144 @@ async def test_ensure_action_context_header_no_secrets_no_header():
 
     assert client._headers["Authorization"] == "Bearer server-token"
     assert client._headers["Content-Type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_ensure_data_context_header_creates_header_when_data_server_details_present():
+    """
+    Test that _ensure_data_context_header creates X-Data-Context header
+    when data server details are present with both HTTP and MySQL endpoints.
+    """
+    from agent_platform.core.data_server.data_server import (
+        DataServerDetails,
+        DataServerEndpoint,
+        DataServerEndpointKind,
+    )
+
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+
+    data_server_details = DataServerDetails(
+        username="testuser",
+        password="testpass",
+        data_server_endpoints=[
+            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP),
+            DataServerEndpoint(host="db.example.com", port=3306, kind=DataServerEndpointKind.MYSQL),
+        ],
+    )
+
+    client = MCPClient(target_server=server, data_server_details=data_server_details)
+    assert "X-Data-Context" in client._headers
+
+    import base64
+    import json
+
+    x_data_context_value = client._headers["X-Data-Context"]
+    decoded_value = base64.b64decode(x_data_context_value).decode("utf-8")
+    data_context = json.loads(decoded_value)
+
+    assert "data-server" in data_context
+    assert "http" in data_context["data-server"]
+    assert "mysql" in data_context["data-server"]
+    assert data_context["data-server"]["http"]["url"] == "http://localhost:8080"
+    assert data_context["data-server"]["http"]["user"] == "testuser"
+    assert data_context["data-server"]["http"]["password"] == "testpass"
+    assert data_context["data-server"]["mysql"]["host"] == "db.example.com"
+    assert data_context["data-server"]["mysql"]["port"] == 3306
+    assert data_context["data-server"]["mysql"]["user"] == "testuser"
+    assert data_context["data-server"]["mysql"]["password"] == "testpass"
+
+
+@pytest.mark.asyncio
+async def test_ensure_data_context_header_no_header_when_missing_credentials():
+    """
+    Test that _ensure_data_context_header does not create X-Data-Context header
+    when data server details are missing username, password, or endpoints.
+    """
+    from agent_platform.core.data_server.data_server import (
+        DataServerDetails,
+        DataServerEndpoint,
+        DataServerEndpointKind,
+    )
+
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+
+    # Test missing username
+    data_server_details1 = DataServerDetails(
+        username=None,
+        password="testpass",
+        data_server_endpoints=[
+            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)
+        ],
+    )
+
+    client1 = MCPClient(target_server=server, data_server_details=data_server_details1)
+    assert "X-Data-Context" not in client1._headers
+
+    # Test missing password
+    data_server_details2 = DataServerDetails(
+        username="testuser",
+        password=None,
+        data_server_endpoints=[
+            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)
+        ],
+    )
+
+    client2 = MCPClient(target_server=server, data_server_details=data_server_details2)
+    assert "X-Data-Context" not in client2._headers
+
+    # Test missing endpoints
+    data_server_details3 = DataServerDetails(
+        username="testuser", password="testpass", data_server_endpoints=[]
+    )
+
+    client3 = MCPClient(target_server=server, data_server_details=data_server_details3)
+    assert "X-Data-Context" not in client3._headers
+
+
+@pytest.mark.asyncio
+async def test_ensure_data_context_header_no_header_when_not_action_server_or_no_details():
+    """
+    Test that _ensure_data_context_header does not create X-Data-Context header
+    when server type is not sema4ai_action_server or no data server details provided.
+    """
+    from agent_platform.core.data_server.data_server import (
+        DataServerDetails,
+        DataServerEndpoint,
+        DataServerEndpointKind,
+    )
+
+    # Test not action server
+    server1 = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="generic_mcp",
+    )
+
+    data_server_details = DataServerDetails(
+        username="testuser",
+        password="testpass",
+        data_server_endpoints=[
+            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)
+        ],
+    )
+
+    client1 = MCPClient(target_server=server1, data_server_details=data_server_details)
+    assert "X-Data-Context" not in client1._headers
+
+    # Test no data server details
+    server2 = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+
+    client2 = MCPClient(target_server=server2)
+    assert "X-Data-Context" not in client2._headers

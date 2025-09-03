@@ -155,13 +155,24 @@ async def _process_action_packages(agent) -> list[ActionPackageDetail]:
     return all_action_details
 
 
-async def _process_mcp_servers(agent) -> list[MCPServerDetail]:
+async def _process_mcp_servers(agent, storage: StorageDependency) -> list[MCPServerDetail]:
     """Process MCP servers and return their details."""
     all_mcp_server_details = []
 
+    # Get data server details for MCP context
+    data_server_details = None
+    try:
+        data_server_details = await storage.get_dids_connection_details()
+    except Exception as e:
+        # Log but continue without data context - this allows MCP servers to work
+        # even when data server details are unavailable
+        logger.info(f"Could not retrieve data server details for MCP context: {e}")
+
     for mcp_server in agent.mcp_servers:
         try:
-            tool_defs = await mcp_server.to_tool_definitions()
+            tool_defs = await mcp_server.to_tool_definitions(
+                data_server_details=data_server_details
+            )
             allowed_actions = [MCPToolDetail(name=tool_def.name) for tool_def in tool_defs]
             mcp_server_details = MCPServerDetail(
                 name=mcp_server.name,
@@ -399,7 +410,7 @@ async def get_agent_details(
         raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="Agent not found")
 
     action_packages = await _process_action_packages(agent)
-    mcp_servers = await _process_mcp_servers(agent)
+    mcp_servers = await _process_mcp_servers(agent, storage)
 
     return AgentDetails(
         runbook=agent.runbook_structured.raw_text,
