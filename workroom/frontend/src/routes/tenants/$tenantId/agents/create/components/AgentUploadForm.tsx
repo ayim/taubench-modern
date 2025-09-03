@@ -8,9 +8,21 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import type { AgentDeploymentFormSchema } from './context';
 
+export type LLMFromIntrospection = {
+  provider: 'OpenAI';
+  name:
+    | 'gpt-4o'
+    | 'gpt-3.5-turbo-1106'
+    | 'gpt-4-turbo'
+    | 'gpt-4-1'
+    | 'gpt-4-1-mini'
+    | 'o3-low'
+    | 'o3-high'
+    | 'o4-mini-high';
+};
+
 export type AgentPackageResponse = {
   agentTemplate: {
-    id: string;
     name: string;
     description: string;
     metadata: { mode: 'worker' | 'conversational' };
@@ -21,10 +33,10 @@ export type AgentPackageResponse = {
         url: string;
         transport: 'sse' | 'streamable-http';
         headers: unknown;
-        tools?: Array<{ name: string; icon?: string }>;
       };
     }>;
     dataSources: Array<{ id: string; engine: string; name: string }>;
+    model: LLMFromIntrospection;
   };
   defaultValues: AgentDeploymentFormSchema;
 };
@@ -78,7 +90,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
       const status = (inspectResponseJson as { status?: string }).status;
       const data = (inspectResponseJson as { data?: Record<string, unknown> }).data as
         | {
-            name?: string;
+            name: string;
             description?: string;
             metadata?: { mode?: 'worker' | 'conversational' };
             mcp_servers?: Array<{
@@ -88,7 +100,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
               headers?: Record<string, unknown>;
             }>;
             datasources?: Array<{ engine?: string; customer_facing_name?: string }>;
-            model?: { provider?: string; name?: string };
+            model: LLMFromIntrospection;
           }
         | undefined;
 
@@ -106,8 +118,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
         }));
 
         const agentTemplate: AgentPackageResponse['agentTemplate'] = {
-          id: (data.name ?? 'inspected-template').toLowerCase().replace(/\s+/g, '-'),
-          name: data.name ?? 'Inspected Agent',
+          name: data.name,
           description: data.description ?? '',
           metadata: { mode: data.metadata?.mode === 'worker' ? 'worker' : 'conversational' },
           actions: [],
@@ -117,32 +128,24 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
             engine: ds.engine ?? 'unknown',
             name: ds.customer_facing_name ?? 'Datasource',
           })),
+          model: data.model,
         };
 
-        const pkgProvider = data.model?.provider || undefined;
-        const pkgModelName = data.model?.name || undefined;
-
         const defaultValues: AgentDeploymentFormSchema = {
-          agentTemplateId: agentTemplate.id,
-          actionDeploymentIds: [],
-          actionIds: [],
           name: agentTemplate.name,
           description: agentTemplate.description,
-          workspaceId: '',
-          llmId:
-            pkgProvider && pkgModelName
-              ? `package:${(pkgProvider || '').toLowerCase()}:${pkgModelName}`
-              : 'openai-gpt-5',
+          llmId: '',
           apiKey: '',
-          oAuthProviders: {},
-          feedbackRecipients: [],
-          langsmithIntegrationId: undefined,
-          actionSettings: {},
           mcpServerSettings: mcpServers.map((s) => ({
             name: s.config.name,
             url: s.config.url,
             transport: s.config.transport === 'sse' ? 'sse' : 'streamable-http',
             headers: null,
+            command: null,
+            args: null,
+            env: null,
+            cwd: null,
+            force_serial_tool_calls: false,
           })),
         };
 

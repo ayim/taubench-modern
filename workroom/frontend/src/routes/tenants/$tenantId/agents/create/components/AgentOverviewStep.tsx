@@ -1,75 +1,15 @@
-import { FC, useMemo } from 'react';
+import { FC } from 'react';
 import { Box, Header, Grid } from '@sema4ai/components';
 import { AgentIcon, AgentCard } from '@sema4ai/layouts';
 import { IconMcp } from '@sema4ai/icons/logos';
 import { IconLightning } from '@sema4ai/icons';
-import { useFormContext } from 'react-hook-form';
-import { useParams, useRouteContext } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import type { paths } from '@sema4ai/agent-server-interface';
-import { AgentDeploymentFormSchema } from './context';
-
-// Mock agent template type
-type AgentTemplate = {
-  id: string;
-  name: string;
-  description: string;
-  metadata: { mode: 'worker' | 'conversational' };
-  actions: Array<{ id: string; name: string }>;
-  mcpServers: Array<{
-    config: {
-      name: string;
-      url: string;
-      transport: 'sse' | 'streamable-http';
-      headers: unknown;
-    };
-  }>;
-  dataSources: Array<{
-    id: string;
-    engine: string;
-    name: string;
-  }>;
-};
+import { AgentPackageResponse } from './AgentUploadForm';
 
 type Props = {
-  agentTemplate: AgentTemplate;
+  agentTemplate: AgentPackageResponse['agentTemplate'];
 };
 
-export const WizardStep1: FC<Props> = ({ agentTemplate }) => {
-  const { watch } = useFormContext<AgentDeploymentFormSchema>();
-  const formData = watch();
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/create' });
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-  type GetPlatformResponse =
-    paths['/api/v2/platforms/{platform_id}']['get']['responses']['200']['content']['application/json'];
-
-  const llmId = formData.llmId;
-  const isPackageRef = typeof llmId === 'string' && llmId.startsWith('package:');
-
-  const platformQuery = useQuery({
-    queryKey: ['platform', tenantId, llmId],
-    queryFn: async (): Promise<GetPlatformResponse> => {
-      return (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/{platform_id}', {
-        params: { path: { platform_id: llmId as string } },
-        silent: true,
-      })) as GetPlatformResponse;
-    },
-    enabled: Boolean(llmId) && !isPackageRef,
-  });
-
-  const llmLabel = useMemo(() => {
-    if (!llmId) return 'Not selected';
-    if (isPackageRef) {
-      const [, provider, model] = String(llmId).split(':');
-      return `${provider} (${model})`;
-    }
-    if (platformQuery.data?.name) {
-      const p = platformQuery.data;
-      return `${p.name}${p.kind ? ` (${p.kind})` : ''}`;
-    }
-    if (platformQuery.isPending) return 'Loading...';
-    return String(llmId);
-  }, [llmId, isPackageRef, platformQuery.data, platformQuery.isPending]);
+export const AgentOverviewStep: FC<Props> = ({ agentTemplate }) => {
   const agentType = agentTemplate.metadata.mode === 'worker' ? 'Worker' : 'Conversational';
 
   return (
@@ -77,8 +17,8 @@ export const WizardStep1: FC<Props> = ({ agentTemplate }) => {
       <AgentCard
         illustration={<AgentIcon mode={agentTemplate.metadata.mode} />}
         version="1.4.2"
-        title={formData.name || agentTemplate.name}
-        description={formData.description || agentTemplate.description}
+        title={agentTemplate.name}
+        description={agentTemplate.description}
       >
         <AgentCard.Content>
           {/* MCP servers overview (top) */}
@@ -125,7 +65,7 @@ export const WizardStep1: FC<Props> = ({ agentTemplate }) => {
 
           <Grid columns={[1, 2, 3]} gap="$24">
             <AgentCard.Kpi label="Agent Type" value={agentType} />
-            <AgentCard.Kpi label="Large Language Model" value={llmLabel} />
+            <AgentCard.Kpi label="Large Language Model" value={agentTemplate.model.name} />
           </Grid>
         </AgentCard.Content>
       </AgentCard>

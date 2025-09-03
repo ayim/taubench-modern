@@ -1,20 +1,12 @@
 import { FC, useEffect, useState } from 'react';
 import { Box, Steps as StepsBase, StepStatusType } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
-
-import {
-  AgentDeploymentFormSchema,
-  AgentDeploymentFormSchemaStep1Schema,
-  AgentDeploymentFormSchemaStep2Schema,
-  AgentDeploymentFormSchemaStep3Schema,
-  AgentDeploymentStep,
-} from './context';
+import { AgentDeploymentFormSchema, AgentDeploymentStep } from './context';
 
 type Props = {
   activeStep: AgentDeploymentStep;
   withActions: boolean;
   withMcpServers: boolean;
-  withTriggers: boolean;
   withDataSources: boolean;
   setWizardStep: (step: AgentDeploymentStep) => void;
 };
@@ -28,10 +20,16 @@ export const Steps: FC<Props> = ({ activeStep, setWizardStep }) => {
 
   const stepIndex = steps.findIndex((step) => step.step === activeStep);
 
+  const fieldsByStep: Record<AgentDeploymentStep, Array<keyof AgentDeploymentFormSchema>> = {
+    [AgentDeploymentStep.AgentOverview]: [],
+    [AgentDeploymentStep.AgentSettings]: ['name', 'description', 'llmId', 'apiKey'],
+    [AgentDeploymentStep.ActionSettings]: ['mcpServerSettings'],
+  };
+
   const stepsErrors = [
-    Object.keys(AgentDeploymentFormSchemaStep1Schema.shape).some((curr) => errorKeys.includes(curr)),
-    Object.keys(AgentDeploymentFormSchemaStep2Schema.shape).some((curr) => errorKeys.includes(curr)),
-    Object.keys(AgentDeploymentFormSchemaStep3Schema.shape).some((curr) => errorKeys.includes(curr)),
+    fieldsByStep[AgentDeploymentStep.AgentOverview].some((curr) => errorKeys.includes(curr as string)),
+    fieldsByStep[AgentDeploymentStep.AgentSettings].some((curr) => errorKeys.includes(curr as string)),
+    fieldsByStep[AgentDeploymentStep.ActionSettings].some((curr) => errorKeys.includes(curr as string)),
   ];
 
   // Removed getActionSettingsStepLabel since we have fixed step labels now

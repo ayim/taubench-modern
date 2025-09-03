@@ -3,7 +3,7 @@ import { Box, Input, Typography, Form, Button, Select } from '@sema4ai/component
 import { IconPlus, IconTrash } from '@sema4ai/icons';
 import { useFormContext } from 'react-hook-form';
 import { PackageCard } from '@sema4ai/layouts';
-import { AgentDeploymentFormSchema, MCPServerSettings } from '../context';
+import { AgentDeploymentFormSchema, MCPServerSettings, MCPHeaderValue } from '../context';
 import { McpHeaderSecretInput } from './McpHeaderSecretInput';
 
 type Props = {
@@ -24,17 +24,21 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
   const mcpServerSettings = watch(`mcpServerSettings.${index}`);
   const [editingKeys, setEditingKeys] = useState<Record<string, string>>({});
 
-  // Secrets integration not available yet; provide empty list and not-loading state
   const secrets: Array<{ id: string; name: string }> | undefined = [];
   const isLoadingSecrets = false;
 
-  const headers = mcpServerSettings?.headers || {};
+  const headers = mcpServerSettings?.headers ?? {};
   const headerEntries = Object.entries(headers);
 
   const typeOptions = [
     { label: 'Plain Text', value: 'string' },
     { label: 'Secret', value: 'secret' },
   ];
+
+  const toHeaderValueType = (hv: MCPHeaderValue) =>
+    hv.type === 'secret'
+      ? { type: 'secret' as const, secretID: hv.value ?? '' }
+      : { type: 'string' as const, value: hv.value ?? '' };
 
   const getFieldError = (fieldName: string) => {
     const serverErrors = errors.mcpServerSettings?.[index];
@@ -54,25 +58,19 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
     }
   };
 
-  const createHeaderValue = (
-    type: 'string' | 'secret',
-    currentHeader?: NonNullable<MCPServerSettings['headers']>[string],
-    value = '',
-  ) => {
-    const baseValue = { type: 'string' as const, value };
-
+  const createHeaderValue = (type: 'string' | 'secret', currentHeader?: MCPHeaderValue, value = '') => {
     if (type === 'secret') {
       return {
         type: 'secret' as const,
-        value: baseValue,
-        description: currentHeader?.description || null,
+        value,
+        description: currentHeader?.description ?? null,
       };
     }
 
     return {
       type: 'string' as const,
-      value: baseValue,
-      description: currentHeader?.description || null,
+      value,
+      description: currentHeader?.description ?? null,
     };
   };
 
@@ -80,7 +78,7 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
     updateMcpServerSettings((settings) => ({
       ...settings,
       headers: {
-        ...settings.headers,
+        ...(settings.headers ?? {}),
         '': createHeaderValue('string'),
       },
     }));
@@ -88,7 +86,7 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
   const removeHeader = (key: string) =>
     updateMcpServerSettings((settings) => ({
       ...settings,
-      headers: Object.fromEntries(Object.entries(settings.headers || {}).filter(([k]) => k !== key)),
+      headers: Object.fromEntries(Object.entries(settings.headers ?? {}).filter(([k]) => k !== key)),
     }));
 
   const updateHeaderKey = async (oldKey: string, newKey: string) => {
@@ -115,10 +113,10 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
       return {
         ...settings,
         headers: {
-          ...settings.headers,
+          ...(settings.headers ?? {}),
           [key]: {
             ...currentHeader,
-            value: { type: 'string' as const, value },
+            value,
           },
         },
       };
@@ -127,12 +125,12 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
   const updateHeaderType = (key: string, type: 'string' | 'secret') =>
     updateMcpServerSettings((settings) => {
       const currentHeader = settings.headers?.[key];
-      const currentValue = currentHeader?.value?.type === 'string' ? currentHeader.value.value : '';
+      const currentValue = typeof currentHeader?.value === 'string' ? currentHeader?.value : '';
 
       return {
         ...settings,
         headers: {
-          ...settings.headers,
+          ...(settings.headers ?? {}),
           [key]: createHeaderValue(type, currentHeader, currentValue),
         },
       };
@@ -141,17 +139,17 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
   const updateHeaderSecretId = (key: string, secretId: string) =>
     updateMcpServerSettings((settings) => {
       const currentHeader = settings.headers?.[key];
-      if (!currentHeader || (currentHeader.type !== 'secret' && currentHeader.type !== 'oauth2-secret')) {
+      if (!currentHeader || currentHeader.type !== 'secret') {
         return settings;
       }
 
       return {
         ...settings,
         headers: {
-          ...settings.headers,
+          ...(settings.headers ?? {}),
           [key]: {
             ...currentHeader,
-            value: { type: 'secret' as const, secretID: secretId },
+            value: secretId,
           },
         },
       };
@@ -160,17 +158,17 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
   const updateHeaderSecretValue = (key: string, value: string) =>
     updateMcpServerSettings((settings) => {
       const currentHeader = settings.headers?.[key];
-      if (!currentHeader || (currentHeader.type !== 'secret' && currentHeader.type !== 'oauth2-secret')) {
+      if (!currentHeader || currentHeader.type !== 'secret') {
         return settings;
       }
 
       return {
         ...settings,
         headers: {
-          ...settings.headers,
+          ...(settings.headers ?? {}),
           [key]: {
             ...currentHeader,
-            value: { type: 'string' as const, value },
+            value,
           },
         },
       };
@@ -179,17 +177,17 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
   const resetHeaderToValue = (key: string) =>
     updateMcpServerSettings((settings) => {
       const currentHeader = settings.headers?.[key];
-      if (!currentHeader || (currentHeader.type !== 'secret' && currentHeader.type !== 'oauth2-secret')) {
+      if (!currentHeader || currentHeader.type !== 'secret') {
         return settings;
       }
 
       return {
         ...settings,
         headers: {
-          ...settings.headers,
+          ...(settings.headers ?? {}),
           [key]: {
             ...currentHeader,
-            value: { type: 'string' as const, value: '' },
+            value: '',
           },
         },
       };
@@ -278,17 +276,21 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
                       <Box style={{ flex: 1 }}>
                         <Select
                           label="Type"
-                          value={headerValue.type === 'oauth2-secret' ? 'secret' : headerValue.type}
-                          onChange={(value) => updateHeaderType(headerKey, value as 'string' | 'secret')}
+                          value={headerValue.type}
+                          onChange={(value) => {
+                            if (value === 'string' || value === 'secret') {
+                              updateHeaderType(headerKey, value);
+                            }
+                          }}
                           width="100%"
                           items={typeOptions}
                         />
                       </Box>
                       <Box style={{ flex: 1 }}>
-                        {headerValue.type === 'secret' || headerValue.type === 'oauth2-secret' ? (
+                        {headerValue.type === 'secret' ? (
                           <McpHeaderSecretInput
                             headerKey={headerKey}
-                            headerValue={headerValue.value}
+                            headerValue={toHeaderValueType(headerValue)}
                             items={
                               secrets?.map((secret) => ({
                                 value: secret.id,
@@ -303,7 +305,7 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
                         ) : (
                           <Input
                             label="Value"
-                            value={headerValue.value.type === 'string' ? headerValue.value.value : ''}
+                            value={typeof headerValue.value === 'string' ? headerValue.value : ''}
                             onChange={(e) => updateHeaderValue(headerKey, e.target.value)}
                             type="text"
                             placeholder="Header value"

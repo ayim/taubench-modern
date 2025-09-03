@@ -32,13 +32,20 @@ export const McpServerSection: FC = () => {
           variant="outline"
           icon={IconPlus}
           onClick={async () => {
-            const current = (getValues('mcpServerSettings') || []) as MCPServerSettings[];
-            const emptyServer: MCPServerSettings = {
+            const currentRaw = getValues('mcpServerSettings');
+            const current = currentRaw ?? [];
+            const emptyServer = {
               name: '',
-              url: '',
+              url: null,
               transport: 'auto',
               headers: {},
-            } as MCPServerSettings;
+              command: null,
+              args: null,
+              env: null,
+              cwd: null,
+              force_serial_tool_calls: false,
+            } satisfies MCPServerSettings;
+
             const next = [...current, emptyServer];
             setValue('mcpServerSettings', next, { shouldDirty: true, shouldValidate: true });
             await trigger('mcpServerSettings');

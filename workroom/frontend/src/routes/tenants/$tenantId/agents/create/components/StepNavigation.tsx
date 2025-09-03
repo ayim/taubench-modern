@@ -6,18 +6,26 @@ type Props = {
   isPending: boolean;
   isFirstStep: boolean;
   onBack: () => void;
+  onNext: () => void;
+  onDeploy: () => void;
 };
 
-export const StepNavigation: FC<Props> = ({ isFinalStep, isPending, isFirstStep, onBack }) => {
+export const StepNavigation: FC<Props> = ({ isFinalStep, isPending, isFirstStep, onBack, onNext, onDeploy }) => {
   const handleCancel = () => {
     console.log('Cancel clicked');
   };
 
   return (
     <>
-      <Button type="submit" loading={isPending} round>
-        {isFinalStep ? 'Deploy' : 'Continue'}
-      </Button>
+      {isFinalStep ? (
+        <Button type="button" loading={isPending} round onClick={onDeploy}>
+          Deploy
+        </Button>
+      ) : (
+        <Button type="button" round onClick={onNext}>
+          Continue
+        </Button>
+      )}
       {isFirstStep ? (
         <Button variant="outline" round onClick={handleCancel}>
           Cancel

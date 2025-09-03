@@ -1,54 +1,40 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useRef, useState } from 'react';
 import { Box, Button, Form, Link, Typography } from '@sema4ai/components';
 import { IconArrowUpRight, IconQuestionMarkCircle } from '@sema4ai/icons';
 import { FormProvider, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { buildAgentDeploymentSchema } from './context';
 
 import { AgentDeploymentFormSchema, AgentDeploymentStep } from './context';
 import { Steps } from './Steps';
-import { WizardStep1 } from './WizardStep1';
-import { WizardStep2 } from './WizardStep2';
-import { WizardStep3 } from './WizardStep3';
 import { StepNavigation } from './StepNavigation';
+import { AgentConfigurationStep } from './AgentConfigurationStep';
+import { AgentOverviewStep } from './AgentOverviewStep';
+import { McpConfigurationStep } from './McpConfigurationStep';
+import { AgentPackageResponse } from './AgentUploadForm';
 
 type Props = {
   defaultValues: AgentDeploymentFormSchema;
-  agentTemplate: {
-    id: string;
-    name: string;
-    description: string;
-    metadata: { mode: 'worker' | 'conversational' };
-    actions: Array<{ id: string; name: string }>;
-    mcpServers: Array<{
-      config: {
-        name: string;
-        url: string;
-        transport: 'sse' | 'streamable-http';
-        headers: unknown;
-      };
-    }>;
-    dataSources: Array<{
-      id: string;
-      engine: string;
-      name: string;
-    }>;
-  };
+  agentTemplate: AgentPackageResponse['agentTemplate'];
   onSubmit: (payload: AgentDeploymentFormSchema) => void;
   isPending: boolean;
   title: string;
+  existingAgentNames: string[];
 };
 
-export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPending, defaultValues, title }) => {
+export const AgentDeploymentForm: FC<Props> = ({
+  agentTemplate,
+  onSubmit,
+  isPending,
+  defaultValues,
+  title,
+  existingAgentNames,
+}) => {
   const [wizardStep, setWizardStep] = useState<AgentDeploymentStep>(AgentDeploymentStep.AgentOverview);
-  const [formValues, setFormValues] = useState<AgentDeploymentFormSchema>(defaultValues);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const [nameErrorMessage, setNameErrorMessage] = useState<string | undefined>(undefined);
-
-  const mcpServers = agentTemplate.mcpServers.map((mcpServer) => mcpServer.config);
-
-  const withTriggers = false;
   const withActions = agentTemplate.actions.length > 0;
-  const withMcpServers = mcpServers.length > 0;
+  const withMcpServers = agentTemplate.mcpServers.length > 0;
   const withDataSources = false;
 
   const isFinalStep = wizardStep === AgentDeploymentStep.ActionSettings;
@@ -57,54 +43,40 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
   const formProps = useForm<AgentDeploymentFormSchema>({
     mode: 'onChange',
     defaultValues,
+    shouldUnregister: false,
+    resolver: zodResolver(buildAgentDeploymentSchema({ existingAgentNames })),
   });
 
-  const { trigger, handleSubmit, reset } = formProps;
+  const { trigger, handleSubmit } = formProps;
 
-  useEffect(() => {
-    setFormValues(defaultValues);
-    reset(defaultValues);
-  }, [defaultValues, reset]);
+  const onDeploy = handleSubmit(async (payload) => {
+    onSubmit(payload);
+  });
 
-  const onStepSubmit = handleSubmit(async (payload, e) => {
-    if (e?.target !== formRef.current) {
-      return;
-    }
+  const handleNext = async () => {
+    switch (wizardStep) {
+      case AgentDeploymentStep.AgentOverview:
+        setWizardStep(AgentDeploymentStep.AgentSettings);
+        return;
 
-    const updatedFormValues = { ...formValues, ...payload };
-
-    setFormValues(updatedFormValues);
-
-    if (isFinalStep) {
-      onSubmit(updatedFormValues);
-    } else {
-      switch (wizardStep) {
-        case AgentDeploymentStep.AgentOverview:
-          onWizarStepChange(AgentDeploymentStep.AgentSettings);
-          break;
-        case AgentDeploymentStep.AgentSettings:
-          onWizarStepChange(AgentDeploymentStep.ActionSettings);
-          break;
-        // @ts-expect-error - ActionSettings is valid but TypeScript is confused
-        case AgentDeploymentStep.ActionSettings:
-          break;
-        default:
-          break;
+      case AgentDeploymentStep.AgentSettings: {
+        const isFormValid = await trigger();
+        if (!isFormValid) {
+          return;
+        }
+        setWizardStep(AgentDeploymentStep.ActionSettings);
+        return;
       }
+      case AgentDeploymentStep.ActionSettings:
+        return;
+      default:
+        wizardStep satisfies never;
+        break;
     }
-  });
+  };
 
   const onWizarStepChange = async (nextStep: AgentDeploymentStep) => {
-    if (wizardStep === AgentDeploymentStep.AgentSettings) {
-      // Mock name validation
-      setNameErrorMessage(undefined);
-    }
-
-    const formValid = await trigger();
-
-    if (formValid) {
-      setWizardStep(nextStep);
-    }
+    setWizardStep(nextStep);
   };
 
   const onBack = () => {
@@ -115,13 +87,14 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
       case AgentDeploymentStep.ActionSettings:
         setWizardStep(AgentDeploymentStep.AgentSettings);
         break;
+      case AgentDeploymentStep.AgentOverview:
+        break;
       default:
-        // Already on first step or invalid step
+        wizardStep satisfies never;
         break;
     }
   };
 
-  // const isUpdatingDeployment = false; // Unused for now
   return (
     <div className="h-full overflow-x-hidden">
       <div className="mx-12 my-10">
@@ -148,21 +121,23 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
 
           <Box className="border border-solid bg-white border-[#CDCDCD] rounded-[10px] p-6 flex-grow my-8">
             <FormProvider {...formProps}>
-              <Form ref={formRef} onSubmit={onStepSubmit}>
+              <Form ref={formRef}>
                 <Steps
                   activeStep={wizardStep}
                   withActions={withActions}
                   withMcpServers={withMcpServers}
-                  withTriggers={withTriggers}
                   withDataSources={withDataSources}
                   setWizardStep={onWizarStepChange}
                 />
 
                 <Box mb="$40">
-                  {wizardStep === AgentDeploymentStep.AgentOverview && <WizardStep1 agentTemplate={agentTemplate} />}
-                  {wizardStep === AgentDeploymentStep.AgentSettings && <WizardStep2 errorMessage={nameErrorMessage} />}
-                  {wizardStep === AgentDeploymentStep.ActionSettings && <WizardStep3 mcpServers={mcpServers} />}
-                  {/* Legacy steps removed */}
+                  {wizardStep === AgentDeploymentStep.AgentOverview && (
+                    <AgentOverviewStep agentTemplate={agentTemplate} />
+                  )}
+                  {wizardStep === AgentDeploymentStep.AgentSettings && (
+                    <AgentConfigurationStep agentTemplate={agentTemplate} />
+                  )}
+                  {wizardStep === AgentDeploymentStep.ActionSettings && <McpConfigurationStep />}
                 </Box>
 
                 <Box mb="$40">
@@ -172,22 +147,26 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, onSubmit, isPend
                       isFinalStep={isFinalStep}
                       isFirstStep={isFirstStep}
                       onBack={onBack}
+                      onNext={handleNext}
+                      onDeploy={onDeploy}
                     />
                   </Button.Group>
                 </Box>
               </Form>
             </FormProvider>
 
-            <Link
-              icon={IconQuestionMarkCircle}
-              iconAfter={IconArrowUpRight}
-              target="_blank"
-              href="#"
-              rel="noopener"
-              variant="secondary"
-            >
-              Deployment guide
-            </Link>
+            {false && (
+              <Link
+                icon={IconQuestionMarkCircle}
+                iconAfter={IconArrowUpRight}
+                target="_blank"
+                href="#"
+                rel="noopener"
+                variant="secondary"
+              >
+                Deployment guide
+              </Link>
+            )}
           </Box>
         </div>
       </div>

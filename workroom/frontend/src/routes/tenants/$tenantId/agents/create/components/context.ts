@@ -1,110 +1,78 @@
 import { z } from 'zod';
 
-const headerValueSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('string'),
-    value: z.string(),
-  }),
-  z.object({
-    type: z.literal('secret'),
-    secretID: z.string(),
-  }),
-]);
-
-const headerValueOAuth2SecretSchema = z.object({
-  type: z.literal('oauth2-secret'),
-  provider: z.string(),
-  scopes: z.array(z.string()),
-  value: headerValueSchema,
-  description: z.string().nullable(),
-});
-
-const headerValueStringWithDefaultSchema = z.object({
-  type: z.literal('string'),
-  value: headerValueSchema,
-  description: z.string().nullable(),
-});
-
-const headerValueSecretSchema = z.object({
-  type: z.literal('secret'),
-  value: headerValueSchema,
-  description: z.string().nullable(),
-});
-
-const headerTypeSchema = z.union([
-  headerValueOAuth2SecretSchema,
-  headerValueStringWithDefaultSchema,
-  headerValueSecretSchema,
-]);
-
-export type MCPServerHeaders = z.infer<typeof MCPServerHeaders>;
-const MCPServerHeaders = z.record(z.string(), headerTypeSchema).nullable();
-
-export const AgentDeploymentFormSchemaStep1Schema = z.object({
-  agentTemplateId: z.string(),
-  actionDeploymentIds: z.array(z.string()),
-  actionIds: z.array(z.string()),
-  updateDeploymentId: z.string().optional(),
-});
-
-export const AgentDeploymentFormSchemaStep2Schema = z.object({
-  name: z.string().min(1),
-  description: z.string().min(1),
-  workspaceId: z.string().optional(),
-  llmId: z.string().min(1, 'LLM setting is required'),
-  apiKey: z.string().optional(),
-  oAuthProviders: z.record(z.string(), z.string().min(1)).optional(),
-  feedbackRecipients: z
-    .array(
-      z.object({
-        firstName: z.string().min(1).max(100),
-        lastName: z.string().min(1).max(100),
-        email: z.string().email().min(1).max(100),
-      }),
-    )
-    .max(5)
-    .optional(),
-  langsmithIntegrationId: z.string().min(1).optional(),
-});
-
-export type MCPServerSettings = z.infer<typeof MCPServerSettings>;
-export const MCPServerSettings = z.object({
-  name: z.string().min(1),
-  url: z.string().min(1),
-  transport: z.enum(['auto', 'streamable-http', 'sse', 'stdio']),
-  headers: MCPServerHeaders,
-});
-
-export const AgentDeploymentFormSchemaStep3Schema = z.object({
-  actionSettings: z.record(
-    z.string(),
-    z
-      .object({
-        secretId: z.string(),
-      })
-      .or(z.object({ value: z.string().min(1) }))
-      .refine(
-        (secretDetails) => 'value' in secretDetails || 'secretId' in secretDetails,
-        'Enter a secret value or choose a Secret',
-      ),
-  ),
-  mcpServerSettings: z.array(MCPServerSettings).optional(),
-});
-
 export enum AgentDeploymentStep {
   AgentOverview = 'AgentOverview',
   AgentSettings = 'AgentSettings',
   ActionSettings = 'ActionSettings',
 }
 
-export type AgentDeploymentFormStep1 = z.infer<typeof AgentDeploymentFormSchemaStep1Schema>;
-export type AgentDeploymentFormStep2 = z.infer<typeof AgentDeploymentFormSchemaStep2Schema>;
-export type AgentDeploymentFormStep3 = z.infer<typeof AgentDeploymentFormSchemaStep3Schema>;
+export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAgentNames: string[] }) => {
+  const MCPVariableTypeStringSchema = z.object({
+    type: z.literal('string'),
+    description: z.string().nullable().optional(),
+    value: z.string().nullable().optional(),
+  });
+  const MCPVariableTypeSecretSchema = z.object({
+    type: z.literal('secret'),
+    description: z.string().nullable().optional(),
+    value: z.string().nullable().optional(),
+  });
 
-export const AgentDeploymentFormValidators: Record<AgentDeploymentStep, z.ZodSchema> = {
-  AgentOverview: AgentDeploymentFormSchemaStep1Schema,
-  AgentSettings: AgentDeploymentFormSchemaStep2Schema,
-  ActionSettings: AgentDeploymentFormSchemaStep3Schema,
+  const MCPVarSchema = z.union([MCPVariableTypeStringSchema, MCPVariableTypeSecretSchema]);
+
+  const MCPServerHeaders = z.record(z.string(), MCPVarSchema).nullable();
+
+  const agentConfigurationSchema = z.object({
+    name: z
+      .string()
+      .min(1)
+      .refine(
+        (inputedAgentName) => {
+          const agentWithSameNameExists = !existingAgentNames.find(
+            (existingAgent) => existingAgent === inputedAgentName,
+          );
+          return agentWithSameNameExists;
+        },
+        {
+          message: 'An agent with this name already exists',
+        },
+      ),
+    description: z.string().min(1),
+
+    llmId: z.string().min(1, 'LLM setting is required'),
+    apiKey: z.string().optional(),
+  });
+
+  const MCPServerSettingsSchema = z.object({
+    name: z.string().min(1),
+    url: z.string().min(1).nullable().optional(),
+    transport: z.enum(['auto', 'streamable-http', 'sse', 'stdio']),
+    headers: MCPServerHeaders.optional().refine(
+      (headers) => {
+        if (!headers) return true;
+        return Object.keys(headers).every((k) => k.trim().length > 0);
+      },
+      { path: ['headers'], message: 'Header keys must be non-empty' },
+    ),
+    command: z.string().nullable().optional(),
+    args: z.array(z.string()).nullable().optional(),
+    env: z
+      .record(z.string(), z.union([z.string(), MCPVarSchema]))
+      .nullable()
+      .optional(),
+    cwd: z.string().nullable().optional(),
+    force_serial_tool_calls: z.boolean(),
+  });
+
+  const mcpConfigurationSchema = z.object({
+    mcpServerSettings: z.array(MCPServerSettingsSchema).optional(),
+  });
+
+  return agentConfigurationSchema.and(mcpConfigurationSchema);
 };
 
-export type AgentDeploymentFormSchema = AgentDeploymentFormStep1 & AgentDeploymentFormStep2 & AgentDeploymentFormStep3;
+export type AgentDeploymentFormSchema = z.infer<ReturnType<typeof buildAgentDeploymentSchema>>;
+export type MCPServerSettings = NonNullable<AgentDeploymentFormSchema['mcpServerSettings']>[number];
+export type MCPHeaderValue =
+  | { type: 'string'; description?: string | null; value?: string | null }
+  | { type: 'secret'; description?: string | null; value?: string | null };

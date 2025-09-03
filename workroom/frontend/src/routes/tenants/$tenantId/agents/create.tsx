@@ -1,12 +1,19 @@
-import { createFileRoute, Outlet, useNavigate, useParams, useRouteContext } from '@tanstack/react-router';
-import { useState } from 'react';
-import { AgentDeploymentForm } from './create/components/AgentDeploymentForm';
-import { AgentDeploymentFormSchema, MCPServerSettings } from './create/components/context';
-import { successToast, errorToast } from '~/utils/toasts';
-import { AgentUploadForm } from './create/components/AgentUploadForm';
-import type { AgentPackageResponse } from './create/components/AgentUploadForm';
 import type { components, operations } from '@sema4ai/agent-server-interface';
 import { useMutation } from '@tanstack/react-query';
+import {
+  createFileRoute,
+  Outlet,
+  useLoaderData,
+  useNavigate,
+  useParams,
+  useRouteContext,
+} from '@tanstack/react-router';
+import { useState } from 'react';
+import { errorToast, successToast } from '~/utils/toasts';
+import { AgentDeploymentForm } from './create/components/AgentDeploymentForm';
+import type { AgentPackageResponse } from './create/components/AgentUploadForm';
+import { AgentUploadForm } from './create/components/AgentUploadForm';
+import { AgentDeploymentFormSchema } from './create/components/context';
 
 export const Route = createFileRoute('/tenants/$tenantId/agents/create')({
   component: CreateAgentIndex,
@@ -25,22 +32,14 @@ async function buildAgentPackagePayload(
 ): Promise<AgentPackagePayload> {
   const { packageBase64, packageUrl } = options;
 
-  const mapMcpHeadersToStringMap = (headers: MCPServerSettings['headers']): Record<string, string> | undefined => {
-    if (!headers) return undefined;
-    const out: Record<string, string> = {};
-    for (const [key, value] of Object.entries(headers)) {
-      const inner = (value as { value?: { type?: string; value?: string } } | undefined)?.value;
-      out[key] = inner && inner.type === 'string' && typeof inner.value === 'string' ? inner.value : '';
-    }
-    return out;
-  };
-
-  const mcpServers: NonNullable<AgentPackagePayload['mcp_servers']> = (form.mcpServerSettings ?? []).map((s) => ({
+  // TODO: Change `type` when we have a form to use and change it.
+  const mcpServers = (form.mcpServerSettings ?? []).map((s) => ({
     name: s.name,
+    type: 'generic_mcp' as const,
     transport: s.transport,
-    url: s.url ?? '',
-    headers: mapMcpHeadersToStringMap(s.headers) ?? {},
-    force_serial_tool_calls: false,
+    url: s.url ?? null,
+    headers: s.headers ?? undefined,
+    force_serial_tool_calls: s.force_serial_tool_calls,
   }));
 
   const buildModel = async (): Promise<Record<string, unknown> | undefined> => {
@@ -158,7 +157,7 @@ async function buildAgentPackagePayload(
 
   const modelForPayload = await buildModel();
 
-  const payload: AgentPackagePayload = {
+  const payload = {
     name: form.name,
     ...(form.description ? { description: form.description } : {}),
     public: true,
@@ -167,16 +166,16 @@ async function buildAgentPackagePayload(
     ...(modelForPayload ? { model: modelForPayload } : {}),
     action_servers: [],
     ...(options.includeMcpServers && mcpServers.length ? { mcp_servers: mcpServers } : {}),
-    // Omit langsmith unless we have values; schema shows object, but optional
-  };
+  } satisfies AgentPackagePayload;
 
   return payload;
 }
 
 function CreateAgentIndex() {
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [showWizard, setShowWizard] = useState(false);
-  const [extractedData, setExtractedData] = useState<AgentPackageResponse | null>(null);
+  const [uploadedAgentPackage, setUploadedAgentPackage] = useState<{
+    file: File;
+    fileContent: AgentPackageResponse;
+  } | null>(null);
   const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/create' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const navigate = useNavigate();
@@ -184,7 +183,7 @@ function CreateAgentIndex() {
 
   const deployMutation = useMutation({
     mutationFn: async (payload: AgentDeploymentFormSchema) => {
-      if (!uploadedFile) {
+      if (!uploadedAgentPackage) {
         throw new Error('Provide a package file to upload');
       }
 
@@ -210,7 +209,7 @@ function CreateAgentIndex() {
       );
 
       const formData = new FormData();
-      formData.append('package_zip_file', uploadedFile, uploadedFile.name);
+      formData.append('package_zip_file', uploadedAgentPackage.file, uploadedAgentPackage.file.name);
       const serialize = (value: unknown): string => {
         if (value === null) return '';
         if (typeof value === 'string') return value;
@@ -243,13 +242,11 @@ function CreateAgentIndex() {
   });
 
   const onUploadSuccess = ({ file, extracted }: { file: File; extracted: AgentPackageResponse }) => {
-    setUploadedFile(file);
-    setExtractedData(extracted);
-    setShowWizard(true);
+    setUploadedAgentPackage({ file, fileContent: extracted });
   };
 
   const onSubmit = async (payload: AgentDeploymentFormSchema) => {
-    if (!uploadedFile) {
+    if (!uploadedAgentPackage) {
       errorToast('Provide a package file to upload');
       return;
     }
@@ -260,7 +257,12 @@ function CreateAgentIndex() {
     await deployMutation.mutateAsync(payload);
   };
 
-  if (!showWizard) {
+  const { agents } = useLoaderData({ from: '/tenants/$tenantId' });
+  const existingAgentNames = agents.map((agent) => agent.name);
+
+  const shouldShowUploadForm = uploadedAgentPackage === null;
+
+  if (shouldShowUploadForm) {
     return (
       <>
         <AgentUploadForm onSuccess={onUploadSuccess} />
@@ -272,11 +274,12 @@ function CreateAgentIndex() {
   return (
     <>
       <AgentDeploymentForm
-        agentTemplate={extractedData!.agentTemplate}
-        defaultValues={extractedData!.defaultValues}
+        agentTemplate={uploadedAgentPackage.fileContent.agentTemplate}
+        defaultValues={uploadedAgentPackage.fileContent.defaultValues}
         onSubmit={onSubmit}
         isPending={deployMutation.isPending}
         title="Create Agent"
+        existingAgentNames={existingAgentNames}
       />
       <Outlet />
     </>
