@@ -3,6 +3,7 @@ import os
 import threading
 from collections.abc import Hashable
 
+import requests
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace import SpanProcessor
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -98,13 +99,64 @@ class ConditionalLangSmithProcessor(SpanProcessor):
         project = cfg.settings.get("project_name", "").strip()
         return (endpoint, api_key, project)
 
+    @staticmethod
+    def _build_langsmith_session() -> requests.Session | None:
+        """
+        Build a requests.Session that:
+        - trusts enterprise MITM certs via truststore
+        - uses enterprise proxy settings
+        using sema4ai-http-helper, but only for LangSmith OTLP exporter.
+        """
+        from requests.adapters import HTTPAdapter
+        from sema4ai_http import get_network_profile
+
+        net = get_network_profile()  # SSL context + proxy config (http, https, no_proxy)
+
+        # Build an adapter that injects the SSL context into urllib3 pool managers.
+        class _SSLContextAdapter(HTTPAdapter):
+            def __init__(self, ssl_context, *args, **kwargs):
+                self._ssl_context = ssl_context
+                super().__init__(*args, **kwargs)
+
+            def init_poolmanager(self, *args, **kwargs):
+                # Force our ssl_context into the PoolManager constructor
+                kwargs["ssl_context"] = self._ssl_context
+                return super().init_poolmanager(*args, **kwargs)
+
+            def proxy_manager_for(self, proxy, **kwargs):
+                kwargs["ssl_context"] = self._ssl_context
+                return super().proxy_manager_for(proxy, **kwargs)
+
+        s = requests.Session()
+        if net.ssl_context:
+            adapter = _SSLContextAdapter(net.ssl_context)
+            s.mount("https://", adapter)
+            s.mount("http://", adapter)
+
+        # Apply proxies if present in the profile (pick the first defined because
+        # requests doesn't support providing multiple and chosing one).
+        if net.proxy_config.http:
+            prev = s.proxies.get("http")
+            new = net.proxy_config.http[0]
+            s.proxies["http"] = new
+            logger.debug(f"Overriding LangSmith exporter http proxy from {prev} to {new}")
+
+        if net.proxy_config.https:
+            prev = s.proxies.get("https")
+            new = net.proxy_config.https[0]
+            s.proxies["https"] = new
+            logger.debug(f"Overriding LangSmith exporter https proxy from {prev} to {new}")
+
+        return s
+
     def _build_processor(self, cfg: ObservabilityConfig) -> BatchSpanProcessor:
-        """Create a new BatchSpanProcessor for the given configuration."""
         endpoint, api_key, project = self._signature(cfg)
         if not endpoint.endswith("/otel/v1/traces"):
             endpoint = endpoint + "/otel/v1/traces"
 
         logger.debug(f"Creating LangSmith exporter: endpoint={endpoint}, project={project}")
+
+        session = ConditionalLangSmithProcessor._build_langsmith_session()
 
         exporter = OTLPSpanExporter(
             endpoint=endpoint,
@@ -112,6 +164,7 @@ class ConditionalLangSmithProcessor(SpanProcessor):
                 "x-api-key": api_key,
                 "Langsmith-Project": project,
             },
+            session=session,
         )
         return BatchSpanProcessor(exporter)
 

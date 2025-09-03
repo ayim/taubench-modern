@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -81,6 +81,7 @@ class TestConditionalLangSmithProcessor:
         mock_exporter.assert_called_once_with(
             endpoint="https://api.smith.langchain.com/otel/v1/traces",
             headers={"x-api-key": "key_a", "Langsmith-Project": "project_a"},
+            session=ANY,
         )
 
     def test_add_or_update_config_missing_api_key(self, processor):
