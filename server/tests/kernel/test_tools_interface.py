@@ -49,7 +49,7 @@ def tools_interface(mock_kernel):
 
 
 @pytest.mark.asyncio
-async def test_internal_error_handling():
+async def test_internal_error_handling(tools_interface: AgentServerToolsInterface):
     """Test that internal errors from tools are properly handled."""
 
     # Create a tool that returns an internal error
@@ -63,13 +63,6 @@ async def test_internal_error_handling():
         function=internal_error_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_123",
@@ -78,7 +71,7 @@ async def test_internal_error_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify the error is properly handled
     assert result.error == "internal-error: test exception!"
@@ -91,7 +84,7 @@ async def test_internal_error_handling():
 
 
 @pytest.mark.asyncio
-async def test_result_with_error_handling():
+async def test_result_with_error_handling(tools_interface: AgentServerToolsInterface):
     """Test that errors in the result/error format are properly handled."""
 
     # Create a tool that returns {"result": None, "error": "error-message"} format
@@ -105,13 +98,6 @@ async def test_result_with_error_handling():
         function=result_error_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_789",
@@ -120,7 +106,7 @@ async def test_result_with_error_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify the error is properly handled
     assert result.error == "Something went wrong with the API"
@@ -133,7 +119,7 @@ async def test_result_with_error_handling():
 
 
 @pytest.mark.asyncio
-async def test_validation_error_handling():
+async def test_validation_error_handling(tools_interface: AgentServerToolsInterface):
     """Test that validation errors from tools are properly handled."""
 
     # Create a tool that returns a validation error
@@ -175,13 +161,6 @@ async def test_validation_error_handling():
         function=validation_error_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_456",
@@ -190,7 +169,7 @@ async def test_validation_error_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify the error is properly handled
     assert result.error is not None
@@ -202,7 +181,7 @@ async def test_validation_error_handling():
 
 
 @pytest.mark.asyncio
-async def test_error_in_execute_pending_tool_calls():
+async def test_error_in_execute_pending_tool_calls(tools_interface: AgentServerToolsInterface):
     """Test that errors are properly handled in execute_pending_tool_calls."""
 
     # Create a tool that returns an error
@@ -216,13 +195,6 @@ async def test_error_in_execute_pending_tool_calls():
         function=error_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_789",
@@ -234,7 +206,7 @@ async def test_error_in_execute_pending_tool_calls():
     pending_calls = [(tool_def, tool_use)]
     results = []
 
-    async for result in interface.execute_pending_tool_calls(pending_calls):
+    async for result in tools_interface.execute_pending_tool_calls(pending_calls):
         results.append(result)
 
     # Verify the error is properly handled
@@ -247,7 +219,7 @@ async def test_error_in_execute_pending_tool_calls():
 
 
 @pytest.mark.asyncio
-async def test_malformed_json_handling():
+async def test_malformed_json_handling(tools_interface: AgentServerToolsInterface):
     """Test that malformed JSON in tool input is properly handled."""
 
     # Create a simple tool function
@@ -260,13 +232,6 @@ async def test_malformed_json_handling():
         input_schema={"type": "object", "properties": {}},
         function=sample_tool,
     )
-
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
 
     # Patch the ToolExecutionResult.__post_init__ method to handle invalid JSON
     with patch(
@@ -282,7 +247,7 @@ async def test_malformed_json_handling():
         tool_use.tool_input_raw = "{invalid json"
 
         # Execute the tool with our mocked request
-        result = await interface._safe_execute_tool(tool_def, tool_use)
+        result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
         # Verify the error is properly handled
         assert result.error is not None
@@ -294,7 +259,7 @@ async def test_malformed_json_handling():
 
 
 @pytest.mark.asyncio
-async def test_tool_exception_handling():
+async def test_tool_exception_handling(tools_interface: AgentServerToolsInterface):
     """Test that exceptions during tool execution are properly handled."""
 
     # Create a tool that raises an exception
@@ -308,13 +273,6 @@ async def test_tool_exception_handling():
         function=exception_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_exception",
@@ -323,7 +281,7 @@ async def test_tool_exception_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify the exception is properly handled
     assert result.error == "Unexpected error during execution"
@@ -331,7 +289,7 @@ async def test_tool_exception_handling():
 
 
 @pytest.mark.asyncio
-async def test_none_result_handling():
+async def test_none_result_handling(tools_interface: AgentServerToolsInterface):
     """Test that None results from tools are properly handled."""
 
     # Create a tool that returns None
@@ -345,13 +303,6 @@ async def test_none_result_handling():
         function=none_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_none",
@@ -360,7 +311,7 @@ async def test_none_result_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify None is properly handled
     assert result.error is None
@@ -370,7 +321,7 @@ async def test_none_result_handling():
 
 
 @pytest.mark.asyncio
-async def test_string_result_handling():
+async def test_string_result_handling(tools_interface: AgentServerToolsInterface):
     """Test that string results from tools are properly handled."""
 
     # Create a tool that returns a string
@@ -384,13 +335,6 @@ async def test_string_result_handling():
         function=string_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_string",
@@ -399,7 +343,7 @@ async def test_string_result_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify string is properly handled
     assert result.error is None
@@ -409,7 +353,7 @@ async def test_string_result_handling():
 
 
 @pytest.mark.asyncio
-async def test_integer_result_handling():
+async def test_integer_result_handling(tools_interface: AgentServerToolsInterface):
     """Test that integer results from tools are properly handled."""
 
     # Create a tool that returns an integer
@@ -423,13 +367,6 @@ async def test_integer_result_handling():
         function=integer_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_integer",
@@ -438,7 +375,7 @@ async def test_integer_result_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify integer is properly handled
     assert result.error is None
@@ -448,7 +385,7 @@ async def test_integer_result_handling():
 
 
 @pytest.mark.asyncio
-async def test_float_result_handling():
+async def test_float_result_handling(tools_interface: AgentServerToolsInterface):
     """Test that float results from tools are properly handled."""
 
     # Create a tool that returns a float
@@ -462,13 +399,6 @@ async def test_float_result_handling():
         function=float_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_float",
@@ -477,7 +407,7 @@ async def test_float_result_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify float is properly handled
     assert result.error is None
@@ -487,7 +417,7 @@ async def test_float_result_handling():
 
 
 @pytest.mark.asyncio
-async def test_boolean_result_handling():
+async def test_boolean_result_handling(tools_interface: AgentServerToolsInterface):
     """Test that boolean results from tools are properly handled."""
 
     # Test both True and False values
@@ -508,13 +438,6 @@ async def test_boolean_result_handling():
             function=boolean_tool,
         )
 
-        # Create the tools interface
-        interface = AgentServerToolsInterface()
-        mock_kernel = MagicMock()
-        mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-        mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-        interface.attach_kernel(mock_kernel)
-
         # Create a tool use request
         tool_use = ResponseToolUseContent(
             tool_call_id=f"call_{tool_name}",
@@ -523,7 +446,7 @@ async def test_boolean_result_handling():
         )
 
         # Execute the tool
-        result = await interface._safe_execute_tool(tool_def, tool_use)
+        result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
         # Verify boolean is properly handled
         assert result.error is None
@@ -533,7 +456,7 @@ async def test_boolean_result_handling():
 
 
 @pytest.mark.asyncio
-async def test_malformed_result_handling():
+async def test_malformed_result_handling(tools_interface: AgentServerToolsInterface):
     """Test that malformed (non-primitive, non-dict) results are properly handled."""
 
     # Create a tool that returns a malformed result (e.g., a list)
@@ -547,13 +470,6 @@ async def test_malformed_result_handling():
         function=malformed_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_malformed",
@@ -562,7 +478,7 @@ async def test_malformed_result_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify malformed result is properly handled
     assert result.error == "Received a malformed result from the tool"
@@ -572,7 +488,7 @@ async def test_malformed_result_handling():
 
 
 @pytest.mark.asyncio
-async def test_dict_with_empty_error_code_handling():
+async def test_dict_with_empty_error_code_handling(tools_interface: AgentServerToolsInterface):
     """Test that dict results with empty error_code are treated as successful."""
 
     # Create a tool that returns a dict with empty error_code
@@ -586,13 +502,6 @@ async def test_dict_with_empty_error_code_handling():
         function=success_dict_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_success_dict",
@@ -601,7 +510,7 @@ async def test_dict_with_empty_error_code_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify dict with empty error_code is treated as successful
     assert result.error is None
@@ -611,7 +520,7 @@ async def test_dict_with_empty_error_code_handling():
 
 
 @pytest.mark.asyncio
-async def test_dict_without_error_code_handling():
+async def test_dict_without_error_code_handling(tools_interface: AgentServerToolsInterface):
     """Test that dict results without error_code are treated as successful."""
 
     # Create a tool that returns a dict without error_code
@@ -625,13 +534,6 @@ async def test_dict_without_error_code_handling():
         function=normal_dict_tool,
     )
 
-    # Create the tools interface
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request
     tool_use = ResponseToolUseContent(
         tool_call_id="call_normal_dict",
@@ -640,7 +542,7 @@ async def test_dict_without_error_code_handling():
     )
 
     # Execute the tool
-    result = await interface._safe_execute_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
 
     # Verify dict without error_code is treated as successful
     assert result.error is None
@@ -654,7 +556,7 @@ async def test_dict_without_error_code_handling():
 
 
 @pytest.mark.asyncio
-async def test_client_exec_tool_success():
+async def test_client_exec_tool_success(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that client-exec-tool properly waits for and processes client results."""
     from datetime import UTC, datetime
     from unittest.mock import AsyncMock
@@ -671,10 +573,6 @@ async def test_client_exec_tool_success():
     )
 
     # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
     mock_kernel.agent.agent_id = "test-agent"
     mock_kernel.thread.thread_id = "test-thread"
     mock_kernel.user.cr_user_id = "test-user"
@@ -691,7 +589,7 @@ async def test_client_exec_tool_success():
 
     mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=asdict(mock_client_result))
 
-    interface.attach_kernel(mock_kernel)
+    tools_interface.attach_kernel(mock_kernel)
 
     # Create a tool use request
     tool_use = ResponseToolUseContent(
@@ -701,7 +599,7 @@ async def test_client_exec_tool_success():
     )
 
     # Execute the client tool
-    result = await interface._safe_execute_client_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_client_tool(tool_def, tool_use)
 
     # Verify the outgoing event was dispatched correctly
     mock_kernel.outgoing_events.dispatch.assert_called_once()
@@ -735,7 +633,7 @@ async def test_client_exec_tool_success():
 
 
 @pytest.mark.asyncio
-async def test_client_exec_tool_with_error():
+async def test_client_exec_tool_with_error(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that client-exec-tool properly handles errors from client."""
     from datetime import UTC, datetime
     from unittest.mock import AsyncMock
@@ -750,15 +648,6 @@ async def test_client_exec_tool_with_error():
         category="client-exec-tool",
     )
 
-    # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    mock_kernel.agent.agent_id = "test-agent"
-    mock_kernel.thread.thread_id = "test-thread"
-    mock_kernel.user.cr_user_id = "test-user"
-
     mock_kernel.outgoing_events.dispatch = AsyncMock()
 
     # Mock client returning an error
@@ -770,7 +659,7 @@ async def test_client_exec_tool_with_error():
 
     mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=asdict(mock_client_result))
 
-    interface.attach_kernel(mock_kernel)
+    tools_interface.attach_kernel(mock_kernel)
 
     # Create a tool use request
     tool_use = ResponseToolUseContent(
@@ -780,7 +669,7 @@ async def test_client_exec_tool_with_error():
     )
 
     # Execute the client tool
-    result = await interface._safe_execute_client_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_client_tool(tool_def, tool_use)
 
     # Verify the error is properly handled
     assert result.error == "Command failed: permission denied"
@@ -790,7 +679,9 @@ async def test_client_exec_tool_with_error():
 
 
 @pytest.mark.asyncio
-async def test_client_exec_tool_cancellation():
+async def test_client_exec_tool_cancellation(
+    tools_interface: AgentServerToolsInterface, mock_kernel
+):
     """Test that client-exec-tool properly handles cancellation/disconnection."""
     from unittest.mock import AsyncMock
 
@@ -802,15 +693,6 @@ async def test_client_exec_tool_cancellation():
         category="client-exec-tool",
     )
 
-    # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    mock_kernel.agent.agent_id = "test-agent"
-    mock_kernel.thread.thread_id = "test-thread"
-    mock_kernel.user.cr_user_id = "test-user"
-
     mock_kernel.outgoing_events.dispatch = AsyncMock()
 
     # Mock incoming events to raise CancelledError (simulating client disconnect)
@@ -818,7 +700,7 @@ async def test_client_exec_tool_cancellation():
         side_effect=asyncio.CancelledError("Client disconnected")
     )
 
-    interface.attach_kernel(mock_kernel)
+    tools_interface.attach_kernel(mock_kernel)
 
     # Create a tool use request
     tool_use = ResponseToolUseContent(
@@ -828,7 +710,7 @@ async def test_client_exec_tool_cancellation():
     )
 
     # Execute the client tool
-    result = await interface._safe_execute_client_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_client_tool(tool_def, tool_use)
 
     # Verify the cancellation is properly handled
     assert result.error == "Tool execution cancelled due to client disconnection"
@@ -838,7 +720,7 @@ async def test_client_exec_tool_cancellation():
 
 
 @pytest.mark.asyncio
-async def test_client_info_tool():
+async def test_client_info_tool(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that client-info-tool dispatches event but doesn't wait for execution."""
     from unittest.mock import AsyncMock
 
@@ -852,20 +734,11 @@ async def test_client_info_tool():
         category="client-info-tool",
     )
 
-    # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    mock_kernel.agent.agent_id = "test-agent"
-    mock_kernel.thread.thread_id = "test-thread"
-    mock_kernel.user.cr_user_id = "test-user"
-
     # Mock the outgoing events dispatcher
     mock_kernel.outgoing_events.dispatch = AsyncMock()
 
     # We should NOT mock incoming_events.wait_for_event since it shouldn't be called
-    interface.attach_kernel(mock_kernel)
+    tools_interface.attach_kernel(mock_kernel)
 
     # Create a tool use request
     tool_use = ResponseToolUseContent(
@@ -875,7 +748,7 @@ async def test_client_info_tool():
     )
 
     # Execute the client tool
-    result = await interface._safe_execute_client_tool(tool_def, tool_use)
+    result = await tools_interface._safe_execute_client_tool(tool_def, tool_use)
 
     # Verify the outgoing event was dispatched correctly
     mock_kernel.outgoing_events.dispatch.assert_called_once()
@@ -894,7 +767,9 @@ async def test_client_info_tool():
 
 
 @pytest.mark.asyncio
-async def test_execute_pending_tool_calls_with_client_tools():
+async def test_execute_pending_tool_calls_with_client_tools(
+    tools_interface: AgentServerToolsInterface, mock_kernel
+):
     """Test that execute_pending_tool_calls properly handles client tools."""
     from datetime import UTC, datetime
     from unittest.mock import AsyncMock
@@ -916,15 +791,6 @@ async def test_execute_pending_tool_calls_with_client_tools():
         category="client-info-tool",
     )
 
-    # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    mock_kernel.agent.agent_id = "test-agent"
-    mock_kernel.thread.thread_id = "test-thread"
-    mock_kernel.user.cr_user_id = "test-user"
-
     mock_kernel.outgoing_events.dispatch = AsyncMock()
 
     # Mock client response only for exec tool
@@ -936,7 +802,7 @@ async def test_execute_pending_tool_calls_with_client_tools():
 
     mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=asdict(mock_client_result))
 
-    interface.attach_kernel(mock_kernel)
+    tools_interface.attach_kernel(mock_kernel)
 
     # Create tool use requests
     exec_tool_use = ResponseToolUseContent(
@@ -959,7 +825,7 @@ async def test_execute_pending_tool_calls_with_client_tools():
 
     # Execute the tools
     results = []
-    async for result in interface.execute_pending_tool_calls(pending_calls):
+    async for result in tools_interface.execute_pending_tool_calls(pending_calls):
         results.append(result)
 
     # Should have 2 results
@@ -987,7 +853,9 @@ async def test_execute_pending_tool_calls_with_client_tools():
 
 
 @pytest.mark.asyncio
-async def test_client_tool_categories_in_execute_pending_tool_calls():
+async def test_client_tool_categories_in_execute_pending_tool_calls(
+    tools_interface: AgentServerToolsInterface, mock_kernel
+):
     """Test that the tool category routing works correctly in execute_pending_tool_calls."""
     from unittest.mock import AsyncMock
 
@@ -1021,16 +889,9 @@ async def test_client_tool_categories_in_execute_pending_tool_calls():
         category="client-info-tool",
     )
 
-    # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    mock_kernel.agent.agent_id = "test-agent"
-    mock_kernel.thread.thread_id = "test-thread"
-    mock_kernel.user.cr_user_id = "test-user"
+    mock_kernel.outgoing_events.dispatch = AsyncMock()
 
-    interface.attach_kernel(mock_kernel)
+    tools_interface.attach_kernel(mock_kernel)
 
     # Create tool use requests
     tool_uses = [
@@ -1065,9 +926,11 @@ async def test_client_tool_categories_in_execute_pending_tool_calls():
 
     # Mock the specific execution methods to track which ones are called
     with (
-        patch.object(interface, "_safe_execute_tool", new_callable=AsyncMock) as mock_execute_tool,
         patch.object(
-            interface, "_safe_execute_client_tool", new_callable=AsyncMock
+            tools_interface, "_safe_execute_tool", new_callable=AsyncMock
+        ) as mock_execute_tool,
+        patch.object(
+            tools_interface, "_safe_execute_client_tool", new_callable=AsyncMock
         ) as mock_execute_client_tool,
     ):
         # Mock return values
@@ -1077,7 +940,7 @@ async def test_client_tool_categories_in_execute_pending_tool_calls():
         # Execute the tools (we'll get an error due to mocking, but we can verify the routing)
         results = []
         try:
-            async for result in interface.execute_pending_tool_calls(pending_calls):
+            async for result in tools_interface.execute_pending_tool_calls(pending_calls):
                 results.append(result)
         except Exception:
             # Expected due to mocking, but we can still check the calls
@@ -1108,8 +971,12 @@ async def test_client_tool_categories_in_execute_pending_tool_calls():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_headers_with_user_id():
+async def test_tool_call_headers_with_user_id(
+    tools_interface: AgentServerToolsInterface, mock_kernel
+):
     """Test that tool call headers include user ID when available."""
+    from unittest.mock import AsyncMock
+
     captured_headers = {}
 
     # Create a tool that captures the extra_headers parameter
@@ -1126,16 +993,11 @@ async def test_tool_call_headers_with_user_id():
     )
 
     # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    mock_kernel.agent.agent_id = "test-agent-id"
-    mock_kernel.thread.thread_id = "test-thread-id"
+    mock_kernel.outgoing_events.dispatch = AsyncMock()
     mock_kernel.user.cr_user_id = "test-user-id"
     mock_kernel.user.cr_system_id = "test-system-id"
 
-    interface.attach_kernel(mock_kernel)
+    tools_interface.attach_kernel(mock_kernel)
 
     # Create a tool use request
     tool_use = ResponseToolUseContent(
@@ -1148,7 +1010,7 @@ async def test_tool_call_headers_with_user_id():
     pending_calls = [(tool_def, tool_use)]
     results = []
 
-    async for result in interface.execute_pending_tool_calls(pending_calls):
+    async for result in tools_interface.execute_pending_tool_calls(pending_calls):
         results.append(result)
 
     # Verify headers were passed correctly
@@ -1168,7 +1030,9 @@ async def test_tool_call_headers_with_user_id():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_headers_with_system_id_fallback():
+async def test_tool_call_headers_with_system_id_fallback(
+    tools_interface: AgentServerToolsInterface, mock_kernel
+):
     """Test that tool call headers use system ID when user ID is empty."""
     captured_headers = {}
 
@@ -1186,16 +1050,12 @@ async def test_tool_call_headers_with_system_id_fallback():
     )
 
     # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
     mock_kernel.agent.agent_id = "test-agent-id"
     mock_kernel.thread.thread_id = "test-thread-id"
     mock_kernel.user.cr_user_id = None  # No user ID - should use system ID
     mock_kernel.user.cr_system_id = "test-system-id"
 
-    interface.attach_kernel(mock_kernel)
+    tools_interface.attach_kernel(mock_kernel)
 
     # Create a tool use request
     tool_use = ResponseToolUseContent(
@@ -1208,7 +1068,7 @@ async def test_tool_call_headers_with_system_id_fallback():
     pending_calls = [(tool_def, tool_use)]
     results = []
 
-    async for result in interface.execute_pending_tool_calls(pending_calls):
+    async for result in tools_interface.execute_pending_tool_calls(pending_calls):
         results.append(result)
 
     # Verify headers were passed correctly
@@ -1228,7 +1088,9 @@ async def test_tool_call_headers_with_system_id_fallback():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_headers_with_empty_string_user_id():
+async def test_tool_call_headers_with_empty_string_user_id(
+    tools_interface: AgentServerToolsInterface, mock_kernel
+):
     """Test that tool call headers use system ID when user ID is empty string."""
     captured_headers = {}
 
@@ -1246,16 +1108,10 @@ async def test_tool_call_headers_with_empty_string_user_id():
     )
 
     # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
     mock_kernel.agent.agent_id = "test-agent-id"
     mock_kernel.thread.thread_id = "test-thread-id"
     mock_kernel.user.cr_user_id = ""  # Empty string user ID - should use system ID
     mock_kernel.user.cr_system_id = "test-system-id"
-
-    interface.attach_kernel(mock_kernel)
 
     # Create a tool use request
     tool_use = ResponseToolUseContent(
@@ -1268,7 +1124,7 @@ async def test_tool_call_headers_with_empty_string_user_id():
     pending_calls = [(tool_def, tool_use)]
     results = []
 
-    async for result in interface.execute_pending_tool_calls(pending_calls):
+    async for result in tools_interface.execute_pending_tool_calls(pending_calls):
         results.append(result)
 
     # Verify headers were passed correctly
@@ -1288,7 +1144,7 @@ async def test_tool_call_headers_with_empty_string_user_id():
 
 
 @pytest.mark.asyncio
-async def test_mcp_tool_no_runtime_headers():
+async def test_mcp_tool_no_runtime_headers(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that internal-tool category tools do not receive extra_headers."""
     function_called_with = {}
 
@@ -1306,13 +1162,6 @@ async def test_mcp_tool_no_runtime_headers():
         category="mcp-tool",
     )
 
-    # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request with some parameters
     tool_use = ResponseToolUseContent(
         tool_call_id="mcp_call",
@@ -1326,7 +1175,9 @@ async def test_mcp_tool_no_runtime_headers():
         "x-another-header": "another-value",
     }
 
-    result = await interface._safe_execute_tool(tool_def, tool_use, extra_headers=extra_headers)
+    result = await tools_interface._safe_execute_tool(
+        tool_def, tool_use, extra_headers=extra_headers
+    )
 
     # Verify the tool was called successfully
     assert result.error is None
@@ -1340,7 +1191,7 @@ async def test_mcp_tool_no_runtime_headers():
 
 
 @pytest.mark.asyncio
-async def test_internal_tool_no_headers():
+async def test_internal_tool_no_headers(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that internal-tool category tools do not receive extra_headers."""
     function_called_with = {}
 
@@ -1358,13 +1209,6 @@ async def test_internal_tool_no_headers():
         category="internal-tool",
     )
 
-    # Create the tools interface with mocked kernel
-    interface = AgentServerToolsInterface()
-    mock_kernel = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
-    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
-    interface.attach_kernel(mock_kernel)
-
     # Create a tool use request with some parameters
     tool_use = ResponseToolUseContent(
         tool_call_id="internal_call",
@@ -1378,7 +1222,9 @@ async def test_internal_tool_no_headers():
         "x-another-header": "another-value",
     }
 
-    result = await interface._safe_execute_tool(tool_def, tool_use, extra_headers=extra_headers)
+    result = await tools_interface._safe_execute_tool(
+        tool_def, tool_use, extra_headers=extra_headers
+    )
 
     # Verify the tool was called successfully
     assert result.error is None
