@@ -163,7 +163,7 @@ class TestDocumentLayoutPayload:
         payload_data = {
             "name": "test-layout",
             "data_model_name": "test-model",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
             "translation_schema": [
                 {"mode": "rename", "source": "total", "target": "grand_total"},
                 {"mode": "copy", "source": "name", "target": "customer_name"},
@@ -175,7 +175,11 @@ class TestDocumentLayoutPayload:
 
         assert payload.name == "testlayout"  # normalized (hyphens removed)
         assert payload.data_model_name == "testmodel"  # normalized (hyphens removed)
-        assert payload.extraction_schema == {"type": "object"}
+        assert payload.extraction_schema is not None
+        assert payload.extraction_schema.model_dump(mode="json", exclude_none=True) == {
+            "type": "object",
+            "properties": {},
+        }
         assert payload.summary == "Test layout"
 
         # Check that list was converted to _TranslationSchema
@@ -190,7 +194,7 @@ class TestDocumentLayoutPayload:
         payload_data = {
             "name": "test-layout",
             "data_model_name": "test-model",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
             "translation_schema": {
                 "rules": [
                     {"mode": "rename", "source": "total", "target": "grand_total"},
@@ -204,7 +208,11 @@ class TestDocumentLayoutPayload:
 
         assert payload.name == "testlayout"  # normalized (hyphens removed)
         assert payload.data_model_name == "testmodel"  # normalized (hyphens removed)
-        assert payload.extraction_schema == {"type": "object"}
+        assert payload.extraction_schema is not None
+        assert payload.extraction_schema.model_dump(mode="json", exclude_none=True) == {
+            "type": "object",
+            "properties": {},
+        }
         assert payload.summary == "Test layout"
 
         # Check that dictionary was processed correctly
@@ -219,7 +227,7 @@ class TestDocumentLayoutPayload:
         payload_data = {
             "name": "test-layout",
             "data_model_name": "test-model",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
         }
 
         payload = DocumentLayoutPayload.model_validate(payload_data)
@@ -231,7 +239,7 @@ class TestDocumentLayoutPayload:
         payload_data = {
             "name": "test-layout",
             "data_model_name": "test-model",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
             "translation_schema": None,
         }
 
@@ -244,7 +252,7 @@ class TestDocumentLayoutPayload:
         payload_data = {
             "name": "Test Layout V1!!",
             "data_model_name": "Test Model Name!!",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
         }
 
         payload = DocumentLayoutPayload.model_validate(payload_data)
@@ -271,7 +279,8 @@ class TestDocumentLayoutPayload:
 
         assert payload.name == "comprehensivelayout"
         assert payload.data_model_name == "comprehensivemodel"
-        assert payload.extraction_schema == {
+        assert payload.extraction_schema is not None
+        assert payload.extraction_schema.model_dump(mode="json", exclude_none=True) == {
             "type": "object",
             "properties": {"field1": {"type": "string"}},
         }

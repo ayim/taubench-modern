@@ -919,7 +919,13 @@ class AgentServerClient:
         headers = {
             "Accept": "application/json",
         }
-        response = requests.post(url, headers=headers, json=asdict(extract_request))
+        payload = asdict(extract_request)
+        extraction_schema = payload.get("document_layout", {}).get("extraction_schema")
+        if extraction_schema is not None:
+            payload["document_layout"]["extraction_schema"] = extraction_schema.model_dump(
+                mode="json", exclude_none=True
+            )
+        response = requests.post(url, headers=headers, json=payload)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:

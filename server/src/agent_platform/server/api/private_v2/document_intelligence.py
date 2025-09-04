@@ -20,7 +20,7 @@ from sema4ai_docint.extraction.reducto.exceptions import (
 from sema4ai_docint.models import DocumentLayout, Mapping, MappingRow, initialize_database
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME, PROJECT_NAME
 from sema4ai_docint.models.data_model import DataModel
-from sema4ai_docint.utils import normalize_name, validate_schema
+from sema4ai_docint.utils import normalize_name, validate_extraction_schema
 from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
@@ -105,98 +105,6 @@ async def ok(docint_ds: DocIntDatasourceDependency):
     return {"ok": True}
 
 
-def _map_reducto_typed_error(
-    error: Exception,
-    *,
-    uploaded_file: Any,
-    user_id: str,
-    thread_id: str,
-) -> tuple[ErrorCode, str] | None:
-    message = str(error)
-    error_code: ErrorCode | None = None
-    public_message: str | None = None
-
-    if isinstance(error, UploadForbiddenError):
-        logger.warning(
-            "Reducto unauthorized/forbidden during upload/parse",
-            error=message,
-            user_id=user_id,
-            thread_id=thread_id,
-            file_id=getattr(uploaded_file, "file_id", None),
-        )
-        error_code = ErrorCode.UNAUTHORIZED
-        public_message = "We couldn't connect to the document service. Check your credentials."
-
-    elif isinstance(error, UploadPresignRequestError):
-        status_code = getattr(error, "status_code", None)
-        if status_code in (401, 403):
-            logger.warning(
-                "Reducto unauthorized/forbidden during upload presign",
-                error=message,
-                status_code=status_code,
-                user_id=user_id,
-                thread_id=thread_id,
-                file_id=getattr(uploaded_file, "file_id", None),
-            )
-            error_code = ErrorCode.UNAUTHORIZED
-            public_message = "We couldn't connect to the document service. Check your credentials."
-        else:
-            logger.warning(
-                "Reducto upload presign request failed",
-                error=message,
-                status_code=status_code,
-                user_id=user_id,
-                thread_id=thread_id,
-                file_id=getattr(uploaded_file, "file_id", None),
-            )
-            error_code = ErrorCode.UNEXPECTED
-            public_message = "Backend upload failed unexpectedly."
-
-    elif isinstance(error, UploadMissingPresignedUrlError | UploadMissingFileIdError):
-        logger.warning(
-            "Reducto upload did not return required fields",
-            error=message,
-            user_id=user_id,
-            thread_id=thread_id,
-            file_id=getattr(uploaded_file, "file_id", None),
-        )
-        error_code = ErrorCode.UNEXPECTED
-        public_message = "Backend upload failed unexpectedly."
-
-    elif isinstance(error, UploadPutError):
-        status_code = getattr(error, "status_code", None)
-        logger.warning(
-            "Reducto upload PUT failed",
-            error=message,
-            status_code=status_code,
-            user_id=user_id,
-            thread_id=thread_id,
-            file_id=getattr(uploaded_file, "file_id", None),
-        )
-        if status_code in (401, 403):
-            error_code = ErrorCode.UNAUTHORIZED
-            public_message = "We couldn't connect to the document service. Check your credentials."
-        else:
-            error_code = ErrorCode.UNEXPECTED
-            public_message = "Failed to upload content."
-
-    elif isinstance(error, ExtractFailedError):
-        logger.warning(
-            "Reducto extract failed",
-            error=message,
-            reason=getattr(error, "reason", None),
-            user_id=user_id,
-            thread_id=thread_id,
-            file_id=getattr(uploaded_file, "file_id", None),
-        )
-        error_code = ErrorCode.UNPROCESSABLE_ENTITY
-        public_message = "Document extraction failed."
-
-    if error_code is None or public_message is None:
-        return None
-    return (error_code, public_message)
-
-
 async def _get_thread_or_404(storage: StorageDependency, user_id: str, thread_id: str):
     """Load a thread or raise a NOT_FOUND HTTP error."""
     thread = await storage.get_thread(user_id, thread_id)
@@ -242,37 +150,46 @@ async def _get_or_upload_file(
 
 def _raise_mapped_reducto_error(
     error: Exception,
-    *,
-    uploaded_file: Any,
-    user_id: str,
-    thread_id: str,
 ) -> NoReturn:
     """Normalize Reducto client errors to PlatformHTTPError and raise."""
-    message = str(error)
-    logger.error("Document parse failed via Reducto", error=message)
+    error_code: ErrorCode | None = None
+    public_message: str | None = None
 
-    # Prefer new typed exceptions from the extraction client
-    typed_result = _map_reducto_typed_error(
-        error,
-        uploaded_file=uploaded_file,
-        user_id=user_id,
-        thread_id=thread_id,
-    )
-    if typed_result is not None:
-        error_code, public_message = typed_result
-        raise PlatformHTTPError(error_code, public_message) from error
+    if isinstance(error, UploadForbiddenError):
+        error_code = ErrorCode.UNAUTHORIZED
+        public_message = "We couldn't connect to the document service. Check your credentials."
 
-    logger.warning(
-        "Unexpected error during document parse",
-        error=message,
-        user_id=user_id,
-        thread_id=thread_id,
-        file_id=getattr(uploaded_file, "file_id", None),
-    )
-    raise PlatformHTTPError(
-        ErrorCode.UNEXPECTED,
-        "Something went wrong while processing the file. Please try again or contact support.",
-    ) from error
+    elif isinstance(error, UploadPresignRequestError):
+        status_code = getattr(error, "status_code", None)
+        if status_code in (401, 403):
+            error_code = ErrorCode.UNAUTHORIZED
+            public_message = "We couldn't connect to the document service. Check your credentials."
+        else:
+            error_code = ErrorCode.UNEXPECTED
+            public_message = "Backend upload failed unexpectedly."
+
+    elif isinstance(error, UploadMissingPresignedUrlError | UploadMissingFileIdError):
+        error_code = ErrorCode.UNEXPECTED
+        public_message = "Backend upload failed unexpectedly."
+
+    elif isinstance(error, UploadPutError):
+        status_code = getattr(error, "status_code", None)
+        if status_code in (401, 403):
+            error_code = ErrorCode.UNAUTHORIZED
+            public_message = "We couldn't connect to the document service. Check your credentials."
+        else:
+            error_code = ErrorCode.UNEXPECTED
+            public_message = "Failed to upload content."
+
+    elif isinstance(error, ExtractFailedError):
+        error_code = ErrorCode.UNPROCESSABLE_ENTITY
+        public_message = "Document extraction failed."
+
+    if error_code is None or public_message is None:
+        error_code = ErrorCode.UNEXPECTED
+        public_message = "Something went wrong while processing the file."
+
+    raise PlatformHTTPError(error_code, public_message) from error
 
 
 async def _upload_and_start_parse(
@@ -305,12 +222,12 @@ async def _upload_and_start_parse(
     except PlatformHTTPError:
         raise
     except Exception as e:
-        _raise_mapped_reducto_error(
-            e,
-            uploaded_file=uploaded_file,
-            user_id=user_id,
-            thread_id=thread_id,
+        logger.error(
+            f"Document parse failed via Reducto (uploaded_file={uploaded_file!s}, "
+            f"user_id={user_id}, thread_id={thread_id}): {e!s}",
+            error=str(e),
         )
+        _raise_mapped_reducto_error(e)
 
 
 @router.post("")
@@ -633,7 +550,11 @@ async def upsert_layout(
             docint_ds, normalized.data_model_name, normalized.name
         )
         if existing:
-            existing.extraction_schema = normalized.extraction_schema
+            existing.extraction_schema = (
+                normalized.extraction_schema.model_dump(mode="json", exclude_none=True)
+                if normalized.extraction_schema
+                else None
+            )
             existing.translation_schema = normalized.wrap_translation_schema()
             existing.summary = normalized.summary
             existing.extraction_config = normalized.extraction_config
@@ -677,7 +598,11 @@ async def update_layout(
 
         # Update the existing layout
         if normalized_payload.extraction_schema is not None:
-            existing_layout.extraction_schema = normalized_payload.extraction_schema
+            existing_layout.extraction_schema = (
+                normalized_payload.extraction_schema.model_dump(mode="json", exclude_none=True)
+                if normalized_payload.extraction_schema
+                else None
+            )
         if normalized_payload.translation_schema is not None:
             existing_layout.translation_schema = normalized_payload.wrap_translation_schema()
         if normalized_payload.summary is not None:
@@ -827,7 +752,7 @@ async def generate_layout_from_file(  # noqa: PLR0913
         model_schema_json,
     )
     try:
-        extraction_schema = validate_schema(candidate_extraction_schema)
+        extraction_schema = validate_extraction_schema(candidate_extraction_schema)
     except Exception as e:
         raise PlatformHTTPError(
             error_code=ErrorCode.UNEXPECTED,
@@ -961,7 +886,7 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
         )
 
         return GenerateSchemaResponsePayload(
-            schema=validate_schema(schema),
+            schema=validate_extraction_schema(schema),
             file=uploaded_file if new_file else None,
         )
     except Exception as e:
@@ -1020,12 +945,12 @@ async def parse_document(  # noqa: PLR0913
     except PlatformHTTPError:
         raise
     except Exception as e:
-        _raise_mapped_reducto_error(
-            e,
-            uploaded_file=uploaded_file,
-            user_id=user.user_id,
-            thread_id=thread_id,
+        logger.error(
+            f"Document parse failed via Reducto (uploaded_file={uploaded_file!s}, "
+            f"user_id={user.user_id}, thread_id={thread_id}): {e!s}",
+            error=str(e),
         )
+        _raise_mapped_reducto_error(e)
 
 
 @router.post("/documents/parse/async")
@@ -1121,10 +1046,15 @@ async def _get_data_model_prompt_and_document_layout(
 
         # For extraction requests, we can use a partial document layout without name/data_model_name
         # We'll create a minimal DocumentLayout object with just the extraction fields
+        extraction_schema = (
+            payload.document_layout.extraction_schema.model_dump(mode="json", exclude_none=True)
+            if payload.document_layout.extraction_schema
+            else None
+        )
         document_layout = DocumentLayout(
             name=payload.document_layout.name or "extraction_layout",
             data_model=payload.document_layout.data_model_name or "extraction_model",
-            extraction_schema=payload.document_layout.extraction_schema,
+            extraction_schema=extraction_schema,
             translation_schema=payload.document_layout.wrap_translation_schema(),
             summary=payload.document_layout.summary,
             extraction_config=payload.document_layout.extraction_config,
@@ -1248,12 +1178,12 @@ async def _upload_and_start_extract(
     except PlatformHTTPError:
         raise
     except Exception as e:
-        _raise_mapped_reducto_error(
-            e,
-            uploaded_file=request.uploaded_file,
-            user_id=user_id,
-            thread_id=request.thread_id,
+        logger.error(
+            f"Document extract failed via Reducto (uploaded_file={request.uploaded_file!s}, "
+            f"user_id={user_id}, thread_id={request.thread_id}): {e!s}",
+            error=str(e),
         )
+        _raise_mapped_reducto_error(e)
 
 
 @router.post("/documents/extract")
@@ -1300,12 +1230,12 @@ async def extract_document(  # noqa: PLR0913
     except PlatformHTTPError:
         raise
     except Exception as e:
-        _raise_mapped_reducto_error(
-            e,
-            uploaded_file=request.uploaded_file,
-            user_id=user.user_id,
-            thread_id=request.thread_id,
+        logger.error(
+            f"Document extract failed via Reducto (uploaded_file={request.uploaded_file!s}, "
+            f"user_id={user.user_id}, thread_id={request.thread_id}): {e!s}",
+            error=str(e),
         )
+        _raise_mapped_reducto_error(e)
 
 
 @router.post("/documents/extract/async")

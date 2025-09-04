@@ -12,6 +12,7 @@ from agent_platform.core.payloads.document_intelligence import (
     DocumentLayoutPayload,
     ExtractDocumentPayload,
 )
+from agent_platform.core.payloads.upsert_document_layout import _ExtractionSchema
 
 from .helpers import upload_file_to_thread
 
@@ -220,7 +221,7 @@ class TestReductoIntegration:
 
         # Create a document layout with the extraction schema
         document_layout = DocumentLayoutPayload(
-            extraction_schema=extraction_schema_result["schema"],
+            extraction_schema=_ExtractionSchema.model_validate(extraction_schema_result["schema"]),
         )
         extract_request = ExtractDocumentPayload(
             file_name=resource_name,

@@ -47,9 +47,13 @@ class TestDocumentLayouts:
         base_url: str,
         layout_cleanup: Callable[[str, str], None],
     ):
+        payload = asdict(layout)
+        payload["extraction_schema"] = payload["extraction_schema"].model_dump(
+            mode="json", exclude_none=True
+        )
         response = requests.post(
             f"{base_url}/document-intelligence/layouts",
-            json=asdict(layout),
+            json=payload,
         )
         response.raise_for_status()
         assert layout.name is not None

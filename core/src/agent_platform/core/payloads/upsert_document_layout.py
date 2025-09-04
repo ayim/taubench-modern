@@ -1,12 +1,34 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
+from pydantic import BaseModel, ConfigDict, model_validator
 from sema4ai_docint import normalize_name
 from sema4ai_docint.models import DocumentLayout
+from sema4ai_docint.utils import validate_extraction_schema
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
+
+
+class _ExtractionSchema(BaseModel):
+    """Extraction schema that requires 'type': 'object' and 'properties' but allows extra fields."""
+
+    # Design note: we used a Pydantic model here because of the need to gracefully handle
+    # extra fields that may be present in the extraction schema. Rebuilding this logic ourselves
+    # would have required a lot of boilerplate with minimal value.
+
+    model_config = ConfigDict(extra="allow")
+
+    type: Literal["object"] = "object"
+    properties: dict[str, Any]
+    required: list[str] | None = None
+
+    @model_validator(mode="after")
+    def validate_schema_structure(self) -> _ExtractionSchema:
+        """Validates a JSON schema for use with Reducto as an extraction schema."""
+        validate_extraction_schema(self.model_dump(mode="json", exclude_none=True))
+        return self
 
 
 @dataclass(frozen=True)
@@ -84,7 +106,7 @@ class DocumentLayoutPayload:
 
     name: str | None = None
     data_model_name: str | None = None
-    extraction_schema: dict[str, Any] | None = None
+    extraction_schema: _ExtractionSchema | None = None
     translation_schema: _TranslationSchema | list[_TranslationRule] | None = None
     summary: str | None = None
     extraction_config: dict[str, Any] | None = None
@@ -112,7 +134,11 @@ class DocumentLayoutPayload:
             if obj.get("data_model_name") is not None:
                 data_model_name = normalize_name(str(obj.get("data_model_name")))
 
-        extraction_schema = obj.get("extraction_schema")
+        extraction_schema_raw = obj.get("extraction_schema")
+        extraction_schema: _ExtractionSchema | None = None
+        if extraction_schema_raw is not None:
+            extraction_schema = _ExtractionSchema.model_validate(extraction_schema_raw)
+
         translation_schema_in = obj.get("translation_schema")
         summary = obj.get("summary")
         extraction_config = obj.get("extraction_config")
@@ -159,10 +185,16 @@ class DocumentLayoutPayload:
         if self.data_model_name is None:
             raise ValueError("data_model_name is required when converting to DocumentLayout")
 
+        extraction_schema_dict = None
+        if self.extraction_schema is not None:
+            extraction_schema_dict = self.extraction_schema.model_dump(
+                mode="json", exclude_none=True
+            )
+
         return DocumentLayout(
             name=self.name,
             data_model=self.data_model_name,
-            extraction_schema=self.extraction_schema,
+            extraction_schema=extraction_schema_dict,
             translation_schema=translation_schema_wrapped,
             summary=self.summary,
             extraction_config=self.extraction_config,

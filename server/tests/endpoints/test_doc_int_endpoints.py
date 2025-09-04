@@ -1100,7 +1100,7 @@ class TestUpsertLayout:
         payload = {
             "name": "invoice-v1",
             "data_model_name": "invoice",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
             "translation_schema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
             "summary": "Invoice layout",
             "extraction_config": {"threshold": 0.8},
@@ -1142,7 +1142,7 @@ class TestUpsertLayout:
         payload = {
             "name": "invoice-v1",
             "data_model_name": "invoice",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
             "translation_schema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
             "summary": "Invoice layout",
             "extraction_config": {"threshold": 0.8},
@@ -1186,7 +1186,7 @@ class TestUpsertLayout:
         find_by_name.assert_called_once()
         update.assert_called_once()
         insert.assert_not_called()
-        assert existing_layout.extraction_schema == {"type": "object"}
+        assert existing_layout.extraction_schema == {"type": "object", "properties": {}}
         assert existing_layout.translation_schema == expected_wrapped
         assert existing_layout.summary == "Invoice layout"
         assert existing_layout.extraction_config == {"threshold": 0.8}
@@ -1196,7 +1196,7 @@ class TestUpsertLayout:
         payload = {
             "name": "Invoice Layout V1!!",
             "data_model_name": "Koch Invoices",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
             "translation_schema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
         }
 
@@ -1237,7 +1237,7 @@ class TestUpsertLayout:
         payload = {
             "name": "Invoice Layout V1!!",
             "data_model_name": "Koch Invoices",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
         }
 
         storage_instance = StorageService.get_instance()
@@ -1293,7 +1293,7 @@ class TestUpsertLayout:
         payload = {
             "name": "invoice-v1",
             "data_model_name": "invoice",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
         }
 
         # Create a specific PlatformHTTPError to test with
@@ -1394,7 +1394,8 @@ class TestGetLayout:
         assert actual_layout.name == "test_layout"
         assert actual_layout.data_model_name == "test_model"
         assert actual_layout.summary == "Test layout summary"
-        assert actual_layout.extraction_schema == {
+        assert actual_layout.extraction_schema is not None
+        assert actual_layout.extraction_schema.model_dump(mode="json", exclude_none=True) == {
             "type": "object",
             "properties": {"field1": {"type": "string"}},
         }
@@ -1529,7 +1530,7 @@ class TestUpdateLayout:
         payload = {
             "name": "invoice_v1",
             "data_model_name": "invoice",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
             "translation_schema": [{"mode": "rename", "source": "total", "target": "grand_total"}],
             "summary": "Updated invoice layout",
             "extraction_config": {"threshold": 0.9},
@@ -1574,7 +1575,7 @@ class TestUpdateLayout:
         update.assert_called_once_with(fake_ds)
 
         # Verify fields were updated (partial update behavior)
-        assert existing_layout.extraction_schema == {"type": "object"}
+        assert existing_layout.extraction_schema == {"type": "object", "properties": {}}
         assert existing_layout.translation_schema == expected_wrapped
         assert existing_layout.summary == "Updated invoice layout"
         assert existing_layout.extraction_config == {"threshold": 0.9}
@@ -1585,7 +1586,7 @@ class TestUpdateLayout:
         payload = {
             "name": "nonexistent",
             "data_model_name": "invoice",
-            "extraction_schema": {"type": "object"},
+            "extraction_schema": {"type": "object", "properties": {}},
         }
 
         storage_instance = StorageService.get_instance()
@@ -1869,7 +1870,7 @@ class TestGenerateLayoutFromFile:
         fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])
 
         fake_client = Mock()
-        fake_client.generate_extraction_schema.return_value = {"fields": []}
+        fake_client.generate_extraction_schema.return_value = {"type": "object", "properties": {}}
         fake_client._file_to_images.return_value = [{"value": "img-bytes"}]
         fake_client.generate_document_layout_name.return_value = "Invoice Layout"
         fake_client.summarize_with_args.return_value = "Layout summary"
@@ -1894,8 +1895,8 @@ class TestGenerateLayoutFromFile:
                 return_value=SimpleNamespace(name="invoice", model_schema={"title": "Invoice"}),
             ) as mock_find_model,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.validate_schema",
-                return_value={"fields": []},
+                "agent_platform.server.api.private_v2.document_intelligence.validate_extraction_schema",
+                return_value={"type": "object", "properties": {}},
             ),
         ):
             self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
@@ -1920,7 +1921,11 @@ class TestGenerateLayoutFromFile:
         body = response.json()
         assert "layout" in body
         assert isinstance(body["layout"], dict)
-        assert body["layout"].get("extraction_schema") == {"fields": []}
+        assert body["layout"].get("extraction_schema") == {
+            "type": "object",
+            "properties": {},
+            "required": None,
+        }
         assert "translation_schema" in body["layout"]
         assert body.get("file") is not None
 
@@ -3404,7 +3409,7 @@ class TestExtractDocumentEndpoints:
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
                 return_value=Mock(
-                    extraction_schema={"type": "object"},
+                    extraction_schema={"type": "object", "properties": {}},
                     system_prompt="LAYOUT P",
                     extraction_config={"mode": "strict"},
                 ),
@@ -3440,7 +3445,7 @@ class TestExtractDocumentEndpoints:
         # Ensure start_extract called with merged prompt and schema/config
         fake_extraction_client.start_extract.assert_called_once()
         _, kwargs = fake_extraction_client.start_extract.call_args
-        assert kwargs["schema"] == {"type": "object"}
+        assert kwargs["schema"] == {"type": "object", "properties": {}}
         assert kwargs["extraction_config"] == {"mode": "strict"}
         assert kwargs["system_prompt"].startswith("BASE")
         assert "DM P" in kwargs["system_prompt"]
@@ -3517,7 +3522,7 @@ class TestExtractDocumentEndpoints:
                     "document_layout": {
                         "name": "Invoice L1",
                         "data_model_name": "Invoices",
-                        "extraction_schema": {"type": "object"},
+                        "extraction_schema": {"type": "object", "properties": {}},
                         "prompt": "LP",
                         "extraction_config": {"k": "v"},
                     },
@@ -3528,7 +3533,7 @@ class TestExtractDocumentEndpoints:
         assert resp.json() == {"data": 1}
         fake_extraction_client.start_extract.assert_called_once()
         _, kwargs = fake_extraction_client.start_extract.call_args
-        assert kwargs["schema"] == {"type": "object"}
+        assert kwargs["schema"] == {"type": "object", "properties": {}}
         assert kwargs["extraction_config"] == {"k": "v"}
         assert kwargs["system_prompt"].startswith("BASE")
         assert "LP" in kwargs["system_prompt"]
