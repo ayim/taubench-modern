@@ -1,3 +1,14 @@
+# Sema4.ai Agent Server 2.0.41 (2025-09-04)
+
+- [Data Frames] Don't remove tools after they were added into the context [#808](https://github.com/Sema4AI/agent-platform/pull/808)
+- [GPT-1197] Use sema4ai-http-helper while exporting traces to LS [#799](https://github.com/Sema4AI/agent-platform/pull/799)
+- Add x-data-context header to action servers (as mcp) [#810](https://github.com/Sema4AI/agent-platform/pull/810)
+- Reduce code duplication in test_tools_interface. [#817](https://github.com/Sema4AI/agent-platform/pull/817)
+- GPT-1175: Add work_item_id field to Thread [#816](https://github.com/Sema4AI/agent-platform/pull/816)
+- GPT-1188: Include usage tokens in the thread message [#818](https://github.com/Sema4AI/agent-platform/pull/818)
+- Improve Document Layout Payload handling and Extraction Schema Generation [#824](https://github.com/Sema4AI/agent-platform/pull/824)
+- Automatically create a data frame when a tool returns something with a table shape. [#828](https://github.com/Sema4AI/agent-platform/pull/828)
+
 # Sema4.ai Agent Server 2.0.40 (2025-09-02)
 
 - [Data Frames] Fix TypeError: can only concatenate list (not tuple) to list [#806](https://github.com/Sema4AI/agent-platform/pull/806)
