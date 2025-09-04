@@ -38,6 +38,53 @@ OUTPUT_FORMAT_REGEX = re.compile(
 )
 
 
+def _add_model_usage_to_metadata(
+    message, platform_name: str, model: str, usage_info=None, call_type: str = "main"
+):
+    """Add model usage information to the message metadata.
+
+    Args:
+        message: The ThreadMessage to update
+        platform_name: Name of the platform used
+        model: Model identifier used
+        usage_info: Usage statistics from the stream response
+        call_type: Type of call ('main' or 'backup')
+    """
+    model_entry = {
+        "platform": platform_name,
+        "model": model,
+        "call_type": call_type,
+        "usage": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "cached_tokens": 0,
+            "reasoning_tokens": 0,
+        },
+    }
+
+    if usage_info:
+        model_entry["usage"].update(
+            {
+                "input_tokens": usage_info.input_tokens or 0,
+                "output_tokens": usage_info.output_tokens or 0,
+                "total_tokens": usage_info.total_tokens or 0,
+                "cached_tokens": usage_info.cached_tokens or 0,
+                "reasoning_tokens": usage_info.reasoning_tokens or 0,
+            }
+        )
+
+        # Update total usage
+        total_usage = message.agent_metadata["total_usage"]
+        total_usage["input_tokens"] += model_entry["usage"]["input_tokens"]
+        total_usage["output_tokens"] += model_entry["usage"]["output_tokens"]
+        total_usage["total_tokens"] += model_entry["usage"]["total_tokens"]
+        total_usage["cached_tokens"] += model_entry["usage"]["cached_tokens"]
+        total_usage["reasoning_tokens"] += model_entry["usage"]["reasoning_tokens"]
+
+    message.agent_metadata["models"].append(model_entry)
+
+
 @aa.entrypoint
 async def entrypoint(kernel: Kernel, state: ArchState) -> ArchState:
     state.current_iteration = 0
@@ -120,7 +167,7 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 
 @aa.step
-async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0915
+async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0915, PLR0912
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
         thread_messages_to_prompt_messages,
@@ -192,8 +239,18 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     message = await kernel.thread_state.new_agent_message()
 
     message.agent_metadata["platform"] = platform.name
-    message.agent_metadata["model"] = model
+    message.agent_metadata["model"] = model  # Keep for backward compatibility
     message.agent_metadata["tools"] = [tool.model_dump() for tool in tools]
+
+    # Initialize new multi-model tracking structure
+    message.agent_metadata["models"] = []
+    message.agent_metadata["total_usage"] = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "cached_tokens": 0,
+        "reasoning_tokens": 0,
+    }
 
     # And use the formatted prompt, model, and message to receive a stream
     # of output from the model as it processes the conversation
@@ -211,6 +268,15 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
             state.sinks.pending_tool_calls,
             state.sinks.step,
         )
+
+        # Add usage information to agent metadata if available
+        if stream.reassembled_response and stream.reassembled_response.usage:
+            usage = stream.reassembled_response.usage
+            # Add to new multi-model tracking
+            _add_model_usage_to_metadata(message, platform.name, model, usage, "main")
+        else:
+            # Even if no usage info, record that this model was used
+            _add_model_usage_to_metadata(message, platform.name, model, None, "main")
 
         if stream.raw_response_matches(OUTPUT_FORMAT_REGEX):
             logger.info("Raw response matches output format regex")
@@ -310,5 +376,14 @@ async def _backup_prompt_for_invalid_format(
             message.sinks.content,
             state.sinks.step,
         )
+
+        # Track backup prompt model usage
+        if stream.reassembled_response and stream.reassembled_response.usage:
+            _add_model_usage_to_metadata(
+                message, platform.name, model, stream.reassembled_response.usage, "backup"
+            )
+        else:
+            # Even if no usage info, record that this model was used for backup
+            _add_model_usage_to_metadata(message, platform.name, model, None, "backup")
 
     return state, message
