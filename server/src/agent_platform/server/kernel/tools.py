@@ -79,7 +79,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                             extra_headers=extra_headers,
                         )
 
-                # TODO: handling of various result types...
+                # Handling of various result types...
                 if isinstance(result, ActionResponse):
                     logger.info(f"ActionResponse: {result}")
                     result_output = result.result
@@ -112,6 +112,11 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     result_output = result
             except Exception as e:
                 error_message = str(e)
+
+        if isinstance(result_output, dict):
+            result_output = await self.kernel.data_frames.auto_create_data_frame(
+                tool_def, result_output
+            )
 
         return ToolExecutionResult(
             **tool_result_args,

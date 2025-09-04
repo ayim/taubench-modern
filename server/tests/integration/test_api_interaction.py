@@ -197,7 +197,7 @@ def test_start_agent_server_with_lock_file(  # noqa: C901
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_api_interaction_with_action_server(
-    base_url_agent_server,
+    base_url_agent_server_with_data_frames,
     openai_api_key,
     action_server_process,
     logs_dir,
@@ -224,7 +224,7 @@ def test_api_interaction_with_action_server(
     )
     url = f"http://{action_server_process.host}:{action_server_process.port}"
 
-    with AgentServerClient(base_url_agent_server) as agent_client:
+    with AgentServerClient(base_url_agent_server_with_data_frames) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
             # openai_api_key,
             action_packages=[
@@ -269,6 +269,21 @@ def test_api_interaction_with_action_server(
             raise AssertionError(
                 f"Agent did not find contacts: 'john doe' or 'jane doe'. Found result: {result!r}"
             )
+
+        _, tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id, thread_id, "Please call my_named_query"
+        )
+        found = False
+        for tool_call in tool_calls:
+            if "Data frame data_frame_my_named_query created from my_named_query" in str(tool_call):
+                found = True
+                break
+        assert found, (
+            f"'Data frame data_frame_my_named_query created from my_named_query' not found in "
+            f"tool calls. Tool calls found: {tool_calls}"
+            "This means that a data frame was not automatically created when my_named_query"
+            " was called (or it wasn't called at all)."
+        )
 
 
 @pytest.mark.integration

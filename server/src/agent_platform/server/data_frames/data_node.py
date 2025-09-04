@@ -1,7 +1,6 @@
 import datetime
 import typing
 from abc import abstractmethod
-from collections.abc import Sequence
 from typing import Any, Literal, Protocol
 
 if typing.TYPE_CHECKING:
@@ -12,6 +11,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.data_frames.data_reader import DataReaderSheet
 
 SupportedIbisBackends = Literal["duckdb", "any"]
+SliceOutputFormat = Literal["json", "parquet", "table"]
 
 
 def _find_columns_case_insensitive(
@@ -250,10 +250,11 @@ class DataNodeResult(Protocol):
     @abstractmethod
     def slice(
         self,
-        offset: int | None = None,
+        offset: int = 0,
         limit: int | None = None,
         column_names: list[str] | None = None,
-        output_format: Literal["json", "parquet", "table"] = "json",
+        *,
+        output_format: SliceOutputFormat = "json",
         order_by: str | None = None,
     ) -> "bytes | Table":
         """
@@ -301,10 +302,11 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
 
     def slice(
         self,
-        offset: int | None = None,
+        offset: int = 0,
         limit: int | None = None,
         column_names: list[str] | None = None,
-        output_format: Literal["json", "parquet"] = "json",
+        *,
+        output_format: SliceOutputFormat = "json",
         order_by: str | None = None,
     ) -> "bytes | Table":
         table: pyarrow.Table = self._reader_sheet.to_ibis()
@@ -368,8 +370,8 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
         limit: int | None = None,
         column_names: list[str] | None = None,
         *,
+        output_format: SliceOutputFormat = "json",
         order_by: str | None = None,
-        output_format: Literal["json", "parquet", "table"] = "json",
     ) -> "bytes | Table":
         table = self._loaded_table()
 
@@ -385,7 +387,7 @@ class DataNodeFromIbisResult(DataNodeResult):
         self._platform_data_frame = platform_data_frame
         self._ibis_result = ibis_result
 
-    def list_sample_rows(self, num_samples: int) -> list[Sequence[Any]]:
+    def list_sample_rows(self, num_samples: int) -> "list[Row]":
         table = self._ibis_result.limit(num_samples).to_pyarrow()
         return [list(row) for row in table.to_pylist()]
 
@@ -414,8 +416,8 @@ class DataNodeFromIbisResult(DataNodeResult):
         limit: int | None = None,
         column_names: list[str] | None = None,
         *,
+        output_format: SliceOutputFormat = "json",
         order_by: str | None = None,
-        output_format: Literal["json", "parquet", "table"] = "json",
     ) -> "bytes | Table":
         # Start with the ibis result
         result = self._ibis_result

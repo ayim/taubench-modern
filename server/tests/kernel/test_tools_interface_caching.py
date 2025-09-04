@@ -46,6 +46,13 @@ class _DummyCtx:
         return _DummySpan()
 
 
+class _DummyDataFrames:
+    """Bare-minimum façade that the interface touches."""
+
+    async def auto_create_data_frame(self, tool_def: ToolDefinition, result_output: Any) -> Any:
+        return result_output
+
+
 class _DummyKernel:
     """Bare-minimum façade that the interface touches."""
 
@@ -54,6 +61,7 @@ class _DummyKernel:
         self.agent = types.SimpleNamespace(agent_id="agent-1", action_packages=[], mcp_servers=[])
         self.user = types.SimpleNamespace(user_id="user-1", cr_user_id="cr-user-1")
         self.thread = types.SimpleNamespace(thread_id="thread-1")
+        self.data_frames = _DummyDataFrames()
 
     def get_standard_span_attributes(self, extra_attributes=None):
         """Dummy implementation for testing."""

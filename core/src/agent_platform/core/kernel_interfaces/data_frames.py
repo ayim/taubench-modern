@@ -1,6 +1,6 @@
 import typing
 from abc import ABC, abstractmethod
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.tools.tool_definition import ToolDefinition
@@ -22,6 +22,11 @@ class DataFramesInterface(ABC):
         MUST be called before each processing step for data frames and tools
         to be correctly cached."""
 
+    @abstractmethod
+    def is_enabled(self) -> bool:
+        """Returns true if data frames are enabled (and False otherwise
+        )."""
+
     @property
     @abstractmethod
     def data_frames_summary(self) -> str:
@@ -36,3 +41,15 @@ class DataFramesInterface(ABC):
     @abstractmethod
     def get_data_frame_tools(self) -> "tuple[ToolDefinition, ...]":
         """Get tools related to data frames."""
+
+    @abstractmethod
+    async def auto_create_data_frame(self, tool_def: "ToolDefinition", result_output: Any) -> Any:
+        """Auto create a data frame from the result output.
+
+        Args:
+            tool_def: The tool definition that created the result output.
+            result_output: The result output from the tool.
+
+        Returns:
+            The new result that the LLM will see.
+        """

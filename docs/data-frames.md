@@ -135,15 +135,46 @@ Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to 
 
 - Show sample data in the LLM summary
 
-# Step 7 (current PR)
+# Step 7 (done)
 
 - Don't remove tools after they were added into the context
+
+# Step 8 (current PR)
+
+- Make the result of named queries (Tables) be available as data frames automatically.
+
+  Note: a named query is an LLM tool call that returns a json with a result with a shape such as:
+
+  ```json
+  {
+    "result": {
+      "columns": ["column1", "column2"],
+      "rows": [
+        [1, 2],
+        [3, 4]
+      ]
+    }
+  }
+  ```
+
+  or directly as a Table:
+
+  ```json
+  {
+    "columns": ["column1", "column2"],
+    "rows": [
+      [1, 2],
+      [3, 4]
+    ]
+  }
+  ```
+
+  The idea here is that when tool is returned and the result has that shape, we should create a new data frame from it automatically.
 
 # Future work (not right now):
 
 - Show column types in the LLM summary
 - Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)
-- Make the result of named queries (Tables) be available as data frames automatically.
 - Allow the user to have data frames that are backed by a database.
 - Investigate shortcomings of the "just SQL" approach and see if an approach using "sanitized but possibly unsafe python code" can be better.
   - See: https://github.com/Sema4AI/agent-platform/pull/794#issuecomment-3234347346 for use-cases to test.

@@ -2,7 +2,6 @@
 Default architecture for running agents.
 """
 
-import os
 from importlib.metadata import version
 
 from agent_platform.architectures.default.thread_conversion import (
@@ -167,7 +166,7 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 
 @aa.step
-async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0915, PLR0912
+async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0912, PLR0915
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
         thread_messages_to_prompt_messages,
@@ -190,10 +189,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
 
     # Note: leave this under a feature flag for now, as it's not ready for prime time yet.
     # Check if data frames are enabled via environment variable or agent settings
-    enable_data_frames = os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES") in ("1", "true")
-    if not enable_data_frames:
-        agent_settings = kernel.agent.extra.get("agent_settings", {})
-        enable_data_frames = agent_settings.get("enable_data_frames", False)
+    enable_data_frames = kernel.data_frames.is_enabled()
 
     data_frames_tools: tuple[ToolDefinition, ...] = ()
     if enable_data_frames:

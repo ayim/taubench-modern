@@ -14,6 +14,8 @@ from agent_platform.server.kernel.tools import AgentServerToolsInterface
 @pytest.fixture
 def mock_kernel():
     """Create a mock kernel for testing."""
+    from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
+
     kernel = MagicMock()
     kernel.ctx.start_span = MagicMock(
         return_value=MagicMock(__enter__=MagicMock(), __exit__=MagicMock())
@@ -36,6 +38,9 @@ def mock_kernel():
     # Use the AsyncContextManager for trace_llm
     kernel.ctx.langsmith.trace_llm = MagicMock(return_value=AsyncContextManager())
     kernel.ctx.langsmith.format_response_for_langsmith = MagicMock(return_value={})
+
+    kernel.data_frames = AgentServerDataFramesInterface()
+    kernel.data_frames.attach_kernel(kernel)
 
     return kernel
 

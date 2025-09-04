@@ -25,6 +25,16 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         self._name_to_data_frame: dict[str, PlatformDataFrame] = {}
         self._data_frame_tools: tuple[ToolDefinition, ...] = ()
 
+    def is_enabled(self) -> bool:
+        import os
+
+        enable_data_frames = os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES") in ("1", "true")
+        if not enable_data_frames:
+            agent_settings = self.kernel.agent.extra.get("agent_settings", {})
+            enable_data_frames = agent_settings.get("enable_data_frames", False)
+
+        return enable_data_frames
+
     async def step_initialize(
         self, *, storage: "BaseStorage|None" = None, state: "DataFrameArchState"
     ):
@@ -97,20 +107,23 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         summary = [f"You have {len(self._name_to_data_frame)} data frames to work with. Details:\n"]
         data_frames_info = []
         for data_frame in self._name_to_data_frame.values():
-            info: dict[str, Any] = {"name": data_frame.name}
-            if data_frame.description:
-                info["description"] = data_frame.description
-            if data_frame.num_rows:
-                info["nrows"] = data_frame.num_rows
-            if data_frame.num_columns:
-                info["ncols"] = data_frame.num_columns
-            if data_frame.column_headers:
-                info["column_names"] = data_frame.column_headers
-            if data_frame.sample_rows:
-                info["sample_data"] = data_frame.sample_rows
-            data_frames_info.append(info)
+            data_frames_info.append(self._data_frame_summary(data_frame))
         summary.append(json.dumps(data_frames_info, indent=1))
         return "\n".join(summary)
+
+    def _data_frame_summary(self, data_frame: "PlatformDataFrame") -> dict[str, Any]:
+        info: dict[str, Any] = {"name": data_frame.name}
+        if data_frame.description:
+            info["description"] = data_frame.description
+        if data_frame.num_rows:
+            info["nrows"] = data_frame.num_rows
+        if data_frame.num_columns:
+            info["ncols"] = data_frame.num_columns
+        if data_frame.column_headers:
+            info["column_names"] = data_frame.column_headers
+        if data_frame.sample_rows:
+            info["sample_data"] = data_frame.sample_rows
+        return info
 
     @property
     def thread_has_data_frames(self) -> bool:
@@ -120,6 +133,113 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         self,
     ) -> tuple[ToolDefinition, ...]:
         return self._data_frame_tools
+
+    async def _create_in_memory_data_frame(
+        self, name: str, contents: dict[str, list], *, storage: "BaseStorage | None" = None
+    ) -> "PlatformDataFrame":
+        import datetime
+        import io
+        from uuid import uuid4
+
+        import pyarrow.parquet
+
+        from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+        from agent_platform.server.storage.option import StorageService
+
+        columns = contents["columns"]
+        rows = contents["rows"]
+
+        # Convert rows and columns format to dictionary format for PyArrow
+        # This allows PyArrow to automatically infer the schema
+        col_data = list(zip(*rows, strict=True)) if rows else [[] for _ in columns]
+
+        # Build the table
+        pyarrow_df = pyarrow.Table.from_arrays(
+            [pyarrow.array(col) for col in col_data], names=columns
+        )
+
+        stream = io.BytesIO()
+        pyarrow.parquet.write_table(pyarrow_df, stream)
+
+        sample_rows = rows[:10]
+
+        data_frame = PlatformDataFrame(
+            data_frame_id=str(uuid4()),
+            name=name,
+            user_id=self.kernel.thread.user_id,
+            agent_id=self.kernel.thread.agent_id,
+            thread_id=self.kernel.thread.thread_id,
+            num_rows=pyarrow_df.shape[0],
+            num_columns=pyarrow_df.shape[1],
+            column_headers=list(pyarrow_df.schema.names),
+            input_id_type="in_memory",
+            created_at=datetime.datetime.now(datetime.UTC),
+            parquet_contents=stream.getvalue(),
+            computation_input_sources={},
+            extra_data=PlatformDataFrame.build_extra_data(sample_rows=sample_rows),
+        )
+
+        storage = StorageService.get_instance() if storage is None else storage
+        await storage.save_data_frame(data_frame)
+        self._name_to_data_frame[name] = data_frame
+        return data_frame
+
+    async def auto_create_data_frame(self, tool_def: ToolDefinition, result_output: Any) -> Any:
+        """Auto create a data frame from the result output.
+
+        Args:
+            tool_def: The tool definition that created the result output.
+            result_output: The result output from the tool.
+
+        Returns:
+            The new result that the LLM will see.
+        """
+        if not self.is_enabled():
+            return result_output
+
+        from sema4ai.common.text import slugify
+
+        try:
+            if isinstance(result_output, dict):
+                possible_table = result_output.get("result", result_output)
+                found_in_result = True
+                if not possible_table:
+                    found_in_result = False
+                    possible_table = result_output
+
+                if isinstance(possible_table, dict):
+                    if set(("columns", "rows")) == set(possible_table.keys()):
+                        slugified_name = slugify(tool_def.name)
+                        name = f"data_frame_{slugified_name}"
+
+                        i = 1
+                        while name in self._name_to_data_frame:
+                            name = f"data_frame_{slugified_name}_{i:02d}"
+                            i += 1
+                        data_frame = await self._create_in_memory_data_frame(
+                            name=name,
+                            contents=possible_table,
+                        )
+                        data_frame_summary = self._data_frame_summary(data_frame)
+                        msg = f"Data frame {name} created from {tool_def.name}.\nDetails: "
+                        for key, value in data_frame_summary.items():
+                            msg += f"{key}: {value}\n"
+
+                        new_result = result_output.copy()
+                        if found_in_result:
+                            new_result["result"] = msg
+                            return new_result
+                        else:
+                            return msg
+
+            return result_output  # Nothing changed
+        except Exception:
+            logger.exception(
+                f"Error auto creating data frame from {tool_def.name} with result output"
+                f" {result_output}"
+            )
+
+            return result_output
 
 
 class _DataFrameTools:
