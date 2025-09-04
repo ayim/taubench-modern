@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.40',
+    version: '2.0.41',
   },
   paths: {
     '/api/v2/ok': {
@@ -7285,14 +7285,12 @@ export const spec = {
           extraction_schema: {
             anyOf: [
               {
-                additionalProperties: true,
-                type: 'object',
+                $ref: '#/components/schemas/_ExtractionSchema',
               },
               {
                 type: 'null',
               },
             ],
-            title: 'Extraction Schema',
           },
           translation_schema: {
             anyOf: [
@@ -9037,6 +9035,18 @@ export const spec = {
             title: 'Metadata',
             description: 'The new metadata for this thread.',
           },
+          work_item_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Id',
+            description: 'The work item ID associated with this thread.',
+          },
         },
         type: 'object',
         title: 'PatchThreadPayload',
@@ -10571,6 +10581,18 @@ export const spec = {
             title: 'Metadata',
             description: 'Arbitrary thread-level metadata.',
           },
+          work_item_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Id',
+            description: 'The work item ID associated with this thread.',
+          },
         },
         type: 'object',
         required: ['user_id', 'agent_id', 'name'],
@@ -11745,6 +11767,18 @@ export const spec = {
             title: 'Metadata',
             description: 'Arbitrary thread-level metadata.',
           },
+          work_item_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Id',
+            description: 'The work item ID associated with this thread.',
+          },
         },
         type: 'object',
         required: ['agent_id', 'name'],
@@ -12401,6 +12435,41 @@ export const spec = {
         type: 'object',
         required: ['credentials', 'api'],
         title: '_DataServerConfig',
+      },
+      _ExtractionSchema: {
+        properties: {
+          type: {
+            type: 'string',
+            const: 'object',
+            title: 'Type',
+            default: 'object',
+          },
+          properties: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Properties',
+          },
+          required: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Required',
+          },
+        },
+        additionalProperties: true,
+        type: 'object',
+        required: ['properties'],
+        title: '_ExtractionSchema',
+        description:
+          "Extraction schema that requires 'type': 'object' and 'properties' but allows extra fields.",
       },
       _HttpConfig: {
         properties: {

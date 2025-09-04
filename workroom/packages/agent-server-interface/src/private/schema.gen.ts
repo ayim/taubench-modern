@@ -2752,10 +2752,7 @@ export interface components {
       name?: string | null;
       /** Data Model Name */
       data_model_name?: string | null;
-      /** Extraction Schema */
-      extraction_schema?: {
-        [key: string]: unknown;
-      } | null;
+      extraction_schema?: components['schemas']['_ExtractionSchema'] | null;
       /** Translation Schema */
       translation_schema?:
         | components['schemas']['_TranslationSchema']
@@ -3541,6 +3538,11 @@ export interface components {
       metadata?: {
         [key: string]: unknown;
       } | null;
+      /**
+       * Work Item Id
+       * @description The work item ID associated with this thread.
+       */
+      work_item_id?: string | null;
     };
     /** PromptAgentMessage */
     PromptAgentMessage: {
@@ -4507,6 +4509,11 @@ export interface components {
       metadata?: {
         [key: string]: unknown;
       };
+      /**
+       * Work Item Id
+       * @description The work item ID associated with this thread.
+       */
+      work_item_id?: string | null;
     };
     /** ThreadAgentMessage */
     ThreadAgentMessage: {
@@ -5247,6 +5254,11 @@ export interface components {
       metadata?: {
         [key: string]: unknown;
       };
+      /**
+       * Work Item Id
+       * @description The work item ID associated with this thread.
+       */
+      work_item_id?: string | null;
     };
     /**
      * ValidationResult
@@ -5564,6 +5576,26 @@ export interface components {
     _DataServerConfig: {
       credentials: components['schemas']['_Credentials'];
       api: components['schemas']['_ApiConfig'];
+    };
+    /**
+     * _ExtractionSchema
+     * @description Extraction schema that requires 'type': 'object' and 'properties' but allows extra fields.
+     */
+    _ExtractionSchema: {
+      /**
+       * Type
+       * @default object
+       * @constant
+       */
+      type: 'object';
+      /** Properties */
+      properties: {
+        [key: string]: unknown;
+      };
+      /** Required */
+      required?: string[] | null;
+    } & {
+      [key: string]: unknown;
     };
     /** _HttpConfig */
     _HttpConfig: {
