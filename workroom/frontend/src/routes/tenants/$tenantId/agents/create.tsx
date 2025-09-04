@@ -14,8 +14,13 @@ import { AgentDeploymentForm } from './create/components/AgentDeploymentForm';
 import type { AgentPackageResponse } from './create/components/AgentUploadForm';
 import { AgentUploadForm } from './create/components/AgentUploadForm';
 import { AgentDeploymentFormSchema } from './create/components/context';
+import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
 
 export const Route = createFileRoute('/tenants/$tenantId/agents/create')({
+  loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) => {
+    const mcpServers = await queryClient.ensureQueryData(getListMcpServersQueryOptions({ agentAPIClient, tenantId }));
+    return { mcpServers };
+  },
   component: CreateAgentIndex,
 });
 
@@ -166,6 +171,7 @@ async function buildAgentPackagePayload(
     ...(modelForPayload ? { model: modelForPayload } : {}),
     action_servers: [],
     ...(options.includeMcpServers && mcpServers.length ? { mcp_servers: mcpServers } : {}),
+    ...(Array.isArray(form.mcpServerIds) && form.mcpServerIds.length ? { mcp_server_ids: form.mcpServerIds } : {}),
   } satisfies AgentPackagePayload;
 
   return payload;

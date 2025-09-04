@@ -55,7 +55,8 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
           : undefined,
       } satisfies SelectItem;
     });
-
+    // Fixing react rendering  anv avoid duplicated options
+    llmOptions.sort((a, b) => (a.optgroup || '').localeCompare(b.optgroup || '') || a.label.localeCompare(b.label));
     return llmOptions;
   }, [configuredLLMModels, agentTemplate]);
 

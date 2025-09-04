@@ -1,16 +1,28 @@
+import { Box, Button, Header, Select } from '@sema4ai/components';
+import { useLoaderData } from '@tanstack/react-router';
 import { FC } from 'react';
-import { Box, Header, Button } from '@sema4ai/components';
-import { IconPlus } from '@sema4ai/icons';
 import { useFormContext } from 'react-hook-form';
 
+import type { ListMcpServersResponse } from '~/queries/mcpServers';
 import { AgentDeploymentFormSchema, MCPServerSettings } from '../context';
 import { McpServerItem } from './McpServerItem';
 
 export const McpServerSection: FC = () => {
   const { watch, getValues, setValue, trigger } = useFormContext<AgentDeploymentFormSchema>();
+  const { mcpServers } = useLoaderData({ from: '/tenants/$tenantId/agents/create' }) as {
+    mcpServers: ListMcpServersResponse;
+  };
   const mcpServerSettings = watch('mcpServerSettings') || [];
 
   const isValid = mcpServerSettings.every((server) => server && server.name && server.url);
+
+  const configuredServerItems = (() => {
+    const servers = Object.values(mcpServers);
+    const selectedIds = (watch('mcpServerIds') || []) as string[];
+    return servers
+      .filter((srv) => !selectedIds.includes(srv.mcp_server_id))
+      .map((srv) => ({ value: srv.mcp_server_id, label: srv.name }));
+  })();
 
   return (
     <Box borderColor="border.subtle" borderRadius="$16" p="$24" display="flex" flexDirection="column" gap="$16">
@@ -26,11 +38,53 @@ export const McpServerSection: FC = () => {
           Please fill in required fields for each server (name and URL).
         </Box>
       )}
-      <Box>
+      <Box display="flex" gap="$8" alignItems="flex-end" mb="$20">
+        {configuredServerItems.length > 0 && (
+          <Box style={{ flex: 1 }}>
+            <Select
+              label="Add existing MCP server"
+              placeholder={'Choose a server'}
+              items={configuredServerItems}
+              onChange={async (selectedId) => {
+                if (typeof selectedId !== 'string') return;
+                const srv = mcpServers[selectedId];
+                if (!srv) return;
+                const currentRaw = getValues('mcpServerSettings');
+                const current = (currentRaw ?? []) as MCPServerSettings[];
+                const allowedTransports: ReadonlyArray<MCPServerSettings['transport']> = [
+                  'auto',
+                  'streamable-http',
+                  'sse',
+                  'stdio',
+                ] as const as unknown as ReadonlyArray<MCPServerSettings['transport']>;
+                const transport: MCPServerSettings['transport'] =
+                  allowedTransports.find((t) => t === (srv.transport as string)) ?? 'auto';
+                const configuredEntry = {
+                  name: srv.name,
+                  url: srv.transport === 'stdio' ? null : (srv.url ?? null),
+                  transport,
+                  headers: {},
+                  command: null,
+                  args: null,
+                  env: null,
+                  cwd: null,
+                  force_serial_tool_calls: false,
+                  mcpServerId: srv.mcp_server_id,
+                } satisfies MCPServerSettings;
+                const next = [...current, configuredEntry];
+                setValue('mcpServerSettings', next, { shouldDirty: true, shouldValidate: true });
+                const ids = new Set(getValues('mcpServerIds') ?? []);
+                ids.add(srv.mcp_server_id);
+                setValue('mcpServerIds', Array.from(ids), { shouldDirty: true, shouldValidate: true });
+                await trigger('mcpServerSettings');
+              }}
+            />
+          </Box>
+        )}
         <Button
           round
           variant="outline"
-          icon={IconPlus}
+          icon={undefined}
           onClick={async () => {
             const currentRaw = getValues('mcpServerSettings');
             const current = currentRaw ?? [];

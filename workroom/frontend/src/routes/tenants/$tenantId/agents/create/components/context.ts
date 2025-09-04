@@ -62,10 +62,12 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
       .optional(),
     cwd: z.string().nullable().optional(),
     force_serial_tool_calls: z.boolean(),
+    mcpServerId: z.string().optional(),
   });
 
   const mcpConfigurationSchema = z.object({
     mcpServerSettings: z.array(MCPServerSettingsSchema).optional(),
+    mcpServerIds: z.array(z.string()).optional(),
   });
 
   return agentConfigurationSchema.and(mcpConfigurationSchema);

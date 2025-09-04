@@ -216,121 +216,140 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
     return null;
   }
 
+  const readOnly = Boolean(mcpServer.mcpServerId);
+
   return (
     <Box p="$0" display="flex" flexDirection="column" gap="$16">
-      <PackageCard title={mcpServer.name} description={null} version={null}>
-        <Box display="flex" justifyContent="flex-end" mb="$8">
-          <Button
-            variant="outline"
-            size="small"
-            icon={IconTrash}
-            aria-label="Remove MCP server"
-            onClick={async () => {
-              const current = getValues('mcpServerSettings') || [];
-              const next = current.filter((_: unknown, i: number) => i !== index);
-              setValue('mcpServerSettings', next, { shouldDirty: true, shouldValidate: true });
-              await trigger('mcpServerSettings');
-            }}
-          >
-            Remove
-          </Button>
-        </Box>
-        <Form.Fieldset>
-          <Input
-            label="URL (Optional)"
-            placeholder="Enter a URL to the MCP server"
-            {...register(`mcpServerSettings.${index}.url`)}
-            error={getFieldError('url')}
-            description="Enter a URL to the MCP server"
-          />
-        </Form.Fieldset>
-
-        <Box mb="$16">
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb="$8">
-            <Typography fontSize="$16" fontWeight={500} color="content.primary">
-              Headers
-            </Typography>
-          </Box>
-          <Typography fontSize="$12" color="content.subtle" mb="$16">
-            Specified values will be added to the headers when making requests to the MCP Server.
-          </Typography>
-
-          <Form.Fieldset>
-            {headerEntries.length > 0 && (
-              <Box display="flex" flexDirection="column" gap="$16" width="100%" mb="$16">
-                {headerEntries.map(([headerKey, headerValue]) => {
-                  const displayKey = editingKeys[headerKey] !== undefined ? editingKeys[headerKey] : headerKey;
-
-                  return (
-                    <Box key={`header-${headerKey}`} display="flex" gap="$16" alignItems="flex-end" width="100%">
-                      <Box style={{ flex: 1 }}>
-                        <Input
-                          label="Key"
-                          value={displayKey}
-                          onChange={(e) => handleKeyInputChange(headerKey, e.target.value)}
-                          onBlur={() => handleKeyInputBlur(headerKey)}
-                          placeholder="Header key"
-                          width="100%"
-                        />
-                      </Box>
-                      <Box style={{ flex: 1 }}>
-                        <Select
-                          label="Type"
-                          value={headerValue.type}
-                          onChange={(value) => {
-                            if (value === 'string' || value === 'secret') {
-                              updateHeaderType(headerKey, value);
-                            }
-                          }}
-                          width="100%"
-                          items={typeOptions}
-                        />
-                      </Box>
-                      <Box style={{ flex: 1 }}>
-                        {headerValue.type === 'secret' ? (
-                          <McpHeaderSecretInput
-                            headerKey={headerKey}
-                            headerValue={toHeaderValueType(headerValue)}
-                            items={
-                              secrets?.map((secret) => ({
-                                value: secret.id,
-                                label: secret.name,
-                              })) || []
-                            }
-                            onUpdateValue={updateHeaderSecretValue}
-                            onUpdateSecretId={updateHeaderSecretId}
-                            onResetToValue={resetHeaderToValue}
-                            disabled={isLoadingSecrets}
-                          />
-                        ) : (
-                          <Input
-                            label="Value"
-                            value={typeof headerValue.value === 'string' ? headerValue.value : ''}
-                            onChange={(e) => updateHeaderValue(headerKey, e.target.value)}
-                            type="text"
-                            placeholder="Header value"
-                            width="100%"
-                          />
-                        )}
-                      </Box>
-                      <Button
-                        variant="secondary"
-                        icon={IconTrash}
-                        onClick={() => removeHeader(headerKey)}
-                        aria-label="Remove header"
-                      />
-                    </Box>
+      <PackageCard
+        title={
+          <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
+            <span>{mcpServer.name}</span>
+            <Button
+              variant="outline"
+              size="small"
+              icon={IconTrash}
+              aria-label="Remove MCP server"
+              onClick={async () => {
+                const current = (getValues('mcpServerSettings') || []) as MCPServerSettings[];
+                const removed = current[index];
+                const next = current.filter((_, i) => i !== index);
+                setValue('mcpServerSettings', next, { shouldDirty: true, shouldValidate: true });
+                if (removed?.mcpServerId) {
+                  const remainingIds = (getValues('mcpServerIds') || []).filter(
+                    (x: string) => x !== removed.mcpServerId,
                   );
-                })}
+                  setValue('mcpServerIds', remainingIds, { shouldDirty: true, shouldValidate: true });
+                }
+                await trigger('mcpServerSettings');
+              }}
+            >
+              Remove
+            </Button>
+          </Box>
+        }
+        description={readOnly ? 'Global configured MCP server' : null}
+        version={null}
+      >
+        {!readOnly && (
+          <>
+            <Form.Fieldset>
+              <Input
+                label="URL (Optional)"
+                placeholder="Enter a URL to the MCP server"
+                {...register(`mcpServerSettings.${index}.url`)}
+                error={getFieldError('url')}
+                description="Enter a URL to the MCP server"
+              />
+            </Form.Fieldset>
+
+            <Box mb="$16">
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb="$8">
+                <Typography fontSize="$16" fontWeight={500} color="content.primary">
+                  Headers
+                </Typography>
               </Box>
-            )}
-            <Box display="flex" justifyContent="flex-start">
-              <Button round variant="outline" icon={IconPlus} onClick={addNewHeader} size="small">
-                Header
-              </Button>
+              <Typography fontSize="$12" color="content.subtle" mb="$16">
+                Specified values will be added to the headers when making requests to the MCP Server.
+              </Typography>
+
+              <Form.Fieldset>
+                {headerEntries.length > 0 && (
+                  <Box display="flex" flexDirection="column" gap="$16" width="100%" mb="$16">
+                    {headerEntries.map(([headerKey, headerValue]) => {
+                      const displayKey = editingKeys[headerKey] !== undefined ? editingKeys[headerKey] : headerKey;
+
+                      return (
+                        <Box key={`header-${headerKey}`} display="flex" gap="$16" alignItems="flex-end" width="100%">
+                          <Box style={{ flex: 1 }}>
+                            <Input
+                              label="Key"
+                              value={displayKey}
+                              onChange={(e) => handleKeyInputChange(headerKey, e.target.value)}
+                              onBlur={() => handleKeyInputBlur(headerKey)}
+                              placeholder="Header key"
+                              width="100%"
+                            />
+                          </Box>
+                          <Box style={{ flex: 1 }}>
+                            <Select
+                              label="Type"
+                              value={headerValue.type}
+                              onChange={(value) => {
+                                if (value === 'string' || value === 'secret') {
+                                  updateHeaderType(headerKey, value);
+                                }
+                              }}
+                              width="100%"
+                              items={typeOptions}
+                            />
+                          </Box>
+                          <Box style={{ flex: 1 }}>
+                            {headerValue.type === 'secret' ? (
+                              <McpHeaderSecretInput
+                                headerKey={headerKey}
+                                headerValue={toHeaderValueType(headerValue)}
+                                items={
+                                  secrets?.map((secret) => ({
+                                    value: secret.id,
+                                    label: secret.name,
+                                  })) || []
+                                }
+                                onUpdateValue={updateHeaderSecretValue}
+                                onUpdateSecretId={updateHeaderSecretId}
+                                onResetToValue={resetHeaderToValue}
+                                disabled={isLoadingSecrets}
+                              />
+                            ) : (
+                              <Input
+                                label="Value"
+                                value={typeof headerValue.value === 'string' ? headerValue.value : ''}
+                                onChange={(e) => updateHeaderValue(headerKey, e.target.value)}
+                                type="text"
+                                placeholder="Header value"
+                                width="100%"
+                              />
+                            )}
+                          </Box>
+                          <Button
+                            variant="secondary"
+                            icon={IconTrash}
+                            onClick={() => removeHeader(headerKey)}
+                            aria-label="Remove header"
+                          />
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+                <Box display="flex" justifyContent="flex-start">
+                  <Button round variant="outline" icon={IconPlus} onClick={addNewHeader} size="small">
+                    Header
+                  </Button>
+                </Box>
+              </Form.Fieldset>
             </Box>
-          </Form.Fieldset>
-        </Box>
+          </>
+        )}
       </PackageCard>
     </Box>
   );
