@@ -1,5 +1,5 @@
 import type { components, operations } from '@sema4ai/agent-server-interface';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   createFileRoute,
   Outlet,
@@ -7,6 +7,7 @@ import {
   useNavigate,
   useParams,
   useRouteContext,
+  useRouter,
 } from '@tanstack/react-router';
 import { useState } from 'react';
 import { errorToast, successToast } from '~/utils/toasts';
@@ -16,6 +17,7 @@ import { mcpHeadersFromRecord } from '~/lib/utils';
 import { AgentUploadForm } from './create/components/AgentUploadForm';
 import { AgentDeploymentFormSchema } from './create/components/context';
 import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
+import { getListAgentsQueryKey } from '~/queries/agents';
 
 export const Route = createFileRoute('/tenants/$tenantId/agents/create')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) => {
@@ -189,6 +191,8 @@ function CreateAgentIndex() {
   const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/create' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const navigate = useNavigate();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const isDryRun = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dryRun') === '1';
 
   const deployMutation = useMutation({
@@ -237,14 +241,14 @@ function CreateAgentIndex() {
       )) as operations['deploy_agent_from_package_package_deploy_agent_post']['responses'][200]['content']['application/json'];
       return response;
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       successToast('Agent created successfully');
       const agentId =
         (response as { agent_id?: string | null; id?: string | null }).agent_id ??
         (response as { id?: string | null }).id;
-      if (agentId) {
-        navigate({ to: '/tenants/$tenantId/$agentId', params: { tenantId, agentId } });
-      }
+      await queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey(tenantId) });
+      await router.invalidate();
+      if (agentId) navigate({ to: '/tenants/$tenantId/$agentId', params: { tenantId, agentId } });
     },
     onError: (err: unknown) => {
       errorToast(err instanceof Error ? err.message : 'Failed to create agent');

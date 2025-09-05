@@ -168,6 +168,7 @@ const WorkerAgentsTable: FC<Props> = ({ agents, agentAPIClient }) => {
     { id: 'inQueue', title: 'In Queue WI', sortable: true },
     { id: 'processing', title: 'Processing WI', sortable: true },
     { id: 'totalProcessed', title: 'Total Processed WI', sortable: true },
+    { id: 'actions', title: '', sortable: false },
   ];
 
   return (

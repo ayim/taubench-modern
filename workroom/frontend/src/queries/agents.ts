@@ -1,6 +1,8 @@
-import { queryOptions } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agent } from '~/types';
 import { QueryProps } from './shared';
+import { useRouteContext, useRouter } from '@tanstack/react-router';
+import { successToast, errorToast } from '~/utils/toasts';
 
 export const getAgentMetaQueryKey = (agentId: string) => [agentId, 'meta'];
 export const getListAgentsQueryKey = (tenantId: string) => [tenantId, 'agents'];
@@ -50,3 +52,27 @@ export const getAgentMetaQueryOptions = ({
     },
     initialData,
   });
+
+export const useDeleteAgentMutation = () => {
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async ({ tenantId, agentId }: { tenantId: string; agentId: string }) => {
+      await agentAPIClient.agentFetch(tenantId, 'delete', '/api/v2/agents/{aid}', {
+        params: { path: { aid: agentId } },
+        errorMsg: 'Failed to delete agent',
+      });
+    },
+    onSuccess: async (_data, { tenantId, agentId }) => {
+      queryClient.setQueryData<Agent[] | undefined>(getListAgentsQueryKey(tenantId), (prev) =>
+        Array.isArray(prev) ? prev.filter((a) => a.id === undefined || a.id !== agentId) : prev,
+      );
+      await queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey(tenantId) });
+      await router.invalidate();
+      successToast('Agent deleted');
+    },
+    onError: () => errorToast('Failed to delete agent'),
+  });
+};

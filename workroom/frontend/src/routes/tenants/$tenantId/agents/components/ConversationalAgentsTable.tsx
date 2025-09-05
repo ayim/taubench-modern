@@ -87,6 +87,7 @@ const ConversationalAgentsTable: FC<Props> = ({ agents }) => {
     { id: 'name', title: 'Name', sortable: true },
     { id: 'state', title: 'State', sortable: true },
     { id: 'lastInteraction', title: 'Last Interaction', sortable: true },
+    { id: 'actions', title: '', sortable: false },
   ];
 
   return (

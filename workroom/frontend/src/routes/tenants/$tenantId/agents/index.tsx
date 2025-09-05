@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Box, Tabs, Typography } from '@sema4ai/components';
+import { Box, Tabs, Typography, Dialog, Button } from '@sema4ai/components';
 import { useState, useCallback, useMemo } from 'react';
+import { useNavigate, useParams } from '@tanstack/react-router';
+import { useDeleteAgentMutation } from '~/queries/agents';
 import ConversationalAgentsTable from './components/ConversationalAgentsTable';
 import WorkerAgentsTable from './components/WorkerAgentsTable';
 import { getListAgentsQueryOptions } from '~/queries/agents';
@@ -16,12 +18,21 @@ export const Route = createFileRoute('/tenants/$tenantId/agents/')({
     );
     return { agents };
   },
+  validateSearch: (search): { deleteAgentId?: string } => {
+    return {
+      deleteAgentId: search.deleteAgentId ? String(search.deleteAgentId) : undefined,
+    };
+  },
   component: Agent,
 });
 
 function Agent() {
   const { agents } = Route.useLoaderData();
   const { agentAPIClient } = Route.useRouteContext();
+  const navigate = useNavigate();
+  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/' });
+  const { deleteAgentId } = Route.useSearch();
+  const deleteMutation = useDeleteAgentMutation();
   const conversationalAgents = useMemo(() => agents.filter((agent) => isConversationalAgent(agent)), [agents]);
   const workerAgents = useMemo(() => agents.filter((agent) => isWorkerAgent(agent)), [agents]);
 
@@ -63,6 +74,59 @@ function Agent() {
             </Box>
           </Box>
         </div>
+        {deleteAgentId && (
+          <Dialog
+            open
+            onClose={() =>
+              navigate({
+                to: '/tenants/$tenantId/agents',
+                params: { tenantId: tenantId! },
+                search: (prev) => ({ ...prev, deleteAgentId: undefined }),
+              })
+            }
+          >
+            <Dialog.Header>
+              <Dialog.Header.Title title="Are you sure?" />
+            </Dialog.Header>
+            <Dialog.Content>
+              Deleting an agent will remove it from this workspace. This cannot be undone.
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button
+                variant="primary"
+                round
+                loading={deleteMutation.isPending}
+                onClick={() =>
+                  deleteMutation.mutate(
+                    { tenantId: tenantId!, agentId: deleteAgentId! },
+                    {
+                      onSuccess: () =>
+                        navigate({
+                          to: '/tenants/$tenantId/agents',
+                          params: { tenantId: tenantId! },
+                          search: (prev) => ({ ...prev, deleteAgentId: undefined }),
+                        }),
+                    },
+                  )
+                }
+              >
+                Delete
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  navigate({
+                    to: '/tenants/$tenantId/agents',
+                    params: { tenantId: tenantId! },
+                    search: (prev) => ({ ...prev, deleteAgentId: undefined }),
+                  })
+                }
+              >
+                Cancel
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        )}
       </div>
     </div>
   );

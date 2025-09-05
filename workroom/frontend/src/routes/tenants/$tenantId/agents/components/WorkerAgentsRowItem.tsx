@@ -13,6 +13,7 @@ import {
   IconChevronRight,
   IconStatusCompleted,
   IconStatusUnresolved,
+  IconTrash,
 } from '@sema4ai/icons';
 
 interface IAgentData {
@@ -49,7 +50,7 @@ const renderStateIcon = (state: string) => {
 const RowItem: FC<TableRowProps<IAgentData, RowItemProps>> = ({ rowData, props }) => {
   const { tenantId } = props;
 
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: '/tenants/$tenantId/agents' });
 
   const handleAgentNameClick = () => {
     // Removing the workitem preference from sessionStorage
@@ -201,6 +202,22 @@ const RowItem: FC<TableRowProps<IAgentData, RowItemProps>> = ({ rowData, props }
         ) : (
           <Badge label="0" variant="green" />
         )}
+      </Table.Cell>
+      {/* Actions */}
+      <Table.Cell>
+        <Button
+          aria-label="Delete agent"
+          icon={IconTrash}
+          size="small"
+          variant="ghost"
+          onClick={() =>
+            navigate({
+              to: '/tenants/$tenantId/agents',
+              params: { tenantId },
+              search: (prev) => ({ ...prev, deleteAgentId: rowData.id }),
+            })
+          }
+        />
       </Table.Cell>
     </Table.Row>
   );
