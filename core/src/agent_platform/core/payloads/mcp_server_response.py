@@ -59,6 +59,12 @@ class MCPServerResponse:
     )
     """Working directory to run the MCP server command in."""
 
+    type: str | None = field(
+        default=None,
+        metadata={"description": "The type of MCP server."},
+    )
+    """The type of MCP server."""
+
     force_serial_tool_calls: bool = field(
         default=False,
         metadata={"description": "If true, all tool calls are executed under a lock."},
@@ -81,5 +87,6 @@ class MCPServerResponse:
             args=mcp_server.args,
             env=mcp_server.env,
             cwd=mcp_server.cwd,
+            type=mcp_server.type,
             force_serial_tool_calls=mcp_server.force_serial_tool_calls,
         )
