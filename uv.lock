@@ -299,7 +299,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.4.11-py3-none-any.whl" },
+    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.4.12-py3-none-any.whl" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -3297,8 +3297,8 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.4.11"
-source = { path = "server/wheels/sema4ai_docint-0.4.11-py3-none-any.whl" }
+version = "0.4.12"
+source = { path = "server/wheels/sema4ai_docint-0.4.12-py3-none-any.whl" }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp" },
@@ -3319,7 +3319,7 @@ dependencies = [
     { name = "sema4ai-http-helper" },
 ]
 wheels = [
-    { filename = "sema4ai_docint-0.4.11-py3-none-any.whl", hash = "sha256:65f2b9579ab4cfffb1be8f19de8b036fe97410695dc1a48424b2f98e0e358e36" },
+    { filename = "sema4ai_docint-0.4.12-py3-none-any.whl", hash = "sha256:c21dd4e34cb309743c05b845e8587aed5f438c25325125057eb0b52da77c601f" },
 ]
 
 [package.metadata]

@@ -747,7 +747,7 @@ async def generate_layout_from_file(  # noqa: PLR0913
 
     # generate extraction schema
     candidate_extraction_schema = await run_in_threadpool(
-        agent_server_client.generate_extraction_schema,
+        agent_server_client.generate_schema,
         uploaded_file.file_ref,
         model_schema_json,
     )
@@ -844,7 +844,7 @@ async def generate_data_model_from_document(  # noqa: PLR0913
         new_file = True
 
     schema = await run_in_threadpool(
-        agent_server_client.generate_schema_from_document,
+        agent_server_client.generate_schema,
         uploaded_file.file_ref,
     )
 
@@ -881,7 +881,7 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
 
     try:
         schema = await run_in_threadpool(
-            agent_server_client.generate_extraction_schema,
+            agent_server_client.generate_schema,
             uploaded_file.file_ref,
         )
 

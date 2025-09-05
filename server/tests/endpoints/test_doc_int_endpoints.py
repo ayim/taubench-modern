@@ -1870,7 +1870,7 @@ class TestGenerateLayoutFromFile:
         fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])
 
         fake_client = Mock()
-        fake_client.generate_extraction_schema.return_value = {"type": "object", "properties": {}}
+        fake_client.generate_schema.return_value = {"type": "object", "properties": {}}
         fake_client._file_to_images.return_value = [{"value": "img-bytes"}]
         fake_client.generate_document_layout_name.return_value = "Invoice Layout"
         fake_client.summarize_with_args.return_value = "Layout summary"
@@ -1931,7 +1931,7 @@ class TestGenerateLayoutFromFile:
 
         fake_file_manager.upload.assert_awaited()
         mock_find_model.assert_called_once()
-        fake_client.generate_extraction_schema.assert_called_once()
+        fake_client.generate_schema.assert_called_once()
 
         fake_client._file_to_images.assert_called_once()
         fake_client.generate_document_layout_name.assert_called_once()
@@ -1983,7 +1983,7 @@ class TestGenerateDataModelFromDocument:
         fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])
 
         fake_client = Mock()
-        fake_client.generate_schema_from_document.return_value = {"fields": []}
+        fake_client.generate_schema.return_value = {"fields": []}
 
         fake_service = Mock()
         fake_service.get_docint_datasource.return_value = Mock()
@@ -2023,7 +2023,7 @@ class TestGenerateDataModelFromDocument:
         assert "uploaded_file" in body
 
         fake_file_manager.upload.assert_awaited()
-        fake_client.generate_schema_from_document.assert_called_once()
+        fake_client.generate_schema.assert_called_once()
 
     def test_generate_data_model_from_file_with_file_ref(
         self, client: TestClient, fastapi_app: FastAPI
@@ -2058,7 +2058,7 @@ class TestGenerateDataModelFromDocument:
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[refreshed_stored])
 
         fake_client = Mock()
-        fake_client.generate_schema_from_document.return_value = {"fields": ["a", "b"]}
+        fake_client.generate_schema.return_value = {"fields": ["a", "b"]}
 
         fake_service = Mock()
         fake_service.get_docint_datasource.return_value = Mock()
@@ -2098,11 +2098,11 @@ class TestGenerateDataModelFromDocument:
 
         mock_get_file_by_ref.assert_awaited()
         fake_file_manager.refresh_file_paths.assert_awaited()
-        fake_client.generate_schema_from_document.assert_called_once()
+        fake_client.generate_schema.assert_called_once()
 
 
 class TestGenerateExtractionSchemaFromDocument:
-    """Tests for the generate_extraction_schema_from_document endpoint."""
+    """Tests for the generate_schema endpoint."""
 
     def _override_dependencies(self, app: FastAPI, fake_file_manager, fake_client) -> None:
         app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
@@ -2110,9 +2110,7 @@ class TestGenerateExtractionSchemaFromDocument:
             lambda agent_id, request=None, thread_id=None: fake_client
         )
 
-    def test_generate_schema_from_document_direct_upload(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
+    def test_generate_schema_direct_upload(self, client: TestClient, fastapi_app: FastAPI):
         """Uploading a file directly should upload via file manager and return uploaded_file."""
         storage_instance = StorageService.get_instance()
 
@@ -2132,9 +2130,7 @@ class TestGenerateExtractionSchemaFromDocument:
         fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])
 
         fake_client = Mock()
-        fake_client.generate_extraction_schema = Mock(
-            return_value='{"type": "object", "properties": {}}'
-        )
+        fake_client.generate_schema = Mock(return_value='{"type": "object", "properties": {}}')
 
         with patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)):
             self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
@@ -2162,11 +2158,9 @@ class TestGenerateExtractionSchemaFromDocument:
         assert body["file"]["file_ref"] == "uploaded-ref-123"
 
         fake_file_manager.upload.assert_awaited()
-        fake_client.generate_extraction_schema.assert_called_once()
+        fake_client.generate_schema.assert_called_once()
 
-    def test_generate_schema_from_document_with_file_ref(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
+    def test_generate_schema_with_file_ref(self, client: TestClient, fastapi_app: FastAPI):
         """Providing a file ref should resolve from storage and not return uploaded_file."""
         storage_instance = StorageService.get_instance()
 
@@ -2183,7 +2177,7 @@ class TestGenerateExtractionSchemaFromDocument:
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[refreshed_stored])
 
         fake_client = Mock()
-        fake_client.generate_extraction_schema = Mock(
+        fake_client.generate_schema = Mock(
             return_value='{"type": "object", "properties": {"field": {"type": "string"}}}'
         )
 
@@ -2214,7 +2208,7 @@ class TestGenerateExtractionSchemaFromDocument:
 
         mock_get_file_by_ref.assert_awaited()
         fake_file_manager.refresh_file_paths.assert_awaited()
-        fake_client.generate_extraction_schema.assert_called_once()
+        fake_client.generate_schema.assert_called_once()
 
 
 @pytest.fixture
