@@ -1,5 +1,5 @@
 import { FC, useState, MouseEvent } from 'react';
-import { Badge, Select } from '@sema4ai/components';
+import { Badge, Select, Input } from '@sema4ai/components';
 import { IconCloseSmall, IconEye, IconEyeLock } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 
@@ -63,20 +63,35 @@ export const McpHeaderSecretInput: FC<Props> = ({
         />
       )}
 
-      <Select
-        placeholder={headerValue.type === 'secret' ? '' : `Value for ${headerKey}`}
-        type={hideInputValue ? 'secret' : 'text'}
-        aria-label="Header value"
-        value={headerValue.type === 'string' ? headerValue.value : ''}
-        onChange={(value) => onUpdateSecretId(headerKey, value)}
-        items={items}
-        onInputChange={(e) => onUpdateValue(headerKey, e.target.value)}
-        iconRightSecondary={!secretName ? SecondaryIcon : undefined}
-        iconRightSecondaryLabel="Toggle input visibility"
-        onIconRightSecondaryClick={onToggleVisibility}
-        error={error}
-        disabled={disabled}
-      />
+      {headerValue.type === 'secret' && items.length === 0 ? (
+        <Input
+          placeholder={`Secret for ${headerKey}`}
+          type={hideInputValue ? 'password' : 'text'}
+          aria-label="Header secret"
+          value={headerValue.type === 'secret' ? headerValue.secretID : ''}
+          onChange={(e) => onUpdateSecretId(headerKey, e.target.value)}
+          iconRightSecondary={SecondaryIcon}
+          iconRightSecondaryLabel="Toggle input visibility"
+          onIconRightSecondaryClick={onToggleVisibility}
+          error={error}
+          disabled={disabled}
+        />
+      ) : (
+        <Select
+          placeholder={headerValue.type === 'secret' ? '' : `Value for ${headerKey}`}
+          type={hideInputValue ? 'secret' : 'text'}
+          aria-label="Header value"
+          value={headerValue.type === 'string' ? headerValue.value : ''}
+          onChange={(value) => onUpdateSecretId(headerKey, value)}
+          items={items}
+          onInputChange={(e) => onUpdateValue(headerKey, e.target.value)}
+          iconRightSecondary={!secretName ? SecondaryIcon : undefined}
+          iconRightSecondaryLabel="Toggle input visibility"
+          onIconRightSecondaryClick={onToggleVisibility}
+          error={error}
+          disabled={disabled}
+        />
+      )}
     </Container>
   );
 };

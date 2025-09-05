@@ -18,7 +18,11 @@ def mock_user():
 
 @pytest.fixture
 def mock_storage():
-    return AsyncMock()
+    storage = AsyncMock()
+    # Mock methods that are called by _process_mcp_servers
+    storage.get_mcp_servers_by_ids.return_value = {}  # Return empty dict by default
+    storage.get_dids_connection_details.return_value = None  # Return None by default
+    return storage
 
 
 def create_test_agent(action_packages=None, mcp_servers=None):
@@ -611,3 +615,61 @@ async def test_agent_details_with_multiple_action_packages_and_mcp_servers(mock_
         assert server.name == f"test_mcp_server_{i}"
         assert server.status == "online"
         assert len(server.actions) == 1
+
+
+async def test_agent_details_with_global_and_agent_specific_mcp_servers(mock_user, mock_storage):
+    """
+    Test getting agent details for an agent with both
+    global MCP servers (from storage) and agent-specific MCP servers.
+    """
+    # Create global MCP servers that will be returned by storage
+    global_mcp_server = MCPServer(
+        name="global_mcp_server",
+        url="http://global-mcp.com",
+    )
+
+    # Create agent-specific MCP server
+    agent_mcp_server = MCPServer(
+        name="agent_specific_mcp_server",
+        url="http://agent-mcp.com",
+    )
+
+    # Create agent with agent-specific MCP server and some global MCP server IDs
+    agent = create_test_agent(mcp_servers=[agent_mcp_server])
+    agent = agent.copy(mcp_server_ids=["global-server-id-123"])
+
+    # Mock storage to return global MCP server
+    mock_storage.get_agent.return_value = agent
+    mock_storage.get_mcp_servers_by_ids.return_value = {"global-server-id-123": global_mcp_server}
+
+    # Create a proper mock tool definition with name attribute
+    mock_tool_def = AsyncMock()
+    mock_tool_def.name = "test_mcp_action"
+
+    with patch(
+        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        return_value=[mock_tool_def],
+    ):
+        result = await get_agent_details(
+            user=mock_user,
+            aid="test_agent",
+            storage=mock_storage,
+        )
+
+    assert result.runbook == "test runbook"
+
+    # Verify we have both global and agent-specific MCP servers
+    assert len(result.mcp_servers) == 2
+
+    server_names = [server.name for server in result.mcp_servers]
+    assert "global_mcp_server" in server_names
+    assert "agent_specific_mcp_server" in server_names
+
+    # Verify both servers are online and have actions
+    for server in result.mcp_servers:
+        assert server.status == "online"
+        assert len(server.actions) == 1
+        assert server.actions[0].name == "test_mcp_action"
+
+    # Verify that get_mcp_servers_by_ids was called with the correct IDs
+    mock_storage.get_mcp_servers_by_ids.assert_called_once_with(["global-server-id-123"])

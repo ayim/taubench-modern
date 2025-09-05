@@ -253,6 +253,23 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
         {!readOnly && (
           <>
             <Form.Fieldset>
+              <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <Select
+                  label="Type"
+                  value={mcpServerSettings?.type ?? 'generic_mcp'}
+                  items={[
+                    { label: 'Generic MCP', value: 'generic_mcp' },
+                    { label: 'Sema4 Action Server', value: 'sema4ai_action_server' },
+                  ]}
+                  onChange={async (value) => {
+                    if (value !== 'generic_mcp' && value !== 'sema4ai_action_server') return;
+                    await updateMcpServerSettings((settings) => ({
+                      ...settings,
+                      type: value,
+                    }));
+                  }}
+                />
+              </Box>
               <Input
                 label="URL (Optional)"
                 placeholder="Enter a URL to the MCP server"

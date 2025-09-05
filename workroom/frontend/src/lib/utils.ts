@@ -1,6 +1,7 @@
 import { UserTenant } from '~/queries/tenants';
 import { getBasePath } from '~/utils/base';
 import type { CreateMcpServerBody, McpServerResponse, UpdateMcpServerBody } from '~/queries/mcpServers';
+import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/create/components/context';
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -110,22 +111,51 @@ export const resolveWorkroomURL = (
   baseUrl: string = `${window.location.protocol}//${window.location.host}`,
 ): string => joinURL(baseUrl, getBasePath(), path);
 
-export type HeaderEntry = { key: string; value?: string; type?: 'string' | 'secret' };
+type HeaderEntry = { key: string; value?: string; type: MCPHeaderValue['type'] };
 
-export function entriesToHeaders(entries: HeaderEntry[] | undefined | null): Record<string, string> {
-  const normalized = (entries || [])
-    .filter((entry) => entry && typeof entry.key === 'string' && entry.key.trim().length > 0)
-    .map((entry) => [entry.key, entry.value ?? '']);
-  return Object.fromEntries(normalized);
+export function entriesToHeaders(
+  entries: HeaderEntry[] | undefined | null,
+): Record<string, string | { type: 'secret'; value: string }> {
+  const out: Record<string, string | { type: 'secret'; value: string }> = {};
+  for (const { key, value = '', type } of entries || []) {
+    if (!key || key.trim().length === 0) continue;
+    out[key] = type === 'secret' ? { type: 'secret', value } : value;
+  }
+  return out;
 }
 
-export function headersToEntries(headers?: Record<string, string | undefined> | null): HeaderEntry[] {
+export function headersToEntries(
+  headers?: Record<string, string | { type?: string; value?: string } | undefined> | null,
+): HeaderEntry[] {
   if (!headers) return [];
-  return Object.entries(headers).map(([key, value]) => ({ key, value: value ?? '', type: 'string' }));
+  return Object.entries(headers).map(([key, value]) => {
+    if (value && typeof value === 'object' && (value as { type?: string }).type?.toLowerCase() === 'secret') {
+      return { key, value: (value as { value?: string }).value ?? '', type: 'secret' };
+    }
+    return { key, value: (value as string | undefined) ?? '', type: 'string' };
+  });
+}
+
+export function mcpHeadersFromRecord(
+  headers?: Record<string, MCPHeaderValue | string | null> | null,
+): Record<string, string | { type: 'secret'; value: string }> | undefined {
+  if (!headers) return undefined;
+  const out: Record<string, string | { type: 'secret'; value: string }> = {};
+  for (const [key, raw] of Object.entries(headers)) {
+    if (!key || key.trim().length === 0) continue;
+    if (raw && typeof raw === 'object' && 'type' in (raw as MCPHeaderValue)) {
+      const v = raw as MCPHeaderValue;
+      out[key] = v.type === 'secret' ? { type: 'secret', value: v.value ?? '' } : (v.value ?? '');
+    } else {
+      out[key] = (raw as string | undefined) ?? '';
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 export function buildCreateMcpBody(values: {
   name: string;
+  type: CreateMcpServerBody['type'];
   transport: CreateMcpServerBody['transport'];
   url?: string;
   headerEntries?: HeaderEntry[];
@@ -133,15 +163,17 @@ export function buildCreateMcpBody(values: {
   const headers = entriesToHeaders(values.headerEntries);
   return {
     name: values.name,
+    type: values.type ?? 'generic_mcp',
     transport: values.transport,
     url: values.url || undefined,
-    headers: Object.keys(headers).length ? headers : undefined,
+    headers: Object.keys(headers).length ? (headers as CreateMcpServerBody['headers']) : undefined,
   } as CreateMcpServerBody;
 }
 
 export function buildUpdateMcpBody(
   values: {
     name: string;
+    type: UpdateMcpServerBody['type'];
     transport: UpdateMcpServerBody['transport'];
     url?: string;
     headerEntries?: HeaderEntry[];
@@ -154,9 +186,10 @@ export function buildUpdateMcpBody(
   const headers = entriesToHeaders(values.headerEntries);
   const base: UpdateMcpServerBody = {
     name: values.name,
+    type: values.type ?? 'generic_mcp',
     transport: values.transport,
     url: values.transport === 'stdio' ? null : values.url || null,
-    headers: Object.keys(headers).length ? headers : null,
+    headers: Object.keys(headers).length ? (headers as UpdateMcpServerBody['headers']) : null,
   } as UpdateMcpServerBody;
 
   if (values.transport === 'stdio') {

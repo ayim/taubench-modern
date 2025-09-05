@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { errorToast, successToast } from '~/utils/toasts';
 import { AgentDeploymentForm } from './create/components/AgentDeploymentForm';
 import type { AgentPackageResponse } from './create/components/AgentUploadForm';
+import { mcpHeadersFromRecord } from '~/lib/utils';
 import { AgentUploadForm } from './create/components/AgentUploadForm';
 import { AgentDeploymentFormSchema } from './create/components/context';
 import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
@@ -37,15 +38,18 @@ async function buildAgentPackagePayload(
 ): Promise<AgentPackagePayload> {
   const { packageBase64, packageUrl } = options;
 
-  // TODO: Change `type` when we have a form to use and change it.
-  const mcpServers = (form.mcpServerSettings ?? []).map((s) => ({
-    name: s.name,
-    type: 'generic_mcp' as const,
-    transport: s.transport,
-    url: s.url ?? null,
-    headers: s.headers ?? undefined,
-    force_serial_tool_calls: s.force_serial_tool_calls,
-  }));
+  const mcpServers = (form.mcpServerSettings ?? [])
+    .filter((s) => !s.mcpServerId)
+    .map((s) => ({
+      name: s.name,
+      type: s.type ?? 'generic_mcp',
+      transport: s.transport,
+      url: s.url ?? null,
+      headers: mcpHeadersFromRecord(s.headers ?? undefined),
+      force_serial_tool_calls: s.force_serial_tool_calls,
+    }));
+
+  const mcpServerIds = Array.isArray(form.mcpServerIds) ? form.mcpServerIds : [];
 
   const buildModel = async (): Promise<Record<string, unknown> | undefined> => {
     const raw = form.llmId;
@@ -171,7 +175,7 @@ async function buildAgentPackagePayload(
     ...(modelForPayload ? { model: modelForPayload } : {}),
     action_servers: [],
     ...(options.includeMcpServers && mcpServers.length ? { mcp_servers: mcpServers } : {}),
-    ...(Array.isArray(form.mcpServerIds) && form.mcpServerIds.length ? { mcp_server_ids: form.mcpServerIds } : {}),
+    ...(mcpServerIds.length ? { mcp_server_ids: mcpServerIds } : {}),
   } satisfies AgentPackagePayload;
 
   return payload;

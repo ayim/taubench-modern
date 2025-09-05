@@ -120,6 +120,17 @@ class AgentPackagePayload:
     )
     """The Model Context Protocol (MCP) servers this agent uses."""
 
+    mcp_server_ids: list[str] = field(
+        default_factory=list,
+        metadata={
+            "description": (
+                "Global MCP server IDs to associate with the agent. If provided, "
+                "they are used in addition to any inline mcp_servers."
+            ),
+        },
+    )
+    """Global MCP server IDs to associate with the agent."""
+
     langsmith: AgentPackagePayloadLangsmith | None = field(
         default=None,
         metadata={

@@ -3,10 +3,15 @@ Default architecture for running agents.
 """
 
 from importlib.metadata import version
+from typing import TYPE_CHECKING
 
 from agent_platform.architectures.default.thread_conversion import (
     thread_messages_to_prompt_messages,
 )
+from agent_platform.core.mcp.mcp_server import MCPServer
+
+if TYPE_CHECKING:
+    from agent_platform.server.storage.base import BaseStorage
 
 __author__ = "Sema4.ai Engineering"
 __copyright__ = "Copyright 2025, Sema4.ai"
@@ -135,6 +140,17 @@ async def _handle_max_iterations(kernel: Kernel, state: ArchState) -> ArchState:
     return state
 
 
+async def _resolve_global_mcp_servers(kernel: Kernel) -> list[MCPServer]:
+    """Resolve global MCP servers from their IDs."""
+    global_mcp_server_ids = kernel.agent.mcp_server_ids
+    if not global_mcp_server_ids:
+        return []
+
+    storage: BaseStorage = kernel.storage._internal_storage  # type: ignore
+    mcp_servers_dict = await storage.get_mcp_servers_by_ids(global_mcp_server_ids)
+    return list(mcp_servers_dict.values())
+
+
 async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchState:
     # Update our state to reflect the failure
     state.state_parse_failure_count += 1
@@ -183,8 +199,12 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     action_tools, action_issues = await kernel.tools.from_action_packages(
         kernel.agent.action_packages,
     )
+
+    global_mcp_servers = await _resolve_global_mcp_servers(kernel)
+    all_mcp_servers = [*global_mcp_servers, *kernel.agent.mcp_servers]
+
     mcp_tools, mcp_issues = await kernel.tools.from_mcp_servers(
-        kernel.agent.mcp_servers,
+        all_mcp_servers,
     )
 
     # Note: leave this under a feature flag for now, as it's not ready for prime time yet.

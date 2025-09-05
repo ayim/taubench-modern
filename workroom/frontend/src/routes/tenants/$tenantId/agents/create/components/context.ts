@@ -45,6 +45,7 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
 
   const MCPServerSettingsSchema = z.object({
     name: z.string().min(1),
+    type: z.enum(['generic_mcp', 'sema4ai_action_server']).default('generic_mcp'),
     url: z.string().min(1).nullable().optional(),
     transport: z.enum(['auto', 'streamable-http', 'sse', 'stdio']),
     headers: MCPServerHeaders.optional().refine(
@@ -73,7 +74,7 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
   return agentConfigurationSchema.and(mcpConfigurationSchema);
 };
 
-export type AgentDeploymentFormSchema = z.infer<ReturnType<typeof buildAgentDeploymentSchema>>;
+export type AgentDeploymentFormSchema = z.input<ReturnType<typeof buildAgentDeploymentSchema>>;
 export type MCPServerSettings = NonNullable<AgentDeploymentFormSchema['mcpServerSettings']>[number];
 export type MCPHeaderValue =
   | { type: 'string'; description?: string | null; value?: string | null }

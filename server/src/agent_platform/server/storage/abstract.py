@@ -519,6 +519,10 @@ class AbstractStorage(ABC):
         """Count the number of MCP servers."""
 
     @abstractmethod
+    async def get_mcp_servers_by_ids(self, mcp_server_ids: list[str]) -> dict[str, "MCPServer"]:
+        """Get multiple MCP servers by their IDs."""
+
+    @abstractmethod
     async def update_work_item_from_thread(
         self,
         user_id: str,

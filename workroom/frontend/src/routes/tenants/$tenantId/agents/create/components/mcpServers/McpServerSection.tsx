@@ -7,6 +7,10 @@ import type { ListMcpServersResponse } from '~/queries/mcpServers';
 import { AgentDeploymentFormSchema, MCPServerSettings } from '../context';
 import { McpServerItem } from './McpServerItem';
 
+const allowedTransports = ['auto', 'streamable-http', 'sse', 'stdio'] as const;
+const toTransport = (value: string): MCPServerSettings['transport'] =>
+  (allowedTransports as readonly string[]).includes(value) ? (value as MCPServerSettings['transport']) : 'auto';
+
 export const McpServerSection: FC = () => {
   const { watch, getValues, setValue, trigger } = useFormContext<AgentDeploymentFormSchema>();
   const { mcpServers } = useLoaderData({ from: '/tenants/$tenantId/agents/create' }) as {
@@ -51,16 +55,10 @@ export const McpServerSection: FC = () => {
                 if (!srv) return;
                 const currentRaw = getValues('mcpServerSettings');
                 const current = (currentRaw ?? []) as MCPServerSettings[];
-                const allowedTransports: ReadonlyArray<MCPServerSettings['transport']> = [
-                  'auto',
-                  'streamable-http',
-                  'sse',
-                  'stdio',
-                ] as const as unknown as ReadonlyArray<MCPServerSettings['transport']>;
-                const transport: MCPServerSettings['transport'] =
-                  allowedTransports.find((t) => t === (srv.transport as string)) ?? 'auto';
+                const transport: MCPServerSettings['transport'] = toTransport(srv.transport);
                 const configuredEntry = {
                   name: srv.name,
+                  type: 'generic_mcp',
                   url: srv.transport === 'stdio' ? null : (srv.url ?? null),
                   transport,
                   headers: {},
@@ -90,6 +88,7 @@ export const McpServerSection: FC = () => {
             const current = currentRaw ?? [];
             const emptyServer = {
               name: '',
+              type: 'generic_mcp' as const,
               url: null,
               transport: 'auto',
               headers: {},

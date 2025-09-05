@@ -168,7 +168,10 @@ async def _process_mcp_servers(agent, storage: StorageDependency) -> list[MCPSer
         # even when data server details are unavailable
         logger.info(f"Could not retrieve data server details for MCP context: {e}")
 
-    for mcp_server in agent.mcp_servers:
+    mcp_servers_dict = await storage.get_mcp_servers_by_ids(agent.mcp_server_ids)
+    all_mcp_servers = list(mcp_servers_dict.values()) + agent.mcp_servers
+
+    for mcp_server in all_mcp_servers:
         try:
             tool_defs = await mcp_server.to_tool_definitions(
                 data_server_details=data_server_details

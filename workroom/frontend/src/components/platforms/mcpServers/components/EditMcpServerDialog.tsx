@@ -1,18 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, Dialog, Form, Input, Select } from '@sema4ai/components';
 import { IconPlus, IconTrash } from '@sema4ai/icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import { FC, useMemo } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { McpServerResponse, useUpdateMcpServerMutation, type UpdateMcpServerBody } from '~/queries/mcpServers';
 import { buildUpdateMcpBody, headersToEntries } from '~/lib/utils';
+import { McpServerResponse, useUpdateMcpServerMutation, type UpdateMcpServerBody } from '~/queries/mcpServers';
+import type { MCPServerSettings } from '~/routes/tenants/$tenantId/agents/create/components/context';
 import { errorToast, successToast } from '~/utils/toasts';
 
 type Props = { open: boolean; onClose: () => void; initial: McpServerResponse };
 
-type Transport = UpdateMcpServerBody['transport'];
-const transportValues = ['auto', 'stdio', 'sse', 'streamable-http'] as const satisfies readonly Transport[];
+type Transport = MCPServerSettings['transport'];
+type McpType = MCPServerSettings['type'];
+const transportValues = ['auto', 'stdio', 'sse', 'streamable-http'] as const;
+const mcpTypeValues = ['generic_mcp', 'sema4ai_action_server'] as const;
 
 const keyValueSchema = z.object({
   key: z.string().min(1, 'Key is required'),
@@ -20,32 +24,23 @@ const keyValueSchema = z.object({
   type: z.enum(['string', 'secret']).optional().default('string'),
 });
 
-const formSchema = z
-  .object({
-    name: z.string().min(1, 'Name is required'),
-    transport: z.enum(transportValues),
-    url: z.string().optional(),
-    headersKV: z.array(keyValueSchema).default([]),
-    command: z.string().optional(),
-    argsText: z.string().optional(),
-    cwd: z.string().optional(),
-  })
-  .superRefine((values, ctx) => {
-    if (values.transport === 'stdio') {
-      if (!values.command || !values.command.trim()) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['command'], message: 'Command is required for stdio' });
-      }
-    } else {
-      if (!values.url || !values.url.trim()) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['url'], message: 'URL is required for this transport' });
-      }
-    }
-  });
+const formSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  type: z.enum(mcpTypeValues).default('generic_mcp'),
+  transport: z.enum(transportValues).default('auto'),
+  url: z.string().optional(),
+  headersKV: z.array(keyValueSchema).default([]),
+  command: z.string().optional(),
+  argsText: z.string().optional(),
+  cwd: z.string().optional(),
+});
 
-type FormValues = z.input<typeof formSchema>;
+type FormInput = z.input<typeof formSchema>;
+type FormValues = z.output<typeof formSchema>;
 
 export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
+  const queryClient = useQueryClient();
   const mutation = useUpdateMcpServerMutation();
 
   const defaultHeadersKV = useMemo(() => {
@@ -56,10 +51,11 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
     return headersToEntries(headers);
   }, [initial]);
 
-  const form = useForm<FormValues, unknown, FormValues>({
+  const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initial.name ?? '',
+      type: ((initial as unknown as { type?: McpType }).type as McpType | undefined) ?? 'generic_mcp',
       transport: (initial.transport as Transport) ?? 'auto',
       url: (initial.url as string | undefined) ?? undefined,
       headersKV: defaultHeadersKV,
@@ -74,10 +70,11 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
 
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
 
-  const onSubmit = form.handleSubmit((values: FormValues) => {
+  const onSubmit = form.handleSubmit((values) => {
     const body: UpdateMcpServerBody = buildUpdateMcpBody(
       {
         name: values.name,
+        type: (values.type as McpType | undefined) ?? 'generic_mcp',
         transport: values.transport,
         url: values.url,
         headerEntries: values.headersKV,
@@ -87,13 +84,13 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
       },
       initial,
     );
-
     const mcpServerId = initial.mcp_server_id as string;
 
     mutation.mutate(
       { tenantId, mcpServerId, body },
       {
-        onSuccess: () => {
+        onSuccess: async (data) => {
+          queryClient.setQueryData(['mcp-server', tenantId, mcpServerId], data);
           successToast('MCP server updated');
           onClose();
         },
@@ -118,6 +115,21 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
                 error={form.formState.errors.name?.message}
                 placeholder="Enter name"
                 autoFocus
+              />
+              <Controller
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <Select
+                    label="Type"
+                    items={mcpTypeValues.map((t) => ({
+                      value: t,
+                      label: t === 'generic_mcp' ? 'Generic MCP' : 'Sema4 Action Server',
+                    }))}
+                    value={field.value}
+                    onChange={(value) => field.onChange(value as FormValues['type'])}
+                  />
+                )}
               />
               <Controller
                 control={form.control}

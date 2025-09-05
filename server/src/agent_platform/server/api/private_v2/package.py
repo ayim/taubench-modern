@@ -80,6 +80,7 @@ async def deploy_agent_from_package(
             model=validated_payload.model,
             action_servers=validated_payload.action_servers,
             mcp_servers=validated_payload.mcp_servers,
+            mcp_server_ids=validated_payload.mcp_server_ids,
             langsmith=validated_payload.langsmith,
         )
 
@@ -134,6 +135,7 @@ async def update_agent_from_package(
             model=validated_payload.model,
             action_servers=validated_payload.action_servers,
             mcp_servers=validated_payload.mcp_servers,
+            mcp_server_ids=validated_payload.mcp_server_ids,
             langsmith=validated_payload.langsmith,
         )
 
@@ -187,6 +189,7 @@ async def calculate_agent_package_hash(
                 model=validated_payload.model,
                 action_servers=validated_payload.action_servers,
                 mcp_servers=validated_payload.mcp_servers,
+                mcp_server_ids=validated_payload.mcp_server_ids,
                 langsmith=validated_payload.langsmith,
             )
 
@@ -414,6 +417,19 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
         else:
             normalized_mcp_servers.append(server)
 
+    # Normalize mcp_server_ids in case multipart left it as a JSON string
+    mcp_server_ids: list[str] = []
+    mcp_ids_input = payload.mcp_server_ids
+    if isinstance(mcp_ids_input, str):
+        try:
+            parsed = json.loads(mcp_ids_input)
+            if isinstance(parsed, list):
+                mcp_server_ids = [x for x in parsed if isinstance(x, str)]
+        except Exception:
+            mcp_server_ids = []
+    elif isinstance(mcp_ids_input, list):
+        mcp_server_ids = [x for x in mcp_ids_input if isinstance(x, str)]
+
     # Normalize model in case multipart parsing left it as a JSON string
     normalized_model = payload.model
     if isinstance(normalized_model, str):
@@ -439,6 +455,7 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
             for action_package in agent0.get("action-packages", [])
         ],
         mcp_servers=normalized_mcp_servers,
+        mcp_server_ids=mcp_server_ids,
         runbook=agent_package.runbook_text,
         advanced_config=advanced_config,
         question_groups=agent_package.question_groups,

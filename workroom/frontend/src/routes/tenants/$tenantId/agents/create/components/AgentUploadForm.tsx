@@ -97,6 +97,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
               name?: string;
               transport?: 'sse' | 'streamable-http' | 'auto' | 'stdio';
               url?: string;
+              type?: 'generic_mcp' | 'sema4ai_action_server';
               headers?: Record<string, unknown>;
             }>;
             datasources?: Array<{ engine?: string; customer_facing_name?: string }>;
@@ -108,6 +109,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
         const mcpServers = (data.mcp_servers ?? []).map((srv, idx) => ({
           config: {
             name: srv.name ?? `MCP ${idx + 1}`,
+            type: srv.type ?? 'generic_mcp',
             url: srv.url ?? '',
             transport: (srv.transport === 'sse' || srv.transport === 'streamable-http'
               ? srv.transport
@@ -138,6 +140,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
           apiKey: '',
           mcpServerSettings: mcpServers.map((s) => ({
             name: s.config.name,
+            type: s.config.type,
             url: s.config.url,
             transport: s.config.transport === 'sse' ? 'sse' : 'streamable-http',
             headers: null,

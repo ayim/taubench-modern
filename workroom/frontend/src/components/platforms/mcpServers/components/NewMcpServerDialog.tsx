@@ -5,14 +5,14 @@ import { useParams } from '@tanstack/react-router';
 import { FC } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useCreateMcpServerMutation, type CreateMcpServerBody } from '~/queries/mcpServers';
 import { buildCreateMcpBody } from '~/lib/utils';
+import { useCreateMcpServerMutation, type CreateMcpServerBody } from '~/queries/mcpServers';
 import { errorToast, successToast } from '~/utils/toasts';
 
 type Props = { open: boolean; onClose: () => void };
 
-type Transport = CreateMcpServerBody['transport'];
-const transportValues = ['auto', 'stdio', 'sse', 'streamable-http'] as const satisfies readonly Transport[];
+const transportValues = ['auto', 'stdio', 'sse', 'streamable-http'] as const;
+const mcpTypeValues = ['generic_mcp', 'sema4ai_action_server'] as const;
 
 const keyValueSchema = z.object({
   key: z.string().min(1, 'Key is required'),
@@ -20,29 +20,38 @@ const keyValueSchema = z.object({
   type: z.enum(['string', 'secret']).optional().default('string'),
 });
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  transport: z.enum(transportValues),
-  url: z.string().min(1, 'URL is required'),
-  headersKV: z.array(keyValueSchema).default([]),
-});
+const formSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    type: z.enum(mcpTypeValues).default('generic_mcp'),
+    transport: z.enum(transportValues),
+    url: z.string().optional(),
+    headersKV: z.array(keyValueSchema).default([]),
+  })
+  .superRefine((values, ctx) => {
+    if (values.transport !== 'stdio' && (!values.url || !values.url.trim())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['url'], message: 'URL is required for this transport' });
+    }
+  });
 
-type FormValues = z.input<typeof formSchema>;
+type FormInput = z.input<typeof formSchema>;
+type FormValues = z.output<typeof formSchema>;
 
 export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const mutation = useCreateMcpServerMutation();
-  const form = useForm<FormValues, unknown, FormValues>({
+  const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', transport: 'auto', url: '', headersKV: [] },
+    defaultValues: { name: '', type: 'generic_mcp', transport: 'auto', url: '', headersKV: [] },
     mode: 'onChange',
   });
 
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
 
-  const onSubmit = form.handleSubmit((values: FormValues) => {
+  const onSubmit = form.handleSubmit((values) => {
     const body: CreateMcpServerBody = buildCreateMcpBody({
       name: values.name,
+      type: values.type,
       transport: values.transport,
       url: values.url,
       headerEntries: values.headersKV,
@@ -76,6 +85,21 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                 error={form.formState.errors.name?.message}
                 placeholder="Enter name"
                 autoFocus
+              />
+              <Controller
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <Select
+                    label="Type"
+                    items={mcpTypeValues.map((t) => ({
+                      value: t,
+                      label: t === 'generic_mcp' ? 'Generic MCP' : 'Sema4 Action Server',
+                    }))}
+                    value={field.value}
+                    onChange={(value) => field.onChange(value as FormValues['type'])}
+                  />
+                )}
               />
               <Controller
                 control={form.control}
