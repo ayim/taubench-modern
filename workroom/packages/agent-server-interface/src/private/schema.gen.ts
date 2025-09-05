@@ -2123,6 +2123,11 @@ export interface components {
        * @description The Model Context Protocol (MCP) servers this agent uses.
        */
       mcp_servers?: components['schemas']['MCPServer'][];
+      /**
+       * Mcp Server Ids
+       * @description Global MCP server IDs to associate with the agent. If provided, they are used in addition to any inline mcp_servers.
+       */
+      mcp_server_ids?: string[];
       /** @description The Langsmith configuration for the agent. */
       langsmith?: components['schemas']['AgentPackagePayloadLangsmith'] | null;
     };
@@ -3228,6 +3233,11 @@ export interface components {
        * @description Working directory to run the MCP server command in.
        */
       cwd?: string | null;
+      /**
+       * Type
+       * @description The type of MCP server.
+       */
+      type?: string | null;
       /**
        * Force Serial Tool Calls
        * @description If true, all tool calls are executed under a lock.

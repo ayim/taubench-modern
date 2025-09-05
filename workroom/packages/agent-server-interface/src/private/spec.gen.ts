@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.41',
+    version: '2.0.42',
   },
   paths: {
     '/api/v2/ok': {
@@ -5969,6 +5969,15 @@ export const spec = {
             description:
               'The Model Context Protocol (MCP) servers this agent uses.',
           },
+          mcp_server_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Mcp Server Ids',
+            description:
+              'Global MCP server IDs to associate with the agent. If provided, they are used in addition to any inline mcp_servers.',
+          },
           langsmith: {
             anyOf: [
               {
@@ -8366,6 +8375,18 @@ export const spec = {
             ],
             title: 'Cwd',
             description: 'Working directory to run the MCP server command in.',
+          },
+          type: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Type',
+            description: 'The type of MCP server.',
           },
           force_serial_tool_calls: {
             type: 'boolean',
