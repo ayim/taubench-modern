@@ -1,6 +1,6 @@
 [project]
 name = "agent_platform_server"
-version = "2.0.41"
+version = "2.0.42"
 requires-python = ">=3.12.9,<3.13"
 authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
 license = "LicenseRef-Proprietary"

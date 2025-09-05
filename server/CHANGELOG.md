@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.0.42 (2025-09-05)
+
+- Fix: Add missing type in MCPServerResponse [#832](https://github.com/Sema4AI/agent-platform/pull/832)
+- Bump sema4ai-docint to 0.4.12 [#837](https://github.com/Sema4AI/agent-platform/pull/837)
+
 # Sema4.ai Agent Server 2.0.41 (2025-09-04)
 
 - [Data Frames] Don't remove tools after they were added into the context [#808](https://github.com/Sema4AI/agent-platform/pull/808)
