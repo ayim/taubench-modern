@@ -9,8 +9,14 @@ export const getListPlatformsQueryOptions = ({ tenantId, agentAPIClient }: Query
   queryOptions({
     queryKey: ['platforms', tenantId],
     queryFn: async (): Promise<ListPlatformsResponse> => {
-      return (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/', {
+      const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/', {
         silent: true,
-      })) as ListPlatformsResponse;
+      });
+
+      if (!response.success) {
+        throw new Error(response?.message || 'Failed to fetch platforms');
+      }
+
+      return response.data as ListPlatformsResponse;
     },
   });

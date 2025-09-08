@@ -38,6 +38,7 @@ COPY workroom/package*.json workroom/turbo.json ./
 COPY workroom/packages packages
 COPY workroom/frontend frontend
 COPY workroom/backend backend
+COPY workroom/spar-ui spar-ui
 
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=secret,id=npmrc,dst=/app/.npmrc \

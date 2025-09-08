@@ -56,7 +56,14 @@ function RouteComponent() {
             <Header.Description>Manage MCP servers</Header.Description>
           </Header>
 
-          <Box borderWidth="1px" borderColor="grey80" borderRadius="$8" p="$16" mb="$32" backgroundColor="white">
+          <Box
+            borderWidth="1px"
+            borderColor="border.primary"
+            borderRadius="$8"
+            p="$16"
+            mb="$32"
+            backgroundColor="background.primary"
+          >
             <Box mt="$8">
               <McpServersTable
                 items={items}

@@ -1,15 +1,16 @@
+import { FC, useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Dialog, Form, Input, Select } from '@sema4ai/components';
+import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
 import { IconPlus, IconTrash } from '@sema4ai/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
-import { FC, useMemo } from 'react';
+
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
+
 import { buildUpdateMcpBody, headersToEntries } from '~/lib/utils';
 import { McpServerResponse, useUpdateMcpServerMutation, type UpdateMcpServerBody } from '~/queries/mcpServers';
 import type { MCPServerSettings } from '~/routes/tenants/$tenantId/agents/create/components/context';
-import { errorToast, successToast } from '~/utils/toasts';
 
 type Props = { open: boolean; onClose: () => void; initial: McpServerResponse };
 
@@ -42,6 +43,7 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const queryClient = useQueryClient();
   const mutation = useUpdateMcpServerMutation();
+  const { addSnackbar } = useSnackbar();
 
   const defaultHeadersKV = useMemo(() => {
     const headers: Record<string, string | undefined> =
@@ -91,10 +93,11 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
       {
         onSuccess: async (data) => {
           queryClient.setQueryData(['mcp-server', tenantId, mcpServerId], data);
-          successToast('MCP server updated');
+          addSnackbar({ message: 'MCP server updated', variant: 'success' });
           onClose();
         },
-        onError: (e) => errorToast(e instanceof Error ? e.message : 'Failed to update MCP server'),
+        onError: (e) =>
+          addSnackbar({ message: e instanceof Error ? e.message : 'Failed to update MCP server', variant: 'danger' }),
       },
     );
   });

@@ -44,7 +44,14 @@ export const ErrorRoute: FC<ErrorComponentProps> = ({ error }) => {
   }
 
   return (
-    <Box display="flex" justifyContent="center" flexDirection="column" maxHeight={960} height="calc(100% - 72px)">
+    <Box
+      as="section"
+      display="flex"
+      justifyContent="center"
+      flexDirection="column"
+      maxHeight={960}
+      height="calc(100% - 72px)"
+    >
       <EmptyState
         illustration={<img src={errorIllustration} loading="lazy" alt="" />}
         title={meta.title}

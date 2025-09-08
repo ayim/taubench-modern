@@ -1,7 +1,6 @@
 import { OAuthClient, OAuthProvider, OAuthProviderSettings } from '@sema4ai/oauth-client';
-import { Agent } from '~/types';
+import { Agent } from '@sema4ai/agent-server-interface';
 
-// TODO: v2 integration, ask to add mode in types
 export const isConversationalAgent = (agent: Agent) => agent && agent.metadata?.mode !== 'worker';
 export const isWorkerAgent = (agent: Agent) => agent && agent.metadata?.mode === 'worker';
 

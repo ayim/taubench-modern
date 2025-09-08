@@ -1,31 +1,23 @@
-import { useMemo, useState } from 'react';
-import { Outlet, createFileRoute } from '@tanstack/react-router';
+import { useMemo } from 'react';
+import { SparUIContext } from '@sema4ai/spar-ui';
+import { Outlet, createFileRoute, useRouteContext } from '@tanstack/react-router';
+import { SidebarMenuProvider } from '@sema4ai/layouts';
 import { Box, Button, EmptyState } from '@sema4ai/components';
-import { DocumentAPIProvider, MarkdownRes, DocTypeContextProvider } from '@sema4ai/agent-components';
-import { getDocumentAPIClient } from '~/lib/DocumentAPIClient';
-import { getListAgentsQueryOptions } from '~/queries/agents';
-import { TenantContext } from '~/lib/tenantContext';
+
 import errorIllustration from '~/assets/error.svg';
-import { Content } from '../components/Content';
-import { Header } from '../components/Header';
-import { Main } from '../components/Main';
-import { Sidebar } from '../components/Sidebar';
+import { createSparAPIClient } from '~/lib/SparAPIClient';
+import { TenantContext } from '~/lib/tenantContext';
 import { getMeta } from '~/lib/meta';
+import { Main } from './components/Main';
+import { Sidebar } from './components/sidebar';
+import { router } from '../../components/providers/Router';
 
 export const Route = createFileRoute('/tenants/$tenantId')({
-  loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
-    const agents = await queryClient.ensureQueryData(
-      getListAgentsQueryOptions({
-        agentAPIClient,
-        tenantId,
-      }),
-    );
-
+  loader: async ({ context: { agentAPIClient }, params: { tenantId } }) => {
     const tenantMeta = await agentAPIClient.getTenantMeta(tenantId);
     const applicationMeta = await getMeta();
 
     return {
-      agents,
       tenantMeta: tenantMeta
         ? {
             ...tenantMeta,
@@ -38,28 +30,19 @@ export const Route = createFileRoute('/tenants/$tenantId')({
 });
 
 function View() {
-  const [apiResponse, setApiResponse] = useState<MarkdownRes>({} as MarkdownRes);
-  const [isNewDocumentType, setIsNewDocumentType] = useState<boolean>(false);
-  const [pdfFile, setPdfFile] = useState<File | undefined>(undefined);
-  const { agents, tenantMeta } = Route.useLoaderData();
-
   const { tenantId } = Route.useParams();
-  const { agentAPIClient } = Route.useRouteContext();
-  const documentClient = useMemo(() => getDocumentAPIClient(tenantId, agentAPIClient), [tenantId, agentAPIClient]);
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  const { tenantMeta } = Route.useLoaderData();
 
-  const docTypeContextValue = useMemo(
-    () => ({
-      apiResponse,
-      setApiResponse,
-      isNewDocumentType,
-      setIsNewDocumentType,
-      pdfFile,
-      setPdfFile,
-    }),
-    [apiResponse, setApiResponse, isNewDocumentType, setIsNewDocumentType, pdfFile, setPdfFile],
-  );
+  const sparUIContext = useMemo(() => {
+    return tenantMeta
+      ? {
+          sparAPIClient: createSparAPIClient(tenantId, tenantMeta!, agentAPIClient, router),
+        }
+      : undefined;
+  }, [agentAPIClient, tenantId, tenantMeta]);
 
-  if (!tenantMeta) {
+  if (!tenantMeta || !sparUIContext) {
     return (
       <Box display="flex" justifyContent="center" flexDirection="column" maxHeight={960} height="calc(100% - 72px)">
         <EmptyState
@@ -78,19 +61,14 @@ function View() {
 
   return (
     <TenantContext.Provider value={tenantMeta}>
-      <Main>
-        <Header />
-        <Sidebar agents={agents} />
-        <section className="bg-[url('/img/background.png')] bg-cover">
-          <Content>
-            <DocTypeContextProvider value={docTypeContextValue}>
-              <DocumentAPIProvider value={documentClient}>
-                <Outlet />
-              </DocumentAPIProvider>
-            </DocTypeContextProvider>
-          </Content>
-        </section>
-      </Main>
+      <SparUIContext.Provider value={sparUIContext}>
+        <Main>
+          <SidebarMenuProvider>
+            <Sidebar />
+            <Outlet />
+          </SidebarMenuProvider>
+        </Main>
+      </SparUIContext.Provider>
     </TenantContext.Provider>
   );
 }

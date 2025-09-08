@@ -1,10 +1,9 @@
 import { FC, useMemo } from 'react';
-import { Box, Button, Dialog, Form, Input, Select } from '@sema4ai/components';
+import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useRouteContext } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { errorToast, successToast } from '~/utils/toasts';
 import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
@@ -43,6 +42,7 @@ export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpd
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const queryClient = useQueryClient();
+  const { addSnackbar } = useSnackbar();
   const kind: Provider = initial?.provider ?? 'openai';
   const defaultModel: ModelValue = (() => {
     const modelPrefix = kind + ':';
@@ -72,21 +72,28 @@ export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpd
   const isBedrock = kind === 'bedrock';
 
   const mutation = useMutation({
-    mutationFn: async (payload: UpdatePlatformBody) =>
-      (await agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/platforms/{platform_id}', {
+    mutationFn: async (payload: UpdatePlatformBody) => {
+      const response = await agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/platforms/{platform_id}', {
         params: { path: { platform_id: platformId } },
         body: payload as never,
         errorMsg: 'Failed to update platform',
-      })) as GetPlatformResponse,
+      });
+
+      if (!response.success) {
+        throw new Error(response?.message || 'Failed to update platform');
+      }
+
+      return response.data as GetPlatformResponse;
+    },
     onSuccess: async (updated) => {
-      successToast('Platform updated');
+      addSnackbar({ message: 'Platform updated', variant: 'success' });
       onUpdated?.(updated);
       await queryClient.invalidateQueries({ queryKey: ['platforms', tenantId] });
       await queryClient.invalidateQueries({ queryKey: ['platform', tenantId, platformId] });
       onClose();
     },
     onError: (e) => {
-      errorToast(e instanceof Error ? e.message : 'Failed to update platform');
+      addSnackbar({ message: e instanceof Error ? e.message : 'Failed to update platform', variant: 'danger' });
     },
   });
 

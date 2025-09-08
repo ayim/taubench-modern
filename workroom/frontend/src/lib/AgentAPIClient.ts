@@ -1,16 +1,21 @@
 import { createWorkroomClient, AgentOAuthPermission, operations } from '@sema4ai/workroom-interface';
 import { DocumentIntelligenceSchema } from '@sema4ai/document-intelligence-interface';
-import { WorkItemsSchema } from '@sema4ai/work-items-interface';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import {
   paths as agentServerPaths,
   components as AgentServerComponents,
   operations as AgentServerOperations,
 } from '@sema4ai/agent-server-interface';
-import createFetchClient, { ClientMethod, FetchResponse, MaybeOptionalInit } from 'openapi-fetch';
-import { HttpMethod, MediaType, PathsWithMethod, RequiredKeysOf } from 'openapi-typescript-helpers';
+import createFetchClient, { ClientMethod, MaybeOptionalInit } from 'openapi-fetch';
+import {
+  HttpMethod,
+  MediaType,
+  PathsWithMethod,
+  RequiredKeysOf,
+  SuccessResponse,
+  SuccessResponseJSON,
+} from 'openapi-typescript-helpers';
 import { UserTenant } from '~/queries/tenants';
-import { errorToast } from '~/utils/toasts';
 import { RequestError } from './Error';
 import { getTenantEnvironmentUrl, resolveWorkroomURL } from './utils';
 import { getMeta } from './meta';
@@ -19,6 +24,45 @@ import { getMeta } from './meta';
 // https://github.com/openapi-ts/openapi-typescript/blob/fdc6d229e995b6009619835530ac74487fda48ef/packages/openapi-fetch/src/index.d.ts#L165
 type InitParam<Init> =
   RequiredKeysOf<Init> extends never ? [(Init & { [key: string]: unknown })?] : [Init & { [key: string]: unknown }];
+
+type ApiError = {
+  error_id: string;
+  code: string;
+  message: string;
+};
+
+type ApiResponse<Success> =
+  | {
+      data: Success;
+      success: true;
+    }
+  | (ApiError & {
+      success: false;
+    });
+
+export type Meta =
+  | {
+      deploymentType: undefined;
+      realm: string;
+      clientId: string;
+      enableRefreshTokens: boolean;
+      oidcServerDiscoveryURI: string;
+      instanceId: string;
+      workroomTokenExchangeUrl: string;
+      workroomTenantListUrl: string;
+      branding?: {
+        logoUrl: string;
+        agentAvatarUrl: string;
+      };
+    }
+  | {
+      deploymentType: 'spcs' | 'spar';
+      workroomTenantListUrl: string;
+      branding?: {
+        logoUrl: string;
+        agentAvatarUrl: string;
+      };
+    };
 
 type WorkroomToken = {
   token: string;
@@ -159,23 +203,28 @@ export class AgentAPIClient {
       bearerToken: workroomToken,
     });
 
-    const response = await workroomClient.GET('/tenants/{tenantId}/workroom/agents/{agentId}/me/oauth/permissions', {
-      params: {
-        path: {
-          tenantId,
-          agentId,
+    try {
+      const response = await workroomClient.GET('/tenants/{tenantId}/workroom/agents/{agentId}/me/oauth/permissions', {
+        params: {
+          path: {
+            tenantId,
+            agentId,
+          },
+          query: {
+            redirectUri: `${window.location.protocol}//${window.location.host}/oauth`,
+          },
         },
-        query: {
-          redirectUri: `${window.location.protocol}//${window.location.host}/oauth`,
-        },
-      },
-    });
+      });
 
-    if (response.error) {
+      if (response.error) {
+        return [];
+      }
+
+      return response.data;
+    } catch (_) {
+      // TODO-V2: This should not silently fail, we should have a flag present whether this endpoint is vene available
       return [];
     }
-
-    return response.data;
   }
 
   public async deleteOAuthConnection({
@@ -341,11 +390,17 @@ export class AgentAPIClient {
         method: Method,
         path: Path,
         ...init: InitParam<Init & { errorMsg?: string; toastMessage?: string; silent?: boolean }>
-      ) {
+      ): Promise<ApiResponse<SuccessResponseJSON<Paths[Path][Method]>>> {
         const workroomToken = await this.getWorkroomToken();
         const tenant = await this.getTenant(tenantId);
+
         if (!tenant) {
-          throw new RequestError(404, 'Workspace not found');
+          return {
+            success: false,
+            error_id: '404',
+            code: '404',
+            message: 'Workspace not found',
+          };
         }
 
         // Get the environment URL, which does not include the /tenants/<id>
@@ -361,16 +416,19 @@ export class AgentAPIClient {
           },
         });
 
-        const apiResponse = (await (
+        const apiResponse = await (
           client[method.toUpperCase() as Uppercase<HttpMethod>] as ClientMethod<EmptyObjectType, Method, MediaType>
         )(
           path as never,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ...(init as any),
-        )) as FetchResponse<Paths[Path][Method], Init, MediaType>;
+        );
 
         if (apiResponse.data !== undefined) {
-          return apiResponse.data;
+          return {
+            success: true,
+            data: apiResponse.data as SuccessResponse<Paths[Path][Method]>,
+          };
         }
 
         /**
@@ -378,7 +436,10 @@ export class AgentAPIClient {
          * we don't receive any data, so we return null
          */
         if (!apiResponse.error && apiResponse.response.status === 204) {
-          return undefined as unknown as never;
+          return {
+            success: true,
+            data: null as SuccessResponse<Paths[Path][Method]>,
+          };
         }
 
         // If errorMsg is provided in init argument then show it in toast
@@ -388,7 +449,8 @@ export class AgentAPIClient {
 
         if (errorDetails) {
           errorStr = errorDetails.errorMsg ?? JSON.stringify(apiResponse.error);
-          !errorDetails.silent && errorToast(errorDetails.toastMessage ?? errorStr);
+          // TODO-V2: Should return a failed response and the snackbar should be triggered from the UI
+          // !errorDetails.silent && errorToast(errorDetails.toastMessage ?? errorStr);
         }
 
         const errorMessage = (() => {
@@ -413,26 +475,34 @@ export class AgentAPIClient {
     return this.createClient<DocumentIntelligenceSchema.paths>('documents');
   }
 
-  public get agentEventsFetch() {
-    return this.createClient<WorkItemsSchema.paths>('events');
-  }
-
   public async inspectAgentPackageViaGateway(
     tenantId: string,
     formData: FormData,
   ): Promise<AgentServerComponents['schemas']['StatusResponse_dict_']> {
-    return await this.agentFetch(tenantId, 'post', '/api/v2/package/inspect/agent', {
+    const response = await this.agentFetch(tenantId, 'post', '/api/v2/package/inspect/agent', {
       body: formData as never,
     });
+
+    if (!response.success) {
+      throw new RequestError(500, response.message);
+    }
+
+    return response.data;
   }
 
   public async deployAgentFromPackage(
     tenantId: string,
     body: AgentServerComponents['schemas']['AgentPackagePayload'],
   ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
-    return await this.agentFetch(tenantId, 'post', '/api/v2/package/deploy/agent', {
+    const response = await this.agentFetch(tenantId, 'post', '/api/v2/package/deploy/agent', {
       body: body as never,
     });
+
+    if (!response.success) {
+      throw new RequestError(500, response.message);
+    }
+
+    return response.data;
   }
 
   public async updateAgentFromPackage(
@@ -440,19 +510,31 @@ export class AgentAPIClient {
     aid: string,
     body: AgentServerComponents['schemas']['AgentPackagePayload'],
   ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
-    return await this.agentFetch(tenantId, 'put', '/api/v2/package/deploy/agent/{aid}', {
+    const response = await this.agentFetch(tenantId, 'put', '/api/v2/package/deploy/agent/{aid}', {
       params: { path: { aid } },
       body: body as never,
     });
+
+    if (!response.success) {
+      throw new RequestError(500, response.message);
+    }
+
+    return response.data;
   }
 
   public async deployAgentFromPackageMultipart(
     tenantId: string,
     formData: FormData,
   ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
-    return await this.agentFetch(tenantId, 'post', '/api/v2/package/deploy/agent', {
+    const response = await this.agentFetch(tenantId, 'post', '/api/v2/package/deploy/agent', {
       body: formData as never,
     });
+
+    if (!response.success) {
+      throw new RequestError(500, response.message);
+    }
+
+    return response.data;
   }
 
   public async startStream({
@@ -518,14 +600,25 @@ export class AgentAPIClient {
     });
 
     if (response.error) {
-      errorToast('Unable to fetch Tenant Meta');
+      // TODO-V2: Should return a failed response and the snackbar should be triggered from the UI
+      // errorToast('Unable to fetch Tenant Meta');
       return;
     }
 
     return response.data;
   }
 
-  public async getActionLogHtml(tenantId: string, agentId: string, threadId: string, toolCallId: string) {
+  public async getActionLogHtml({
+    tenantId,
+    agentId,
+    threadId,
+    toolCallId,
+  }: {
+    tenantId: string;
+    agentId: string;
+    threadId: string;
+    toolCallId: string;
+  }) {
     const { workroomToken } = await this.prepareForRequest(tenantId);
 
     const workroomClient = createWorkroomClient({
@@ -549,7 +642,8 @@ export class AgentAPIClient {
     );
 
     if (![200, 304].includes(getActionLogs.response.status) || !getActionLogs.data) {
-      errorToast('Unable to fetch Action Log Html');
+      // TODO-V2: Should return a failed response and the snackbar should be triggered from the UI
+      // errorToast('Unable to fetch Action Log Html');
       throw new RequestError(getActionLogs.response.status, '');
     }
 

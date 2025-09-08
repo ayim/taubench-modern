@@ -2,9 +2,10 @@ import { createContext, useContext } from 'react';
 import { operations } from '@sema4ai/workroom-interface';
 import { Meta } from './meta';
 
-export const TenantContext = createContext<
-  operations['getWorkroomMeta']['responses'][200]['content']['application/json'] & Pick<Meta, 'branding'>
->({
+export type TenantMeta = operations['getWorkroomMeta']['responses'][200]['content']['application/json'] &
+  Pick<Meta, 'branding'>;
+
+export const TenantContext = createContext<TenantMeta>({
   features: {
     agentEvals: {
       enabled: false,

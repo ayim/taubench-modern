@@ -9,7 +9,7 @@ import { useAuth } from '../ProtectedRoute';
 import { ErrorRoute } from '../ErrorRoute';
 import { NotFoundRoute } from '../NotFoundRoute';
 
-const router = createRouter({
+export const router = createRouter({
   routeTree,
   defaultPendingComponent: InlineLoader,
   defaultPendingMs: 100,

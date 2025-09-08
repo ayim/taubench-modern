@@ -1,353 +1,210 @@
-import {
-  Box,
-  Checkbox,
-  Column,
-  Input,
-  SkeletonLoader,
-  SortDirection,
-  Table,
-  TableSkeleton,
-  usePagination,
-} from '@sema4ai/components';
-import { IconSearch } from '@sema4ai/icons';
-import { FC, useMemo, useState, useCallback } from 'react';
+import { Box, Button, Filter, FilterGroup, Menu, Table, ToggleInputButton, Typography } from '@sema4ai/components';
+import { IconChevronDown, IconDownloadCloud, IconRefresh, IconSearch, IconSeparator } from '@sema4ai/icons';
+import { components } from '@sema4ai/agent-server-interface';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouteContext } from '@tanstack/react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { WorkItem } from '~/types';
-import { WorkItemsRowItem, WorkItemsRowItemProps } from './WorkItemsRowItem';
-import WorkItemsActions from './WorkItemsActions';
-import { useRefreshWorkItems, listWorkItemsQueryOptions } from '~/queries/workItems';
+import { FC, useCallback, useMemo, useState } from 'react';
+import { snakeCaseToCamelCase } from '~/lib/utils';
 import { getListAgentsQueryOptions } from '~/queries/agents';
+import { listWorkItemsQueryOptions } from '~/queries/workItems';
+import { workitemsTableColumns, WorkItemsTableRow } from './WorkItemsRowItem';
 
 type Props = {
   // Remove workItems from props since we'll use the query directly
 };
 
-const WorkItemsTable: FC<Props> = () => {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/workItems/' });
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-  const queryClient = useQueryClient();
+const workitemStatusValues: components['schemas']['WorkItemStatus'][] = [
+  'CANCELLED',
+  'COMPLETED',
+  'ERROR',
+  'EXECUTING',
+  'NEEDS_REVIEW',
+  'INDETERMINATE',
+  'PENDING',
+  'PRECREATED',
+];
 
-  // Use the query directly instead of receiving workItems as props
-  const { data: workItemsResponse, isLoading } = useQuery(
+const TableFilter = () => {
+  const [search, setSearch] = useState<string>('');
+  const [selectedStates, setSelectedStates] = useState<Record<'Status' | 'LastRun', string[]>>({
+    Status: [],
+    LastRun: [],
+  });
+
+  const stateOptions = useMemo<Record<'Status' | 'LastRun', FilterGroup>>(
+    () => ({
+      Status: {
+        label: 'Status',
+        searchable: true,
+        options: workitemStatusValues.map((status) => ({
+          label: snakeCaseToCamelCase(status),
+          value: status,
+          itemType: 'checkbox',
+        })),
+      },
+      LastRun: {
+        label: 'Last Run',
+        searchable: false,
+        options: [
+          { label: '1 day', value: '1 day', itemType: 'item' },
+          { label: '2 days', value: '2 days', itemType: 'item' },
+          { label: '3 days', value: '3 days', itemType: 'item' },
+          { label: '4 days', value: '4 days', itemType: 'item' },
+        ],
+        closeMenuOnItemSelect: true,
+      },
+    }),
+    [],
+  );
+
+  return (
+    <Filter
+      contentBefore={
+        <ToggleInputButton
+          iconLeft={IconSearch}
+          placeholder="Search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          aria-label="Search"
+          onClear={() => setSearch('')}
+          buttonVariant="ghost-subtle"
+          round
+        />
+      }
+      onChange={setSelectedStates}
+      options={stateOptions}
+      values={selectedStates}
+    />
+  );
+};
+
+const TableActions: FC<{
+  selectionCount: number;
+  onResetSelection: () => void;
+  onReprocess?: () => void;
+  onDownloadPdf?: () => void;
+  onDownloadRaw?: () => void;
+}> = ({ selectionCount, onResetSelection, onReprocess, onDownloadPdf, onDownloadRaw }) => {
+  return (
+    <Box display="flex" gap="$4" alignItems="center">
+      <Button.Group collapse maxWidth="max-content">
+        {(onDownloadPdf || onDownloadRaw) && (
+          <Menu
+            trigger={
+              <Button round icon={IconDownloadCloud} iconAfter={IconChevronDown}>
+                Download
+              </Button>
+            }
+          >
+            {onDownloadRaw && (
+              <Menu.Item icon={IconDownloadCloud} onClick={onDownloadRaw}>
+                Raw
+              </Menu.Item>
+            )}
+            {onDownloadPdf && (
+              <Menu.Item icon={IconDownloadCloud} onClick={onDownloadPdf}>
+                PDF
+              </Menu.Item>
+            )}
+          </Menu>
+        )}
+        {onReprocess && (
+          <Button round icon={IconRefresh} variant="secondary" onClick={onReprocess}>
+            Reproccess
+          </Button>
+        )}
+        <Button round variant="ghost" onClick={onResetSelection}>
+          Reset Selection
+        </Button>
+      </Button.Group>
+      <IconSeparator color="border.primary" />
+      <Typography pl="$12" color="content.subtle" variant="body-medium">
+        {selectionCount} selected
+      </Typography>
+    </Box>
+  );
+};
+
+const WorkItemsTable: FC<Props> = () => {
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+
+  const { agentId } = useParams({ strict: false });
+
+  // Getting all workitems
+  const { data: listWorkItemsResponse } = useQuery(
     listWorkItemsQueryOptions({
       tenantId,
       agentAPIClient,
+      agentId,
     }),
   );
 
-  const { data: agentsResponse = [] } = useQuery(
+  // Getting all agents
+  const { data: listAgentsResponse = [] } = useQuery(
     getListAgentsQueryOptions({
       tenantId,
       agentAPIClient,
     }),
   );
 
+  // From agents list creating a map of agentId -> Agent
   const mapAgentsById = useMemo(() => {
-    return agentsResponse.reduce(
+    return listAgentsResponse.reduce(
       (acc, agent) => {
         acc[agent.id] = agent;
         return acc;
       },
-      {} as Record<string, Exclude<typeof agentsResponse, undefined>[number]>,
+      {} as Record<string, Exclude<typeof listAgentsResponse, undefined>[number]>,
     );
-  }, [agentsResponse]);
+  }, [listAgentsResponse]);
 
-  // Extract the work items from the response and cast to the correct type
-  const workItems = useMemo(
-    () =>
-      ((Array.isArray(workItemsResponse) ? workItemsResponse : workItemsResponse?.records || []) as WorkItem[]).map(
-        (workItem) => {
-          const agentName = workItem.agent_id
-            ? (mapAgentsById[workItem.agent_id]?.name ?? workItem.agent_id)
-            : workItem.agent_id;
-
-          const agentMode = workItem.agent_id ? mapAgentsById[workItem.agent_id]?.mode : undefined;
-
-          return {
-            ...workItem,
-            agent_name: agentName,
-            agent_mode: agentMode,
-          };
-        },
-      ),
-    [workItemsResponse, mapAgentsById],
-  );
-
-  const [search, setSearch] = useState<string>('');
-  const [sort, onSort] = useState<[string, SortDirection] | null>(['created_at', 'desc']);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [hasStaleData] = useState(true);
-  const [isRestarting, setIsRestarting] = useState(false);
-  const pageSize = 10;
-
-  const refreshWorkItems = useRefreshWorkItems();
-  const isSyncing = refreshWorkItems.isPending;
-
-  // Filter logic
-  const filteredData = useMemo(() => {
-    if (!workItems) return [];
-    if (!search.trim()) return workItems;
-
-    return workItems.filter(
-      (row) =>
-        row.work_item_id.toLowerCase().includes(search.toLowerCase()) ||
-        (row.status && row.status.toLowerCase().includes(search.toLowerCase())) ||
-        (row.agent_name && row.agent_name.toLowerCase().includes(search.toLowerCase())),
-    );
-  }, [search, workItems]);
-
-  // Sort logic
-  const sortedData = useMemo(() => {
-    if (!filteredData || !sort) return filteredData;
-    const [sortKey, sortDirection] = sort;
-
-    return filteredData.slice().sort((a, b) => {
-      const compareA = a[sortKey as keyof WorkItem];
-      const compareB = b[sortKey as keyof WorkItem];
-
-      if (sortDirection === 'asc') return (compareA || '') > (compareB || '') ? 1 : -1;
-      return (compareA || '') < (compareB || '') ? 1 : -1;
+  // Extract the work items from the response and adding agentName in it
+  const workItems = useMemo(() => {
+    return (listWorkItemsResponse?.records || []).map((workItem) => {
+      const agentName = workItem.agent_id ? mapAgentsById[workItem.agent_id]?.name : workItem.agent_id;
+      return {
+        ...workItem,
+        agent_name: agentName,
+      };
     });
-  }, [filteredData, sort]);
+  }, [listWorkItemsResponse, mapAgentsById]);
 
-  // Pagination logic
-  const { from, to, paginationProps, setFrom } = usePagination({
-    total: sortedData?.length || 0,
-    pageSize,
-  });
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [resize, setResize] = useState<Record<string, number>>({});
 
-  const paginatedData = useMemo(() => sortedData?.slice(from, to) || [], [sortedData, from, to]);
-
-  // Select all functionality
-  const allWorkItemIds = useMemo(() => paginatedData.map((item) => item.work_item_id), [paginatedData]);
-  const allSelected = useMemo(
-    () => allWorkItemIds.length > 0 && allWorkItemIds.every((id) => selectedItems.includes(id)),
-    [allWorkItemIds, selectedItems],
-  );
-  const someSelected = useMemo(
-    () => selectedItems.length > 0 && selectedItems.length < allWorkItemIds.length,
-    [selectedItems, allWorkItemIds],
-  );
-
-  const handleSelectAll = useCallback(
-    (checked: boolean) => {
-      if (checked) {
-        setSelectedItems(allWorkItemIds);
-      } else {
-        setSelectedItems([]);
-      }
-    },
-    [allWorkItemIds],
-  );
-
-  const columns: Column[] = [
-    { id: 'row-selection', title: '', sortable: false },
-    { id: 'status', title: 'Status', sortable: true },
-    { id: 'name', title: 'Work Item Name', sortable: true },
-    { id: 'agent_name', title: 'Agent Name', sortable: true },
-    { id: 'view-work-item', title: 'View', sortable: false },
-    // { id: 'stage', title: 'Stage', sortable: true },
-    // { id: 'state', title: 'State', sortable: true },
-    { id: 'created_at', title: 'Date Created', sortable: true },
-    { id: 'updated_at', title: 'Last Updated', sortable: true },
-    { id: 'actions', title: '', sortable: false },
-  ];
-
-  const handleRestartWorkItems = useCallback(async () => {
-    if (selectedItems.length === 0) {
-      console.log('No work items selected');
-      return;
-    }
-
-    setIsRestarting(true);
-    try {
-      console.log(`Restarting ${selectedItems.length} work items...`);
-
-      // process each work item sequentially to avoid stressing the backend
-      for (const workItemId of selectedItems) {
-        try {
-          await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/work-items/{work_item_id}/restart', {
-            params: {
-              path: {
-                work_item_id: workItemId,
-              },
-            },
-            errorMsg: 'Failed to restart work item',
-            silent: false,
-          });
-          console.log(`Successfully restarted work item: ${workItemId}`);
-        } catch (error) {
-          console.error(`Failed to restart work item ${workItemId}:`, error);
-          // continue with the next work item even if one fails
-        }
-      }
-
-      // clear selected items after successful restart
-      setSelectedItems([]);
-
-      // Use the hook that's now at the top level
-      refreshWorkItems.mutate({ tenantId, agentAPIClient });
-
-      console.log('Refetching work items...');
-    } catch (error) {
-      console.error('Error restarting work items:', error);
-    } finally {
-      setIsRestarting(false);
-    }
-  }, [selectedItems, tenantId, agentAPIClient, refreshWorkItems]);
-
-  const handleCompleteWorkItem = useCallback(
-    async (workItemId: string) => {
-      try {
-        await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/work-items/{work_item_id}/complete', {
-          params: {
-            path: {
-              work_item_id: workItemId,
-            },
-          },
-          errorMsg: 'Failed to complete work item',
-          silent: false,
-        });
-      } catch (error) {
-        console.error('Error completing work item:', error);
-      }
-
-      // Use the hook that's now at the top level
-      refreshWorkItems.mutate({ tenantId, agentAPIClient });
-    },
-    [tenantId, agentAPIClient, refreshWorkItems],
-  );
-
-  const handleRestartWorkItem = useCallback(
-    async (workItemId: string) => {
-      try {
-        await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/work-items/{work_item_id}/restart', {
-          params: {
-            path: {
-              work_item_id: workItemId,
-            },
-          },
-          errorMsg: 'Failed to restart work item',
-          silent: false,
-        });
-        console.log(`Successfully restarted work item: ${workItemId}`);
-      } catch (error) {
-        console.error(`Failed to restart work item ${workItemId}:`, error);
-      }
-
-      // Refresh the data without triggering sync state
-      try {
-        const updatedData = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/', {
-          params: {},
-          errorMsg: 'Failed to refresh work items after restart',
-          silent: true,
-        });
-
-        // Update the query cache directly without using the mutation
-        queryClient.setQueryData([tenantId, 'work-items'], updatedData);
-      } catch (error) {
-        console.error('Error refreshing data after restart:', error);
-      }
-    },
-    [tenantId, agentAPIClient, queryClient],
-  );
-
-  const handleSync = useCallback(async () => {
-    console.log('Syncing work items...');
-    try {
-      await refreshWorkItems.mutateAsync({ tenantId, agentAPIClient });
-      console.log('Work items synced successfully');
-    } catch (error) {
-      console.error('Error syncing work items:', error);
-    }
-  }, [refreshWorkItems, tenantId, agentAPIClient]);
-
-  const rowProps: WorkItemsRowItemProps = useMemo(
-    () => ({
-      selectedRows: selectedItems,
-      setSelectedRows: setSelectedItems,
-      workItems: workItems,
-      tenantId,
-      isRestarting,
-      handleCompleteWorkItem,
-      handleRestartWorkItem,
-    }),
-    [selectedItems, workItems, tenantId, isRestarting, handleCompleteWorkItem, handleRestartWorkItem],
-  );
+  const getWorkItemId = useCallback((row: (typeof workItems)[number]) => row.work_item_id, []);
 
   return (
-    <Box width="100%">
-      {/* Header with search and action buttons */}
-      <Box className="flex justify-between flex-row gap-2 mb-4">
-        <Box width="20%">
-          <Input
-            className="!mr-[1px] focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#5BA497]"
-            iconLeft={IconSearch}
-            placeholder="Search"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setFrom(0);
-            }}
-            aria-label="Search"
-          />
-        </Box>
-
-        <WorkItemsActions
-          selectedRows={selectedItems}
-          handleRestartClick={handleRestartWorkItems}
-          handleSyncClick={handleSync}
-          hasStaleData={hasStaleData}
-          isRestarting={isRestarting}
-          isSyncing={isSyncing}
-        />
+    <Box flexGrow={1} display="flex" flexDirection="column" gap={4} overflow="hidden" height="100%">
+      <Box>
+        <TableFilter />
       </Box>
-
-      {/* Selection info and select all checkbox */}
-      <Box mb={2} className="flex items-center gap-4">
-        {/* Select all checkbox - always in the same position */}
-        {paginatedData.length > 0 && (
-          <Box className="flex items-center gap-2">
-            <Checkbox
-              checked={allSelected}
-              indeterminate={someSelected}
-              disabled={isRestarting}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectAll(e.target.checked)}
-              aria-label="Select all work items"
-              data-testid="select-all-checkbox"
-            />
-            <span className="text-sm text-gray-600">{allSelected ? 'Deselect all' : 'Select all'}</span>
-          </Box>
-        )}
-      </Box>
-
-      {/* Selection info - appears after checkbox when items are selected */}
       {selectedItems.length > 0 && (
-        <Box p={2} backgroundColor="background.subtle" borderRadius="md" className="mt-4">
-          <span className="text-sm p-2">
-            Selected {selectedItems.length} of {sortedData?.length || 0} work items
-          </span>
-        </Box>
-      )}
-
-      {!isLoading && workItems ? (
-        <Table
-          className="mt-4"
-          columns={columns}
-          data={paginatedData}
-          sort={sort}
-          onSort={onSort}
-          row={WorkItemsRowItem}
-          rowProps={rowProps}
-          layout="auto"
-          rowCount="all"
+        <TableActions
+          selectionCount={selectedItems.length}
+          onResetSelection={() => setSelectedItems([])}
+          onDownloadPdf={() => {}}
+          onDownloadRaw={() => {}}
+          onReprocess={() => {}}
         />
-      ) : (
-        <SkeletonLoader skeleton={TableSkeleton} loading />
       )}
-
-      {sortedData && sortedData.length > pageSize && <Table.Pagination {...paginationProps} />}
+      <Box flexGrow={1} style={{ overflowY: 'auto', overflowX: 'hidden' }} px="$16">
+        <Table
+          columns={workitemsTableColumns}
+          data={workItems}
+          selectable
+          selected={selectedItems}
+          onSelect={setSelectedItems}
+          rowCount={workItems.length}
+          resize={resize}
+          onResize={setResize}
+          sticky={['background.primary']}
+          getId={getWorkItemId}
+          row={WorkItemsTableRow}
+        />
+      </Box>
+      {/* <Box>Pagination</Box> */}
     </Box>
   );
 };

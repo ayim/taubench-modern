@@ -1,9 +1,10 @@
 import { FC, ReactNode, createContext, useContext, useEffect, useMemo } from 'react';
 import { useAuth as useAuthUtil } from '@sema4ai/robocloud-ui-utils';
+
+import { useAuthOptions } from '~/queries/auth';
 import { InlineLoader } from './Loaders';
 
 type Props = {
-  bypassAuth?: boolean;
   children?: ReactNode;
 };
 
@@ -22,19 +23,22 @@ export const useAuth = () => {
   return useContext(AuthContext);
 };
 
-export const ProtectedRoute: FC<Props> = ({ bypassAuth = false, children }) => {
+export const ProtectedRoute: FC<Props> = ({ children }) => {
+  const { data: authOptions, isLoading: isAuthOptionsLoading } = useAuthOptions();
   const { isLoading, isAuthenticated, redirectToLogin, getUserToken } = useAuthUtil();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      console.log('Setting auth redirect:', window.location.href);
       redirectToLogin(window.location.href);
     }
   }, [isLoading, isAuthenticated, getUserToken, redirectToLogin]);
 
-  const authContext = useMemo(() => ({ getUserToken, bypassAuth }), [getUserToken, bypassAuth]);
+  const authContext = useMemo(
+    () => ({ getUserToken, bypassAuth: authOptions?.bypassAuth ?? false }),
+    [getUserToken, authOptions],
+  );
 
-  if (!bypassAuth && (isLoading || !isAuthenticated)) {
+  if (!authOptions || (!authOptions?.bypassAuth && (isAuthOptionsLoading || isLoading || !isAuthenticated))) {
     return <InlineLoader />;
   }
 

@@ -1,23 +1,16 @@
-import type { components, operations } from '@sema4ai/agent-server-interface';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  createFileRoute,
-  Outlet,
-  useLoaderData,
-  useNavigate,
-  useParams,
-  useRouteContext,
-  useRouter,
-} from '@tanstack/react-router';
+import { createFileRoute, Outlet, useNavigate, useParams, useRouteContext, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
-import { errorToast, successToast } from '~/utils/toasts';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Box, useSnackbar } from '@sema4ai/components';
 import { AgentDeploymentForm } from './create/components/AgentDeploymentForm';
-import type { AgentPackageResponse } from './create/components/AgentUploadForm';
-import { mcpHeadersFromRecord } from '~/lib/utils';
-import { AgentUploadForm } from './create/components/AgentUploadForm';
 import { AgentDeploymentFormSchema } from './create/components/context';
+
+import { AgentUploadForm } from './create/components/AgentUploadForm';
+import type { AgentPackageResponse } from './create/components/AgentUploadForm';
+import type { components, operations } from '@sema4ai/agent-server-interface';
+import { mcpHeadersFromRecord } from '~/lib/utils';
 import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
-import { getListAgentsQueryKey } from '~/queries/agents';
+import { getListAgentsQueryKey, useListAgentsQuery } from '~/queries/agents';
 
 export const Route = createFileRoute('/tenants/$tenantId/agents/create')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) => {
@@ -194,7 +187,7 @@ function CreateAgentIndex() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isDryRun = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dryRun') === '1';
-
+  const { addSnackbar } = useSnackbar();
   const deployMutation = useMutation({
     mutationFn: async (payload: AgentDeploymentFormSchema) => {
       if (!uploadedAgentPackage) {
@@ -211,10 +204,16 @@ function CreateAgentIndex() {
         {
           fetchPlatformById: async (platformId: string) => {
             try {
-              return (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/{platform_id}', {
+              const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/{platform_id}', {
                 params: { path: { platform_id: platformId } },
                 silent: true,
-              })) as { kind?: string; name?: string; models?: Record<string, string[]> };
+              });
+
+              if (!response.success) {
+                throw new Error(response?.message || 'Failed to fetch platform');
+              }
+
+              return response.data as { kind?: string; name?: string; models?: Record<string, string[]> };
             } catch {
               return undefined;
             }
@@ -242,16 +241,22 @@ function CreateAgentIndex() {
       return response;
     },
     onSuccess: async (response) => {
-      successToast('Agent created successfully');
+      addSnackbar({
+        message: 'Agent created successfully',
+        variant: 'success',
+      });
       const agentId =
         (response as { agent_id?: string | null; id?: string | null }).agent_id ??
         (response as { id?: string | null }).id;
       await queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey(tenantId) });
       await router.invalidate();
-      if (agentId) navigate({ to: '/tenants/$tenantId/$agentId', params: { tenantId, agentId } });
+      if (agentId) navigate({ to: '/tenants/$tenantId/conversational/$agentId', params: { tenantId, agentId } });
     },
     onError: (err: unknown) => {
-      errorToast(err instanceof Error ? err.message : 'Failed to create agent');
+      addSnackbar({
+        message: err instanceof Error ? err.message : 'Failed to create agent',
+        variant: 'danger',
+      });
     },
   });
 
@@ -261,18 +266,23 @@ function CreateAgentIndex() {
 
   const onSubmit = async (payload: AgentDeploymentFormSchema) => {
     if (!uploadedAgentPackage) {
-      errorToast('Provide a package file to upload');
+      addSnackbar({
+        message: 'Provide a package file to upload',
+        variant: 'danger',
+      });
       return;
     }
     if (isDryRun) {
-      successToast('Dry run: payload logged. Skipping deploy.');
+      addSnackbar({
+        message: 'Dry run: payload logged. Skipping deploy.',
+      });
       return;
     }
     await deployMutation.mutateAsync(payload);
   };
 
-  const { agents } = useLoaderData({ from: '/tenants/$tenantId' });
-  const existingAgentNames = agents.map((agent) => agent.name);
+  const { data: agents } = useListAgentsQuery();
+  const existingAgentNames = agents?.map((agent) => agent.name) ?? [];
 
   const shouldShowUploadForm = uploadedAgentPackage === null;
 
@@ -286,7 +296,7 @@ function CreateAgentIndex() {
   }
 
   return (
-    <>
+    <Box p="$24" maxWidth={740} margin="0 auto">
       <AgentDeploymentForm
         agentTemplate={uploadedAgentPackage.fileContent.agentTemplate}
         defaultValues={uploadedAgentPackage.fileContent.defaultValues}
@@ -296,6 +306,6 @@ function CreateAgentIndex() {
         existingAgentNames={existingAgentNames}
       />
       <Outlet />
-    </>
+    </Box>
   );
 }

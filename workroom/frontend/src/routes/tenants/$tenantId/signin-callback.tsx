@@ -14,7 +14,5 @@ function View() {
     return <InlineLoader />;
   }
 
-  console.log(`Signed in, authenticated = ${isAuthenticated}, redirecting: ${redirect}`);
-
   return <Navigate to={redirect} />;
 }

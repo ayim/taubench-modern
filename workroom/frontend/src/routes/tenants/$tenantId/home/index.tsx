@@ -1,152 +1,143 @@
-import { Button, Input, Typography } from '@sema4ai/components';
-import { IconArrowRight, IconSearch } from '@sema4ai/icons';
-import { createFileRoute, useNavigate, useParams } from '@tanstack/react-router';
-import { FC, useState, ChangeEvent, useEffect, useMemo } from 'react';
-import { getListAgentsQueryOptions } from '~/queries/agents';
-import { Agent } from '~/types';
-import { isConversationalAgent, isWorkerAgent } from '~/utils';
+import { useState, useMemo, useCallback } from 'react';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Box, Button, Filter, FilterGroup, Grid, ToggleInputButton, Typography } from '@sema4ai/components';
+import { AgentCard, AgentIcon } from '@sema4ai/layouts';
+import { IconAgents } from '@sema4ai/icons/logos';
+import { IconSearch } from '@sema4ai/icons';
+import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
+import { Agent } from '@sema4ai/agent-server-interface';
 
-const AgentCard: FC<{ agent: Agent }> = ({ agent: { id, name, description, action_packages, version } }) => {
-  const actionPackageCount = action_packages?.length ?? 0;
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/home/' });
-  const navigate = useNavigate();
-  return (
-    <div className="flex flex-col justify-between p-4 pb-3 rounded-xl hover:shadow-md border border-solid border-gray-200 overflow-hidden text-sm h-full bg-white min-h-[150px] select-none">
-      <div>
-        <div className="flex flex-row justify-between">
-          <h3 className="font-bold text-base">{name}</h3>
-        </div>
-        <p className="text-gray-600 line-clamp-4 mt-2">{description}</p>
-      </div>
-      <div className="flex items-center justify-between text-xs mt-4 h-8 gap-2">
-        <div className="flex items-center text-xs gap-1">
-          <div>
-            <span className="text-gray-500">{`${actionPackageCount} ${
-              actionPackageCount === 1 ? 'action package' : 'action packages'
-            }`}</span>
-            {version && <span className="text-gray-500 ml-2">Version {version}</span>}
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            size="small"
-            round
-            onClick={
-              () => navigate({ to: '/tenants/$tenantId/$agentId', params: { tenantId, agentId: id ?? '' } }) // TODO: v2 integration, remove this nullish coalescing
-            }
-            iconAfter={IconArrowRight}
-          >
-            Chat
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { getListAgentsQueryOptions } from '~/queries/agents';
+import { isConversationalAgent, isWorkerAgent } from '~/utils';
+import { EmptyView } from '~/components/EmptyView';
 
 export const Route = createFileRoute('/tenants/$tenantId/home/')({
-  loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
-    const agents = await queryClient.ensureQueryData(
+  loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) =>
+    queryClient.ensureQueryData(
       getListAgentsQueryOptions({
         agentAPIClient,
         tenantId,
       }),
-    );
-    return { agents };
-  },
+    ),
   component: HomePage,
 });
 
+const agentSearchRules: SearchRules<Agent> = { name: { value: (item) => item.name } };
+
 function HomePage() {
-  const { agents } = Route.useLoaderData();
-  const [myAgents, setMyAgents] = useState<Agent[]>(agents ?? []);
-  const [searchText, setSearchText] = useState<string>('');
-  useEffect(() => {
-    if (searchText === '') {
-      setMyAgents(agents);
-    } else {
-      setMyAgents(
-        agents.filter(
-          (agent) =>
-            agent.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            agent.description.toLowerCase().includes(searchText.toLowerCase()),
-        ),
+  const { tenantId } = Route.useParams();
+  const allAgents = Route.useLoaderData();
+  const [search, setSearch] = useState<string>('');
+  const [filters, setFilters] = useState({
+    type: [] as string[],
+  });
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const onAgentSearch = useCallback(fuzzyDataSearcher(agentSearchRules, allAgents || []), [allAgents]);
+
+  const filterOptions = useMemo(() => {
+    return {
+      type: {
+        label: 'Type',
+        searchable: true,
+        options: [
+          { label: 'Conversational', value: 'conversational', itemType: 'checkbox' },
+          { label: 'Worker', value: 'worker', itemType: 'checkbox' },
+        ],
+      } as FilterGroup,
+    };
+  }, []);
+
+  const searchInput = useMemo(() => {
+    return (
+      <ToggleInputButton
+        aria-label="Search"
+        iconLeft={IconSearch}
+        value={search}
+        placeholder="Search"
+        onChange={(e) => setSearch(e.target.value)}
+        onClear={() => setSearch('')}
+      />
+    );
+  }, [search]);
+
+  const onResetFilters = useCallback(() => {
+    setFilters({
+      type: [],
+    });
+    setSearch('');
+  }, []);
+
+  const filteredAgents = useMemo(() => {
+    return onAgentSearch(search).filter((agent) => {
+      return (
+        filters.type.length === 0 ||
+        (filters.type.includes('conversational') && isConversationalAgent(agent)) ||
+        (filters.type.includes('worker') && isWorkerAgent(agent))
       );
-    }
-  }, [searchText, agents]);
-  const conversationalAgents = useMemo(() => myAgents.filter((agent) => isConversationalAgent(agent)), [myAgents]);
-  const workerAgents = useMemo(() => myAgents.filter((agent) => isWorkerAgent(agent)), [myAgents]);
+    });
+  }, [search, filters, onAgentSearch]);
+
+  if (allAgents.length === 0) {
+    return (
+      <EmptyView
+        title="No Agents Yet"
+        description="Agents will appear here once someone deploys one and shares it with you."
+        illustration="agents"
+        docsLink="MAIN_WORKROOM_HELP"
+      />
+    );
+  }
+
   return (
-    <div className="h-full overflow-x-hidden">
-      <div className="mx-12 my-10">
-        <div className="flex flex-col h-full overflow-auto">
-          <div className="flex items-center my-auto relative px-2 py-8">
-            <div className="w-full mx-auto">
-              <div className="flex flex-col items-center mx-auto w-fit">
-                <img src="svg/IconWorkroom.svg" className="h-16 mb-3" />
-                <Typography
-                  lineHeight="29px"
-                  fontFamily="Heldane Display"
-                  fontWeight="500"
-                  as="h1"
-                  className="text-[2.5rem] !mb-2.5"
-                >
-                  Welcome to Work Room
-                </Typography>
-                <p className="text-sm">Where teams go to work with Enterprise AI Agents</p>
-                <div className="relative my-6 w-full px-2">
-                  <Input
-                    variant="ghost"
-                    label=""
-                    className="!bg-white !min-h-8 placeholder:text-center"
-                    iconLeft={IconSearch}
-                    placeholder="Search by name or description"
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      setSearchText(e?.target?.value ?? '');
-                    }}
-                    value={searchText}
-                    round
-                  />
-                </div>
-              </div>
+    <Box py="$64" px={['$16', '$16', '$40']} maxWidth={1280} mx="auto">
+      <Box display="flex" gap="$16" mb="$20">
+        <IconAgents size={36} />
+        <Typography variant="display-large">Sema4.ai Agents</Typography>
+      </Box>
+      <Filter
+        contentBefore={searchInput}
+        options={filterOptions}
+        values={filters}
+        onChange={setFilters}
+        moreLabel="Filter"
+      />
 
-              <div className="mt-8 max-w-5xl mx-auto">
-                {conversationalAgents.length > 0 && (
-                  <div className="flex justify-center mt-8 flex-col w-full">
-                    <div className="flex items-center gap-2">
-                      <img className="h-[22px]" src="svg/IconConversationalAgent.svg" alt="Agents" />
-                      <p className="text-lg font-bold">Conversational Agents</p>
-                    </div>
-                    <div className="grid my-6 lg:grid-cols-3 gap-x-3 gap-y-4">
-                      {conversationalAgents.map((agent) => (
-                        <div key={agent.id}>
-                          <AgentCard agent={agent} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+      <Grid columns={[1, 1, 2, 3]} gap="$16" mt="$20" mb="$32">
+        {filteredAgents.map((agent) => (
+          <Link
+            to={
+              isConversationalAgent(agent)
+                ? '/tenants/$tenantId/conversational/$agentId'
+                : '/tenants/$tenantId/worker/$agentId'
+            }
+            params={{ tenantId, agentId: agent.id }}
+            key={agent.id}
+          >
+            <AgentCard
+              variant="thumbnail"
+              illustration={<AgentIcon mode={isConversationalAgent(agent) ? 'conversational' : 'worker'} size="m" />}
+              version={agent.version}
+              title={agent.name}
+              description={agent.description}
+            />
+          </Link>
+        ))}
+      </Grid>
 
-                {workerAgents.length > 0 && (
-                  <div className="flex justify-center mt-8 flex-col w-full">
-                    <div className="flex items-center gap-2">
-                      <img className="h-[22px]" src="/svg/IconWorkerAgent.svg" alt="Agents" />
-                      <p className="text-lg font-bold">Worker Agents</p>
-                    </div>
-                    <div className="grid my-6 lg:grid-cols-3 gap-x-3 gap-y-4">
-                      {workerAgents.map((agent) => (
-                        <div key={agent.id}>
-                          <AgentCard agent={agent} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      {!filteredAgents.length && allAgents.length && (
+        <Box display="flex" flex="1" justifyContent="center" alignItems="center" maxHeight={420} flexDirection="column">
+          <Typography fontWeight="bold" fontSize="$16" lineHeight="$24" textAlign="center" mb="$4">
+            No results found
+          </Typography>
+          <Typography lineHeight="$20" mb="$24">
+            There aren&apos;t any results for that query.
+          </Typography>
+          <Button onClick={onResetFilters} variant="secondary" round>
+            Show all Agents
+          </Button>
+        </Box>
+      )}
+    </Box>
   );
 }

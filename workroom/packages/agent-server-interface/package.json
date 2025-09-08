@@ -14,8 +14,8 @@
     "format:check": "prettier \"**/*.{ts,tsx,js,json,md,css}\" --check",
     "format": "prettier \"**/*.{ts,tsx,js,json,md,css}\" --write",
     "generate:all": "npm run generate:private && npm run generate:public",
-    "generate:private": "ts-node ./scripts/generate.ts ./private.openapi.json \"private\"",
-    "generate:public": "ts-node ./scripts/generate.ts ./public.openapi.json \"public\"",
+    "generate:private": "vite-node ./scripts/generate.ts ./private.openapi.json \"private\"",
+    "generate:public": "vite-node ./scripts/generate.ts ./public.openapi.json \"public\"",
     "generate": "npm run generate:all && npm run format && npm run check:types",
     "prebuild": "npm run test",
     "prepublishOnly": "tsc && npm run copy-legacy-types",
@@ -36,9 +36,9 @@
     "openapi-typescript": "^7.6.1",
     "prettier": "^3.5.3",
     "ts-jest": "^29.3.4",
-    "ts-node": "^10.9.2",
     "tsd": "^0.32.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vite-node": "^3.2.4"
   },
   "prettier": {
     "endOfLine": "lf",

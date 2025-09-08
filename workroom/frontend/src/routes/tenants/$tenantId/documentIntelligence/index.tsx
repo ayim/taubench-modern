@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, Box, Button, EmptyState, Header, Scroll, Input } from '@sema4ai/components';
+import { Form, Box, Button, EmptyState, Header, Scroll, Input, useSnackbar } from '@sema4ai/components';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
-import React from 'react';
+import { useCallback } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import z from 'zod';
 
@@ -14,7 +14,6 @@ import {
   useClearDocumentIntelligenceConfigMutation,
   useUpsertDocumentIntelligenceConfigMutation,
 } from '~/queries/documentIntelligence';
-import { errorToast, successToast } from '~/utils/toasts';
 
 const SEMA4_HOSTED_REDUCTO_ENDPOINT = 'https://backend.sema4.ai/reducto';
 
@@ -46,6 +45,7 @@ export const Route = createFileRoute('/tenants/$tenantId/documentIntelligence/')
 function View() {
   const queryClient = useQueryClient();
   const { tenantId } = Route.useParams();
+  const { addSnackbar } = useSnackbar();
   const { documentIntelligence: documentIntelligenceFromRoute } = Route.useLoaderData();
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const documentIntelligence = useQuery({
@@ -77,30 +77,42 @@ function View() {
       { tenantId, configuration },
       {
         onSuccess: async () => {
-          successToast(`Document Intelligence successfully configured!`);
+          addSnackbar({
+            message: 'Document Intelligence successfully configured!',
+            variant: 'success',
+          });
           queryClient.invalidateQueries({ queryKey: getGetDocumentIntelligenceQueryKey(tenantId) });
         },
         onError: (error) => {
-          errorToast(error.message);
+          addSnackbar({
+            message: error.message,
+            variant: 'danger',
+          });
         },
       },
     );
   });
 
-  const handleClearConfig = React.useCallback(async () => {
+  const handleClearConfig = useCallback(async () => {
     await clearDocumentIntelligenceConfiguration(
       { tenantId },
       {
         onSuccess: async () => {
-          successToast(`Document Intelligence successfully cleared!`);
+          addSnackbar({
+            message: 'Document Intelligence successfully cleared!',
+            variant: 'success',
+          });
           queryClient.invalidateQueries({ queryKey: getGetDocumentIntelligenceQueryKey(tenantId) });
         },
         onError: (error) => {
-          errorToast(error.message);
+          addSnackbar({
+            message: error.message,
+            variant: 'danger',
+          });
         },
       },
     );
-  }, [tenantId, queryClient, clearDocumentIntelligenceConfiguration]);
+  }, [tenantId, queryClient, clearDocumentIntelligenceConfiguration, addSnackbar]);
 
   if (!features.documentIntelligence.enabled) {
     return (

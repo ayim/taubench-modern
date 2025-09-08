@@ -10,6 +10,7 @@ WORKDIR /app
 
 COPY frontend frontend
 COPY backend backend
+COPY spar-ui spar-ui
 COPY package*.json turbo.json ./
 
 RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc npm ci --include=dev && \

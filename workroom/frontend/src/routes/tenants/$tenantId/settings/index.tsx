@@ -1,10 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Form, Box, Header, Scroll, Input, Button } from '@sema4ai/components';
+import { Form, Box, Header, Scroll, Input, Button, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';
 
 import { getGetConfigQueryOptions, useUpdateConfigMutation } from '~/queries/settings';
 import { notNil } from '@sema4ai/robocloud-shared-utils';
-import { successToast } from '~/utils/toasts';
 import { AgentServerConfigType } from '~/lib/AgentAPIClient';
 
 const beautifyConfigType = (key: string): string => {
@@ -28,16 +27,23 @@ export const Route = createFileRoute('/tenants/$tenantId/settings/')({
         tenantId,
       }),
     );
-    return { config, tenantId };
+
+    if (!config.success) {
+      throw new Error(config.message);
+    }
+
+    return { config: config.data };
   },
   component: Settings,
 });
 
 function Settings() {
-  const { config, tenantId } = Route.useLoaderData();
+  const { tenantId } = Route.useParams();
+  const { config } = Route.useLoaderData();
   const formProps = useForm<Record<AgentServerConfigType, string>>({
     defaultValues: Object.fromEntries(config.map(({ config_type, config_value }) => [config_type, config_value])),
   });
+  const { addSnackbar } = useSnackbar();
 
   const { mutateAsync: updateConfig, isPending: isUpdatingConfig } = useUpdateConfigMutation();
 
@@ -61,10 +67,10 @@ function Settings() {
       { config: transformedConfig, tenantId },
       {
         onSuccess: () => {
-          // API calls may not be issued if there are no settings to update
-          // Yet we "toast success" for better UX
-
-          successToast(`Settings successfully updated!`);
+          addSnackbar({
+            message: 'Settings successfully updated!',
+            variant: 'success',
+          });
         },
         onError: () => {},
       },

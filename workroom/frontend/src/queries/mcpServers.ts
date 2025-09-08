@@ -14,9 +14,15 @@ export const getListMcpServersQueryOptions = ({ tenantId, agentAPIClient }: Quer
   queryOptions({
     queryKey: ['mcp-servers', tenantId],
     queryFn: async (): Promise<ListMcpServersResponse> => {
-      return (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/', {
+      const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/', {
         silent: true,
-      })) as ListMcpServersResponse;
+      });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      return response.data;
     },
   });
 
@@ -61,11 +67,17 @@ export const getMcpServerQueryOptions = ({
 }: QueryProps<{ tenantId: string; mcpServerId: string }>) =>
   queryOptions({
     queryKey: ['mcp-server', tenantId, mcpServerId],
-    queryFn: async (): Promise<McpServerResponse> => {
-      return (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/{mcp_server_id}', {
+    queryFn: async () => {
+      const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/{mcp_server_id}', {
         params: { path: { mcp_server_id: mcpServerId } },
         silent: true,
-      })) as McpServerResponse;
+      });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      return response.data;
     },
   });
 
@@ -83,11 +95,17 @@ export const useUpdateMcpServerMutation = () => {
       mcpServerId: string;
       body: UpdateMcpServerBody;
     }) => {
-      return (await agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/mcp-servers/{mcp_server_id}', {
+      const response = await agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/mcp-servers/{mcp_server_id}', {
         params: { path: { mcp_server_id: mcpServerId } },
         body,
         errorMsg: 'Failed to update MCP server',
-      })) as McpServerResponse;
+      });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      return response.data;
     },
     onSuccess: async (_data, { tenantId, mcpServerId }) => {
       await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });

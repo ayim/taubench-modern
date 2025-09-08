@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Dialog, Form, Input, Select } from '@sema4ai/components';
+import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
 import { IconPlus, IconTrash } from '@sema4ai/icons';
 import { useParams } from '@tanstack/react-router';
 import { FC } from 'react';
@@ -7,7 +7,6 @@ import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { buildCreateMcpBody } from '~/lib/utils';
 import { useCreateMcpServerMutation, type CreateMcpServerBody } from '~/queries/mcpServers';
-import { errorToast, successToast } from '~/utils/toasts';
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -45,6 +44,7 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
     defaultValues: { name: '', type: 'generic_mcp', transport: 'auto', url: '', headersKV: [] },
     mode: 'onChange',
   });
+  const { addSnackbar } = useSnackbar();
 
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
 
@@ -61,10 +61,11 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
       { tenantId, body },
       {
         onSuccess: () => {
-          successToast('MCP server created');
+          addSnackbar({ message: 'MCP server created', variant: 'success' });
           onClose();
         },
-        onError: (e) => errorToast(e instanceof Error ? e.message : 'Failed to save MCP server'),
+        onError: (e) =>
+          addSnackbar({ message: e instanceof Error ? e.message : 'Failed to save MCP server', variant: 'danger' }),
       },
     );
   });

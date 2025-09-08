@@ -1,5 +1,5 @@
 import { FC, useMemo, useState } from 'react';
-import { Button, Dialog, Form, Input, Box, Select } from '@sema4ai/components';
+import { Button, Dialog, Form, Input, Box, Select, useSnackbar } from '@sema4ai/components';
 import { useParams, useRouteContext } from '@tanstack/react-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,7 +12,6 @@ import {
 } from './llmSchemas';
 import type { paths } from '@sema4ai/agent-server-interface';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { errorToast } from '~/utils/toasts';
 import { beautifyLabel } from '~/lib/utils';
 
 type Props = { open: boolean; onClose: (platformId?: string) => void };
@@ -30,7 +29,7 @@ type CreatePlatformBody = paths['/api/v2/platforms/']['post']['requestBody']['co
 export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const queryClient = useQueryClient();
-
+  const { addSnackbar } = useSnackbar();
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const [selectedProvider, setSelectedProvider] = useState<Provider>('openai');
   const form = useForm<FormValues>({
@@ -40,17 +39,27 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
   });
 
   const mutation = useMutation({
-    mutationFn: async (payload: CreatePlatformBody) =>
-      await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/platforms/', {
+    mutationFn: async (payload: CreatePlatformBody) => {
+      const response = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/platforms/', {
         body: payload,
         errorMsg: 'Failed to create LLM',
-      }),
+      });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      return response.data;
+    },
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ['platforms', tenantId] });
       onClose(data?.platform_id);
     },
     onError: (e) => {
-      errorToast(e instanceof Error ? e.message : 'Failed to create LLM');
+      addSnackbar({
+        message: e instanceof Error ? e.message : 'Failed to create LLM',
+        variant: 'danger',
+      });
     },
   });
 

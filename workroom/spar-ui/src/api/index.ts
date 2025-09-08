@@ -1,0 +1,71 @@
+import { paths as AgentServerPaths } from '@sema4ai/agent-server-interface';
+
+import type { OpenAPIClient } from './OpenAPIClient';
+import type { SparUIRoutes } from './routes';
+import { AgentOAuthProviderState } from '../lib/OAuth';
+
+export enum SparUIFeatureFlag {
+  showActionLogs = 'showActionLogs',
+}
+
+export type NavigationArgs = {
+  [K in keyof SparUIRoutes]: { to: K; params: SparUIRoutes[K] };
+}[keyof SparUIRoutes];
+
+export interface SparAPIClient {
+  /**
+   * Request for enabled feature at target application
+   */
+  getFeatureFlag: (feature: SparUIFeatureFlag) => boolean;
+
+  /**
+   * Agent Server API client
+   */
+  queryAgentServer: OpenAPIClient<AgentServerPaths>;
+
+  /**
+   * Start a websocket stream for a given thread
+   */
+  startWebsocketStream: (agentId: string) => Promise<WebSocket>;
+
+  /**
+   * Get the HTML for the action log
+   */
+  openActionLogs?: (props: { agentId: string; threadId: string; toolCallId: string }) => Promise<boolean>;
+
+  /**
+   * Download a file
+   */
+  downloadFile: (props: { threadId: string; name: string }) => Promise<void>;
+
+  /**
+   * Navigation helper
+   */
+  navigate: (args: NavigationArgs) => void;
+
+  /**
+   * Get Agent OAuth provider state
+   */
+  getAgentOAuthState: (props: { agentId: string }) => Promise<AgentOAuthProviderState[]>;
+
+  /**
+   * Initiate OAuth authorization flow
+   */
+  authorizeAgentOAuth: (props: { uri: string }) => Promise<void>;
+
+  /**
+   * Returns required params for a given route
+   */
+  useParamsFn: <T extends keyof SparUIRoutes>(route: T) => SparUIRoutes[T];
+
+  /**
+   * Get route path for a given route and params
+   */
+  useRouteFn: <T extends keyof SparUIRoutes>(
+    route: T,
+    params: SparUIRoutes[T],
+  ) => {
+    href: string;
+    current: boolean;
+  };
+}

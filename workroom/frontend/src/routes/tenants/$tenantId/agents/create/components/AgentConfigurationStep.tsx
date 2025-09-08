@@ -30,10 +30,15 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
 
   const { data: configuredLLMModels, error: platformsError } = useQuery({
     queryKey: ['platforms', tenantId],
-    queryFn: async () =>
-      (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/', {
-        silent: true,
-      })) as PlatformConfig[],
+    queryFn: async () => {
+      const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/');
+
+      if (!response.success) {
+        throw new Error(response?.message || 'Failed to fetch platforms');
+      }
+
+      return response.data as PlatformConfig[];
+    },
   });
 
   const providerItems = useMemo(() => {

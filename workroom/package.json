@@ -10,7 +10,6 @@
     "predev": "npm run sync:agent-server-interface",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "pretest": "npm run build",
     "test": "turbo run test",
     "format": "turbo run format",
     "format:check": "turbo run format:check",
@@ -19,6 +18,7 @@
   "workspaces": [
     "backend",
     "frontend",
+    "spar-ui",
     "packages/*"
   ],
   "devDependencies": {

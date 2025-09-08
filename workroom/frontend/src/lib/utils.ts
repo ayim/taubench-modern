@@ -3,6 +3,13 @@ import { getBasePath } from '~/utils/base';
 import type { CreateMcpServerBody, McpServerResponse, UpdateMcpServerBody } from '~/queries/mcpServers';
 import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/create/components/context';
 
+export const snakeCaseToCamelCase = (str: string): string => {
+  return str
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
   month: 'long',

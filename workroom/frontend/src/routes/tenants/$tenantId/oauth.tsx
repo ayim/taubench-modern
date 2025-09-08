@@ -1,7 +1,8 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
+import { useSnackbar } from '@sema4ai/components';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+
 import { InlineLoader } from '~/components/Loaders';
-import { errorToast } from '~/utils/toasts';
 
 export const Route = createFileRoute('/tenants/$tenantId/oauth')({
   component: View,
@@ -10,6 +11,7 @@ export const Route = createFileRoute('/tenants/$tenantId/oauth')({
 function View() {
   const { agentAPIClient } = Route.useRouteContext();
   const navigate = useNavigate();
+  const { addSnackbar } = useSnackbar();
 
   useEffect(() => {
     const initAuth = async () => {
@@ -33,18 +35,23 @@ function View() {
 
       if (!result.success) {
         if (result.error.code === 'failed_to_get_access_token_spcs') {
-          errorToast(
-            'Failed to authorize OAuth. Please make sure you have whitelisted the OAuth network rules in your OAuth configuration settings (OAuth -> Configure)',
-          );
+          addSnackbar({
+            message:
+              'Failed to authorize OAuth. Please make sure you have whitelisted the OAuth network rules in your OAuth configuration settings (OAuth -> Configure)',
+            variant: 'danger',
+          });
         } else {
-          errorToast('Failed to authorize OAuth. Please try again.');
+          addSnackbar({
+            message: 'Failed to authorize OAuth. Please try again.',
+            variant: 'danger',
+          });
         }
       }
 
-      navigate({ to: '/tenants/$tenantId/$agentId', params: { tenantId, agentId } });
+      navigate({ to: '/tenants/$tenantId/conversational/$agentId', params: { tenantId, agentId } });
     };
     initAuth();
-  }, [agentAPIClient, navigate]);
+  }, [agentAPIClient, navigate, addSnackbar]);
 
   return <InlineLoader />;
 }

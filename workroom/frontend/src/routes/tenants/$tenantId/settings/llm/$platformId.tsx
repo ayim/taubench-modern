@@ -9,11 +9,18 @@ export const Route = createFileRoute('/tenants/$tenantId/settings/llm/$platformI
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId, platformId } }) => {
     const data = await queryClient.ensureQueryData({
       queryKey: ['platform', tenantId, platformId],
-      queryFn: async () =>
-        (await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/{platform_id}', {
+      queryFn: async () => {
+        const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/{platform_id}', {
           params: { path: { platform_id: platformId } },
           silent: true,
-        })) as GetPlatformResponse,
+        });
+
+        if (!response.success) {
+          throw new Error(response?.message || 'Failed to fetch platform');
+        }
+
+        return response.data;
+      },
     });
     return data;
   },
