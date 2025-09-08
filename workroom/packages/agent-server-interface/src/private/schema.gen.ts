@@ -1026,6 +1026,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/data-models/generate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Data Model From Document
+     * @description Generate a data model from a document.
+     */
+    post: operations['generate_data_model_from_document_document_intelligence_data_models_generate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/quality-checks/generate': {
     parameters: {
       query?: never;
@@ -1135,26 +1155,6 @@ export interface paths {
      * @description Generate a layout from a document.
      */
     post: operations['generate_layout_from_file_document_intelligence_layouts_generate_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/document-intelligence/data-models/generate': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Generate Data Model From Document
-     * @description Generate a data model from a document.
-     */
-    post: operations['generate_data_model_from_document_document_intelligence_data_models_generate_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1289,6 +1289,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/documents/ingest': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Ingest Document
+     * @description Ingest a new document into the Document Intelligence database.
+     */
+    post: operations['ingest_document_document_intelligence_documents_ingest_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/jobs/{job_id}/status': {
     parameters: {
       query?: never;
@@ -1351,26 +1371,6 @@ export interface paths {
     get: operations['get_job_result_document_intelligence_jobs__job_id__result_get'];
     put?: never;
     post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/document-intelligence/documents/ingest': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Ingest Document
-     * @description Ingest a new document into the Document Intelligence database.
-     */
-    post: operations['ingest_document_document_intelligence_documents_ingest_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -7909,6 +7909,42 @@ export interface operations {
       };
     };
   };
+  generate_data_model_from_document_document_intelligence_data_models_generate_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_generate_data_model_from_document_document_intelligence_data_models_generate_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   generate_quality_checks_document_intelligence_quality_checks_generate_post: {
     parameters: {
       query: {
@@ -8171,42 +8207,6 @@ export interface operations {
       };
     };
   };
-  generate_data_model_from_document_document_intelligence_data_models_generate_post: {
-    parameters: {
-      query: {
-        thread_id: string;
-        agent_id: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_generate_data_model_from_document_document_intelligence_data_models_generate_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
   generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post: {
     parameters: {
       query: {
@@ -8381,6 +8381,44 @@ export interface operations {
       };
     };
   };
+  ingest_document_document_intelligence_documents_ingest_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+        data_model_name: string;
+        layout_name: string;
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_ingest_document_document_intelligence_documents_ingest_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['IngestDocumentResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   get_job_status_document_intelligence_jobs__job_id__status_get: {
     parameters: {
       query: {
@@ -8437,44 +8475,6 @@ export interface operations {
             | components['schemas']['ParseJobResult']
             | components['schemas']['ExtractJobResult']
             | components['schemas']['SplitJobResult'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  ingest_document_document_intelligence_documents_ingest_post: {
-    parameters: {
-      query: {
-        thread_id: string;
-        data_model_name: string;
-        layout_name: string;
-        agent_id: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_ingest_document_document_intelligence_documents_ingest_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['IngestDocumentResponse'];
         };
       };
       /** @description Validation Error */

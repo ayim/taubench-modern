@@ -49,7 +49,7 @@ from agent_platform.server.api.dependencies import (
     get_di_service,
     get_file_manager,
 )
-from agent_platform.server.api.private_v2 import document_intelligence
+from agent_platform.server.api.private_v2.document_intelligence import document_intelligence
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.storage.option import StorageService
@@ -326,7 +326,7 @@ class TestDocumentIntelligenceEndpoints:
         internal state
         """
         with patch(
-            "agent_platform.server.api.private_v2.document_intelligence.DataSource"
+            "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource"
         ) as mock_datasource:
             # Setup DataSource mocks
             mock_admin_ds = MagicMock()
@@ -485,7 +485,7 @@ class TestDocumentIntelligenceEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_all",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_all",
                 return_value=[layout1, layout2],
             ) as mock_find_all,
         ):
@@ -532,7 +532,7 @@ class TestDocumentIntelligenceEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_all",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_all",
                 return_value=[],
             ),
         ):
@@ -585,9 +585,15 @@ class TestBuildDatasource:
             },
         )
 
-    @patch("agent_platform.server.api.private_v2.document_intelligence.DataSource")
-    @patch("agent_platform.server.api.private_v2.document_intelligence.initialize_database")
-    @patch("agent_platform.server.api.private_v2.document_intelligence.initialize_data_source")
+    @patch(
+        "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource"
+    )
+    @patch(
+        "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database"
+    )
+    @patch(
+        "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source"
+    )
     async def test_build_datasource_success(
         self,
         mock_initialize_data_source,
@@ -612,7 +618,9 @@ class TestBuildDatasource:
         # Verify initialize_database was called
         mock_initialize_database.assert_called_once_with("postgres", mock_docint_ds)
 
-    @patch("agent_platform.server.api.private_v2.document_intelligence.initialize_data_source")
+    @patch(
+        "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source"
+    )
     async def test_build_datasource_connection_error(
         self, mock_initialize_data_source, sample_data_sources
     ):
@@ -706,7 +714,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_all",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_all",
                 return_value=sample_models,
             ) as mocked_find_all,
         ):
@@ -746,7 +754,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 side_effect=[None, SimpleNamespace(**self._sample_data_model_dict())],
             ) as mocked_find_by_name,
         ):
@@ -792,7 +800,7 @@ class TestDataModelEndpoints:
             # This patch is to simulate the case of an internal error when the model is not
             # found right after creation.
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=None,
             ),
         ):
@@ -821,7 +829,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=SimpleNamespace(**self._sample_data_model_dict()),
             ),
         ):
@@ -848,7 +856,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=None,
             ),
         ):
@@ -878,7 +886,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=None,
             ),
         ):
@@ -908,7 +916,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=SimpleNamespace(**self._sample_data_model_dict(), update=Mock()),
             ) as mocked_find_by_name,
         ):
@@ -938,7 +946,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=None,
             ),
         ):
@@ -986,7 +994,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=existing_instance,
             ) as mocked_find_by_name,
         ):
@@ -1036,7 +1044,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=existing_instance,
             ) as mocked_find_by_name,
         ):
@@ -1075,7 +1083,7 @@ class TestDataModelEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=DummyDM(sample_model),
             ),
         ):
@@ -1119,11 +1127,11 @@ class TestUpsertLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance"
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=None,
             ) as find_by_name,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.insert"
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.insert"
             ) as insert,
         ):
             fake_service = Mock()
@@ -1166,11 +1174,11 @@ class TestUpsertLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=existing_layout,
             ) as find_by_name,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.insert",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.insert",
             ) as insert,
         ):
             fake_service = Mock()
@@ -1213,7 +1221,7 @@ class TestUpsertLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=existing_layout,
             ) as find_by_name,
         ):
@@ -1252,7 +1260,7 @@ class TestUpsertLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=None,
             ) as find_by_name,
         ):
@@ -1311,7 +1319,7 @@ class TestUpsertLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance"
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 side_effect=platform_error,
             ) as find_by_name,
         ):
@@ -1378,7 +1386,7 @@ class TestGetLayout:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=mock_document_layout,
             ) as mock_find,
         ):
@@ -1428,7 +1436,7 @@ class TestGetLayout:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=None,
             ),
         ):
@@ -1488,7 +1496,7 @@ class TestGetLayout:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 side_effect=Exception("Database connection failed"),
             ),
         ):
@@ -1554,7 +1562,7 @@ class TestUpdateLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=existing_layout,
             ) as find_by_name,
         ):
@@ -1601,7 +1609,7 @@ class TestUpdateLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=None,
             ),
         ):
@@ -1647,7 +1655,7 @@ class TestUpdateLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=existing_layout,
             ),
         ):
@@ -1711,7 +1719,7 @@ class TestDeleteLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=mock_layout,
             ) as find_by_name,
         ):
@@ -1743,7 +1751,7 @@ class TestDeleteLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=None,
             ),
         ):
@@ -1778,7 +1786,7 @@ class TestDeleteLayout:
                 "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
             ) as get_service,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=mock_layout,
             ),
         ):
@@ -1891,11 +1899,11 @@ class TestGenerateLayoutFromFile:
             ),
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=SimpleNamespace(name="invoice", model_schema={"title": "Invoice"}),
             ) as mock_find_model,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.validate_extraction_schema",
+                "agent_platform.server.api.private_v2.document_intelligence.layouts.validate_extraction_schema",
                 return_value={"type": "object", "properties": {}},
             ),
         ):
@@ -2619,7 +2627,7 @@ class TestDataQualityChecksEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=sample_model,
             ) as mock_find_by_name,
         ):
@@ -2666,7 +2674,7 @@ class TestDataQualityChecksEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=None,
             ),
         ):
@@ -2705,7 +2713,7 @@ class TestDataQualityChecksEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=sample_model,
             ),
         ):
@@ -2747,7 +2755,7 @@ class TestDataQualityChecksEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=sample_model,
             ),
         ):
@@ -2785,7 +2793,7 @@ class TestDataQualityChecksEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.validate_document_extraction",
+                "agent_platform.server.api.private_v2.document_intelligence.quality_checks.validate_document_extraction",
                 return_value={
                     "overall_status": "passed",
                     "results": [],
@@ -2855,7 +2863,7 @@ class TestDataQualityChecksEndpoints:
                 return_value=fake_service,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.validate_document_extraction",
+                "agent_platform.server.api.private_v2.document_intelligence.quality_checks.validate_document_extraction",
                 return_value=failed_summary,
             ) as mock_validate,
         ):
@@ -3000,11 +3008,11 @@ class TestAsyncDocumentEndpoints:
                 new=create_mock_async_extraction_client_class(fake_async_extraction_client),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=Mock(name="invoice_model", prompt="Model prompt"),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DocumentLayout.find_by_name",
                 return_value=Mock(
                     extraction_schema={"type": "object"},
                     system_prompt="Layout prompt",
@@ -3098,11 +3106,11 @@ class TestAsyncDocumentEndpoints:
             ),
             # Mock the Job class and its result method
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.Job"
+                "agent_platform.server.api.private_v2.document_intelligence.jobs.Job"
             ) as mock_job_class,
             # Mock the _create_job_result function to return what we expect
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence._create_job_result"
+                "agent_platform.server.api.private_v2.document_intelligence.jobs._create_job_result"
             ) as mock_create_job_result,
         ):
             # Configure the Job mock to return our mocked response
@@ -3156,11 +3164,11 @@ class TestAsyncDocumentEndpoints:
             ),
             # Mock the Job class and its result method
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.Job"
+                "agent_platform.server.api.private_v2.document_intelligence.jobs.Job"
             ) as mock_job_class,
             # Mock the _create_job_result function to return what we expect
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence._create_job_result"
+                "agent_platform.server.api.private_v2.document_intelligence.jobs._create_job_result"
             ) as mock_create_job_result,
         ):
             # Configure the Job mock to return our mocked ExtractResponse
@@ -3243,7 +3251,7 @@ class TestAsyncDocumentEndpoints:
             ),
             # Mock the Job class to return FAILED status
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.Job"
+                "agent_platform.server.api.private_v2.document_intelligence.jobs.Job"
             ) as mock_job_class,
         ):
             # Configure the Job mock to return FAILED status
@@ -3397,11 +3405,11 @@ class TestExtractDocumentEndpoints:
                 new=create_mock_async_extraction_client_class(fake_extraction_client),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=Mock(name=normalize_name(data_model_name), prompt="DM P"),
             ) as mock_find_model,
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DocumentLayout.find_by_name",
                 return_value=Mock(
                     extraction_schema={"type": "object", "properties": {}},
                     system_prompt="LAYOUT P",
@@ -3655,7 +3663,7 @@ class TestExtractDocumentEndpoints:
                 new=AsyncMock(return_value=SimpleNamespace(file_id="f")),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=None,
             ),
         ):
@@ -3696,11 +3704,11 @@ class TestExtractDocumentEndpoints:
                 new=AsyncMock(return_value=SimpleNamespace(file_id="f")),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=Mock(name="dm", prompt=None),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DocumentLayout.find_by_name",
                 return_value=None,
             ),
         ):
@@ -3750,11 +3758,11 @@ class TestExtractDocumentEndpoints:
                 new=AsyncMock(return_value=SimpleNamespace(file_id="f")),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=Mock(name="dm", prompt=None),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DocumentLayout.find_by_name",
                 return_value=Mock(
                     extraction_schema=None,
                     system_prompt=None,
@@ -3838,11 +3846,11 @@ class TestExtractDocumentEndpoints:
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
             patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=Mock(name="dm", prompt=None),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DocumentLayout.find_by_name",
                 return_value=Mock(
                     extraction_schema={},
                     system_prompt=None,
@@ -3941,11 +3949,11 @@ class TestExtractDocumentEndpoints:
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
             patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=Mock(name="dm", prompt=None),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DocumentLayout.find_by_name",
                 return_value=Mock(
                     extraction_schema={},
                     system_prompt=None,
@@ -4239,11 +4247,11 @@ class TestIngestDocument:
                 return_value=fake_extraction_client,
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=SimpleNamespace(name="data-model-1"),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DocumentLayout.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DocumentLayout.find_by_name",
                 return_value=layout,
             ),
             patch(
@@ -4452,7 +4460,7 @@ class TestIngestDocument:
                 new=AsyncMock(return_value=stored),
             ),
             patch(
-                "agent_platform.server.api.private_v2.document_intelligence.DataModel.find_by_name",
+                "agent_platform.server.api.private_v2.document_intelligence.services.DataModel.find_by_name",
                 return_value=None,
             ),
         ):

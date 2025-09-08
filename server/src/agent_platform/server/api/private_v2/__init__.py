@@ -7,7 +7,7 @@ from agent_platform.server.api.private_v2.capabilities import (
 from agent_platform.server.api.private_v2.config import router as config_router
 from agent_platform.server.api.private_v2.data_sources import router as data_sources_router
 from agent_platform.server.api.private_v2.debug import router as debug_router
-from agent_platform.server.api.private_v2.document_intelligence import (
+from agent_platform.server.api.private_v2.document_intelligence.document_intelligence import (
     router as document_intelligence_router,
 )
 from agent_platform.server.api.private_v2.mcp_servers import router as mcp_servers_router

@@ -3169,6 +3169,65 @@ export const spec = {
         },
       },
     },
+    '/api/v2/document-intelligence/data-models/generate': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Generate Data Model From Document',
+        description: 'Generate a data model from a document.',
+        operationId:
+          'generate_data_model_from_document_document_intelligence_data_models_generate_post',
+        parameters: [
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_generate_data_model_from_document_document_intelligence_data_models_generate_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/document-intelligence/quality-checks/generate': {
       post: {
         tags: ['document-intelligence'],
@@ -3565,65 +3624,6 @@ export const spec = {
         },
       },
     },
-    '/api/v2/document-intelligence/data-models/generate': {
-      post: {
-        tags: ['document-intelligence'],
-        summary: 'Generate Data Model From Document',
-        description: 'Generate a data model from a document.',
-        operationId:
-          'generate_data_model_from_document_document_intelligence_data_models_generate_post',
-        parameters: [
-          {
-            name: 'thread_id',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Thread Id',
-            },
-          },
-          {
-            name: 'agent_id',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Agent Id',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'multipart/form-data': {
-              schema: {
-                $ref: '#/components/schemas/Body_generate_data_model_from_document_document_intelligence_data_models_generate_post',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Successful Response',
-            content: {
-              'application/json': {
-                schema: {},
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
     '/api/v2/document-intelligence/documents/generate-schema': {
       post: {
         tags: ['document-intelligence'],
@@ -3878,6 +3878,86 @@ export const spec = {
         },
       },
     },
+    '/api/v2/document-intelligence/documents/ingest': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Ingest Document',
+        description:
+          'Ingest a new document into the Document Intelligence database.',
+        operationId:
+          'ingest_document_document_intelligence_documents_ingest_post',
+        parameters: [
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+          {
+            name: 'data_model_name',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Data Model Name',
+            },
+          },
+          {
+            name: 'layout_name',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Layout Name',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_ingest_document_document_intelligence_documents_ingest_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/IngestDocumentResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/document-intelligence/jobs/{job_id}/status': {
       get: {
         tags: ['document-intelligence'],
@@ -3975,86 +4055,6 @@ export const spec = {
                   ],
                   title:
                     'Response Get Job Result Document Intelligence Jobs  Job Id  Result Get',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/v2/document-intelligence/documents/ingest': {
-      post: {
-        tags: ['document-intelligence'],
-        summary: 'Ingest Document',
-        description:
-          'Ingest a new document into the Document Intelligence database.',
-        operationId:
-          'ingest_document_document_intelligence_documents_ingest_post',
-        parameters: [
-          {
-            name: 'thread_id',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Thread Id',
-            },
-          },
-          {
-            name: 'data_model_name',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Data Model Name',
-            },
-          },
-          {
-            name: 'layout_name',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Layout Name',
-            },
-          },
-          {
-            name: 'agent_id',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Agent Id',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'multipart/form-data': {
-              schema: {
-                $ref: '#/components/schemas/Body_ingest_document_document_intelligence_documents_ingest_post',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Successful Response',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/IngestDocumentResponse',
                 },
               },
             },

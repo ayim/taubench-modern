@@ -40,3 +40,13 @@ class IngestDocumentResponse:
         uploaded_file: UploadedFile | None = None,
     ) -> IngestDocumentResponse:
         return cls(document=data, uploaded_file=uploaded_file)
+
+
+@dataclass
+class ResolvedExtractRequest:
+    thread_id: str
+    uploaded_file: UploadedFile
+    extraction_schema: dict[str, Any]
+    extraction_system_prompt: str | None
+    extraction_config: dict[str, Any] | None
+    data_model_prompt: str | None
