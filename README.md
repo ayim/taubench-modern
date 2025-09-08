@@ -312,6 +312,16 @@ In order to use the DIv2 endpoints, you will need to configure the data connecti
 - **Reducto API key**: this is available within the Sema4.ai 1Password vault (as of writing this README, we have been primarily using the vault item labled `PROD DocIntel v2: Sema4 API Key - Internal testing (Reducto)`)
 - **Bring your own Database**: for the data server brought up as part of the SPAR stack, use the connection string: `postgresql://agents:agents@postgres:5432/data`
 
+### Breaking Interface Changes: build failing
+
+The SPAR UI and Backend rely on the `agent-server-interface` strictly. Changes to the interface may break the build: CI/CD checks will be `red` until the build is fixed.
+
+#### Main reasons for the SPAR build to fail:
+
+1. **Adding / removing a new endpoint**: endpoints exposed and allowed in SPAR backend are derived from the interface: a new `endpoint` will make the SPAR backend tests fail _until_ the endpoint is added. A single map of all exposed endpoints is defined [here](https://github.com/Sema4AI/agent-platform/blob/4e1eb1264225e69da0f8b5647b6bc18e689770cd/workroom/backend/src/api/routing.ts#L34). The new endpoint must be added to the map, alongside the permissions required.
+
+2. **Adding or removing fields on an entity**: types used in the UI are derived from the interface. A new field addition _should_ not break the build (but may on some occasions). Removal of a field that is actively used by the UI will break the build as this is a breaking change. Update the UI to not rely on the field (if intentional) or revert the API changes and seek guidance from the UI engineers.
+
 ## 🚀 GCP Deployment
 
 The Agent Platform includes a comprehensive Google Cloud Platform deployment system supporting multi-developer environments, security controls, and flexible deployment profiles.

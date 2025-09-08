@@ -1,0 +1,57 @@
+name: Check that Agent Server Interface has been generated
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  check-interface-gen:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup `uv`
+        uses: astral-sh/setup-uv@1bf14936647e2742afe170d7d7fd95f45bfe4fc7
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+
+      - name: Create .npmrc file
+        shell: bash
+        run: |
+          cat << EOF > "${HOME}/.npmrc"
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_PACKAGE_READ_TOKEN }}
+          EOF
+
+      - name: Check
+        shell: bash
+        run: |
+          # Generate interface ##########################################################
+          echo "::group::Generate Agent Server Interface"
+          cd ./workroom
+          npm ci
+          npm run sync:agent-server-interface
+          echo "::endgroup::"
+
+          # Check that there are no changes to the interface ############################
+          git diff --quiet \
+            packages/agent-server-interface/*.json \
+            packages/agent-server-interface/src/{private,public}/*.gen.ts || (
+              echo '########################################################################################################################'
+              echo '# Changes to the Agent Server interface detected!'
+              echo '# Please run make update-interface and commit the changes.'
+              echo '# The committed changes may make the SPAR tests fail - refer to the README for how to fix it:'
+              echo '# https://github.com/Sema4AI/agent-platform/blob/main/README.md#breaking-interface-changes-build-failing'
+              echo '########################################################################################################################'
+              exit 1
+            )

@@ -604,6 +604,21 @@ test-workitems-judge:  sync ## Test work item judge stability by running multipl
 		echo "🎉 All tests passed! Judge appears stable."; \
 	fi
 
+update-interface:
+	@( \
+		cd ./workroom && \
+		npm ci && \
+		npm run sync:agent-server-interface \
+	) && \
+	( \
+		cd ./workroom/packages/agent-server-interface && \
+		if ! git diff --quiet .; then \
+			npm version prerelease \
+				--preid "unreleased-$$(git rev-parse HEAD | cut -c 1-7)" \
+				--force 2> /dev/null; \
+		fi \
+	)
+
 # --------------------------------------------------------------------
 # All
 # --------------------------------------------------------------------

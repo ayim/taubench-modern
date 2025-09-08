@@ -7,12 +7,14 @@
   "packageManager": "npm@11.5.0",
   "scripts": {
     "build": "turbo run build",
+    "predev": "npm run sync:agent-server-interface",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "pretest": "npm run build",
     "test": "turbo run test",
     "format": "turbo run format",
-    "format:check": "turbo run format:check"
+    "format:check": "turbo run format:check",
+    "sync:agent-server-interface": "bash ../scripts/sync-agent-server-interface.sh"
   },
   "workspaces": [
     "backend",
