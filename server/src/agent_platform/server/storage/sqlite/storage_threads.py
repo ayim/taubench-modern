@@ -31,7 +31,15 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         async with self._cursor() as cur:
             await cur.execute(
                 """
-                SELECT t.*
+                SELECT
+                    t.thread_id,
+                    t.agent_id,
+                    t.user_id,
+                    t.name,
+                    t.created_at,
+                    t.updated_at,
+                    t.metadata,
+                    t.work_item_id
                 FROM v2_thread t
                 WHERE v2_check_user_access(t.user_id, :user_id) = 1
                 """,
@@ -54,7 +62,15 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         async with self._cursor() as cur:
             await cur.execute(
                 """
-                SELECT t.*
+                SELECT
+                    t.thread_id,
+                    t.agent_id,
+                    t.user_id,
+                    t.name,
+                    t.created_at,
+                    t.updated_at,
+                    t.metadata,
+                    t.work_item_id
                 FROM v2_thread t
                 WHERE t.agent_id = :agent_id
                   AND v2_check_user_access(t.user_id, :user_id) = 1
@@ -81,7 +97,14 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
             await cur.execute(
                 """
                 SELECT
-                    t.*,
+                    t.thread_id,
+                    t.agent_id,
+                    t.user_id,
+                    t.name,
+                    t.created_at,
+                    t.updated_at,
+                    t.metadata,
+                    t.work_item_id,
                     v2_check_user_access(t.user_id, :user_id) AS has_access
                 FROM v2_thread t
                 WHERE t.thread_id = :thread_id

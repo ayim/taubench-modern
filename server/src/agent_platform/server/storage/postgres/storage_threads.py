@@ -24,7 +24,16 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
         async with self._cursor() as cur:
             # 2. Get the threads (and check if the user has access)
             await cur.execute(
-                """SELECT t.*
+                """
+                SELECT
+                    t.thread_id,
+                    t.agent_id,
+                    t.user_id,
+                    t.name,
+                    t.created_at,
+                    t.updated_at,
+                    t.metadata,
+                    t.work_item_id
                    FROM v2.thread t
                    WHERE v2.check_user_access(t.user_id, %(user_id)s::uuid)""",
                 {"user_id": user_id},
@@ -50,10 +59,20 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
         async with self._cursor() as cur:
             # 2. Get the threads (and check if the user has access)
             await cur.execute(
-                """SELECT t.*
-                   FROM v2.thread t
-                   WHERE t.agent_id = %(agent_id)s::uuid
-                   AND v2.check_user_access(t.user_id, %(user_id)s::uuid)""",
+                """
+                SELECT
+                    t.thread_id,
+                    t.agent_id,
+                    t.user_id,
+                    t.name,
+                    t.created_at,
+                    t.updated_at,
+                    t.metadata,
+                    t.work_item_id
+                FROM v2.thread t
+                WHERE t.agent_id = %(agent_id)s::uuid
+                AND v2.check_user_access(t.user_id, %(user_id)s::uuid)
+                """,
                 {"agent_id": agent_id, "user_id": user_id},
             )
 
@@ -74,7 +93,14 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 2. Get the thread (and check if the user has access)
             await cur.execute(
                 """SELECT
-                    t.*,
+                    t.thread_id,
+                    t.agent_id,
+                    t.user_id,
+                    t.name,
+                    t.created_at,
+                    t.updated_at,
+                    t.metadata,
+                    t.work_item_id,
                     v2.check_user_access(t.user_id, %(user_id)s::uuid) as has_access
                    FROM v2.thread t
                    WHERE t.thread_id = %(thread_id)s::uuid""",
@@ -174,7 +200,14 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 2. First check if the thread exists and if user has access
             await cur.execute(
                 """SELECT
-                    t.*,
+                    t.thread_id,
+                    t.agent_id,
+                    t.user_id,
+                    t.name,
+                    t.created_at,
+                    t.updated_at,
+                    t.metadata,
+                    t.work_item_id,
                     v2.check_user_access(t.user_id, %(user_id)s::uuid) as has_access
                    FROM v2.thread t
                    WHERE t.thread_id = %(thread_id)s::uuid""",
