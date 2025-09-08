@@ -13,6 +13,7 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import RowItem from './ConversationalAgentsRowItem';
 import { useParams } from '@tanstack/react-router';
 import { Agent } from '~/types';
+import { useTenantContext } from '~/lib/tenantContext';
 
 interface IAgentData {
   id: string;
@@ -29,6 +30,7 @@ const ConversationalAgentsTable: FC<Props> = ({ agents }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/' });
 
   const [search, setSearch] = useState<string>('');
+  const { features } = useTenantContext();
   const [sort, onSort] = useState<[string, SortDirection] | null>(['id', 'asc']);
   const [agentData, setAgentData] = useState<IAgentData[] | null>(null);
   const pageSize = 5;
@@ -87,7 +89,7 @@ const ConversationalAgentsTable: FC<Props> = ({ agents }) => {
     { id: 'name', title: 'Name', sortable: true },
     { id: 'state', title: 'State', sortable: true },
     { id: 'lastInteraction', title: 'Last Interaction', sortable: true },
-    { id: 'actions', title: '', sortable: false },
+    ...(features.deploymentWizard.enabled ? [{ id: 'actions', title: 'Actions', sortable: false }] : []),
   ];
 
   return (

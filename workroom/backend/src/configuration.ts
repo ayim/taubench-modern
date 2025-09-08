@@ -168,8 +168,8 @@ export const getConfiguration = (): Configuration => {
 
   const sparOnlyFeature =
     process.env.SEMA4AI_ENABLE_SPAR_ONLY_FEATURES === 'true'
-      ? { enabled: false, reason: 'This feature is not available for this deployment' }
-      : { enabled: true, reason: null };
+      ? { enabled: true, reason: null }
+      : { enabled: false, reason: 'This feature is not available for this deployment' };
 
   return {
     agentServerInternalUrl,

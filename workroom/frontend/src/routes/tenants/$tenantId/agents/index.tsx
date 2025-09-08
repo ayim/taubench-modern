@@ -7,6 +7,7 @@ import ConversationalAgentsTable from './components/ConversationalAgentsTable';
 import WorkerAgentsTable from './components/WorkerAgentsTable';
 import { getListAgentsQueryOptions } from '~/queries/agents';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
+import { useTenantContext } from '~/lib/tenantContext';
 
 export const Route = createFileRoute('/tenants/$tenantId/agents/')({
   loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
@@ -31,6 +32,7 @@ function Agent() {
   const { agentAPIClient } = Route.useRouteContext();
   const navigate = useNavigate();
   const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/' });
+  const { features } = useTenantContext();
   const { deleteAgentId } = Route.useSearch();
   const deleteMutation = useDeleteAgentMutation();
   const conversationalAgents = useMemo(() => agents.filter((agent) => isConversationalAgent(agent)), [agents]);
@@ -74,7 +76,7 @@ function Agent() {
             </Box>
           </Box>
         </div>
-        {deleteAgentId && (
+        {features.deploymentWizard.enabled && deleteAgentId && (
           <Dialog
             open
             onClose={() =>

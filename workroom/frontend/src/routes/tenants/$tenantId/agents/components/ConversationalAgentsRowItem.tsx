@@ -2,6 +2,7 @@ import { Box, Column, Table, TableRowProps, Button } from '@sema4ai/components';
 import { FC } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { IconCheckCircle, IconWarningTriangle, IconPause, IconShare, IconStatusNew, IconTrash } from '@sema4ai/icons';
+import { useTenantContext } from '~/lib/tenantContext';
 
 interface IAgentData {
   id: string;
@@ -40,6 +41,7 @@ const CustomCell: FC<CellProps> = ({ data }) => {
 const RowItem: FC<TableRowProps<IAgentData, RowItemProps>> = ({ rowData, props }) => {
   const { tenantId } = props;
   const navigate = useNavigate({ from: '/tenants/$tenantId/agents' });
+  const { features } = useTenantContext();
 
   return (
     <Table.Row>
@@ -66,21 +68,23 @@ const RowItem: FC<TableRowProps<IAgentData, RowItemProps>> = ({ rowData, props }
       <CustomCell data={rowData.lastInteraction} />
 
       {/* Actions */}
-      <Table.Cell>
-        <Button
-          aria-label="Delete agent"
-          icon={IconTrash}
-          size="small"
-          variant="ghost"
-          onClick={() =>
-            navigate({
-              to: '/tenants/$tenantId/agents',
-              params: { tenantId },
-              search: (prev) => ({ ...prev, deleteAgentId: rowData.id }),
-            })
-          }
-        />
-      </Table.Cell>
+      {features.deploymentWizard.enabled && (
+        <Table.Cell>
+          <Button
+            aria-label="Delete agent"
+            icon={IconTrash}
+            size="small"
+            variant="ghost"
+            onClick={() =>
+              navigate({
+                to: '/tenants/$tenantId/agents',
+                params: { tenantId },
+                search: (prev) => ({ ...prev, deleteAgentId: rowData.id }),
+              })
+            }
+          />
+        </Table.Cell>
+      )}
     </Table.Row>
   );
 };
