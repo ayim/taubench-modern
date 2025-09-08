@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.1.0 (2025-09-08)
+
+- Bump version number to v2.1.x with v2.0.x being maintained in agent-server-2.0.x branch for ACE and Studio v1.5.x
+- No other changes compared to v2.0.42
+
 # Sema4.ai Agent Server 2.0.42 (2025-09-05)
 
 - Fix: Add missing type in MCPServerResponse [#832](https://github.com/Sema4AI/agent-platform/pull/832)
