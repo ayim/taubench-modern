@@ -10,6 +10,7 @@ from agent_platform.server.api.private_v2.debug import router as debug_router
 from agent_platform.server.api.private_v2.document_intelligence.document_intelligence import (
     router as document_intelligence_router,
 )
+from agent_platform.server.api.private_v2.evals import router as evals_router
 from agent_platform.server.api.private_v2.mcp_servers import router as mcp_servers_router
 from agent_platform.server.api.private_v2.package import router as package_router
 from agent_platform.server.api.private_v2.platforms import router as platforms_router
@@ -104,4 +105,10 @@ router.include_router(
     data_sources_router,
     prefix="/data-sources",
     tags=["data-sources"],
+)
+
+router.include_router(
+    evals_router,
+    prefix="/evals",
+    tags=["evals"],
 )

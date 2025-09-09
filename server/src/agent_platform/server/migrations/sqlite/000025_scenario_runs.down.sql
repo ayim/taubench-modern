@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS v2_scenarios;
+DROP TABLE IF EXISTS v2_scenario_runs;
+DROP TABLE IF EXISTS v2_trials;

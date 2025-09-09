@@ -173,12 +173,66 @@ def _get_work_items_server_url(
         yield f"http://{host}:{port}"
 
 
+def _get_evals_server_url(
+    tmpdir,
+    logs_dir,
+    server_config: WorkItemsServerConfig,
+    cloud_server=None,  # noqa: F811
+):
+    """Create evals server URL with specified storage and file management configuration."""
+
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
+    if start_server == "true":
+        # Build environment variables based on configuration
+        env_vars = {"SEMA4AI_AGENT_SERVER_ENABLE_EVALS": "true"}
+
+        if server_config.storage_type == "sqlite":
+            env_vars["S4_AGENT_SERVER_DB_TYPE"] = "sqlite"
+        else:  # postgres
+            env_vars.update(
+                {
+                    "POSTGRES_HOST": "localhost",
+                    "POSTGRES_PORT": "5432",
+                    "POSTGRES_DB": "agent-server",
+                    "POSTGRES_USER": "postgres",
+                    "POSTGRES_PASSWORD": "postgres",
+                }
+            )
+
+        if server_config.file_management_type == "cloud":
+            env_vars.update(
+                {
+                    "FILE_MANAGEMENT_API_URL": "http://localhost:8001",
+                    "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "cloud",
+                }
+            )
+        else:  # local
+            env_vars["S4_AGENT_SERVER_FILE_MANAGER_TYPE"] = "local"
+
+        # Use patch.dict to properly isolate environment variables
+        with patch.dict(os.environ, env_vars):
+            with start_agent_server(tmpdir, logs_dir, env=env_vars) as url:
+                yield url
+    else:
+        host = os.getenv("API_HOST", "localhost")
+        port = os.getenv("API_PORT", "8000")
+        yield f"http://{host}:{port}"
+
+
 @pytest.fixture(params=all_databases_matrix)
 def base_url_agent_server_workitems_matrix(request, tmpdir, logs_dir, cloud_server):  # noqa: F811
     """Parameterized fixture providing work items server URLs for all storage/file_management
     combinations."""
     server_config = request.param
     yield from _get_work_items_server_url(tmpdir, logs_dir, server_config, cloud_server)
+
+
+@pytest.fixture(params=all_databases_matrix)
+def base_url_agent_server_evals_matrix(request, tmpdir, logs_dir, cloud_server):  # noqa: F811
+    """Parameterized fixture providing evals server URLs for all storage/file_management
+    combinations."""
+    server_config = request.param
+    yield from _get_evals_server_url(tmpdir, logs_dir, server_config, cloud_server)
 
 
 @pytest.fixture(params=all_databases_cloud)

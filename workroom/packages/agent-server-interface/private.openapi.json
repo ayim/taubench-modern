@@ -4437,6 +4437,354 @@
         }
       }
     },
+    "/evals/scenarios": {
+      "post": {
+        "tags": ["evals"],
+        "summary": "Create Scenario",
+        "operationId": "create_scenario_evals_scenarios_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateScenarioPayload" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Scenario" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["evals"],
+        "summary": "List Scenarios",
+        "operationId": "list_scenarios_evals_scenarios_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "integer" }, { "type": "null" }],
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Scenario" },
+                  "title": "Response List Scenarios Evals Scenarios Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evals/scenarios/{scenario_id}": {
+      "get": {
+        "tags": ["evals"],
+        "summary": "Get Scenario",
+        "operationId": "get_scenario_evals_scenarios__scenario_id__get",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Scenario" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["evals"],
+        "summary": "Delete Scenario",
+        "operationId": "delete_scenario_evals_scenarios__scenario_id__delete",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Scenario" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evals/scenarios/{scenario_id}/runs": {
+      "post": {
+        "tags": ["evals"],
+        "summary": "Create Scenario Run",
+        "operationId": "create_scenario_run_evals_scenarios__scenario_id__runs_post",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScenarioRunPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ScenarioRun" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["evals"],
+        "summary": "List Scenario Runs",
+        "operationId": "list_scenario_runs_evals_scenarios__scenario_id__runs_get",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Id" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "integer" }, { "type": "null" }],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ScenarioRun" },
+                  "title": "Response List Scenario Runs Evals Scenarios  Scenario Id  Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evals/scenarios/{scenario_id}/runs/latest": {
+      "get": {
+        "tags": ["evals"],
+        "summary": "Get Latest Scenario Run",
+        "operationId": "get_latest_scenario_run_evals_scenarios__scenario_id__runs_latest_get",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ScenarioRun" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evals/scenarios/{scenario_id}/runs/{scenario_run_id}": {
+      "get": {
+        "tags": ["evals"],
+        "summary": "Get Scenario Run",
+        "operationId": "get_scenario_run_evals_scenarios__scenario_id__runs__scenario_run_id__get",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Id" }
+          },
+          {
+            "name": "scenario_run_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Run Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ScenarioRun" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evals/scenarios/{scenario_id}/runs/{scenario_run_id}/execute/{trial_index}/sync": {
+      "post": {
+        "tags": ["evals"],
+        "summary": "Execute Scenario Run Trial",
+        "operationId": "execute_scenario_run_trial_evals_scenarios__scenario_id__runs__scenario_run_id__execute__trial_index__sync_post",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Id" }
+          },
+          {
+            "name": "scenario_run_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Scenario Run Id" }
+          },
+          {
+            "name": "trial_index",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Trial Index" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Trial" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -5559,6 +5907,27 @@
         "type": "object",
         "required": ["data_model"],
         "title": "CreateDataModelRequest"
+      },
+      "CreateScenarioPayload": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "thread_id": { "type": "string", "title": "Thread Id" }
+        },
+        "type": "object",
+        "required": ["name", "description", "thread_id"],
+        "title": "CreateScenarioPayload"
+      },
+      "CreateScenarioRunPayload": {
+        "properties": {
+          "num_trials": {
+            "type": "integer",
+            "title": "Num Trials",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "title": "CreateScenarioRunPayload"
       },
       "CreateWorkItemPayload": {
         "properties": {
@@ -8052,6 +8421,77 @@
         "required": ["content"],
         "title": "RunbookTextContent"
       },
+      "Scenario": {
+        "properties": {
+          "scenario_id": { "type": "string", "title": "Scenario Id" },
+          "name": { "type": "string", "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "thread_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Thread Id"
+          },
+          "agent_id": { "type": "string", "title": "Agent Id" },
+          "user_id": { "type": "string", "title": "User Id" },
+          "messages": {
+            "items": { "$ref": "#/components/schemas/ThreadMessage" },
+            "type": "array",
+            "title": "Messages",
+            "description": "All messages in the original thread."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_id",
+          "name",
+          "description",
+          "thread_id",
+          "agent_id",
+          "user_id",
+          "messages"
+        ],
+        "title": "Scenario"
+      },
+      "ScenarioRun": {
+        "properties": {
+          "scenario_run_id": { "type": "string", "title": "Scenario Run Id" },
+          "scenario_id": { "type": "string", "title": "Scenario Id" },
+          "user_id": { "type": "string", "title": "User Id" },
+          "num_trials": {
+            "type": "integer",
+            "title": "Num Trials",
+            "default": 1
+          },
+          "configuration": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Configuration"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "trials": {
+            "items": { "$ref": "#/components/schemas/Trial" },
+            "type": "array",
+            "title": "Trials",
+            "description": "All trials in this run."
+          }
+        },
+        "type": "object",
+        "required": ["scenario_run_id", "scenario_id", "user_id"],
+        "title": "ScenarioRun"
+      },
       "SecretString": {
         "properties": {
           "value": {
@@ -8748,6 +9188,66 @@
         "type": "object",
         "required": ["name", "description", "input_schema"],
         "title": "ToolDefinitionPayload"
+      },
+      "Trial": {
+        "properties": {
+          "trial_id": { "type": "string", "title": "Trial Id" },
+          "scenario_run_id": { "type": "string", "title": "Scenario Run Id" },
+          "scenario_id": { "type": "string", "title": "Scenario Id" },
+          "index_in_run": { "type": "integer", "title": "Index In Run" },
+          "messages": {
+            "items": { "$ref": "#/components/schemas/ThreadMessage" },
+            "type": "array",
+            "title": "Messages",
+            "description": "All messages generated in the simulation."
+          },
+          "thread_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Thread Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TrialStatus",
+            "default": "pending"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "status_updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Status Updated At"
+          },
+          "status_updated_by": {
+            "type": "string",
+            "title": "Status Updated By",
+            "default": "SYSTEM"
+          },
+          "error_message": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trial_id",
+          "scenario_run_id",
+          "scenario_id",
+          "index_in_run",
+          "messages"
+        ],
+        "title": "Trial"
+      },
+      "TrialStatus": {
+        "type": "string",
+        "enum": ["pending", "running", "succeeded", "failed"],
+        "title": "TrialStatus"
       },
       "UpdateDataModelRequest": {
         "properties": {

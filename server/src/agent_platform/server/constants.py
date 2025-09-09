@@ -182,6 +182,14 @@ class SystemConfig(Configuration):
         ),
     )
 
+    enable_evals: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description="Enable evals for this server.",
+            env_vars=["SEMA4AI_AGENT_SERVER_ENABLE_EVALS"],
+        ),
+    )
+
     # MCP configuration
     mcp_servers_config_file: str | None = field(
         default=None,

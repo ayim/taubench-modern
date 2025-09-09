@@ -1735,6 +1735,111 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/evals/scenarios': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Scenarios */
+    get: operations['list_scenarios_evals_scenarios_get'];
+    put?: never;
+    /** Create Scenario */
+    post: operations['create_scenario_evals_scenarios_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/evals/scenarios/{scenario_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Scenario */
+    get: operations['get_scenario_evals_scenarios__scenario_id__get'];
+    put?: never;
+    post?: never;
+    /** Delete Scenario */
+    delete: operations['delete_scenario_evals_scenarios__scenario_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/evals/scenarios/{scenario_id}/runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Scenario Runs */
+    get: operations['list_scenario_runs_evals_scenarios__scenario_id__runs_get'];
+    put?: never;
+    /** Create Scenario Run */
+    post: operations['create_scenario_run_evals_scenarios__scenario_id__runs_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/evals/scenarios/{scenario_id}/runs/latest': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Latest Scenario Run */
+    get: operations['get_latest_scenario_run_evals_scenarios__scenario_id__runs_latest_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Scenario Run */
+    get: operations['get_scenario_run_evals_scenarios__scenario_id__runs__scenario_run_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}/execute/{trial_index}/sync': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Execute Scenario Run Trial */
+    post: operations['execute_scenario_run_trial_evals_scenarios__scenario_id__runs__scenario_run_id__execute__trial_index__sync_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/health': {
     parameters: {
       query?: never;
@@ -2591,6 +2696,23 @@ export interface components {
     /** CreateDataModelRequest */
     CreateDataModelRequest: {
       data_model: components['schemas']['DataModelPayload'];
+    };
+    /** CreateScenarioPayload */
+    CreateScenarioPayload: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Thread Id */
+      thread_id: string;
+    };
+    /** CreateScenarioRunPayload */
+    CreateScenarioRunPayload: {
+      /**
+       * Num Trials
+       * @default 1
+       */
+      num_trials: number;
     };
     /** CreateWorkItemPayload */
     CreateWorkItemPayload: {
@@ -4410,6 +4532,64 @@ export interface components {
        */
       content: string;
     };
+    /** Scenario */
+    Scenario: {
+      /** Scenario Id */
+      scenario_id: string;
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Thread Id */
+      thread_id: string | null;
+      /** Agent Id */
+      agent_id: string;
+      /** User Id */
+      user_id: string;
+      /**
+       * Messages
+       * @description All messages in the original thread.
+       */
+      messages: components['schemas']['ThreadMessage'][];
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at?: string;
+    };
+    /** ScenarioRun */
+    ScenarioRun: {
+      /** Scenario Run Id */
+      scenario_run_id: string;
+      /** Scenario Id */
+      scenario_id: string;
+      /** User Id */
+      user_id: string;
+      /**
+       * Num Trials
+       * @default 1
+       */
+      num_trials: number;
+      /** Configuration */
+      configuration?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at?: string;
+      /**
+       * Trials
+       * @description All trials in this run.
+       */
+      trials?: components['schemas']['Trial'][];
+    };
     /** SecretString */
     SecretString: {
       /**
@@ -5022,6 +5202,53 @@ export interface components {
         | 'client-exec-tool'
         | 'client-info-tool';
     };
+    /** Trial */
+    Trial: {
+      /** Trial Id */
+      trial_id: string;
+      /** Scenario Run Id */
+      scenario_run_id: string;
+      /** Scenario Id */
+      scenario_id: string;
+      /** Index In Run */
+      index_in_run: number;
+      /**
+       * Messages
+       * @description All messages generated in the simulation.
+       */
+      messages: components['schemas']['ThreadMessage'][];
+      /** Thread Id */
+      thread_id?: string | null;
+      /** @default pending */
+      status: components['schemas']['TrialStatus'];
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at?: string;
+      /**
+       * Status Updated At
+       * Format: date-time
+       */
+      status_updated_at?: string;
+      /**
+       * Status Updated By
+       * @default SYSTEM
+       */
+      status_updated_by: string;
+      /** Error Message */
+      error_message?: string | null;
+    };
+    /**
+     * TrialStatus
+     * @enum {string}
+     */
+    TrialStatus: 'pending' | 'running' | 'succeeded' | 'failed';
     /** UpdateDataModelRequest */
     UpdateDataModelRequest: {
       data_model: components['schemas']['PartialDataModelPayload'];
@@ -9259,6 +9486,297 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_scenarios_evals_scenarios_get: {
+    parameters: {
+      query?: {
+        limit?: number | null;
+        agent_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Scenario'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_scenario_evals_scenarios_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateScenarioPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Scenario'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_scenario_evals_scenarios__scenario_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scenario_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Scenario'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_scenario_evals_scenarios__scenario_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scenario_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Scenario'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_scenario_runs_evals_scenarios__scenario_id__runs_get: {
+    parameters: {
+      query?: {
+        limit?: number | null;
+      };
+      header?: never;
+      path: {
+        scenario_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioRun'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_scenario_run_evals_scenarios__scenario_id__runs_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scenario_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateScenarioRunPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioRun'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_latest_scenario_run_evals_scenarios__scenario_id__runs_latest_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scenario_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioRun'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_scenario_run_evals_scenarios__scenario_id__runs__scenario_run_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scenario_id: string;
+        scenario_run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioRun'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  execute_scenario_run_trial_evals_scenarios__scenario_id__runs__scenario_run_id__execute__trial_index__sync_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scenario_id: string;
+        scenario_run_id: string;
+        trial_index: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Trial'];
+        };
       };
       /** @description Validation Error */
       422: {

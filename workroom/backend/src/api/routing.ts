@@ -44,6 +44,23 @@ function getRouteMap(): {
     'get /api/v2/agents/{aid}/files': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'get /api/v2/agents/{aid}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'get /api/v2/agents/': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'get /api/v2/evals/scenarios': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'delete /api/v2/evals/scenarios/{scenario_id}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'get /api/v2/evals/scenarios/{scenario_id}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'get /api/v2/evals/scenarios/{scenario_id}/runs': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'get /api/v2/evals/scenarios/{scenario_id}/runs/latest': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'get /api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}': [
+      ALLOWED,
+      SIGN_WITH_TENANT,
+      agentReadPermissions,
+    ],
+    'post /api/v2/evals/scenarios': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'post /api/v2/evals/scenarios/{scenario_id}/runs': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'post /api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}/execute/{trial_index}/sync': [
+      ALLOWED,
+      SIGN_WITH_TENANT,
+      agentReadPermissions,
+    ],
 
     // Allowed routes with user-level signing
     'delete /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],

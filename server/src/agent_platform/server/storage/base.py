@@ -12,6 +12,13 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.data_frames import PlatformDataFrame
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
+from agent_platform.core.evals.types import (
+    Scenario,
+    ScenarioRun,
+    Trial,
+    TrialStatus,
+)
+from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.server.storage.abstract import AbstractStorage
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
@@ -553,3 +560,379 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
 
         return stale_threads
+
+    async def create_scenario(self, scenario: Scenario) -> Scenario:
+        """Create a new scenario."""
+        scenarios = self._get_table("scenarios")
+
+        async with self.engine.begin() as conn:
+            scenario_dict = scenario.model_dump()
+
+            insert_stmt = (
+                sa.insert(scenarios)
+                .values(scenario_dict)
+                .returning(
+                    scenarios.c.scenario_id,
+                    scenarios.c.name,
+                    scenarios.c.description,
+                    scenarios.c.thread_id,
+                    scenarios.c.agent_id,
+                    scenarios.c.user_id,
+                    scenarios.c.created_at,
+                    scenarios.c.updated_at,
+                    scenarios.c.messages,
+                )
+            )
+            result = await conn.execute(insert_stmt)
+            row = result.mappings().fetchone()
+
+            if row is None:
+                raise RuntimeError("Cannot insert scenario")
+
+            return Scenario.model_validate(dict(row))
+
+    async def list_scenarios(self, limit: int | None, agent_id: str | None) -> list[Scenario]:
+        """List all scenarios."""
+        scenarios = self._get_table("scenarios")
+
+        stmt = sa.select(
+            scenarios.c.scenario_id,
+            scenarios.c.name,
+            scenarios.c.description,
+            scenarios.c.thread_id,
+            scenarios.c.agent_id,
+            scenarios.c.user_id,
+            scenarios.c.created_at,
+            scenarios.c.updated_at,
+            scenarios.c.messages,
+        ).select_from(scenarios)
+
+        if agent_id is not None:
+            stmt = stmt.where(scenarios.c.agent_id == agent_id)
+
+        if limit is not None:
+            stmt = stmt.limit(limit)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [Scenario.model_validate(dict(row)) for row in rows]
+
+    async def get_scenario(self, scenario_id: str) -> Scenario | None:
+        """Get a scenario."""
+        scenarios = self._get_table("scenarios")
+
+        stmt = sa.select(
+            scenarios.c.scenario_id,
+            scenarios.c.name,
+            scenarios.c.description,
+            scenarios.c.thread_id,
+            scenarios.c.agent_id,
+            scenarios.c.user_id,
+            scenarios.c.created_at,
+            scenarios.c.updated_at,
+            scenarios.c.messages,
+        ).where(scenarios.c.scenario_id == scenario_id)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        return Scenario.model_validate(dict(row)) if row is not None else None
+
+    async def delete_scenario(self, scenario_id: str) -> Scenario | None:
+        """Delete a scenario."""
+        scenarios = self._get_table("scenarios")
+
+        stmt = sa.delete(scenarios).where(scenarios.c.scenario_id == scenario_id)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        return Scenario.model_validate(dict(row)) if row is not None else None
+
+    async def create_scenario_run(self, scenario_run: ScenarioRun) -> ScenarioRun:
+        scenario_runs = self._get_table("scenario_runs")
+        trials = self._get_table("trials")
+
+        async with self.engine.begin() as conn:
+            run_dict = scenario_run.model_dump()
+            trials_dicts = [trial.model_dump() for trial in scenario_run.trials]
+
+            insert_run_stmt = (
+                sa.insert(scenario_runs)
+                .values(run_dict)
+                .returning(
+                    scenario_runs.c.scenario_run_id,
+                    scenario_runs.c.scenario_id,
+                    scenario_runs.c.user_id,
+                    scenario_runs.c.num_trials,
+                    scenario_runs.c.configuration,
+                    scenario_runs.c.created_at,
+                )
+            )
+            result = await conn.execute(insert_run_stmt)
+            run_row = result.mappings().fetchone()
+
+            if run_row is None:
+                raise RuntimeError("Cannot insert scenario run")
+
+            insert_trials_stmt = (
+                sa.insert(trials)
+                .values(trials_dicts)
+                .returning(
+                    trials.c.trial_id,
+                    trials.c.scenario_run_id,
+                    trials.c.scenario_id,
+                    trials.c.thread_id,
+                    trials.c.index_in_run,
+                    trials.c.messages,
+                    trials.c.status,
+                    trials.c.created_at,
+                    trials.c.updated_at,
+                    trials.c.status_updated_at,
+                    trials.c.status_updated_by,
+                    trials.c.error_message,
+                )
+            )
+
+            trial_result = await conn.execute(insert_trials_stmt)
+            trial_rows = trial_result.mappings().all()
+
+            run_dict = dict(run_row)
+            trial_dicts = [dict(t) for t in trial_rows]
+
+            run_dict["trials"] = trial_dicts
+
+            return ScenarioRun.model_validate(run_dict)
+
+    async def get_scenario_run(self, scenario_run_id: str) -> ScenarioRun | None:
+        """Get a scenario run."""
+        scenario_runs = self._get_table("scenario_runs")
+        trials = self._get_table("trials")
+
+        get_run_stmt = sa.select(
+            scenario_runs.c.scenario_run_id,
+            scenario_runs.c.scenario_id,
+            scenario_runs.c.user_id,
+            scenario_runs.c.num_trials,
+            scenario_runs.c.configuration,
+            scenario_runs.c.created_at,
+        ).where(scenario_runs.c.scenario_run_id == scenario_run_id)
+
+        get_trials_per_run = sa.select(
+            trials.c.trial_id,
+            trials.c.scenario_run_id,
+            trials.c.scenario_id,
+            trials.c.thread_id,
+            trials.c.index_in_run,
+            trials.c.messages,
+            trials.c.status,
+            trials.c.created_at,
+            trials.c.updated_at,
+            trials.c.status_updated_at,
+            trials.c.status_updated_by,
+            trials.c.error_message,
+        ).where(trials.c.scenario_run_id == scenario_run_id)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(get_run_stmt)
+            run_row = result.mappings().fetchone()
+
+            result = await conn.execute(get_trials_per_run)
+            trials_rows = result.mappings().fetchall()
+
+        if run_row is None:
+            return None
+
+        run_dict = dict(run_row)
+        trial_dicts = [dict(trial_row) for trial_row in trials_rows]
+
+        run_dict["trials"] = trial_dicts
+
+        return ScenarioRun.model_validate(run_dict)
+
+    async def list_scenario_runs(self, limit: int | None) -> list[ScenarioRun]:
+        """List all scenario runs."""
+        scenario_runs = self._get_table("scenario_runs")
+
+        stmt = (
+            sa.select(
+                scenario_runs.c.scenario_run_id,
+                scenario_runs.c.scenario_id,
+                scenario_runs.c.user_id,
+                scenario_runs.c.num_trials,
+                scenario_runs.c.configuration,
+                scenario_runs.c.created_at,
+            )
+            .select_from(scenario_runs)
+            .order_by(scenario_runs.c.created_at.desc())
+            .limit(limit)
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [ScenarioRun.model_validate(dict(row)) for row in rows]
+
+    async def list_scenario_run_trials(self, scenario_run_id: str) -> list[Trial]:
+        """Get a run trial."""
+        trials = self._get_table("trials")
+
+        stmt = sa.select(
+            trials.c.trial_id,
+            trials.c.scenario_run_id,
+            trials.c.scenario_id,
+            trials.c.thread_id,
+            trials.c.index_in_run,
+            trials.c.messages,
+            trials.c.status,
+            trials.c.created_at,
+            trials.c.updated_at,
+            trials.c.status_updated_at,
+            trials.c.status_updated_by,
+            trials.c.error_message,
+        ).where(trials.c.scenario_run_id == scenario_run_id)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [Trial.model_validate(dict(row)) for row in rows]
+
+    async def get_scenario_run_trial(self, scenario_run_id: str, trial_index: int) -> Trial | None:
+        """Get a run trial."""
+        trials = self._get_table("trials")
+
+        stmt = sa.select(
+            trials.c.trial_id,
+            trials.c.scenario_run_id,
+            trials.c.scenario_id,
+            trials.c.thread_id,
+            trials.c.index_in_run,
+            trials.c.messages,
+            trials.c.status,
+            trials.c.created_at,
+            trials.c.updated_at,
+            trials.c.status_updated_at,
+            trials.c.status_updated_by,
+            trials.c.error_message,
+        ).where(
+            sa.and_(
+                trials.c.scenario_run_id == scenario_run_id, trials.c.index_in_run == trial_index
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        return Trial.model_validate(dict(row)) if row is not None else None
+
+    async def mark_trial_as_completed(
+        self,
+        trial: Trial,
+    ):
+        trials = self._get_table("trials")
+        stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial.trial_id)
+            .values(status=TrialStatus.SUCCEEDED, updated_at=datetime.now(UTC))
+            .returning(
+                trials.c.trial_id,
+                trials.c.scenario_run_id,
+                trials.c.scenario_id,
+                trials.c.index_in_run,
+                trials.c.messages,
+                trials.c.status,
+                trials.c.created_at,
+                trials.c.updated_at,
+                trials.c.error_message,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+            if row is None:
+                raise RuntimeError(f"Trial {trial.trial_id} not found")
+
+            # Convert to dict and validate
+            trial_dict = dict(row)
+            return Trial.model_validate(trial_dict)
+
+    async def mark_trial_as_failed(self, trial: Trial, error_message: str):
+        trials = self._get_table("trials")
+        stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial.trial_id)
+            .values(
+                status=TrialStatus.FAILED,
+                error_message=error_message,
+                updated_at=datetime.now(UTC),
+            )
+            .returning(
+                trials.c.trial_id,
+                trials.c.scenario_run_id,
+                trials.c.scenario_id,
+                trials.c.index_in_run,
+                trials.c.messages,
+                trials.c.status,
+                trials.c.created_at,
+                trials.c.updated_at,
+                trials.c.error_message,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+            if row is None:
+                raise RuntimeError(f"Trial {trial.trial_id} not found")
+
+            # Convert to dict and validate
+            trial_dict = dict(row)
+            return Trial.model_validate(trial_dict)
+
+    async def add_messages_to_trial(self, trial_id: str, messages: list[ThreadMessage]):
+        trials = self._get_table("trials")
+
+        get_stmt = sa.select(
+            trials.c.trial_id,
+            trials.c.messages,
+        ).where(trials.c.trial_id == trial_id)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(get_stmt)
+            trial_row = result.mappings().fetchone()
+
+            if trial_row is None:
+                raise RuntimeError("Cannot find trial")
+
+            new_messages_json = [message.model_dump() for message in messages]
+            insert_stmt = (
+                sa.update(trials)
+                .where(trials.c.trial_id == trial_id)
+                .values(
+                    messages=trial_row["messages"] + new_messages_json,
+                )
+            )
+
+            await conn.execute(insert_stmt)
+
+    async def set_trial_thread(self, trial_id: str, thread_id: str):
+        trials = self._get_table("trials")
+
+        insert_stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial_id)
+            .values(
+                thread_id=thread_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            await conn.execute(insert_stmt)
