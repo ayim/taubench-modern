@@ -59,20 +59,27 @@ class StreamManager {
 
     const ws = await sparAPIClient.startWebsocketStream(agentId);
 
-    ws.onopen = () => {
-      ws.send(
-        JSON.stringify({
-          thread_id: threadId,
-          agent_id: agentId,
-          messages: [
-            {
-              role: 'user',
-              content,
-            },
-          ],
-        }),
-      );
-    };
+    /**
+     * Wait for the WebSocket to be open before resolving
+     * - initiating stream and sending additional messages will otherwise fail
+     */
+    await new Promise<void>((resolve) => {
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            thread_id: threadId,
+            agent_id: agentId,
+            messages: [
+              {
+                role: 'user',
+                content,
+              },
+            ],
+          }),
+        );
+        resolve();
+      };
+    });
 
     ws.onmessage = (event) => {
       let streamingDelta: StreamingDelta | null = null;
@@ -138,7 +145,9 @@ class StreamManager {
     const listenersSet = this.messageListeners.get(threadId);
     if (listenersSet) {
       const messages = this.messagesMap[threadId];
-      listenersSet.forEach((listener) => listener(messages ? [...messages] : undefined, this.streamErrorMap[threadId]));
+      listenersSet.forEach((listener) =>
+        listener(messages && messages.length > 0 ? [...messages] : undefined, this.streamErrorMap[threadId]),
+      );
     }
   }
 
@@ -181,11 +190,34 @@ class StreamManager {
   }
 
   private messageEnd(threadId: string) {
-    this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (messages: ThreadMessage[]) => {
-      return [...messages, ...this.messagesMap[threadId]];
-    });
+    const threadMessages = this.messagesMap[threadId] ?? [];
 
-    delete this.messagesMap[threadId];
+    /**
+     * Agent messages (like tool call updates) can live between multiple message_end events.
+     * Removing these "incomplete" messages will cause current UI chat stream to lose these updates until refetch is made.
+     */
+    const { completedMessages, incompleteMessages } = threadMessages.reduce<{
+      completedMessages: ThreadMessage[];
+      incompleteMessages: ThreadMessage[];
+    }>(
+      (acc, message) => {
+        if (message.complete) {
+          acc.completedMessages.push(message);
+          return acc;
+        }
+        acc.incompleteMessages.push(message);
+        return acc;
+      },
+      { completedMessages: [], incompleteMessages: [] },
+    );
+
+    if (completedMessages.length > 0) {
+      this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (messages: ThreadMessage[]) => {
+        return [...messages, ...completedMessages];
+      });
+    }
+
+    this.messagesMap[threadId] = incompleteMessages;
     this.emitMessage(threadId);
   }
 }
