@@ -2634,6 +2634,67 @@ class TestDataQualityChecksEndpoints:
             fake_service.get_docint_datasource.return_value = fake_ds
             self._override_client_dependency(fastapi_app, fake_client)
 
+            resp_with_limit = client.post(
+                "/api/v2/document-intelligence/quality-checks/generate",
+                params={"agent_id": "agent-1"},
+                json={
+                    "data_model_name": "Invoices",
+                    "limit": 2,
+                },
+            )
+            assert resp_with_limit.status_code == 200
+            body = resp_with_limit.json()
+            assert "quality_checks" in body
+            assert isinstance(body["quality_checks"], list)
+            assert len(body["quality_checks"]) == 2
+            # Response items are serialized ValidationRule objects; compare by fields
+            assert body["quality_checks"] == fake_rules[:2]
+            fake_client.generate_validation_rules.assert_called_once()
+
+            # Reset before issuing the second request
+            fake_client.generate_validation_rules.reset_mock()
+
+            # Second request
+            resp_with_description = client.post(
+                "/api/v2/document-intelligence/quality-checks/generate",
+                params={"agent_id": "agent-1"},
+                json={
+                    "data_model_name": "Invoices",
+                    "description": "Generate a check for a specific use-case",
+                    "limit": 1,
+                },
+            )
+
+            assert resp_with_description.status_code == 200
+            body = resp_with_description.json()
+        assert "quality_checks" in body
+        assert isinstance(body["quality_checks"], list)
+        assert len(body["quality_checks"]) == 1
+        assert body["quality_checks"] == fake_rules[:1]
+        fake_client.generate_validation_rules.assert_called_once()
+
+        assert mock_find_by_name.call_count == 2
+
+    def test_generate_quality_checks_bad_request(self, client: TestClient, fastapi_app: FastAPI):
+        storage_instance = StorageService.get_instance()
+
+        fake_service = Mock()
+        fake_service.get_docint_datasource.return_value = Mock()
+        fake_client = Mock()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=self._valid_details()),
+            ),
+            patch(
+                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
+                return_value=fake_service,
+            ),
+        ):
+            self._override_client_dependency(fastapi_app, fake_client)
+
             resp = client.post(
                 "/api/v2/document-intelligence/quality-checks/generate",
                 params={"agent_id": "agent-1"},
@@ -2644,15 +2705,10 @@ class TestDataQualityChecksEndpoints:
                 },
             )
 
-        assert resp.status_code == 200
-        body = resp.json()
-        assert "quality_checks" in body
-        assert isinstance(body["quality_checks"], list)
-        assert len(body["quality_checks"]) == 2
-        # Response items are serialized ValidationRule objects; compare by fields
-        assert body["quality_checks"] == fake_rules[:2]
-        mock_find_by_name.assert_called_once()
-        fake_client.generate_validation_rules.assert_called_once()
+        assert resp.status_code == 400
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.BAD_REQUEST.value.code
+        assert "If a description is provided, limit count must be 1" in err["message"]
 
     def test_generate_quality_checks_data_model_not_found(
         self, client: TestClient, fastapi_app: FastAPI
@@ -2724,7 +2780,7 @@ class TestDataQualityChecksEndpoints:
                 json={
                     "data_model_name": "Invoices",
                     "description": "checks",
-                    "limit": 3,
+                    "limit": 1,
                 },
             )
 
@@ -2766,7 +2822,7 @@ class TestDataQualityChecksEndpoints:
                 json={
                     "data_model_name": "Invoices",
                     "description": "checks",
-                    "limit": 3,
+                    "limit": 1,
                 },
             )
 

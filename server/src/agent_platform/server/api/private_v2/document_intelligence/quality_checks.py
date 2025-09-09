@@ -31,6 +31,11 @@ async def generate_quality_checks(
     agent_server_client: AgentServerClientDependency,
 ) -> GenerateDataQualityChecksResponse:
     try:
+        if payload.description and payload.limit != 1:
+            raise PlatformHTTPError(
+                ErrorCode.BAD_REQUEST,
+                "If a description is provided, limit count must be 1",
+            )
         data_model_name = normalize_name(payload.data_model_name)
         data_model = DataModel.find_by_name(docint_ds, data_model_name)
         if not data_model:

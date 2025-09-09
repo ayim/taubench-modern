@@ -158,7 +158,7 @@ class GenerateDataQualityChecksRequest:
     """Request payload for generating data quality checks."""
 
     data_model_name: str
-    description: str
+    description: str | None = None
     limit: int = 1
 
 

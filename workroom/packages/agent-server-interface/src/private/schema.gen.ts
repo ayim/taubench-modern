@@ -2983,7 +2983,7 @@ export interface components {
       /** Data Model Name */
       data_model_name: string;
       /** Description */
-      description: string;
+      description?: string | null;
       /**
        * Limit
        * @default 1

@@ -6326,11 +6326,14 @@
       "GenerateDataQualityChecksRequest": {
         "properties": {
           "data_model_name": { "type": "string", "title": "Data Model Name" },
-          "description": { "type": "string", "title": "Description" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
           "limit": { "type": "integer", "title": "Limit", "default": 1 }
         },
         "type": "object",
-        "required": ["data_model_name", "description"],
+        "required": ["data_model_name"],
         "title": "GenerateDataQualityChecksRequest"
       },
       "GenerateDataQualityChecksResponse": {

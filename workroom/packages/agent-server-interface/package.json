@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "2.1.1-unreleased-36c66f8.0",
+  "version": "2.1.1-unreleased-caa613a.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [

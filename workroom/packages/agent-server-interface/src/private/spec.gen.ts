@@ -8038,7 +8038,14 @@ export const spec = {
             title: 'Data Model Name',
           },
           description: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Description',
           },
           limit: {
@@ -8048,7 +8055,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['data_model_name', 'description'],
+        required: ['data_model_name'],
         title: 'GenerateDataQualityChecksRequest',
       },
       GenerateDataQualityChecksResponse: {
