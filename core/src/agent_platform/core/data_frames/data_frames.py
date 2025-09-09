@@ -212,6 +212,7 @@ class PlatformDataFrame:
         import keyword
 
         from agent_platform.core.utils.asserts import assert_literal_value_valid
+        from sema4ai.common.text import slugify
 
         assert_literal_value_valid(self, "input_id_type")
 
@@ -240,7 +241,17 @@ class PlatformDataFrame:
 
         # Verify the name is a valid variable name (so that it can be properly referenced later on).
         if not self.name.isidentifier() or keyword.iskeyword(self.name):
-            raise ValueError(f"Data frame name must be a valid variable name. Got: {self.name}")
+            valid_name = slugify(self.name).replace("-", "_")
+            if valid_name.isidentifier() and not keyword.iskeyword(valid_name):
+                raise ValueError(
+                    "Unable to create data frame because the data frame name provided"
+                    f" ({self.name!r}) is not a valid variable name. Please retry with a valid name"
+                    f" (example: {valid_name})."
+                )
+            raise ValueError(
+                "Unable to create data frame because the data frame name provided"
+                f" ({self.name!r}) is not a valid variable name. Please retry with a valid name."
+            )
 
         for key, source in self.computation_input_sources.items():
             assert isinstance(key, str)

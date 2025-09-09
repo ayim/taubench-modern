@@ -30,7 +30,9 @@ async def check_data_frame_storage_crud(
     assert sample_data_frame is not retrieved_data_frame
     assert sample_data_frame == retrieved_data_frame
 
-    with pytest.raises(ValueError, match="Data frame name must be a valid variable name"):
+    with pytest.raises(
+        ValueError, match="Unable to create data frame because the data frame name provided"
+    ):
         await model_creator.obtain_sample_data_frame(name="test data frame")
     with pytest.raises(IntegrityError):
         await model_creator.obtain_sample_data_frame(name="test_data_frame")
@@ -64,7 +66,9 @@ async def check_data_frame_storage_crud(
 
     # Update the 2nd data frame
     sample_data_frame_2.name = "Updated Data Frame"
-    with pytest.raises(ValueError, match="Data frame name must be a valid variable name"):
+    with pytest.raises(
+        ValueError, match="Unable to create data frame because the data frame name provided"
+    ):
         await model_creator.storage.update_data_frame(sample_data_frame_2)
 
     sample_data_frame_2.name = "updated_data_frame"

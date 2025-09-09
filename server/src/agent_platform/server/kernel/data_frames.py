@@ -267,7 +267,12 @@ class _DataFrameTools:
 
     async def create_data_frame_from_file(
         self,
-        data_frame_name: Annotated[str, "The name of the data frame to create."],
+        data_frame_name: Annotated[
+            str,
+            """The name of the data frame to create (IMPORTANT: It must be a valid variable name
+            such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
+            and it cannot start with a number or be a python keyword.""",
+        ],
         file_ref: Annotated[
             str, "The file reference to create the data frame from (usually the file name)."
         ],
@@ -299,7 +304,7 @@ class _DataFrameTools:
 
     async def delete_data_frame(
         self,
-        data_frame_name: Annotated[str, "The name of the data frame to delete."],
+        data_frame_name: Annotated[str, "The name of the existing data frame to delete."],
     ) -> dict[str, Any]:
         """Deletes a data frame from this thread."""
         if data_frame_name not in self._name_to_data_frame:
@@ -325,7 +330,7 @@ class _DataFrameTools:
 
     async def data_frame_slice(
         self,
-        data_frame_name: Annotated[str, "The name of the data frame to slice."],
+        data_frame_name: Annotated[str, "The name of the existing data frame to slice."],
         offset: Annotated[
             int, "From which row it should start to collect samples (starts at 0)"
         ] = 0,
@@ -407,7 +412,9 @@ class _DataFrameTools:
         ],
         new_data_frame_name: Annotated[
             str,
-            "The name of the new data frame to create.",
+            """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
+            such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
+            and it cannot start with a number or be a python keyword.""",
         ],
         new_data_frame_description: Annotated[
             str | None,
@@ -429,14 +436,22 @@ class _DataFrameTools:
         DuckDB supports most common SQL operations including SELECT, WHERE, GROUP BY,
         ORDER BY, aggregate functions, and more.
         """
+        import keyword
+
         from sema4ai.actions import Table
 
         from agent_platform.server.data_frames.data_frames_from_computation import (
             create_data_frame_from_sql_computation_api,
         )
+        from sema4ai.common.text import slugify
 
         try:
             data_frames_kernel = self._create_data_frames_kernel()
+
+            # If the LLM gives us a wrong name, try to auto-fix it (and in the return
+            # we show the name that was actually used).
+            if not new_data_frame_name.isidentifier() or keyword.iskeyword(new_data_frame_name):
+                new_data_frame_name = slugify(new_data_frame_name).replace("-", "_")
 
             resolved_df, samples_table = await create_data_frame_from_sql_computation_api(
                 data_frames_kernel=data_frames_kernel,

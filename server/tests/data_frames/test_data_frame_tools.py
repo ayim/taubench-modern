@@ -194,8 +194,6 @@ async def test_data_frames_create_from_file(tmp_path):
 
 @pytest.mark.asyncio
 async def test_data_frame_tools():
-    import typing
-
     from tests.data_frames.fixtures import StorageStub
 
     from agent_platform.server.auth.handlers import AuthedUser
@@ -226,7 +224,7 @@ async def test_data_frame_tools():
 
     result = await tools.create_data_frame_from_sql(
         sql_query="SELECT col1 FROM test_data_frame WHERE col1 > 1",
-        new_data_frame_name="test_data_frame_2",
+        new_data_frame_name="test data frame 2",
     )
     assert result == {
         "result": "Data frame test_data_frame_2 created from SQL query",
