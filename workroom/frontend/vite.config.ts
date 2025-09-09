@@ -13,6 +13,7 @@ const tenantReplacementPlugin = () => ({
 
 export default defineConfig({
   root: path.resolve(__dirname),
+  base: './',
   build: {
     outDir: './dist',
     emptyOutDir: true,
