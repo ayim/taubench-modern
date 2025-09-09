@@ -8,6 +8,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "postbuild": "vite-node scripts/replacePaths.ts",
     "lint": "eslint './src/**/*.{ts,tsx}' --max-warnings 0",
     "dev": "tsc --watch",
     "test": "tsc --noEmit"
@@ -23,10 +24,10 @@
   "peerDependencies": {
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-python": "^6.2.1",
-    "@sema4ai/oauth-client": "^0.4.7",
     "@sema4ai/components": "*",
     "@sema4ai/icons": "*",
     "@sema4ai/layouts": "*",
+    "@sema4ai/oauth-client": "^0.4.7",
     "@sema4ai/theme": "*",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -38,7 +39,8 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "eslint": "^8.57.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vite-node": "^3.2.4"
   },
   "dependencies": {
     "@jsonjoy.com/json-pointer": "^1.0.1",

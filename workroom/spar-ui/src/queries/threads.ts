@@ -73,6 +73,37 @@ export const threadMessagesQueryOptions = createSparQueryOptions<{ threadId: str
 export const useThreadMessagesQuery = createSparQuery(threadMessagesQueryOptions);
 
 /**
+ * Create Thread
+ */
+export const useCreateThreadMutation = createSparMutation<
+  { agentId: string },
+  { name: string; startingMessage: string }
+>()(({ agentId, sparAPIClient }) => ({
+  mutationFn: async ({ name, startingMessage }) => {
+    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/threads/', {
+      body: {
+        name,
+        agent_id: agentId,
+        messages: [
+          {
+            role: 'agent',
+            content: [{ kind: 'text', text: startingMessage, complete: true }],
+            complete: true,
+            commited: false,
+          },
+        ],
+      },
+    });
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to create thread');
+    }
+
+    return response.data;
+  },
+}));
+
+/**
  * Update Thread
  */
 export const useUpdateThreadMutation = createSparMutation<{ agentId: string }, { threadId: string; name: string }>()(

@@ -8,8 +8,7 @@ import {
   Menu,
   SideNavigation,
 } from '@sema4ai/components';
-// TODO-V2 expose this type from the design system
-import type { LinkProps as SideNavigationLinkProps } from '@sema4ai/components/dist/components/SideNavigation/components/types';
+import type { SideNavigationLinkProps } from '@sema4ai/components';
 
 /**
  * Design System `Link` component wrapped as Tanstack Router Link

@@ -199,8 +199,8 @@ const WorkItemsTable: FC<Props> = () => {
           rowCount={workItems.length}
           resize={resize}
           onResize={setResize}
-          sticky={['background.primary']}
-          getId={getWorkItemId}
+          sticky
+          keyId={getWorkItemId}
           row={WorkItemsTableRow}
         />
       </Box>

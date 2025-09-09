@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 
 import { QueryProps } from './shared';
@@ -83,23 +83,5 @@ export const useThreadMessagesQuery = ({ threadId, tenantId }: { threadId: strin
 
   return useQuery({
     ...getThreadMessagesQueryOptions({ threadId, tenantId, agentAPIClient }),
-  });
-};
-
-export const useCreateThreadMutation = ({ agentId, tenantId }: { agentId: string; tenantId: string }) => {
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ name, startingMessage }: { name: string; startingMessage?: string }) => {
-      return agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
-        body: { name, agent_id: agentId, starting_message: startingMessage },
-      });
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(getThreadsQueryKey(agentId), (threads: Thread[]) => {
-        return !threads ? [data] : [...threads, data];
-      });
-    },
   });
 };
