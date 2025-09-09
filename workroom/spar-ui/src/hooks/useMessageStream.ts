@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ThreadMessage, ThreadContent } from '@sema4ai/agent-server-interface';
+import { ThreadMessage, ThreadContent, ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
 import { findByPointer } from '@jsonjoy.com/json-pointer';
 import { applyPatch, Operation } from 'json-joy/esm/json-patch/index.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,11 +9,18 @@ import { AgentErrorStreamPayload, StreamingDelta, StreamingDeltaMessageContent }
 import { SparAPIClient } from '../api';
 import { useSparUIContext } from '../api/context';
 import { threadMessagesQueryKey, useUploadThreadFilesMutation } from '../queries/threads';
+import { DataFrameClientTools } from '../components/DataFrame/tools/Definitions';
 
 type MessageListener = (
   messages: ThreadMessage[] | undefined,
   streamError: AgentErrorStreamPayload | undefined,
 ) => void;
+
+/**
+ * TODO: Address client tool implementation feedback
+ * - task: https://linear.app/sema4ai/issue/CLOUD-5234
+ */
+const clientTools = [...DataFrameClientTools.clientToolsList];
 
 class StreamManager {
   private wsMap: Record<string, WebSocket | null> = {};
@@ -75,6 +82,7 @@ class StreamManager {
                 content,
               },
             ],
+            client_tools: clientTools,
           }),
         );
         resolve();
@@ -115,6 +123,61 @@ class StreamManager {
     };
 
     this.wsMap[threadId] = ws;
+  }
+
+  /**
+   * Send a client tool result to the websocket
+   */
+  public async sendClientToolResult({
+    threadId,
+    sparAPIClient,
+    queryClient,
+    agentId,
+    tool,
+    result,
+    error: clientToolError,
+  }: {
+    sparAPIClient: SparAPIClient;
+    queryClient: QueryClient;
+    agentId: string;
+    threadId: string;
+    tool: ThreadToolUsageContent;
+    result: string;
+    error?: string;
+  }) {
+    let activeWebSocketForThread = this.wsMap[threadId];
+    if (!activeWebSocketForThread || activeWebSocketForThread.readyState !== WebSocket.OPEN) {
+      // Use initiateStream to set up the WebSocket connection with empty messages
+      await this.initiateStream({
+        sparAPIClient,
+        queryClient,
+        content: [],
+        threadId,
+        agentId,
+      });
+      activeWebSocketForThread = this.wsMap[threadId];
+    }
+
+    if (!activeWebSocketForThread) {
+      throw new Error('No active WebSocket connection for this thread');
+    }
+
+    // Create the tool result message following the Python pattern
+    const toolResultMessage = {
+      event_type: 'client_tool_result',
+      tool_call_id: tool.tool_call_id,
+      result: {
+        output: result,
+        error: clientToolError ?? '',
+      },
+    };
+
+    // Send the tool result directly via the existing WebSocket
+    try {
+      activeWebSocketForThread.send(JSON.stringify(toolResultMessage));
+    } catch (unexpectedToolError) {
+      throw new Error(`Failed to send tool result: ${unexpectedToolError}`);
+    }
   }
 
   public getCurrentMessages(threadId: string) {
@@ -238,6 +301,10 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     await streamManager.initiateStream({ sparAPIClient, queryClient, content, threadId, agentId });
   };
 
+  const sendClientToolMessage = async (tool: ThreadToolUsageContent, result: string, error?: string) => {
+    await streamManager.sendClientToolResult({ threadId, tool, result, error, sparAPIClient, queryClient, agentId });
+  };
+
   useEffect(() => {
     const messageListener: MessageListener = (messages, err) => {
       if (messages && messages[messages.length - 1].complete) {
@@ -273,5 +340,6 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     streamingMessages,
     uploadingFiles,
     streamError,
+    sendClientToolMessage,
   };
 };

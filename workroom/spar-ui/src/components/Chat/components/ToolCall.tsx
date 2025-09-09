@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, Fragment, useMemo } from 'react';
 import { ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
 import { Box, Button, Chat, useClipboard, useSnackbar } from '@sema4ai/components';
 import { IconCheck2, IconCode, IconCopy } from '@sema4ai/icons';
@@ -8,6 +8,7 @@ import { Code } from '../../../common/code';
 import { SparUIFeatureFlag } from '../../../api';
 import { useFeatureFlag, useParams } from '../../../hooks';
 import { useSparUIContext } from '../../../api/context';
+import { DataFrameClientTools } from '../../DataFrame/tools/Definitions';
 
 type Props = {
   content: ThreadToolUsageContent;
@@ -68,15 +69,18 @@ export const ToolCall: FC<Props> = ({ content }) => {
   };
 
   return (
-    <Chat.Action key={content.content_id} actionName={snakeCaseToTitleCase(content.name)} running={!content.complete}>
-      <Code value={result} toolbar={toolbar} lang="json" />
-      <Box display="flex" gap="$8">
-        {showActionLogs && (
-          <Button onClick={onShowLogs} variant="ghost-subtle" icon={IconCode}>
-            Show Logs
-          </Button>
-        )}
-      </Box>
-    </Chat.Action>
+    <Fragment key={content.content_id}>
+      <Chat.Action actionName={snakeCaseToTitleCase(content.name)} running={!content.complete}>
+        <Code value={result} toolbar={toolbar} lang="json" />
+        <Box display="flex" gap="$8">
+          {showActionLogs && (
+            <Button onClick={onShowLogs} variant="ghost-subtle" icon={IconCode}>
+              Show Logs
+            </Button>
+          )}
+        </Box>
+      </Chat.Action>
+      {DataFrameClientTools.chooseToolToRender(content)}
+    </Fragment>
   );
 };

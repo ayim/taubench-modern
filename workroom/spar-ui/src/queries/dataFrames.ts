@@ -39,6 +39,8 @@ export const dataFramesQueryOptions = createSparQueryOptions<{
 
 export const useDataFramesQuery = createSparQuery(dataFramesQueryOptions);
 
+export type DataFrameInspectFile =
+  AgentServerPaths['/api/v2/threads/{tid}/inspect-file-as-data-frame']['get']['responses'][200]['content']['application/json'];
 export const dataFramesInspectFileQueryOptions = createSparQueryOptions<{
   threadId: string;
   fileId: string;

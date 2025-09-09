@@ -1,4 +1,9 @@
-import { Thread, ThreadAttachmentContent, ThreadMessage } from '@sema4ai/agent-server-interface';
+import {
+  Thread,
+  ThreadAttachmentContent,
+  ThreadMessage,
+  paths as AgentServerPaths,
+} from '@sema4ai/agent-server-interface';
 
 import { createSparMutation, createSparQueryOptions, createSparQuery } from './shared';
 import { getFileSize } from '../common/helpers';
@@ -192,3 +197,29 @@ export const useUploadThreadFilesMutation = createSparMutation<{ threadId: strin
     },
   }),
 );
+
+export const threadFilesQueryKey = (threadId: string) => ['thread', threadId, 'files'];
+
+export type ThreadFiles =
+  AgentServerPaths['/api/v2/threads/{tid}/files']['get']['responses'][200]['content']['application/json'];
+export const threadFilesQueryOptions = createSparQueryOptions<{ threadId: string }>()(
+  ({ sparAPIClient, threadId }) => ({
+    queryKey: threadsQueryKey(threadId),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/threads/{tid}/files', {
+        params: { path: { tid: threadId } },
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch threads');
+      }
+
+      return response.data;
+    },
+  }),
+);
+
+/**
+ * Get Thread Files
+ */
+export const useThreadFilesQuery = createSparQuery(threadFilesQueryOptions);

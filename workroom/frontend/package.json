@@ -25,6 +25,7 @@
     "@sema4ai/robocloud-auth-utils": "^4.0.9",
     "@sema4ai/robocloud-shared-utils": "^1.10.1",
     "@sema4ai/robocloud-ui-utils": "^1.4.0",
+    "@sema4ai/sai-sdk": "^1.0.2",
     "@sema4ai/spar-ui": "*",
     "@sema4ai/theme": "2.0.0-dev.6",
     "@sema4ai/workroom-interface": "^2.2.2",
