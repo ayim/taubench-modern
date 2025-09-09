@@ -7,13 +7,13 @@ import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
 from agent_platform.core.data_server.data_connection import DataConnection
-from agent_platform.core.payloads.upsert_document_intelligence_config import (
-    UpsertDocumentIntelligenceConfigPayload,
+from agent_platform.core.payloads.document_intelligence_config import (
+    DataServerConfig,
+    DocumentIntelligenceConfigPayload,
+    IntegrationInput,
     _ApiConfig,
     _Credentials,
-    _DataServerConfig,
     _HttpConfig,
-    _IntegrationInput,
     _MysqlConfig,
 )
 from agent_platform.server.secret_manager.base import BaseSecretManager
@@ -65,8 +65,8 @@ def agent_server_client_with_doc_int(
     # This config should work against SPAR's default database and is based on the
     # connection string @bendersej provided in the #document-intelligence-team channel
     # and the data-server/data-server-local-config.json file.
-    doc_int_config = UpsertDocumentIntelligenceConfigPayload(
-        data_server=_DataServerConfig(
+    doc_int_config = DocumentIntelligenceConfigPayload(
+        data_server=DataServerConfig(
             credentials=_Credentials(username="sema4ai", password="sema4ai"),
             api=_ApiConfig(
                 http=_HttpConfig(url="http://data-server", port=47334),
@@ -74,7 +74,7 @@ def agent_server_client_with_doc_int(
             ),
         ),
         integrations=[
-            _IntegrationInput(
+            IntegrationInput(
                 type="reducto",
                 endpoint=reducto_endpoint,
                 api_key=reducto_api_key,
@@ -82,7 +82,7 @@ def agent_server_client_with_doc_int(
         ],
         data_connections=[
             DataConnection(
-                id="1",
+                external_id="1",
                 name="DocumentIntelligence",
                 engine="postgres",
                 configuration={

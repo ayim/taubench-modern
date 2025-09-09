@@ -23,7 +23,7 @@ class TestDataSources:
             },
             "data_sources": {
                 DATA_SOURCE_NAME: {
-                    "id": "123",
+                    "external_id": "123",
                     "name": "test_connection",
                     "engine": "postgres",
                     "configuration": {
@@ -49,7 +49,7 @@ class TestDataSources:
         assert sources.data_server.data_server_endpoints[0].kind == DataServerEndpointKind.MYSQL
 
         assert len(sources.data_sources) == 1
-        assert sources.data_sources[DATA_SOURCE_NAME].id == "123"
+        assert sources.data_sources[DATA_SOURCE_NAME].external_id == "123"
         assert sources.data_sources[DATA_SOURCE_NAME].name == "test_connection"
         assert sources.data_sources[DATA_SOURCE_NAME].engine == "postgres"
         assert sources.data_sources[DATA_SOURCE_NAME].configuration["user"] == "postgres"

@@ -3,6 +3,9 @@
 from agent_platform.core.payloads.action_server_config import ActionServerConfigPayload
 from agent_platform.core.payloads.add_thread_message import AddThreadMessagePayload
 from agent_platform.core.payloads.agent_package import AgentPackagePayload
+from agent_platform.core.payloads.document_intelligence_config import (
+    DocumentIntelligenceConfigPayload,
+)
 from agent_platform.core.payloads.ephemeral_stream import EphemeralStreamPayload
 from agent_platform.core.payloads.fork_thread import ForkThreadPayload
 from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
@@ -11,9 +14,6 @@ from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.core.payloads.upsert_agent import (
     PatchAgentPayload,
     UpsertAgentPayload,
-)
-from agent_platform.core.payloads.upsert_document_intelligence_config import (
-    UpsertDocumentIntelligenceConfigPayload,
 )
 from agent_platform.core.payloads.upsert_document_layout import (
     DocumentLayoutPayload,
@@ -25,6 +25,7 @@ __all__ = [
     "ActionServerConfigPayload",
     "AddThreadMessagePayload",
     "AgentPackagePayload",
+    "DocumentIntelligenceConfigPayload",
     "DocumentLayoutPayload",
     "EphemeralStreamPayload",
     "ForkThreadPayload",
@@ -33,7 +34,6 @@ __all__ = [
     "PatchAgentPayload",
     "UploadFilePayload",
     "UpsertAgentPayload",
-    "UpsertDocumentIntelligenceConfigPayload",
     "UpsertThreadPayload",
     "_TranslationRule",
 ]

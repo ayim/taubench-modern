@@ -10,6 +10,7 @@ from sqlalchemy.types import JSON
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.data_frames import PlatformDataFrame
+from agent_platform.core.data_server.data_connection import DataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.core.evals.types import (
@@ -460,7 +461,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def set_document_intelligence_integration(
         self, integration: DocumentIntelligenceIntegration
-    ) -> None:
+    ) -> DocumentIntelligenceIntegration:
         """Create or update a document intelligence integration."""
         integrations_table = self._get_table("document_intelligence_integrations")
 
@@ -473,6 +474,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             existing_row = result.mappings().fetchone()
 
             integration_data = {
+                "external_id": integration.external_id,
                 "kind": integration.kind,
                 "endpoint": integration.endpoint,
                 "updated_at": integration.updated_at,
@@ -491,6 +493,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     .values(integration_data)
                 )
                 await conn.execute(update_stmt)
+
+            # Return the updated integration
+            return integration
 
     async def delete_document_intelligence_integration(self, kind: str) -> None:
         """Delete a document intelligence integration by kind."""
@@ -936,3 +941,97 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self.engine.begin() as conn:
             await conn.execute(insert_stmt)
+
+    # -------------------------------------------------------------------------
+    # Document Intelligence Data Connections getter and setter
+    # -------------------------------------------------------------------------
+    async def get_dids_data_connections(self) -> list["DataConnection"]:
+        """Get all Document Intelligence Data Server data connections."""
+        dids_data_connections = self._get_table("dids_data_connections")
+
+        stmt = sa.select(dids_data_connections)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        data_connections = []
+        for row in rows:
+            row_dict = dict(row)
+            # Handle JSON deserialization for configuration
+            if isinstance(row_dict["configuration"], str):
+                configuration = json.loads(row_dict["configuration"])
+            else:
+                # For PostgreSQL JSONB, configuration is already a dict
+                configuration = row_dict["configuration"]
+
+            # Decrypt password in configuration if it exists
+            if "enc_password" in configuration:
+                # Create a copy of the configuration to avoid modifying the original
+                decrypted_config = configuration.copy()
+                decrypted_config["password"] = (
+                    self._decrypt_secret_string(configuration["enc_password"])
+                    if configuration["enc_password"] is not None
+                    else None
+                )
+                # Remove the encrypted password
+                decrypted_config.pop("enc_password", None)
+                row_dict["configuration"] = decrypted_config
+            else:
+                row_dict["configuration"] = configuration
+
+            # Filter to only include DataConnection fields
+            connection_data = {
+                "external_id": row_dict["external_id"],
+                "name": row_dict["name"],
+                "engine": row_dict["engine"],
+                "configuration": row_dict["configuration"],
+            }
+            data_connections.append(DataConnection.model_validate(connection_data))
+
+        return data_connections
+
+    async def set_dids_data_connections(self, data_connections: list["DataConnection"]) -> None:
+        """Set Document Intelligence Data Server data connections (replace all)."""
+        dids_data_connections = self._get_table("dids_data_connections")
+
+        async with self.engine.begin() as conn:
+            # Clear existing connections (PUT semantics)
+            delete_stmt = sa.delete(dids_data_connections)
+            await conn.execute(delete_stmt)
+
+            # Insert new connections
+            if data_connections:
+                insert_data = []
+                for data_connection in data_connections:
+                    data_connection_dict = data_connection.model_dump()
+
+                    # Encrypt password in configuration if it exists
+                    configuration = data_connection_dict["configuration"]
+
+                    # Deserialize configuration if it's a JSON string
+                    if isinstance(configuration, str):
+                        configuration = json.loads(configuration)
+
+                    if isinstance(configuration, dict) and "password" in configuration:
+                        # Create a copy of the configuration to avoid modifying the original
+                        encrypted_config = configuration.copy()
+                        encrypted_config["enc_password"] = (
+                            self._encrypt_secret_string(configuration["password"])
+                            if configuration["password"] is not None
+                            else None
+                        )
+                        # Remove the plaintext password
+                        encrypted_config.pop("password", None)
+                        configuration = encrypted_config
+
+                    data_connection_dict["configuration"] = json.dumps(configuration)
+
+                    insert_data.append(data_connection_dict)
+
+                insert_stmt = sa.insert(dids_data_connections).values(insert_data)
+                await conn.execute(insert_stmt)
+
+    async def delete_dids_data_connections(self) -> None:
+        """Delete all Document Intelligence Data Server data connections."""
+        await self.set_dids_data_connections([])

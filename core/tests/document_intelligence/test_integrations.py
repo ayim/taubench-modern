@@ -18,6 +18,7 @@ class TestDocumentIntelligenceIntegration:
             kind=IntegrationKind.REDUCTO,
             endpoint="https://api.reducto.ai/v1",
             api_key="secret-api-key-123",  # type: ignore[arg-type] # String api_key
+            external_id="test-external-id",
         )
 
         assert integration.kind == IntegrationKind.REDUCTO
@@ -25,6 +26,7 @@ class TestDocumentIntelligenceIntegration:
         assert isinstance(integration.api_key, SecretString)
         assert integration.api_key.get_secret_value() == "secret-api-key-123"
         assert str(integration.api_key) == "**********"
+        assert integration.external_id == "test-external-id"
 
     def test_creation_with_secret_string_api_key(self):
         """Test creating integration with SecretString API key (preserved)."""
@@ -33,6 +35,7 @@ class TestDocumentIntelligenceIntegration:
             kind=IntegrationKind.REDUCTO,
             endpoint="https://api.reducto.ai/v1",
             api_key=secret_key,
+            external_id="test-external-id",
         )
 
         assert integration.kind == IntegrationKind.REDUCTO
@@ -40,6 +43,7 @@ class TestDocumentIntelligenceIntegration:
         assert isinstance(integration.api_key, SecretString)
         assert integration.api_key is secret_key  # Same object preserved
         assert integration.api_key.get_secret_value() == "secret-api-key-123"
+        assert integration.external_id == "test-external-id"
 
     def test_creation_with_enum_member(self):
         """Test creating integration using enum member."""
@@ -47,10 +51,12 @@ class TestDocumentIntelligenceIntegration:
             kind=IntegrationKind.REDUCTO,
             endpoint="https://api.reducto.ai/v1",
             api_key="secret-key",  # type: ignore[arg-type]
+            external_id="test-external-id",
         )
 
         assert integration.kind == IntegrationKind.REDUCTO
         assert integration.kind == "reducto"  # Can compare with string
+        assert integration.external_id == "test-external-id"
 
     def test_model_dump(self):
         """Test model_dump returns correct dictionary."""
@@ -58,6 +64,7 @@ class TestDocumentIntelligenceIntegration:
             kind=IntegrationKind.REDUCTO,
             endpoint="https://api.reducto.ai/v1",
             api_key="secret-api-key-123",  # type: ignore[arg-type]
+            external_id="test-external-id",
         )
 
         dump = integration.model_dump()
@@ -67,12 +74,14 @@ class TestDocumentIntelligenceIntegration:
         assert "endpoint" in dump
         assert "api_key" in dump
         assert "updated_at" in dump
+        assert "external_id" in dump
 
         # Check field values
         assert dump["kind"] == IntegrationKind.REDUCTO
         assert dump["endpoint"] == "https://api.reducto.ai/v1"
         assert dump["api_key"] == integration.api_key  # SecretString object
         assert dump["updated_at"] == integration.updated_at
+        assert dump["external_id"] == integration.external_id
 
         # Verify SecretString is preserved in dump
         assert isinstance(dump["api_key"], SecretString)
@@ -88,6 +97,7 @@ class TestDocumentIntelligenceIntegration:
             "kind": "reducto",
             "endpoint": "https://api.reducto.ai/v1",
             "api_key": "secret-api-key-123",
+            "external_id": "test-external-id",
         }
 
         integration = DocumentIntelligenceIntegration.model_validate(data)
@@ -96,6 +106,7 @@ class TestDocumentIntelligenceIntegration:
         assert integration.endpoint == "https://api.reducto.ai/v1"
         assert isinstance(integration.api_key, SecretString)
         assert integration.api_key.get_secret_value() == "secret-api-key-123"
+        assert integration.external_id == "test-external-id"
 
     def test_model_validate_from_dict_with_enum_kind(self):
         """Test model_validate handles enum kind values."""
@@ -103,6 +114,7 @@ class TestDocumentIntelligenceIntegration:
             "kind": IntegrationKind.REDUCTO,
             "endpoint": "https://api.reducto.ai/v1",
             "api_key": "secret-api-key-123",
+            "external_id": "test-external-id",
         }
 
         integration = DocumentIntelligenceIntegration.model_validate(data)
@@ -110,6 +122,7 @@ class TestDocumentIntelligenceIntegration:
         assert integration.kind == IntegrationKind.REDUCTO
         assert integration.endpoint == "https://api.reducto.ai/v1"
         assert isinstance(integration.api_key, SecretString)
+        assert integration.external_id == "test-external-id"
 
     def test_model_validate_with_secret_string_key(self):
         """Test model_validate handles SecretString API keys correctly."""
@@ -118,6 +131,7 @@ class TestDocumentIntelligenceIntegration:
             "kind": "reducto",
             "endpoint": "https://api.reducto.ai/v1",
             "api_key": secret_key,
+            "external_id": "test-external-id",
         }
 
         integration = DocumentIntelligenceIntegration.model_validate(data)
@@ -126,6 +140,7 @@ class TestDocumentIntelligenceIntegration:
         assert integration.endpoint == "https://api.reducto.ai/v1"
         assert isinstance(integration.api_key, SecretString)
         assert integration.api_key is secret_key  # Same object preserved
+        assert integration.external_id == "test-external-id"
 
     def test_model_validate_roundtrip(self):
         """Test that model_dump -> model_validate is a roundtrip."""
@@ -133,6 +148,7 @@ class TestDocumentIntelligenceIntegration:
             kind=IntegrationKind.REDUCTO,
             endpoint="https://api.reducto.ai/v1",
             api_key="secret-api-key-123",  # type: ignore[arg-type]
+            external_id="test-external-id",
         )
 
         dumped = original.model_dump()
@@ -142,6 +158,7 @@ class TestDocumentIntelligenceIntegration:
         assert restored.endpoint == original.endpoint
         assert isinstance(restored.api_key, SecretString)
         assert restored.api_key.get_secret_value() == original.api_key.get_secret_value()
+        assert restored.external_id == original.external_id
 
     def test_endpoint_url_validation_valid_urls(self):
         """Test that valid endpoint URLs are accepted."""
@@ -160,7 +177,9 @@ class TestDocumentIntelligenceIntegration:
                 kind=IntegrationKind.REDUCTO,
                 endpoint=url,
                 api_key="test-key",  # type: ignore[arg-type]
+                external_id="test-external-id",
             )
+            assert integration.external_id == "test-external-id"
             assert integration.endpoint == url
 
     def test_endpoint_url_validation_invalid_urls(self):
@@ -184,6 +203,7 @@ class TestDocumentIntelligenceIntegration:
                     kind=IntegrationKind.REDUCTO,
                     endpoint=url,
                     api_key="test-key",  # type: ignore[arg-type]
+                    external_id="test-external-id",
                 )
 
     def test_endpoint_url_validation_model_validate(self):
@@ -193,15 +213,18 @@ class TestDocumentIntelligenceIntegration:
             "kind": "reducto",
             "endpoint": "https://api.example.com/v1",
             "api_key": "test-key",
+            "external_id": "test-external-id",
         }
         integration = DocumentIntelligenceIntegration.model_validate(valid_data)
         assert integration.endpoint == "https://api.example.com/v1"
-
+        assert integration.external_id == "test-external-id"
         # Invalid case
         invalid_data = {
             "kind": "reducto",
             "endpoint": "not-a-valid-url",
             "api_key": "test-key",
+            "external_id": "test-external-id",
         }
         with pytest.raises(ValueError, match="Invalid endpoint URL"):
             DocumentIntelligenceIntegration.model_validate(invalid_data)
+        assert integration.external_id == "test-external-id"

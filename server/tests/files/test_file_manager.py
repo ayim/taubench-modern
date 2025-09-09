@@ -1,18 +1,13 @@
 import os
-from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from hashlib import md5
 from io import BytesIO
 from pathlib import Path
-from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from fastapi import UploadFile
-from psycopg import AsyncConnection
-from psycopg.rows import TupleRow
-from psycopg_pool import AsyncConnectionPool
 
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.agent import (
@@ -103,95 +98,8 @@ def sample_file2(tmpdir):
         yield UploadFile(filename="test2.txt", file=file_stream)
 
 
-@pytest.fixture(scope="session", params=[pytest.param("", marks=[pytest.mark.postgresql])])
-async def postgres_test_db() -> AsyncGenerator[
-    dict[str, AsyncConnectionPool[AsyncConnection[tuple[Any, ...]]] | str], None
-]:
-    """Creates a shared temporary Postgres instance for the entire test session."""
-    try:
-        # Lazy import testing.postgresql only when needed
-        import testing.postgresql
-
-        with testing.postgresql.Postgresql() as postgresql:
-            dsn = postgresql.url()
-            pool = None
-            try:
-                pool = AsyncConnectionPool(
-                    conninfo=dsn,
-                    min_size=2,
-                    max_size=50,
-                    num_workers=2,
-                    open=False,
-                    timeout=5,
-                    reconnect_timeout=5,
-                    max_lifetime=3600,
-                    max_idle=300,
-                )
-                await pool.open()
-                yield {
-                    "pool": cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool),
-                    "dsn": dsn,
-                }
-            finally:
-                if pool:
-                    await pool.close()
-                postgresql.stop()
-    except (ImportError, RuntimeError):
-        # If testing.postgresql is not available, this is expected when running
-        # with -m "not postgresql" - the fixture won't be used anyway
-        pytest.skip("testing.postgresql is not installed")
-
-
-@pytest.fixture(
-    params=[
-        pytest.param("sqlite", marks=[]),
-        pytest.param("postgres", marks=[pytest.mark.postgresql]),
-    ]
-)
-async def storage(
-    request,
-    tmp_path: Path,
-    postgres_test_db: dict[str, AsyncConnectionPool[AsyncConnection] | str],
-) -> AsyncGenerator[SQLiteStorage | PostgresStorage, None]:
-    """
-    Parametrized fixture that provides both SQLite and Postgres storage implementations.
-    PostgreSQL tests will be skipped,
-    but SQLite tests will still run.
-    """
-    if request.param == "postgres":
-        # Pre-truncate: Drop the schema 'v2' if it exists, then recreate it
-        match postgres_test_db:
-            case {"pool": pool, "dsn": dsn}:
-                async with pool.connection() as conn:  # pyright: ignore [reportAttributeAccessIssue]
-                    async with conn.cursor() as cur:
-                        await cur.execute("DROP SCHEMA IF EXISTS v2 CASCADE;")
-                        await cur.execute("CREATE SCHEMA v2;")
-
-                storage_instance = PostgresStorage(pool, dsn)  # pyright: ignore [reportArgumentType]
-                await storage_instance.setup()
-                await storage_instance.get_or_create_user(
-                    sub="tenant:testing:system:system_user",
-                )
-                yield storage_instance
-            case _:
-                raise ValueError("postgres_test_db fixture is missing pool and dsn")
-    else:  # sqlite
-        test_file_path = tmp_path / "test_sqlite_storage.db"
-        storage_instance = SQLiteStorage(db_path=str(test_file_path))
-        if test_file_path.exists():
-            test_file_path.unlink()
-        await storage_instance.setup()
-        await storage_instance.get_or_create_user(
-            sub="tenant:testing:system:system_user",
-        )
-        yield storage_instance
-        await storage_instance.teardown()
-        if test_file_path.exists():
-            test_file_path.unlink()
-
-
 @pytest.fixture
-async def sample_user_id(storage: SQLiteStorage | PostgresStorage) -> str:
+async def sample_user_id(storage: "SQLiteStorage | PostgresStorage") -> str:
     user, created = await storage.get_or_create_user(
         sub="tenant:testing:system:system_user",
     )

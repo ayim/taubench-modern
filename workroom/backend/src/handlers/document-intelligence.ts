@@ -347,10 +347,10 @@ export const createConfigureDocumentIntelligence =
     const agentServerResponse = await agentSDK.POST('/api/v2/document-intelligence', {
       body: {
         data_server: dataServerCredentials.data,
-        integrations,
+        integrations, // todo update for external_id
         data_connections: [
           {
-            id: randomUUID(),
+            external_id: randomUUID(),
             name: AGENT_SERVER_DATA_SERVER_POSTGRES_CONNECTION_NAME,
             engine: 'postgres',
             configuration: postgresConfiguration,

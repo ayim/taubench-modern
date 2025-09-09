@@ -968,7 +968,15 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * Get Document Intelligence Config
+     * @description Get Document Intelligence configuration.
+     *
+     *     Returns the current Document Intelligence configuration including
+     *     Data Server connection details, integrations, and data connections.
+     *     Always returns 200 OK with status indicating configuration state.
+     */
+    get: operations['get_document_intelligence_config_document_intelligence_get'];
     put?: never;
     /**
      * Upsert Document Intelligence
@@ -977,6 +985,8 @@ export interface paths {
      *     Accepts a combined configuration payload under the `/document-intelligence`
      *     root. It stores the Data Server connection details and any provided
      *     integrations. For now, integrations are upserted individually by kind.
+     *
+     *     Returns the updated configuration in the same format as the GET endpoint.
      */
     post: operations['upsert_document_intelligence_document_intelligence_post'];
     /**
@@ -2747,11 +2757,6 @@ export interface components {
     /** DataConnection */
     DataConnection: {
       /**
-       * Id
-       * @description The ID of the data connection
-       */
-      id: string;
-      /**
        * Name
        * @description The name of the data connection
        */
@@ -2768,6 +2773,17 @@ export interface components {
       configuration: {
         [key: string]: unknown;
       };
+      /**
+       * External Id
+       * @description The ID of the data connection
+       */
+      external_id?: string | null;
+      /**
+       * Id
+       * @deprecated
+       * @description The ID of the data connection (deprecated, use external_id instead)
+       */
+      id?: string | null;
     };
     /** DataModelPayload */
     DataModelPayload: {
@@ -2799,6 +2815,11 @@ export interface components {
       created_at?: string | null;
       /** Updated At */
       updated_at?: string | null;
+    };
+    /** DataServerConfig */
+    DataServerConfig: {
+      credentials: components['schemas']['_Credentials'];
+      api: components['schemas']['_ApiConfig'];
     };
     /** DataServerDetails */
     DataServerDetails: {
@@ -2873,6 +2894,34 @@ export interface components {
         [key: string]: components['schemas']['DataConnection'];
       };
     };
+    /** DocumentIntelligenceConfigPayload */
+    DocumentIntelligenceConfigPayload: {
+      data_server: components['schemas']['DataServerConfig'];
+      /** Integrations */
+      integrations?: components['schemas']['IntegrationInput'][];
+      /** Data Connections */
+      data_connections?: components['schemas']['DataConnection'][];
+    };
+    /** DocumentIntelligenceConfigResponse */
+    DocumentIntelligenceConfigResponse: {
+      status: components['schemas']['DocumentIntelligenceConfigStatus'];
+      /** Error */
+      error: {
+        [key: string]: unknown;
+      } | null;
+      configuration:
+        | components['schemas']['DocumentIntelligenceConfigPayload']
+        | null;
+    };
+    /**
+     * DocumentIntelligenceConfigStatus
+     * @description Status values for Document Intelligence configuration responses.
+     * @enum {string}
+     */
+    DocumentIntelligenceConfigStatus:
+      | 'configured'
+      | 'not_configured'
+      | 'not_available';
     /** DocumentLayoutPayload */
     DocumentLayoutPayload: {
       /** Name */
@@ -3144,6 +3193,17 @@ export interface components {
        * @description The tools attached to the payload from an external client.
        */
       client_tools?: components['schemas']['ToolDefinitionPayload'][];
+    };
+    /** IntegrationInput */
+    IntegrationInput: {
+      /** Type */
+      type: string | components['schemas']['IntegrationKind'];
+      /** Endpoint */
+      endpoint: string;
+      /** Api Key */
+      api_key: string | components['schemas']['SecretString'];
+      /** External Id */
+      external_id?: string | null;
     };
     /**
      * IntegrationKind
@@ -5422,14 +5482,6 @@ export interface components {
        */
       public: boolean;
     };
-    /** UpsertDocumentIntelligenceConfigPayload */
-    UpsertDocumentIntelligenceConfigPayload: {
-      data_server: components['schemas']['_DataServerConfig'];
-      /** Integrations */
-      integrations?: components['schemas']['_IntegrationInput'][];
-      /** Data Connections */
-      data_connections?: components['schemas']['DataConnection'][];
-    };
     /** UpsertPlatformConfigPayload */
     UpsertPlatformConfigPayload: {
       /**
@@ -5809,11 +5861,6 @@ export interface components {
       /** File Ref */
       file_ref: string | null;
     };
-    /** _DataServerConfig */
-    _DataServerConfig: {
-      credentials: components['schemas']['_Credentials'];
-      api: components['schemas']['_ApiConfig'];
-    };
     /**
      * _ExtractionSchema
      * @description Extraction schema that requires 'type': 'object' and 'properties' but allows extra fields.
@@ -5840,15 +5887,6 @@ export interface components {
       url: string;
       /** Port */
       port: number;
-    };
-    /** _IntegrationInput */
-    _IntegrationInput: {
-      /** Type */
-      type: string | components['schemas']['IntegrationKind'];
-      /** Endpoint */
-      endpoint: string;
-      /** Api Key */
-      api_key: string | components['schemas']['SecretString'];
     };
     /** _MysqlConfig */
     _MysqlConfig: {
@@ -7928,6 +7966,26 @@ export interface operations {
       };
     };
   };
+  get_document_intelligence_config_document_intelligence_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DocumentIntelligenceConfigResponse'];
+        };
+      };
+    };
+  };
   upsert_document_intelligence_document_intelligence_post: {
     parameters: {
       query?: never;
@@ -7937,7 +7995,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpsertDocumentIntelligenceConfigPayload'];
+        'application/json': components['schemas']['DocumentIntelligenceConfigPayload'];
       };
     };
     responses: {
@@ -7947,7 +8005,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['DocumentIntelligenceConfigResponse'];
         };
       };
       /** @description Validation Error */

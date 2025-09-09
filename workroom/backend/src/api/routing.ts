@@ -107,6 +107,7 @@ function getRouteMap(): {
     'delete /api/v2/platforms/{platform_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/capabilities/platforms': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/config/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/document-intelligence': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/document-intelligence/data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/document-intelligence/layouts': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],

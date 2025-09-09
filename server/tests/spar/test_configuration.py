@@ -42,7 +42,7 @@ class TestDocumentIntelligenceConfiguration:
                 print(row)
                 assert row is not None, "Document intelligence integrations should be set up"
                 assert row["kind"] == "reducto", (
-                    "Document intelligence integrations should be set up"
+                    "Document intelligence integration kind should be reducto"
                 )
 
         backend_url = row["endpoint"]

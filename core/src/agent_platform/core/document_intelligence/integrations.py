@@ -18,6 +18,13 @@ class DocumentIntelligenceIntegration:
     """DocumentIntelligenceIntegration represents an integration configuration for the
     Document Intelligence API."""
 
+    external_id: str = field(
+        metadata={
+            "description": "The external ID for the integration",
+        },
+    )
+    """The external ID for the integration"""
+
     kind: IntegrationKind = field(
         metadata={
             "description": "The kind of integration (currently only 'reducto' is supported)",
@@ -84,6 +91,7 @@ class DocumentIntelligenceIntegration:
         """
         return {
             "kind": self.kind.value if mode == "json" else self.kind,
+            "external_id": self.external_id,
             "endpoint": self.endpoint,
             "api_key": self.api_key if mode == "python" else self.api_key.get_secret_value(),
             "updated_at": self.updated_at if mode == "python" else self.updated_at.isoformat(),
@@ -94,7 +102,7 @@ class DocumentIntelligenceIntegration:
         """Create a DocumentIntelligenceIntegration instance from a dictionary.
 
         Args:
-            data: Dictionary containing kind, endpoint, api_key, and updated_at fields
+            data: Dictionary containing kind, external_id, endpoint, api_key, and updated_at fields
 
         Returns:
             A DocumentIntelligenceIntegration instance

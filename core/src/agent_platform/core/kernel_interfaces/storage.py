@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from agent_platform.core.data_server.data_connection import DataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
@@ -53,4 +54,9 @@ class StorageInterface(ABC):
     @abstractmethod
     async def get_dids_connection_details(self) -> DataServerDetails:
         """Get the DIDS connection details from storage."""
+        pass
+
+    @abstractmethod
+    async def get_dids_data_connections(self) -> list[DataConnection]:
+        """Get the DIDS data connections from storage."""
         pass

@@ -6,6 +6,7 @@ import sqlalchemy as sa
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.config.config import Config
+from agent_platform.core.data_server.data_connection import DataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.core.files import UploadedFile
@@ -606,12 +607,20 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def set_document_intelligence_integration(
         self, integration: DocumentIntelligenceIntegration
-    ) -> None:
+    ) -> DocumentIntelligenceIntegration:
         """Create or update a document intelligence integration."""
 
     @abstractmethod
     async def delete_document_intelligence_integration(self, kind: str) -> None:
         """Delete a document intelligence integration by kind."""
+
+    @abstractmethod
+    async def get_dids_data_connections(self) -> list[DataConnection]:
+        """Get all Document Intelligence Data Server data connections."""
+
+    @abstractmethod
+    async def set_dids_data_connections(self, data_connections: list[DataConnection]) -> None:
+        """Set Document Intelligence Data Server data connections (replace all)."""
 
     # -------------------------------------------------------------------------
     # Methods for Agent Config

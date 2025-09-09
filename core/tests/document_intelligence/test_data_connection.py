@@ -13,7 +13,7 @@ class TestDataConnection:
     def test_postgres_connection(self):
         """Test that model_validate works for Postgres data connections."""
         data = {
-            "id": "123",
+            "external_id": "123",
             "name": "test",
             "engine": "postgres",
             "configuration": {
@@ -27,7 +27,7 @@ class TestDataConnection:
 
         connection = DataConnection.model_validate(data)
 
-        assert connection.id == "123"
+        assert connection.external_id == "123"
         assert connection.name == "test"
         assert connection.engine == DataConnectionEngine.POSTGRES
         assert connection.configuration == data["configuration"]
@@ -45,7 +45,7 @@ class TestDataConnection:
     def test_missing_connection_details(self):
         """Test that model_validate identifies missing, required attributes"""
         data = {
-            "id": "123",
+            "external_id": "123",
             "name": "test",
             "engine": "postgres",
             "configuration": {
@@ -66,7 +66,7 @@ class TestDataConnection:
     def test_unknown_engine(self):
         """Test that a unknown engine is allowed through with no validation logic"""
         data = {
-            "id": "123",
+            "external_id": "123",
             "name": "test",
             "engine": "sqlite",
             "configuration": {
@@ -76,7 +76,7 @@ class TestDataConnection:
 
         conn = DataConnection.model_validate(data)
 
-        assert conn.id == "123"
+        assert conn.external_id == "123"
         assert conn.name == "test"
         assert conn.engine == "sqlite"
         assert conn.configuration == data["configuration"]
@@ -85,7 +85,7 @@ class TestDataConnection:
     def test_mysql_engine(self):
         """Test that a MySQL engine is allowed through with no validation logic"""
         data = {
-            "id": "123",
+            "external_id": "123",
             "name": "test",
             "engine": "mysql",
             "configuration": {
@@ -99,7 +99,7 @@ class TestDataConnection:
 
         conn = DataConnection.model_validate(data)
 
-        assert conn.id == "123"
+        assert conn.external_id == "123"
         assert conn.name == "test"
         assert conn.engine == "mysql"
         assert conn.configuration == data["configuration"]
@@ -108,3 +108,44 @@ class TestDataConnection:
         assert '"host": "localhost"' in conn.build_mindsdb_parameters()
         assert '"port": 3306' in conn.build_mindsdb_parameters()
         assert '"database": "test"' in conn.build_mindsdb_parameters()
+
+    def test_id_fallback_for_external_id(self):
+        """Test that id field is used as fallback when external_id is missing."""
+        data = {
+            "id": "fallback-123",  # Using deprecated id field
+            "name": "fallback_test",
+            "engine": "postgres",
+            "configuration": {
+                "user": "user",
+                "password": "pass",
+                "host": "localhost",
+                "port": 5432,
+                "database": "test",
+            },
+        }
+
+        conn = DataConnection.model_validate(data)
+        assert conn.external_id == "fallback-123"  # Should use id as fallback
+        assert conn.id is None  # Original id should be discarded after fallback
+        assert conn.name == "fallback_test"
+
+    def test_id_fallback_when_external_id_is_none(self):
+        """Test that id field is used as fallback when external_id is None."""
+        data = {
+            "external_id": None,
+            "id": "fallback-456",  # Using deprecated id field
+            "name": "fallback_test2",
+            "engine": "postgres",
+            "configuration": {
+                "user": "user",
+                "password": "pass",
+                "host": "localhost",
+                "port": 5432,
+                "database": "test",
+            },
+        }
+
+        conn = DataConnection.model_validate(data)
+        assert conn.external_id == "fallback-456"  # Should use id as fallback
+        assert conn.id is None  # Original id should be discarded after fallback
+        assert conn.name == "fallback_test2"

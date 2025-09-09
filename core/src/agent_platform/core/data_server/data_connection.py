@@ -38,13 +38,6 @@ class DataConnectionEngine(StrEnum):
 class DataConnection:
     """A data connection to the Document Intelligence Data Server"""
 
-    id: str = field(
-        metadata={
-            "description": "The ID of the data connection",
-        },
-    )
-    """The ID of the data connection"""
-
     name: str = field(
         metadata={
             "description": "The name of the data connection",
@@ -66,9 +59,29 @@ class DataConnection:
     )
     """The configuration of the data connection"""
 
+    external_id: str | None = field(
+        default=None,
+        metadata={
+            "description": "The ID of the data connection",
+        },
+    )
+    """The ID of the data connection"""
+
+    id: str | None = field(
+        default=None,
+        metadata={
+            "description": "The ID of the data connection (deprecated, use external_id instead)",
+            "deprecated": True,
+        },
+    )
+    """The ID of the data connection (deprecated, use external_id instead)"""
+
     @classmethod
     def model_validate(cls, data: dict[str, Any]) -> "DataConnection":
         """Validate and create a DataConnection from a dictionary"""
+        # Use id as fallback for external_id if external_id is not provided
+        data["external_id"] = data.get("external_id") or data.get("id")
+        data.pop("id", None)
         match data["engine"]:
             case DataConnectionEngine.POSTGRES.value:
                 for key in ["user", "password", "host", "port", "database"]:
@@ -88,7 +101,7 @@ class DataConnection:
             self.configuration["password"] = "<REDACTED>"
 
         return {
-            "id": self.id,
+            "external_id": self.external_id,
             "name": self.name,
             "engine": self.engine,
             "configuration": self.configuration,

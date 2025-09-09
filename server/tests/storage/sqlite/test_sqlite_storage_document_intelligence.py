@@ -21,6 +21,7 @@ from agent_platform.server.storage.sqlite import SQLiteStorage
 def sample_integration() -> DocumentIntelligenceIntegration:
     """Create a sample DocumentIntelligenceIntegration for testing."""
     return DocumentIntelligenceIntegration(
+        external_id="test-external-id",
         kind=IntegrationKind.REDUCTO,
         endpoint="https://api.example.com/reducto",
         api_key=SecretString("test-api-key-123"),
@@ -77,6 +78,7 @@ async def test_document_intelligence_integration_crud_operations(
 
     # Test updating the integration
     updated_integration = DocumentIntelligenceIntegration(
+        external_id="test-external-id",
         kind=IntegrationKind.REDUCTO,  # Same kind to update existing
         endpoint="https://api.updated.com/reducto",
         api_key=SecretString("updated-api-key-456"),
@@ -117,6 +119,7 @@ async def test_integration_update_same_kind(
 
     # Create first integration
     integration1 = DocumentIntelligenceIntegration(
+        external_id="test-external-id-1",
         kind=IntegrationKind.REDUCTO,
         endpoint="https://api1.example.com/reducto",
         api_key=SecretString("api-key-1"),
@@ -131,6 +134,7 @@ async def test_integration_update_same_kind(
 
     # Create second integration with the same kind but different endpoint/key
     integration2 = DocumentIntelligenceIntegration(
+        external_id="test-external-id-2",
         kind=IntegrationKind.REDUCTO,  # Same kind - should update existing
         endpoint="https://api2.example.com/reducto",
         api_key=SecretString("api-key-2"),
@@ -217,6 +221,7 @@ async def test_integration_with_special_characters(
     """Test integration with special characters in fields."""
 
     special_integration = DocumentIntelligenceIntegration(
+        external_id="special-chars-test",
         kind=IntegrationKind.REDUCTO,
         endpoint="https://api.example.com/path?param=value&other=123",
         api_key=SecretString("key-with-special-chars!@#$%^&*()"),
@@ -239,6 +244,7 @@ async def test_integration_kind_uniqueness(
 
     # Create integration
     integration = DocumentIntelligenceIntegration(
+        external_id="uniqueness-test",
         kind=IntegrationKind.REDUCTO,
         endpoint="https://api.example.com/original",
         api_key=SecretString("original-key"),
@@ -249,6 +255,7 @@ async def test_integration_kind_uniqueness(
 
     # Create another integration with the same kind but different data
     updated_integration = DocumentIntelligenceIntegration(
+        external_id="uniqueness-test-updated",
         kind=IntegrationKind.REDUCTO,  # Same kind
         endpoint="https://api.example.com/updated",
         api_key=SecretString("updated-key"),

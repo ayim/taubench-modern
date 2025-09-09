@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 
@@ -45,20 +46,21 @@ class _Credentials:
 
 
 @dataclass(frozen=True)
-class _DataServerConfig:
+class DataServerConfig:
     credentials: _Credentials
     api: _ApiConfig
 
 
 @dataclass(frozen=True)
-class _IntegrationInput:
+class IntegrationInput:
     type: str | IntegrationKind
     endpoint: str
     api_key: str | SecretString
+    external_id: str | None = None
 
 
 @dataclass(frozen=True)
-class UpsertDocumentIntelligenceConfigPayload:
+class DocumentIntelligenceConfigPayload:
     """Payload for upserting Document Intelligence configuration.
 
     This payload groups the Data Server connection details and one or more
@@ -66,12 +68,12 @@ class UpsertDocumentIntelligenceConfigPayload:
     are expected to provide the full set of fields.
     """
 
-    data_server: _DataServerConfig = field()
-    integrations: list[_IntegrationInput] = field(default_factory=list)
+    data_server: DataServerConfig = field()
+    integrations: list[IntegrationInput] = field(default_factory=list)
     data_connections: list[DataConnection] = field(default_factory=list)
 
     @classmethod
-    def model_validate(cls, data: Any) -> UpsertDocumentIntelligenceConfigPayload:
+    def model_validate(cls, data: Any) -> DocumentIntelligenceConfigPayload:
         # Defensive copy
         if isinstance(data, dict):
             obj = dict(data)
@@ -93,14 +95,15 @@ class UpsertDocumentIntelligenceConfigPayload:
             mysql=_MysqlConfig(host=mysql_in["host"], port=int(mysql_in["port"])),
         )
 
-        data_server = _DataServerConfig(credentials=credentials, api=api_cfg)
+        data_server = DataServerConfig(credentials=credentials, api=api_cfg)
 
         # Normalize integrations
         integrations_raw = obj.get("integrations", []) or []
-        integrations: list[_IntegrationInput] = []
+        integrations: list[IntegrationInput] = []
         for item in integrations_raw:
             integrations.append(
-                _IntegrationInput(
+                IntegrationInput(
+                    external_id=item.get("external_id", item.get("id", str(uuid4()))),
                     type=item["type"],
                     endpoint=item["endpoint"],
                     api_key=item["api_key"],
@@ -110,9 +113,10 @@ class UpsertDocumentIntelligenceConfigPayload:
         data_connections_raw = obj.get("data_connections", []) or []
         data_connections: list[DataConnection] = []
         for item in data_connections_raw:
+            external_id = item.get("external_id", item.get("id", str(uuid4())))
             data_connections.append(
                 DataConnection(
-                    id=item["id"],
+                    external_id=external_id,
                     name=item["name"],
                     engine=item["engine"],
                     configuration=item["configuration"],
@@ -182,9 +186,79 @@ class UpsertDocumentIntelligenceConfigPayload:
             )
             results.append(
                 DocumentIntelligenceIntegration(
+                    external_id=item.external_id or str(uuid4()),
                     kind=kind,
                     endpoint=item.endpoint,
                     api_key=api_key_value,
                 )
             )
         return results
+
+    @classmethod
+    def from_storage(
+        cls,
+        data_server_details: DataServerDetails,
+        integrations: list[DocumentIntelligenceIntegration],
+        data_connections: list[DataConnection],
+    ) -> DocumentIntelligenceConfigPayload:
+        """Create DocumentIntelligenceConfigPayload from stored data.
+
+        Args:
+            data_server_details: The stored data server details
+            integrations: The stored integrations
+            data_connections: The stored data connections
+
+        Returns:
+            A DocumentIntelligenceConfigPayload instance
+        """
+        # Extract HTTP and MySQL endpoints
+        http_endpoint = None
+        mysql_endpoint = None
+
+        for endpoint in data_server_details.data_server_endpoints:
+            if endpoint.kind == DataServerEndpointKind.HTTP:
+                http_endpoint = endpoint
+            elif endpoint.kind == DataServerEndpointKind.MYSQL:
+                mysql_endpoint = endpoint
+
+        if http_endpoint is None or mysql_endpoint is None:
+            raise ValueError("HTTP and MySQL endpoints not found")
+
+        # Use the host directly from the endpoint
+        http_host = http_endpoint.host
+
+        # Validate required credentials
+        if data_server_details.username is None:
+            raise ValueError("Data server username is required")
+        if data_server_details.password is None:
+            raise ValueError("Data server password is required")
+
+        # Create data server config
+        data_server = DataServerConfig(
+            credentials=_Credentials(
+                username=data_server_details.username,
+                password=data_server_details.password,
+            ),
+            api=_ApiConfig(
+                http=_HttpConfig(url=http_host, port=http_endpoint.port),
+                mysql=_MysqlConfig(host=mysql_endpoint.host, port=mysql_endpoint.port),
+            ),
+        )
+
+        # Convert integrations to IntegrationInput
+        integration_inputs = []
+        for integration in integrations:
+            integration_inputs.append(
+                IntegrationInput(
+                    external_id=integration.external_id,
+                    type=integration.kind,
+                    endpoint=integration.endpoint,
+                    api_key=integration.api_key,
+                )
+            )
+
+        return cls(
+            data_server=data_server,
+            integrations=integration_inputs,
+            data_connections=data_connections,
+        )

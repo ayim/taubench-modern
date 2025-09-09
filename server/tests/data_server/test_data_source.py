@@ -38,7 +38,7 @@ async def test_initialize_data_source():
     )
 
     connection = DataConnection(
-        id="conn-123",
+        external_id="conn-123",
         name="test_connection",
         engine=DataConnectionEngine.POSTGRES,
         configuration={

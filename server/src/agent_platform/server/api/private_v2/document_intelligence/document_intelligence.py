@@ -1,3 +1,7 @@
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any
+
 from fastapi import APIRouter
 from sema4ai.data import DataSource
 from sema4ai_docint.models import initialize_database
@@ -9,8 +13,8 @@ from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.data_server.data_sources import DataSources
 from agent_platform.core.document_intelligence.integrations import IntegrationKind
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
-from agent_platform.core.errors.responses import ErrorCode
-from agent_platform.core.payloads import UpsertDocumentIntelligenceConfigPayload
+from agent_platform.core.errors.responses import ErrorCode, ErrorResponse
+from agent_platform.core.payloads import DocumentIntelligenceConfigPayload
 from agent_platform.server.api.dependencies import (
     DocIntDatasourceDependency,
     StorageDependency,
@@ -41,6 +45,23 @@ from agent_platform.server.storage.errors import (
 logger: BoundLogger = get_logger(__name__)
 
 
+class DocumentIntelligenceConfigStatus(str, Enum):
+    """Status values for Document Intelligence configuration responses."""
+
+    CONFIGURED = "configured"
+    NOT_CONFIGURED = "not_configured"
+    NOT_AVAILABLE = "not_available"
+
+
+@dataclass
+class DocumentIntelligenceConfigResponse:
+    """Response model for Document Intelligence configuration endpoints."""
+
+    status: DocumentIntelligenceConfigStatus
+    error: dict[str, Any] | None
+    configuration: DocumentIntelligenceConfigPayload | None
+
+
 async def _build_datasource(data_sources: DataSources):
     """
     Initialize the Document Intelligence database in the Data Server.
@@ -58,6 +79,62 @@ async def _build_datasource(data_sources: DataSources):
         ) from e
 
 
+async def _get_document_intelligence_config_response(
+    storage: StorageDependency,
+) -> DocumentIntelligenceConfigResponse:
+    """
+    Helper method to get document intelligence configuration and return it in the
+    standard response format.
+
+    This method swallows exceptions and remaps them to a 200 OK response body
+    with the appropriate status, instead of raising an HTTP error.
+
+    Returns:
+        DocumentIntelligenceConfigResponse: Response with status, error, and configuration
+    """
+    try:
+        # Get data server connection details
+        data_server_details = await storage.get_dids_connection_details()
+
+        # Get all integrations
+        integrations = await storage.list_document_intelligence_integrations()
+
+        # Get data connections
+        data_connections = await storage.get_dids_data_connections()
+
+        # Create and return the configuration payload
+        configuration = DocumentIntelligenceConfigPayload.from_storage(
+            data_server_details=data_server_details,
+            integrations=integrations,
+            data_connections=data_connections,
+        )
+
+        return DocumentIntelligenceConfigResponse(
+            status=DocumentIntelligenceConfigStatus.CONFIGURED,
+            error=None,
+            configuration=configuration,
+        )
+    except DIDSConnectionDetailsNotFoundError:
+        error_response = ErrorResponse(
+            ErrorCode.NOT_FOUND, message_override="Document Intelligence configuration not found"
+        )
+        return DocumentIntelligenceConfigResponse(
+            status=DocumentIntelligenceConfigStatus.NOT_CONFIGURED,
+            error=error_response.model_dump(),
+            configuration=None,
+        )
+    except Exception:
+        error_response = ErrorResponse(
+            ErrorCode.UNEXPECTED,
+            message_override="Document Intelligence DataServer is not available",
+        )
+        return DocumentIntelligenceConfigResponse(
+            status=DocumentIntelligenceConfigStatus.NOT_AVAILABLE,
+            error=error_response.model_dump(),
+            configuration=None,
+        )
+
+
 router = APIRouter()
 
 
@@ -66,16 +143,31 @@ async def ok(docint_ds: DocIntDatasourceDependency):
     return {"ok": True}
 
 
+@router.get("")
+async def get_document_intelligence_config(
+    storage: StorageDependency,
+) -> DocumentIntelligenceConfigResponse:
+    """Get Document Intelligence configuration.
+
+    Returns the current Document Intelligence configuration including
+    Data Server connection details, integrations, and data connections.
+    Always returns 200 OK with status indicating configuration state.
+    """
+    return await _get_document_intelligence_config_response(storage)
+
+
 @router.post("")
 async def upsert_document_intelligence(
-    payload: UpsertDocumentIntelligenceConfigPayload,
+    payload: DocumentIntelligenceConfigPayload,
     storage: StorageDependency,
-):
+) -> DocumentIntelligenceConfigResponse:
     """Upsert Document Intelligence configuration (PUT semantics).
 
     Accepts a combined configuration payload under the `/document-intelligence`
     root. It stores the Data Server connection details and any provided
     integrations. For now, integrations are upserted individually by kind.
+
+    Returns the updated configuration in the same format as the GET endpoint.
     """
     # Persist Data Server connection details for DocInt.
     data_sources = payload.to_data_sources()
@@ -88,7 +180,10 @@ async def upsert_document_intelligence(
     for integration in payload.to_integrations():
         await storage.set_document_intelligence_integration(integration)
 
-    return {"ok": True}
+    await storage.set_dids_data_connections(payload.data_connections)
+
+    # Return the updated configuration using the helper method
+    return await _get_document_intelligence_config_response(storage)
 
 
 @router.delete("")
@@ -131,6 +226,9 @@ async def clear_document_intelligence(
 
     # Clear the dataserver connection details from the agent-server database.
     await storage.delete_dids_connection_details()
+
+    # Clear the dataserver data connections from the agent-server database.
+    await storage.delete_dids_data_connections()
 
     return {"ok": True}
 

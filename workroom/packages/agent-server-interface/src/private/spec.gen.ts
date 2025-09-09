@@ -2908,17 +2908,37 @@ export const spec = {
       },
     },
     '/api/v2/document-intelligence': {
+      get: {
+        tags: ['document-intelligence'],
+        summary: 'Get Document Intelligence Config',
+        description:
+          'Get Document Intelligence configuration.\n\nReturns the current Document Intelligence configuration including\nData Server connection details, integrations, and data connections.\nAlways returns 200 OK with status indicating configuration state.',
+        operationId:
+          'get_document_intelligence_config_document_intelligence_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/DocumentIntelligenceConfigResponse',
+                },
+              },
+            },
+          },
+        },
+      },
       post: {
         tags: ['document-intelligence'],
         summary: 'Upsert Document Intelligence',
         description:
-          'Upsert Document Intelligence configuration (PUT semantics).\n\nAccepts a combined configuration payload under the `/document-intelligence`\nroot. It stores the Data Server connection details and any provided\nintegrations. For now, integrations are upserted individually by kind.',
+          'Upsert Document Intelligence configuration (PUT semantics).\n\nAccepts a combined configuration payload under the `/document-intelligence`\nroot. It stores the Data Server connection details and any provided\nintegrations. For now, integrations are upserted individually by kind.\n\nReturns the updated configuration in the same format as the GET endpoint.',
         operationId: 'upsert_document_intelligence_document_intelligence_post',
         requestBody: {
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/UpsertDocumentIntelligenceConfigPayload',
+                $ref: '#/components/schemas/DocumentIntelligenceConfigPayload',
               },
             },
           },
@@ -2929,7 +2949,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/DocumentIntelligenceConfigResponse',
+                },
               },
             },
           },
@@ -7484,11 +7506,6 @@ export const spec = {
       },
       DataConnection: {
         properties: {
-          id: {
-            type: 'string',
-            title: 'Id',
-            description: 'The ID of the data connection',
-          },
           name: {
             type: 'string',
             title: 'Name',
@@ -7505,9 +7522,35 @@ export const spec = {
             title: 'Configuration',
             description: 'The configuration of the data connection',
           },
+          external_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'External Id',
+            description: 'The ID of the data connection',
+          },
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+            description:
+              'The ID of the data connection (deprecated, use external_id instead)',
+            deprecated: true,
+          },
         },
         type: 'object',
-        required: ['id', 'name', 'engine', 'configuration'],
+        required: ['name', 'engine', 'configuration'],
         title: 'DataConnection',
       },
       DataModelPayload: {
@@ -7605,6 +7648,19 @@ export const spec = {
         type: 'object',
         required: ['name', 'description', 'schema'],
         title: 'DataModelPayload',
+      },
+      DataServerConfig: {
+        properties: {
+          credentials: {
+            $ref: '#/components/schemas/_Credentials',
+          },
+          api: {
+            $ref: '#/components/schemas/_ApiConfig',
+          },
+        },
+        type: 'object',
+        required: ['credentials', 'api'],
+        title: 'DataServerConfig',
       },
       DataServerDetails: {
         properties: {
@@ -7740,6 +7796,69 @@ export const spec = {
         type: 'object',
         required: ['data_server', 'data_sources'],
         title: 'DataSources',
+      },
+      DocumentIntelligenceConfigPayload: {
+        properties: {
+          data_server: {
+            $ref: '#/components/schemas/DataServerConfig',
+          },
+          integrations: {
+            items: {
+              $ref: '#/components/schemas/IntegrationInput',
+            },
+            type: 'array',
+            title: 'Integrations',
+          },
+          data_connections: {
+            items: {
+              $ref: '#/components/schemas/DataConnection',
+            },
+            type: 'array',
+            title: 'Data Connections',
+          },
+        },
+        type: 'object',
+        required: ['data_server'],
+        title: 'DocumentIntelligenceConfigPayload',
+      },
+      DocumentIntelligenceConfigResponse: {
+        properties: {
+          status: {
+            $ref: '#/components/schemas/DocumentIntelligenceConfigStatus',
+          },
+          error: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Error',
+          },
+          configuration: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/DocumentIntelligenceConfigPayload',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: ['status', 'error', 'configuration'],
+        title: 'DocumentIntelligenceConfigResponse',
+      },
+      DocumentIntelligenceConfigStatus: {
+        type: 'string',
+        enum: ['configured', 'not_configured', 'not_available'],
+        title: 'DocumentIntelligenceConfigStatus',
+        description:
+          'Status values for Document Intelligence configuration responses.',
       },
       DocumentLayoutPayload: {
         properties: {
@@ -8356,6 +8475,50 @@ export const spec = {
         type: 'object',
         required: ['agent_id'],
         title: 'InitiateStreamPayload',
+      },
+      IntegrationInput: {
+        properties: {
+          type: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                $ref: '#/components/schemas/IntegrationKind',
+              },
+            ],
+            title: 'Type',
+          },
+          endpoint: {
+            type: 'string',
+            title: 'Endpoint',
+          },
+          api_key: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+            ],
+            title: 'Api Key',
+          },
+          external_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'External Id',
+          },
+        },
+        type: 'object',
+        required: ['type', 'endpoint', 'api_key'],
+        title: 'IntegrationInput',
       },
       IntegrationKind: {
         type: 'string',
@@ -12339,30 +12502,6 @@ export const spec = {
         required: ['name', 'description', 'version'],
         title: 'UpsertAgentPayload',
       },
-      UpsertDocumentIntelligenceConfigPayload: {
-        properties: {
-          data_server: {
-            $ref: '#/components/schemas/_DataServerConfig',
-          },
-          integrations: {
-            items: {
-              $ref: '#/components/schemas/_IntegrationInput',
-            },
-            type: 'array',
-            title: 'Integrations',
-          },
-          data_connections: {
-            items: {
-              $ref: '#/components/schemas/DataConnection',
-            },
-            type: 'array',
-            title: 'Data Connections',
-          },
-        },
-        type: 'object',
-        required: ['data_server'],
-        title: 'UpsertDocumentIntelligenceConfigPayload',
-      },
       UpsertPlatformConfigPayload: {
         properties: {
           name: {
@@ -13119,19 +13258,6 @@ export const spec = {
         ],
         title: '_DataFrameInspectionAPI',
       },
-      _DataServerConfig: {
-        properties: {
-          credentials: {
-            $ref: '#/components/schemas/_Credentials',
-          },
-          api: {
-            $ref: '#/components/schemas/_ApiConfig',
-          },
-        },
-        type: 'object',
-        required: ['credentials', 'api'],
-        title: '_DataServerConfig',
-      },
       _ExtractionSchema: {
         properties: {
           type: {
@@ -13181,39 +13307,6 @@ export const spec = {
         type: 'object',
         required: ['url', 'port'],
         title: '_HttpConfig',
-      },
-      _IntegrationInput: {
-        properties: {
-          type: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                $ref: '#/components/schemas/IntegrationKind',
-              },
-            ],
-            title: 'Type',
-          },
-          endpoint: {
-            type: 'string',
-            title: 'Endpoint',
-          },
-          api_key: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                $ref: '#/components/schemas/SecretString',
-              },
-            ],
-            title: 'Api Key',
-          },
-        },
-        type: 'object',
-        required: ['type', 'endpoint', 'api_key'],
-        title: '_IntegrationInput',
       },
       _MysqlConfig: {
         properties: {

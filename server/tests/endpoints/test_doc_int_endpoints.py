@@ -35,6 +35,10 @@ from agent_platform.core.data_server.data_server import (
     DataServerEndpointKind,
 )
 from agent_platform.core.data_server.data_sources import DataSources
+from agent_platform.core.document_intelligence.integrations import (
+    DocumentIntelligenceIntegration,
+    IntegrationKind,
+)
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.files import UploadedFile
@@ -50,8 +54,12 @@ from agent_platform.server.api.dependencies import (
     get_file_manager,
 )
 from agent_platform.server.api.private_v2.document_intelligence import document_intelligence
+from agent_platform.server.api.private_v2.document_intelligence.document_intelligence import (
+    DocumentIntelligenceConfigStatus,
+)
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.error_handlers import add_exception_handlers
+from agent_platform.server.storage.errors import DIDSConnectionDetailsNotFoundError
 from agent_platform.server.storage.option import StorageService
 
 
@@ -285,9 +293,57 @@ class TestDocumentIntelligenceEndpoints:
                     "mysql": {"host": "127.0.0.1", "port": 5432},
                 },
             },
+            "data_connections": [
+                {
+                    "external_id": "conn-1",
+                    "name": "Test Connection",
+                    "engine": "postgres",
+                    "configuration": {
+                        "host": "localhost",
+                        "port": 5432,
+                        "database": "test_db",
+                        "user": "test_user",
+                        "password": "test_password",
+                    },
+                }
+            ],
         }
 
         storage_instance = StorageService.get_instance()
+
+        # Create test data for the read methods
+        data_server_details = DataServerDetails(
+            username="user",
+            password=SecretString("pass"),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
+            ],
+        )
+
+        integrations = [
+            DocumentIntelligenceIntegration(
+                external_id="integration-1",
+                kind=IntegrationKind.REDUCTO,
+                endpoint="https://reducto.example.com",
+                api_key=SecretString("secret-key"),
+            )
+        ]
+
+        data_connections = [
+            DataConnection(
+                external_id="conn-1",
+                name="Test Connection",
+                engine=DataConnectionEngine.POSTGRES,
+                configuration={
+                    "host": "localhost",
+                    "port": 5432,
+                    "database": "test_db",
+                    "user": "test_user",
+                    "password": "test_password",
+                },
+            )
+        ]
 
         with (
             patch.object(
@@ -300,15 +356,264 @@ class TestDocumentIntelligenceEndpoints:
                 "set_document_intelligence_integration",
                 new=AsyncMock(),
             ) as set_integration,
+            patch.object(
+                storage_instance,
+                "set_dids_data_connections",
+                new=AsyncMock(),
+            ) as set_data_connections,
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=data_server_details),
+            ),
+            patch.object(
+                storage_instance,
+                "list_document_intelligence_integrations",
+                new=AsyncMock(return_value=integrations),
+            ),
+            patch.object(
+                storage_instance,
+                "get_dids_data_connections",
+                new=AsyncMock(return_value=data_connections),
+            ),
             patch.object(document_intelligence, "_build_datasource", new=AsyncMock()) as build_ds,
         ):
             response = client.post("/api/v2/document-intelligence", json=payload)
 
         assert response.status_code == 200
-        assert response.json() == {"ok": True}
+        response_data = response.json()
+
+        # Verify the response structure matches the new format
+        assert response_data["status"] == DocumentIntelligenceConfigStatus.CONFIGURED
+        assert response_data["error"] is None
+        assert response_data["configuration"] is not None
+
+        # Verify the configuration structure matches DocumentIntelligenceConfigPayload
+        configuration = response_data["configuration"]
+        assert "data_server" in configuration
+        assert "integrations" in configuration
+        assert "data_connections" in configuration
+
+        # Verify data server details match the input
+        data_server = configuration["data_server"]
+        assert data_server["credentials"]["username"] == "user"
+        assert data_server["credentials"]["password"] == {"value": "pass"}
+        assert data_server["api"]["http"]["url"] == "127.0.0.1"
+        assert data_server["api"]["http"]["port"] == 47334
+        assert data_server["api"]["mysql"]["host"] == "127.0.0.1"
+        assert data_server["api"]["mysql"]["port"] == 5432
+
+        # Verify integrations
+        assert len(configuration["integrations"]) == 1
+        integration = configuration["integrations"][0]
+        assert integration["type"] == "reducto"
+        assert integration["endpoint"] == "https://reducto.example.com"
+        assert integration["api_key"] == {"value": "secret-key"}
+
+        # Verify data connections
+        assert len(configuration["data_connections"]) == 1
+        connection = configuration["data_connections"][0]
+        assert connection["external_id"] == "conn-1"
+        assert connection["name"] == "Test Connection"
+        assert connection["engine"] == "postgres"
+        assert connection["configuration"]["host"] == "localhost"
+        assert connection["configuration"]["port"] == 5432
+        assert connection["configuration"]["database"] == "test_db"
+        assert connection["configuration"]["user"] == "test_user"
+        assert connection["configuration"]["password"] == "test_password"
+
         set_details.assert_awaited()
         set_integration.assert_awaited()
+        set_data_connections.assert_awaited()
         build_ds.assert_awaited()
+
+    def test_get_document_intelligence_config_not_found(self, client: TestClient):
+        """GET /document-intelligence should return 200 with not_configured status."""
+        storage_instance = StorageService.get_instance()
+
+        with patch.object(
+            storage_instance,
+            "get_dids_connection_details",
+            new=AsyncMock(side_effect=DIDSConnectionDetailsNotFoundError()),
+        ):
+            response = client.get("/api/v2/document-intelligence")
+
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["status"] == DocumentIntelligenceConfigStatus.NOT_CONFIGURED
+        assert response_data["configuration"] is None
+        assert response_data["error"] is not None
+        assert response_data["error"]["code"] == ErrorCode.NOT_FOUND.value.code
+        assert response_data["error"]["message"] == "Document Intelligence configuration not found"
+
+    def test_get_document_intelligence_config_not_available(self, client: TestClient):
+        """GET /document-intelligence should return 200 with not_available status on exception."""
+        storage_instance = StorageService.get_instance()
+
+        with patch.object(
+            storage_instance,
+            "get_dids_connection_details",
+            new=AsyncMock(side_effect=Exception("Connection timeout")),
+        ):
+            response = client.get("/api/v2/document-intelligence")
+
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["status"] == DocumentIntelligenceConfigStatus.NOT_AVAILABLE
+        assert response_data["configuration"] is None
+        assert response_data["error"] is not None
+        assert response_data["error"]["code"] == ErrorCode.UNEXPECTED.value.code
+        assert (
+            response_data["error"]["message"] == "Document Intelligence DataServer is not available"
+        )
+
+    def test_get_document_intelligence_config_success(self, client: TestClient):
+        """GET /document-intelligence should return the current configuration."""
+        # Create test data
+        data_server_details = DataServerDetails(
+            username="testuser",
+            password=SecretString("testpass"),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
+            ],
+        )
+
+        integrations = [
+            DocumentIntelligenceIntegration(
+                external_id="integration-1",
+                kind=IntegrationKind.REDUCTO,
+                endpoint="https://reducto.example.com",
+                api_key=SecretString("secret-key"),
+            )
+        ]
+
+        data_connections = [
+            DataConnection(
+                external_id="conn-1",
+                name="Test Connection",
+                engine=DataConnectionEngine.POSTGRES,
+                configuration={
+                    "host": "localhost",
+                    "port": 5432,
+                    "database": "test_db",
+                    "user": "test_user",
+                    "password": "test_password",
+                },
+            )
+        ]
+
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=data_server_details),
+            ),
+            patch.object(
+                storage_instance,
+                "list_document_intelligence_integrations",
+                new=AsyncMock(return_value=integrations),
+            ),
+            patch.object(
+                storage_instance,
+                "get_dids_data_connections",
+                new=AsyncMock(return_value=data_connections),
+            ),
+        ):
+            response = client.get("/api/v2/document-intelligence")
+
+        assert response.status_code == 200
+        response_data = response.json()
+
+        # Verify the response structure matches the new format
+        assert response_data["status"] == DocumentIntelligenceConfigStatus.CONFIGURED
+        assert response_data["error"] is None
+        assert response_data["configuration"] is not None
+
+        # Verify the configuration structure matches DocumentIntelligenceConfigPayload
+        configuration = response_data["configuration"]
+        assert "data_server" in configuration
+        assert "integrations" in configuration
+        assert "data_connections" in configuration
+
+        # Verify data server details
+        data_server = configuration["data_server"]
+        assert data_server["credentials"]["username"] == "testuser"
+        assert data_server["credentials"]["password"] == {"value": "testpass"}
+        assert data_server["api"]["http"]["url"] == "127.0.0.1"
+        assert data_server["api"]["http"]["port"] == 47334
+        assert data_server["api"]["mysql"]["host"] == "127.0.0.1"
+        assert data_server["api"]["mysql"]["port"] == 5432
+
+        # Verify integrations
+        assert len(configuration["integrations"]) == 1
+        integration = configuration["integrations"][0]
+        assert integration["external_id"] == "integration-1"
+        assert integration["type"] == "reducto"
+        assert integration["endpoint"] == "https://reducto.example.com"
+        assert integration["api_key"] == {"value": "secret-key"}
+
+        # Verify data connections
+        assert len(configuration["data_connections"]) == 1
+        connection = configuration["data_connections"][0]
+        assert connection["external_id"] == "conn-1"
+        assert connection["name"] == "Test Connection"
+        assert connection["engine"] == "postgres"
+        assert connection["configuration"]["host"] == "localhost"
+        assert connection["configuration"]["port"] == 5432
+        assert connection["configuration"]["database"] == "test_db"
+        assert connection["configuration"]["user"] == "test_user"
+        assert connection["configuration"]["password"] == "test_password"
+
+    def test_get_document_intelligence_config_empty_data(self, client: TestClient):
+        """GET /document-intelligence should return empty lists when no integrations exist."""
+        data_server_details = DataServerDetails(
+            username="testuser",
+            password=SecretString("testpass"),
+            data_server_endpoints=[
+                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
+            ],
+        )
+
+        storage_instance = StorageService.get_instance()
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_dids_connection_details",
+                new=AsyncMock(return_value=data_server_details),
+            ),
+            patch.object(
+                storage_instance,
+                "list_document_intelligence_integrations",
+                new=AsyncMock(return_value=[]),
+            ),
+            patch.object(
+                storage_instance,
+                "get_dids_data_connections",
+                new=AsyncMock(return_value=[]),
+            ),
+        ):
+            response = client.get("/api/v2/document-intelligence")
+
+        assert response.status_code == 200
+        response_data = response.json()
+
+        # Verify the response structure matches the new format
+        assert response_data["status"] == DocumentIntelligenceConfigStatus.CONFIGURED
+        assert response_data["error"] is None
+        assert response_data["configuration"] is not None
+
+        # Verify empty lists are returned
+        configuration = response_data["configuration"]
+        assert configuration["integrations"] == []
+        assert configuration["data_connections"] == []
+
+        # Verify data server details are still present
+        assert configuration["data_server"]["credentials"]["username"] == "testuser"
 
     async def test_delete_di_when_not_configured(self, client: TestClient):
         """
@@ -351,6 +656,11 @@ class TestDocumentIntelligenceEndpoints:
                 ) as delete_ds_details,
                 patch.object(
                     storage_instance,
+                    "delete_dids_data_connections",
+                    new=AsyncMock(),
+                ) as delete_data_connections,
+                patch.object(
+                    storage_instance,
                     "delete_document_intelligence_integration",
                     new=AsyncMock(),
                 ) as delete_integration,
@@ -365,6 +675,7 @@ class TestDocumentIntelligenceEndpoints:
             )
             delete_integration.assert_awaited_once_with("reducto")
             delete_ds_details.assert_awaited_once()
+            delete_data_connections.assert_awaited_once()
 
             # Verify DataSource.setup_connection_from_input_json was called
             mock_datasource.setup_connection_from_input_json.assert_called_once()
@@ -571,7 +882,7 @@ class TestBuildDatasource:
             ),
             data_sources={
                 DATA_SOURCE_NAME: DataConnection(
-                    id="123",
+                    external_id="123",
                     name="docint-postgres",
                     engine=DataConnectionEngine.POSTGRES,
                     configuration={

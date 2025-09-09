@@ -10,8 +10,8 @@ import requests
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
 from agent_platform.core.payloads.document_intelligence import ExtractDocumentPayload
-from agent_platform.core.payloads.upsert_document_intelligence_config import (
-    UpsertDocumentIntelligenceConfigPayload,
+from agent_platform.core.payloads.document_intelligence_config import (
+    DocumentIntelligenceConfigPayload,
 )
 
 HEADER_INDEX = 0
@@ -828,9 +828,7 @@ class AgentServerClient:
             ) from e
         return response.content
 
-    def configure_document_intelligence(
-        self, doc_int_config: UpsertDocumentIntelligenceConfigPayload
-    ):
+    def configure_document_intelligence(self, doc_int_config: DocumentIntelligenceConfigPayload):
         url = urljoin(self.base_url + "/", "document-intelligence")
         response = requests.post(url, json=asdict(doc_int_config))
         try:
