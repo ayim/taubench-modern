@@ -28,7 +28,6 @@
     "@sema4ai/sai-sdk": "^1.0.2",
     "@sema4ai/spar-ui": "*",
     "@sema4ai/theme": "2.0.0-dev.6",
-    "@sema4ai/workroom-interface": "^2.2.2",
     "@tanstack/react-query": "^5.71.1",
     "@tanstack/react-query-devtools": "^5.71.1",
     "@tanstack/react-router": "^1.114.29",
@@ -44,6 +43,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@sema4ai/workroom-interface": "^2.2.2",
     "@tailwindcss/vite": "^4.1.11",
     "@types/node": "^24.0.14",
     "@types/react": "^19.0.3",

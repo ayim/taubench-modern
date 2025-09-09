@@ -15,12 +15,11 @@
     "test:types": "tsc --noEmit"
   },
   "dependencies": {
-    "@isaacs/ttlcache": "^1.4.1",
     "@sema4ai/agent-server-interface": "*",
+    "@isaacs/ttlcache": "^1.4.1",
     "@sema4ai/robocloud-auth-utils": "^4.0.9",
     "@sema4ai/robocloud-shared-utils": "^1.10.1",
     "@sema4ai/robocloud-sign-interface": "^2.0.2",
-    "@sema4ai/workroom-interface": "^2.2.2",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-promise-router": "^4.1.1",
@@ -28,6 +27,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@sema4ai/workroom-interface": "^2.2.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",
     "@types/node": "^24.0.14",

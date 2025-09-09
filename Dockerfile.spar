@@ -45,8 +45,11 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --include=dev
 
 RUN --mount=type=cache,target=/app/node_modules/.vite \
-    npm run build && \
-    npm prune --production && \
+    npm run build
+
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=secret,id=npmrc,dst=/app/.npmrc \
+    npm ci --omit=dev  --workspace=backend --include-workspace-root=false && \
     npm cache clean --force
 
 ARG ACE_SERVICE_VERSION
@@ -92,11 +95,11 @@ COPY --from=builder /build/dist/agent-server /usr/local/bin/agent-server
 COPY --from=builder /build/scripts/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /usr/local/bin/agent-server
 
-COPY --from=workroom-builder /app/package.json ./workroom/package.json
 COPY --from=workroom-builder /app/node_modules ./workroom/node_modules
-COPY --from=workroom-builder /app/packages ./workroom/packages
+COPY --from=workroom-builder /app/packages/agent-server-interface/package.json ./workroom/packages/agent-server-interface/package.json
+COPY --from=workroom-builder /app/packages/agent-server-interface/node_modules ./workroom/packages/agent-server-interface/node_modules
+COPY --from=workroom-builder /app/packages/agent-server-interface/lib ./workroom/packages/agent-server-interface/lib
 COPY --from=workroom-builder /app/frontend/dist ./workroom/frontend/dist
-COPY --from=workroom-builder /app/frontend/public ./workroom/frontend/public
 COPY --from=workroom-builder /app/backend/dist ./workroom/backend/dist
 
 COPY ./scripts/entrypoint-spar.sh ./scripts/spar-healthcheck.sh /app/
