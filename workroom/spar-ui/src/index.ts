@@ -11,3 +11,5 @@ export * from './components/Chat';
 export * from './lib/OAuth';
 
 export * from './components/DataFrame';
+
+export { CreateWorkItemDialog } from './components/CreateWorkItemDialog';

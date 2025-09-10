@@ -1,6 +1,7 @@
 import { Badge, Button, Column, Menu, Table, TableRowProps, Tooltip, Typography } from '@sema4ai/components';
 import {
   IconDotsHorizontal,
+  IconLoading,
   IconSearchArea,
   IconStatusCompleted,
   IconStatusError,
@@ -70,6 +71,7 @@ const workitemsTableCellComponents: Partial<Record<string, FC<RowProps & { rowDa
   }),
   actions: memo(({ rowData }) => {
     const navigate = useNavigate();
+    const { status } = rowData;
 
     const handleViewWorkItemClick = useCallback(() => {
       const { work_item_id, agent_id } = rowData;
@@ -89,9 +91,10 @@ const workitemsTableCellComponents: Partial<Record<string, FC<RowProps & { rowDa
           <Button
             aria-label="View Work Item"
             size="small"
-            icon={IconSearchArea}
+            icon={status === 'PENDING' ? IconLoading : IconSearchArea}
             variant="ghost-subtle"
-            onClick={handleViewWorkItemClick}
+            onClick={status === 'PENDING' ? undefined : handleViewWorkItemClick}
+            loading={status === 'PENDING'}
           />
           <Menu
             trigger={

@@ -1,4 +1,4 @@
-import { Box, Button, Menu, SideNavigation, Tooltip, Typography, useScreenSize } from '@sema4ai/components';
+import { Box, Button, Menu, Tooltip, Typography, useScreenSize } from '@sema4ai/components';
 import { IconDotsHorizontal, IconLayoutRight, IconPaperclip, IconPieChart, IconPlus, IconPoll } from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
@@ -53,12 +53,12 @@ export const Header = () => {
 
       <Box display="flex" alignItems="center" gap="$8" ml="auto">
         <Tooltip text="New Work Item" placement="bottom">
-          <SideNavigation.Item
+          <RouterSideNavigationLink
+            to="/tenants/$tenantId/worker/$agentId/create"
+            params={{ tenantId, agentId }}
             icon={IconPlus}
-            // disabled={isCreatingThread} // TODO
             round
             aria-label="New Work Item"
-            // onClick={onNewThread} // TODO
           />
         </Tooltip>
 
@@ -100,6 +100,13 @@ export const Header = () => {
         {isMobile && (
           <>
             <Menu trigger={<Button icon={IconDotsHorizontal} variant="ghost" aria-label="Chat Actions" />}>
+              <RouterMenuLink
+                to="/tenants/$tenantId/worker/$agentId/create"
+                icon={IconPoll}
+                params={{ tenantId, agentId }}
+              >
+                New Work Item
+              </RouterMenuLink>
               <RouterMenuLink to="/tenants/$tenantId/worker/$agentId" icon={IconPoll} params={{ tenantId, agentId }}>
                 Work Items
               </RouterMenuLink>

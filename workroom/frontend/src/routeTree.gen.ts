@@ -31,6 +31,7 @@ import { Route as TenantsTenantIdConversationalAgentIdRouteImport } from './rout
 import { Route as TenantsTenantIdAgentsDeployRouteImport } from './routes/tenants/$tenantId/agents/deploy'
 import { Route as TenantsTenantIdWorkerAgentIdIndexRouteImport } from './routes/tenants/$tenantId/worker/$agentId/index'
 import { Route as TenantsTenantIdConversationalAgentIdIndexRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/index'
+import { Route as TenantsTenantIdWorkerAgentIdCreateRouteImport } from './routes/tenants/$tenantId/worker/$agentId/create'
 import { Route as TenantsTenantIdWorkerAgentIdWorkItemIdRouteImport } from './routes/tenants/$tenantId/worker/$agentId/$workItemId'
 import { Route as TenantsTenantIdSettingsLlmNewRouteImport } from './routes/tenants/$tenantId/settings/llm/new'
 import { Route as TenantsTenantIdSettingsLlmPlatformIdRouteImport } from './routes/tenants/$tenantId/settings/llm/$platformId'
@@ -170,6 +171,12 @@ const TenantsTenantIdConversationalAgentIdIndexRoute =
     path: '/',
     getParentRoute: () => TenantsTenantIdConversationalAgentIdRoute,
   } as any)
+const TenantsTenantIdWorkerAgentIdCreateRoute =
+  TenantsTenantIdWorkerAgentIdCreateRouteImport.update({
+    id: '/create',
+    path: '/create',
+    getParentRoute: () => TenantsTenantIdWorkerAgentIdRoute,
+  } as any)
 const TenantsTenantIdWorkerAgentIdWorkItemIdRoute =
   TenantsTenantIdWorkerAgentIdWorkItemIdRouteImport.update({
     id: '/$workItemId',
@@ -258,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
   '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute
   '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren
+  '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/worker/$agentId/': typeof TenantsTenantIdWorkerAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
@@ -288,6 +296,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
   '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
   '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute
+  '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
@@ -323,6 +332,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/settings/llm/$platformId': typeof TenantsTenantIdSettingsLlmPlatformIdRoute
   '/tenants/$tenantId/settings/llm/new': typeof TenantsTenantIdSettingsLlmNewRoute
   '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren
+  '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/worker/$agentId/': typeof TenantsTenantIdWorkerAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/settings/llm/$platformId'
     | '/tenants/$tenantId/settings/llm/new'
     | '/tenants/$tenantId/worker/$agentId/$workItemId'
+    | '/tenants/$tenantId/worker/$agentId/create'
     | '/tenants/$tenantId/conversational/$agentId/'
     | '/tenants/$tenantId/worker/$agentId/'
     | '/tenants/$tenantId/agents/deploy/llms/new'
@@ -389,6 +400,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/conversational/$agentId/$threadId'
     | '/tenants/$tenantId/settings/llm/$platformId'
     | '/tenants/$tenantId/settings/llm/new'
+    | '/tenants/$tenantId/worker/$agentId/create'
     | '/tenants/$tenantId/conversational/$agentId'
     | '/tenants/$tenantId/worker/$agentId'
     | '/tenants/$tenantId/agents/deploy/llms/new'
@@ -423,6 +435,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/settings/llm/$platformId'
     | '/tenants/$tenantId/settings/llm/new'
     | '/tenants/$tenantId/worker/$agentId/$workItemId'
+    | '/tenants/$tenantId/worker/$agentId/create'
     | '/tenants/$tenantId/conversational/$agentId/'
     | '/tenants/$tenantId/worker/$agentId/'
     | '/tenants/$tenantId/agents/deploy/llms/new'
@@ -594,6 +607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdIndexRouteImport
       parentRoute: typeof TenantsTenantIdConversationalAgentIdRoute
     }
+    '/tenants/$tenantId/worker/$agentId/create': {
+      id: '/tenants/$tenantId/worker/$agentId/create'
+      path: '/create'
+      fullPath: '/tenants/$tenantId/worker/$agentId/create'
+      preLoaderRoute: typeof TenantsTenantIdWorkerAgentIdCreateRouteImport
+      parentRoute: typeof TenantsTenantIdWorkerAgentIdRoute
+    }
     '/tenants/$tenantId/worker/$agentId/$workItemId': {
       id: '/tenants/$tenantId/worker/$agentId/$workItemId'
       path: '/$workItemId'
@@ -755,6 +775,7 @@ const TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren =
 
 interface TenantsTenantIdWorkerAgentIdRouteChildren {
   TenantsTenantIdWorkerAgentIdWorkItemIdRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren
+  TenantsTenantIdWorkerAgentIdCreateRoute: typeof TenantsTenantIdWorkerAgentIdCreateRoute
   TenantsTenantIdWorkerAgentIdIndexRoute: typeof TenantsTenantIdWorkerAgentIdIndexRoute
   TenantsTenantIdWorkerAgentIdDashboardIndexRoute: typeof TenantsTenantIdWorkerAgentIdDashboardIndexRoute
 }
@@ -763,6 +784,8 @@ const TenantsTenantIdWorkerAgentIdRouteChildren: TenantsTenantIdWorkerAgentIdRou
   {
     TenantsTenantIdWorkerAgentIdWorkItemIdRoute:
       TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren,
+    TenantsTenantIdWorkerAgentIdCreateRoute:
+      TenantsTenantIdWorkerAgentIdCreateRoute,
     TenantsTenantIdWorkerAgentIdIndexRoute:
       TenantsTenantIdWorkerAgentIdIndexRoute,
     TenantsTenantIdWorkerAgentIdDashboardIndexRoute:

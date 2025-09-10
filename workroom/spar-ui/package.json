@@ -55,6 +55,8 @@
     "react-hook-form": "^7.62.0",
     "uuid": "^9.0.1",
     "vega": "^6.1.2",
-    "vega-embed": "^7.0.2"
+    "vega-embed": "^7.0.2",
+    "@hookform/resolvers": "^5.2.1",
+    "zod": "^3.22.4"
   }
 }
