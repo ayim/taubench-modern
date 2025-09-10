@@ -112,6 +112,25 @@ def test_data_frames_integration_with_date(base_url_agent_server, datadir, file_
             basename="cloned_sheet1",
         )
 
+        contents = agent_client.get_data_frame_contents(
+            thread_id,
+            data_frame_name="cloned_sheet1",
+            column_names=["segment", "country", "units sold"],
+        )
+        assert contents is not None
+        assert json.loads(contents) == [
+            {
+                "Segment": "Public",
+                "Country": "Portugal",
+                "Units Sold": 1500.5,
+            },
+            {
+                "Segment": "Private",
+                "Country": "Italy",
+                "Units Sold": 1500.3,
+            },
+        ]
+
 
 @pytest.mark.integration
 def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, file_regression):

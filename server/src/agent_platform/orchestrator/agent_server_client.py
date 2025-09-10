@@ -828,6 +828,37 @@ class AgentServerClient:
             ) from e
         return response.content
 
+    def get_data_frame_contents(  # noqa: PLR0913
+        self,
+        thread_id: str,
+        data_frame_name: str,
+        offset: int | None = None,
+        limit: int | None = None,
+        column_names: list[str] | None = None,
+        output_format: Literal["json", "parquet"] = "json",
+        order_by: str | None = None,
+    ) -> bytes:
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames/{data_frame_name}")
+        params: dict[str, Any] = {}
+        if offset is not None:
+            params["offset"] = offset
+        if limit is not None:
+            params["limit"] = limit
+        if column_names is not None:
+            params["column_names"] = ",".join(column_names)
+        if output_format is not None:
+            params["output_format"] = output_format
+        if order_by is not None:
+            params["order_by"] = order_by
+        response = requests.get(url, params=params)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting data frame contents: {response.status_code} {response.text}",
+            ) from e
+        return response.content
+
     def configure_document_intelligence(self, doc_int_config: DocumentIntelligenceConfigPayload):
         url = urljoin(self.base_url + "/", "document-intelligence")
         response = requests.post(url, json=asdict(doc_int_config))

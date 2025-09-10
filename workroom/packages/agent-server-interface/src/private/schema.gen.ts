@@ -654,6 +654,35 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/data-frames/{data_frame_name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Data Frame
+     * @description Get a data frame's contents with optional slicing and filtering.
+     *
+     *     Args:
+     *         user: The user making the request
+     *         tid: The ID of the thread
+     *         data_frame_name: The name of the data frame to retrieve
+     *         storage: The storage to use
+     *
+     *     Returns:
+     *         A response with the data frame contents in the specified format
+     */
+    get: operations['get_data_frame_threads__tid__data_frames__data_frame_name__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/threads/{tid}/data-frames/slice': {
     parameters: {
       query?: never;
@@ -671,13 +700,8 @@ export interface paths {
      *         user: The user making the request
      *         tid: The ID of the thread
      *         storage: The storage to use
-     *         data_frame_id: The ID of the data frame to slice (mutually exclusive with data_frame_name)
-     *         data_frame_name: The name of the data frame to slice (mutually exclusive with data_frame_id)
-     *         offset: From which offset to start the slice. If not provided, starts with 0
-     *         limit: The number of rows to slice. If not provided, slices to the end.
-     *         column_names: List of column names to include. If not provided, returns all columns
-     *         output_format: Output format - either "json" or "parquet"
-     *         order_by: The column name to order by (use '-' prefix to order by descending order).
+     *         payload: The payload containing the data frame id or name, offset, limit,
+     *                  column names, output format, and order by.
      *
      *     Returns:
      *         A streaming response with the sliced data in the specified format
@@ -5898,7 +5922,7 @@ export interface components {
     /** _SliceDataInput */
     _SliceDataInput: {
       /** Data Frame Id */
-      data_frame_id: string;
+      data_frame_id?: string | null;
       /** Data Frame Name */
       data_frame_name?: string | null;
       /**
@@ -7422,6 +7446,44 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['_DataFrameCreationAPI'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_data_frame_threads__tid__data_frames__data_frame_name__get: {
+    parameters: {
+      query?: {
+        offset?: number;
+        limit?: number | null;
+        column_names?: string | null;
+        output_format?: 'json' | 'parquet';
+        order_by?: string | null;
+      };
+      header?: never;
+      path: {
+        tid: string;
+        data_frame_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
       /** @description Validation Error */

@@ -429,8 +429,12 @@ async def create_data_frame_from_sql_computation(
 
 
 class _SliceDataInput(BaseModel):
-    data_frame_id: Annotated[str, "The ID of the data frame to slice."]
-    data_frame_name: Annotated[str | None, "The name of the data frame to slice."] = None
+    data_frame_id: Annotated[
+        str | None, "The ID of the data frame to slice (mutually exclusive with data_frame_name)."
+    ] = None
+    data_frame_name: Annotated[
+        str | None, "The name of the data frame to slice (mutually exclusive with data_frame_id)."
+    ] = None
     offset: Annotated[int, "From which offset to start the slice (starts at 0)."] = 0
     limit: Annotated[int | None, "The maximum number of rows to return in the slice."] = None
     column_names: Annotated[list[str] | None, "The column names to include."] = None
@@ -439,6 +443,52 @@ class _SliceDataInput(BaseModel):
         str | None,
         "The column name to order by (use '-' prefix to order by descending order).",
     ] = None
+
+
+@router.get("/{tid}/data-frames/{data_frame_name}")
+async def get_data_frame(  # noqa: PLR0913
+    user: AuthedUser,
+    tid: str,
+    data_frame_name: str,
+    storage: StorageDependency,
+    offset: Annotated[int, "From which offset to get the data frame rows (starts at 0)."] = 0,
+    limit: Annotated[int | None, "The maximum number of rows to return."] = None,
+    column_names: Annotated[
+        str | None,
+        """Comma-separated list of column names to include
+        (if not provided, all columns are included).""",
+    ] = None,
+    output_format: Annotated[Literal["json", "parquet"], "The output format."] = "json",
+    order_by: Annotated[
+        str | None,
+        "The column name to order by (use '-' prefix to order by descending order).",
+    ] = None,
+) -> Response:
+    """Get a data frame's contents with optional slicing and filtering.
+
+    Args:
+        user: The user making the request
+        tid: The ID of the thread
+        data_frame_name: The name of the data frame to retrieve
+        storage: The storage to use
+
+    Returns:
+        A response with the data frame contents in the specified format
+    """
+    return await slice_data_frame(
+        user,
+        tid,
+        storage,
+        _SliceDataInput(
+            data_frame_id=None,
+            data_frame_name=data_frame_name,
+            offset=offset,
+            limit=limit,
+            column_names=[col.strip() for col in column_names.split(",")] if column_names else None,
+            output_format=output_format,
+            order_by=order_by,
+        ),
+    )
 
 
 @router.post("/{tid}/data-frames/slice")
@@ -454,13 +504,8 @@ async def slice_data_frame(  # noqa: PLR0912,C901
         user: The user making the request
         tid: The ID of the thread
         storage: The storage to use
-        data_frame_id: The ID of the data frame to slice (mutually exclusive with data_frame_name)
-        data_frame_name: The name of the data frame to slice (mutually exclusive with data_frame_id)
-        offset: From which offset to start the slice. If not provided, starts with 0
-        limit: The number of rows to slice. If not provided, slices to the end.
-        column_names: List of column names to include. If not provided, returns all columns
-        output_format: Output format - either "json" or "parquet"
-        order_by: The column name to order by (use '-' prefix to order by descending order).
+        payload: The payload containing the data frame id or name, offset, limit,
+                 column names, output format, and order by.
 
     Returns:
         A streaming response with the sliced data in the specified format

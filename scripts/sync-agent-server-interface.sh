@@ -25,7 +25,7 @@ kill_server() {
 }
 trap kill_server EXIT
 
-for i in {1..10}; do
+for i in {1..20}; do
   sleep 2
 
   if curl -sf "http://localhost:${TMP_AGENT_SERVER_PORT}/api/v2/ok" > /dev/null; then

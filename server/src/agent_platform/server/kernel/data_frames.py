@@ -109,7 +109,12 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         for data_frame in self._name_to_data_frame.values():
             data_frames_info.append(self._data_frame_summary(data_frame))
         summary.append(json.dumps(data_frames_info, indent=1))
-        return "\n".join(summary)
+        ret = "\n".join(summary)
+        ret += (
+            "\n\nNote: It's possible to use an url such as 'data-frame://<data_frame_name>' "
+            "to get the data frame in json format to use in vega-lite charts."
+        )
+        return ret
 
     def _data_frame_summary(self, data_frame: "PlatformDataFrame") -> dict[str, Any]:
         info: dict[str, Any] = {"name": data_frame.name}

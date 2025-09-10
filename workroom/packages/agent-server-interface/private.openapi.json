@@ -1735,11 +1735,91 @@
         }
       }
     },
+    "/threads/{tid}/data-frames/{data_frame_name}": {
+      "get": {
+        "tags": ["threads"],
+        "summary": "Get Data Frame",
+        "description": "Get a data frame's contents with optional slicing and filtering.\n\nArgs:\n    user: The user making the request\n    tid: The ID of the thread\n    data_frame_name: The name of the data frame to retrieve\n    storage: The storage to use\n\nReturns:\n    A response with the data frame contents in the specified format",
+        "operationId": "get_data_frame_threads__tid__data_frames__data_frame_name__get",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Tid" }
+          },
+          {
+            "name": "data_frame_name",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Data Frame Name" }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Offset" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "integer" }, { "type": "null" }],
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "column_names",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Column Names"
+            }
+          },
+          {
+            "name": "output_format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": ["json", "parquet"],
+              "type": "string",
+              "default": "json",
+              "title": "Output Format"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Order By"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/threads/{tid}/data-frames/slice": {
       "post": {
         "tags": ["threads"],
         "summary": "Slice Data Frame",
-        "description": "Get a slice of a data frame's contents.\n\nArgs:\n    user: The user making the request\n    tid: The ID of the thread\n    storage: The storage to use\n    data_frame_id: The ID of the data frame to slice (mutually exclusive with data_frame_name)\n    data_frame_name: The name of the data frame to slice (mutually exclusive with data_frame_id)\n    offset: From which offset to start the slice. If not provided, starts with 0\n    limit: The number of rows to slice. If not provided, slices to the end.\n    column_names: List of column names to include. If not provided, returns all columns\n    output_format: Output format - either \"json\" or \"parquet\"\n    order_by: The column name to order by (use '-' prefix to order by descending order).\n\nReturns:\n    A streaming response with the sliced data in the specified format",
+        "description": "Get a slice of a data frame's contents.\n\nArgs:\n    user: The user making the request\n    tid: The ID of the thread\n    storage: The storage to use\n    payload: The payload containing the data frame id or name, offset, limit,\n             column names, output format, and order by.\n\nReturns:\n    A streaming response with the sliced data in the specified format",
         "operationId": "slice_data_frame_threads__tid__data_frames_slice_post",
         "parameters": [
           {
@@ -10120,7 +10200,10 @@
       },
       "_SliceDataInput": {
         "properties": {
-          "data_frame_id": { "type": "string", "title": "Data Frame Id" },
+          "data_frame_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Data Frame Id"
+          },
           "data_frame_name": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Data Frame Name"
@@ -10149,7 +10232,6 @@
           }
         },
         "type": "object",
-        "required": ["data_frame_id"],
         "title": "_SliceDataInput"
       },
       "_TranslationRule": {

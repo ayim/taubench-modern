@@ -15,6 +15,21 @@ Table(columns, rows) shape).
 - `pytest` should be run with `uv run python -m pytest <args>` from the root of the project.
 - The tests shouldn't be extensive, they should be focused on the new code and the new functionality.
 
+## To run integrated with Studio
+
+Start agent server and then start Studio in another terminal:
+
+```bash
+set SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1
+make run-as-studio
+
+set SEMA4AI_STUDIO_SUDO_BLOCK_AGENT_SERVER_LAUNCH=yes
+npm i
+npm run force-clean-clis
+npm run cpb
+npm run vite-bs
+```
+
 # References:
 
 [Miro board: Internals behind the Data Model API in Agent Server](https://miro.com/app/board/uXjVImChMn0=/?moveToWidget=3458764636556067436&cot=14)
@@ -139,7 +154,7 @@ Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to 
 
 - Don't remove tools after they were added into the context
 
-# Step 8 (current PR)
+# Step 8 (done)
 
 - Make the result of named queries (Tables) be available as data frames automatically.
 
@@ -170,6 +185,69 @@ Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to 
   ```
 
   The idea here is that when tool is returned and the result has that shape, we should create a new data frame from it automatically.
+
+# Step 9 (current PR)
+
+- Allow the LLM to use vega to show charts using data frames.
+
+  - Currently the LLM is instructed to use vega-lite to show charts
+    embedding the data or using some external url (no relative file paths or private URLs).
+
+  Example for data:
+
+  ```json
+  {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "values": [
+        { "q": "Q1", "sales": 120 },
+        { "q": "Q2", "sales": 95 }
+      ]
+    },
+    "mark": "bar",
+    "encoding": {
+      "x": { "field": "q", "type": "ordinal", "title": "Quarter" },
+      "y": { "field": "sales", "type": "quantitative", "title": "Units sold" }
+    }
+  }
+  ```
+
+  Example for url:
+
+  Same as above but with the data specified as something as:
+
+  ```json
+  {
+    "data": {
+    "url": "data/seattle-weather.csv",
+    "format": {
+      "type": "csv"
+    }
+  },
+  ```
+
+  -- types may be: CsvDataFormat (comma separated values), DsvDataFormat (custom char separated values), JsonDataFormat (json), TopoDataFormat (topological info)
+
+  Ok, now, given that, to show the chart should be "as simple as" making the values of the data frame available
+  so that vega-lite can use them.
+
+  So, the proposal is to make all the data from a data frame available as a url that can be used by vega-lite.
+
+  Implementation-wise the suggestion is:
+
+  - Add a new REST API to get the data from a data frame in the json format.
+  - The REST API would be something as:
+    - `GET /threads/{thread_id}/data-frames/{data_frame_name}&format=json`
+
+  The LLM will be instructed to build the url with something as:
+
+  - `data-frame://{data_frame_name}`
+  - The UI component must do the appropriate conversion of the url based on the current thread being shown to build
+    the full url.
+
+Example:
+
+curl -X GET http://localhost:58885/api/v2/threads/116745a4-4150-4eb5-9740-da9022c05238/data-frames/top_countries_highest_mortality_last_5_years -H "accept: application/json"
 
 # Future work (not right now):
 

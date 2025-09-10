@@ -26,3 +26,5 @@ You have 1 data frames to work with. Details:
   ]
  }
 ]
+
+Note: It's possible to use an url such as 'data-frame://<data_frame_name>' to get the data frame in json format to use in vega-lite charts.
