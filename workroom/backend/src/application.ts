@@ -200,6 +200,12 @@ export const createApplication = async ({
       .redirect(302, `/tenants/${configuration.tenant.tenantId}/home`);
   });
 
+  app.get('/oauth', (_req, res) => {
+    res
+      .set('x-sema4ai-redirect-source', 'spar-gateway')
+      .redirect(302, `/tenants/${configuration.tenant.tenantId}/oauth`);
+  });
+
   // Static routes / Frontend handling
   if (configuration.frontendMode === 'disk') {
     monitoring.logger.info('Frontend will be loaded from disk');
