@@ -7,6 +7,11 @@ on:
         description: The Agent Server version string (SemVer, e.g. "2.0.24")
         type: string
         required: true
+      base_branch:
+        description: The base branch to open the PR against
+        type: string
+        required: false
+        default: main
 
 concurrency: ${{ github.workflow }}-${{ inputs.agent_server_version }}
 
@@ -27,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
         id: checkout
         with:
-          ref: main
+          ref: ${{ inputs.base_branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup `uv`
@@ -176,7 +181,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 head: '${{ steps.bump-package-version.outputs.branch-name }}',
-                base: 'main',
+                base: '${{ inputs.base_branch }}',
                 title,
                 body,
               });
