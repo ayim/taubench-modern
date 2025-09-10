@@ -255,6 +255,42 @@ COMPOSE_PROFILES=spar-no-auth docker compose up --build --force-recreate
 > [!TIP]
 > Refer to the `compose.yml` and Dockerfile sources for what environment variables are required in each case. Since they change often, maintaining a list in the README is non-ideal.
 
+#### Developing with JWT Local Authentication
+
+To develop with JWT Local Authentication so you can test or work with the JWT tokens, you can use the launch configuration `Debug Agent Server (JWT Local w/ Postgres)`. This will launch the agent server with JWT Local Authentication and local Postgres. If you want to use the SPAR stack at the same time, you must update the launch configuration to change the appropriate environment variables to use the SPAR stack.
+
+When in fully local mode, the following environment variables will be set:
+
+- `AUTH_TYPE`: `jwt_local`
+- `JWT_ALG`: `HS256`
+- `JWT_AUD`: `agent_server`
+- `JWT_DECODE_KEY_B64`: `dmVyeV9zZWNyZXRfa2V5` (base64 encoded `very_secret_key`)
+- `JWT_ISS`: `ace`
+- `POSTGRES_DB`: `agent_server_db`
+- `POSTGRES_HOST`: `localhost`
+- `POSTGRES_PORT`: `5432`
+- `POSTGRES_USER`: `admin`
+- `POSTGRES_PASSWORD`: `password`
+- `SEMA4AI_AGENT_SERVER_DB_TYPE`: `postgres`
+
+In order to switch to using SPAR, first, SPAR must be started with no profile so you can run the agent-server locally in debug mode, then you must update the following environment variables to use the SPAR stack:
+
+- `POSTGRES_DB`: `agents`
+- `POSTGRES_USER`: `agents`
+- `POSTGRES_PASSWORD`: `agents`
+
+Finally, to actually authenticate to the agent server once it's running, you need to generate a JWT token with the following fields:
+
+- `iss`: `ace`
+- `aud`: `agent_server`
+- `alg`: `HS256`
+- `sub`: `/tenant/{tenant_id}/user/{user_id}` (tenant ID and user ID can be whatever you want or an existing on in the database)
+
+And you must use the key `very_secret_key` as the secret key. You can generate token using [jwtbuilder](http://jwtbuilder.jamiekurtz.com/) or you can build a script to do so for your own needs. We may in the future have a Make target for this.
+
+> [!TIP]
+> There is a SPAR profile called `agent-server-auth` but it has not been tested in some time so your mileage may vary.
+
 ### Creating agents
 
 _Make sure to at least replace the Open API LLM key `REPLACE_WITH_VALID_KEY` to have a working agent_

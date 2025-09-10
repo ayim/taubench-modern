@@ -268,7 +268,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "reductoai" },
     { name = "sema4ai-common" },
-    { name = "sema4ai-docint" },
+    { name = "sema4ai-docint", extra = ["memory"] },
     { name = "siphash" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "structlog" },
@@ -299,7 +299,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", path = "server/wheels/sema4ai_docint-0.4.12-py3-none-any.whl" },
+    { name = "sema4ai-docint", extras = ["memory"], path = "server/wheels/sema4ai_docint-0.5.0-py3-none-any.whl" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -3297,8 +3297,8 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.4.12"
-source = { path = "server/wheels/sema4ai_docint-0.4.12-py3-none-any.whl" }
+version = "0.5.0"
+source = { path = "server/wheels/sema4ai_docint-0.5.0-py3-none-any.whl" }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp" },
@@ -3319,13 +3319,20 @@ dependencies = [
     { name = "sema4ai-http-helper" },
 ]
 wheels = [
-    { filename = "sema4ai_docint-0.4.12-py3-none-any.whl", hash = "sha256:c21dd4e34cb309743c05b845e8587aed5f438c25325125057eb0b52da77c601f" },
+    { filename = "sema4ai_docint-0.5.0-py3-none-any.whl", hash = "sha256:170053aeb0115ee854b8ea5beaa7c32b644e09d6cdf221e203bedd3248a36d51" },
+]
+
+[package.optional-dependencies]
+memory = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "aiohttp", specifier = ">=3.10.0" },
+    { name = "fastapi", marker = "extra == 'memory'", specifier = ">=0.115.6,<0.116.0" },
     { name = "jsonschema", specifier = ">=4.0.0" },
     { name = "mindsdb-sql", specifier = "==0.21.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
@@ -3341,7 +3348,9 @@ requires-dist = [
     { name = "sema4ai-actions", specifier = "==1.4.1" },
     { name = "sema4ai-data", specifier = "==1.0.8" },
     { name = "sema4ai-http-helper", specifier = "==2.1.0" },
+    { name = "uvicorn", marker = "extra == 'memory'", specifier = ">=0.34.0,<0.35.0" },
 ]
+provides-extras = ["memory"]
 
 [[package]]
 name = "sema4ai-http-helper"

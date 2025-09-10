@@ -1,18 +1,12 @@
-import base64
-import json
-import os
 from collections.abc import AsyncGenerator
 from typing import Annotated, Any
-from urllib.parse import urljoin
 
 from fastapi import Depends, Request, UploadFile
-from sema4ai.actions._action import set_current_requests_contexts
-from sema4ai.actions._action_context import RequestContexts
-from sema4ai.actions._request import Request as Sema4aiRequest
 from sema4ai.data import DataSource
 from sema4ai.data._data_source import ConnectionNotSetupError
 from sema4ai_docint import DIService, build_di_service
 from sema4ai_docint.agent_server_client import AgentServerClient
+from sema4ai_docint.agent_server_client.transport import MemoryTransport
 from sema4ai_docint.extraction.reducto.async_ import AsyncExtractionClient
 from starlette.concurrency import run_in_threadpool
 
@@ -289,63 +283,44 @@ def get_docint_datasource(details: DIDSDetailsDependency) -> DataSource:
 DocIntDatasourceDependency = Annotated[DataSource, Depends(get_docint_datasource)]
 
 
-async def get_agent_server_client(
-    agent_id: str, request: Request, thread_id: str | None = None
-) -> AgentServerClient:
+async def get_agent_server_transport(
+    request: Request, agent_id: str, thread_id: str | None = None
+) -> MemoryTransport:
+    """Get an agent server transport from the sema4ai-docint package for use in DIv2.
+
+    Args:
+        agent_id: The agent ID to attach to the transport instance as context
+        thread_id: The thread ID to attach to the transport instance as context, this is
+            required for transport file operations.
+    """
+    # Get the authorization header if it exists so it can be added to the transport
+    additional_headers = None
+    if "Authorization" in request.headers:
+        additional_headers = {"Authorization": request.headers["Authorization"]}
+
+    return MemoryTransport(
+        base_url=str(request.base_url),
+        base_path="",
+        agent_id=agent_id,
+        thread_id=thread_id,
+        app=request.app,
+        additional_headers=additional_headers,
+    )
+
+
+AgentServerTransportDependency = Annotated[MemoryTransport, Depends(get_agent_server_transport)]
+
+
+async def get_agent_server_client(transport: AgentServerTransportDependency) -> AgentServerClient:
     """Get an agent server client from the sema4ai-docint package for use in DIv2.
 
     Ensures the file management client points to this server instance by
     deriving the base URL from the current request and setting
     SEMA4AI_FILE_MANAGEMENT_URL if it is not already set.
     """
-    # Set the file management URL to the current server instance
-    base_url = str(request.base_url)
-    if not os.environ.get("SEMA4AI_FILE_MANAGEMENT_URL"):
-        os.environ["SEMA4AI_FILE_MANAGEMENT_URL"] = urljoin(base_url, "api/v2")
-
-    if not os.environ.get("SEMA4AI_AGENTS_SERVICE_URL"):
-        os.environ["SEMA4AI_AGENTS_SERVICE_URL"] = base_url
-
-    # Set up the actions context
-    await _set_actions_context(agent_id, request, thread_id)
-
     # Create client off-thread since it performs sync I/O (health check)
-    client = await run_in_threadpool(AgentServerClient, agent_id)
+    client = await run_in_threadpool(AgentServerClient, transport=transport)
     return client
-
-
-async def _set_actions_context(
-    agent_id: str, request: Request, thread_id: str | None = None
-) -> None:
-    """Set the sema4ai-actions context for the current request."""
-    # TODO we should directly use the DocInt.Context class to configure the agent_id
-
-    # Inject the request context to make the action code work
-    # Build an action request from the FastAPI request
-    headers: dict[str, str] = {str(k): str(v) for k, v in request.headers.items()}
-    cookies: dict[str, str] = {str(k): str(v) for k, v in request.cookies.items()}
-
-    # We must _always_ set the agent_id inn the invocation_context
-    # Also set assistant id header fallback used by AgentServerClient
-    invocation_context = {"agent_id": agent_id}
-    headers.setdefault("X-INVOKED_BY_ASSISTANT_ID", agent_id)
-
-    # Provide invocation context so downstream helpers can fetch agent/thread context
-    if thread_id:
-        invocation_context["thread_id"] = thread_id
-        headers.setdefault("x-invoked_for_thread_id", thread_id)
-
-    headers["x-action-invocation-context"] = base64.b64encode(
-        json.dumps(invocation_context).encode("utf-8")
-    ).decode("ascii")
-
-    action_request = Sema4aiRequest.model_validate(
-        {
-            "headers": headers,
-            "cookies": cookies,
-        }
-    )
-    set_current_requests_contexts(RequestContexts(action_request))
 
 
 AgentServerClientDependency = Annotated[AgentServerClient, Depends(get_agent_server_client)]
@@ -377,12 +352,14 @@ AsyncExtractionClientDependency = Annotated[
 async def get_di_service(
     datasource: DocIntDatasourceDependency,
     storage: StorageDependency,
-    _agent_client: AgentServerClientDependency,  # ensures request contexts + env are set
+    transport: AgentServerTransportDependency,
 ) -> "DIService":
     reducto_integ = await storage.get_document_intelligence_integration(IntegrationKind.REDUCTO)
+
     di = build_di_service(
         datasource=datasource,
         sema4_api_key=reducto_integ.api_key.get_secret_value(),
+        agent_server_transport=transport,
     )
     return di
 
