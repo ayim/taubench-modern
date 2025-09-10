@@ -153,7 +153,19 @@ jobs:
             SEMA4AI_WORKROOM_PORT=8001
             LOG_LEVEL=INFO
 
+      - name: Display help message on build failure
+        if: failure() && steps.build.outcome == 'failure'
+        run: |
+          echo '########################################################################################################################'
+          echo '# SPAR build failed!'
+          echo '# This can be caused by changes to the Agent Server Interface - see here for advice on how to fix it:'
+          echo '# https://github.com/Sema4AI/agent-platform/blob/main/README.md#breaking-interface-changes-build-failing'
+          echo '########################################################################################################################'
+
+          exit 1
+
       - name: Print Docker image URI
+        if: success()
         env:
           IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar:${{ steps.build-metadata.outputs.tag }}'
         run: |
