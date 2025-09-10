@@ -1,5 +1,5 @@
 #region Agent Server
-FROM golang:1.23-bookworm AS builder
+FROM golang:1.23-bookworm AS agent-server-builder
 
 WORKDIR /build
 
@@ -75,7 +75,8 @@ ENV SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1
 WORKDIR /app
 
 RUN groupadd -g 1001 appuser && \
-    useradd -r -s /bin/false -m -d /app -g appuser appuser
+    useradd -r -s /bin/false -m -d /app -g appuser appuser && \
+    chown appuser:appuser /app
 
 RUN apt-get update && \
     apt-get install -y \
@@ -85,29 +86,26 @@ RUN apt-get update && \
         dumb-init \
         zlib1g \
         poppler-utils \
-        && rm -rf /var/lib/apt/lists/* && \
-    # NodeJS
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
-    apt-get update && apt-get install -y nodejs
+        && \
+    # Install NodeJS from NodeSource PPA
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+        | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" \
+        | tee /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /build/dist/agent-server /usr/local/bin/agent-server
-COPY --from=builder /build/scripts/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /usr/local/bin/agent-server
+COPY --from=agent-server-builder --chmod=755 /build/dist/agent-server /usr/local/bin/agent-server
 
-COPY --from=workroom-builder /app/node_modules ./workroom/node_modules
-COPY --from=workroom-builder /app/packages/agent-server-interface/package.json ./workroom/packages/agent-server-interface/package.json
-COPY --from=workroom-builder /app/packages/agent-server-interface/node_modules ./workroom/packages/agent-server-interface/node_modules
-COPY --from=workroom-builder /app/packages/agent-server-interface/lib ./workroom/packages/agent-server-interface/lib
-COPY --from=workroom-builder /app/frontend/dist ./workroom/frontend/dist
-COPY --from=workroom-builder /app/backend/dist ./workroom/backend/dist
+COPY --from=workroom-builder --chown=appuser:appuser /app/node_modules ./workroom/node_modules
+COPY --from=workroom-builder --chown=appuser:appuser /app/packages/agent-server-interface/package.json ./workroom/packages/agent-server-interface/package.json
+COPY --from=workroom-builder --chown=appuser:appuser /app/packages/agent-server-interface/node_modules ./workroom/packages/agent-server-interface/node_modules
+COPY --from=workroom-builder --chown=appuser:appuser /app/packages/agent-server-interface/lib ./workroom/packages/agent-server-interface/lib
+COPY --from=workroom-builder --chown=appuser:appuser /app/frontend/dist ./workroom/frontend/dist
+COPY --from=workroom-builder --chown=appuser:appuser /app/backend/dist ./workroom/backend/dist
 
-COPY ./scripts/entrypoint-spar.sh ./scripts/spar-healthcheck.sh /app/
-
-RUN chmod +x /usr/local/bin/agent-server && \
-    chmod +x /app/entrypoint-spar.sh && \
-    chmod +x /app/spar-healthcheck.sh && \
-    chown -R appuser:appuser /app
+COPY --chmod=755 ./scripts/entrypoint-spar.sh ./scripts/spar-healthcheck.sh /app/
 
 USER appuser
 
