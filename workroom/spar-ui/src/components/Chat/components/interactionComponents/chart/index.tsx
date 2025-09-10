@@ -1,14 +1,14 @@
-import { Box, Button, Menu } from '@sema4ai/components';
-import { IconDotsHorizontalCircle } from '@sema4ai/icons';
-import { styled } from '@sema4ai/theme';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { FC, useCallback, useMemo, useRef } from 'react';
 import type { View } from 'vega';
-import embed, { VisualizationSpec } from 'vega-embed';
+import { VisualizationSpec } from 'vega-embed';
 
-import { useToggle } from '../../../../../hooks';
+import { useParams, useToggle } from '../../../../../hooks';
 import { SEMA4AI_VEGA_LITE_THEME, SEMA4AI_VEGA_THEME, processChartSpecOverrides } from './components/theming';
 import LoadingBox from './components/Loading';
-import { Code } from '../../../../../common/code';
+import { ChartContainer } from './components/Container';
+import { ChartEmbed } from './components/Embed';
+import { useDataFrameQuery } from '../../../../../queries/dataFrames';
+import { specHasDataFrameUrl } from './components/utils';
 
 const VEGA_BASE_URL = 'https://vega.github.io/schema/vega';
 const VEGA_LITE_BASE_URL = 'https://vega.github.io/schema/vega-lite';
@@ -48,60 +48,14 @@ export const isVegaChartBlock = (lang?: string, text?: string, raw?: string) => 
   return hasSchema && startsLikeJson;
 };
 
-const Container = styled(Box)<{ $menuOpen: boolean }>`
-  position: relative;
-  width: 100%;
-
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -40px;
-    width: 40px;
-    height: 100%;
-  }
-
-  > button {
-    display: ${({ $menuOpen }) => ($menuOpen ? 'block' : 'none')};
-  }
-
-  &:hover {
-    > button {
-      display: block;
-    }
-  }
-
-  ${({ theme }) => theme.screen.m} {
-    &:before {
-      display: none;
-    }
-
-    canvas {
-      width: 100% !important;
-      height: auto !important;
-    }
-  }
-`;
-
-const ChartTriggerMenu = styled(Button)`
-  position: absolute;
-  top: 0;
-  left: -${({ theme }) => theme.space.$40};
-`;
-
-interface ChartProps {
-  spec: string;
-}
-
-export const Chart = ({ spec }: ChartProps) => {
-  const [isChartReady, setIsChartReady] = useState(false);
+const ChartContent: FC<{ rawSpec: VisualizationSpec | null; themedSpec: VisualizationSpec | null }> = ({
+  rawSpec,
+  themedSpec,
+}) => {
   const { val: showSource, toggle: toggleShowSource } = useToggle(false);
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartContainerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<View | null>(null);
-  const charContextMenuBtnRef = useRef<HTMLButtonElement>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
 
+  const hasSchema = themedSpec !== null && rawSpec !== null;
   const handleExport = useCallback(async (format: 'svg' | 'png') => {
     if (!viewRef.current) return;
 
@@ -131,94 +85,104 @@ export const Chart = ({ spec }: ChartProps) => {
     }
   }, []);
 
-  const handlePNGExport = useCallback(() => {
-    handleExport('png');
-  }, [handleExport]);
+  const onEmbed = useCallback((view: View) => {
+    viewRef.current = view;
+  }, []);
 
-  const handleSVGExport = useCallback(() => {
-    handleExport('svg');
-  }, [handleExport]);
-
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-
-    if (showSource) {
-      chartContainerRef.current.innerHTML = '';
-      return;
-    }
-
-    try {
-      const contentAsJson = JSON.parse(spec);
-      const hasSchema = Boolean(contentAsJson.$schema);
-
-      if (hasSchema) {
-        const processedSpec = processChartSpecOverrides(contentAsJson);
-        const isVegaLite = processedSpec.$schema?.includes(VEGA_LITE_BASE_URL);
-        const theme = isVegaLite ? SEMA4AI_VEGA_LITE_THEME : SEMA4AI_VEGA_THEME;
-
-        const specWithTheme = {
-          ...processedSpec,
-          config: {
-            ...theme,
-            ...(processedSpec.config || {}),
-          },
-        } as VisualizationSpec;
-
-        embed(chartContainerRef.current, specWithTheme, {
-          renderer: 'canvas',
-          actions: false,
-        }).then((result) => {
-          viewRef.current = result.view;
-          setIsChartReady(true);
-        });
-      }
-    } catch {
-      // Fall through to loading state
-    }
-  }, [spec, showSource]);
-
-  try {
-    const contentAsJson = JSON.parse(spec);
-    const hasSchema = Boolean(contentAsJson.$schema);
-
-    if (hasSchema) {
-      return (
-        <Container $menuOpen={menuOpen} ref={chartRef}>
-          {showSource && <Code maxRows={16} value={JSON.stringify(contentAsJson, null, 2)} lang="json" />}
-
-          <Box data-testid="chart-canvas-container">
-            {!isChartReady && (
-              <Box>
-                <LoadingBox />
-              </Box>
-            )}
-            <Box ref={chartContainerRef} />
-          </Box>
-
-          <Menu
-            trigger={
-              <ChartTriggerMenu
-                ref={charContextMenuBtnRef}
-                aria-label="chart-context-menu"
-                variant="ghost-subtle"
-                icon={IconDotsHorizontalCircle}
-                iconSize={32}
-                round
-              />
-            }
-            visible={menuOpen}
-            setVisible={setMenuOpen}
-          >
-            <Menu.Item onClick={handleSVGExport}>Save as SVG</Menu.Item>
-            <Menu.Item onClick={handlePNGExport}>Save as PNG</Menu.Item>
-            <Menu.Item onClick={toggleShowSource}>{showSource ? 'Show Chart' : 'Show Source'}</Menu.Item>
-          </Menu>
-        </Container>
-      );
-    }
-  } catch {
-    // Fall through to loading state
+  if (hasSchema) {
+    return (
+      <ChartContainer
+        handleExport={handleExport}
+        spec={rawSpec}
+        showSource={showSource}
+        onToggleShowSource={toggleShowSource}
+      >
+        <ChartEmbed showSource={showSource} themedSpec={themedSpec} onEmbed={onEmbed} />
+      </ChartContainer>
+    );
   }
 
   return <LoadingBox />;
+};
+
+const DataFrameChart: FC<{ themedSpec: VisualizationSpec; rawSpec: VisualizationSpec; dataFrameName: string }> = ({
+  themedSpec,
+  rawSpec,
+  dataFrameName,
+}) => {
+  const { threadId } = useParams('/conversational/$agentId/$threadId');
+  const { data, isLoading } = useDataFrameQuery({ threadId, dataFrameName });
+
+  const patchedSpecs = useMemo(() => {
+    const patchedData = { values: data };
+    return {
+      patchedThemedSpec: {
+        ...themedSpec,
+        data: patchedData,
+      } as VisualizationSpec,
+      patchedRawSpec: {
+        ...rawSpec,
+        data: patchedData,
+      } as VisualizationSpec,
+    };
+  }, [data]);
+
+  if (isLoading) {
+    return <LoadingBox />;
+  }
+
+  return <ChartContent rawSpec={patchedSpecs.patchedRawSpec} themedSpec={patchedSpecs.patchedThemedSpec} />;
+};
+
+interface ChartProps {
+  spec: string;
+}
+
+export const Chart = ({ spec }: ChartProps) => {
+  const specData = useMemo<
+    | { contentAsJson: VisualizationSpec; themedSpec: VisualizationSpec; hasSchema: true; dataFrameName?: string }
+    | { contentAsJson: null; themedSpec: null; hasSchema: false; dataFrameName: null }
+  >(() => {
+    const failureResult = { contentAsJson: null, themedSpec: null, hasSchema: false as const, dataFrameName: null };
+    try {
+      const parsedSpec = JSON.parse(spec);
+      const hasSchema = Boolean(parsedSpec.$schema);
+
+      if (!hasSchema) return failureResult;
+
+      const processedSpec = processChartSpecOverrides(parsedSpec);
+      const isVegaLite = processedSpec.$schema?.includes(VEGA_LITE_BASE_URL);
+      const theme = isVegaLite ? SEMA4AI_VEGA_LITE_THEME : SEMA4AI_VEGA_THEME;
+
+      const specWithTheme = {
+        ...processedSpec,
+        config: {
+          ...theme,
+          ...(processedSpec.config || {}),
+        },
+      } as VisualizationSpec;
+
+      const dataFrameNameUrlMatch = specHasDataFrameUrl(specWithTheme);
+      return {
+        contentAsJson: parsedSpec,
+        themedSpec: specWithTheme,
+        hasSchema,
+        dataFrameName: dataFrameNameUrlMatch?.dataFrameName,
+      };
+    } catch {
+      return failureResult;
+    }
+  }, [spec]);
+
+  if (specData.dataFrameName) {
+    return (
+      <DataFrameChart
+        themedSpec={specData.themedSpec}
+        rawSpec={specData.contentAsJson}
+        dataFrameName={specData.dataFrameName}
+      />
+    );
+  }
+
+  return <ChartContent rawSpec={specData.contentAsJson} themedSpec={specData.themedSpec} />;
 };

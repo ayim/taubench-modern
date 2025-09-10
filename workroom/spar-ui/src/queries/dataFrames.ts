@@ -14,6 +14,10 @@ const getDataFramesSliceQueryKey = ({ threadId, dataFrameId }: { threadId: strin
   'slice',
   dataFrameId,
 ];
+const getDataFrameQueryKey = ({ threadId, dataFrameName }: { threadId: string; dataFrameName: string }) => [
+  ...getDataFramesQueryKey({ threadId }),
+  dataFrameName,
+];
 
 export type ListDataFrames =
   AgentServerPaths['/api/v2/threads/{tid}/data-frames']['get']['responses'][200]['content']['application/json'];
@@ -123,3 +127,37 @@ export const useDataFrameSliceInfiniteQuery = ({
 
   return result;
 };
+
+export type DataFrameQueryOptions =
+  AgentServerPaths['/api/v2/threads/{tid}/data-frames/{data_frame_name}']['get']['parameters']['query'];
+export const dataFrameQueryOptions = createSparQueryOptions<{
+  threadId: string;
+  dataFrameName: string;
+  options?: DataFrameQueryOptions;
+}>()(({ sparAPIClient, threadId, dataFrameName, options }) => ({
+  queryKey: getDataFrameQueryKey({ threadId, dataFrameName }),
+  queryFn: async () => {
+    const response = await sparAPIClient.queryAgentServer(
+      'get',
+      '/api/v2/threads/{tid}/data-frames/{data_frame_name}',
+      {
+        params: {
+          path: { tid: threadId, data_frame_name: dataFrameName },
+          query: { output_format: 'json', ...options },
+        },
+      },
+    );
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to get data frame file');
+    }
+
+    return response.data;
+  },
+  /**
+   * Expecting that data is immutable
+   */
+  staleTime: Infinity,
+}));
+
+export const useDataFrameQuery = createSparQuery(dataFrameQueryOptions);
