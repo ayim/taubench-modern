@@ -12,4 +12,5 @@ export * from './lib/OAuth';
 
 export * from './components/DataFrame';
 
+export * from './components/Eval';
 export { CreateWorkItemDialog } from './components/CreateWorkItemDialog';

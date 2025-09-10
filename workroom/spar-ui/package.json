@@ -24,15 +24,17 @@
   "peerDependencies": {
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-python": "^6.2.1",
+    "@sema4ai/oauth-client": "^0.4.7",
+    "@hookform/resolvers": "^3.10.0",
     "@sema4ai/components": "*",
     "@sema4ai/icons": "*",
     "@sema4ai/layouts": "*",
-    "@sema4ai/oauth-client": "^0.4.7",
     "@sema4ai/theme": "*",
     "@sema4ai/sai-sdk": "*",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@sema4ai/eslint-config-frontend": "^1.1.0",
