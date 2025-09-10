@@ -200,10 +200,9 @@ export const createApplication = async ({
       .redirect(302, `/tenants/${configuration.tenant.tenantId}/home`);
   });
 
-  app.get('/oauth', (_req, res) => {
-    res
-      .set('x-sema4ai-redirect-source', 'spar-gateway')
-      .redirect(302, `/tenants/${configuration.tenant.tenantId}/oauth`);
+  app.get('/oauth', (req, res) => {
+    const tenantPrefix = `/tenants/${configuration.tenant.tenantId}`;
+    res.set('x-sema4ai-redirect-source', 'spar-gateway').redirect(302, tenantPrefix + req.originalUrl);
   });
 
   // Static routes / Frontend handling
