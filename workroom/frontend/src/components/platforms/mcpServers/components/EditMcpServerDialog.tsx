@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import { buildUpdateMcpBody, headersToEntries } from '~/lib/utils';
 import { McpServerResponse, useUpdateMcpServerMutation, type UpdateMcpServerBody } from '~/queries/mcpServers';
-import type { MCPServerSettings } from '~/routes/tenants/$tenantId/agents/create/components/context';
+import type { MCPServerSettings } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
 
 type Props = { open: boolean; onClose: () => void; initial: McpServerResponse };
 

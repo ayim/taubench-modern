@@ -25,7 +25,7 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
     control,
     formState: { errors },
   } = useFormContext<AgentDeploymentFormSchema>();
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/create' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
 
   const { data: configuredLLMModels, error: platformsError } = useQuery({
@@ -112,7 +112,7 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
           }}
         />
         <Box mt="$8">
-          <Button onClick={() => navigate({ to: '/tenants/$tenantId/agents/create/llms/new', params: { tenantId } })}>
+          <Button onClick={() => navigate({ to: '/tenants/$tenantId/agents/deploy/llms/new', params: { tenantId } })}>
             Configure new LLM
           </Button>
         </Box>

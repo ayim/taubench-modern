@@ -46,7 +46,7 @@ type Props = {
 };
 
 export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/create' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
 
   const schema = z.object({
@@ -184,7 +184,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
                   as="h1"
                   className="text-[2.5rem]"
                 >
-                  Create Agent
+                  Deploy Agent
                 </Typography>
               </div>
               <p className="text-sm">Upload an agent package to get started with deployment.</p>

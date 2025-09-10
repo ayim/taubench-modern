@@ -2,17 +2,17 @@ import { createFileRoute, Outlet, useNavigate, useParams, useRouteContext, useRo
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Box, useSnackbar } from '@sema4ai/components';
-import { AgentDeploymentForm } from './create/components/AgentDeploymentForm';
-import { AgentDeploymentFormSchema } from './create/components/context';
+import { AgentDeploymentForm } from './deploy/components/AgentDeploymentForm';
+import { AgentDeploymentFormSchema } from './deploy/components/context';
 
-import { AgentUploadForm } from './create/components/AgentUploadForm';
-import type { AgentPackageResponse } from './create/components/AgentUploadForm';
+import { AgentUploadForm } from './deploy/components/AgentUploadForm';
+import type { AgentPackageResponse } from './deploy/components/AgentUploadForm';
 import type { components, operations } from '@sema4ai/agent-server-interface';
 import { mcpHeadersFromRecord } from '~/lib/utils';
 import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
 import { getListAgentsQueryKey, useListAgentsQuery } from '~/queries/agents';
 
-export const Route = createFileRoute('/tenants/$tenantId/agents/create')({
+export const Route = createFileRoute('/tenants/$tenantId/agents/deploy')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) => {
     const mcpServers = await queryClient.ensureQueryData(getListMcpServersQueryOptions({ agentAPIClient, tenantId }));
     return { mcpServers };
@@ -181,7 +181,7 @@ function CreateAgentIndex() {
     file: File;
     fileContent: AgentPackageResponse;
   } | null>(null);
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/create' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const navigate = useNavigate();
   const router = useRouter();
@@ -242,7 +242,7 @@ function CreateAgentIndex() {
     },
     onSuccess: async (response) => {
       addSnackbar({
-        message: 'Agent created successfully',
+        message: 'Agent deployed successfully',
         variant: 'success',
       });
       const agentId =
@@ -254,7 +254,7 @@ function CreateAgentIndex() {
     },
     onError: (err: unknown) => {
       addSnackbar({
-        message: err instanceof Error ? err.message : 'Failed to create agent',
+        message: err instanceof Error ? err.message : 'Failed to deploy agent',
         variant: 'danger',
       });
     },
@@ -302,7 +302,7 @@ function CreateAgentIndex() {
         defaultValues={uploadedAgentPackage.fileContent.defaultValues}
         onSubmit={onSubmit}
         isPending={deployMutation.isPending}
-        title="Create Agent"
+        title="Deploy Agent"
         existingAgentNames={existingAgentNames}
       />
       <Outlet />

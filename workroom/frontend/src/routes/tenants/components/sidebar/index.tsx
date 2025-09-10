@@ -70,8 +70,8 @@ export const Sidebar: FC = () => {
           )}
 
           {features.deploymentWizard.enabled && (
-            <RouterSideNavigationLink icon={<IconAgents />} to="/tenants/$tenantId/agents/create" params={{ tenantId }}>
-              Create Agent
+            <RouterSideNavigationLink icon={<IconAgents />} to="/tenants/$tenantId/agents/deploy" params={{ tenantId }}>
+              Deploy Agent
             </RouterSideNavigationLink>
           )}
 

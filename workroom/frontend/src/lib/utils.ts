@@ -1,7 +1,7 @@
 import { UserTenant } from '~/queries/tenants';
 import { getBasePath } from '~/utils/base';
 import type { CreateMcpServerBody, McpServerResponse, UpdateMcpServerBody } from '~/queries/mcpServers';
-import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/create/components/context';
+import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
 
 export const snakeCaseToCamelCase = (str: string): string => {
   return str

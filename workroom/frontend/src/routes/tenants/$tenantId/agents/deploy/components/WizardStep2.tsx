@@ -21,7 +21,7 @@ type Props = {
 export const WizardStep2: FC<Props> = ({ errorMessage }) => {
   const navigate = useNavigate();
   const { register, watch, control, setValue } = useFormContext<AgentDeploymentFormSchema>();
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/create' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const { llmId } = watch();
   const initialLlmIdRef = useRef<string | undefined>(llmId as string | undefined);
@@ -175,7 +175,7 @@ export const WizardStep2: FC<Props> = ({ errorMessage }) => {
           )}
         />
         <Box mt="$8">
-          <Button onClick={() => navigate({ to: '/tenants/$tenantId/agents/create/llms/new', params: { tenantId } })}>
+          <Button onClick={() => navigate({ to: '/tenants/$tenantId/agents/deploy/llms/new', params: { tenantId } })}>
             Configure new LLM
           </Button>
         </Box>

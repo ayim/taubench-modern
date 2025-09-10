@@ -13,7 +13,7 @@ const toTransport = (value: string): MCPServerSettings['transport'] =>
 
 export const McpServerSection: FC = () => {
   const { watch, getValues, setValue, trigger } = useFormContext<AgentDeploymentFormSchema>();
-  const { mcpServers } = useLoaderData({ from: '/tenants/$tenantId/agents/create' }) as {
+  const { mcpServers } = useLoaderData({ from: '/tenants/$tenantId/agents/deploy' }) as {
     mcpServers: ListMcpServersResponse;
   };
   const mcpServerSettings = watch('mcpServerSettings') || [];
