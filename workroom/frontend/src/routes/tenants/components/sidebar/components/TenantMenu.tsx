@@ -48,7 +48,7 @@ export const TenantMenu = () => {
             {applicationIcon}
             <Box maxWidth={96} px="$8" overflow="hidden">
               <Typography $nowrap truncate>
-                {currentTenant?.name}a sdaksjd kjas kd aks dkas dkajsd
+                {currentTenant?.name}
               </Typography>
             </Box>
             <IconChevronDown />

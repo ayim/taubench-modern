@@ -1,6 +1,6 @@
 import { FC, useEffect, useRef, useState } from 'react';
 import { styled } from '@sema4ai/theme';
-import { Box, Button, Input, Menu, Progress, Typography, useSnackbar } from '@sema4ai/components';
+import { Box, Button, Input, Menu, Progress, useSnackbar } from '@sema4ai/components';
 import { IconDotsHorizontal } from '@sema4ai/icons';
 import { useConfirmAction } from '@sema4ai/layouts';
 
@@ -14,6 +14,14 @@ type ThreadItemProps = {
 };
 
 const Container = styled(Box)<{ $hovered: boolean }>`
+  > a {
+    overflow: hidden;
+    display: block;
+    flex: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   > button {
     display: ${({ $hovered }) => ($hovered ? 'block' : 'none')};
   }
@@ -119,11 +127,11 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name }) => {
   return (
     <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center" $hovered={menuVisible}>
       {isDeleting && <Progress variant="page" />}
-      <Typography as="span" $nowrap truncate={1}>
-        <SidebarLink to="/conversational/$agentId/$threadId" params={{ threadId, agentId }}>
-          {name}
-        </SidebarLink>
-      </Typography>
+
+      <SidebarLink to="/conversational/$agentId/$threadId" params={{ threadId, agentId }}>
+        {name}
+      </SidebarLink>
+
       <Menu
         visible={menuVisible}
         setVisible={setMenuVisible}

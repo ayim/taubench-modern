@@ -17,7 +17,7 @@ const MenuOuterToggle = styled(Button)<{ $expanded?: boolean }>`
   display: block;
   position: absolute;
   top: ${({ theme }) => theme.space.$14};
-  z-index: 2;
+  z-index: ${({ theme }) => theme.zIndex.dropdown + 1};
 
   ${({ theme }) => theme.screen.m} {
     display: block;
@@ -50,9 +50,7 @@ export const Sidebar: FC = () => {
       />
 
       <SidebarMenu name="main-menu" title="Main menu" minWidth={240} primary>
-        <Box display="flex" justifyContent="space-between">
-          <TenantMenu />
-        </Box>
+        <TenantMenu />
 
         <Box as="nav">
           <RouterSideNavigationLink icon={<IconAgents />} to="/tenants/$tenantId/home" params={{ tenantId }}>
