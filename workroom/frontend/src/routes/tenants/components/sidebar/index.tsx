@@ -75,17 +75,7 @@ export const Sidebar: FC = () => {
 
           {features.settings.enabled && (
             <RouterSideNavigationLink icon={<IconSettings2 />} to="/tenants/$tenantId/settings" params={{ tenantId }}>
-              Settings
-            </RouterSideNavigationLink>
-          )}
-
-          {features.mcpServersManagement.enabled && (
-            <RouterSideNavigationLink
-              icon={<IconSettings2 />}
-              to="/tenants/$tenantId/mcp-servers"
-              params={{ tenantId }}
-            >
-              MCP Servers
+              Advanced Settings
             </RouterSideNavigationLink>
           )}
 
@@ -97,6 +87,14 @@ export const Sidebar: FC = () => {
 
           <RouterSideNavigationLink icon={<IconFileText />} to="/tenants/$tenantId/workItems" params={{ tenantId }}>
             Work Items
+          </RouterSideNavigationLink>
+
+          <RouterSideNavigationLink
+            icon={<IconSettings2 />}
+            to="/tenants/$tenantId/configuration"
+            params={{ tenantId }}
+          >
+            Configuration
           </RouterSideNavigationLink>
         </Box>
 

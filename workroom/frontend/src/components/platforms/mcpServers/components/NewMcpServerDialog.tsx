@@ -71,15 +71,15 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
   });
 
   return (
-    <Dialog open={open} size="medium" width={900} onClose={() => onClose()}>
-      <Form onSubmit={onSubmit} gap="$12" busy={mutation.isPending}>
+    <Dialog open={open} width={900} onClose={() => onClose()}>
+      <Form onSubmit={onSubmit} gap="$12" busy={mutation.isPending} width="100%">
         <Dialog.Header>
           <Dialog.Header.Title title="New MCP server" />
           <Dialog.Header.Description>Configure an MCP server for your workspace.</Dialog.Header.Description>
         </Dialog.Header>
         <Dialog.Content>
           <Form.Fieldset>
-            <Box display="grid" style={{ gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+            <Box display="grid" p="$4" style={{ gridTemplateColumns: '1fr', gap: '0.75rem' }}>
               <Input
                 label="MCP Server Name"
                 {...form.register('name')}
@@ -127,7 +127,7 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
               </Box>
             </Box>
 
-            <Box>
+            <Box p="$4">
               <Box mb="$8">Headers</Box>
               <Box display="grid" gap="$8">
                 {headersArray.fields.map((f, idx) => (

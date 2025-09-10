@@ -1,11 +1,11 @@
-import { Outlet, createFileRoute, useParams, useRouteContext, useRouter } from '@tanstack/react-router';
+import { Outlet, createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Box, Header, Scroll, Dialog, Button, useSnackbar } from '@sema4ai/components';
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { Dialog, Button, useSnackbar, Box, Scroll } from '@sema4ai/components';
 import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/LLMsTable';
-import { getListPlatformsQueryOptions, type ListPlatformsResponse } from '~/queries/platforms';
+import { getListPlatformsQueryOptions, type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
 
-export const Route = createFileRoute('/tenants/$tenantId/settings/llm')({
+export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) => {
     await queryClient.ensureQueryData(getListPlatformsQueryOptions({ agentAPIClient, tenantId }));
     return {};
@@ -14,38 +14,40 @@ export const Route = createFileRoute('/tenants/$tenantId/settings/llm')({
 });
 
 function RouteComponent() {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/settings/llm' });
+  const { tenantId } = Route.useParams();
   useRouteContext({ from: '/tenants/$tenantId' });
-  const router = useRouter();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const [deleteTarget, setDeleteTarget] = useState<LLMTableItem | null>(null);
   const { addSnackbar } = useSnackbar();
-  type DeleteMutationVars = { tenantId: string; platformId: string };
 
-  const deleteMutation = useMutation<
-    unknown,
-    unknown,
-    DeleteMutationVars,
-    { previousPlatforms?: ListPlatformsResponse; tenantId: string }
-  >({
-    mutationFn: async ({ tenantId, platformId }: DeleteMutationVars) => {
-      await agentAPIClient.agentFetch(tenantId, 'delete', '/api/v2/platforms/{platform_id}', {
-        params: { path: { platform_id: platformId } },
-        errorMsg: 'Failed to delete LLM',
-      });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['platforms', tenantId] });
-      addSnackbar({
-        message: 'LLM deleted successfully',
-        variant: 'success',
-      });
-      setDeleteTarget(null);
-    },
-  });
+  const deleteMutation = useDeleteLLMMutation();
 
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const { data } = useSuspenseQuery(getListPlatformsQueryOptions({ agentAPIClient, tenantId }));
+
+  const handleDelete = () => {
+    if (deleteTarget) {
+      deleteMutation.mutate(
+        { tenantId, platformId: deleteTarget.id },
+        {
+          onSuccess: () => {
+            addSnackbar({
+              message: 'LLM deleted successfully',
+              variant: 'success',
+            });
+            setDeleteTarget(null);
+          },
+          onError: (e) => {
+            addSnackbar({
+              message: e instanceof Error ? e.message : 'Failed to delete LLM',
+              variant: 'danger',
+            });
+          },
+        },
+      );
+    }
+  };
 
   const items = useMemo<LLMTableItem[]>(() => {
     const platforms: ListPlatformsResponse | undefined = data ?? queryClient.getQueryData(['platforms', tenantId]);
@@ -63,18 +65,13 @@ function RouteComponent() {
   return (
     <>
       <Scroll>
-        <Box p="$24" pb="$48">
-          <Header size="x-large">
-            <Header.Title title="LLMs" />
-            <Header.Description>Manage Large Language Models available in this workspace.</Header.Description>
-          </Header>
-
+        <Box p={8}>
           <LLMsTable
             items={items}
-            onCreate={() => router.navigate({ to: '/tenants/$tenantId/settings/llm/new', params: { tenantId } })}
+            onCreate={() => navigate({ to: '/tenants/$tenantId/configuration/llm/new', params: { tenantId } })}
             onEdit={(i) =>
-              router.navigate({
-                to: '/tenants/$tenantId/settings/llm/$platformId',
+              navigate({
+                to: '/tenants/$tenantId/configuration/llm/$platformId',
                 params: { tenantId, platformId: i.id },
               })
             }
@@ -91,11 +88,7 @@ function RouteComponent() {
             Deleting an LLM will remove its configuration from this workspace. This cannot be undone.
           </Dialog.Content>
           <Dialog.Actions>
-            <Button
-              variant="primary"
-              disabled={deleteMutation.isPending}
-              onClick={() => deleteTarget && deleteMutation.mutateAsync({ tenantId, platformId: deleteTarget.id })}
-            >
+            <Button variant="primary" disabled={deleteMutation.isPending} onClick={handleDelete}>
               Delete
             </Button>
             <Button variant="secondary" onClick={() => setDeleteTarget(null)}>

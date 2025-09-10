@@ -1,24 +1,23 @@
-import { Outlet, createFileRoute, useNavigate, useParams, useRouteContext } from '@tanstack/react-router';
+import { Outlet, createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
-import { Box, Button, Dialog, Header, Scroll } from '@sema4ai/components';
+import { Box, Button, Dialog, Scroll } from '@sema4ai/components';
 import { McpServersTable } from '~/components/platforms/mcpServers/components/McpServersTable';
 import { getListMcpServersQueryOptions, useDeleteMcpServerMutation } from '~/queries/mcpServers';
 
-export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/')({
+export const Route = createFileRoute('/tenants/$tenantId/configuration/mcp-servers/')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) =>
     queryClient.ensureQueryData(getListMcpServersQueryOptions({ agentAPIClient, tenantId })),
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/mcp-servers/' });
+  const { tenantId } = Route.useParams();
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string } | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
   const deleteMutation = useDeleteMcpServerMutation();
 
   const { data } = useSuspenseQuery(getListMcpServersQueryOptions({ agentAPIClient, tenantId }));
@@ -36,7 +35,7 @@ function RouteComponent() {
 
   const onSearchQueryUpdate = useCallback(
     (searchQuery: string) => {
-      const params = new URLSearchParams(searchQuery.startsWith('?') ? searchQuery : `?${searchQuery}`);
+      const params = new URLSearchParams(searchQuery.startsWith('?') ? searchQuery : '?${searchQuery}');
       const nextSearch: Record<string, unknown> = {};
       params.forEach((_v, key) => {
         const all = params.getAll(key);
@@ -50,30 +49,14 @@ function RouteComponent() {
   return (
     <>
       <Scroll>
-        <Box p="$24" pb="$48">
-          <Header size="x-large">
-            <Header.Title title="MCP servers" />
-            <Header.Description>Manage MCP servers</Header.Description>
-          </Header>
-
-          <Box
-            borderWidth="1px"
-            borderColor="border.primary"
-            borderRadius="$8"
-            p="$16"
-            mb="$32"
-            backgroundColor="background.primary"
-          >
-            <Box mt="$8">
-              <McpServersTable
-                items={items}
-                onQuery={onSearchQueryUpdate}
-                onCreate={() => navigate({ to: '/tenants/$tenantId/mcp-servers/new', params: { tenantId } })}
-                onEdit={(i) => navigate({ to: `/tenants/${tenantId}/mcp-servers/${i.id}` })}
-                onDelete={(i) => setDeleteTarget(i)}
-              />
-            </Box>
-          </Box>
+        <Box p={8}>
+          <McpServersTable
+            items={items}
+            onQuery={onSearchQueryUpdate}
+            onCreate={() => navigate({ to: '/tenants/$tenantId/configuration/mcp-servers/new', params: { tenantId } })}
+            onEdit={(i) => navigate({ to: `/tenants/${tenantId}/configuration/mcp-servers/${i.id}` })}
+            onDelete={(i) => setDeleteTarget(i)}
+          />
         </Box>
       </Scroll>
       {deleteTarget && (

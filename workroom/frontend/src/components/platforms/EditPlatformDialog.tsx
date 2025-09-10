@@ -2,8 +2,7 @@ import { FC, useMemo } from 'react';
 import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useRouteContext } from '@tanstack/react-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams } from '@tanstack/react-router';
 import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
@@ -11,11 +10,7 @@ import {
   editLLMFormSchema,
   type EditLLMFormSchema,
 } from '~/components/platforms/llms/components/llmSchemas';
-import type { paths } from '@sema4ai/agent-server-interface';
-
-type GetPlatformResponse =
-  paths['/api/v2/platforms/{platform_id}']['get']['responses']['200']['content']['application/json'];
-type UpdatePlatformBody = paths['/api/v2/platforms/{platform_id}']['put']['requestBody']['content']['application/json'];
+import { useUpdateLLMMutation, type UpdatePlatformBody, type GetPlatformResponse } from '~/queries/platforms';
 
 type Props = {
   platformId: string;
@@ -40,8 +35,6 @@ type FormValues = EditLLMFormSchema;
 
 export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpdated, initial }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-  const queryClient = useQueryClient();
   const { addSnackbar } = useSnackbar();
   const kind: Provider = initial?.provider ?? 'openai';
   const defaultModel: ModelValue = (() => {
@@ -71,33 +64,9 @@ export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpd
   const isAzure = kind === 'azure';
   const isBedrock = kind === 'bedrock';
 
-  const mutation = useMutation({
-    mutationFn: async (payload: UpdatePlatformBody) => {
-      const response = await agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/platforms/{platform_id}', {
-        params: { path: { platform_id: platformId } },
-        body: payload as never,
-        errorMsg: 'Failed to update platform',
-      });
+  const mutation = useUpdateLLMMutation();
 
-      if (!response.success) {
-        throw new Error(response?.message || 'Failed to update platform');
-      }
-
-      return response.data as GetPlatformResponse;
-    },
-    onSuccess: async (updated) => {
-      addSnackbar({ message: 'Platform updated', variant: 'success' });
-      onUpdated?.(updated);
-      await queryClient.invalidateQueries({ queryKey: ['platforms', tenantId] });
-      await queryClient.invalidateQueries({ queryKey: ['platform', tenantId, platformId] });
-      onClose();
-    },
-    onError: (e) => {
-      addSnackbar({ message: e instanceof Error ? e.message : 'Failed to update platform', variant: 'danger' });
-    },
-  });
-
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit((values) => {
     const credentials: Record<string, unknown> = {};
     const [provider, modelId] = String(values.model).split(':');
 
@@ -124,7 +93,19 @@ export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpd
       credentials: Object.keys(credentials).length ? credentials : undefined,
     } as unknown as UpdatePlatformBody;
 
-    await mutation.mutateAsync(payload);
+    mutation.mutate(
+      { tenantId, platformId, body: payload },
+      {
+        onSuccess: async (updated) => {
+          addSnackbar({ message: 'LLM updated', variant: 'success' });
+          onUpdated?.(updated);
+          onClose();
+        },
+        onError: (e) => {
+          addSnackbar({ message: e instanceof Error ? e.message : 'Failed to update LLM', variant: 'danger' });
+        },
+      },
+    );
   });
 
   const modelItems = useMemo(() => {
@@ -138,13 +119,13 @@ export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpd
   }, [kind]);
 
   return (
-    <Dialog open={open} size="medium" onClose={onClose}>
-      <Form onSubmit={onSubmit}>
+    <Dialog open={open} onClose={onClose} width={600}>
+      <Form onSubmit={onSubmit} width="100%">
         <Dialog.Header>
-          <Dialog.Header.Title title="Edit Model Platform" />
+          <Dialog.Header.Title title="Edit LLM" />
         </Dialog.Header>
         <Dialog.Content>
-          <Box display="flex" flexDirection="column" gap="$16">
+          <Box display="flex" flexDirection="column" gap="$16" p="$4">
             <Input label="Name" {...form.register('name')} error={form.formState.errors.name?.message} />
             <Controller
               name="model"

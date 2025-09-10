@@ -1,10 +1,10 @@
-import { createFileRoute, useNavigate, useParams, useRouter, useRouteContext } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from '@sema4ai/components';
 
 import { NewLLMDialog } from '~/components/platforms/llms/components/NewLLMDialog';
 
-export const Route = createFileRoute('/tenants/$tenantId/settings/llm/new')({
+export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/new')({
   loader: async ({ params: { tenantId } }) => {
     return { tenantId };
   },
@@ -14,8 +14,7 @@ export const Route = createFileRoute('/tenants/$tenantId/settings/llm/new')({
 function View() {
   const navigate = useNavigate();
   const router = useRouter();
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/settings/llm/new' });
-  useRouteContext({ from: '/tenants/$tenantId' });
+  const { tenantId } = Route.useParams();
   const queryClient = useQueryClient();
   const { addSnackbar } = useSnackbar();
 
