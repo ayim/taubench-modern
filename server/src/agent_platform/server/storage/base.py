@@ -304,6 +304,22 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return [str(row["mcp_server_id"]) for row in rows]
 
+    async def get_agent_platform_params_ids(self, agent_id: str) -> list[str]:
+        """Get platform params IDs associated with an agent."""
+        agent_platform_params = self._get_table("agent_platform_params")
+
+        stmt = (
+            sa.select(agent_platform_params.c.platform_params_id)
+            .select_from(agent_platform_params)
+            .where(agent_platform_params.c.agent_id == agent_id)
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [str(row["platform_params_id"]) for row in rows]
+
     async def associate_mcp_servers_with_agent(
         self, agent_id: str, mcp_server_ids: list[str]
     ) -> None:

@@ -141,6 +141,59 @@ async def check_work_item_payload_size(request: Request) -> None:
 WorkItemPayloadSizeCheck = Annotated[None, Depends(check_work_item_payload_size)]
 
 
+async def check_platform_params_validity(request: Request, storage: StorageDependency) -> None:
+    """FastAPI dependency to validate platform_params_ids in agent requests.
+
+    Parses the request body and validates that all platform_params_ids exist
+    in the database before the endpoint processes the request.
+
+    Args:
+        request: The FastAPI request object containing the payload.
+        storage: The storage service instance (automatically injected).
+
+    Raises:
+        PlatformHTTPError: If any platform_params_ids are invalid.
+    """
+    import json
+
+    from agent_platform.core.errors import ErrorCode
+    from agent_platform.core.errors.base import PlatformHTTPError
+
+    try:
+        # Read and parse the request body
+        body = await request.body()
+        if not body:
+            return
+
+        payload_dict = json.loads(body)
+        platform_params_ids = payload_dict.get("platform_params_ids", [])
+
+        if not platform_params_ids:
+            return
+
+        # Validate each platform_params_id
+        invalid_ids = []
+        for platform_params_id in platform_params_ids:
+            try:
+                await storage.get_platform_params(platform_params_id)
+            except Exception:
+                invalid_ids.append(platform_params_id)
+
+        if invalid_ids:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message=f"Invalid platform_params_ids: {invalid_ids}",
+                data={"invalid_platform_params_ids": invalid_ids},
+            )
+
+    except json.JSONDecodeError:
+        # If we can't parse JSON, let FastAPI handle the validation
+        pass
+
+
+PlatformParamsValidationCheck = Annotated[None, Depends(check_platform_params_validity)]
+
+
 async def check_work_item_file_attachment_size(file: UploadFile | str) -> None:
     # We have file directly uploaded to the POST, we validate that case only
     if not isinstance(file, str):

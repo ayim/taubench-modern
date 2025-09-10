@@ -170,7 +170,7 @@ async def test_create_agent_with_mcp_server_ids(
     )
 
     # Call the endpoint
-    response = await create_agent(payload, mock_user, mock_storage, None)
+    response = await create_agent(payload, mock_user, mock_storage, None, None)
 
     # Verify the response includes MCP server IDs
     assert isinstance(response, AgentCompat)

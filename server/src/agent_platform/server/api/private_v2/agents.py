@@ -24,7 +24,11 @@ from agent_platform.core.payloads import (
 )
 from agent_platform.core.utils import SecretString
 from agent_platform.core.utils.url import safe_urljoin
-from agent_platform.server.api.dependencies import AgentQuotaCheck, StorageDependency
+from agent_platform.server.api.dependencies import (
+    AgentQuotaCheck,
+    PlatformParamsValidationCheck,
+    StorageDependency,
+)
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
@@ -199,7 +203,8 @@ async def create_agent(
     payload: UpsertAgentPayload,
     user: AuthedUser,
     storage: StorageDependency,
-    _: AgentQuotaCheck,
+    _quota: AgentQuotaCheck,
+    _validation: PlatformParamsValidationCheck,
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id)
     await storage.upsert_agent(user.user_id, agent)
@@ -254,6 +259,7 @@ async def update_agent(
     aid: str,
     payload: UpsertAgentPayload,
     storage: StorageDependency,
+    _validation: PlatformParamsValidationCheck,
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
@@ -284,6 +290,7 @@ async def update_agent_raw(
     aid: str,
     payload: UpsertAgentPayload,
     storage: StorageDependency,
+    _validation: PlatformParamsValidationCheck,
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)

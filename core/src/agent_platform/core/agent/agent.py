@@ -75,6 +75,14 @@ class Agent:
     )
     """The IDs of Model Context Protocol (MCP) servers this agent uses."""
 
+    platform_params_ids: list[str] = field(
+        metadata={
+            "description": "The IDs of platform params this agent uses.",
+        },
+        default_factory=list,
+    )
+    """The IDs of platform params this agent uses."""
+
     question_groups: list[QuestionGroup] = field(
         metadata={"description": "The question groups of the agent."},
         default_factory=list,
@@ -185,6 +193,7 @@ class Agent:
             ],
             "mcp_servers": [mcp_server.model_dump() for mcp_server in self.mcp_servers],
             "mcp_server_ids": self.mcp_server_ids,
+            "platform_params_ids": self.platform_params_ids,
             "agent_architecture": self.agent_architecture.model_dump(),
             "created_at": self.created_at.isoformat(),
             "description": self.description,

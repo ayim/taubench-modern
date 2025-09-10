@@ -1,5 +1,6 @@
 from psycopg.errors import IntegrityError
 from psycopg.types.json import Jsonb
+from structlog import get_logger
 
 from agent_platform.core.agent import Agent
 from agent_platform.server.storage.common import CommonMixin
@@ -14,6 +15,8 @@ from agent_platform.server.storage.postgres.cursor import CursorMixin
 
 class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL agent operations."""
+
+    logger = get_logger(__name__)
 
     async def list_agents(self, user_id: str) -> list[Agent]:
         """List all agents for the given user."""
@@ -33,11 +36,12 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
             if not (rows := await cur.fetchall()):
                 return []
 
-            # 4. Populate MCP servers and return the agents
+            # 4. Populate MCP servers and platform params, and return the agents
             agents = []
             for row in rows:
                 agent = Agent.model_validate(row)
                 agent = await self._populate_agent_mcp_servers(agent)
+                agent = await self._populate_agent_platform_params(agent)
                 agents.append(agent)
             return agents
 
@@ -67,9 +71,10 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                     f"User {user_id} does not have access to agent {agent_id}",
                 )
 
-            # 5. Return the agent with populated MCP servers
+            # 5. Return the agent with populated MCP servers and platform params
             agent = Agent.model_validate(row)
-            return await self._populate_agent_mcp_servers(agent)
+            agent = await self._populate_agent_mcp_servers(agent)
+            return await self._populate_agent_platform_params(agent)
 
     async def get_agent_by_name(self, user_id: str, name: str) -> Agent:
         """Get an agent by name."""
@@ -97,9 +102,10 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                     f"User {user_id} does not have access to agent {name}",
                 )
 
-            # Return the agent with populated MCP servers
+            # Return the agent with populated MCP servers and platform params
             agent = Agent.model_validate(row)
-            return await self._populate_agent_mcp_servers(agent)
+            agent = await self._populate_agent_mcp_servers(agent)
+            return await self._populate_agent_platform_params(agent)
 
     async def upsert_agent(self, user_id: str, agent: Agent) -> None:
         """Create or update an agent, avoiding false-positives on
@@ -228,6 +234,12 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
         if hasattr(agent, "mcp_server_ids") and agent.mcp_server_ids:
             await self.associate_mcp_servers_with_agent(agent.agent_id, agent.mcp_server_ids)
 
+        # Handle platform params associations if the agent has platform_params_ids
+        if hasattr(agent, "platform_params_ids") and agent.platform_params_ids:
+            await self.associate_platform_params_with_agent(
+                agent.agent_id, agent.platform_params_ids
+            )
+
     async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         try:
@@ -352,6 +364,34 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
         # - mcp_servers: Agent-specific/resolved MCP server configs from JSON column
         return agent.copy(mcp_servers=resolved_mcp_servers, mcp_server_ids=mcp_server_ids)
 
+    async def _populate_agent_platform_params(self, agent: Agent) -> Agent:
+        """
+        Populate platform params IDs and resolved platform configs for an agent from the join table.
+        """
+        # Fetch platform params IDs from the join table
+        platform_params_ids = await self.get_agent_platform_params_ids(agent.agent_id)
+
+        # Resolve platform configs from the IDs
+        resolved_platform_configs = []
+        if platform_params_ids:
+            for platform_id in platform_params_ids:
+                try:
+                    platform_params = await self.get_platform_params(platform_id)
+                    resolved_platform_configs.append(platform_params)
+                    self.logger.info(
+                        f"Resolved platform params ID {platform_id} to {platform_params.kind}"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Failed to resolve platform params ID {platform_id}: {e}")
+
+        # Combine existing platform_configs with resolved ones
+        all_platform_configs = list(agent.platform_configs) + resolved_platform_configs
+
+        # Return agent with both platform_params_ids and resolved platform_configs populated
+        return agent.copy(
+            platform_params_ids=platform_params_ids, platform_configs=all_platform_configs
+        )
+
     async def count_agents_by_mode(self, mode: str) -> int:
         """Count the number of agents by mode."""
         async with self._cursor() as cur:
@@ -364,3 +404,29 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
 
             # 3. Return the count
             return row["count"]
+
+    async def associate_platform_params_with_agent(
+        self, agent_id: str, platform_params_ids: list[str]
+    ) -> None:
+        """Associate platform params with an agent, replacing any existing associations.
+
+        PostgreSQL-specific implementation that handles UUID validation and casting.
+        """
+        self._validate_uuid(agent_id)
+
+        async with self._cursor() as cur:
+            # First, remove existing associations
+            await cur.execute(
+                """DELETE FROM v2.agent_platform_params
+                   WHERE agent_id = %(agent_id)s::uuid""",
+                {"agent_id": agent_id},
+            )
+
+            # Then add new associations
+            if platform_params_ids:
+                for platform_params_id in platform_params_ids:
+                    await cur.execute(
+                        """INSERT INTO v2.agent_platform_params (agent_id, platform_params_id)
+                           VALUES (%(agent_id)s::uuid, %(platform_params_id)s::uuid)""",
+                        {"agent_id": agent_id, "platform_params_id": platform_params_id},
+                    )

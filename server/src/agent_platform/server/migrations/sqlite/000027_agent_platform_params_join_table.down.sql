@@ -1,0 +1,1 @@
+DROP TABLE v2_agent_platform_params;

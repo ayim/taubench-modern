@@ -47,6 +47,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         for row in rows:
             agent = Agent.model_validate(self._convert_agent_json_fields(dict(row)))
             agent = await self._populate_agent_mcp_servers(agent)
+            agent = await self._populate_agent_platform_params(agent)
             agents.append(agent)
 
         return agents
@@ -84,8 +85,9 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         row_dict.pop("has_access", None)
         agent = Agent.model_validate(self._convert_agent_json_fields(row_dict))
 
-        # Populate MCP servers from join table
-        return await self._populate_agent_mcp_servers(agent)
+        # Populate MCP servers and platform params from join tables
+        agent = await self._populate_agent_mcp_servers(agent)
+        return await self._populate_agent_platform_params(agent)
 
     async def get_agent_by_name(self, user_id: str, name: str) -> Agent:
         """Get an agent by name."""
@@ -115,8 +117,9 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         row_dict.pop("has_access", None)
         agent = Agent.model_validate(self._convert_agent_json_fields(row_dict))
 
-        # Populate MCP servers from join table
-        return await self._populate_agent_mcp_servers(agent)
+        # Populate MCP servers and platform params from join tables
+        agent = await self._populate_agent_mcp_servers(agent)
+        return await self._populate_agent_platform_params(agent)
 
     async def upsert_agent(self, user_id: str, agent: Agent) -> None:  # noqa: C901, PLR0912
         """Create or update an agent, avoiding false-positives on
@@ -300,6 +303,12 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         if hasattr(agent, "mcp_server_ids") and agent.mcp_server_ids:
             await self.associate_mcp_servers_with_agent(agent.agent_id, agent.mcp_server_ids)
 
+        # Handle platform params associations if the agent has platform_params_ids
+        if hasattr(agent, "platform_params_ids") and agent.platform_params_ids:
+            await self.associate_platform_params_with_agent(
+                agent.agent_id, agent.platform_params_ids
+            )
+
     async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         try:
@@ -482,3 +491,57 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         # - mcp_server_ids: Global MCP server IDs from join table
         # - mcp_servers: Agent-specific/resolved MCP server configs from JSON column
         return agent.copy(mcp_servers=resolved_mcp_servers, mcp_server_ids=mcp_server_ids)
+
+    async def _populate_agent_platform_params(self, agent: Agent) -> Agent:
+        """
+        Populate platform params IDs and resolved platform configs for an agent from the join table.
+        """
+        # Fetch platform params IDs from the join table
+        platform_params_ids = await self.get_agent_platform_params_ids(agent.agent_id)
+
+        # Resolve platform configs from the IDs
+        resolved_platform_configs = []
+        if platform_params_ids:
+            for platform_id in platform_params_ids:
+                try:
+                    platform_params = await self.get_platform_params(platform_id)
+                    resolved_platform_configs.append(platform_params)
+                    self._logger.info(
+                        f"Resolved platform params ID {platform_id} to {platform_params.kind}"
+                    )
+                except Exception as e:
+                    self._logger.warning(f"Failed to resolve platform params ID {platform_id}: {e}")
+
+        # Combine existing platform_configs with resolved ones
+        all_platform_configs = list(agent.platform_configs) + resolved_platform_configs
+
+        # Return agent with both platform_params_ids and resolved platform_configs populated
+        return agent.copy(
+            platform_params_ids=platform_params_ids, platform_configs=all_platform_configs
+        )
+
+    async def associate_platform_params_with_agent(
+        self, agent_id: str, platform_params_ids: list[str]
+    ) -> None:
+        """Associate platform params with an agent, replacing any existing associations.
+
+        SQLite-specific implementation that handles string-based UUIDs.
+        """
+        self._validate_uuid(agent_id)
+
+        async with self._cursor() as cur:
+            # First, remove existing associations
+            await cur.execute(
+                """DELETE FROM v2_agent_platform_params
+                   WHERE agent_id = :agent_id""",
+                {"agent_id": agent_id},
+            )
+
+            # Then add new associations
+            if platform_params_ids:
+                for platform_params_id in platform_params_ids:
+                    await cur.execute(
+                        """INSERT INTO v2_agent_platform_params (agent_id, platform_params_id)
+                           VALUES (:agent_id, :platform_params_id)""",
+                        {"agent_id": agent_id, "platform_params_id": platform_params_id},
+                    )

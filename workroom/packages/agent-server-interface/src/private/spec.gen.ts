@@ -6362,6 +6362,14 @@ export const spec = {
             description:
               'The IDs of Model Context Protocol (MCP) servers this agent uses.',
           },
+          platform_params_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Platform Params Ids',
+            description: 'The IDs of platform params this agent uses.',
+          },
           question_groups: {
             items: {
               $ref: '#/components/schemas/QuestionGroup',
@@ -6536,6 +6544,14 @@ export const spec = {
             title: 'Model',
             description:
               'The model configuration for the agent. (Legacy field.)',
+          },
+          platform_params_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Platform Params Ids',
+            description: 'The IDs of platform params this agent uses.',
           },
           action_servers: {
             items: {
@@ -12497,6 +12513,14 @@ export const spec = {
             title: 'Mcp Server Ids',
             description:
               'The IDs of Model Context Protocol (MCP) servers this agent uses.',
+          },
+          platform_params_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Platform Params Ids',
+            description: 'The IDs of platform params this agent uses.',
           },
           question_groups: {
             items: {

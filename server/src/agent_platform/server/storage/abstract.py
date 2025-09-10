@@ -97,6 +97,16 @@ class AbstractStorage(ABC):
     ) -> None:
         """Associate MCP servers with an agent."""
 
+    @abstractmethod
+    async def get_agent_platform_params_ids(self, agent_id: str) -> list[str]:
+        """Get platform params IDs associated with an agent."""
+
+    @abstractmethod
+    async def associate_platform_params_with_agent(
+        self, agent_id: str, platform_params_ids: list[str]
+    ) -> None:
+        """Associate platform params with an agent."""
+
     # -------------------------
     # Methods for threads
     # -------------------------

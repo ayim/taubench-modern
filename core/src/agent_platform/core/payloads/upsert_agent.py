@@ -95,6 +95,14 @@ class UpsertAgentPayload:
     )
     """The IDs of Model Context Protocol (MCP) servers this agent uses."""
 
+    platform_params_ids: list[str] = field(
+        metadata={
+            "description": "The IDs of platform params this agent uses.",
+        },
+        default_factory=list,
+    )
+    """The IDs of platform params this agent uses."""
+
     question_groups: list[QuestionGroup] = field(
         metadata={"description": "The question groups of the agent."},
         default_factory=list,
@@ -606,6 +614,7 @@ class UpsertAgentPayload:
             "action_packages": [pkg.model_dump() for pkg in self.action_packages],
             "mcp_servers": [server.model_dump() for server in self.mcp_servers],
             "mcp_server_ids": self.mcp_server_ids,
+            "platform_params_ids": self.platform_params_ids,
             "question_groups": [group.model_dump() for group in self.question_groups],
             "observability_configs": [config.model_dump() for config in self.observability_configs],
             "mode": self.mode,
@@ -684,6 +693,7 @@ class UpsertAgentPayload:
             action_packages=payload.action_packages,
             mcp_servers=payload.mcp_servers,
             mcp_server_ids=payload.mcp_server_ids,
+            platform_params_ids=payload.platform_params_ids,
             agent_architecture=payload.agent_architecture,
             platform_configs=[
                 cast(AnyPlatformParameters, PlatformParameters.model_validate(config))

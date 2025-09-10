@@ -82,6 +82,7 @@ async def deploy_agent_from_package(
             mcp_servers=validated_payload.mcp_servers,
             mcp_server_ids=validated_payload.mcp_server_ids,
             langsmith=validated_payload.langsmith,
+            platform_params_ids=validated_payload.platform_params_ids,
         )
 
         # Log binary ZIP metadata for tracking
@@ -137,6 +138,7 @@ async def update_agent_from_package(
             mcp_servers=validated_payload.mcp_servers,
             mcp_server_ids=validated_payload.mcp_server_ids,
             langsmith=validated_payload.langsmith,
+            platform_params_ids=validated_payload.platform_params_ids,
         )
 
         # Log binary ZIP metadata for tracking
@@ -191,6 +193,7 @@ async def calculate_agent_package_hash(
                 mcp_servers=validated_payload.mcp_servers,
                 mcp_server_ids=validated_payload.mcp_server_ids,
                 langsmith=validated_payload.langsmith,
+                platform_params_ids=validated_payload.platform_params_ids,
             )
 
         # Calculate the hash
@@ -430,6 +433,19 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
     elif isinstance(mcp_ids_input, list):
         mcp_server_ids = [x for x in mcp_ids_input if isinstance(x, str)]
 
+    # Normalize platform_params_ids in case multipart left it as a JSON string
+    platform_params_ids: list[str] = []
+    platform_params_ids_input = payload.platform_params_ids
+    if isinstance(platform_params_ids_input, str):
+        try:
+            parsed = json.loads(platform_params_ids_input)
+            if isinstance(parsed, list):
+                platform_params_ids = [x for x in parsed if isinstance(x, str)]
+        except Exception:
+            platform_params_ids = []
+    elif isinstance(platform_params_ids_input, list):
+        platform_params_ids = [x for x in platform_params_ids_input if isinstance(x, str)]
+
     # Normalize model in case multipart parsing left it as a JSON string
     normalized_model = payload.model
     if isinstance(normalized_model, str):
@@ -456,6 +472,7 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
         ],
         mcp_servers=normalized_mcp_servers,
         mcp_server_ids=mcp_server_ids,
+        platform_params_ids=platform_params_ids,
         runbook=agent_package.runbook_text,
         advanced_config=advanced_config,
         question_groups=agent_package.question_groups,

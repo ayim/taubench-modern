@@ -104,6 +104,14 @@ class AgentPackagePayload:
     )
     """The model configuration for the agent. (Legacy field.)"""
 
+    platform_params_ids: list[str] = field(
+        metadata={
+            "description": "The IDs of platform params this agent uses.",
+        },
+        default_factory=list,
+    )
+    """The IDs of platform params this agent uses."""
+
     action_servers: list[AgentPackagePayloadActionServer] = field(
         default_factory=list,
         metadata={

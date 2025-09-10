@@ -484,3 +484,62 @@ async def test_agent_crud_with_mcp_servers(
     # Verify the association was cascaded (removed)
     empty_ids = await storage.get_agent_mcp_server_ids(agent.agent_id)
     assert empty_ids == []
+
+
+@pytest.mark.asyncio
+async def test_agent_platform_params_association(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    """Test platform params association without validation."""
+    from agent_platform.core.platforms.openai import OpenAIPlatformParameters
+    from agent_platform.core.utils import SecretString
+
+    # Create two valid platform params entries
+    platform_params_1 = OpenAIPlatformParameters(
+        name="Test OpenAI Platform 1",
+        openai_api_key=SecretString("sk-test-key-1"),
+        models={"openai": ["gpt-4o"]},
+    )
+    await storage.create_platform_params(platform_params_1)
+
+    platform_params_2 = OpenAIPlatformParameters(
+        name="Test OpenAI Platform 2",
+        openai_api_key=SecretString("sk-test-key-2"),
+        models={"openai": ["gpt-3.5-turbo"]},
+    )
+    await storage.create_platform_params(platform_params_2)
+
+    platform_id_1 = platform_params_1.platform_id
+    platform_id_2 = platform_params_2.platform_id
+
+    # Create agent
+    agent = Agent.model_validate(sample_agent.model_dump() | {"platform_params_ids": []})
+    await storage.upsert_agent(sample_user_id, agent)
+
+    # Test 1: Associate with single platform_params_id
+    await storage.associate_platform_params_with_agent(agent.agent_id, [platform_id_1])
+
+    # Verify the association exists
+    associated_ids = await storage.get_agent_platform_params_ids(agent.agent_id)
+    assert len(associated_ids) == 1
+    assert associated_ids[0] == platform_id_1
+
+    # Test 2: Associate with multiple platform_params_ids (should replace existing)
+    await storage.associate_platform_params_with_agent(
+        agent.agent_id, [platform_id_1, platform_id_2]
+    )
+
+    # Verify both associations exist
+    associated_ids_after_multiple = await storage.get_agent_platform_params_ids(agent.agent_id)
+    assert len(associated_ids_after_multiple) == 2
+    assert platform_id_1 in associated_ids_after_multiple
+    assert platform_id_2 in associated_ids_after_multiple
+
+    # Test 3: Associate with empty list (should remove all associations)
+    await storage.associate_platform_params_with_agent(agent.agent_id, [])
+
+    # Verify no associations exist
+    final_associated_ids = await storage.get_agent_platform_params_ids(agent.agent_id)
+    assert len(final_associated_ids) == 0

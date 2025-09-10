@@ -2144,6 +2144,11 @@ export interface components {
        */
       mcp_server_ids?: string[];
       /**
+       * Platform Params Ids
+       * @description The IDs of platform params this agent uses.
+       */
+      platform_params_ids?: string[];
+      /**
        * Question Groups
        * @description The question groups of the agent.
        */
@@ -2252,6 +2257,11 @@ export interface components {
       model?: {
         [key: string]: unknown;
       };
+      /**
+       * Platform Params Ids
+       * @description The IDs of platform params this agent uses.
+       */
+      platform_params_ids?: string[];
       /**
        * Action Servers
        * @description The action servers for the agent.
@@ -5427,6 +5437,11 @@ export interface components {
        * @description The IDs of Model Context Protocol (MCP) servers this agent uses.
        */
       mcp_server_ids?: string[];
+      /**
+       * Platform Params Ids
+       * @description The IDs of platform params this agent uses.
+       */
+      platform_params_ids?: string[];
       /**
        * Question Groups
        * @description The question groups of the agent.
