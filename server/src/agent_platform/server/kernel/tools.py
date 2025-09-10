@@ -492,10 +492,22 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             # even when data server details are unavailable
             logger.error(f"Could not retrieve data server details for MCP context: {e}")
 
+        # Build action invocation context for Sema4AI action servers
+        mcp_sema4ai_action_invocation_context = {
+            "agent_id": self.kernel.agent.agent_id,
+            "thread_id": self.kernel.thread.thread_id,
+            "tenant_id": self.kernel.user.cr_tenant_id,
+            "invoked_on_behalf_of_user_id": self.kernel.user.cr_user_id
+            if self.kernel.user.cr_user_id
+            else self.kernel.user.sub,
+        }
+
         async def safe(srv: MCPServer):
             try:
                 logger.info(f"Fetching tool definitions from MCP server: {srv.url}")
-                return await srv.to_tool_definitions(additional_headers, data_server_details), None
+                return await srv.to_tool_definitions(
+                    additional_headers, data_server_details, mcp_sema4ai_action_invocation_context
+                ), None
             except Exception as exc:
                 detailed = (
                     "Error acquiring tool definitions from MCP server:"

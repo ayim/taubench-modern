@@ -206,7 +206,24 @@ class MCPClient:
         target_server: "MCPServer",
         additional_headers: dict[str, str] | None = None,
         data_server_details: DataServerDetails | None = None,
+        mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
     ) -> None:
+        """
+        Initialize MCP client.
+
+        Parameters
+        ----------
+        target_server : MCPServer
+            The MCP server configuration
+        additional_headers : dict[str, str] | None
+            Additional headers to include in requests
+        data_server_details : DataServerDetails | None
+            Data server connection details for X-Data-Context header
+        mcp_sema4ai_action_invocation_context : dict[str, str] | None
+            Context headers (agent_id, thread_id, tenant_id, user_id) for Sema4AI action servers.
+            Only used when target_server.type == "sema4ai_action_server" to build
+            X-Action-Invocation-Context header.
+        """
         self._cfg = MCPClientConfiguration  # class-level singleton per ConfigMeta
         self.target_server = target_server
         self.data_server_details = data_server_details
@@ -226,6 +243,8 @@ class MCPClient:
         if target_server.type == "sema4ai_action_server":
             # Add X-Action-Context header if not already present and if we have secrets to send
             self._ensure_action_context_header(target_server.headers)
+            # Add X-Action-Invocation-Context header with provided context
+            self._ensure_action_invocation_header(mcp_sema4ai_action_invocation_context)
             if data_server_details:
                 # Add X-Data-Context header if we have data server details
                 self._ensure_data_context_header()
@@ -263,6 +282,7 @@ class MCPClient:
         target_server: "MCPServer",
         storage: "StorageDependency",
         additional_headers: dict[str, str] | None = None,
+        mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
     ) -> "MCPClient":
         """
         Create an MCPClient with data server details automatically included.
@@ -274,11 +294,18 @@ class MCPClient:
             from agent_platform.server.api.dependencies import get_dids_connection_details
 
             data_server_details = await get_dids_connection_details(storage)
-            return cls(target_server, additional_headers, data_server_details)
+            return cls(
+                target_server,
+                additional_headers,
+                data_server_details,
+                mcp_sema4ai_action_invocation_context,
+            )
         except Exception:
             # If we can't get data server details, create client without them
             # This allows the client to work even when data context is unavailable
-            return cls(target_server, additional_headers, None)
+            return cls(
+                target_server, additional_headers, None, mcp_sema4ai_action_invocation_context
+            )
 
     @property
     def is_connected(self) -> bool:
@@ -378,6 +405,46 @@ class MCPClient:
 
             self._headers["X-Action-Context"] = x_action_context_value
             logger.info("X-Action-Context header added to the headers")
+
+    def _ensure_action_invocation_header(
+        self, action_invocation_context: dict[str, str] | None = None
+    ) -> None:
+        """Creates the X-Action-Invocation-Context header value with invocation metadata only.
+
+        This header contains only metadata
+        (agent_id, user_id, thread_id, tenant_id, action_invocation_id)
+        and is base64 encoded (SPCS) or encrypted (full ACE system).
+
+        Parameters
+        ----------
+        action_invocation_context : dict[str, str] | None
+            Context data (agent_id, thread_id, tenant_id, user_id). If None, will try to get
+            from headers.
+        """
+        if action_invocation_context is None:
+            logger.warning("No action invocation context provided")
+            return
+
+        import uuid
+
+        # Extract context data from provided action_invocation_context
+        context_data = json.dumps(
+            {
+                "agent_id": action_invocation_context.get("agent_id", ""),
+                "invoked_on_behalf_of_user_id": action_invocation_context.get(
+                    "invoked_on_behalf_of_user_id", ""
+                ),
+                "thread_id": action_invocation_context.get("thread_id", ""),
+                "tenant_id": action_invocation_context.get("tenant_id", ""),
+                "action_invocation_id": str(uuid.uuid4()),
+            }
+        )
+
+        # Encode and set the header
+        self._headers["X-Action-Invocation-Context"] = base64.b64encode(
+            context_data.encode("utf-8")
+        ).decode("utf-8")
+        logger.info("X-Action-Invocation-Context header added to the headers")
 
     # ------------------------------------------------------------------ #
     #  Connect / close                                                   #

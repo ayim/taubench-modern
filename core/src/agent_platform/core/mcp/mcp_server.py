@@ -199,10 +199,14 @@ class MCPServer:
         # tool definition time
         additional_headers: dict | None = None,
         data_server_details: DataServerDetails | None = None,
+        mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
     ) -> list[ToolDefinition]:
         """Converts the MCP server to a list of tool definitions."""
         async with MCPClient(
-            self, additional_headers=additional_headers, data_server_details=data_server_details
+            self,
+            additional_headers=additional_headers,
+            data_server_details=data_server_details,
+            mcp_sema4ai_action_invocation_context=mcp_sema4ai_action_invocation_context,
         ) as client:
             tools = await client.list_tools()
         return tools

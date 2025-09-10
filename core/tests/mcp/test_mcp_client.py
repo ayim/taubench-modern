@@ -1318,3 +1318,71 @@ async def test_ensure_data_context_header_no_header_when_not_action_server_or_no
 
     client2 = MCPClient(target_server=server2)
     assert "X-Data-Context" not in client2._headers
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_invocation_header_creates_header_with_valid_context():
+    """
+    Test that _ensure_action_invocation_header creates X-Action-Invocation-Context header
+    when valid action_invocation_context is provided.
+    """
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+    client = MCPClient(target_server=server)
+
+    action_invocation_context = {
+        "agent_id": "test-agent-123",
+        "invoked_on_behalf_of_user_id": "user-456",
+        "thread_id": "thread-789",
+        "tenant_id": "tenant-abc",
+    }
+
+    client._ensure_action_invocation_header(action_invocation_context)
+
+    assert "X-Action-Invocation-Context" in client._headers
+
+    import base64
+    import json
+
+    x_action_invocation_context_value = client._headers["X-Action-Invocation-Context"]
+    decoded_value = base64.b64decode(x_action_invocation_context_value).decode("utf-8")
+    action_invocation_data = json.loads(decoded_value)
+
+    assert action_invocation_data["agent_id"] == "test-agent-123"
+    assert action_invocation_data["invoked_on_behalf_of_user_id"] == "user-456"
+    assert action_invocation_data["thread_id"] == "thread-789"
+    assert action_invocation_data["tenant_id"] == "tenant-abc"
+    assert "action_invocation_id" in action_invocation_data
+    assert len(action_invocation_data["action_invocation_id"]) == 36
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_invocation_header_no_header():
+    """
+    Test that _ensure_action_invocation_header does not create X-Action-Invocation-Context header
+    when action_invocation_context is None.
+    """
+    # Test no header when sema4ai action server
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+    client = MCPClient(target_server=server)
+
+    client._ensure_action_invocation_header(None)
+
+    assert "X-Action-Invocation-Context" not in client._headers
+
+    # Test no header when generic MCP server
+    generic_mcp_server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="generic_mcp",
+    )
+    client = MCPClient(target_server=generic_mcp_server)
+    client._ensure_action_invocation_header(None)
+    assert "X-Action-Invocation-Context" not in client._headers
