@@ -2,7 +2,9 @@ name: Publish Agent Server Interface Package on Merge
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - agent-server-2.0.x
     types: [closed]
 
 run-name: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'ci/interface-release-v') && format('Publish Agent Server Interface ({0} merged to main)', github.event.pull_request.head.ref) || '[SKIPPED] Publish Agent Server Interface' }}
