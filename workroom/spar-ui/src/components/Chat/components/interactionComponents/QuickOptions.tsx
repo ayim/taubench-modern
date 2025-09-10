@@ -73,7 +73,7 @@ export const QuickOptions: InteractionComponent<QuickOptionsPayload> = ({ payloa
 
   const wasSelected = (choice: QuickOption) => {
     const messageAfterThisOne = messages[ourMessageIndex + 1];
-    return messageAfterThisOne?.content.some((c) => c.kind === 'text' && c.text === choice.message);
+    return !!messageAfterThisOne?.content?.some((c) => c.kind === 'text' && c.text === choice.message);
   };
 
   return (
