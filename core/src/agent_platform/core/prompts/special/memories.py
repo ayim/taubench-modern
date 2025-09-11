@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
 
 
-@dataclass(frozen=True)
+@dataclass
 class MemoriesParams:
     """Parameters for the memories special message."""
 
@@ -39,7 +39,7 @@ class MemoriesParams:
         return cls(**data)
 
 
-@dataclass(frozen=True)
+@dataclass
 class MemoriesSpecialMessage(SpecialPromptMessage):
     """Special message for including the memories in a prompt."""
 

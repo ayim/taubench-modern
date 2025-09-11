@@ -131,7 +131,6 @@ def _reset_sse_starlette_between_tests():
     yield
     # give any running servers a chance to stop first
     sse_mod.AppStatus.should_exit = False
-    sse_mod.AppStatus.should_exit_event = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

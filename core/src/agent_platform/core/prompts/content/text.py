@@ -10,7 +10,7 @@ from agent_platform.core.utils import assert_literal_value_valid
 logger = get_logger(__name__)
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptTextContent(PromptMessageContent):
     """Represents a text message in the agent system.
 

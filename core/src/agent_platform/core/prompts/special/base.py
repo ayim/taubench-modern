@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
 
 
-@dataclass(frozen=True)
+@dataclass
 class SpecialPromptMessage(ABC):
     """Base class for special messages in a prompt.
 
@@ -45,6 +45,13 @@ class SpecialPromptMessage(ABC):
     ]
     """The role of the message sender. Special messages are always
     prefixed with a `$` to make them easy to spot in a prompt."""
+
+    include_expr: str | None = None
+    """The Jinja2 expression to determine if the message should be included in the prompt."""
+
+    include: bool = True
+    """Whether the message should be included in the prompt.
+    (Will be overridden by rendered value of include_expr if provided.)"""
 
     @classmethod
     def register_message_by_role(

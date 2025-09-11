@@ -11,7 +11,7 @@ from agent_platform.core.platforms.bedrock.parameters import BedrockPlatformPara
 from agent_platform.core.responses.content import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
 from core.tests.platforms.conftest import compare_responses
-from core.tests.vcr_setup import patched_vcr
+from core.tests.vcrx import patched_vcr
 
 
 def normalize_response(response: ResponseMessage) -> ResponseMessage:
@@ -99,7 +99,7 @@ def kernel() -> Kernel:
 
 
 @pytest.fixture
-def bedrock_client(kernel: Kernel):
+async def bedrock_client(kernel: Kernel):
     """Fixture for Bedrock client with proper cleanup."""
     access_key_id = os.environ.get("AWS_ACCESS_KEY_ID", "UNUSED")
     secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "UNUSED")
@@ -112,7 +112,13 @@ def bedrock_client(kernel: Kernel):
         ),
     )
     client.attach_kernel(kernel)
-    return client
+    try:
+        yield client
+    finally:
+        try:
+            await client.aclose()
+        except Exception:
+            pass
 
 
 # -------------------------------------------------------------------------

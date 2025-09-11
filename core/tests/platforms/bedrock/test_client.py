@@ -414,11 +414,17 @@ class TestBedrockErrorHandling:
         )
 
         # Use a real model from the existing model map
-        with patch.object(bedrock_client, "_bedrock_client") as mock_client:
-            mock_client.converse.side_effect = client_error
+        # Speed up test: constrain retries and eliminate backoff sleeps
+        with patch.dict(
+            "os.environ",
+            {"BEDROCK_MAX_ATTEMPTS": "1", "BEDROCK_BACKOFF_BASE": "0", "BEDROCK_BACKOFF_CAP": "0"},
+            clear=False,
+        ):
+            with patch.object(bedrock_client, "_bedrock_client") as mock_client:
+                mock_client.converse.side_effect = client_error
 
-            with pytest.raises(PlatformHTTPError) as exc_info:
-                await bedrock_client.generate_response(bedrock_prompt, "claude-3-5-sonnet")
+                with pytest.raises(PlatformHTTPError) as exc_info:
+                    await bedrock_client.generate_response(bedrock_prompt, "claude-3-5-sonnet")
 
             assert exc_info.value.response.code == "too_many_requests"
 
@@ -441,14 +447,20 @@ class TestBedrockErrorHandling:
         )
 
         # Use a real model from the existing model map
-        with patch.object(bedrock_client, "_bedrock_client") as mock_client:
-            mock_client.converse_stream.side_effect = client_error
+        # Speed up test: constrain retries and eliminate backoff sleeps
+        with patch.dict(
+            "os.environ",
+            {"BEDROCK_MAX_ATTEMPTS": "1", "BEDROCK_BACKOFF_BASE": "0", "BEDROCK_BACKOFF_CAP": "0"},
+            clear=False,
+        ):
+            with patch.object(bedrock_client, "_bedrock_client") as mock_client:
+                mock_client.converse_stream.side_effect = client_error
 
-            with pytest.raises(StreamingError) as exc_info:
-                async for _ in bedrock_client.generate_stream_response(
-                    bedrock_prompt, "claude-3-5-sonnet"
-                ):
-                    pass  # This shouldn't execute due to the exception
+                with pytest.raises(StreamingError) as exc_info:
+                    async for _ in bedrock_client.generate_stream_response(
+                        bedrock_prompt, "claude-3-5-sonnet"
+                    ):
+                        pass  # This shouldn't execute due to the exception
 
             assert exc_info.value.response.code == "forbidden"
 

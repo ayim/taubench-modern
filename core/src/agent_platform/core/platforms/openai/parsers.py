@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         ChatCompletion,
         ChatCompletionChunk,
         ChatCompletionMessageToolCall,
+        ChatCompletionMessageToolCallUnion,
     )
     from openai.types.chat.chat_completion_chunk import Choice, ChoiceDeltaToolCall
 
@@ -138,7 +139,10 @@ class OpenAIParsers(PlatformParsers):
             # Handle tool calls if present
             if choice.message.tool_calls:
                 for tool_call in choice.message.tool_calls:
-                    response_content.append(self.parse_tool_use_content(tool_call))
+                    if tool_call.type == "function":
+                        response_content.append(self.parse_tool_use_content(tool_call))
+                    elif tool_call.type == "custom":
+                        pass  # TODO: these are new...
 
             # Extract usage metrics
             token_usage = self._extract_token_usage(response)
@@ -159,18 +163,19 @@ class OpenAIParsers(PlatformParsers):
 
     def _process_response_tool_calls(
         self,
-        tool_calls: list["ChatCompletionMessageToolCall"],
+        tool_calls: list["ChatCompletionMessageToolCallUnion"],
         response_content: list[ResponseMessageContent],
     ) -> None:
         """Processes tool calls from a response."""
         for tool_call in tool_calls:
-            response_content.append(
-                ResponseToolUseContent(
-                    tool_call_id=tool_call.id,
-                    tool_name=tool_call.function.name,
-                    tool_input_raw=tool_call.function.arguments,
-                ),
-            )
+            if tool_call.type == "function":
+                response_content.append(
+                    ResponseToolUseContent(
+                        tool_call_id=tool_call.id,
+                        tool_name=tool_call.function.name,
+                        tool_input_raw=tool_call.function.arguments,
+                    ),
+                )
 
     def _extract_token_usage(self, response: "ChatCompletion") -> TokenUsage:
         """Extracts token usage from a response."""

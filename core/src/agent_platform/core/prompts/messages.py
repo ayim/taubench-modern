@@ -6,12 +6,13 @@ from agent_platform.core.prompts.content.audio import PromptAudioContent
 from agent_platform.core.prompts.content.base import PromptMessageContent
 from agent_platform.core.prompts.content.document import PromptDocumentContent
 from agent_platform.core.prompts.content.image import PromptImageContent
+from agent_platform.core.prompts.content.reasoning import PromptReasoningContent
 from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
 from agent_platform.core.prompts.content.tool_use import PromptToolUseContent
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptUserMessage(PromptMessage):
     """Represents a user message in the prompt."""
 
@@ -44,11 +45,11 @@ class PromptUserMessage(PromptMessage):
         return cls(**data)
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptAgentMessage(PromptMessage):
     """Represents an agent message in the prompt."""
 
-    content: list[PromptTextContent | PromptToolUseContent] = field(  # type: ignore
+    content: list[PromptTextContent | PromptReasoningContent | PromptToolUseContent] = field(  # type: ignore
         metadata={"description": "The contents of the prompt message"},
     )
     # Type ignore here as we have a refinement on the kinds of content

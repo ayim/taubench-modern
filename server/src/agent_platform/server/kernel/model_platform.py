@@ -356,10 +356,16 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                     raise
 
     def _generate_metadata(self, model, streaming: bool = False) -> dict[str, Any]:
+        cleaned_model = model
+        if "/" in model:
+            # If the model was a full generic id like:
+            # "azure/openai/gpt-4o" then LS just wants the "gpt-4o" part
+            cleaned_model = model.split("/")[-1]
+
         metadata = self.kernel.get_standard_span_attributes(
             # Here, model and provider attributes are needed for LangSmith purposes.
             extra_attributes={
-                "model": model,
+                "model": cleaned_model,
                 "provider": self._internal_client.name,
                 "trace_name": f"stream_response_{self._internal_client.name}",
                 "streaming": streaming,
@@ -372,6 +378,13 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             "input_tokens": usage.input_tokens,
             "output_tokens": usage.output_tokens,
             "total_tokens": usage.total_tokens,
+            "input_tokens_details": {
+                "cache_read": usage.cached_tokens,
+                "cache_creation": 0,  # TODO: some clients track this?
+            },
+            "output_tokens_details": {
+                "reasoning": usage.reasoning_tokens,
+            },
         }
         return usage_metadata
 

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
 
 
-@dataclass(frozen=True)
+@dataclass
 class DocumentsParams:
     """Parameters for the documents special message."""
 
@@ -38,7 +38,7 @@ class DocumentsParams:
         return cls(**data)
 
 
-@dataclass(frozen=True)
+@dataclass
 class DocumentsSpecialMessage(SpecialPromptMessage):
     """Special message for including the documents in a prompt."""
 

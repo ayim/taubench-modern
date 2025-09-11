@@ -11,7 +11,7 @@ from agent_platform.core.platforms.azure.parameters import AzureOpenAIPlatformPa
 from agent_platform.core.responses.response import ResponseMessage
 from agent_platform.core.utils import SecretString
 from core.tests.platforms.conftest import compare_responses
-from core.tests.vcr_setup import patched_vcr
+from core.tests.vcrx import patched_vcr
 
 # -------------------------------------------------------------------------
 # MODEL LISTS

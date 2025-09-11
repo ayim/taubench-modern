@@ -183,12 +183,12 @@ test:  sync check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 test-unit: sync  ## Run only unit tests
 ifeq ($(CI),true)
 ifeq ($(IS_LINUX),true)
-	VCR_RECORD=none uv run pytest -v -m "not integration"
+	VCR_RECORD=none uv run pytest -v -m "not integration and not spar"
 else
-	VCR_RECORD=none uv run pytest -v -m "not integration and not postgresql"
+	VCR_RECORD=none uv run pytest -v -m "not integration and not postgresql and not spar"
 endif
 else
-	VCR_RECORD=none uv run pytest -v -m "not integration"
+	VCR_RECORD=none uv run pytest -v -m "not integration and not spar"
 endif
 
 test-integration:  sync check-env-or-no-env ## Run only integration tests

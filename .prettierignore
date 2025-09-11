@@ -1,8 +1,11 @@
 core/tests/fixtures/vcr_cassettes/platforms
+quality/src/agent_platform/benchmarks/tau2/data/**
 docs/prompt-endpoint-examples/package-lock.json
 server/examples/debug_widget/pnpm-lock.yaml
 server/examples/debug_widget/static/index.js
 server/examples/debug_widget/static/style.css
+server/go-wrapper/assets/**
+server/go-wrapper/agent-server
 **/CHANGELOG-PRE-RELEASE.md
 **/CHANGELOG.md
 **/versionbump.yaml

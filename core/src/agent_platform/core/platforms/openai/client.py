@@ -207,10 +207,14 @@ class OpenAIClient(
         """
         from openai import APIError
 
+        logger.debug(f"[OpenAI] Resolving model id: {model}")
         model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        logger.debug(f"[OpenAI] Resolved model id: {model} -> {model_id}")
         request = prompt.as_platform_request(model_id)
         try:
+            logger.debug("[OpenAI] Calling chat.completions.create")
             response = await self._openai_client.chat.completions.create(**request)
+            logger.debug("[OpenAI] Received chat.completions.create result")
             return self._parsers.parse_response(response)
         except APIError as e:
             raise self._handle_openai_error(e, model, PlatformHTTPError) from e

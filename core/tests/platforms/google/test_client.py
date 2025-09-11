@@ -10,9 +10,10 @@ from collections.abc import (
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from fastapi import status
-from google.genai.types import Content, Part
+from google.genai.types import Content, HttpOptions, Part
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
@@ -541,8 +542,17 @@ class TestGoogleClient:
             assert client.name == "google"
             assert isinstance(client._parameters, GooglePlatformParameters)
             assert client._parameters.google_api_key is not None
-            mock_client.assert_called_once_with(
-                api_key=client._parameters.google_api_key.get_secret_value(),
+
+            # Verify call without relying on object identity for the transport
+            mock_client.assert_called_once()
+            called_kwargs = mock_client.call_args.kwargs
+            assert called_kwargs["api_key"] == client._parameters.google_api_key.get_secret_value()
+            http_options = called_kwargs["http_options"]
+            assert isinstance(http_options, HttpOptions)
+            assert http_options.async_client_args is not None
+            assert isinstance(
+                http_options.async_client_args.get("transport"),
+                httpx.AsyncHTTPTransport,
             )
 
     def test_init_parameters_with_updates(

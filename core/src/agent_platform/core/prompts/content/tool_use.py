@@ -8,7 +8,7 @@ from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.utils import assert_literal_value_valid
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptToolUseContent(PromptMessageContent):
     """Represents a message containing a tool use request from an AI agent.
 

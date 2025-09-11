@@ -9,7 +9,7 @@ from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.utils import assert_literal_value_valid
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptToolResultContent(PromptMessageContent):
     """Represents the result of a tool execution in the agent system.
 

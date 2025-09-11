@@ -77,10 +77,20 @@ class GoogleClient(
         Raises:
             ValueError: If API key is not provided.
         """
+        import httpx
+        from google.genai import types as genai_types
+
         if parameters.google_api_key is None:
             raise ValueError("Google API key is required")
 
-        return genai.Client(api_key=parameters.google_api_key.get_secret_value())
+        http_options = genai_types.HttpOptions(
+            async_client_args={"transport": httpx.AsyncHTTPTransport()},
+        )
+
+        return genai.Client(
+            api_key=parameters.google_api_key.get_secret_value(),
+            http_options=http_options,
+        )
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> GoogleConverters:
         """Initialize the Google converters.

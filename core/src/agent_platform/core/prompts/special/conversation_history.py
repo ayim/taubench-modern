@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 logger = get_logger()
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConversationHistoryParams:
     """Parameters for the conversation history special message."""
 
@@ -40,7 +40,7 @@ class ConversationHistoryParams:
         return cls(**data)
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConversationHistorySpecialMessage(SpecialPromptMessage):
     """Special message for including the conversation history in a prompt."""
 

@@ -80,19 +80,24 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
         },
     )
 
+    azure_model_backing_deployment_name: str | None = field(
+        default=None,
+        metadata={
+            "description": "The Azure OpenAI model backing deployment name.",
+        },
+    )
+
+    azure_model_backing_deployment_name_embeddings: str | None = field(
+        default=None,
+        metadata={
+            "description": "The Azure OpenAI model backing deployment name for embeddings.",
+        },
+    )
+
     def __post_init__(self):
         from os import getenv
 
         super().__post_init__()
-
-        # Default the models allowlist to "{ "openai": ["gpt-4o"] }"
-        # to match prior semantics
-        if self.models is None or self.models == {}:
-            object.__setattr__(
-                self,
-                "models",
-                {"openai": ["gpt-4o"]},
-            )
 
         # Handle case where azure_api_key is passed as a string
         if self.azure_api_key and not isinstance(self.azure_api_key, SecretString):
@@ -152,6 +157,10 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
             "azure_api_version": self.azure_api_version,
             "azure_generated_endpoint_url": self.azure_generated_endpoint_url,
             "azure_generated_endpoint_url_embeddings": self.azure_generated_endpoint_url_embeddings,
+            "azure_model_backing_deployment_name": self.azure_model_backing_deployment_name,
+            "azure_model_backing_deployment_name_embeddings": (
+                self.azure_model_backing_deployment_name_embeddings,
+            ),
         }
 
         return super().model_dump(exclude_none=exclude_none, extra=extra)

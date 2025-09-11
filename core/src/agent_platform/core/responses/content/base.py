@@ -32,6 +32,7 @@ class ResponseMessageContent:
         """Returns a dictionary representation suitable for serialization."""
         return {
             "kind": self.kind,
+            "metadata": self.metadata,
         }
 
     def model_dump_json(self) -> str:

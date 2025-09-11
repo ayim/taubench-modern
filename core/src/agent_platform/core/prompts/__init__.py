@@ -8,6 +8,7 @@ from agent_platform.core.prompts.content import (
     PromptToolResultContent,
     PromptToolUseContent,
 )
+from agent_platform.core.prompts.content.reasoning import PromptReasoningContent
 from agent_platform.core.prompts.messages import (
     PromptAgentMessage,
     PromptDocumentContent,
@@ -46,7 +47,7 @@ UserPromptMessageContent = (
     | PromptDocumentContent
 )
 
-AgentPromptMessageContent = PromptTextContent | PromptToolUseContent
+AgentPromptMessageContent = PromptTextContent | PromptReasoningContent | PromptToolUseContent
 
 __all__ = [
     "AgentPromptMessageContent",

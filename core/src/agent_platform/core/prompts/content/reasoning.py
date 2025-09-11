@@ -6,7 +6,7 @@ from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.utils import assert_literal_value_valid
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptReasoningContent(PromptMessageContent):
     """Represents a text message in the agent system.
 

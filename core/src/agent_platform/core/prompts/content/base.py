@@ -3,7 +3,7 @@ from json import dumps
 from typing import ClassVar
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptMessageContent:
     """Base class for all prompt message content types."""
 

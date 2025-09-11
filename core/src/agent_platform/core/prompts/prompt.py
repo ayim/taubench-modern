@@ -4,6 +4,7 @@ from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, Literal, TextIO, cast
 
+from agent_platform.core.prompts.content.reasoning import PromptReasoningContent
 from agent_platform.core.prompts.messages import (
     PromptAgentMessage,
     PromptMessage,
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from agent_platform.core.prompts.finalizers import BaseFinalizer
 
 
-@dataclass(frozen=True)
+@dataclass
 class Prompt:
     """Represents a complete prompt for an AI model interaction.
 
@@ -139,6 +140,18 @@ class Prompt:
     )
     """The maximum cumulative probability of tokens to consider
     when sampling. Optional."""
+
+    minimize_reasoning: bool = field(
+        default=False,
+        metadata={
+            "description": (
+                "Whether to minimize reasoning in the prompt. This is useful when you want to "
+                "speed up the response time of the model."
+            ),
+        },
+    )
+    """Whether to minimize reasoning in the prompt. This is useful when you want to
+    speed up the response time of the model."""
 
     _finalized: bool = field(
         default=False,
@@ -285,7 +298,7 @@ class Prompt:
         finalizer_kwargs = finalizer_kwargs or {}
 
         # Start with original messages
-        new_messages = list(self.messages)
+        new_messages = [message for message in self.messages if message.include]
 
         # Apply the chain of finalizers
         for finalizer in finalizers:
@@ -301,19 +314,20 @@ class Prompt:
         # Update the messages and finalized flag with properly typed messages
         # At this point we expect all special messages to have been processed
         # into regular message types
-        final_messages = cast(list[PromptUserMessage | PromptAgentMessage], new_messages)
+        final_messages = cast(
+            list[
+                PromptUserMessage
+                | PromptAgentMessage
+                | ConversationHistorySpecialMessage
+                | DocumentsSpecialMessage
+                | MemoriesSpecialMessage
+            ],
+            new_messages,
+        )
 
         # Update the messages and finalized flag
-        object.__setattr__(
-            self,
-            "messages",
-            final_messages,
-        )
-        object.__setattr__(
-            self,
-            "_finalized",
-            True,
-        )
+        self.messages = final_messages
+        self._finalized = True
 
         return self
 
@@ -361,16 +375,14 @@ class Prompt:
         if self._finalized:
             raise ValueError("Cannot format a finalized prompt")
 
-        # We have a bunch of frozen dataclasses here, so we need to use the
-        # object.__setattr__ method to set the attributes
         if self.system_instruction:
-            object.__setattr__(
-                self,
-                "system_instruction",
-                jinja2.Template(self.system_instruction).render(**kwargs),
-            )
+            self.system_instruction = jinja2.Template(self.system_instruction).render(**kwargs)
 
         for message in self.messages:
+            if message.include_expr:
+                rendered_value = jinja2.Template(message.include_expr).render(**kwargs)
+                message.include = rendered_value.strip().lower() == "true"
+
             if isinstance(message, SpecialPromptMessage):
                 # For now, there's no formatting for special messages
                 # maybe someday you could like set the number of turns to
@@ -381,11 +393,7 @@ class Prompt:
             for content in message.content:
                 # TODO: other bits of content need formatting?
                 if isinstance(content, PromptTextContent):
-                    object.__setattr__(
-                        content,
-                        "text",
-                        jinja2.Template(content.text).render(**kwargs),
-                    )
+                    content.text = jinja2.Template(content.text).render(**kwargs)
 
         return self
 
@@ -398,11 +406,15 @@ class Prompt:
         Returns:
             Prompt: The prompt with the tools added.
         """
-        object.__setattr__(
-            self,
-            "tools",
-            tools,
-        )
+        self.tools = list(tools)
+        return self
+
+    def with_minimized_reasoning(self) -> "Prompt":
+        """Minimize reasoning in the prompt.
+
+        This is useful when you want to speed up the response time of the model.
+        """
+        self.minimize_reasoning = True
         return self
 
     def to_pretty_yaml(self, width: int = 100, include: list[str] | None = None) -> str:
@@ -432,11 +444,28 @@ class Prompt:
             token_count += PromptTextContent.count_tokens_in_text(self.system_instruction)
 
         # Count messages (skipping special messages)
-        for msg in self.messages:
+        index_of_latest_user_message = -1
+        for i, msg in enumerate(self.messages):
+            if isinstance(msg, PromptUserMessage):
+                index_of_latest_user_message = i
+
+        for i, msg in enumerate(self.messages):
             if isinstance(msg, PromptUserMessage | PromptAgentMessage):
                 token_count += 30  # Role indicators/other small overhead per message
                 # Count tokens in each content item
                 for content in msg.content:
+                    # TODO: when we get to Claude 4 thinking and thinking in Gemini 2.5,
+                    # make sure it's aligned with this logic (and if not, adjust). It doesn't
+                    # really make sense to ever keep the "reasoning scratchpad" generated in
+                    # response to anything but the most recent user message, but we should
+                    # just confirm as we add more reasoner models.
+                    skip_reasoning = (
+                        index_of_latest_user_message == -1 or i < index_of_latest_user_message
+                    ) and isinstance(content, PromptReasoningContent)
+                    if skip_reasoning:
+                        # Do _not_ count reasoning content before the latest user message
+                        # if it will be ignored.
+                        continue
                     # Use the content's own token counting method
                     token_count += content.count_tokens_approx()
 

@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import time
 from collections.abc import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, ClassVar, cast
@@ -231,6 +232,8 @@ class ResponseStreamPipe:
         buffer_obj: dict[str, Any] = {}
         batch: list[GenericDelta] = []
         batch_size_limit = 128
+        # Monotonic timestamp of when we last appended to the current batch
+        last_batch_ts: float | None = None
 
         while True:
             # Wait for the next delta, but time-out regularly so we can flush
@@ -245,18 +248,34 @@ class ResponseStreamPipe:
                 if batch:
                     buffer_obj, _ = await self._flush_batch(loop, batch, buffer_obj)
                     batch.clear()
+                    last_batch_ts = None
                 await self._msg_q.put(MsgEndSentinel())
                 return
 
             # ─── Normal delta payload ──────────────────────────────
             if isinstance(delta, GenericDelta):
+                now = time.monotonic()
+                # If a new delta arrives after the flush interval elapsed,
+                # flush the existing batch first to avoid coalescing updates.
+                if (
+                    batch
+                    and last_batch_ts is not None
+                    and (now - last_batch_ts) >= self.flush_interval
+                ):
+                    buffer_obj, flushed = await self._flush_batch(loop, batch, buffer_obj)
+                    if flushed:
+                        batch.clear()
+                        last_batch_ts = None
+
                 batch.append(delta)
+                last_batch_ts = now
 
             # ─── Flush conditions ──────────────────────────────────
             if batch and (delta is None or len(batch) >= batch_size_limit):
                 buffer_obj, flushed = await self._flush_batch(loop, batch, buffer_obj)
                 if flushed:
                     batch.clear()
+                    last_batch_ts = None
 
     async def _flush_batch(
         self,

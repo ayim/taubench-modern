@@ -19,7 +19,7 @@ PROMPT_IMAGE_MIME_TYPES = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptImageContent(PromptMessageContent):
     """Represents an image message in the agent system.
 

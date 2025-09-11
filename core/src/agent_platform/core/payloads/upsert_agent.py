@@ -28,7 +28,7 @@ class PatchAgentPayload:
     )
 
 
-@dataclass(frozen=True)
+@dataclass
 class UpsertAgentPayload:
     """Payload for upserting an agent."""
 
@@ -198,16 +198,13 @@ class UpsertAgentPayload:
             if not architecture.startswith("agent_platform.architectures."):
                 architecture = "agent_platform.architectures.default"
 
-            object.__setattr__(
-                self,
-                "agent_architecture",
-                AgentArchitecture.model_validate(
-                    {
-                        "name": architecture,
-                        "version": "1.0.0",
-                    }
-                ),
+            self.agent_architecture = AgentArchitecture.model_validate(
+                {
+                    "name": architecture,
+                    "version": "1.0.0",
+                }
             )
+
             del self.advanced_config["architecture"]
 
     def _handle_legacy_langsmith(self):
@@ -215,41 +212,33 @@ class UpsertAgentPayload:
         if "langsmith" in self.advanced_config:
             ls_config = self.advanced_config["langsmith"]
             if ls_config is not None and "api_key" in ls_config:
-                object.__setattr__(
-                    self,
-                    "observability_configs",
-                    [
-                        ObservabilityConfig.model_validate(
-                            {
-                                "type": "langsmith",
-                                "api_key": ls_config["api_key"],
-                                "api_url": ls_config["api_url"],
-                                "settings": {
-                                    "project_name": ls_config["project_name"],
-                                },
-                            }
-                        )
-                    ],
-                )
+                self.observability_configs = [
+                    ObservabilityConfig.model_validate(
+                        {
+                            "type": "langsmith",
+                            "api_key": ls_config["api_key"],
+                            "api_url": ls_config["api_url"],
+                            "settings": {
+                                "project_name": ls_config["project_name"],
+                            },
+                        }
+                    )
+                ]
             del self.advanced_config["langsmith"]
 
     def _handle_legacy_mode(self):
         """Handle backward compatibility for 'mode' in metadata."""
         if "mode" in self.metadata:
-            object.__setattr__(self, "mode", self.metadata["mode"])
+            self.mode = self.metadata["mode"]
             del self.metadata["mode"]
 
     def _handle_legacy_welcome_message(self):
         """Handle backward compatibility for 'welcome_message' in metadata."""
         if "welcome_message" in self.metadata:
-            object.__setattr__(
-                self,
-                "extra",
-                {
-                    **self.extra,
-                    "welcome_message": self.metadata["welcome_message"],
-                },
-            )
+            self.extra = {
+                **self.extra,
+                "welcome_message": self.metadata["welcome_message"],
+            }
             del self.metadata["welcome_message"]
 
     def _handle_legacy_worker_config(self):
@@ -262,14 +251,10 @@ class UpsertAgentPayload:
 
         if key is not None:
             worker_cfg = self.metadata[key]
-            object.__setattr__(
-                self,
-                "extra",
-                {
-                    **self.extra,
-                    "worker_config": worker_cfg,
-                },
-            )
+            self.extra = {
+                **self.extra,
+                "worker_config": worker_cfg,
+            }
             del self.metadata[key]
 
     def _handle_legacy_question_groups(self):
@@ -282,11 +267,9 @@ class UpsertAgentPayload:
         if "question_groups" in self.metadata and isinstance(
             self.metadata["question_groups"], list
         ):
-            object.__setattr__(
-                self,
-                "question_groups",
-                [QuestionGroup.model_validate(group) for group in self.metadata["question_groups"]],
-            )
+            self.question_groups = [
+                QuestionGroup.model_validate(group) for group in self.metadata["question_groups"]
+            ]
             del self.metadata["question_groups"]
 
     def _legacy_model_dict_to_allowlist(
@@ -341,19 +324,15 @@ class UpsertAgentPayload:
                 if param in self.model["config"]:
                     params[param] = self.model["config"][param]
 
-        object.__setattr__(
-            self,
-            "platform_configs",
-            [
-                {
-                    "kind": "openai",
-                    **params,
-                    "models": self._legacy_model_dict_to_allowlist(self.model),
-                },
-                *self.platform_configs,
-            ],
-        )
-        object.__setattr__(self, "model", None)
+        self.platform_configs = [
+            {
+                "kind": "openai",
+                **params,
+                "models": self._legacy_model_dict_to_allowlist(self.model),
+            },
+            *self.platform_configs,
+        ]
+        self.model = None
 
     def _split_azure_url(self, url: str) -> tuple[str, str, str]:
         """Split an Azure URL into endpoint, deployment name, and api version."""
@@ -400,6 +379,7 @@ class UpsertAgentPayload:
             "chat_openai_api_key": "UNSET",
             "embeddings_url": "https://UNSET.openai.azure.com/openai/deployments/UNSET/embeddings?api-version=2025-01-01",
             "embeddings_openai_api_key": "UNSET",
+            "azure_model_backing_deployment_name": self.model["name"],
         }
         if "config" in self.model:
             for param in params_to_keep:
@@ -434,22 +414,15 @@ class UpsertAgentPayload:
         # Remove embeddings_url if present
         params.pop("embeddings_url", None)
 
-        object.__setattr__(
-            self,
-            "platform_configs",
-            [
-                {
-                    "kind": "azure",
-                    **params,
-                    # NOTE: we can't really handle the allowlist here, as the model
-                    # is baked into that deployment URL... so we just leave it as None
-                    # and let the platform client for Azure handle it.
-                    "models": None,
-                },
-                *self.platform_configs,
-            ],
-        )
-        object.__setattr__(self, "model", None)
+        self.platform_configs = [
+            {
+                "kind": "azure",
+                **params,
+                "models": self._legacy_model_dict_to_allowlist(self.model),
+            },
+            *self.platform_configs,
+        ]
+        self.model = None
 
     def _handle_legacy_model_ollama(self):
         """Handle backward compatibility for 'model' field with Ollama."""
@@ -491,19 +464,15 @@ class UpsertAgentPayload:
                 if param in self.model["config"]:
                     params[param] = self.model["config"][param]
 
-        object.__setattr__(
-            self,
-            "platform_configs",
-            [
-                {
-                    "kind": "bedrock",
-                    **params,
-                    "models": self._legacy_model_dict_to_allowlist(self.model),
-                },
-                *self.platform_configs,
-            ],
-        )
-        object.__setattr__(self, "model", None)
+        self.platform_configs = [
+            {
+                "kind": "bedrock",
+                **params,
+                "models": self._legacy_model_dict_to_allowlist(self.model),
+            },
+            *self.platform_configs,
+        ]
+        self.model = None
 
     def _handle_legacy_model_snowflake(self):
         """Handle backward compatibility for 'model' field with Snowflake Cortex AI."""
@@ -527,19 +496,71 @@ class UpsertAgentPayload:
                 if param in self.model["config"]:
                     params[param] = self.model["config"][param]
 
-        object.__setattr__(
-            self,
-            "platform_configs",
-            [
-                {
-                    "kind": "cortex",
-                    **params,
-                    "models": self._legacy_model_dict_to_allowlist(self.model),
-                },
-                *self.platform_configs,
-            ],
-        )
-        object.__setattr__(self, "model", None)
+        self.platform_configs = [
+            {
+                "kind": "cortex",
+                **params,
+                "models": self._legacy_model_dict_to_allowlist(self.model),
+            },
+            *self.platform_configs,
+        ]
+        self.model = None
+
+    def _handle_legacy_model_google(self):
+        """Handle backward compatibility for 'model' field with Google."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "Google":
+            return
+
+        params_to_keep = [
+            "google_api_key",
+        ]
+        params = {
+            "google_api_key": "UNSET",
+        }
+        if "config" in self.model:
+            for param in params_to_keep:
+                if param in self.model["config"]:
+                    params[param] = self.model["config"][param]
+
+        self.platform_configs = [
+            {
+                "kind": "google",
+                **params,
+                "models": self._legacy_model_dict_to_allowlist(self.model),
+            },
+            *self.platform_configs,
+        ]
+        self.model = None
+
+    def _handle_legacy_model_groq(self):
+        """Handle backward compatibility for 'model' field with Groq."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "Groq":
+            return
+
+        params_to_keep = [
+            "groq_api_key",
+        ]
+        params = {
+            "groq_api_key": "UNSET",
+        }
+        if "config" in self.model:
+            for param in params_to_keep:
+                if param in self.model["config"]:
+                    params[param] = self.model["config"][param]
+
+        self.platform_configs = [
+            {
+                "kind": "groq",
+                **params,
+                "models": self._legacy_model_dict_to_allowlist(self.model),
+            },
+            *self.platform_configs,
+        ]
+        self.model = None
 
     def _handle_legacy_model(self):
         """Handle backward compatibility for 'model' field."""
@@ -554,6 +575,8 @@ class UpsertAgentPayload:
             self._handle_legacy_model_anthropic()
             self._handle_legacy_model_bedrock()
             self._handle_legacy_model_snowflake()
+            self._handle_legacy_model_google()
+            self._handle_legacy_model_groq()
 
     def __post_init__(self):
         # Handle backward compatibility conversions first
@@ -583,14 +606,14 @@ class UpsertAgentPayload:
 
         # Null out runbook if structured runbook is present (prefer structured)
         if self.structured_runbook:
-            object.__setattr__(self, "runbook", None)
+            self.runbook = None
 
         # If agent_id is set, we take that over id for consistency
         if self.agent_id:
-            object.__setattr__(self, "id", self.agent_id)
+            self.id = self.agent_id
         # If only id is set, ensure agent_id also gets this value
         elif self.id and not self.agent_id:
-            object.__setattr__(self, "agent_id", self.id)
+            self.agent_id = self.id
 
         # Ensure platform configs are valid dictionaries
         for config in self.platform_configs:

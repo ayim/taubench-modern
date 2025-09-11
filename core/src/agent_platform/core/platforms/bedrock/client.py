@@ -91,6 +91,15 @@ class BedrockClient(
             ).__aenter__()
         return self._bedrock_client
 
+    async def aclose(self) -> None:
+        """Close the underlying aiobotocore client if open."""
+        if self._bedrock_client is not None:
+            try:
+                # Symmetric to explicit __aenter__ above
+                await self._bedrock_client.__aexit__(None, None, None)
+            finally:
+                self._bedrock_client = None
+
     # ------------------------------------------------------------------#
     # Public API
     # ------------------------------------------------------------------#
@@ -104,12 +113,14 @@ class BedrockClient(
 
         try:
             # Bedrock's `converse` is POST; returns JSON body.
+            # Rely on botocore/aiobotocore built-in retry policy (AioConfig.retries)
             client = await self._client()
             response = await client.converse(
                 **prompt.as_platform_request(model_id, stream=False),
             )
             return self._parsers.parse_response(response)
         except Exception as exc:
+            # Surface as a PlatformHTTPError with Bedrock-specific mapping
             raise self._handle_bedrock_error(exc, model, PlatformHTTPError) from exc
 
     async def generate_stream_response(
@@ -121,11 +132,13 @@ class BedrockClient(
 
         try:
             # Returns an async iterator over SSE / HTTP2 frames
+            # Rely on botocore/aiobotocore built-in retry policy (AioConfig.retries)
             client = await self._client()
             response = await client.converse_stream(
                 **prompt.as_platform_request(model_id, stream=True),
             )
         except Exception as exc:
+            # Surface as a StreamingError with Bedrock-specific mapping
             raise self._handle_bedrock_error(exc, model, StreamingError) from exc
 
         # ------------------------------------------------------------ #
@@ -134,12 +147,15 @@ class BedrockClient(
         message_state: dict[str, Any] = {}
         last_msg_state: dict[str, Any] = {}
 
-        async for event in response["stream"]:
-            async for delta in self._parsers.parse_stream_event(
-                event, response, message_state, last_msg_state
-            ):
-                yield delta
-            last_msg_state = deepcopy(message_state)
+        try:
+            async for event in response["stream"]:
+                async for delta in self._parsers.parse_stream_event(
+                    event, response, message_state, last_msg_state
+                ):
+                    yield delta
+                last_msg_state = deepcopy(message_state)
+        except Exception as exc:
+            raise self._handle_bedrock_error(exc, model, StreamingError) from exc
 
         # Attach final metadata delta
         final_event = self._generate_platform_metadata()

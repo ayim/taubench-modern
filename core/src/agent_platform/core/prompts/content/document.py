@@ -10,7 +10,7 @@ from agent_platform.core.utils.asserts import assert_literal_value_valid
 UploadedFile = Any
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptDocumentContent(PromptMessageContent):
     """Represents a document message in the agent system.
 

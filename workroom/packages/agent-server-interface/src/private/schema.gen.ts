@@ -2373,6 +2373,16 @@ export interface components {
        * @default
        */
       azure_generated_endpoint_url_embeddings: string;
+      /**
+       * Azure Model Backing Deployment Name
+       * @description The Azure OpenAI model backing deployment name.
+       */
+      azure_model_backing_deployment_name?: string | null;
+      /**
+       * Azure Model Backing Deployment Name Embeddings
+       * @description The Azure OpenAI model backing deployment name for embeddings.
+       */
+      azure_model_backing_deployment_name_embeddings?: string | null;
     };
     /** BedrockPlatformParameters */
     BedrockPlatformParameters: {
@@ -2636,6 +2646,13 @@ export interface components {
        * @enum {string}
        */
       role: '$conversation-history' | '$documents' | '$memories';
+      /** Include Expr */
+      include_expr?: string | null;
+      /**
+       * Include
+       * @default true
+       */
+      include: boolean;
       params?: components['schemas']['ConversationHistoryParams'];
     };
     /** CortexPlatformParameters */
@@ -2995,6 +3012,13 @@ export interface components {
        * @enum {string}
        */
       role: '$conversation-history' | '$documents' | '$memories';
+      /** Include Expr */
+      include_expr?: string | null;
+      /**
+       * Include
+       * @default true
+       */
+      include: boolean;
       params?: components['schemas']['DocumentsParams'];
     };
     /** ExecuteDataQualityChecksRequest */
@@ -3542,6 +3566,13 @@ export interface components {
        * @enum {string}
        */
       role: '$conversation-history' | '$documents' | '$memories';
+      /** Include Expr */
+      include_expr?: string | null;
+      /**
+       * Include
+       * @default true
+       */
+      include: boolean;
       params?: components['schemas']['MemoriesParams'];
     };
     /** OTelArtifact */
@@ -3761,6 +3792,7 @@ export interface components {
        */
       content: (
         | components['schemas']['PromptTextContent']
+        | components['schemas']['PromptReasoningContent']
         | components['schemas']['PromptToolUseContent']
       )[];
       /**
@@ -3770,6 +3802,13 @@ export interface components {
        * @constant
        */
       role: 'agent';
+      /** Include Expr */
+      include_expr?: string | null;
+      /**
+       * Include
+       * @default true
+       */
+      include: boolean;
     };
     /** PromptAudioContent */
     PromptAudioContent: {
@@ -3877,6 +3916,51 @@ export interface components {
        */
       detail: 'low_res' | 'high_res';
     };
+    /** PromptReasoningContent */
+    PromptReasoningContent: {
+      /**
+       * Kind
+       * @description Message kind identifier, always 'reasoning'
+       * @default reasoning
+       * @constant
+       */
+      kind: 'reasoning';
+      /**
+       * Reasoning
+       * @description The actual reasoning content of the message
+       */
+      reasoning: string | null;
+      /**
+       * Redacted Content
+       * @description The redacted content of the message
+       */
+      redacted_content?: string | null;
+      /**
+       * Signature
+       * @description The signature of the message
+       */
+      signature?: string | null;
+      /**
+       * Encrypted Content
+       * @description The encrypted content of the message
+       */
+      encrypted_content?: string | null;
+      /**
+       * Response Id
+       * @description The response ID of the message
+       */
+      response_id?: string | null;
+      /**
+       * Summary
+       * @description The summary of the message
+       */
+      summary?: string[] | null;
+      /**
+       * Content
+       * @description The content of the message
+       */
+      content?: string[] | null;
+    };
     /** PromptTextContent */
     PromptTextContent: {
       /**
@@ -3977,6 +4061,13 @@ export interface components {
        * @constant
        */
       role: 'user';
+      /** Include Expr */
+      include_expr?: string | null;
+      /**
+       * Include
+       * @default true
+       */
+      include: boolean;
     };
     /** QuestionGroup */
     QuestionGroup: {

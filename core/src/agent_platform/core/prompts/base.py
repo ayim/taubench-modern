@@ -5,7 +5,7 @@ from typing import ClassVar, Literal
 from agent_platform.core.prompts.content.base import PromptMessageContent
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptMessage(ABC):
     """Base class for all messages in a prompt."""
 
@@ -16,6 +16,13 @@ class PromptMessage(ABC):
 
     role: Literal["user", "agent"]
     """The role of the message sender."""
+
+    include_expr: str | None = None
+    """The Jinja2 expression to determine if the message should be included in the prompt."""
+
+    include: bool = True
+    """Whether the message should be included in the prompt.
+    (Will be overridden by rendered value of include_expr if provided.)"""
 
     def count_tokens_approx(self) -> int:
         """Counts the approximate number of tokens in the message.

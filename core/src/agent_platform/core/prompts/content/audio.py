@@ -6,7 +6,7 @@ from agent_platform.core.prompts.content.base import PromptMessageContent
 from agent_platform.core.utils import assert_literal_value_valid
 
 
-@dataclass(frozen=True)
+@dataclass
 class PromptAudioContent(PromptMessageContent):
     """Represents an audio message in the agent system.
 
