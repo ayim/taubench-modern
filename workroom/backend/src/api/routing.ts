@@ -36,8 +36,9 @@ function getRouteMap(): {
     | [isAllowed: false]
     | [isAllowed: true, signMode: 'user' | 'tenant', permissions: Array<Permission>];
 } {
-  const agentReadPermissions: Array<Permission> = ['agents.read'];
-  const agentWritePermissions: Array<Permission> = ['agents.write'];
+  const agentReadPermissions = ['agents.read'] satisfies [Permission];
+  const agentWritePermissions = ['agents.write'] satisfies [Permission];
+  const deploymentMonitoringReadPermissions = ['deployments_monitoring.read'] satisfies [Permission];
 
   return {
     // Allowed routes with tenant-level signing
@@ -96,12 +97,13 @@ function getRouteMap(): {
     'put /api/v2/mcp-servers/{mcp_server_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/runs/{run_id}/status': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/runs/{aid}/stream': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/config/': [ALLOWED, SIGN_WITH_USER, deploymentMonitoringReadPermissions],
+    'post /api/v2/config/': [ALLOWED, SIGN_WITH_USER, deploymentMonitoringReadPermissions],
 
     // @TODO: New endpoints, needs perms - no examples in ACE yet
     'delete /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'delete /api/v2/platforms/{platform_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/capabilities/platforms': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
-    'get /api/v2/config/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/document-intelligence': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/document-intelligence/data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
@@ -112,7 +114,6 @@ function getRouteMap(): {
     'get /api/v2/threads/{tid}/data-frames': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/threads/{tid}/inspect-file-as-data-frame': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/capabilities/platforms/{kind}/test': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
-    'post /api/v2/config/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/data-models/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
