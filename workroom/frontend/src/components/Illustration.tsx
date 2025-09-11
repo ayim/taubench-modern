@@ -12,5 +12,5 @@ type Props = {
 
 export const Illustration: FC<Props> = ({ name }) => {
   const { name: themeName } = useTheme();
-  return <img src={`/illustrations/${name}-${themeName}.svg`} alt={name} loading="lazy" />;
+  return <img src={`illustrations/${name}-${themeName}.svg`} alt={name} loading="lazy" />;
 };
