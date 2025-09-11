@@ -145,7 +145,7 @@ export const getConfiguration = (): Configuration => {
       case 'none':
         return {
           tenantId: 'spar',
-          tenantName: 'SPAR',
+          tenantName: 'Team Edition',
         };
 
       case 'sema4-oidc-sso': {

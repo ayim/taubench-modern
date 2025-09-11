@@ -22,6 +22,8 @@ export const TenantMenu = () => {
 
   const currentTenant = tenants?.find((curr) => curr.id === tenantId);
 
+  const isSingleTenant = tenants?.length === 1 && currentTenant;
+
   const onTenantSwitch = (tenant: UserTenant) => () => {
     const workroomRedirect = getTenantWorkoomRedirect({
       tenant,
@@ -39,6 +41,15 @@ export const TenantMenu = () => {
   ) : (
     <IconSema4 size={36} />
   );
+
+  if (isSingleTenant) {
+    return (
+      <Box display="flex" alignItems="center" pl="$6" pb="$4">
+        {applicationIcon}
+        <Box pl="$8">{currentTenant.name}</Box>
+      </Box>
+    );
+  }
 
   return (
     <Box>
