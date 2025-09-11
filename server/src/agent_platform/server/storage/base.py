@@ -775,7 +775,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return ScenarioRun.model_validate(run_dict)
 
-    async def list_scenario_runs(self, limit: int | None) -> list[ScenarioRun]:
+    async def list_scenario_runs(self, scenario_id: str, limit: int | None) -> list[ScenarioRun]:
         """List all scenario runs."""
         scenario_runs = self._get_table("scenario_runs")
 
@@ -789,6 +789,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 scenario_runs.c.created_at,
             )
             .select_from(scenario_runs)
+            .where(scenario_runs.c.scenario_id == scenario_id)
             .order_by(scenario_runs.c.created_at.desc())
             .limit(limit)
         )
@@ -853,71 +854,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return Trial.model_validate(dict(row)) if row is not None else None
 
-    async def mark_trial_as_completed(
-        self,
-        trial: Trial,
-    ):
-        trials = self._get_table("trials")
-        stmt = (
-            sa.update(trials)
-            .where(trials.c.trial_id == trial.trial_id)
-            .values(status=TrialStatus.SUCCEEDED, updated_at=datetime.now(UTC))
-            .returning(
-                trials.c.trial_id,
-                trials.c.scenario_run_id,
-                trials.c.scenario_id,
-                trials.c.index_in_run,
-                trials.c.messages,
-                trials.c.status,
-                trials.c.created_at,
-                trials.c.updated_at,
-                trials.c.error_message,
-            )
-        )
-
-        async with self.engine.begin() as conn:
-            result = await conn.execute(stmt)
-            row = result.mappings().fetchone()
-            if row is None:
-                raise RuntimeError(f"Trial {trial.trial_id} not found")
-
-            # Convert to dict and validate
-            trial_dict = dict(row)
-            return Trial.model_validate(trial_dict)
-
-    async def mark_trial_as_failed(self, trial: Trial, error_message: str):
-        trials = self._get_table("trials")
-        stmt = (
-            sa.update(trials)
-            .where(trials.c.trial_id == trial.trial_id)
-            .values(
-                status=TrialStatus.FAILED,
-                error_message=error_message,
-                updated_at=datetime.now(UTC),
-            )
-            .returning(
-                trials.c.trial_id,
-                trials.c.scenario_run_id,
-                trials.c.scenario_id,
-                trials.c.index_in_run,
-                trials.c.messages,
-                trials.c.status,
-                trials.c.created_at,
-                trials.c.updated_at,
-                trials.c.error_message,
-            )
-        )
-
-        async with self.engine.begin() as conn:
-            result = await conn.execute(stmt)
-            row = result.mappings().fetchone()
-            if row is None:
-                raise RuntimeError(f"Trial {trial.trial_id} not found")
-
-            # Convert to dict and validate
-            trial_dict = dict(row)
-            return Trial.model_validate(trial_dict)
-
     async def add_messages_to_trial(self, trial_id: str, messages: list[ThreadMessage]):
         trials = self._get_table("trials")
 
@@ -957,6 +893,179 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self.engine.begin() as conn:
             await conn.execute(insert_stmt)
+
+    async def get_pending_trial_ids(self, limit: int = 10) -> list[str]:
+        """Atomically claim a batch of PENDING trials and mark them EXECUTING."""
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+        pending_trial_ids = (
+            sa.select(trials.c.trial_id)
+            .where(trials.c.status == TrialStatus.PENDING)
+            .order_by(trials.c.created_at.asc())
+            .limit(limit)
+            .subquery()
+        )
+        # TODO I am not sure if the update is atomic
+        claim_stmt = (
+            sa.update(trials)
+            .where(
+                sa.and_(
+                    trials.c.trial_id.in_(sa.select(pending_trial_ids.c.trial_id)),
+                    trials.c.status == TrialStatus.PENDING,
+                )
+            )
+            .values(
+                status=TrialStatus.EXECUTING,
+                updated_at=now,
+                status_updated_at=now,
+            )
+            .returning(
+                trials.c.trial_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(claim_stmt)
+            rows = result.mappings().fetchall()
+
+        return [row["trial_id"] for row in rows]
+
+    async def get_trials_by_ids(self, trials_ids: list[str]) -> list[Trial]:
+        """Retrieve multiple trials given their IDs."""
+        trials = self._get_table("trials")
+        get_trials_by_ids = sa.select(
+            trials.c.trial_id,
+            trials.c.scenario_run_id,
+            trials.c.scenario_id,
+            trials.c.index_in_run,
+            trials.c.messages,
+            trials.c.status,
+            trials.c.created_at,
+            trials.c.updated_at,
+            trials.c.error_message,
+        ).where(trials.c.trial_id.in_(trials_ids))
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(get_trials_by_ids)
+            rows = result.mappings().fetchall()
+
+        return [Trial.model_validate(dict(row)) for row in rows]
+
+    async def get_trial(self, trial_id: str) -> Trial | None:
+        trials = self._get_table("trials")
+        get_trials_by_ids = sa.select(
+            trials.c.trial_id,
+            trials.c.scenario_run_id,
+            trials.c.scenario_id,
+            trials.c.index_in_run,
+            trials.c.messages,
+            trials.c.status,
+            trials.c.created_at,
+            trials.c.updated_at,
+            trials.c.error_message,
+        ).where(trials.c.trial_id == trial_id)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(get_trials_by_ids)
+            row = result.mappings().fetchone()
+
+            if not row:
+                return None
+
+        return Trial.model_validate(dict(row))
+
+    async def mark_trials_as_failed(self, trial_ids: list[str]):
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+
+        update_trials_stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id.in_(trial_ids))
+            .values(
+                status=TrialStatus.ERROR,
+                updated_at=now,
+                status_updated_at=now,
+            )
+            .returning(
+                trials.c.trial_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(update_trials_stmt)
+            rows = result.mappings().fetchall()
+
+        return [row["trial_id"] for row in rows]
+
+    async def mark_trial_as_failed(self, trial_id: str, error: str):
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+
+        update_trials_stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial_id)
+            .values(
+                status=TrialStatus.ERROR,
+                error_message=error,
+                updated_at=now,
+                status_updated_at=now,
+            )
+            .returning(
+                trials.c.trial_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(update_trials_stmt)
+            row = result.mappings().fetchone()
+
+        return row["trial_id"] if row is not None else None
+
+    async def complete_trial(self, trial_id: str, user_id: str):
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+
+        update_trials_stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial_id)
+            .values(
+                status=TrialStatus.COMPLETED.value,
+                updated_at=now,
+                status_updated_at=now,
+            )
+            .returning(
+                trials.c.trial_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(update_trials_stmt)
+            row = result.mappings().fetchone()
+
+        return row["trial_id"] if row is not None else None
+
+    async def update_trial_status(self, trial_id: str, user_id: str, status: TrialStatus):
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+
+        update_trials_stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial_id)
+            .values(
+                status=status,
+                updated_at=now,
+                status_updated_at=now,
+            )
+            .returning(
+                trials.c.trial_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(update_trials_stmt)
+            row = result.mappings().fetchone()
+
+        return row["trial_id"] if row is not None else None
 
     # -------------------------------------------------------------------------
     # Document Intelligence Data Connections getter and setter

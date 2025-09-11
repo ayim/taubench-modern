@@ -1857,23 +1857,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}/execute/{trial_index}/sync': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Execute Scenario Run Trial */
-    post: operations['execute_scenario_run_trial_evals_scenarios__scenario_id__runs__scenario_run_id__execute__trial_index__sync_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v2/health': {
     parameters: {
       query?: never;
@@ -5313,7 +5296,7 @@ export interface components {
       messages: components['schemas']['ThreadMessage'][];
       /** Thread Id */
       thread_id?: string | null;
-      /** @default pending */
+      /** @default PENDING */
       status: components['schemas']['TrialStatus'];
       /**
        * Created At
@@ -5342,7 +5325,7 @@ export interface components {
      * TrialStatus
      * @enum {string}
      */
-    TrialStatus: 'pending' | 'running' | 'succeeded' | 'failed';
+    TrialStatus: 'PENDING' | 'EXECUTING' | 'COMPLETED' | 'ERROR' | 'CANCELED';
     /** UpdateDataModelRequest */
     UpdateDataModelRequest: {
       data_model: components['schemas']['PartialDataModelPayload'];
@@ -9878,39 +9861,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ScenarioRun'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  execute_scenario_run_trial_evals_scenarios__scenario_id__runs__scenario_run_id__execute__trial_index__sync_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        scenario_id: string;
-        scenario_run_id: string;
-        trial_index: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Trial'];
         };
       };
       /** @description Validation Error */

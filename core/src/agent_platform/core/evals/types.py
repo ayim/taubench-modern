@@ -73,10 +73,11 @@ class Scenario:
 
 
 class TrialStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
+    PENDING = "PENDING"
+    EXECUTING = "EXECUTING"
+    COMPLETED = "COMPLETED"
+    ERROR = "ERROR"
+    CANCELED = "CANCELED"
 
 
 @dataclass(frozen=True)
@@ -101,6 +102,25 @@ class Trial:
 
     # error if status is failed
     error_message: str | None = None
+
+    def __repr__(self) -> str:
+        base = (
+            f"<Trial id={self.trial_id[:8]}, "
+            f"status={self.status}, "
+            f"index_in_run={self.index_in_run}, "
+            f"scenario_id={self.scenario_id[:8]}, "
+            f"scenario_run_id={self.scenario_run_id[:8]}"
+        )
+        if self.status == TrialStatus.ERROR and self.error_message:
+            base += f", error={self.error_message!r}"
+        base += ">"
+        return base
+
+    def get_unique_identifier(self):
+        return str(self.trial_id)
+
+    def get_status(self):
+        return str(self.status)
 
     @classmethod
     def model_validate(cls, data: dict) -> "Trial":

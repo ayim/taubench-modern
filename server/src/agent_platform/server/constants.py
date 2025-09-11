@@ -296,3 +296,4 @@ class SystemPaths(Configuration):
 
 
 WORK_ITEMS_SYSTEM_USER_SUB = "tenant:work-items:system:system_user"
+EVALS_SYSTEM_USER_SUB = "tenant:evals:system:system_user"

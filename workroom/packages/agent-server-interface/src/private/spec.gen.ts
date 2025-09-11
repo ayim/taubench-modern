@@ -5857,66 +5857,6 @@ export const spec = {
         },
       },
     },
-    '/api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}/execute/{trial_index}/sync':
-      {
-        post: {
-          tags: ['evals'],
-          summary: 'Execute Scenario Run Trial',
-          operationId:
-            'execute_scenario_run_trial_evals_scenarios__scenario_id__runs__scenario_run_id__execute__trial_index__sync_post',
-          parameters: [
-            {
-              name: 'scenario_id',
-              in: 'path',
-              required: true,
-              schema: {
-                type: 'string',
-                title: 'Scenario Id',
-              },
-            },
-            {
-              name: 'scenario_run_id',
-              in: 'path',
-              required: true,
-              schema: {
-                type: 'string',
-                title: 'Scenario Run Id',
-              },
-            },
-            {
-              name: 'trial_index',
-              in: 'path',
-              required: true,
-              schema: {
-                type: 'integer',
-                title: 'Trial Index',
-              },
-            },
-          ],
-          responses: {
-            '200': {
-              description: 'Successful Response',
-              content: {
-                'application/json': {
-                  schema: {
-                    $ref: '#/components/schemas/Trial',
-                  },
-                },
-              },
-            },
-            '422': {
-              description: 'Validation Error',
-              content: {
-                'application/json': {
-                  schema: {
-                    $ref: '#/components/schemas/ErrorEnvelope',
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     '/api/v2/health': {
       get: {
         summary: 'Health',
@@ -12234,7 +12174,7 @@ export const spec = {
           },
           status: {
             $ref: '#/components/schemas/TrialStatus',
-            default: 'pending',
+            default: 'PENDING',
           },
           created_at: {
             type: 'string',
@@ -12280,7 +12220,7 @@ export const spec = {
       },
       TrialStatus: {
         type: 'string',
-        enum: ['pending', 'running', 'succeeded', 'failed'],
+        enum: ['PENDING', 'EXECUTING', 'COMPLETED', 'ERROR', 'CANCELED'],
         title: 'TrialStatus',
       },
       UpdateDataModelRequest: {

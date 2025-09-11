@@ -6,10 +6,14 @@ from fastapi import FastAPI
 from starlette.applications import Starlette
 
 from agent_platform.core.configurations.quotas import QuotasService
+from agent_platform.core.evals.types import Trial
 from agent_platform.core.platforms.llms_metadata_loader import llms_metadata_loader
 from agent_platform.core.responses.streaming.stream_pipe import ResponseStreamPipe
 from agent_platform.server.constants import SystemConfig, SystemPaths
 from agent_platform.server.data_retention_policy import start_data_retention_worker
+from agent_platform.server.evals.background_worker import QueueSettings, WorkQueue
+from agent_platform.server.evals.repository import ScenarioRunTrialRepository
+from agent_platform.server.evals.run_scenario import run_evaluations, run_scenario
 
 # Import the data migration function
 from agent_platform.server.scripts.migration.auto_migrate import run_automatic_migration
@@ -38,6 +42,37 @@ def _start_work_items_background_worker() -> tuple[asyncio.Task, asyncio.Event]:
         logger.info("work-items shut down")
 
     t = asyncio.create_task(worker_loop(shutdown_event, run_agent))
+    t.add_done_callback(_callback)
+
+    return t, shutdown_event
+
+
+def _start_evals_background_worker() -> tuple[asyncio.Task, asyncio.Event]:
+    logger.info("Starting evals background worker")
+    shutdown_event = asyncio.Event()
+
+    queue = WorkQueue[Trial](
+        repository=ScenarioRunTrialRepository(),
+        runner=run_scenario,
+        validator=run_evaluations,
+        settings=QueueSettings(
+            worker_interval=30,
+            batch_timeout=14400,
+            max_parallel_in_process=10,
+        ),
+    )
+
+    def _callback(future: asyncio.Task):
+        try:
+            if exc := future.exception():
+                logger.error(f"Background worker error: {exc}", exc_info=exc)
+
+        except asyncio.CancelledError:
+            pass
+
+        logger.info("evals shut down")
+
+    t = asyncio.create_task(queue.worker_loop(shutdown_event))
     t.add_done_callback(_callback)
 
     return t, shutdown_event
@@ -92,6 +127,11 @@ async def lifespan(app: FastAPI):
         work_items_task, work_items_shutdown_event = _start_work_items_background_worker()
     else:
         logger.info("Work-items feature disabled; background worker will not start")
+
+    if SystemConfig.enable_evals:
+        evals_task, evals_shutdown_event = _start_evals_background_worker()
+    else:
+        logger.info("Evals feature disabled; background worker will not start")
 
     data_retention_task = start_data_retention_worker()
 

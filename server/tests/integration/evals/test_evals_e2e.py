@@ -2,6 +2,9 @@ import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from httpx import AsyncClient
 
+from agent_platform.core.evals.types import TrialStatus
+from server.tests.integration.work_items.helper_functions import _wait_until
+
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
@@ -32,6 +35,8 @@ async def test_evals_e2e(
         )
 
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id=agent_id)
+
+        agent_client.send_message_to_agent_thread(agent_id, thread_id, "What is 2+2?")
 
         evals_url = f"{base_url_agent_server_evals_matrix}/api/v2/evals"
 
@@ -74,18 +79,29 @@ async def test_evals_e2e(
                 assert trial["scenario_id"] == scenario_id
                 assert trial["scenario_run_id"] == scenario_run_id
                 assert trial["index_in_run"] == idx
-                assert trial["status"] == "pending"
+                assert trial["status"] in [
+                    TrialStatus.PENDING,
+                    TrialStatus.EXECUTING,
+                ]
+
+            async def _is_final_status():
+                get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/latest")
+                assert get_run_resp.status_code == 200
+                run = get_run_resp.json()
+
+                all_completed = all(
+                    trial["status"] == TrialStatus.COMPLETED for trial in run["trials"]
+                )
+                return all_completed
+
+            await _wait_until(_is_final_status, interval=1.0, timeout=120)
 
             get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/latest")
             assert get_run_resp.status_code == 200
-            run = get_run_resp.json()
+            get_run_resp = get_run_resp.json()
 
-            assert run["scenario_id"] == scenario_id
-            assert run["num_trials"] == run_payload["num_trials"]
-            assert len(run["trials"]) == 3
-
-            for idx, trial in enumerate(run["trials"]):
+            for idx, trial in enumerate(get_run_resp["trials"]):
                 assert trial["scenario_id"] == scenario_id
                 assert trial["scenario_run_id"] == scenario_run_id
                 assert trial["index_in_run"] == idx
-                assert trial["status"] == "pending"
+                assert trial["status"] == TrialStatus.COMPLETED

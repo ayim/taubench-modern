@@ -56,11 +56,6 @@ function getRouteMap(): {
     ],
     'post /api/v2/evals/scenarios': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'post /api/v2/evals/scenarios/{scenario_id}/runs': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
-    'post /api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}/execute/{trial_index}/sync': [
-      ALLOWED,
-      SIGN_WITH_TENANT,
-      agentReadPermissions,
-    ],
 
     // Allowed routes with user-level signing
     'delete /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
