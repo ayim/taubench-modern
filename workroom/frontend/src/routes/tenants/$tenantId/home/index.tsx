@@ -1,15 +1,16 @@
 import { useState, useMemo, useCallback } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Box, Button, Filter, FilterGroup, Grid, ToggleInputButton, Typography } from '@sema4ai/components';
+import { Box, Button, Filter, FilterGroup, Grid, Menu, ToggleInputButton, Typography } from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
 import { IconAgents } from '@sema4ai/icons/logos';
-import { IconSearch } from '@sema4ai/icons';
+import { IconSearch, IconDotsHorizontal } from '@sema4ai/icons';
 import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
 import { Agent } from '@sema4ai/agent-server-interface';
 
 import { getListAgentsQueryOptions } from '~/queries/agents';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
+import { DeleteAgentMenuItem } from './components/DeleteAgentMenuItem';
 
 export const Route = createFileRoute('/tenants/$tenantId/home/')({
   loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) =>
@@ -106,13 +107,13 @@ function HomePage() {
       <Grid columns={[1, 1, 2, 3]} gap="$16" mt="$20" mb="$32">
         {filteredAgents.map((agent) => (
           <Link
+            key={agent.id}
             to={
               isConversationalAgent(agent)
                 ? '/tenants/$tenantId/conversational/$agentId'
                 : '/tenants/$tenantId/worker/$agentId'
             }
             params={{ tenantId, agentId: agent.id }}
-            key={agent.id}
           >
             <AgentCard
               variant="thumbnail"
@@ -120,7 +121,17 @@ function HomePage() {
               version={agent.version}
               title={agent.name}
               description={agent.description}
-            />
+            >
+              <AgentCard.Footer>
+                <Box display="flex" justifyContent="flex-end" gap="$4">
+                  <Menu
+                    trigger={<Button size="small" icon={IconDotsHorizontal} aria-label="More" round variant="ghost" />}
+                  >
+                    <DeleteAgentMenuItem agent={agent} tenantId={tenantId} />
+                  </Menu>
+                </Box>
+              </AgentCard.Footer>
+            </AgentCard>
           </Link>
         ))}
       </Grid>
