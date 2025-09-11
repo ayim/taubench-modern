@@ -1,4 +1,7 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouteContext } from '@tanstack/react-router';
+
 import { QueryProps } from './shared';
 
 const getListWorkItemsQueryKey = ({ tenantId, agentId }: { tenantId: string; agentId?: string }) => {
@@ -83,3 +86,19 @@ export const getWorkItemQueryOptions = ({
       return response.data;
     },
   });
+
+export const useWorkItemQuery = ({ tenantId, workItemId }: { tenantId: string; workItemId: string }) => {
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  const [refetchInterval, setRefetchInterval] = useState<number | undefined>(undefined);
+
+  const query = useQuery({
+    ...getWorkItemQueryOptions({ tenantId, workItemId, agentAPIClient }),
+    refetchInterval,
+  });
+
+  useEffect(() => {
+    setRefetchInterval(!query.data?.thread_id ? 3000 : undefined);
+  }, [query.data]);
+
+  return query;
+};

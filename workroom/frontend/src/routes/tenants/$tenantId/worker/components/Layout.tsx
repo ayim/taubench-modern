@@ -1,10 +1,10 @@
-import { css, styled } from '@sema4ai/theme';
+import { styled } from '@sema4ai/theme';
 
 export const Layout = styled.section<{ workItemListOnly?: boolean }>`
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr auto;
   grid-template-rows: auto 1fr;
-  grid-template-areas: 'header header' 'aside section';
+  grid-template-areas: 'header header' 'section aside';
 
   overflow: hidden;
   max-height: 100vh;
@@ -13,21 +13,11 @@ export const Layout = styled.section<{ workItemListOnly?: boolean }>`
     grid-area: header;
   }
 
-  > aside {
-    grid-area: aside;
-    overflow: hidden;
-  }
-
   > section {
     grid-area: section;
   }
 
-  ${({ workItemListOnly }) =>
-    workItemListOnly &&
-    css`
-      grid-template-areas: 'header header' 'aside aside';
-      > aside {
-        width: 100%;
-      }
-    `}
+  > aside {
+    grid-area: aside;
+  }
 `;

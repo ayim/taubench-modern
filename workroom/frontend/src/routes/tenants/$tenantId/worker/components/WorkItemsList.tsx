@@ -1,8 +1,7 @@
 import { Box } from '@sema4ai/components';
-import { SidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC } from 'react';
-import WorkItemsTable from '../../../workItems/components/WorkItemsTable';
+import WorkItemsTable from '../../workItems/components/WorkItemsTable';
 
 const Container = styled(Box)`
   flex-grow: 1;
@@ -11,10 +10,10 @@ const Container = styled(Box)`
 
 export const WorkItemsList: FC = () => {
   return (
-    <SidebarMenu name="work-items-list" title="Work Items List" maxWidth={700}>
-      <Container>
+    <Container as="section">
+      <Box minWidth={860} height="100%">
         <WorkItemsTable />
-      </Container>
-    </SidebarMenu>
+      </Box>
+    </Container>
   );
 };

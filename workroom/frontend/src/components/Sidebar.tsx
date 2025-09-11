@@ -3,6 +3,7 @@ import { styled } from '@sema4ai/theme';
 import { ResizeHandle, useLocalStorage, useResizeHandle } from '@sema4ai/components';
 
 type Props = {
+  name: string;
   children: ReactNode;
 };
 
@@ -15,9 +16,9 @@ const Container = styled.div`
 `;
 
 // TODO: The behaviour and layout of the sidebar will change once final design is there
-export const Sidebar: FC<Props> = ({ children }) => {
+export const Sidebar: FC<Props> = ({ children, name }) => {
   const { storageValue: initialWidth, setStorageValue: setInitialWidth } = useLocalStorage<number>({
-    key: 'chat-thread-sidebar-width',
+    key: `sidebar-${name}-width`,
     defaultValue: 240,
   });
 

@@ -86,7 +86,7 @@ const TableActions: FC<{
   onDownloadRaw?: () => void;
 }> = ({ selectionCount, onResetSelection, onReprocess, onDownloadPdf, onDownloadRaw }) => {
   return (
-    <Box display="flex" gap="$4" alignItems="center">
+    <Box display="flex" gap="$4" alignItems="center" px="$20" py="$8">
       <Button.Group collapse maxWidth="max-content">
         {(onDownloadPdf || onDownloadRaw) && (
           <Menu
@@ -176,8 +176,8 @@ const WorkItemsTable: FC<Props> = () => {
   const getWorkItemId = useCallback((row: (typeof workItems)[number]) => row.work_item_id, []);
 
   return (
-    <Box flexGrow={1} display="flex" flexDirection="column" gap={4} overflow="hidden" height="100%">
-      <Box>
+    <Box flexGrow={1} display="flex" flexDirection="column" gap={4} overflow="hidden" height="100%" pt="$20">
+      <Box px="$16">
         <TableFilter />
       </Box>
       {selectedItems.length > 0 && (
