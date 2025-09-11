@@ -1,16 +1,15 @@
+import { Box, useSnackbar } from '@sema4ai/components';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Outlet, useNavigate, useParams, useRouteContext, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, useSnackbar } from '@sema4ai/components';
 import { AgentDeploymentForm } from './deploy/components/AgentDeploymentForm';
 import { AgentDeploymentFormSchema } from './deploy/components/context';
 
-import { AgentUploadForm } from './deploy/components/AgentUploadForm';
-import type { AgentPackageResponse } from './deploy/components/AgentUploadForm';
-import type { components, operations } from '@sema4ai/agent-server-interface';
 import { mcpHeadersFromRecord } from '~/lib/utils';
-import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
 import { getListAgentsQueryKey, useListAgentsQuery } from '~/queries/agents';
+import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
+import type { AgentPackageResponse } from './deploy/components/AgentUploadForm';
+import { AgentUploadForm } from './deploy/components/AgentUploadForm';
 
 export const Route = createFileRoute('/tenants/$tenantId/agents/deploy')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) => {
@@ -20,158 +19,32 @@ export const Route = createFileRoute('/tenants/$tenantId/agents/deploy')({
   component: CreateAgentIndex,
 });
 
-type AgentPackagePayload = components['schemas']['AgentPackagePayload'];
+function buildAgentPackagePayload(form: AgentDeploymentFormSchema) {
+  const mcpServerSettings = form.mcpServerSettings ?? [];
 
-async function buildAgentPackagePayload(
-  form: AgentDeploymentFormSchema,
-  options: { packageBase64?: string; packageUrl?: string; includeMcpServers?: boolean } = {},
-  deps?: {
-    fetchPlatformById: (
-      platformId: string,
-    ) => Promise<{ kind?: string; name?: string; models?: Record<string, string[]> } | undefined>;
-  },
-): Promise<AgentPackagePayload> {
-  const { packageBase64, packageUrl } = options;
-
-  const mcpServers = (form.mcpServerSettings ?? [])
-    .filter((s) => !s.mcpServerId)
-    .map((s) => ({
-      name: s.name,
-      type: s.type ?? 'generic_mcp',
-      transport: s.transport,
-      url: s.url ?? null,
-      headers: mcpHeadersFromRecord(s.headers ?? undefined),
-      force_serial_tool_calls: s.force_serial_tool_calls,
+  // Separate inline vs global servers based on presence of mcpServerId
+  const inlineMcpServers = mcpServerSettings
+    .filter((server) => !server.mcpServerId)
+    .map((server) => ({
+      name: server.name,
+      type: server.type ?? 'generic_mcp',
+      transport: server.transport,
+      url: server.url ?? null,
+      headers: mcpHeadersFromRecord(server.headers),
+      force_serial_tool_calls: server.force_serial_tool_calls,
     }));
 
-  const mcpServerIds = Array.isArray(form.mcpServerIds) ? form.mcpServerIds : [];
-
-  const buildModel = async (): Promise<Record<string, unknown> | undefined> => {
-    const raw = form.llmId;
-    const toTitle = (s: string) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s);
-
-    // ZIP-suggested model
-    if (typeof raw === 'string' && raw.startsWith('package:')) {
-      const [, providerRaw, modelNameRaw] = raw.split(':');
-      const providerId = (providerRaw || '').toLowerCase();
-      const modelName = modelNameRaw || '';
-      // Legacy backend expects Title-cased provider names for conversion
-      const provider = (() => {
-        if (providerId === 'openai') return 'OpenAI';
-        if (providerId === 'azure') return 'Azure';
-        if (providerId === 'anthropic') return 'Anthropic';
-        if (providerId === 'bedrock' || providerId === 'amazon') return 'Amazon';
-        if (providerId === 'snowflake' || providerId === 'cortex') return 'Snowflake Cortex AI';
-        return toTitle(providerId);
-      })();
-
-      const config: Record<string, unknown> = { temperature: 1 };
-      if (form.apiKey) {
-        const keyField = (() => {
-          if (providerId === 'openai') return 'openai_api_key';
-          if (providerId === 'google' || providerId === 'gemini') return 'google_api_key';
-          if (providerId === 'anthropic') return 'anthropic_api_key';
-          if (providerId === 'groq') return 'groq_api_key';
-          return 'api_key';
-        })();
-        config[keyField] = form.apiKey;
-      }
-      return { provider, name: modelName, config } as Record<string, unknown>;
-    }
-
-    // Saved platform selected: include provider + a representative model name
-    if (typeof raw === 'string' && deps?.fetchPlatformById) {
-      const plat = await deps.fetchPlatformById(raw);
-      if (!plat) return undefined;
-      const providerId = (plat.kind || '').toLowerCase();
-      // Legacy backend expects Title-cased provider names for conversion
-      const provider = (() => {
-        if (providerId === 'openai') return 'OpenAI';
-        if (providerId === 'azure') return 'Azure';
-        if (providerId === 'anthropic') return 'Anthropic';
-        if (providerId === 'bedrock' || providerId === 'amazon') return 'Amazon';
-        if (providerId === 'snowflake' || providerId === 'cortex') return 'Snowflake Cortex AI';
-        return toTitle(providerId);
-      })();
-      const firstModel = (plat.models?.[providerId] || [])[0] || '';
-      if (!provider || !firstModel) return undefined;
-
-      const config: Record<string, unknown> = { temperature: 1 };
-      const platAny = plat as Record<string, unknown>;
-
-      const getFromPlat = (key: string): unknown => {
-        const normalizeSecretish = (val: unknown): string | undefined => {
-          if (typeof val === 'string') return val;
-          if (val && typeof val === 'object' && 'value' in (val as Record<string, unknown>)) {
-            const inner = (val as { value?: unknown }).value;
-            if (typeof inner === 'string') return inner;
-          }
-          return undefined;
-        };
-
-        const directRaw = platAny[key];
-        const direct = normalizeSecretish(directRaw);
-        if (direct && direct !== 'UNSET' && direct !== '**********') return direct;
-
-        const creds = platAny.credentials as Record<string, unknown> | undefined;
-        if (creds) {
-          const nestedRaw = creds[key];
-          const nested = normalizeSecretish(nestedRaw);
-          if (nested && nested !== 'UNSET' && nested !== '**********') return nested;
-        }
-
-        return undefined;
-      };
-
-      // Primary API key per provider
-      const credentialKey = (() => {
-        if (providerId === 'openai') return 'openai_api_key';
-        if (providerId === 'google' || providerId === 'gemini') return 'google_api_key';
-        if (providerId === 'anthropic' || providerId === 'claude') return 'anthropic_api_key';
-        if (providerId === 'groq') return 'groq_api_key';
-        if (providerId === 'azure') return 'azure_api_key';
-        if (providerId === 'bedrock' || providerId === 'amazon') return 'aws_secret_access_key';
-        return 'api_key';
-      })();
-      const primary = getFromPlat(credentialKey);
-      if (typeof primary === 'string') {
-        config[credentialKey] = primary;
-      }
-
-      if (providerId === 'azure') {
-        const azureKeys = ['azure_endpoint_url', 'azure_api_version', 'azure_deployment_name'] as const;
-        for (const k of azureKeys) {
-          const v = getFromPlat(k);
-          if (typeof v === 'string') config[k] = v;
-        }
-      }
-      if (providerId === 'bedrock' || providerId === 'amazon') {
-        const bedrockKeys = ['aws_access_key_id', 'aws_secret_access_key', 'region_name'] as const;
-        for (const k of bedrockKeys) {
-          const v = getFromPlat(k);
-          if (typeof v === 'string') config[k] = v;
-        }
-      }
-
-      return { provider, name: firstModel, config } as Record<string, unknown>;
-    }
-
-    return undefined;
-  };
-
-  const modelForPayload = await buildModel();
+  const configuredMCPServerIds = mcpServerSettings.map((server) => server.mcpServerId).filter(Boolean);
 
   const payload = {
     name: form.name,
-    ...(form.description ? { description: form.description } : {}),
+    description: form.description,
     public: true,
-    ...(packageUrl ? { agent_package_url: packageUrl } : {}),
-    ...(packageBase64 ? { agent_package_base64: packageBase64 } : {}),
-    ...(modelForPayload ? { model: modelForPayload } : {}),
+    platform_params_ids: [form.llmId],
     action_servers: [],
-    ...(options.includeMcpServers && mcpServers.length ? { mcp_servers: mcpServers } : {}),
-    ...(mcpServerIds.length ? { mcp_server_ids: mcpServerIds } : {}),
-  } satisfies AgentPackagePayload;
+    mcp_servers: inlineMcpServers,
+    mcp_server_ids: configuredMCPServerIds,
+  };
 
   return payload;
 }
@@ -186,75 +59,43 @@ function CreateAgentIndex() {
   const navigate = useNavigate();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const isDryRun = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dryRun') === '1';
   const { addSnackbar } = useSnackbar();
+
   const deployMutation = useMutation({
     mutationFn: async (payload: AgentDeploymentFormSchema) => {
       if (!uploadedAgentPackage) {
         throw new Error('Provide a package file to upload');
       }
 
-      const jsonPayload = await buildAgentPackagePayload(
-        payload,
-        {
-          packageBase64: undefined,
-          packageUrl: undefined,
-          includeMcpServers: true,
-        },
-        {
-          fetchPlatformById: async (platformId: string) => {
-            try {
-              const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/{platform_id}', {
-                params: { path: { platform_id: platformId } },
-                silent: true,
-              });
-
-              if (!response.success) {
-                throw new Error(response?.message || 'Failed to fetch platform');
-              }
-
-              return response.data as { kind?: string; name?: string; models?: Record<string, string[]> };
-            } catch {
-              return undefined;
-            }
-          },
-        },
-      );
+      const jsonPayload = buildAgentPackagePayload(payload);
 
       const formData = new FormData();
       formData.append('package_zip_file', uploadedAgentPackage.file, uploadedAgentPackage.file.name);
-      const serialize = (value: unknown): string => {
-        if (value === null) return '';
-        if (typeof value === 'string') return value;
-        if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-        return JSON.stringify(value);
-      };
-      for (const [key, value] of Object.entries(jsonPayload)) {
-        if (value === undefined) continue;
-        formData.append(key, serialize(value));
+
+      for (const [fieldName, fieldValue] of Object.entries(jsonPayload)) {
+        formData.append(fieldName, JSON.stringify(fieldValue));
       }
 
-      const response = (await agentAPIClient.deployAgentFromPackageMultipart(
-        tenantId,
-        formData,
-      )) as operations['deploy_agent_from_package_package_deploy_agent_post']['responses'][200]['content']['application/json'];
+      const response = await agentAPIClient.deployAgentFromPackageMultipart(tenantId, formData);
+
       return response;
     },
-    onSuccess: async (response) => {
+    onSuccess: async (deployedAgent) => {
       addSnackbar({
         message: 'Agent deployed successfully',
         variant: 'success',
       });
-      const agentId =
-        (response as { agent_id?: string | null; id?: string | null }).agent_id ??
-        (response as { id?: string | null }).id;
+
+      const agentId = deployedAgent.agent_id;
+
       await queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey(tenantId) });
       await router.invalidate();
-      if (agentId) navigate({ to: '/tenants/$tenantId/conversational/$agentId', params: { tenantId, agentId } });
+
+      navigate({ to: '/tenants/$tenantId/conversational/$agentId', params: { tenantId, agentId } });
     },
-    onError: (err: unknown) => {
+    onError: (error: unknown) => {
       addSnackbar({
-        message: err instanceof Error ? err.message : 'Failed to deploy agent',
+        message: error instanceof Error ? error.message : 'Failed to deploy agent',
         variant: 'danger',
       });
     },
@@ -269,12 +110,6 @@ function CreateAgentIndex() {
       addSnackbar({
         message: 'Provide a package file to upload',
         variant: 'danger',
-      });
-      return;
-    }
-    if (isDryRun) {
-      addSnackbar({
-        message: 'Dry run: payload logged. Skipping deploy.',
       });
       return;
     }

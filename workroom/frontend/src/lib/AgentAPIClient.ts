@@ -525,7 +525,11 @@ export class AgentAPIClient {
   public async deployAgentFromPackageMultipart(
     tenantId: string,
     formData: FormData,
-  ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
+  ): Promise<
+    agentServerPaths['/api/v2/package/deploy/agent']['post']['responses']['200']['content']['application/json'] & {
+      agent_id: string;
+    }
+  > {
     const response = await this.agentFetch(tenantId, 'post', '/api/v2/package/deploy/agent', {
       body: formData as never,
     });
@@ -534,7 +538,15 @@ export class AgentAPIClient {
       throw new RequestError(500, response.message);
     }
 
-    return response.data;
+    if (typeof response.data.agent_id !== 'string') {
+      // TODO: should fix the types
+      throw new Error('Unexpected: agent ID should always be defined when deploying an agent');
+    }
+
+    return {
+      ...response.data,
+      agent_id: response.data.agent_id,
+    };
   }
 
   public async startStream({
