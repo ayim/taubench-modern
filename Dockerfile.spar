@@ -40,16 +40,10 @@ COPY workroom/frontend frontend
 COPY workroom/backend backend
 COPY workroom/spar-ui spar-ui
 
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=secret,id=npmrc,dst=/app/.npmrc \
-    npm ci --include=dev
-
-RUN --mount=type=cache,target=/app/node_modules/.vite \
-    npm run build
-
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=secret,id=npmrc,dst=/app/.npmrc \
-    npm ci --omit=dev  --workspace=backend --include-workspace-root=false && \
+RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc \
+    npm ci --include=dev && \
+    npm run build && \
+    npm ci --omit=dev --workspace=backend --include-workspace-root=false && \
     npm cache clean --force
 
 ARG ACE_SERVICE_VERSION
