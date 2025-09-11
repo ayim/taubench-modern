@@ -200,9 +200,13 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         raise HTTPException(status_code=400, detail="No data frames found in file")
 
     if len(inspected_data_frames) > 1:
+        found_sheet_names = [
+            inspected_data_frame.sheet_name for inspected_data_frame in inspected_data_frames
+        ]
         raise HTTPException(
             status_code=400,
-            detail="Multiple data frames found in file. Please specify sheet_name.",
+            detail="Multiple data frames found in file. Please specify sheet_name. "
+            f"Available sheet names: {found_sheet_names!r}.",
         )
 
     inspected_data_frame = inspected_data_frames[0]
