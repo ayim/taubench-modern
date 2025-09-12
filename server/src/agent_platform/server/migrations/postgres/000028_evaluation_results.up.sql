@@ -1,0 +1,1 @@
+ALTER TABLE v2.trials ADD COLUMN evaluation_results JSONB DEFAULT '[]'::jsonb;

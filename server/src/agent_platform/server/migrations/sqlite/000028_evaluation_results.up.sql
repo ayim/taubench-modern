@@ -1,0 +1,1 @@
+ALTER TABLE v2_trials ADD COLUMN evaluation_results JSON DEFAULT '[]';

@@ -1,0 +1,1 @@
+ALTER TABLE v2_trials DROP COLUMN evaluation_results;

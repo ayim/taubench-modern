@@ -14,6 +14,7 @@ from agent_platform.core.data_server.data_connection import DataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.core.evals.types import (
+    EvaluationResult,
     Scenario,
     ScenarioRun,
     Trial,
@@ -817,6 +818,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.status_updated_at,
             trials.c.status_updated_by,
             trials.c.error_message,
+            trials.c.evaluation_results,
         ).where(trials.c.scenario_run_id == scenario_run_id)
 
         async with self.engine.begin() as conn:
@@ -842,6 +844,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.status_updated_at,
             trials.c.status_updated_by,
             trials.c.error_message,
+            trials.c.evaluation_results,
         ).where(
             sa.and_(
                 trials.c.scenario_run_id == scenario_run_id, trials.c.index_in_run == trial_index
@@ -963,6 +966,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.created_at,
             trials.c.updated_at,
             trials.c.error_message,
+            trials.c.thread_id,
         ).where(trials.c.trial_id == trial_id)
 
         async with self.engine.begin() as conn:
@@ -1055,6 +1059,32 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 status=status,
                 updated_at=now,
                 status_updated_at=now,
+            )
+            .returning(
+                trials.c.trial_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(update_trials_stmt)
+            row = result.mappings().fetchone()
+
+        return row["trial_id"] if row is not None else None
+
+    async def update_trial_evaluation_results(
+        self, trial_id: str, evaluations: list[EvaluationResult]
+    ):
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+
+        evals_data = [e.model_dump() for e in evaluations]
+        print(evals_data)
+        update_trials_stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial_id)
+            .values(
+                evaluation_results=evals_data,
+                updated_at=now,
             )
             .returning(
                 trials.c.trial_id,

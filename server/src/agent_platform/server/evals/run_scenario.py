@@ -1,17 +1,38 @@
 import logging
+from textwrap import dedent
+from typing import cast
 from uuid import uuid4
 
 from fastapi import Request
 
+from agent_platform.architectures.default.thread_conversion import (
+    thread_messages_to_prompt_messages,
+)
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.evals.agent_client import AgentClient
 from agent_platform.core.evals.replay_executor import ReplayToolExecutor
 from agent_platform.core.evals.session import Session
-from agent_platform.core.evals.types import Scenario, Trial, TrialStatus
+from agent_platform.core.evals.types import (
+    ActionCallingResult,
+    EvaluationResult,
+    FlowAdherenceResult,
+    ResponseAccuracyResult,
+    Scenario,
+    Trial,
+    TrialStatus,
+)
+from agent_platform.core.prompts import Prompt
+from agent_platform.core.prompts.content.text import PromptTextContent
+from agent_platform.core.prompts.messages import PromptUserMessage
+from agent_platform.core.responses.content import ResponseTextContent
 from agent_platform.core.runs.run import Run
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.thread import Thread
+from agent_platform.core.user import User
 from agent_platform.server.agent_architectures.arch_manager import AgentArchManager
+from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.api.private_v2.prompt import prompt_generate
+from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
 from agent_platform.server.kernel.kernel import AgentServerKernel
 from agent_platform.server.storage.option import StorageService
@@ -134,7 +155,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915
     current_turn = 1
     while True:
         try:
-            logger.info("[turn={next_turn}] starting a new turn")
+            logger.info(f"[turn={current_turn}] starting a new turn")
 
             if current_user_message_index is None:
                 logger.info("No further user messages. Terminating...")
@@ -188,7 +209,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915
             agent_client = AgentClient(
                 session=Session(runner=runner, kernel=kernel), tool_executor=tool_executor
             )
-            logger.info("[turn={next_turn}] Waiting for agent response")
+            logger.info(f"[turn={current_turn}] Waiting for agent response")
 
             new_agent_messages = await agent_client.run_once()
 
@@ -208,6 +229,178 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915
             return False
 
 
+async def _evaluate_flow_adherence(
+    thread: Thread, scenario: Scenario, user: User, storage: StorageDependency
+) -> EvaluationResult:
+    system_message = dedent("""
+        You are an expert evaluator of LLM conversations. \
+        Your role is to analyse the conversation history between the agent and user. \
+        Provide accurate, objective evaluations.
+    """)
+
+    judge_prompt_msg = dedent("""
+        Please evaluate if the target conversation is CONSISTENT with the. \
+        benchmark according to the given criteria. \
+        CRITERIA: \
+        - Allow natural variation in wording, but not in intent or outcomes.
+        TARGET CONVERSATION: \
+        {target_conversation} \
+        BENCHMARK CONVERSATION: \
+        {benchmark_conversation} \
+        Please respond with a JSON object containing (in this order): \
+        - "explanation": a brief explanation of your thoughts/evaluation \
+        - "score": a number from 0-10 indicating quality (10 = perfect match) \
+        - "passed": true/false indicating if the response meets the criteria (score >= 6) \
+        Only respond with the JSON object, no other text.
+    """)
+
+    mock_request = Request(scope={"type": "http", "method": "POST"})
+    ctx = AgentServerContext.from_request(
+        request=mock_request,
+        user=user,
+        version="2.0.0",
+    )
+    kernel = create_minimal_kernel(ctx)
+    kernel.converters.set_thread_message_conversion_function(
+        thread_messages_to_prompt_messages,
+    )
+
+    async def format_conversation(messages: list[ThreadMessage]):
+        converted_messages = await kernel.converters.thread_messages_to_prompt_messages(messages)
+        temp_prompt = Prompt(messages=cast(list, converted_messages))
+        return temp_prompt.to_pretty_yaml(include=["messages"])
+
+    formatted_target_conversation_thread = await format_conversation(thread.messages)
+    formatted_benchmark_conversation = await format_conversation(scenario.messages)
+
+    judge_prompt_msg = judge_prompt_msg.format(
+        target_conversation=formatted_target_conversation_thread,
+        benchmark_conversation=formatted_benchmark_conversation,
+    )
+
+    prompt = Prompt(
+        system_instruction=system_message,
+        messages=[PromptUserMessage(content=[PromptTextContent(text=judge_prompt_msg)])],
+        temperature=0.0,
+    )
+    response = await prompt_generate(
+        prompt,
+        user=user,
+        storage=storage,
+        request=Request(scope={"type": "http", "method": "POST"}),
+        agent_id=scenario.agent_id,
+    )
+
+    import json
+
+    content = response.content[0]
+    if isinstance(content, ResponseTextContent):
+        evaluation_json = content.text
+        evaluation_data = json.loads(evaluation_json)
+        return FlowAdherenceResult.model_validate(evaluation_data)
+
+    raise RuntimeError("expected ResponseTextContent from LM judge")
+
+
+async def _evaluate_response_accuracy(
+    thread: Thread, scenario: Scenario, user: User, storage: StorageDependency
+) -> EvaluationResult:
+    system_message = dedent("""
+        You are an expert evaluator of LLM conversations. \
+        Your role is to analyse the conversation history between the agent and user. \
+        Provide accurate, objective evaluations.
+    """)
+
+    judge_prompt_msg = dedent("""
+        Please evaluate if the target conversation is accurate based on CRITERIA. \
+        CRITERIA: \
+        {criteria} \
+        CONVERSATION: \
+        {target_conversation} \
+        Please respond with a JSON object containing (in this order): \
+        - "explanation": a brief explanation of your thoughts/evaluation \
+        - "score": a number from 0-10 indicating quality (10 = perfect match) \
+        - "passed": true/false indicating if the response meets the criteria (score >= 6) \
+        Only respond with the JSON object, no other text.
+    """)
+
+    mock_request = Request(scope={"type": "http", "method": "POST"})
+    ctx = AgentServerContext.from_request(
+        request=mock_request,
+        user=user,
+        version="2.0.0",
+    )
+    kernel = create_minimal_kernel(ctx)
+    kernel.converters.set_thread_message_conversion_function(
+        thread_messages_to_prompt_messages,
+    )
+
+    async def format_conversation(messages: list[ThreadMessage]):
+        converted_messages = await kernel.converters.thread_messages_to_prompt_messages(messages)
+        temp_prompt = Prompt(messages=cast(list, converted_messages))
+        return temp_prompt.to_pretty_yaml(include=["messages"])
+
+    formatted_target_conversation_thread = await format_conversation(thread.messages)
+
+    judge_prompt_msg = judge_prompt_msg.format(
+        target_conversation=formatted_target_conversation_thread,
+        criteria=scenario.description,
+    )
+
+    prompt = Prompt(
+        system_instruction=system_message,
+        messages=[PromptUserMessage(content=[PromptTextContent(text=judge_prompt_msg)])],
+        temperature=0.0,
+    )
+    response = await prompt_generate(
+        prompt,
+        user=user,
+        storage=storage,
+        request=Request(scope={"type": "http", "method": "POST"}),
+        agent_id=scenario.agent_id,
+    )
+
+    import json
+
+    content = response.content[0]
+    if isinstance(content, ResponseTextContent):
+        evaluation_json = content.text
+        evaluation_data = json.loads(evaluation_json)
+        return ResponseAccuracyResult.model_validate(evaluation_data)
+
+    raise RuntimeError("expected ResponseTextContent from LM judge")
+
+
 async def run_evaluations(task: Trial, ran_successfully: bool) -> TrialStatus:
-    # TODO here we run the evaluations, for now only simulation
-    return task.status
+    storage = StorageService.get_instance()
+
+    system_user, _ = await storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
+
+    scenario = await storage.get_scenario(task.scenario_id)
+    if scenario is None:
+        raise RuntimeError(f"Cannot find scenario {task.scenario_id}")
+
+    if task.thread_id is None:
+        raise RuntimeError(f"No thread for {task.trial_id}")
+
+    thread = await storage.get_thread(system_user.user_id, task.thread_id)
+
+    if thread is None:
+        raise RuntimeError(f"Cannot find thread {task.thread_id}")
+
+    flow_adherence = await _evaluate_flow_adherence(thread, scenario, system_user, storage)
+    response_accuracy = await _evaluate_response_accuracy(thread, scenario, system_user, storage)
+    # TODO we should be smarter here and report simulation errors
+    # separately from trial status/error message that could
+    # be more generic
+    action_calling = ActionCallingResult(
+        issues=[task.error_message] if task.error_message else [], passed=ran_successfully
+    )
+
+    evaluations = [flow_adherence, response_accuracy, action_calling]
+
+    await storage.update_trial_evaluation_results(task.trial_id, evaluations)
+
+    status = TrialStatus.COMPLETED if all(e.passed for e in evaluations) else TrialStatus.ERROR
+
+    return status

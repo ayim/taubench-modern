@@ -1,7 +1,7 @@
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from agent_platform.core.thread.base import ThreadMessage
@@ -80,6 +80,77 @@ class TrialStatus(str, Enum):
     CANCELED = "CANCELED"
 
 
+def parse_evaluation_result(data: dict) -> "EvaluationResult":
+    kind = data.get("kind")
+    if kind == "flow_adherence":
+        return FlowAdherenceResult(**data)
+    elif kind == "response_accuracy":
+        return ResponseAccuracyResult(**data)
+    elif kind == "action_calling":
+        return ActionCallingResult(**data)
+    else:
+        raise ValueError(f"Unknown evaluation kind: {kind!r}")
+
+
+@dataclass(frozen=True)
+class FlowAdherenceResult:
+    """
+    tells if the conversation is consistent with the golden run
+    """
+
+    explanation: str
+    score: int
+    passed: bool
+    kind: Literal["flow_adherence"] = "flow_adherence"
+
+    def model_dump(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "FlowAdherenceResult":
+        return cls(**data)
+
+
+@dataclass(frozen=True)
+class ResponseAccuracyResult:
+    """
+    tells if the conversation is accurate wrt the scenario description
+    """
+
+    explanation: str
+    score: int
+    passed: bool
+    kind: Literal["response_accuracy"] = "response_accuracy"
+
+    def model_dump(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "ResponseAccuracyResult":
+        return cls(**data)
+
+
+@dataclass(frozen=True)
+class ActionCallingResult:
+    """
+    tells if the conversation tool calls match the golden run
+    """
+
+    issues: list[str]
+    passed: bool
+    kind: Literal["action_calling"] = "action_calling"
+
+    def model_dump(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "ActionCallingResult":
+        return cls(**data)
+
+
+EvaluationResult = ResponseAccuracyResult | FlowAdherenceResult | ActionCallingResult
+
+
 @dataclass(frozen=True)
 class Trial:
     trial_id: str
@@ -91,7 +162,7 @@ class Trial:
     messages: list[ThreadMessage] = field(
         metadata={"description": "All messages generated in the simulation."},
     )
-    # TODO add list of evaluation_results
+    evaluation_results: list[EvaluationResult] = field(default_factory=list)
 
     thread_id: str | None = None
     status: TrialStatus = TrialStatus.PENDING
@@ -109,6 +180,8 @@ class Trial:
             f"status={self.status}, "
             f"index_in_run={self.index_in_run}, "
             f"scenario_id={self.scenario_id[:8]}, "
+            f"scenario_run_id={self.scenario_run_id[:8]}, "
+            f"thread_id={self.thread_id[:8] if self.thread_id else None}"
             f"scenario_run_id={self.scenario_run_id[:8]}"
         )
         if self.status == TrialStatus.ERROR and self.error_message:
@@ -147,6 +220,10 @@ class Trial:
             data["messages"] = [
                 ThreadMessage.model_validate(message) for message in data["messages"]
             ]
+        if "evaluation_results" in data and isinstance(data["evaluation_results"], list):
+            data["evaluation_results"] = [
+                parse_evaluation_result(result) for result in data["evaluation_results"]
+            ]
 
         return cls(
             **data,
@@ -160,6 +237,7 @@ class Trial:
             "index_in_run": self.index_in_run,
             "thread_id": self.thread_id,
             "messages": [message.model_dump() for message in self.messages],
+            "evaluation_results": [result.model_dump() for result in self.evaluation_results],
             "status": self.status,
             "created_at": self.created_at,
             "updated_at": self.updated_at,

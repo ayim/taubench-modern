@@ -5900,6 +5900,30 @@ export const spec = {
   },
   components: {
     schemas: {
+      ActionCallingResult: {
+        properties: {
+          issues: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Issues',
+          },
+          passed: {
+            type: 'boolean',
+            title: 'Passed',
+          },
+          kind: {
+            type: 'string',
+            const: 'action_calling',
+            title: 'Kind',
+            default: 'action_calling',
+          },
+        },
+        type: 'object',
+        required: ['issues', 'passed'],
+        title: 'ActionCallingResult',
+      },
       ActionDetail: {
         properties: {
           name: {
@@ -8258,6 +8282,31 @@ export const spec = {
         required: ['result'],
         title: 'ExtractJobResult',
       },
+      FlowAdherenceResult: {
+        properties: {
+          explanation: {
+            type: 'string',
+            title: 'Explanation',
+          },
+          score: {
+            type: 'integer',
+            title: 'Score',
+          },
+          passed: {
+            type: 'boolean',
+            title: 'Passed',
+          },
+          kind: {
+            type: 'string',
+            const: 'flow_adherence',
+            title: 'Kind',
+            default: 'flow_adherence',
+          },
+        },
+        type: 'object',
+        required: ['explanation', 'score', 'passed'],
+        title: 'FlowAdherenceResult',
+      },
       ForkThreadPayload: {
         properties: {
           message_id: {
@@ -10463,6 +10512,31 @@ export const spec = {
         required: ['file_name'],
         title: 'RequestRemoteFileUploadPayload',
       },
+      ResponseAccuracyResult: {
+        properties: {
+          explanation: {
+            type: 'string',
+            title: 'Explanation',
+          },
+          score: {
+            type: 'integer',
+            title: 'Score',
+          },
+          passed: {
+            type: 'boolean',
+            title: 'Passed',
+          },
+          kind: {
+            type: 'string',
+            const: 'response_accuracy',
+            title: 'Kind',
+            default: 'response_accuracy',
+          },
+        },
+        type: 'object',
+        required: ['explanation', 'score', 'passed'],
+        title: 'ResponseAccuracyResult',
+      },
       ResponseAudioContent: {
         properties: {
           metadata: {
@@ -12372,6 +12446,23 @@ export const spec = {
             type: 'array',
             title: 'Messages',
             description: 'All messages generated in the simulation.',
+          },
+          evaluation_results: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/ResponseAccuracyResult',
+                },
+                {
+                  $ref: '#/components/schemas/FlowAdherenceResult',
+                },
+                {
+                  $ref: '#/components/schemas/ActionCallingResult',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Evaluation Results',
           },
           thread_id: {
             anyOf: [

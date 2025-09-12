@@ -1895,6 +1895,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** ActionCallingResult */
+    ActionCallingResult: {
+      /** Issues */
+      issues: string[];
+      /** Passed */
+      passed: boolean;
+      /**
+       * Kind
+       * @default action_calling
+       * @constant
+       */
+      kind: 'action_calling';
+    };
     /** ActionDetail */
     ActionDetail: {
       /** Name */
@@ -3055,6 +3068,21 @@ export interface components {
        */
       job_type: 'extract';
     };
+    /** FlowAdherenceResult */
+    FlowAdherenceResult: {
+      /** Explanation */
+      explanation: string;
+      /** Score */
+      score: number;
+      /** Passed */
+      passed: boolean;
+      /**
+       * Kind
+       * @default flow_adherence
+       * @constant
+       */
+      kind: 'flow_adherence';
+    };
     /** ForkThreadPayload */
     ForkThreadPayload: {
       /**
@@ -4146,6 +4174,21 @@ export interface components {
     RequestRemoteFileUploadPayload: {
       /** File Name */
       file_name: string;
+    };
+    /** ResponseAccuracyResult */
+    ResponseAccuracyResult: {
+      /** Explanation */
+      explanation: string;
+      /** Score */
+      score: number;
+      /** Passed */
+      passed: boolean;
+      /**
+       * Kind
+       * @default response_accuracy
+       * @constant
+       */
+      kind: 'response_accuracy';
     };
     /** ResponseAudioContent */
     ResponseAudioContent: {
@@ -5385,6 +5428,12 @@ export interface components {
        * @description All messages generated in the simulation.
        */
       messages: components['schemas']['ThreadMessage'][];
+      /** Evaluation Results */
+      evaluation_results?: (
+        | components['schemas']['ResponseAccuracyResult']
+        | components['schemas']['FlowAdherenceResult']
+        | components['schemas']['ActionCallingResult']
+      )[];
       /** Thread Id */
       thread_id?: string | null;
       /** @default PENDING */

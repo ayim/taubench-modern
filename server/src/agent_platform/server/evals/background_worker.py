@@ -12,6 +12,7 @@ Design:
 
 import asyncio
 import logging
+import traceback
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Generic, Protocol, TypeVar, runtime_checkable
@@ -207,6 +208,7 @@ class WorkQueue(Generic[T]):
             try:
                 final_status = await self.validator(refreshed_task, ran_ok)
             except Exception as e:  # pragma: no cover - defensive
+                traceback.print_exc()
                 logger.warning("Validator failed: %s; falling back to default", e)
                 final_status = "COMPLETED" if ran_ok else "ERROR"
         else:
