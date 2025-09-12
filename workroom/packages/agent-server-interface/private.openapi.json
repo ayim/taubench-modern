@@ -5503,7 +5503,8 @@
           }
         },
         "type": "object",
-        "title": "AzureOpenAIPlatformParameters"
+        "title": "AzureOpenAIPlatformParameters",
+        "required": ["platform_id"]
       },
       "BedrockPlatformParameters": {
         "properties": {
@@ -5607,7 +5608,8 @@
           }
         },
         "type": "object",
-        "title": "BedrockPlatformParameters"
+        "title": "BedrockPlatformParameters",
+        "required": ["platform_id"]
       },
       "Body_generate_data_model_from_document_document_intelligence_data_models_generate_post": {
         "properties": {
@@ -6003,7 +6005,8 @@
           }
         },
         "type": "object",
-        "title": "CortexPlatformParameters"
+        "title": "CortexPlatformParameters",
+        "required": ["platform_id"]
       },
       "CreateDataModelRequest": {
         "properties": {
@@ -6630,7 +6633,8 @@
           }
         },
         "type": "object",
-        "title": "GooglePlatformParameters"
+        "title": "GooglePlatformParameters",
+        "required": ["platform_id"]
       },
       "GroqPlatformParameters": {
         "properties": {
@@ -6692,7 +6696,8 @@
           }
         },
         "type": "object",
-        "title": "GroqPlatformParameters"
+        "title": "GroqPlatformParameters",
+        "required": ["platform_id"]
       },
       "IngestDocumentResponse": {
         "properties": {
@@ -7437,7 +7442,8 @@
           }
         },
         "type": "object",
-        "title": "OpenAIPlatformParameters"
+        "title": "OpenAIPlatformParameters",
+        "required": ["platform_id"]
       },
       "ParseJobResult": {
         "properties": {
@@ -8001,7 +8007,8 @@
           }
         },
         "type": "object",
-        "title": "ReductoPlatformParameters"
+        "title": "ReductoPlatformParameters",
+        "required": ["platform_id"]
       },
       "RequestRemoteFileUploadPayload": {
         "properties": {

@@ -6784,6 +6784,7 @@ export const spec = {
         },
         type: 'object',
         title: 'AzureOpenAIPlatformParameters',
+        required: ['platform_id'],
       },
       BedrockPlatformParameters: {
         properties: {
@@ -6965,6 +6966,7 @@ export const spec = {
         },
         type: 'object',
         title: 'BedrockPlatformParameters',
+        required: ['platform_id'],
       },
       Body_generate_data_model_from_document_document_intelligence_data_models_generate_post:
         {
@@ -7548,6 +7550,7 @@ export const spec = {
         },
         type: 'object',
         title: 'CortexPlatformParameters',
+        required: ['platform_id'],
       },
       CreateDataModelRequest: {
         properties: {
@@ -8494,6 +8497,7 @@ export const spec = {
         },
         type: 'object',
         title: 'GooglePlatformParameters',
+        required: ['platform_id'],
       },
       GroqPlatformParameters: {
         properties: {
@@ -8575,6 +8579,7 @@ export const spec = {
         },
         type: 'object',
         title: 'GroqPlatformParameters',
+        required: ['platform_id'],
       },
       IngestDocumentResponse: {
         properties: {
@@ -9704,6 +9709,7 @@ export const spec = {
         },
         type: 'object',
         title: 'OpenAIPlatformParameters',
+        required: ['platform_id'],
       },
       ParseJobResult: {
         properties: {
@@ -10500,6 +10506,7 @@ export const spec = {
         },
         type: 'object',
         title: 'ReductoPlatformParameters',
+        required: ['platform_id'],
       },
       RequestRemoteFileUploadPayload: {
         properties: {

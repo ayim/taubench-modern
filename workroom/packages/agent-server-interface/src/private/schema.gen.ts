@@ -2350,7 +2350,7 @@ export interface components {
        * Platform Id
        * @description The unique identifier of the platform.
        */
-      platform_id?: string;
+      platform_id: string;
       /** @description The Azure OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       azure_api_key?: components['schemas']['SecretString'] | null;
       /**
@@ -2440,7 +2440,7 @@ export interface components {
        * Platform Id
        * @description The unique identifier of the platform.
        */
-      platform_id?: string;
+      platform_id: string;
       /**
        * Region Name
        * @description AWS region name (e.g., 'us-west-2'). If not specified, boto3 will use the default region from AWS configuration chain (environment variables, config file, or instance metadata).
@@ -2711,7 +2711,7 @@ export interface components {
        * Platform Id
        * @description The unique identifier of the platform.
        */
-      platform_id?: string;
+      platform_id: string;
       /**
        * Snowflake Username
        * @description The Snowflake username. Optional, as token-based auth is preferred.
@@ -3169,7 +3169,7 @@ export interface components {
        * Platform Id
        * @description The unique identifier of the platform.
        */
-      platform_id?: string;
+      platform_id: string;
       /** @description The Google API key. If not provided, it will be attempted to be inferred from the environment. */
       google_api_key?: components['schemas']['SecretString'] | null;
     };
@@ -3216,7 +3216,7 @@ export interface components {
        * Platform Id
        * @description The unique identifier of the platform.
        */
-      platform_id?: string;
+      platform_id: string;
       /** @description The Groq API key. If not provided, it will be attempted to be inferred from the environment. */
       groq_api_key?: components['schemas']['SecretString'] | null;
     };
@@ -3726,7 +3726,7 @@ export interface components {
        * Platform Id
        * @description The unique identifier of the platform.
        */
-      platform_id?: string;
+      platform_id: string;
       /** @description The OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       openai_api_key?: components['schemas']['SecretString'] | null;
     };
@@ -4153,7 +4153,7 @@ export interface components {
        * Platform Id
        * @description The unique identifier of the platform.
        */
-      platform_id?: string;
+      platform_id: string;
       /**
        * Reducto Api Url
        * @description The Reducto API URL.

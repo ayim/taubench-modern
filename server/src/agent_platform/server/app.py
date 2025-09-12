@@ -134,6 +134,11 @@ class _CustomFastAPI(FastAPI):
         schemas.pop("ValidationError", None)
 
         # ------------------------------------------------------------------
+        # 1.5. Auto-fix platform_id to be required in all platform schemas
+        # ------------------------------------------------------------------
+        self._mark_platform_id_as_required(schemas)
+
+        # ------------------------------------------------------------------
         # 2. Replace existing error responses with ErrorEnvelope schema
         # ------------------------------------------------------------------
         # Only replace error codes that already exist on endpoints
@@ -154,6 +159,25 @@ class _CustomFastAPI(FastAPI):
 
         self._custom_openapi_schema = openapi_schema
         return self._custom_openapi_schema
+
+    def _mark_platform_id_as_required(self, schemas: dict[str, Any]) -> None:
+        """Mark platform_id as required in all platform parameter schemas.
+
+        Auto-detects platform parameter schemas by name pattern and platform_id property,
+        then ensures platform_id is marked as required in the OpenAPI schema.
+        """
+        for schema_name, schema in schemas.items():
+            # Detect platform parameter schemas by checking if they have platform_id property
+            if (
+                schema_name.endswith("PlatformParameters")
+                and isinstance(schema, dict)
+                and "properties" in schema
+                and "platform_id" in schema.get("properties", {})
+            ):
+                # Force platform_id to be required
+                required_fields = schema.setdefault("required", [])
+                if "platform_id" not in required_fields:
+                    required_fields.append("platform_id")
 
 
 class _PublicAgentServerApp(_CustomFastAPI):

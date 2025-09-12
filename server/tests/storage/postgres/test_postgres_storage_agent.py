@@ -492,6 +492,7 @@ async def test_agent_platform_params_association(
         name="Test OpenAI Platform 1",
         openai_api_key=SecretString("sk-test-key-1"),
         models={"openai": ["gpt-4o"]},
+        platform_id=str(uuid4()),
     )
     await storage.create_platform_params(platform_params_1)
 
@@ -499,6 +500,7 @@ async def test_agent_platform_params_association(
         name="Test OpenAI Platform 2",
         openai_api_key=SecretString("sk-test-key-2"),
         models={"openai": ["gpt-3.5-turbo"]},
+        platform_id=str(uuid4()),
     )
     await storage.create_platform_params(platform_params_2)
 

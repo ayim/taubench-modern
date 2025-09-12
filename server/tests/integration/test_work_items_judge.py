@@ -1,5 +1,6 @@
 import json
 import unittest.mock
+import uuid
 from pathlib import Path
 
 import pytest
@@ -45,6 +46,7 @@ def _create_mock_storage_for_judge(work_item: WorkItem, openai_api_key: str):
     mock_platform_config = OpenAIPlatformParameters(
         openai_api_key=SecretString(openai_api_key),
         models={"openai": ["gpt-4.1"]},
+        platform_id=str(uuid.uuid4()),
     )
     mock_agent = Agent(
         name="Test Agent",

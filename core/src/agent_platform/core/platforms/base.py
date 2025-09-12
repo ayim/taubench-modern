@@ -100,8 +100,8 @@ class PlatformParameters(ABC):
     """The time at which the platform parameters were last updated."""
 
     platform_id: str = field(
-        metadata={"description": "The unique identifier of the platform."},
         default_factory=lambda: str(uuid.uuid4()),
+        metadata={"description": "The unique identifier of the platform."},
     )
     """The unique identifier of the platform."""
 

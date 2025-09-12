@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 from typing import cast
 
@@ -23,7 +24,8 @@ def sample_agent():
     )
     runbook = Runbook(raw_text="Sensitive runbook text", content=runbook_content)
     platform_config = OpenAIPlatformParameters(
-        openai_api_key=SecretString("sk-test-secret-api-key-12345")
+        openai_api_key=SecretString("sk-test-secret-api-key-12345"),
+        platform_id=str(uuid.uuid4()),
     )
     action_package = ActionPackage(
         name="TestAP",

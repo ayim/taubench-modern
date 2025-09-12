@@ -1,4 +1,5 @@
 import json
+import uuid
 from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -22,6 +23,7 @@ from agent_platform.core.prompts.prompt import Prompt
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.thread import Thread
 from agent_platform.core.user import User
+from agent_platform.core.utils import SecretString
 from agent_platform.server.api.private_v2.prompt import (
     _create_platform_interface_and_get_model,
     prompt_generate,
@@ -395,7 +397,11 @@ async def test_generate_endpoint_uses_agent_id(monkeypatch):
         user_id="testing",
         runbook_structured=Runbook(content=[], raw_text=""),
         version="1.0",
-        platform_configs=[OpenAIPlatformParameters(openai_api_key="k")],  # type: ignore
+        platform_configs=[
+            OpenAIPlatformParameters(
+                openai_api_key=SecretString("k"), platform_id=str(uuid.uuid4())
+            )
+        ],  # type: ignore
         agent_architecture=AgentArchitecture(name="arch", version="1"),
     )
 
@@ -436,7 +442,11 @@ async def test_generate_endpoint_uses_thread_id(monkeypatch):
         user_id="testing",
         runbook_structured=Runbook(content=[], raw_text=""),
         version="1.0",
-        platform_configs=[OpenAIPlatformParameters(openai_api_key="k")],  # type: ignore
+        platform_configs=[
+            OpenAIPlatformParameters(
+                openai_api_key=SecretString("k"), platform_id=str(uuid.uuid4())
+            )
+        ],  # type: ignore
         agent_architecture=AgentArchitecture(name="arch", version="1"),
     )
 
