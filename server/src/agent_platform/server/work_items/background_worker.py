@@ -262,7 +262,7 @@ async def worker_loop(
     Runs a loop which processes work items, sleeping the configured amount between iterations.
     """
     while not shutdown_event.is_set():
-        logger.info("searching for work items to process")
+        logger.debug("searching for work items to process")
         try:
             await worker_iteration(work_func)
         except Exception as exc:
@@ -270,7 +270,7 @@ async def worker_loop(
 
         await asyncio.sleep(WORK_ITEMS_SETTINGS.worker_interval)
 
-    logger.info("finished work-items worker loop")
+    logger.debug("finished work-items worker loop")
 
 
 async def worker_iteration(
@@ -287,14 +287,15 @@ async def worker_iteration(
 
     work_item_ids = await storage.get_pending_work_item_ids(max_batch_size)
 
-    logger.info(f"Found {len(work_item_ids)} work items to process. {work_item_ids!r}")
-
     if work_item_ids:
+        logger.info(f"Found {len(work_item_ids)} work items to process. {work_item_ids!r}")
         logger.info(f"Dispatching work items {work_item_ids}")
         batch_results = await run_batch(
             work_item_ids, work_func, WORK_ITEMS_SETTINGS.work_item_timeout
         )
         logger.info(f"Completed {len(batch_results)} work items concurrently")
+    else:
+        logger.debug("Found no work items to process.")
 
 
 async def run_batch(
