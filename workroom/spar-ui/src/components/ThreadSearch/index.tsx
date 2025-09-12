@@ -28,7 +28,7 @@ const SearchInput = styled(Input)`
 `;
 
 export const ThreadSearch = () => {
-  const { threadId } = useParams('/conversational/$agentId/$threadId');
+  const { threadId } = useParams('/thread/$agentId/$threadId');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: messages } = useThreadMessagesQuery({ threadId });

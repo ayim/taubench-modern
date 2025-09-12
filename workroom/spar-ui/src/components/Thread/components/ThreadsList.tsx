@@ -7,7 +7,7 @@ import { useThreadsQuery } from '../../../queries/threads';
 import { ThreadItem } from './ThreadItem';
 
 export const ThreadsList: FC = () => {
-  const { agentId, threadId } = useParams('/conversational/$agentId/$threadId');
+  const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const { data: threads, isLoading, refetch: refetchThreads } = useThreadsQuery({ agentId });
 
   /**

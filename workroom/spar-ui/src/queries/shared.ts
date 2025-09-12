@@ -27,9 +27,9 @@ export function createSparQueryOptions<Params extends object>() {
 
 export const createSparQuery =
   <Params extends object, TData = any>(fn: SparQueryOptions<Params, TData>) =>
-  (params: Params) => {
+  (params: Params, rest: { refetchInterval?: number } = {}) => {
     const { sparAPIClient } = useSparUIContext();
-    return useQuery(fn({ ...params, sparAPIClient }));
+    return useQuery({ ...fn({ ...params, sparAPIClient }), ...rest });
   };
 
 type CommonMutationParams = {

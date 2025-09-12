@@ -8,7 +8,7 @@ import { useParams } from '../../../hooks/useParams';
 import { useSparUIContext } from '../../../api/context';
 
 export const OAuth: FC = () => {
-  const { agentId } = useParams('/conversational/$agentId/$threadId');
+  const { agentId } = useParams('/thread/$agentId/$threadId');
   const { data: oAuthState = [] } = useAgentOAuthStateQuery({ agentId });
   const { sparAPIClient } = useSparUIContext();
 

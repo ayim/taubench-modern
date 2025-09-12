@@ -110,7 +110,7 @@ const DataFrameChart: FC<{ themedSpec: VisualizationSpec; rawSpec: Visualization
   rawSpec,
   dataFrameName,
 }) => {
-  const { threadId } = useParams('/conversational/$agentId/$threadId');
+  const { threadId } = useParams('/thread/$agentId/$threadId');
   const { data, isLoading } = useDataFrameQuery({ threadId, dataFrameName });
 
   const patchedSpecs = useMemo(() => {

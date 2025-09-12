@@ -1,10 +1,69 @@
-import type { components } from '@sema4ai/agent-server-interface';
+import { useEffect, useState } from 'react';
+import { components } from '@sema4ai/agent-server-interface';
 
-import { createSparMutation } from './shared';
+import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
 import { SparAPIClient } from '../api';
 
+type WorkItem = components['schemas']['WorkItem'];
 type CreateWorkItemPayload = components['schemas']['CreateWorkItemPayload'];
 
+/**
+ * List Work items
+ */
+export const workItemsQueryKey = (agentId: string) => ['work-items', agentId];
+
+export const workItemsQueryOptions = createSparQueryOptions<{ agentId: string }>()(({ sparAPIClient, agentId }) => ({
+  queryKey: workItemsQueryKey(agentId),
+  queryFn: async () => {
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/', {
+      params: { query: { agent_id: agentId } },
+    });
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to fetch threads');
+    }
+
+    return response.data.records;
+  },
+}));
+
+export const useWorkItemsQuery = createSparQuery(workItemsQueryOptions);
+
+/**
+ * Get Work Item
+ */
+export const workItemQueryKey = (workItemId: string) => ['work-item', workItemId];
+export const workItemQueryOptions = createSparQueryOptions<{ workItemId: string }>()(
+  ({ sparAPIClient, workItemId }) => ({
+    queryKey: workItemQueryKey(workItemId),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/{work_item_id}', {
+        params: { path: { work_item_id: workItemId } },
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch work item');
+      }
+
+      return response.data;
+    },
+  }),
+);
+
+export const useWorkItemQuery = ({ workItemId }: { workItemId: string }) => {
+  const [refetchInterval, setRefetchInterval] = useState<number | undefined>(undefined);
+  const query = createSparQuery(workItemQueryOptions)({ workItemId }, { refetchInterval });
+
+  useEffect(() => {
+    setRefetchInterval(!query.data?.thread_id ? 2000 : undefined);
+  }, [query.data]);
+
+  return query;
+};
+
+/**
+ * Create Work Item
+ */
 const uploadWorkItemFile = async (sparAPIClient: SparAPIClient, file: File, workItemId?: string) => {
   return sparAPIClient.queryAgentServer('post', '/api/v2/work-items/upload-file', {
     params: { query: workItemId ? { work_item_id: workItemId } : {} },
@@ -17,7 +76,6 @@ const uploadWorkItemFile = async (sparAPIClient: SparAPIClient, file: File, work
   });
 };
 
-// Create work item mutation
 export const useCreateWorkItemMutation = createSparMutation<
   { agentId: string },
   {
@@ -25,7 +83,7 @@ export const useCreateWorkItemMutation = createSparMutation<
     payload?: string;
     files?: File[];
   }
->()(({ agentId, sparAPIClient }) => ({
+>()(({ agentId, sparAPIClient, queryClient }) => ({
   mutationFn: async ({ files, message, payload }) => {
     // Upload files
     if (files && files?.length > 0) {
@@ -74,6 +132,10 @@ export const useCreateWorkItemMutation = createSparMutation<
     if (!response.success) {
       throw new Error(response.message || 'Failed to create work item');
     }
+
+    queryClient.setQueryData(workItemsQueryKey(agentId), (data?: WorkItem[]) => {
+      return [response.data, ...(data || [])];
+    });
 
     return response.data;
   },

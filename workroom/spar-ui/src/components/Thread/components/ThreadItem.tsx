@@ -34,7 +34,7 @@ const Container = styled(Box)<{ $hovered: boolean }>`
 `;
 
 export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name }) => {
-  const { agentId, threadId: activeThreadId } = useParams('/conversational/$agentId/$threadId');
+  const { agentId, threadId: activeThreadId } = useParams('/thread/$agentId/$threadId');
   const [menuVisible, setMenuVisible] = useState(false);
   const { mutate: deleteThread, isPending: isDeleting } = useDeleteThreadMutation({ agentId });
   const { mutate: updateThread } = useUpdateThreadMutation({ agentId });
@@ -73,9 +73,9 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name }) => {
           if (activeThreadId === threadId) {
             const thread = threads?.find((curr) => curr.thread_id !== threadId);
             if (thread?.thread_id) {
-              navigate({ to: '/conversational/$agentId/$threadId', params: { threadId: thread.thread_id, agentId } });
+              navigate({ to: '/thread/$agentId/$threadId', params: { threadId: thread.thread_id, agentId } });
             } else {
-              navigate({ to: '/conversational/$agentId/home', params: { agentId } });
+              navigate({ to: '/thread/$agentId', params: { agentId } });
             }
           }
         },
@@ -128,7 +128,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name }) => {
     <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center" $hovered={menuVisible}>
       {isDeleting && <Progress variant="page" />}
 
-      <SidebarLink to="/conversational/$agentId/$threadId" params={{ threadId, agentId }}>
+      <SidebarLink to="/thread/$agentId/$threadId" params={{ threadId, agentId }}>
         {name}
       </SidebarLink>
 

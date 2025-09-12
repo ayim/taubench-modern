@@ -1,4 +1,4 @@
-import { FC, useCallback } from 'react';
+import { FC, useCallback, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, Code, Dialog, Form, Input, Typography, useSnackbar } from '@sema4ai/components';
 import { IconClose, IconPlus } from '@sema4ai/icons';
@@ -9,11 +9,10 @@ import { z } from 'zod';
 
 import { useCreateWorkItemMutation } from '../../queries/workItem';
 import { useParams } from '../../hooks/useParams';
-import { useNavigate } from '../../hooks/useNavigate';
 
 interface CreateWorkItemDialogProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (workItemId?: string) => void;
 }
 
 type WorkerItemFormValues = {
@@ -23,8 +22,7 @@ type WorkerItemFormValues = {
 };
 
 export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ isOpen, onClose }) => {
-  const navigate = useNavigate();
-  const { agentId } = useParams('/worker/$agentId');
+  const { agentId } = useParams('/thread/$agentId/$threadId');
   const { addSnackbar } = useSnackbar();
 
   const { mutateAsync: createWorkItemAsync, isPending: isCreatingWorkItem } = useCreateWorkItemMutation({ agentId });
@@ -60,11 +58,17 @@ export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ isOpen, on
     mode: 'onChange',
   });
 
+  useEffect(() => {
+    if (!isOpen) {
+      form.reset();
+    }
+  }, [isOpen]);
+
   const onSubmit = form.handleSubmit(async (values) => {
     createWorkItemAsync(values, {
       onSuccess: (result) => {
         addSnackbar({ message: 'Work item created successfully', variant: 'success' });
-        navigate({ to: '/worker/$agentId/$workItemId', params: { agentId, workItemId: result.work_item_id } });
+        onClose(result.work_item_id);
       },
       onError: (error) => {
         const errorMessage = error instanceof Error ? error.message : 'Failed to create work item';

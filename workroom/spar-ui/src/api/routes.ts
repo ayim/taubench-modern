@@ -1,16 +1,9 @@
 export type SparUIRoutes = {
-  '/conversational/$agentId/$threadId': {
+  '/thread/$agentId/$threadId': {
     agentId: string;
     threadId: string;
   };
-  '/conversational/$agentId/home': {
+  '/thread/$agentId': {
     agentId: string;
-  };
-  '/worker/$agentId': {
-    agentId: string;
-  };
-  '/worker/$agentId/$workItemId': {
-    agentId: string;
-    workItemId: string;
   };
 };

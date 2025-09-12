@@ -8,10 +8,18 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/create'
 
 function View() {
   const navigate = useNavigate();
+  const { tenantId, agentId } = Route.useParams();
 
-  const handleClose = useCallback(() => {
-    navigate({ to: '..' });
-  }, [navigate]);
+  const handleClose = useCallback(
+    (workItemId?: string) => {
+      if (workItemId) {
+        navigate({ to: '/tenants/$tenantId/worker/$agentId/$workItemId', params: { tenantId, agentId, workItemId } });
+      } else {
+        navigate({ to: '..' });
+      }
+    },
+    [navigate, tenantId, agentId],
+  );
 
   return <CreateWorkItemDialog isOpen={true} onClose={handleClose} />;
 }

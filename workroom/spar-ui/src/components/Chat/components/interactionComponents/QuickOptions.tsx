@@ -52,7 +52,7 @@ const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunn
 };
 
 export const QuickOptions: InteractionComponent<QuickOptionsPayload> = ({ payload: { data: choices }, messageId }) => {
-  const { agentId, threadId } = useParams('/conversational/$agentId/$threadId');
+  const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const { data: messages } = useThreadMessagesQuery({
     threadId,
   });

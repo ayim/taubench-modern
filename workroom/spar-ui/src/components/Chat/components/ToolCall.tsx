@@ -15,7 +15,7 @@ type Props = {
 };
 
 export const ToolCall: FC<Props> = ({ content }) => {
-  const { agentId, threadId } = useParams('/conversational/$agentId/$threadId');
+  const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const showActionLogs = useFeatureFlag(SparUIFeatureFlag.showActionLogs);
   const { onCopyToClipboard: onCopyInput, copiedToClipboard: inputCopied } = useClipboard();
   const { onCopyToClipboard: onCopyOutput, copiedToClipboard: outputCopied } = useClipboard();

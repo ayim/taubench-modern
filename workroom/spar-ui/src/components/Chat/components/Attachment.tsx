@@ -12,7 +12,7 @@ type Props = {
 };
 
 export const Attachment: FC<Props> = ({ content: { name, mime_type, description } }) => {
-  const { threadId } = useParams('/conversational/$agentId/$threadId');
+  const { threadId } = useParams('/thread/$agentId/$threadId');
   const { sparAPIClient } = useSparUIContext();
   const [downloading, setDownloading] = useState(false);
 

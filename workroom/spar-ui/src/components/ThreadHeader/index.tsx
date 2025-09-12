@@ -37,7 +37,7 @@ const Container = styled.header<{ $sidebarExpanded: boolean }>`
 
 export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage }) => {
   const navigate = useNavigate();
-  const { agentId } = useParams('/conversational/$agentId/$threadId');
+  const { agentId } = useParams('/thread/$agentId/$threadId');
   const { triggerProps, triggerRef } = useSidebarMenu('threads-list');
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const { addSnackbar } = useSnackbar();
@@ -55,7 +55,7 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
         onSuccess: (data) => {
           if (data?.thread_id) {
             navigate({
-              to: '/conversational/$agentId/$threadId',
+              to: '/thread/$agentId/$threadId',
               params: { threadId: data.thread_id, agentId },
             });
           }

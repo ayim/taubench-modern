@@ -235,7 +235,7 @@ const DataFrameSheetContainer: FC<{
 };
 
 export const DataFrameConfirmParseDataFrameFile: React.FC<{ tool: ThreadToolUsageContent }> = ({ tool }) => {
-  const { threadId, agentId } = useParams('/conversational/$agentId/$threadId');
+  const { threadId, agentId } = useParams('/thread/$agentId/$threadId');
 
   /**
    * TODO: get exact file
@@ -264,7 +264,7 @@ export const DataFrameConfirmParseDataFrameFile: React.FC<{ tool: ThreadToolUsag
 const DATA_FRAME_REFETCH_GRACE_PERIOD = 500;
 
 export const DataFrameCallbackDataFrameCreation: React.FC<{ tool: ThreadToolUsageContent }> = ({ tool }) => {
-  const { threadId } = useParams('/conversational/$agentId/$threadId');
+  const { threadId } = useParams('/thread/$agentId/$threadId');
   const { refetch } = useDataFramesQuery({ threadId });
 
   const isComplete = tool.complete;
