@@ -146,7 +146,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     )
 
             # 4. Prepare the thread for upsert
-            thread_dict = thread.model_dump() | {"user_id": user_id}
+            thread_dict = thread.model_dump()
             thread_dict["metadata"] = Jsonb(thread_dict["metadata"])
             messages = [ThreadMessage.model_validate(m) for m in thread_dict.pop("messages", [])]
 
@@ -162,7 +162,6 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     ON CONFLICT (thread_id)
                     DO UPDATE SET
                         name = EXCLUDED.name,
-                        user_id = EXCLUDED.user_id,
                         agent_id = EXCLUDED.agent_id,
                         updated_at = EXCLUDED.updated_at,
                         metadata = EXCLUDED.metadata,

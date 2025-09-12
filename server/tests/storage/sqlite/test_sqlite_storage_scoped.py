@@ -505,8 +505,14 @@ async def test_scoped_storage_cascading_deletes(
     await storage.delete_user(sample_user_id)
     with pytest.raises(ScopedStorageNotFoundError):
         await storage.get_scoped_storage(scoped_storage.storage_id)
+
     # Re-create the user / agent / thread (which would have also been deleted)
     new_user, _ = await storage.get_or_create_user("tenant:testing:user:new_user")
+    # Create a new thread with the new user ID
+    orig_thread = sample_thread.model_dump()
+    new_thread = orig_thread | {"user_id": new_user.user_id}
+    sample_thread = Thread.model_validate(new_thread)
+
     scoped_storage.created_by_user_id = new_user.user_id
     await storage.upsert_agent(new_user.user_id, sample_agent)
     await storage.upsert_thread(new_user.user_id, sample_thread)

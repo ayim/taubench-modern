@@ -133,7 +133,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         self._validate_uuid(thread.thread_id)
 
         # Convert to JSON for DB
-        thread_dict = thread.model_dump() | {"user_id": user_id}
+        thread_dict = thread.model_dump()
         messages = [ThreadMessage.model_validate(m) for m in thread_dict.pop("messages", [])]
         thread_dict["metadata"] = json.dumps(thread_dict["metadata"])
 
@@ -152,7 +152,6 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     )
                     ON CONFLICT(thread_id) DO UPDATE SET
                         name = excluded.name,
-                        user_id = excluded.user_id,
                         agent_id = excluded.agent_id,
                         updated_at = excluded.updated_at,
                         metadata = excluded.metadata,
