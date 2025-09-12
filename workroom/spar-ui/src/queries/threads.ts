@@ -83,7 +83,7 @@ export const useThreadMessagesQuery = createSparQuery(threadMessagesQueryOptions
 export const useCreateThreadMutation = createSparMutation<
   { agentId: string },
   { name: string; startingMessage: string }
->()(({ agentId, sparAPIClient }) => ({
+>()(({ agentId, sparAPIClient, queryClient }) => ({
   mutationFn: async ({ name, startingMessage }) => {
     const response = await sparAPIClient.queryAgentServer('post', '/api/v2/threads/', {
       body: {
@@ -105,6 +105,11 @@ export const useCreateThreadMutation = createSparMutation<
     }
 
     return response.data;
+  },
+  onSuccess: (newThreadData) => {
+    queryClient.setQueryData(threadsQueryKey(agentId), (threads: Thread[]) => {
+      return [...(threads||[]), newThreadData];
+    });
   },
 }));
 

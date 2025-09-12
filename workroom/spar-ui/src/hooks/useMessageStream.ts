@@ -331,7 +331,7 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     streamManager.addMessageListener(threadId, messageListener);
 
     return () => {
-      streamManager.removeMessageListener(threadId, setStreamingMessages);
+      streamManager.removeMessageListener(threadId, messageListener);
     };
   }, [agentId, threadId]);
 

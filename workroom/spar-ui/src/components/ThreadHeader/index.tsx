@@ -48,7 +48,7 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
   const onNewThread = async () => {
-    const name = threads ? `Chat ${threads?.length || 0 + 1}` : 'New chat';
+    const name = threads ? `Chat ${(threads?.length || 0) + 1}` : 'New chat';
     createThread(
       { name, startingMessage: newThreadStartingMesssage },
       {

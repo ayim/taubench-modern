@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { Box, Typography } from '@sema4ai/components';
 import { SidebarMenu } from '@sema4ai/layouts';
 
@@ -7,8 +7,21 @@ import { useThreadsQuery } from '../../../queries/threads';
 import { ThreadItem } from './ThreadItem';
 
 export const ThreadsList: FC = () => {
-  const { agentId } = useParams('/conversational/$agentId/$threadId');
-  const { data: threads, isLoading } = useThreadsQuery({ agentId });
+  const { agentId, threadId } = useParams('/conversational/$agentId/$threadId');
+  const { data: threads, isLoading, refetch: refetchThreads } = useThreadsQuery({ agentId });
+
+  /**
+   * Sometimes it may happen that we are on some valid $threadId,
+   * but react-query client does not have it's information in its cache
+   * in that case refreshing the threads query so that new list will
+   * containe the thread we are on
+   */
+  useEffect(() => {
+    const hasThread = threads?.some((thread) => thread.thread_id === threadId);
+    if (!hasThread) {
+      refetchThreads();
+    }
+  }, [threadId]);
 
   // TODO-V2: Loading state for panels?
   if (isLoading) {
