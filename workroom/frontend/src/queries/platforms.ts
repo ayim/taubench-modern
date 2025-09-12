@@ -11,10 +11,16 @@ export type UpdatePlatformBody =
 export type GetPlatformResponse =
   paths['/api/v2/platforms/{platform_id}']['get']['responses']['200']['content']['application/json'];
 
+function validatePlatformsHaveIds(
+  platforms: ListPlatformsResponse,
+): platforms is (ListPlatformsResponse[number] & { platform_id: string })[] {
+  return platforms.every((platform) => Boolean(platform.platform_id));
+}
+
 export const getListPlatformsQueryOptions = ({ tenantId, agentAPIClient }: QueryProps<{ tenantId: string }>) =>
   queryOptions({
     queryKey: ['platforms', tenantId],
-    queryFn: async (): Promise<ListPlatformsResponse> => {
+    queryFn: async (): Promise<(ListPlatformsResponse[number] & { platform_id: string })[]> => {
       const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/', {
         silent: true,
       });
@@ -23,7 +29,13 @@ export const getListPlatformsQueryOptions = ({ tenantId, agentAPIClient }: Query
         throw new Error(response?.message || 'Failed to fetch platforms');
       }
 
-      return response.data as ListPlatformsResponse;
+      // TODO_AGENT_INTERFACE_FIX: platform_id should be required in the API schema, not optional
+      // This entire block can be removed once the agent-server interface has been fixed
+      if (!validatePlatformsHaveIds(response.data)) {
+        throw new Error('Unexpected: platform ID should always be defined when fetching platforms');
+      }
+
+      return response.data;
     },
   });
 
@@ -112,7 +124,7 @@ export const useUpdateLLMMutation = () => {
         throw new Error(response?.message || 'Failed to update LLM');
       }
 
-      return response.data as GetPlatformResponse;
+      return response.data;
     },
     onSuccess: async (_data, { tenantId, platformId }) => {
       await queryClient.invalidateQueries({ queryKey: ['platforms', tenantId] });
