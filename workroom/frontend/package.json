@@ -14,7 +14,11 @@
     "test:types": "tsc --noEmit"
   },
   "dependencies": {
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-python": "^6.2.1",
     "@hookform/resolvers": "^5.2.1",
+    "@lezer/json": "^1.0.3",
+    "@lezer/python": "^1.1.18",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@sema4ai/agent-server-interface": "*",
     "@sema4ai/components": "2.0.0-dev.38",
@@ -40,7 +44,8 @@
     "vite": "^7.0.4",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@sema4ai/workroom-interface": "^2.2.2",

@@ -5,7 +5,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "tsc --project ./tsconfig.build.json",
+    "prebuild": "npm run test:types",
+    "build": "node build.mjs",
     "dev": "dotenv -e ../.env tsx ./src/index.ts",
     "lint": "eslint . --ext ts --report-unused-disable-directives",
     "format": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" --write",
@@ -15,8 +16,8 @@
     "test:types": "tsc --noEmit"
   },
   "dependencies": {
-    "@sema4ai/agent-server-interface": "*",
     "@isaacs/ttlcache": "^1.4.1",
+    "@sema4ai/agent-server-interface": "*",
     "@sema4ai/robocloud-auth-utils": "^4.0.9",
     "@sema4ai/robocloud-shared-utils": "^1.10.1",
     "@sema4ai/robocloud-sign-interface": "^2.0.2",
@@ -36,12 +37,15 @@
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
     "dotenv-cli": "^10.0.0",
+    "esbuild": "^0.25.9",
     "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.32.0",
     "get-port": "^7.1.0",
     "msw": "^2.10.4",
     "supertest": "^7.1.4",
     "tsx": "^4.20.3",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vite": "^7.1.5",
+    "vitest": "^3.2.4"
   }
 }
