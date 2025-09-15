@@ -1,12 +1,11 @@
 import { Box, Button, Filter, FilterGroup, Menu, Table, ToggleInputButton, Typography } from '@sema4ai/components';
 import { IconChevronDown, IconDownloadCloud, IconRefresh, IconSearch, IconSeparator } from '@sema4ai/icons';
 import { components } from '@sema4ai/agent-server-interface';
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useRouteContext } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import { FC, useCallback, useMemo, useState } from 'react';
+import { useAgentsQuery, useWorkItemsQuery } from '@sema4ai/spar-ui/queries';
+
 import { snakeCaseToCamelCase } from '~/lib/utils';
-import { getListAgentsQueryOptions } from '~/queries/agents';
-import { listWorkItemsQueryOptions } from '~/queries/workItems';
 import { workitemsTableColumns, WorkItemsTableRow } from './WorkItemsRowItem';
 
 type Props = {
@@ -126,33 +125,21 @@ const TableActions: FC<{
 };
 
 const WorkItemsTable: FC<Props> = () => {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-
   const { agentId } = useParams({ strict: false });
 
   // Getting all workitems
-  const { data: listWorkItemsResponse } = useQuery(
-    listWorkItemsQueryOptions({
-      tenantId,
-      agentAPIClient,
-      agentId,
-    }),
-  );
+  const { data: listWorkItemsResponse } = useWorkItemsQuery({ agentId });
 
   // Getting all agents
-  const { data: listAgentsResponse = [] } = useQuery(
-    getListAgentsQueryOptions({
-      tenantId,
-      agentAPIClient,
-    }),
-  );
+  const { data: listAgentsResponse = [] } = useAgentsQuery({});
 
   // From agents list creating a map of agentId -> Agent
   const mapAgentsById = useMemo(() => {
     return listAgentsResponse.reduce(
       (acc, agent) => {
-        acc[agent.id] = agent;
+        if (agent.id) {
+          acc[agent.id] = agent;
+        }
         return acc;
       },
       {} as Record<string, Exclude<typeof listAgentsResponse, undefined>[number]>,
@@ -161,7 +148,7 @@ const WorkItemsTable: FC<Props> = () => {
 
   // Extract the work items from the response and adding agentName in it
   const workItems = useMemo(() => {
-    return (listWorkItemsResponse?.records || []).map((workItem) => {
+    return (listWorkItemsResponse || []).map((workItem) => {
       const agentName = workItem.agent_id ? mapAgentsById[workItem.agent_id]?.name : workItem.agent_id;
       return {
         ...workItem,

@@ -3,7 +3,7 @@ import { Box, Typography } from '@sema4ai/components';
 import { SidebarMenu } from '@sema4ai/layouts';
 
 import { useParams } from '../../../hooks';
-import { useWorkItemsQuery } from '../../../queries/workItem';
+import { useWorkItemsQuery } from '../../../queries/workItems';
 import { WorkerItem } from './WorkerItem';
 
 export const WorkerList: FC = () => {

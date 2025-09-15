@@ -1,7 +1,7 @@
 import { Box, ChatInput, ListSkeleton, SkeletonLoader } from '@sema4ai/components';
 import { Chat } from '@sema4ai/spar-ui';
 import { createFileRoute } from '@tanstack/react-router';
-import { useWorkItemQuery } from '~/queries/workItems';
+import { useWorkItemQuery } from '@sema4ai/spar-ui/queries';
 
 import { Sidebar } from '~/components/Sidebar';
 
@@ -10,8 +10,8 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/$workIt
 });
 
 function RouteComponent() {
-  const { agentId, tenantId, workItemId } = Route.useParams();
-  const { data: workItem } = useWorkItemQuery({ tenantId, workItemId });
+  const { agentId, workItemId } = Route.useParams();
+  const { data: workItem } = useWorkItemQuery({ workItemId });
 
   const threadId = workItem?.thread_id;
 

@@ -3,18 +3,22 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AgentNotFound } from '~/components/AgentNotFound';
 import { TransitionLoader } from '~/components/Loaders';
 import { NEW_CHAT_STARTING_MSG } from '~/config/constants';
-import { getGetAgentQueryOptions } from '~/queries/agents';
 import { getPreferenceKey, getUserPreferenceId, isWorkerAgent, removeUserPreferenceId } from '~/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/')({
-  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId }, location }) => {
-    const agent = await queryClient.ensureQueryData(
-      getGetAgentQueryOptions({
-        agentId,
-        tenantId,
-        agentAPIClient,
-      }),
-    );
+  loader: async ({ context: { agentAPIClient }, params: { agentId, tenantId }, location }) => {
+    const agentResult = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/agents/{aid}', {
+      params: { path: { aid: agentId } },
+    });
+
+    if (!agentResult.success) {
+      throw redirect({
+        to: '/tenants/$tenantId/home',
+        params: { tenantId },
+      });
+    }
+
+    const agent = agentResult.data;
 
     if (isWorkerAgent(agent)) {
       throw redirect({

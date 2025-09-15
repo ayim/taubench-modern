@@ -13,20 +13,22 @@ import { getFileSize } from '../common/helpers';
  */
 export const threadsQueryKey = (agentId: string) => ['threads', agentId];
 
-export const threadsQueryOptions = createSparQueryOptions<{ agentId: string }>()(({ sparAPIClient, agentId }) => ({
-  queryKey: threadsQueryKey(agentId),
-  queryFn: async () => {
-    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/threads/', {
-      params: { query: { aid: agentId } },
-    });
+export const threadsQueryOptions = createSparQueryOptions<{ agentId: string; limit?: number }>()(
+  ({ sparAPIClient, agentId, limit }) => ({
+    queryKey: threadsQueryKey(agentId),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/threads/', {
+        params: { query: { aid: agentId, limit } },
+      });
 
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch threads');
-    }
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch threads');
+      }
 
-    return response.data;
-  },
-}));
+      return response.data;
+    },
+  }),
+);
 
 export const useThreadsQuery = createSparQuery(threadsQueryOptions);
 
@@ -108,7 +110,7 @@ export const useCreateThreadMutation = createSparMutation<
   },
   onSuccess: (newThreadData) => {
     queryClient.setQueryData(threadsQueryKey(agentId), (threads: Thread[]) => {
-      return [...(threads||[]), newThreadData];
+      return [...(threads || []), newThreadData];
     });
   },
 }));

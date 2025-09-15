@@ -2,11 +2,11 @@ import { Box, useSnackbar } from '@sema4ai/components';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Outlet, useNavigate, useParams, useRouteContext, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
+import { useAgentsQuery, agentsQueryKey } from '@sema4ai/spar-ui/queries';
+
 import { AgentDeploymentForm } from './deploy/components/AgentDeploymentForm';
 import { AgentDeploymentFormSchema } from './deploy/components/context';
-
 import { mcpHeadersFromRecord } from '~/lib/utils';
-import { getListAgentsQueryKey, useListAgentsQuery } from '~/queries/agents';
 import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
 import type { AgentPackageResponse } from './deploy/components/AgentUploadForm';
 import { AgentUploadForm } from './deploy/components/AgentUploadForm';
@@ -88,7 +88,7 @@ function CreateAgentIndex() {
 
       const agentId = deployedAgent.agent_id;
 
-      await queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey(tenantId) });
+      await queryClient.invalidateQueries({ queryKey: agentsQueryKey() });
       await router.invalidate();
 
       navigate({ to: '/tenants/$tenantId/conversational/$agentId', params: { tenantId, agentId } });
@@ -116,7 +116,7 @@ function CreateAgentIndex() {
     await deployMutation.mutateAsync(payload);
   };
 
-  const { data: agents } = useListAgentsQuery();
+  const { data: agents } = useAgentsQuery({});
   const existingAgentNames = agents?.map((agent) => agent.name) ?? [];
 
   const shouldShowUploadForm = uploadedAgentPackage === null;

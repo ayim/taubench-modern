@@ -10,9 +10,9 @@ type CreateWorkItemPayload = components['schemas']['CreateWorkItemPayload'];
 /**
  * List Work items
  */
-export const workItemsQueryKey = (agentId: string) => ['work-items', agentId];
+export const workItemsQueryKey = (agentId?: string) => ['work-items', agentId || 'all'];
 
-export const workItemsQueryOptions = createSparQueryOptions<{ agentId: string }>()(({ sparAPIClient, agentId }) => ({
+export const workItemsQueryOptions = createSparQueryOptions<{ agentId?: string }>()(({ sparAPIClient, agentId }) => ({
   queryKey: workItemsQueryKey(agentId),
   queryFn: async () => {
     const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/', {

@@ -2,9 +2,9 @@ import { Box, Typography } from '@sema4ai/components';
 import { AgentIcon } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { useParams } from '@tanstack/react-router';
+import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 
 import { RouterSideNavigationLink } from '~/components/RouterLink';
-import { useListAgentsQuery } from '~/queries/agents';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 
 const Placeholder = styled(Typography)`
@@ -15,7 +15,7 @@ const Placeholder = styled(Typography)`
 
 export const AgentsMenu = () => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
-  const { data: agents } = useListAgentsQuery();
+  const { data: agents } = useAgentsQuery({});
 
   if (!agents) {
     return null;
@@ -38,16 +38,20 @@ export const AgentsMenu = () => {
         </Placeholder>
       )}
 
-      {conversationalAgents.map((agent) => (
-        <RouterSideNavigationLink
-          icon={<AgentIcon mode="conversational" size="s" />}
-          key={agent.id}
-          to="/tenants/$tenantId/conversational/$agentId"
-          params={{ tenantId, agentId: agent.id }}
-        >
-          {agent.name}
-        </RouterSideNavigationLink>
-      ))}
+      {conversationalAgents.map((agent) => {
+        return (
+          agent.id && (
+            <RouterSideNavigationLink
+              icon={<AgentIcon mode="conversational" size="s" />}
+              key={agent.id}
+              to="/tenants/$tenantId/conversational/$agentId"
+              params={{ tenantId, agentId: agent.id }}
+            >
+              {agent.name}
+            </RouterSideNavigationLink>
+          )
+        );
+      })}
 
       {workerAgents.length ? (
         <Box mt="$16" mb="$8">
@@ -57,16 +61,20 @@ export const AgentsMenu = () => {
         </Box>
       ) : undefined}
 
-      {workerAgents.map((agent) => (
-        <RouterSideNavigationLink
-          icon={<AgentIcon mode="worker" size="s" />}
-          key={agent.id}
-          to="/tenants/$tenantId/worker/$agentId"
-          params={{ tenantId, agentId: agent.id }}
-        >
-          {agent.name}
-        </RouterSideNavigationLink>
-      ))}
+      {workerAgents.map((agent) => {
+        return (
+          agent.id && (
+            <RouterSideNavigationLink
+              icon={<AgentIcon mode="worker" size="s" />}
+              key={agent.id}
+              to="/tenants/$tenantId/worker/$agentId"
+              params={{ tenantId, agentId: agent.id }}
+            >
+              {agent.name}
+            </RouterSideNavigationLink>
+          )
+        );
+      })}
     </Box>
   );
 };

@@ -2,8 +2,7 @@ import { Box, Button, Menu, Tooltip, Typography, useScreenSize } from '@sema4ai/
 import { IconDotsHorizontal, IconPlus, IconPoll } from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { useParams } from '@tanstack/react-router';
-
-import { useGetAgentQuery } from '~/queries/agents';
+import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 
 import { Header as HeaderBase } from '~/components/layout/Header';
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
@@ -14,7 +13,7 @@ export const Header = () => {
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const isMobile = useScreenSize('m');
 
-  const { data: agent, isLoading } = useGetAgentQuery({ agentId, tenantId });
+  const { data: agent, isLoading } = useAgentQuery({ agentId });
 
   if (isLoading || !agent) {
     return null;

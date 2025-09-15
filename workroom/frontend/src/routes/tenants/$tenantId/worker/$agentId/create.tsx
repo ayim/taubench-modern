@@ -8,7 +8,7 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/create'
 
 function View() {
   const navigate = useNavigate();
-  const { tenantId, agentId } = Route.useParams();
+  const { agentId, tenantId } = Route.useParams();
 
   const handleClose = useCallback(
     (workItemId?: string) => {
@@ -21,5 +21,5 @@ function View() {
     [navigate, tenantId, agentId],
   );
 
-  return <CreateWorkItemDialog isOpen={true} onClose={handleClose} />;
+  return <CreateWorkItemDialog agentId={agentId} isOpen={true} onClose={handleClose} />;
 }

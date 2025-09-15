@@ -5,36 +5,29 @@ import { AgentCard, AgentIcon } from '@sema4ai/layouts';
 import { IconAgents } from '@sema4ai/icons/logos';
 import { IconSearch, IconDotsHorizontal } from '@sema4ai/icons';
 import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
-import { Agent } from '@sema4ai/agent-server-interface';
+import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
+import { components } from '@sema4ai/agent-server-interface';
 
-import { getListAgentsQueryOptions } from '~/queries/agents';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
 import { DeleteAgentMenuItem } from './components/DeleteAgentMenuItem';
 
 export const Route = createFileRoute('/tenants/$tenantId/home/')({
-  loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) =>
-    queryClient.ensureQueryData(
-      getListAgentsQueryOptions({
-        agentAPIClient,
-        tenantId,
-      }),
-    ),
   component: HomePage,
 });
 
-const agentSearchRules: SearchRules<Agent> = { name: { value: (item) => item.name } };
+const agentSearchRules: SearchRules<components['schemas']['AgentCompat']> = { name: { value: (item) => item.name } };
 
 function HomePage() {
   const { tenantId } = Route.useParams();
-  const allAgents = Route.useLoaderData();
+  const { data: allAgents = [] } = useAgentsQuery({});
   const [search, setSearch] = useState<string>('');
   const [filters, setFilters] = useState({
     type: [] as string[],
   });
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const onAgentSearch = useCallback(fuzzyDataSearcher(agentSearchRules, allAgents || []), [allAgents]);
+  const onAgentSearch = useCallback(fuzzyDataSearcher(agentSearchRules, allAgents), [allAgents]);
 
   const filterOptions = useMemo(() => {
     return {
@@ -105,35 +98,43 @@ function HomePage() {
       />
 
       <Grid columns={[1, 1, 2, 3]} gap="$16" mt="$20" mb="$32">
-        {filteredAgents.map((agent) => (
-          <Link
-            key={agent.id}
-            to={
-              isConversationalAgent(agent)
-                ? '/tenants/$tenantId/conversational/$agentId'
-                : '/tenants/$tenantId/worker/$agentId'
-            }
-            params={{ tenantId, agentId: agent.id }}
-          >
-            <AgentCard
-              variant="thumbnail"
-              illustration={<AgentIcon mode={isConversationalAgent(agent) ? 'conversational' : 'worker'} size="m" />}
-              version={agent.version}
-              title={agent.name}
-              description={agent.description}
-            >
-              <AgentCard.Footer>
-                <Box display="flex" justifyContent="flex-end" gap="$4">
-                  <Menu
-                    trigger={<Button size="small" icon={IconDotsHorizontal} aria-label="More" round variant="ghost" />}
-                  >
-                    <DeleteAgentMenuItem agent={agent} tenantId={tenantId} />
-                  </Menu>
-                </Box>
-              </AgentCard.Footer>
-            </AgentCard>
-          </Link>
-        ))}
+        {filteredAgents.map((agent) => {
+          return (
+            agent.id && (
+              <Link
+                key={agent.id}
+                to={
+                  isConversationalAgent(agent)
+                    ? '/tenants/$tenantId/conversational/$agentId'
+                    : '/tenants/$tenantId/worker/$agentId'
+                }
+                params={{ tenantId, agentId: agent.id }}
+              >
+                <AgentCard
+                  variant="thumbnail"
+                  illustration={
+                    <AgentIcon mode={isConversationalAgent(agent) ? 'conversational' : 'worker'} size="m" />
+                  }
+                  version={agent.version}
+                  title={agent.name}
+                  description={agent.description}
+                >
+                  <AgentCard.Footer>
+                    <Box display="flex" justifyContent="flex-end" gap="$4">
+                      <Menu
+                        trigger={
+                          <Button size="small" icon={IconDotsHorizontal} aria-label="More" round variant="ghost" />
+                        }
+                      >
+                        <DeleteAgentMenuItem agent={agent} tenantId={tenantId} />
+                      </Menu>
+                    </Box>
+                  </AgentCard.Footer>
+                </AgentCard>
+              </Link>
+            )
+          );
+        })}
       </Grid>
 
       {!filteredAgents.length && allAgents.length && (

@@ -1,5 +1,7 @@
 import { OAuthClient, OAuthProvider, OAuthProviderSettings } from '@sema4ai/oauth-client';
-import { Agent } from '@sema4ai/agent-server-interface';
+import { components } from '@sema4ai/agent-server-interface';
+
+type Agent = components['schemas']['AgentCompat'];
 
 export const isConversationalAgent = (agent: Agent) => agent && agent.metadata?.mode !== 'worker';
 export const isWorkerAgent = (agent: Agent) => agent && agent.metadata?.mode === 'worker';

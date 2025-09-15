@@ -1,8 +1,8 @@
 import { useParams } from '@tanstack/react-router';
 import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
 import { ThreadHeader, ThreadSearch } from '@sema4ai/spar-ui';
+import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 
-import { useGetAgentQuery } from '~/queries/agents';
 import { IconDotsHorizontal, IconDoubleChatBubble, IconPaperclip, IconSpreadsheet } from '@sema4ai/icons';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
@@ -12,7 +12,7 @@ export const Header = () => {
   const { agentId, tenantId, threadId } = useParams({ from: '/tenants/$tenantId/conversational/$agentId/$threadId' });
   const isMobile = useScreenSize('m');
 
-  const { data: agent, isLoading } = useGetAgentQuery({ agentId, tenantId });
+  const { data: agent, isLoading } = useAgentQuery({ agentId });
 
   if (isLoading || !agent) {
     return null;

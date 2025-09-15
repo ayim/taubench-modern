@@ -5,7 +5,7 @@ import { Button } from '@sema4ai/components';
 
 import { EmptyView } from '~/components/EmptyView';
 import { TransitionLoader } from '~/components/Loaders';
-import { getAgentMetaQueryOptions, getGetAgentQueryOptions } from '~/queries/agents';
+import { getAgentMetaQueryOptions } from '~/queries/agents';
 import { ThreadsUIContext } from './components/ThreadsUIContext';
 import { Layout } from './components/Layout';
 import { Header } from './components/Header';
@@ -13,14 +13,6 @@ import { Thread } from '@sema4ai/spar-ui';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId } }) => {
-    const agent = await queryClient.ensureQueryData(
-      getGetAgentQueryOptions({
-        agentId,
-        tenantId,
-        agentAPIClient,
-      }),
-    );
-
     const agentMeta = await queryClient.ensureQueryData(
       getAgentMetaQueryOptions({
         agentId,
@@ -29,7 +21,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       }),
     );
 
-    return { agent, agentMeta };
+    return { agentMeta };
   },
   component: View,
   pendingComponent: TransitionLoader,

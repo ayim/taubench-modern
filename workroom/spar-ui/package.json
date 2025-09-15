@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/spar-ui",
-  "version": "0.0.14",
+  "version": "0.0.16",
   "type": "module",
   "description": "SPAR reusable  User Interface components",
   "main": "dist/index.js",
@@ -17,6 +17,10 @@
   "files": [
     "dist"
   ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./queries": "./dist/queries.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Sema4AI/agent-platform.git"

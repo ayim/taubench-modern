@@ -7,10 +7,10 @@ import { FileRejection, useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { useCreateWorkItemMutation } from '../../queries/workItem';
-import { useParams } from '../../hooks/useParams';
+import { useCreateWorkItemMutation } from '../../queries/workItems';
 
 interface CreateWorkItemDialogProps {
+  agentId: string;
   isOpen: boolean;
   onClose: (workItemId?: string) => void;
 }
@@ -21,8 +21,7 @@ type WorkerItemFormValues = {
   files?: File[];
 };
 
-export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ isOpen, onClose }) => {
-  const { agentId } = useParams('/thread/$agentId/$threadId');
+export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ agentId, isOpen, onClose }) => {
   const { addSnackbar } = useSnackbar();
 
   const { mutateAsync: createWorkItemAsync, isPending: isCreatingWorkItem } = useCreateWorkItemMutation({ agentId });

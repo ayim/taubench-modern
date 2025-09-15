@@ -5,7 +5,7 @@ import { IconLoading } from '@sema4ai/icons';
 
 import { useParams } from '../../../hooks';
 import { SidebarLink } from '../../../common/link';
-import { useWorkItemQuery } from '../../../queries/workItem';
+import { useWorkItemQuery } from '../../../queries/workItems';
 
 type ThreadItemProps = {
   workItemId: string;
@@ -13,7 +13,8 @@ type ThreadItemProps = {
 };
 
 const Container = styled(Box)`
-  > a {
+  > a,
+  > div {
     overflow: hidden;
     display: block;
     flex: 1;

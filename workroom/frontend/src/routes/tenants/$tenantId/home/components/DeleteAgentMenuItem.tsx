@@ -2,17 +2,16 @@ import { FC } from 'react';
 import { Menu, useSnackbar } from '@sema4ai/components';
 import { useConfirmAction } from '@sema4ai/layouts';
 import { IconTrash } from '@sema4ai/icons';
-import { Agent } from '@sema4ai/agent-server-interface';
-
-import { useDeleteAgentMutation } from '~/queries/agents';
+import { components } from '@sema4ai/agent-server-interface';
+import { useDeleteAgentMutation } from '@sema4ai/spar-ui/queries';
 
 type DeleteAgentMenuItemProps = {
-  agent: Agent;
+  agent: components['schemas']['AgentCompat'];
   tenantId: string;
 };
 
-export const DeleteAgentMenuItem: FC<DeleteAgentMenuItemProps> = ({ agent, tenantId }) => {
-  const deleteAgentMutation = useDeleteAgentMutation();
+export const DeleteAgentMenuItem: FC<DeleteAgentMenuItemProps> = ({ agent }) => {
+  const deleteAgentMutation = useDeleteAgentMutation({});
   const { addSnackbar } = useSnackbar();
 
   const onDeleteConfirm = useConfirmAction(
@@ -25,8 +24,12 @@ export const DeleteAgentMenuItem: FC<DeleteAgentMenuItemProps> = ({ agent, tenan
   );
 
   const handleDelete = onDeleteConfirm(() => {
+    if (!agent.id) {
+      return;
+    }
+
     deleteAgentMutation.mutate(
-      { tenantId, agentId: agent.id },
+      { agentId: agent.id },
       {
         onSuccess: () => {
           addSnackbar({
