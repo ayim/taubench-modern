@@ -773,4 +773,16 @@ export class AgentAPIClient {
 
     return null;
   }
+
+  public async listDataConnections({
+    tenantId,
+  }: {
+    tenantId: string;
+  }): Promise<
+    ApiResponse<agentServerPaths['/api/v2/data-connections/']['get']['responses']['200']['content']['application/json']>
+  > {
+    const dataConnections = await this.agentFetch(tenantId, 'get', '/api/v2/data-connections/');
+
+    return dataConnections;
+  }
 }

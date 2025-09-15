@@ -9,8 +9,9 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import JSON
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_frames import PlatformDataFrame
-from agent_platform.core.data_server.data_connection import DataConnection
+from agent_platform.core.data_server.data_connection import DataConnection as DIDataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.core.evals.types import (
@@ -24,6 +25,7 @@ from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.server.storage.abstract import AbstractStorage
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
+    DataConnectionNotFoundError,
     DIDSConnectionDetailsNotFoundError,
     DocumentIntelligenceIntegrationNotFoundError,
 )
@@ -1100,7 +1102,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Document Intelligence Data Connections getter and setter
     # -------------------------------------------------------------------------
-    async def get_dids_data_connections(self) -> list["DataConnection"]:
+    async def get_dids_data_connections(self) -> list["DIDataConnection"]:
         """Get all Document Intelligence Data Server data connections."""
         dids_data_connections = self._get_table("dids_data_connections")
 
@@ -1142,11 +1144,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 "engine": row_dict["engine"],
                 "configuration": row_dict["configuration"],
             }
-            data_connections.append(DataConnection.model_validate(connection_data))
+            data_connections.append(DIDataConnection.model_validate(connection_data))
 
         return data_connections
 
-    async def set_dids_data_connections(self, data_connections: list["DataConnection"]) -> None:
+    async def set_dids_data_connections(self, data_connections: list["DIDataConnection"]) -> None:
         """Set Document Intelligence Data Server data connections (replace all)."""
         dids_data_connections = self._get_table("dids_data_connections")
 
@@ -1190,3 +1192,76 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def delete_dids_data_connections(self) -> None:
         """Delete all Document Intelligence Data Server data connections."""
         await self.set_dids_data_connections([])
+
+    # -------------------------------------------------------------------------
+    # Data Connections getter and setter
+    # -------------------------------------------------------------------------
+    async def get_data_connections(self) -> list["DataConnection"]:
+        """Get all data connections."""
+        data_connections = self._get_table("data_connection")
+
+        stmt = sa.select(data_connections)
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        decrypted_rows = []
+        for row in rows:
+            row_dict = dict(row)
+            row_dict["configuration"] = self._decrypt_config(row_dict["enc_configuration"])
+            decrypted_rows.append(row_dict)
+
+        return [DataConnection.model_validate(row_dict) for row_dict in decrypted_rows]
+
+    async def get_data_connection(self, connection_id: str) -> DataConnection:
+        """Get data connection by ID."""
+        data_connections = self._get_table("data_connection")
+        async with self.engine.begin() as conn:
+            result = await conn.execute(
+                sa.select(data_connections).where(data_connections.c.id == connection_id)
+            )
+            row = result.mappings().fetchone()
+            if row is None:
+                raise DataConnectionNotFoundError(connection_id)
+        row_dict = dict(row)
+        row_dict["configuration"] = self._decrypt_config(row_dict["enc_configuration"])
+        row_dict.pop("enc_configuration")
+        return DataConnection.model_validate(row_dict)
+
+    async def set_data_connection(self, data_connection: DataConnection) -> None:
+        """Set data connections."""
+        data_connections = self._get_table("data_connection")
+        data_connection_dict = data_connection.model_dump()
+        data_connection_dict["enc_configuration"] = self._encrypt_config(
+            data_connection_dict["configuration"]
+        )
+        data_connection_dict.pop("configuration")
+        async with self.engine.begin() as conn:
+            await conn.execute(sa.insert(data_connections).values(data_connection_dict))
+
+    async def delete_data_connection(self, connection_id: str) -> None:
+        """Delete data connection."""
+        data_connections = self._get_table("data_connection")
+        async with self.engine.begin() as conn:
+            result = await conn.execute(
+                sa.delete(data_connections).where(data_connections.c.id == connection_id)
+            )
+            if result.rowcount == 0:
+                raise DataConnectionNotFoundError(connection_id)
+
+    async def update_data_connection(self, data_connection: DataConnection) -> None:
+        """Update data connections."""
+        data_connections = self._get_table("data_connection")
+        data_connection_dict = data_connection.model_dump()
+        data_connection_dict["enc_configuration"] = self._encrypt_config(
+            data_connection_dict["configuration"]
+        )
+        data_connection_dict.pop("configuration")
+        data_connection_dict["updated_at"] = datetime.now(UTC)
+        async with self.engine.begin() as conn:
+            await conn.execute(
+                sa.update(data_connections)
+                .where(data_connections.c.id == data_connection.id)
+                .values(data_connection_dict)
+            )

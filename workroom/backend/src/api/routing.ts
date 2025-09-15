@@ -148,6 +148,11 @@ function getRouteMap(): {
     'post /api/v2/document-intelligence/quality-checks/execute': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/documents/generate-schema': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/threads/{tid}/data-frames/{data_frame_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/data-connections/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/data-connections/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/data-connections/{connection_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'delete /api/v2/data-connections/{connection_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'put /api/v2/data-connections/{connection_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
 
     // #region Disallowed Routes
     'get /api/v2/health': [DISALLOWED],

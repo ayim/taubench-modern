@@ -217,3 +217,14 @@ class ConfigDecryptionError(PlatformHTTPError):
 
     def __init__(self, message: str = "Failed to decrypt configuration"):
         super().__init__(error_code=ErrorCode.UNEXPECTED, message=message)
+
+
+class DataConnectionNotFoundError(PlatformHTTPError):
+    """A data connection with the given ID was not found."""
+
+    def __init__(
+        self, connection_id: str, message: str = "A data connection with the given ID was not found"
+    ):
+        super().__init__(
+            error_code=ErrorCode.NOT_FOUND, message=message, data={"id": connection_id}
+        )

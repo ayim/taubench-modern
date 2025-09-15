@@ -1769,6 +1769,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/data-connections/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Data Connections
+     * @description List all data connections for the authenticated user.
+     */
+    get: operations['list_data_connections_data_connections__get'];
+    put?: never;
+    /**
+     * Create Data Connection
+     * @description Create a new data connection.
+     */
+    post: operations['create_data_connection_data_connections__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/data-connections/{connection_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Data Connection
+     * @description Get a specific data connection by ID.
+     */
+    get: operations['get_data_connection_data_connections__connection_id__get'];
+    /**
+     * Update Data Connection
+     * @description Update an existing data connection.
+     */
+    put: operations['update_data_connection_data_connections__connection_id__put'];
+    post?: never;
+    /**
+     * Delete Data Connection
+     * @description Delete a data connection.
+     */
+    delete: operations['delete_data_connection_data_connections__connection_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/evals/scenarios': {
     parameters: {
       query?: never;
@@ -2307,6 +2359,23 @@ export interface components {
        */
       project_name: string;
     };
+    /** AzureOpenAIEmbeddingModel */
+    AzureOpenAIEmbeddingModel: {
+      /** Model Name */
+      model_name: string;
+      /** Api Key */
+      api_key: string;
+      /** Base Url */
+      base_url: string;
+      /** Api Version */
+      api_version: string;
+      /**
+       * Provider
+       * @default azure_openai
+       * @constant
+       */
+      provider: 'azure_openai';
+    };
     /** AzureOpenAIPlatformParameters */
     AzureOpenAIPlatformParameters: {
       /**
@@ -2396,6 +2465,23 @@ export interface components {
        * @description The Azure OpenAI model backing deployment name for embeddings.
        */
       azure_model_backing_deployment_name_embeddings?: string | null;
+    };
+    /** AzureOpenAIRerankingModel */
+    AzureOpenAIRerankingModel: {
+      /** Model Name */
+      model_name: string;
+      /** Api Key */
+      api_key: string;
+      /** Base Url */
+      base_url: string;
+      /** Api Version */
+      api_version: string;
+      /**
+       * Provider
+       * @default azure_openai
+       * @constant
+       */
+      provider: 'azure_openai';
     };
     /** BedrockPlatformParameters */
     BedrockPlatformParameters: {
@@ -2495,6 +2581,35 @@ export interface components {
       config_params?: {
         [key: string]: unknown;
       };
+    };
+    /** BigqueryDataConnection */
+    BigqueryDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['BigqueryDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default bigquery
+       * @constant
+       */
+      engine: 'bigquery';
+    };
+    /** BigqueryDataConnectionConfiguration */
+    BigqueryDataConnectionConfiguration: {
+      /** Project Id */
+      project_id: string;
+      /** Dataset */
+      dataset: string;
+      /** Service Account Keys */
+      service_account_keys?: string | null;
+      /** Service Account Json */
+      service_account_json?: string | null;
     };
     /** Body_generate_data_model_from_document_document_intelligence_data_models_generate_post */
     Body_generate_data_model_from_document_document_intelligence_data_models_generate_post: {
@@ -2636,6 +2751,33 @@ export interface components {
       file_ref: string;
       /** File Id */
       file_id: string;
+    };
+    /** ConfluenceDataConnection */
+    ConfluenceDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['ConfluenceDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default confluence
+       * @constant
+       */
+      engine: 'confluence';
+    };
+    /** ConfluenceDataConnectionConfiguration */
+    ConfluenceDataConnectionConfiguration: {
+      /** Api Base */
+      api_base: string;
+      /** Username */
+      username: string;
+      /** Password */
+      password: string;
     };
     /** ConversationHistoryParams */
     ConversationHistoryParams: {
@@ -3572,6 +3714,39 @@ export interface components {
       /** Value */
       value?: string | null;
     };
+    /** MSSQLDataConnection */
+    MSSQLDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['MSSQLDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default mssql
+       * @constant
+       */
+      engine: 'mssql';
+    };
+    /** MSSQLDataConnectionConfiguration */
+    MSSQLDataConnectionConfiguration: {
+      /** Host */
+      host: string;
+      /** Database */
+      database: string;
+      /** User */
+      user: string;
+      /** Password */
+      password: string;
+      /** Port */
+      port?: number | null;
+      /** Server */
+      server?: string | null;
+    };
     /** MemoriesParams */
     MemoriesParams: {
       /**
@@ -3602,6 +3777,45 @@ export interface components {
        */
       include: boolean;
       params?: components['schemas']['MemoriesParams'];
+    };
+    /** MySQLDataConnection */
+    MySQLDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['MySQLDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default mysql
+       * @constant
+       */
+      engine: 'mysql';
+    };
+    /** MySQLDataConnectionConfiguration */
+    MySQLDataConnectionConfiguration: {
+      /** Host */
+      host: string;
+      /** Port */
+      port: number;
+      /** Database */
+      database: string;
+      /** User */
+      user: string;
+      /** Password */
+      password: string;
+      /** Ssl */
+      ssl?: boolean | null;
+      /** Ssl Ca */
+      ssl_ca?: string | null;
+      /** Ssl Cert */
+      ssl_cert?: string | null;
+      /** Ssl Key */
+      ssl_key?: string | null;
     };
     /** OTelArtifact */
     OTelArtifact: {
@@ -3683,6 +3897,19 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** OpenAIEmbeddingModel */
+    OpenAIEmbeddingModel: {
+      /** Model Name */
+      model_name: string;
+      /** Api Key */
+      api_key: string;
+      /**
+       * Provider
+       * @default openai
+       * @constant
+       */
+      provider: 'openai';
+    };
     /** OpenAIPlatformParameters */
     OpenAIPlatformParameters: {
       /**
@@ -3729,6 +3956,58 @@ export interface components {
       platform_id: string;
       /** @description The OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       openai_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /** OpenAIRerankingModel */
+    OpenAIRerankingModel: {
+      /** Model Name */
+      model_name: string;
+      /** Api Key */
+      api_key: string;
+      /**
+       * Provider
+       * @default openai
+       * @constant
+       */
+      provider: 'openai';
+    };
+    /** OracleDataConnection */
+    OracleDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['OracleDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default oracle
+       * @constant
+       */
+      engine: 'oracle';
+    };
+    /** OracleDataConnectionConfiguration */
+    OracleDataConnectionConfiguration: {
+      /** Host */
+      host: string;
+      /** User */
+      user: string;
+      /** Password */
+      password: string;
+      /** Service Name */
+      service_name: string;
+      /** Port */
+      port?: number | null;
+      /** Dsn */
+      dsn?: string | null;
+      /** Sid */
+      sid?: string | null;
+      /** Disable Oob */
+      disable_oob?: boolean | null;
+      /** Auth Mode */
+      auth_mode?: string | null;
     };
     /** ParseJobResult */
     ParseJobResult: {
@@ -3811,6 +4090,80 @@ export interface components {
        * @description The work item ID associated with this thread.
        */
       work_item_id?: string | null;
+    };
+    /** PgvectorDataConnection */
+    PgvectorDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['PgvectorDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default pgvector
+       * @constant
+       */
+      engine: 'pgvector';
+    };
+    /** PgvectorDataConnectionConfiguration */
+    PgvectorDataConnectionConfiguration: {
+      /** Host */
+      host: string;
+      /** Port */
+      port: number;
+      /** Database */
+      database: string;
+      /** User */
+      user: string;
+      /** Password */
+      password: string;
+      /**
+       * Schema
+       * @default public
+       */
+      schema: string;
+      sslmode?: components['schemas']['Sslmode'] | null;
+    };
+    /** PostgresDataConnection */
+    PostgresDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['PostgresDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default postgres
+       * @constant
+       */
+      engine: 'postgres';
+    };
+    /** PostgresDataConnectionConfiguration */
+    PostgresDataConnectionConfiguration: {
+      /** Host */
+      host: string;
+      /** Port */
+      port: number;
+      /** Database */
+      database: string;
+      /** User */
+      user: string;
+      /** Password */
+      password: string;
+      /**
+       * Schema
+       * @default public
+       */
+      schema: string;
+      sslmode?: components['schemas']['Sslmode'] | null;
     };
     /** PromptAgentMessage */
     PromptAgentMessage: {
@@ -4109,6 +4462,40 @@ export interface components {
        * @description The questions in the question group.
        */
       questions?: string[];
+    };
+    /** RedshiftDataConnection */
+    RedshiftDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['RedshiftDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default redshift
+       * @constant
+       */
+      engine: 'redshift';
+    };
+    /** RedshiftDataConnectionConfiguration */
+    RedshiftDataConnectionConfiguration: {
+      /** Host */
+      host: string;
+      /** Port */
+      port: number;
+      /** Database */
+      database: string;
+      /** User */
+      user: string;
+      /** Password */
+      password: string;
+      /** Schema */
+      schema?: string | null;
+      sslmode?: components['schemas']['Sslmode'] | null;
     };
     /** ReductoPlatformParameters */
     ReductoPlatformParameters: {
@@ -4743,6 +5130,35 @@ export interface components {
        */
       content: string;
     };
+    /** SalesforceDataConnection */
+    SalesforceDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['SalesforceDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default salesforce
+       * @constant
+       */
+      engine: 'salesforce';
+    };
+    /** SalesforceDataConnectionConfiguration */
+    SalesforceDataConnectionConfiguration: {
+      /** Username */
+      username: string;
+      /** Password */
+      password: string;
+      /** Client Id */
+      client_id: string;
+      /** Client Secret */
+      client_secret: string;
+    };
     /** Scenario */
     Scenario: {
       /** Scenario Id */
@@ -4809,6 +5225,148 @@ export interface components {
        */
       value: string;
     };
+    /** SemaknowledgebaseDataConnection */
+    SemaknowledgebaseDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['SemaknowledgebaseDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default sema4_knowledge_base
+       * @constant
+       */
+      engine: 'sema4_knowledge_base';
+    };
+    /** SemaknowledgebaseDataConnectionConfiguration */
+    SemaknowledgebaseDataConnectionConfiguration: {
+      /** Embedding Model */
+      embedding_model:
+        | components['schemas']['OpenAIEmbeddingModel']
+        | components['schemas']['AzureOpenAIEmbeddingModel'];
+      /** Storage */
+      storage: string;
+      /** Reranking Model */
+      reranking_model?:
+        | components['schemas']['OpenAIRerankingModel']
+        | components['schemas']['AzureOpenAIRerankingModel']
+        | null;
+      /** Metadata Columns */
+      metadata_columns?: string[] | null;
+      /** Content Columns */
+      content_columns?: string[] | null;
+      /** Id Column */
+      id_column?: string | null;
+    };
+    /** SlackDataConnection */
+    SlackDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['SlackDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default slack
+       * @constant
+       */
+      engine: 'slack';
+    };
+    /** SlackDataConnectionConfiguration */
+    SlackDataConnectionConfiguration: {
+      /** Token */
+      token: string;
+      /** App Token */
+      app_token: string;
+    };
+    /** SnowflakeCustomKeyPairConfiguration */
+    SnowflakeCustomKeyPairConfiguration: {
+      /** Account */
+      account: string;
+      /** User */
+      user: string;
+      /** Private Key Path */
+      private_key_path: string;
+      /** Warehouse */
+      warehouse: string;
+      /** Database */
+      database: string;
+      /** Schema */
+      schema: string;
+      /**
+       * Credential Type
+       * @default custom-key-pair
+       */
+      credential_type: string;
+      /** Role */
+      role?: string | null;
+      /** Private Key Passphrase */
+      private_key_passphrase?: string | null;
+    };
+    /** SnowflakeDataConnection */
+    SnowflakeDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Configuration */
+      configuration:
+        | components['schemas']['SnowflakeLinkedConfiguration']
+        | components['schemas']['SnowflakeCustomKeyPairConfiguration']
+        | components['schemas']['SnowflakeDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default snowflake
+       * @constant
+       */
+      engine: 'snowflake';
+    };
+    /** SnowflakeDataConnectionConfiguration */
+    SnowflakeDataConnectionConfiguration: {
+      /** Credential Type */
+      credential_type: string;
+      /** Account */
+      account: string;
+      /** User */
+      user: string;
+      /** Password */
+      password: string;
+      /** Warehouse */
+      warehouse: string;
+      /** Database */
+      database: string;
+      /** Schema */
+      schema: string;
+      /** Role */
+      role?: string | null;
+    };
+    /** SnowflakeLinkedConfiguration */
+    SnowflakeLinkedConfiguration: {
+      /** Warehouse */
+      warehouse: string;
+      /** Database */
+      database: string;
+      /** Schema */
+      schema: string;
+      /**
+       * Credential Type
+       * @default linked
+       */
+      credential_type: string;
+    };
     /** SplitJobResult */
     SplitJobResult: {
       result: components['schemas']['Result'];
@@ -4819,6 +5377,11 @@ export interface components {
        */
       job_type: 'split';
     };
+    /**
+     * Sslmode
+     * @enum {string}
+     */
+    Sslmode: 'require' | 'disable' | 'allow' | 'prefer';
     /**
      * StatusError
      * @description A client-safe error representation that can be included in StatusResponse.
@@ -5346,6 +5909,37 @@ export interface components {
       _chart_spec?: {
         [key: string]: unknown;
       } | null;
+    };
+    /** TimescaleDBDataConnection */
+    TimescaleDBDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['TimescaledbDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default timescaledb
+       * @constant
+       */
+      engine: 'timescaledb';
+    };
+    /** TimescaledbDataConnectionConfiguration */
+    TimescaledbDataConnectionConfiguration: {
+      /** Host */
+      host: string;
+      /** Port */
+      port: number;
+      /** Database */
+      database: string;
+      /** User */
+      user: string;
+      /** Password */
+      password: string;
     };
     /** TokenUsage */
     TokenUsage: {
@@ -9744,6 +10338,235 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_data_connections_data_connections__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': (
+            | components['schemas']['PostgresDataConnection']
+            | components['schemas']['RedshiftDataConnection']
+            | components['schemas']['SnowflakeDataConnection']
+            | components['schemas']['ConfluenceDataConnection']
+            | components['schemas']['MySQLDataConnection']
+            | components['schemas']['MSSQLDataConnection']
+            | components['schemas']['OracleDataConnection']
+            | components['schemas']['SlackDataConnection']
+            | components['schemas']['SalesforceDataConnection']
+            | components['schemas']['TimescaleDBDataConnection']
+            | components['schemas']['PgvectorDataConnection']
+            | components['schemas']['BigqueryDataConnection']
+            | components['schemas']['SemaknowledgebaseDataConnection']
+          )[];
+        };
+      };
+    };
+  };
+  create_data_connection_data_connections__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json':
+          | components['schemas']['PostgresDataConnection']
+          | components['schemas']['RedshiftDataConnection']
+          | components['schemas']['SnowflakeDataConnection']
+          | components['schemas']['ConfluenceDataConnection']
+          | components['schemas']['MySQLDataConnection']
+          | components['schemas']['MSSQLDataConnection']
+          | components['schemas']['OracleDataConnection']
+          | components['schemas']['SlackDataConnection']
+          | components['schemas']['SalesforceDataConnection']
+          | components['schemas']['TimescaleDBDataConnection']
+          | components['schemas']['PgvectorDataConnection']
+          | components['schemas']['BigqueryDataConnection']
+          | components['schemas']['SemaknowledgebaseDataConnection'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json':
+            | components['schemas']['PostgresDataConnection']
+            | components['schemas']['RedshiftDataConnection']
+            | components['schemas']['SnowflakeDataConnection']
+            | components['schemas']['ConfluenceDataConnection']
+            | components['schemas']['MySQLDataConnection']
+            | components['schemas']['MSSQLDataConnection']
+            | components['schemas']['OracleDataConnection']
+            | components['schemas']['SlackDataConnection']
+            | components['schemas']['SalesforceDataConnection']
+            | components['schemas']['TimescaleDBDataConnection']
+            | components['schemas']['PgvectorDataConnection']
+            | components['schemas']['BigqueryDataConnection']
+            | components['schemas']['SemaknowledgebaseDataConnection'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_data_connection_data_connections__connection_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        connection_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json':
+            | components['schemas']['PostgresDataConnection']
+            | components['schemas']['RedshiftDataConnection']
+            | components['schemas']['SnowflakeDataConnection']
+            | components['schemas']['ConfluenceDataConnection']
+            | components['schemas']['MySQLDataConnection']
+            | components['schemas']['MSSQLDataConnection']
+            | components['schemas']['OracleDataConnection']
+            | components['schemas']['SlackDataConnection']
+            | components['schemas']['SalesforceDataConnection']
+            | components['schemas']['TimescaleDBDataConnection']
+            | components['schemas']['PgvectorDataConnection']
+            | components['schemas']['BigqueryDataConnection']
+            | components['schemas']['SemaknowledgebaseDataConnection'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  update_data_connection_data_connections__connection_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        connection_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json':
+          | components['schemas']['PostgresDataConnection']
+          | components['schemas']['RedshiftDataConnection']
+          | components['schemas']['SnowflakeDataConnection']
+          | components['schemas']['ConfluenceDataConnection']
+          | components['schemas']['MySQLDataConnection']
+          | components['schemas']['MSSQLDataConnection']
+          | components['schemas']['OracleDataConnection']
+          | components['schemas']['SlackDataConnection']
+          | components['schemas']['SalesforceDataConnection']
+          | components['schemas']['TimescaleDBDataConnection']
+          | components['schemas']['PgvectorDataConnection']
+          | components['schemas']['BigqueryDataConnection']
+          | components['schemas']['SemaknowledgebaseDataConnection'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json':
+            | components['schemas']['PostgresDataConnection']
+            | components['schemas']['RedshiftDataConnection']
+            | components['schemas']['SnowflakeDataConnection']
+            | components['schemas']['ConfluenceDataConnection']
+            | components['schemas']['MySQLDataConnection']
+            | components['schemas']['MSSQLDataConnection']
+            | components['schemas']['OracleDataConnection']
+            | components['schemas']['SlackDataConnection']
+            | components['schemas']['SalesforceDataConnection']
+            | components['schemas']['TimescaleDBDataConnection']
+            | components['schemas']['PgvectorDataConnection']
+            | components['schemas']['BigqueryDataConnection']
+            | components['schemas']['SemaknowledgebaseDataConnection'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_data_connection_data_connections__connection_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        connection_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
       };
       /** @description Validation Error */
       422: {

@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS v2."data_connection" (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  external_id TEXT,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  enc_configuration JSONB NOT NULL,
+  engine TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+);
