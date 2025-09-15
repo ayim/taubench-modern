@@ -34,7 +34,7 @@ dependencies = [
 agent-server = "agent_platform.server.main:main"
 
 [tool.uv.sources]
-sema4ai-docint = { path = "wheels/sema4ai_docint-0.5.0-py3-none-any.whl" }
+sema4ai-docint = { path = "wheels/sema4ai_docint-0.5.6-py3-none-any.whl" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_platform"]
