@@ -8,7 +8,7 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.thread import Thread
 from agent_platform.core.work_items import WorkItem
-from agent_platform.server.constants import SystemConfig
+from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemConfig
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
@@ -361,10 +361,27 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
         }
 
         match owner:
-            case Agent() | Thread():
+            case Agent():
                 agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
                 work_item_id = None
                 file_dict |= {"agent_id": agent_id, "thread_id": thread_id, "work_item_id": None}
+            case Thread():
+                agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
+                work_item_id = None
+                file_dict |= {"agent_id": agent_id, "thread_id": thread_id, "work_item_id": None}
+
+                # For Thread file-attachments, if the thread was created by a work-item, overwrite
+                # the user_id such that all users can access the file because all users can access
+                # work-item threads.
+                thread: Thread = owner
+                if thread.work_item_id:
+                    system_user, _ = await self.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+                    old_user_id = file_dict["user_id"]
+                    self._logger.info(
+                        f"Overwriting file owner ({system_user.user_id}) for new file attachment "
+                        f"to thread (was {old_user_id})"
+                    )
+                    file_dict["user_id"] = system_user.user_id
             case WorkItem():
                 work_item_id = await self._validate_work_item_owner_type(owner)
                 agent_id, thread_id = None, None

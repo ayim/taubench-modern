@@ -21,6 +21,7 @@ from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.runbook import Runbook
 from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
 from agent_platform.core.utils import SecretString
+from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
 from agent_platform.server.file_manager import (
     BaseFileManager,
     CloudFileManager,
@@ -100,10 +101,9 @@ def sample_file2(tmpdir):
 
 @pytest.fixture
 async def sample_user_id(storage: "SQLiteStorage | PostgresStorage") -> str:
-    user, created = await storage.get_or_create_user(
-        sub="tenant:testing:system:system_user",
+    user, _ = await storage.get_or_create_user(
+        sub="tenant:testing:user:12345678",
     )
-    assert created is False, "User should already exist"
     return user.user_id
 
 
@@ -214,8 +214,7 @@ async def setup_storage(
     sample_agent: Agent,
     sample_thread: Thread,
 ):
-    """Setup storage with required user, agent and thread"""
-    await storage.get_or_create_user(sub="tenant:testing:system:system_user")
+    """Setup storage with agent and thread (user has already been created)"""
     await storage.upsert_agent(sample_agent.user_id, sample_agent)
     await storage.upsert_thread(sample_agent.user_id, sample_thread)
     return storage
@@ -1281,6 +1280,43 @@ async def test_upload_files_to_work_item(
 
     file_ids = {f.file_id for f in files}
     assert first_file_id in file_ids  # Original file should still exist
+
+
+@pytest.mark.asyncio
+async def test_upload_to_work_item_thread(
+    file_manager: BaseFileManager,
+    sample_file: UploadFile,
+    sample_thread: Thread,
+    setup_storage: SQLiteStorage | PostgresStorage,
+    sample_uploaded_file: UploadedFile,
+):
+    # Make sure a system user exists and the test is defaulting to a normal user (not system_user)
+    user_id = sample_thread.user_id
+    user = await setup_storage.get_user_by_id(user_id)
+    system_user, _ = await setup_storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+    assert user.sub != system_user.sub, "User and system user should be distinct"
+
+    # Create a thread as if it were created by a workitem
+    work_item_id = str(uuid4())
+    sample_thread = Thread.model_validate(
+        sample_thread.model_dump()
+        | {
+            "work_item_id": work_item_id,
+            "user_id": system_user.user_id,
+        }
+    )
+    results = await file_manager.upload(
+        files=[UploadFilePayload(file=sample_file)],
+        owner=sample_thread,
+        user_id=sample_thread.user_id,
+    )
+
+    assert len(results) == 1
+    assert results[0].file_ref == sample_uploaded_file.file_ref
+    assert results[0].mime_type == sample_uploaded_file.mime_type
+    assert results[0].user_id == system_user.user_id
+    assert results[0].thread_id == sample_uploaded_file.thread_id
+    assert results[0].agent_id == sample_uploaded_file.agent_id
 
 
 if __name__ == "__main__":
