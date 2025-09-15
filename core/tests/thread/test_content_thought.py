@@ -1,3 +1,4 @@
+from agent_platform.core.thread.content.base import ThreadMessageContent
 from agent_platform.core.thread.content.thought import ThreadThoughtContent
 
 
@@ -12,3 +13,15 @@ class TestThreadThoughtContent:
         text_version = thought.as_text_content()
         assert isinstance(text_version, str)
         assert text_version == "Secret internal note."
+
+    def test_model_validation_ignores_unknown_fields(self):
+        data = {
+            "content_id": "content-1",
+            "kind": "thought",
+            "thought": "legacy",
+            "extras": "ignore me",
+            "complete": True,
+        }
+        result = ThreadMessageContent.model_validate(data)
+        assert isinstance(result, ThreadThoughtContent)
+        assert result.thought == "legacy"

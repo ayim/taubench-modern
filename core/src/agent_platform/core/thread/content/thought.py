@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import Any
 
 from agent_platform.core.thread.content.base import ThreadMessageContent
@@ -63,6 +63,8 @@ class ThreadThoughtContent(ThreadMessageContent):
     @classmethod
     def model_validate(cls, data: dict) -> "ThreadThoughtContent":
         """Create a thread thought content from a dictionary."""
+        allowed = {f.name for f in fields(cls)}
+        data = {k: v for k, v in data.items() if k in allowed}
         return cls(**data)
 
 
