@@ -25,12 +25,14 @@ class QualityOrchestrator:
         agent_server_version: str | None,
         server_url: str = "http://localhost:8000",
         logs_dir: Path | None = None,
+        agent_architecture_name_override: str | None = None,
     ):
         self.server_url = server_url
         self.action_server_url = None
         self.data_dir = data_dir
         self.logs_dir = logs_dir or self.data_dir / "logs"
         self.agent_server_version = agent_server_version
+        self.agent_architecture_name_override = agent_architecture_name_override
 
         # Ensure logs directory exists
         self.logs_dir.mkdir(parents=True, exist_ok=True)
@@ -246,13 +248,27 @@ class QualityOrchestrator:
                     fixed_pkg["api_key"] = {"value": fixed_pkg["api_key"]}
                 action_packages.append(fixed_pkg)
 
+            # Optionally override agent architecture if specified
+            agent_architecture = agent_data["agent_architecture"]
+            if self.agent_architecture_name_override:
+                logger.info(
+                    "Overriding agent architecture",
+                    current_name=agent_architecture.get("name"),
+                    override_name=self.agent_architecture_name_override,
+                )
+                agent_architecture = {
+                    "name": self.agent_architecture_name_override,
+                    # Keep existing version if present, otherwise default
+                    "version": agent_architecture.get("version", "1.0.0"),
+                }
+
             update_payload = {
                 "name": agent_data["name"],
                 "description": agent_data["description"],
                 "version": agent_data["version"],
                 "user_id": agent_data["user_id"],
                 "platform_configs": [platform_config],
-                "agent_architecture": agent_data["agent_architecture"],
+                "agent_architecture": agent_architecture,
                 "structured_runbook": agent_data["runbook_structured"],  # Note: field name change
                 "action_packages": action_packages,
                 "mcp_servers": agent_data["mcp_servers"],

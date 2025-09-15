@@ -4,14 +4,8 @@ from datetime import UTC, datetime
 from typing import Any, Literal, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
-from agent_platform.core.responses.content.reasoning import ResponseReasoningContent
+from agent_platform.core.kernel_interfaces.thread_state_sinks import ThreadStateSinks
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
-from agent_platform.core.responses.streaming import (
-    ReasoningResponseStreamSink,
-    TextResponseStreamSink,
-    ToolUseResponseStreamSink,
-    XmlTagResponseStreamSink,
-)
 from agent_platform.core.streaming import (
     StreamingDeltaMessage,
     StreamingDeltaMessageBegin,
@@ -76,128 +70,6 @@ class ThreadMessageWithThreadState:
     """A ThreadMessage that includes thread state functionality for
     streaming and committing."""
 
-    class Sinks:
-        """A class that contains the sinks for the message."""
-
-        def __init__(
-            self,
-            message: "ThreadMessageWithThreadState",
-            content_tag: str = "response",
-            thoughts_tag: str = "thinking",
-            tag_expected_past_response: str | None = "step",
-            tag_expected_pre_response: str | None = "thinking",
-        ):
-            self._message = message
-            self._content_tag = content_tag
-            self._thoughts_tag = thoughts_tag
-            self._tag_expected_past_response = tag_expected_past_response
-            self._tag_expected_pre_response = tag_expected_pre_response
-
-        @property
-        def content(self) -> XmlTagResponseStreamSink:
-            """The sink for the content of the message."""
-
-            async def _append_content(tag: str, content: str) -> None:
-                self._message.append_content(content)
-                await self._message.stream_delta()
-
-            async def _complete_content(tag: str, content: str) -> None:
-                self._message.append_content("", complete=True)
-                await self._message.stream_delta()
-
-            return XmlTagResponseStreamSink(
-                tag=self._content_tag,
-                expected_next_tag=self._tag_expected_past_response,
-                expected_preceding_tag=self._tag_expected_pre_response,
-                on_tag_partial=_append_content,
-                on_tag_complete=_complete_content,
-            )
-
-        @property
-        def raw_content(self) -> TextResponseStreamSink:
-            """The sink for the raw content of the message."""
-
-            async def _append_content(text: str) -> None:
-                self._message.append_content(text)
-                await self._message.stream_delta()
-
-            async def _complete_content(text: str) -> None:
-                self._message.append_content("", complete=True)
-                await self._message.stream_delta()
-
-            return TextResponseStreamSink(
-                on_text_start=_append_content,
-                on_text_partial=_append_content,
-                on_text_complete=_complete_content,
-            )
-
-        @property
-        def reasoning(self) -> ReasoningResponseStreamSink:
-            """The sink for the reasoning of the message."""
-
-            async def _append_reasoning(reasoning: str) -> None:
-                self._message.append_thought(reasoning)
-                await self._message.stream_delta()
-
-            async def _complete_reasoning(
-                reasoning: str,
-                content: ResponseReasoningContent,
-            ) -> None:
-                self._message.append_thought(
-                    reasoning,
-                    complete=True,
-                    extras=content.model_dump(),
-                )
-                await self._message.stream_delta()
-
-            return ReasoningResponseStreamSink(
-                on_reasoning_start=_append_reasoning,
-                on_reasoning_partial=_append_reasoning,
-                on_reasoning_complete=_complete_reasoning,
-            )
-
-        @property
-        def thoughts(self) -> XmlTagResponseStreamSink:
-            """The sink for the thoughts of the message."""
-
-            async def _append_thought(tag: str, content: str) -> None:
-                self._message.append_thought(content)
-                await self._message.stream_delta()
-
-            async def _complete_thought(tag: str, content: str) -> None:
-                self._message.append_thought("", complete=True)
-                await self._message.stream_delta()
-
-            return XmlTagResponseStreamSink(
-                tag=self._thoughts_tag,
-                expected_next_tag=self._content_tag,
-                on_tag_partial=_append_thought,
-                on_tag_complete=_complete_thought,
-            )
-
-        @property
-        def tool_calls(self) -> ToolUseResponseStreamSink:
-            """The sink for the tool calls of the message."""
-
-            async def _update_tool_use(
-                content: ResponseToolUseContent,
-                tool_def: ToolDefinition | None,
-            ) -> None:
-                self._message.update_tool_use(content, tool_def)
-                await self._message.stream_delta()
-
-            async def _update_tool_use_final(
-                content: ResponseToolUseContent,
-                tool_def: ToolDefinition | None,
-            ) -> None:
-                self._message.update_tool_use(content, tool_def, completed=True)
-                await self._message.stream_delta()
-
-            return ToolUseResponseStreamSink(
-                on_tool_partial=_update_tool_use,
-                on_tool_complete=_update_tool_use_final,
-            )
-
     def __init__(
         self,
         message: ThreadMessage,
@@ -210,14 +82,14 @@ class ThreadMessageWithThreadState:
         self._prompt_index = 0
         self._tag_expected_past_response = tag_expected_past_response
         self._tag_expected_pre_response = tag_expected_pre_response
-        self._sinks = self.Sinks(
+        self._sinks = ThreadStateSinks(
             self,
             tag_expected_past_response=self._tag_expected_past_response,
             tag_expected_pre_response=self._tag_expected_pre_response,
         )
 
     @property
-    def sinks(self) -> Sinks:
+    def sinks(self) -> ThreadStateSinks:
         """The sinks for the message."""
         return self._sinks
 
@@ -347,6 +219,8 @@ class ThreadMessageWithThreadState:
         self,
         content: AnyThreadMessageContent | str,
         complete: bool = False,
+        incremental: bool = False,
+        overwrite: bool = False,
     ) -> None:
         """Appends content to this message.
 
@@ -357,7 +231,7 @@ class ThreadMessageWithThreadState:
         if self._message.commited:
             raise ValueError("Cannot add content to a committed message")
 
-        self.updated_at = datetime.now(UTC)
+        self._message.updated_at = datetime.now(UTC)
 
         # If string is passed, treat it as text content
         if isinstance(content, str):
@@ -379,13 +253,23 @@ class ThreadMessageWithThreadState:
                 or self._message.content[index_of_last_text_content].complete
             ):
                 self._message.content.append(ThreadTextContent(text=text_piece))
+                self._message.content[-1].complete = complete
             else:
                 # Directly mutate the text content instead of creating a new object
                 as_text_content = cast(
                     ThreadTextContent,
                     self._message.content[index_of_last_text_content],
                 )
-                as_text_content.text += text_piece
+                if overwrite:
+                    as_text_content.text = text_piece
+                    as_text_content.complete = complete
+                    return
+
+                current_text_length = len(as_text_content.text)
+                if incremental and current_text_length > 0:
+                    as_text_content.text += text_piece[current_text_length:]
+                else:
+                    as_text_content.text += text_piece
                 as_text_content.complete = complete
         else:
             # For other content types, just append directly

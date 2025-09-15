@@ -305,6 +305,15 @@ def list_tests(ctx: Context, agent_name: str | None):
     type=str,
     help="Agent server version. If none is provided, the version on the current branch is used",
 )
+@click.option(
+    "--agent-arch",
+    required=False,
+    type=str,
+    help=(
+        "Override the agent architecture plugin name for testing, e.g. "
+        "'agent_platform.architectures.experimental_1'"
+    ),
+)
 @click.pass_obj
 async def run(  # noqa: PLR0913
     ctx: Context,
@@ -313,6 +322,7 @@ async def run(  # noqa: PLR0913
     max_agents: int,
     selected_agents: str,
     agent_server_version: str | None,
+    agent_arch: str | None,
 ):
     """Run quality tests for agents."""
     runner = QualityTestRunner(
@@ -322,6 +332,7 @@ async def run(  # noqa: PLR0913
         datadir=ctx.quality_folder,
         agent_server_version=agent_server_version,
         is_in_github_actions=ctx.is_in_github_actions,
+        agent_architecture_name_override=agent_arch,
     )
 
     reporter = QualityReporter()

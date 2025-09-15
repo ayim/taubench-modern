@@ -18,6 +18,10 @@ from agent_platform.core.kernel_interfaces import (
     ToolsInterface,
     UserInteractionsInterface,
 )
+from agent_platform.core.model_selector import (
+    DefaultModelSelector,
+    ModelSelector,
+)
 from agent_platform.core.platforms.base import PlatformClient
 from agent_platform.core.runs import Run
 from agent_platform.core.streaming import IncomingDelta, StreamingDelta
@@ -50,6 +54,8 @@ class AgentServerKernel(Kernel):
         run: Run,
         client_tools: list[ToolDefinition] | None = None,
     ):
+        # Maintain a stateful model selector so overrides persist
+        self._model_selector: ModelSelector = DefaultModelSelector()
         # Store context
         self._ctx = ctx
 
@@ -239,3 +245,7 @@ class AgentServerKernel(Kernel):
     @property
     def ctx(self) -> AgentServerContext:
         return self._ctx
+
+    @property
+    def model_selector(self) -> ModelSelector:
+        return self._model_selector

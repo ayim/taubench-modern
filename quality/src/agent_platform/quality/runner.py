@@ -46,6 +46,7 @@ class QualityTestRunner:
         agent_server_version: str | None,
         server_url: str = "http://localhost:8000",
         is_in_github_actions: bool = False,
+        agent_architecture_name_override: str | None = None,
     ):
         self.test_threads_dir = test_threads_dir
         self.test_agents_dir = test_agents_dir
@@ -53,7 +54,10 @@ class QualityTestRunner:
 
         # Initialize components
         self.orchestrator = QualityOrchestrator(
-            server_url=server_url, data_dir=datadir, agent_server_version=agent_server_version
+            server_url=server_url,
+            data_dir=datadir,
+            agent_server_version=agent_server_version,
+            agent_architecture_name_override=agent_architecture_name_override,
         )
         self.agent_runner = AgentRunner(server_url=server_url)
         self.evaluator = EvaluatorEngine(server_url=server_url)

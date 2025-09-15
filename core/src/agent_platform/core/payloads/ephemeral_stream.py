@@ -15,6 +15,7 @@ class EphemeralStreamPayload:
     messages: list[ThreadMessage] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     client_tools: list[ToolDefinitionPayload] = field(default_factory=list)
+    override_model_id: str | None = field(default=None)
 
     @classmethod
     def model_validate(cls, data: Any) -> "EphemeralStreamPayload":
@@ -29,4 +30,5 @@ class EphemeralStreamPayload:
             client_tools=[
                 ToolDefinitionPayload.model_validate(t) for t in data.get("client_tools", [])
             ],
+            override_model_id=data.get("override_model_id", None),
         )

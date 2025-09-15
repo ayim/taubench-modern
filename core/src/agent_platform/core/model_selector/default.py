@@ -93,6 +93,19 @@ class ModelCandidate:
 
 @dataclass
 class DefaultModelSelector(ModelSelector):
+    def __init__(self):
+        super().__init__()
+        self._override_model_id: str | None = None
+
+    def override_model(self, model_id: str) -> None:
+        """Override the model selection process to use a specific model.
+
+        Args:
+            model_id: The model id to override the selection process with. MUST
+                be in the format platform/provider/model. (One of our generic model ids.)
+        """
+        self._override_model_id = model_id
+
     def select_model(
         self,
         platform: "PlatformClient",
@@ -114,6 +127,23 @@ class DefaultModelSelector(ModelSelector):
         # Step 1: Collect all candidate models
         candidates = self._collect_all_candidates(platform)
         logger.info(f"Found {len(candidates)} total model candidates")
+
+        # Step 1.5... if we have an override model id, use it
+        if self._override_model_id:
+            logger.info(f"Using override model id: {self._override_model_id}")
+            if self._override_model_id.count("/") != 2:  # noqa: PLR2004 (platform/provider/model)
+                raise ValueError(
+                    f"Invalid override model id: {self._override_model_id};"
+                    "must be in the format platform/provider/model"
+                )
+            candidates = [c for c in candidates if c.generic_id == self._override_model_id]
+            if not candidates:
+                raise ValueError(
+                    f"Override model id {self._override_model_id} not found in candidates:"
+                    f" [{','.join([c.generic_id for c in candidates])}]"
+                )
+            logger.info(f"Found {len(candidates)} candidates after override")
+            return self._override_model_id
 
         # Step 2: Apply allowlist filter (platform restrictions)
         candidates = self._apply_allowlist_filter(platform, candidates)
@@ -176,7 +206,7 @@ class DefaultModelSelector(ModelSelector):
 
             # Extract provider from generic_id (platform/provider/model)
             parts = generic_id.split("/")
-            if len(parts) != "platform/provider/model".count("/") + 1:
+            if len(parts) != 3:  # noqa: PLR2004 (platform/provider/model --> 3 parts)
                 continue
 
             provider = parts[1]

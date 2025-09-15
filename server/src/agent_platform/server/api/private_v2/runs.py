@@ -305,6 +305,8 @@ async def ephemeral_stream_run(  # noqa: C901, PLR0915
             run,
             client_tools=[tool.to_tool_definition() for tool in payload.client_tools],
         )
+        if payload.override_model_id:
+            kernel.model_selector.override_model(payload.override_model_id)
         ca_invoke_task = create_task(runner.invoke(kernel))
 
         async def _send_events():
@@ -576,6 +578,8 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                 # Include any client-provided tools in the kernel
                 client_tools=[tool.to_tool_definition() for tool in initial_payload.client_tools],
             )
+            if initial_payload.override_model_id:
+                kernel.model_selector.override_model(initial_payload.override_model_id)
             ca_invoke_task = create_task(runner.invoke(kernel))
 
             # 10. Task to forward CA events to client
@@ -871,6 +875,8 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
 
             # 9. Schedule the runner's main entry function
             kernel = AgentServerKernel(server_context, thread_state, agent, active_run)
+            if initial_payload.override_model_id:
+                kernel.model_selector.override_model(initial_payload.override_model_id)
             ca_invoke_task = create_task(runner.invoke(kernel))
 
             # 10. Task to collect CA events into the list
@@ -1096,6 +1102,8 @@ async def async_run(  # noqa: C901, PLR0915
 
                     # Create kernel and invoke the agent
                     kernel = AgentServerKernel(server_context, thread_state, agent, active_run)
+                    if initial_payload.override_model_id:
+                        kernel.model_selector.override_model(initial_payload.override_model_id)
                     await runner.invoke(kernel)
 
                     # Stop the runner

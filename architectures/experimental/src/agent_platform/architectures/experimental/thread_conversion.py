@@ -5,6 +5,7 @@ from agent_platform.core.prompts import (
     PromptUserMessage,
     UserPromptMessageContent,
 )
+from agent_platform.core.prompts.content.reasoning import PromptReasoningContent
 from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
 from agent_platform.core.prompts.content.tool_use import PromptToolUseContent
@@ -68,14 +69,37 @@ async def _agent_thread_contents_to_prompt_contents(
     prompt_agent_contents: list[AgentPromptMessageContent] = []
     prompt_user_contents: list[UserPromptMessageContent] = []
 
-    thought_text = ""
-    response_text = ""
+    # TOOL LOOP MITIGATION
+    # If ever, in the same contents list, we see a duplicate of a tool (with the same result)
+    # then we'll drop this from the context
+    seen_tool_calls: set[tuple[str, str | None]] = set()
+    keep_indices: list[int] = []
+    for idx, content in enumerate(contents):
+        if isinstance(content, ThreadToolUsageContent):
+            if (f"{content.name}({content.arguments_raw})", content.result) in seen_tool_calls:
+                continue
+            seen_tool_calls.add((f"{content.name}({content.arguments_raw})", content.result))
+            keep_indices.append(idx)
+        else:
+            keep_indices.append(idx)
+
+    contents = [contents[i] for i in keep_indices]
+
     for content in contents:
         match content:
             case ThreadThoughtContent() as thought_content:
-                thought_text += f"{thought_content.thought.strip()}\n"
+                if thought_content.extras.get("encrypted_content"):
+                    embedded_response = thought_content.extras.copy()
+                    embedded_response.pop("kind")
+                    embedded_response.pop("metadata")
+                    prompt_agent_contents.append(
+                        PromptReasoningContent(**embedded_response),
+                    )
             case ThreadTextContent() as text_content:
-                response_text += f"{text_content.text.strip()}\n"
+                if text_content.text:
+                    prompt_agent_contents.append(
+                        PromptTextContent(text=text_content.text),
+                    )
             case ThreadToolUsageContent() as tool_usage_content:
                 prompt_agent_contents.append(
                     PromptToolUseContent(
@@ -100,19 +124,38 @@ async def _agent_thread_contents_to_prompt_contents(
             case _:
                 raise ValueError(f"Unsupported thread content kind: {content.kind}")
 
-    collapsed_text = "<response>\n"
-    collapsed_text += response_text
-    collapsed_text += "\n</response>"
-
-    prompt_agent_contents = [
-        # Prepend the collapsed text
-        PromptTextContent(
-            text=collapsed_text.strip(),
-        ),
-        *prompt_agent_contents,
-    ]
-
     return prompt_agent_contents, prompt_user_contents
+
+
+def _group_contents_by_prompt_index(
+    contents: list[AnyThreadMessageContent],
+    content_idx_to_prompt_idx: dict,
+) -> list[list[AnyThreadMessageContent]]:
+    """Groups contents into ordered buckets by prompt index.
+
+    Requires a mapping from content index -> prompt index. Keys must be strings.
+    """
+
+    def _get_prompt_idx_for(content_index: int) -> int:
+        value = content_idx_to_prompt_idx.get(str(content_index), 0)
+        if not isinstance(value, int):
+            raise ValueError(
+                f"Prompt index for content index {content_index} "
+                f"must be an int, got: {type(value).__name__}"
+            )
+        return value
+
+    buckets_by_prompt_idx: dict[int, list[AnyThreadMessageContent]] = {}
+    encounter_order: list[int] = []
+
+    for idx, content in enumerate(contents):
+        prompt_idx = _get_prompt_idx_for(idx)
+        if prompt_idx not in buckets_by_prompt_idx:
+            buckets_by_prompt_idx[prompt_idx] = []
+            encounter_order.append(prompt_idx)
+        buckets_by_prompt_idx[prompt_idx].append(content)
+
+    return [buckets_by_prompt_idx[p_idx] for p_idx in encounter_order]
 
 
 async def thread_messages_to_prompt_messages(
@@ -128,29 +171,32 @@ async def thread_messages_to_prompt_messages(
     for message in [*thread_messages, active_message]:
         match message.role:
             case "user":
-                prompt_messages.append(
-                    PromptUserMessage(
-                        content=await _user_thread_contents_to_prompt_contents(
-                            kernel,
-                            message.content,
-                        ),
-                    ),
+                user_contents = await _user_thread_contents_to_prompt_contents(
+                    kernel,
+                    message.content,
                 )
-            case "agent":
-                # There's a split here for things like tool calling: agent decides
-                # to call a tool, and then the user provides the result.
-                (
-                    agent_contents,
-                    user_contents,
-                ) = await _agent_thread_contents_to_prompt_contents(message.content)
-
-                prompt_messages.append(
-                    PromptAgentMessage(content=agent_contents),
-                )
+                # Avoid emitting empty Bedrock messages (which cause ValidationException)
                 if len(user_contents) > 0:
                     prompt_messages.append(
                         PromptUserMessage(content=user_contents),
                     )
+            case "agent":
+                content_idx_to_prompt_idx = message.agent_metadata.get(
+                    "content_idx_to_prompt_idx",
+                    {},
+                )
+                grouped_contents = _group_contents_by_prompt_index(
+                    message.content, content_idx_to_prompt_idx
+                )
+
+                for grouped in grouped_contents:
+                    agent_contents, user_contents = await _agent_thread_contents_to_prompt_contents(
+                        grouped
+                    )
+                    if len(agent_contents) > 0:
+                        prompt_messages.append(PromptAgentMessage(content=agent_contents))
+                    if len(user_contents) > 0:
+                        prompt_messages.append(PromptUserMessage(content=user_contents))
             case _:
                 # Should never happen
                 raise ValueError(f"Unsupported thread message kind: {message.kind}")

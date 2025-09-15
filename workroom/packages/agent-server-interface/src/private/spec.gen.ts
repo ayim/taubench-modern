@@ -9302,6 +9302,19 @@ export const spec = {
             description:
               'The tools attached to the payload from an external client.',
           },
+          override_model_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Override Model Id',
+            description:
+              'The generic model ID to override the selection process with.',
+          },
         },
         type: 'object',
         required: ['agent_id'],

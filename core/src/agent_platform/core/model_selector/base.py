@@ -15,6 +15,11 @@ class ModelSelector(ABC):
     """
 
     @abstractmethod
+    def override_model(self, model_id: str) -> None:
+        """Override the model selection process to use a specific model."""
+        pass
+
+    @abstractmethod
     def select_model(
         self,
         platform: "PlatformClient",

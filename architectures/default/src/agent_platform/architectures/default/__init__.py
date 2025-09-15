@@ -277,7 +277,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         await stream.pipe_to(
             # Sink thoughts / content / tool calls to message
             message.sinks.thoughts,
-            message.sinks.tool_calls,
+            message.sinks.tool_calls(),
             content_sink,
             # Sink pending tool calls and step
             # to state (so we can execute tools later)

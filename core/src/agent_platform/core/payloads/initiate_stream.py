@@ -91,6 +91,12 @@ class InitiateStreamPayload:
     )
     """The tools attached to the payload from an external client."""
 
+    override_model_id: str | None = field(
+        default=None,
+        metadata={"description": "The generic model ID to override the selection process with."},
+    )
+    """The generic model ID to override the selection process with."""
+
     def __post_init__(self) -> None:
         # Either the thread_id or the name must be provided
         if self.thread_id is None and self.name is None:
@@ -144,4 +150,5 @@ class InitiateStreamPayload:
             client_tools=[
                 ToolDefinitionPayload.model_validate(tool) for tool in data.get("client_tools", [])
             ],
+            override_model_id=data["override_model_id"] if "override_model_id" in data else None,
         )

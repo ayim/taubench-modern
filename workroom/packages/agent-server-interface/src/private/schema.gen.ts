@@ -3404,6 +3404,11 @@ export interface components {
        * @description The tools attached to the payload from an external client.
        */
       client_tools?: components['schemas']['ToolDefinitionPayload'][];
+      /**
+       * Override Model Id
+       * @description The generic model ID to override the selection process with.
+       */
+      override_model_id?: string | null;
     };
     /** IntegrationInput */
     IntegrationInput: {

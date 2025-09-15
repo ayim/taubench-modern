@@ -182,6 +182,17 @@ class TestThreadMessageBase:
         assert isinstance(msg.message.content[0], ThreadTextContent)
         assert msg.message.content[0].text == "New text here"
 
+    async def test_append_content_honors_complete_when_creating_new_block(self):
+        msg = ThreadMessageWithThreadState(
+            ThreadMessage(role="agent", content=[]),
+            AsyncMock(),
+        )
+        msg.append_content("One shot", complete=True)
+        assert len(msg.message.content) == 1
+        assert isinstance(msg.message.content[0], ThreadTextContent)
+        assert msg.message.content[0].text == "One shot"
+        assert msg.message.content[0].complete is True
+
     async def test_append_content_raises_if_committed(self):
         msg = ThreadMessageWithThreadState(
             ThreadMessage(
@@ -196,6 +207,50 @@ class TestThreadMessageBase:
             match="Cannot add content to a committed message",
         ):
             msg.append_content(" some more text")
+
+    async def test_append_content_incremental_appends_only_new_suffix(self):
+        mock_thread_state = AsyncMock()
+        msg = ThreadMessageWithThreadState(
+            ThreadMessage(
+                role="agent",
+                content=[ThreadTextContent(text="Hello")],
+            ),
+            mock_thread_state,
+        )
+
+        # Incoming incremental piece includes prior content + new space
+        msg.append_content("Hello ", incremental=True)
+        assert isinstance(msg.message.content[0], ThreadTextContent)
+        assert msg.message.content[0].text == "Hello "
+
+        # Next incremental contains the entire text so far + new suffix
+        msg.append_content("Hello world", incremental=True)
+        assert msg.message.content[0].text == "Hello world"
+
+    async def test_append_content_overwrite_replaces_text_and_sets_complete(self):
+        msg = ThreadMessageWithThreadState(
+            ThreadMessage(
+                role="agent",
+                content=[ThreadTextContent(text="prefix")],
+            ),
+            AsyncMock(),
+        )
+        msg.append_content("final", overwrite=True, complete=True)
+        assert isinstance(msg.message.content[0], ThreadTextContent)
+        assert msg.message.content[0].text == "final"
+        assert msg.message.content[0].complete is True
+
+    async def test_append_content_updates_message_timestamp(self):
+        msg = ThreadMessageWithThreadState(
+            ThreadMessage(
+                role="agent",
+                content=[ThreadTextContent(text="start")],
+            ),
+            AsyncMock(),
+        )
+        old_updated_at = msg.message.updated_at
+        msg.append_content(" + more")
+        assert msg.message.updated_at >= old_updated_at
 
     async def test_commit_calls_thread_state_commit_message(self):
         msg = ThreadMessageWithThreadState(

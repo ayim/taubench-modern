@@ -14,6 +14,9 @@ from agent_platform.core.responses.streaming.stream_sink_text import (
 from agent_platform.core.responses.streaming.stream_sink_tool_use import (
     ToolUseResponseStreamSink,
 )
+from agent_platform.core.responses.streaming.stream_sink_usage import (
+    UsageResponseStreamSink,
+)
 from agent_platform.core.responses.streaming.stream_sink_xml_tag import (
     XmlTagResponseStreamSink,
 )
@@ -25,5 +28,6 @@ __all__ = [
     "ResponseStreamSinkBase",
     "TextResponseStreamSink",
     "ToolUseResponseStreamSink",
+    "UsageResponseStreamSink",
     "XmlTagResponseStreamSink",
 ]

@@ -8,7 +8,7 @@ from typing import Any
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
-@dataclass(frozen=True)
+@dataclass
 class ToolExecutionResult:
     """Represents the result of a tool execution."""
 
@@ -72,9 +72,9 @@ class ToolExecutionResult:
         if isinstance(self.input_raw, str):
             # Need to use setattr in a frozen dataclass
             # so we can't use the property here
-            object.__setattr__(self, "_input_parsed", json.loads(self.input_raw))
+            self._input_parsed = json.loads(self.input_raw)
         else:
-            object.__setattr__(self, "_input_parsed", self.input_raw)
+            self._input_parsed = self.input_raw
 
     @property
     def input(self) -> dict[str, Any]:
@@ -84,3 +84,15 @@ class ToolExecutionResult:
         even if it was originally provided as a string.
         """
         return self._input_parsed
+
+    def inject_system_feedback(self, feedback: str) -> None:
+        """Injects system feedback into the tool execution result."""
+        # TODO: hard to suss out in benchmarking how much this really helps
+        # even if the idea is intuitive enough
+        if self.output_raw and "important_system_feedback" in self.output_raw:
+            self.output_raw["important_system_feedback"] += "\n" + feedback
+            return
+        self.output_raw = {
+            "important_system_feedback": feedback,
+            "original_result": self.output_raw,
+        }
