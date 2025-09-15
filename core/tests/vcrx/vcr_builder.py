@@ -18,15 +18,19 @@ def _method_ci(r1: Request, r2: Request) -> None:
 def _normalize_host(host: str | None, path: str | None) -> str:
     """Normalize hosts for services that vary by subdomain.
 
-    - Azure OpenAI endpoints are often of the form
-      "<deployment>.openai.azure.com". For replay stability across
-      environments, treat any subdomain of "openai.azure.com" as equivalent
-      when the request path targets the Azure OpenAI deployment routes.
+    Azure OpenAI endpoints commonly use per-resource subdomains like
+    "<anything>.openai.azure.com". For replay stability across environments,
+    collapse any such subdomain to a stable token when the path targets
+    Azure OpenAI routes (both classic deployment routes and the v1 routes).
     """
     h = (host or "").lower()
     p = path or ""
-    if p.startswith("/openai/deployments/") and h.endswith(".openai.azure.com"):
+
+    # Normalize any host ending with ".openai.azure.com" when using Azure
+    # OpenAI-style paths (e.g. "/openai/v1/..." or "/openai/deployments/...").
+    if h.endswith(".openai.azure.com") and p.startswith("/openai/"):
         return "openai.azure.com"
+
     return h
 
 

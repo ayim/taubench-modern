@@ -17,93 +17,78 @@ class TestAzureOpenAIPrompt:
         return MagicMock(spec=Kernel)
 
     @pytest.fixture
-    def messages(self):
-        """Create a list of messages for testing."""
+    def input_items(self):
+        """Create a list of Responses API input items for testing."""
         return [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Hello, world!"},
+            {
+                "type": "message",
+                "role": "user",
+                "content": [{"type": "input_text", "text": "Hello, world!"}],
+            }
         ]
 
     @pytest.fixture
-    def azure_prompt(self, messages) -> AzureOpenAIPrompt:
+    def azure_prompt(self, input_items) -> AzureOpenAIPrompt:
         """Create an AzureOpenAI prompt for testing."""
         return AzureOpenAIPrompt(
-            messages=messages,
+            input=input_items,
+            instructions="You are a helpful assistant.",
             temperature=0.0,
             top_p=1.0,
-            max_tokens=4096,
+            max_output_tokens=4096,
         )
 
     def test_as_platform_request(self, azure_prompt: AzureOpenAIPrompt) -> None:
         """Test converting to platform request."""
-        request = azure_prompt.as_platform_request(model="gpt-4-turbo")
+        request = azure_prompt.as_platform_request(model="gpt-4o")
 
         assert isinstance(request, dict)
-        assert request["model"] == "gpt-4-turbo"
-        assert len(request["messages"]) == 2
-        assert request["messages"][0]["role"] == "system"
-        assert request["messages"][0]["content"] == "You are a helpful assistant."
-        assert request["messages"][1]["role"] == "user"
-        assert request["messages"][1]["content"] == "Hello, world!"
+        assert request["model"] == "gpt-4o"
+        assert request["instructions"] == "You are a helpful assistant."
+        assert len(request["input"]) == 1
+        assert request["input"][0]["role"] == "user"
 
     def test_as_platform_request_with_stream(
         self,
         azure_prompt: AzureOpenAIPrompt,
     ) -> None:
         """Test converting to platform request with streaming enabled."""
-        request = azure_prompt.as_platform_request(model="gpt-4-turbo", stream=True)
+        request = azure_prompt.as_platform_request(model="gpt-4o", stream=True)
 
         assert isinstance(request, dict)
-        assert request["model"] == "gpt-4-turbo"
-        assert len(request["messages"]) == 2
-        assert request["messages"][0]["role"] == "system"
-        assert request["messages"][1]["role"] == "user"
+        assert request["model"] == "gpt-4o"
+        assert len(request["input"]) == 1
+        assert request["input"][0]["role"] == "user"
         assert request["stream"] is True
 
     def test_as_platform_request_no_tools(self) -> None:
         """Test converting to platform request with no tools."""
-        from openai.types.chat import (
-            ChatCompletionMessageParam,
-            ChatCompletionSystemMessageParam,
-            ChatCompletionUserMessageParam,
-        )
-
-        messages: list[ChatCompletionMessageParam] = [
-            ChatCompletionSystemMessageParam(
-                role="system",
-                content="You are a helpful assistant.",
-            ),
-            ChatCompletionUserMessageParam(
-                role="user",
-                content="Hello, world!",
-            ),
-        ]
-
         azure_prompt = AzureOpenAIPrompt(
-            messages=messages,
+            input=[
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Hello, world!"}],
+                }
+            ]
         )
 
-        request = azure_prompt.as_platform_request(model="gpt-4-turbo")
+        request = azure_prompt.as_platform_request(model="gpt-4o")
 
         assert isinstance(request, dict)
-        assert request["model"] == "gpt-4-turbo"
-        assert len(request["messages"]) == 2
-        assert "tools" not in request
+        assert request["model"] == "gpt-4o"
+        assert len(request["input"]) == 1
+        assert request["tools"] == []
 
     def test_as_platform_request_with_tools(self) -> None:
         """Test converting to platform request with tools."""
-        from openai.types.chat import (
-            ChatCompletionMessageParam,
-            ChatCompletionSystemMessageParam,
-            ChatCompletionToolParam,
-            ChatCompletionUserMessageParam,
-        )
-        from openai.types.shared_params.function_definition import FunctionDefinition
+        from openai.types.responses import FunctionToolParam
 
-        tool_def = FunctionDefinition(
-            name="test-tool",
-            description="A test tool",
-            parameters={
+        tool_param: FunctionToolParam = {
+            "type": "function",
+            "name": "test-tool",
+            "description": "A test tool",
+            "parameters": {
                 "type": "object",
                 "properties": {
                     "key": {
@@ -113,113 +98,111 @@ class TestAzureOpenAIPrompt:
                 },
                 "required": ["key"],
             },
-        )
-
-        messages: list[ChatCompletionMessageParam] = [
-            ChatCompletionSystemMessageParam(
-                role="system",
-                content="You are a helpful assistant.",
-            ),
-            ChatCompletionUserMessageParam(
-                role="user",
-                content="Hello, world!",
-            ),
-        ]
-
-        tool_param = ChatCompletionToolParam(
-            type="function",
-            function=tool_def,
-        )
+            "strict": True,
+        }
 
         azure_prompt = AzureOpenAIPrompt(
-            messages=messages,
-            tools=[tool_param],
+            input=[
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Hello, world!"}],
+                }
+            ],
+            instructions="You are a helpful assistant.",
+            tools=[tool_param],  # type: ignore[arg-type]
         )
 
-        request = azure_prompt.as_platform_request(model="gpt-4-turbo")
+        request = azure_prompt.as_platform_request(model="gpt-4o")
 
         assert isinstance(request, dict)
-        assert request["model"] == "gpt-4-turbo"
-        assert len(request["messages"]) == 2
+        assert request["model"] == "gpt-4o"
+        assert len(request["input"]) == 1
+        assert request["instructions"] == "You are a helpful assistant."
         assert "tools" in request
         assert len(request["tools"]) == 1
-        assert request["tools"][0]["function"]["name"] == "test-tool"
+        assert request["tools"][0]["name"] == "test-tool"
 
     def test_as_platform_request_with_reasoning_models(self) -> None:
-        """Test converting to platform request with reasoning models."""
-        from openai.types.chat import (
-            ChatCompletionMessageParam,
-            ChatCompletionUserMessageParam,
-        )
-
-        messages: list[ChatCompletionMessageParam] = [
-            ChatCompletionUserMessageParam(
-                role="user",
-                content="Hello, world!",
-            ),
-        ]
+        """Test converting to platform request with reasoning set."""
+        from openai.types.shared_params import Reasoning
 
         azure_prompt = AzureOpenAIPrompt(
-            messages=messages,
+            input=[
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Hello, world!"}],
+                }
+            ],
+            reasoning=Reasoning(effort="medium"),
         )
 
-        for model in ["o1", "o1-mini", "o3-mini"]:
-            # Test with high reasoning
-            high_model = f"{model}-high"
-            high_request = azure_prompt.as_platform_request(model=high_model)
-            # not asserting model id because it's not always the same
-            # plus, verified model id is appropriately set
-            # in the above test with gpt-4-turbo.
-            assert "reasoning_effort" in high_request
-            assert high_request["reasoning_effort"] == "high"
+        request = azure_prompt.as_platform_request(model="gpt-4o")
 
-            # Test with low reasoning
-            low_model = f"{model}-low"
-            low_request = azure_prompt.as_platform_request(model=low_model)
-            # not asserting model id because it's not always the same
-            assert "reasoning_effort" in low_request
-            assert low_request["reasoning_effort"] == "low"
+        # gpt-4o does not support reasoning
+        assert "reasoning" in request
+        assert request["reasoning"] is None
+
+        azure_prompt = AzureOpenAIPrompt(
+            input=[
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Hello, world!"}],
+                }
+            ],
+            reasoning=Reasoning(effort="high"),
+        )
+        request = azure_prompt.as_platform_request(model="gpt-5")
+
+        assert "reasoning" in request
+        assert request["reasoning"]["effort"] == "high"
 
     def test_prompt_properties(self) -> None:
         """Test prompt properties and defaults."""
-        from openai.types.chat import (
-            ChatCompletionMessageParam,
-            ChatCompletionToolParam,
-            ChatCompletionUserMessageParam,
-        )
-        from openai.types.shared_params.function_definition import FunctionDefinition
 
-        messages: list[ChatCompletionMessageParam] = [
-            ChatCompletionUserMessageParam(role="user", content="Hello"),
-        ]
         # Test with defaults
-        prompt = AzureOpenAIPrompt(messages=messages)
-        assert prompt.messages == messages
+        prompt = AzureOpenAIPrompt(
+            input=[
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Hello"}],
+                }
+            ]
+        )
+        assert isinstance(prompt.input, list)
         assert prompt.temperature == 0.0
         assert prompt.top_p == 1.0
-        assert prompt.max_tokens == 4096
-        assert prompt.tools is None  # Note: Azure actually uses None as default, not empty list
+        assert prompt.max_output_tokens == 4096
+        assert prompt.tools is None
 
         # Test with custom values
-        tools = [
-            ChatCompletionToolParam(
-                type="function",
-                function=FunctionDefinition(
-                    name="test",
-                    description="Test tool",
-                    parameters={},
-                ),
-            ),
+        tools: list = [  # type: ignore[assignment]
+            {
+                "type": "function",
+                "name": "test",
+                "description": "Test tool",
+                "parameters": {},
+                "strict": True,
+            }
         ]
         prompt = AzureOpenAIPrompt(
-            messages=messages,
-            tools=tools,
+            input=[
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Hello"}],
+                }
+            ],
+            tools=tools,  # type: ignore[arg-type]
             temperature=0.7,
             top_p=0.9,
-            max_tokens=1000,
+            max_output_tokens=1000,
         )
-        assert prompt.messages == messages
+        assert isinstance(prompt.input, list)
         assert prompt.tools == tools
         assert prompt.temperature == 0.7
         assert prompt.top_p == 0.9
-        assert prompt.max_tokens == 1000
+        assert prompt.max_output_tokens == 1000

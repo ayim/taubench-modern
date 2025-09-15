@@ -75,7 +75,7 @@ class ConversationJudge:
                 json={
                     "prompt": prompt_data,
                     "platform_config_raw": platform_config,
-                    "model": "gpt-4.1",
+                    "model": "gpt-5-low",
                 },
                 headers={"Content-Type": "application/json"},
             )

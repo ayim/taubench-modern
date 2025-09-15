@@ -21,7 +21,14 @@ class TestAzureOpenAIParsers:
 
     def test_parse_text_content(self, parsers: AzureOpenAIParsers) -> None:
         """Test parsing text content."""
-        content = "Hello, world!"
+        from openai.types.responses import ResponseOutputText
+
+        content = ResponseOutputText(
+            type="output_text",
+            text="Hello, world!",
+            annotations=[],
+            logprobs=None,
+        )
         result = parsers.parse_text_content(content)
 
         assert isinstance(result, ResponseTextContent)
@@ -29,18 +36,14 @@ class TestAzureOpenAIParsers:
 
     def test_parse_tool_use_content(self, parsers: AzureOpenAIParsers) -> None:
         """Test parsing tool use content."""
-        from openai.types.chat.chat_completion_message_tool_call import (
-            ChatCompletionMessageToolCall,
-            Function,
-        )
+        from openai.types.responses import ResponseFunctionToolCall
 
-        content = ChatCompletionMessageToolCall(
-            id="test-tool-call-id",
-            type="function",
-            function=Function(
-                name="test-tool",
-                arguments='{"key": "value"}',
-            ),
+        content = ResponseFunctionToolCall(
+            id="api-id",
+            call_id="test-tool-call-id",
+            type="function_call",
+            name="test-tool",
+            arguments='{"key": "value"}',
         )
         result = parsers.parse_tool_use_content(content)
 
@@ -55,18 +58,14 @@ class TestAzureOpenAIParsers:
     ) -> None:
         """Test parsing of {"":""} as tool use content. This is an odd case I saw
         testing against the actual API. We probably should elide empty keys."""
-        from openai.types.chat.chat_completion_message_tool_call import (
-            ChatCompletionMessageToolCall,
-            Function,
-        )
+        from openai.types.responses import ResponseFunctionToolCall
 
-        content = ChatCompletionMessageToolCall(
-            id="test-tool-call-id",
-            type="function",
-            function=Function(
-                name="test-tool",
-                arguments='{"":""}',
-            ),
+        content = ResponseFunctionToolCall(
+            id="api-id",
+            call_id="test-tool-call-id",
+            type="function_call",
+            name="test-tool",
+            arguments='{"":""}',
         )
         result = parsers.parse_tool_use_content(content)
 
@@ -75,13 +74,12 @@ class TestAzureOpenAIParsers:
         assert result.tool_name == "test-tool"
 
         # Also completely empty args we probably should handle as empty obj
-        content_2 = ChatCompletionMessageToolCall(
-            id="test-tool-call-id",
-            type="function",
-            function=Function(
-                name="test-tool",
-                arguments="",
-            ),
+        content_2 = ResponseFunctionToolCall(
+            id="api-id",
+            call_id="test-tool-call-id",
+            type="function_call",
+            name="test-tool",
+            arguments="",
         )
         result_2 = parsers.parse_tool_use_content(content_2)
 
@@ -97,18 +95,14 @@ class TestAzureOpenAIParsers:
         """Test parsing of {"function_name": {"args..."}} as tool use content.
         This is an odd case I saw testing against the actual API. We probably
         should elide the function_name in the tool input."""
-        from openai.types.chat.chat_completion_message_tool_call import (
-            ChatCompletionMessageToolCall,
-            Function,
-        )
+        from openai.types.responses import ResponseFunctionToolCall
 
-        content = ChatCompletionMessageToolCall(
-            id="test-tool-call-id",
-            type="function",
-            function=Function(
-                name="test-tool",
-                arguments='{"test-tool": {"key": "value", "key1": 123}}',
-            ),
+        content = ResponseFunctionToolCall(
+            id="api-id",
+            call_id="test-tool-call-id",
+            type="function_call",
+            name="test-tool",
+            arguments='{"test-tool": {"key": "value", "key1": 123}}',
         )
         # Capture logs to check if the warning is produced
         with patch(
@@ -126,36 +120,43 @@ class TestAzureOpenAIParsers:
         assert result.tool_input_raw == '{"key": "value", "key1": 123}'
 
     def test_parse_response(self, parsers: AzureOpenAIParsers) -> None:
-        """Test parsing a response."""
-        from openai.types.chat import (
-            ChatCompletion,
-            ChatCompletionMessage,
-        )
-        from openai.types.chat.chat_completion import Choice
-        from openai.types.completion_usage import CompletionUsage
+        """Test parsing a response using Responses API."""
+        from types import SimpleNamespace
 
-        response = ChatCompletion(
-            id="test-completion-id",
-            object="chat.completion",
-            created=1717171717,
-            model="test-model",
-            choices=[
-                Choice(
-                    message=ChatCompletionMessage(
-                        role="assistant",
-                        content="Hello, world!",
-                    ),
-                    finish_reason="stop",
-                    index=0,
-                ),
+        from openai.types.responses import ResponseOutputMessage, ResponseOutputText
+
+        output_message = ResponseOutputMessage(
+            id="msg_1",
+            type="message",
+            role="assistant",
+            status="completed",
+            content=[
+                ResponseOutputText(
+                    type="output_text",
+                    text="Hello, world!",
+                    annotations=[],
+                    logprobs=None,
+                )
             ],
-            usage=CompletionUsage(
-                prompt_tokens=10,
-                completion_tokens=20,
+        )
+
+        response = SimpleNamespace(
+            id="test-response-id",
+            model="test-model",
+            output=[output_message],
+            usage=SimpleNamespace(
+                input_tokens=10,
+                output_tokens=20,
                 total_tokens=30,
+                input_tokens_details=SimpleNamespace(
+                    cached_tokens=0,
+                ),
+                output_tokens_details=SimpleNamespace(
+                    reasoning_tokens=0,
+                ),
             ),
         )
-        result = parsers.parse_response(response)
+        result = parsers.parse_response(response)  # type: ignore[arg-type]
 
         assert isinstance(result, ResponseMessage)
         assert len(result.content) == 1
@@ -165,48 +166,35 @@ class TestAzureOpenAIParsers:
         assert result.raw_response == response
 
     def test_parse_response_with_tool_call(self, parsers: AzureOpenAIParsers) -> None:
-        """Test parsing a response with tool call."""
-        from openai.types.chat import (
-            ChatCompletion,
-            ChatCompletionMessage,
-            ChatCompletionMessageToolCall,
-        )
-        from openai.types.chat.chat_completion import Choice
-        from openai.types.chat.chat_completion_message_tool_call import Function
-        from openai.types.completion_usage import CompletionUsage
+        """Test parsing a response with tool call using Responses API."""
+        from types import SimpleNamespace
 
-        response = ChatCompletion(
-            id="test-completion-id",
-            object="chat.completion",
-            created=1717171717,
+        from openai.types.responses import ResponseFunctionToolCall
+
+        tool_call = ResponseFunctionToolCall(
+            id="api-id",
+            call_id="test-tool-call-id",
+            type="function_call",
+            name="test-tool",
+            arguments='{"key": "value"}',
+        )
+        response = SimpleNamespace(
+            id="test-response-id",
             model="test-model",
-            choices=[
-                Choice(
-                    message=ChatCompletionMessage(
-                        role="assistant",
-                        content=None,
-                        tool_calls=[
-                            ChatCompletionMessageToolCall(
-                                id="test-tool-call-id",
-                                type="function",
-                                function=Function(
-                                    name="test-tool",
-                                    arguments='{"key": "value"}',
-                                ),
-                            ),
-                        ],
-                    ),
-                    finish_reason="stop",
-                    index=0,
-                ),
-            ],
-            usage=CompletionUsage(
-                prompt_tokens=10,
-                completion_tokens=20,
+            output=[tool_call],
+            usage=SimpleNamespace(
+                input_tokens=10,
+                output_tokens=20,
                 total_tokens=30,
+                input_tokens_details=SimpleNamespace(
+                    cached_tokens=0,
+                ),
+                output_tokens_details=SimpleNamespace(
+                    reasoning_tokens=0,
+                ),
             ),
         )
-        result = parsers.parse_response(response)
+        result = parsers.parse_response(response)  # type: ignore[arg-type]
 
         assert isinstance(result, ResponseMessage)
         assert len(result.content) == 1
@@ -220,24 +208,16 @@ class TestAzureOpenAIParsers:
     @pytest.mark.asyncio
     async def test_parse_stream_event(self, parsers: AzureOpenAIParsers) -> None:
         """Test parsing a stream event."""
-        from openai.types.chat.chat_completion_chunk import (
-            ChatCompletionChunk,
-            Choice,
-            ChoiceDelta,
-        )
+        from openai.types.responses import ResponseTextDeltaEvent
 
-        event = ChatCompletionChunk(
-            id="test-chunk-id",
-            object="chat.completion.chunk",
-            created=1717171717,
-            model="test-model",
-            choices=[
-                Choice(
-                    index=0,
-                    delta=ChoiceDelta(content="Hello, world!"),
-                    finish_reason="stop",
-                ),
-            ],
+        event = ResponseTextDeltaEvent(
+            type="response.output_text.delta",
+            delta="Hello, world!",
+            content_index=0,
+            item_id="msg_1",
+            logprobs=[],
+            output_index=0,
+            sequence_number=1,
         )
 
         message = {
@@ -274,40 +254,19 @@ class TestAzureOpenAIParsers:
         parsers: AzureOpenAIParsers,
     ) -> None:
         """Test parsing a stream event with tool call."""
-        from openai.types.chat.chat_completion_chunk import (
-            ChatCompletionChunk,
-            Choice,
-            ChoiceDelta,
-            ChoiceDeltaToolCall,
-            ChoiceDeltaToolCallFunction,
-        )
+        from openai.types.responses import ResponseFunctionToolCall, ResponseOutputItemAddedEvent
 
-        # Create mock event object
-        event = ChatCompletionChunk(
-            id="test-chunk-id",
-            object="chat.completion.chunk",
-            created=1717171717,
-            model="test-model",
-            choices=[
-                Choice(
-                    index=0,
-                    delta=ChoiceDelta(
-                        content="Hello, world!",
-                        tool_calls=[
-                            ChoiceDeltaToolCall(
-                                index=0,
-                                id="test-tool-call-id",
-                                type="function",
-                                function=ChoiceDeltaToolCallFunction(
-                                    name="test-tool",
-                                    arguments='{"key": "value"}',
-                                ),
-                            ),
-                        ],
-                    ),
-                    finish_reason="stop",
-                ),
-            ],
+        event = ResponseOutputItemAddedEvent(
+            type="response.output_item.added",
+            item=ResponseFunctionToolCall(
+                id="api-id",
+                call_id="test-tool-call-id",
+                type="function_call",
+                name="test-tool",
+                arguments='{"key": "value"}',
+            ),
+            output_index=0,
+            sequence_number=1,
         )
 
         message = {

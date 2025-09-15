@@ -1,32 +1,29 @@
 import logging
-from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any, ClassVar
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.errors import ErrorCode
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.streaming import StreamingError
-from agent_platform.core.platforms.azure.configs import (
-    AzureOpenAIModelMap,
-    AzureOpenAIPlatformConfigs,
-)
 from agent_platform.core.platforms.azure.converters import AzureOpenAIConverters
 from agent_platform.core.platforms.azure.parameters import AzureOpenAIPlatformParameters
 from agent_platform.core.platforms.azure.parsers import AzureOpenAIParsers
 from agent_platform.core.platforms.azure.prompts import AzureOpenAIPrompt
-from agent_platform.core.platforms.base import (
-    PlatformClient,
-    PlatformConfigs,
-    PlatformModelMap,
+from agent_platform.core.platforms.base import PlatformClient
+from agent_platform.core.platforms.configs import (
+    resolve_generic_model_id_to_platform_specific_model_id,
 )
+from agent_platform.core.platforms.openai.utils import build_llm_async_http_client, log_token_usage
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
-    from openai import AsyncAzureOpenAI
+    from openai import AsyncAzureOpenAI, AsyncOpenAI
 
     from agent_platform.core.kernel import Kernel
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 class AzureOpenAIClient(
@@ -40,8 +37,19 @@ class AzureOpenAIClient(
     """A client for the AzureOpenAI platform."""
 
     NAME: ClassVar[str] = "azure"
-    configs: ClassVar[type[PlatformConfigs]] = AzureOpenAIPlatformConfigs
-    model_map: ClassVar[type[PlatformModelMap]] = AzureOpenAIModelMap
+
+    # ---- Retry knobs (tune as desired) ---------------------------------------
+    # NOTE: 5xx errors are retried generically by the predicate in retry.py
+    # (any 5xx except 501 and 505). This set is for explicit, non-5xx statuses
+    # we also want to retry:
+    # - 408 Request Timeout: transient network/server timeout
+    # - 409 Conflict: may be returned by Azure during transient deployment/capacity
+    #   conflicts or concurrency issues
+    # - 429 Too Many Requests: rate limiting; honor Retry-After when present
+    _RETRYABLE_STATUS: ClassVar[set[int]] = {408, 409, 429}
+    _MAX_RETRY_ATTEMPTS: ClassVar[int] = 3
+    _BACKOFF_BASE_S: ClassVar[float] = 0.5
+    _BACKOFF_MAX_S: ClassVar[float] = 8.0
 
     def __init__(
         self,
@@ -68,9 +76,9 @@ class AzureOpenAIClient(
     def _init_client(
         self,
         parameters: AzureOpenAIPlatformParameters,
-    ) -> "AsyncAzureOpenAI":
+    ) -> "AsyncOpenAI":
         """Initialize the Azure OpenAI client."""
-        from openai import AsyncAzureOpenAI
+        from openai import AsyncOpenAI
 
         # Required parameters check
         if parameters.azure_api_key is None:
@@ -82,10 +90,12 @@ class AzureOpenAIClient(
             )
 
         # Initialize the client with the API key and endpoint URL
-        return AsyncAzureOpenAI(
+        http = build_llm_async_http_client()
+        return AsyncOpenAI(
             api_key=parameters.azure_api_key.get_secret_value(),
-            azure_endpoint=parameters.azure_generated_endpoint_url,
-            api_version=parameters.azure_api_version,
+            base_url=f"{parameters.azure_endpoint_url}/openai/v1",
+            default_query={"api-version": "preview"},
+            http_client=http,
         )
 
     def _init_embeddings_client(
@@ -106,10 +116,12 @@ class AzureOpenAIClient(
             raise ValueError("AzureOpenAI deployment name for embeddings is required")
 
         # Initialize the client with the API key and endpoint URL
+        http = build_llm_async_http_client()
         return AsyncAzureOpenAI(
             api_key=parameters.azure_api_key.get_secret_value(),
             azure_endpoint=parameters.azure_generated_endpoint_url_embeddings,
             api_version=parameters.azure_api_version,
+            http_client=http,
         )
 
     def _init_converters(
@@ -132,6 +144,39 @@ class AzureOpenAIClient(
 
     def _init_parsers(self) -> AzureOpenAIParsers:
         return AzureOpenAIParsers()
+
+    async def _call_with_retries(
+        self,
+        call: Callable[[], Awaitable[T]],
+        model: str,
+        *,
+        stream: bool = False,
+        context: str = "request",
+    ) -> T:
+        """Run an async SDK call with retries using a shared Tenacity decorator."""
+        from agent_platform.core.platforms.retry import build_openai_retry_decorator
+
+        # We build a decorator dynamically here, to share between Azure and OpenAI
+        # internally, this decorator uses tenacity for retries (see retry.py)
+        retry_deco = build_openai_retry_decorator(
+            logger=logger,
+            provider_name="Azure OpenAI",
+            context=context,
+            max_attempts=self._MAX_RETRY_ATTEMPTS,
+            base_backoff_s=self._BACKOFF_BASE_S,
+            max_backoff_s=self._BACKOFF_MAX_S,
+            retryable_status=self._RETRYABLE_STATUS,
+        )
+
+        @retry_deco
+        async def _inner() -> T:
+            return await call()
+
+        try:
+            return await _inner()
+        except Exception as e:
+            error_type = StreamingError if stream else PlatformHTTPError
+            raise self._handle_openai_error(e, model, error_type) from e
 
     def _handle_openai_error(  # noqa: C901, PLR0911
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
@@ -252,14 +297,17 @@ class AzureOpenAIClient(
         model: str,
     ) -> ResponseMessage:
         """Generate a response from the AzureOpenAI platform."""
-        from openai import APIError
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        request = prompt.as_platform_request(model_id)
+        request["model"] = self._parameters.azure_deployment_name
 
-        request = prompt.as_platform_request(model)
-        try:
-            response = await self._azure_client.chat.completions.create(**request)
-            return self._parsers.parse_response(response)
-        except APIError as e:
-            raise self._handle_openai_error(e, model, PlatformHTTPError) from e
+        response = await self._call_with_retries(
+            lambda: self._azure_client.responses.create(**request),
+            model,
+            stream=False,
+            context="responses.create",
+        )
+        return self._parsers.parse_response(response)
 
     async def generate_stream_response(
         self,
@@ -269,10 +317,10 @@ class AzureOpenAIClient(
         """Stream a response from the AzureOpenAI platform."""
         from copy import deepcopy
 
-        from openai import APIError
-
-        logger.info(f"Streaming with Azure OpenAI model: {model}")
-        request = prompt.as_platform_request(model, stream=True)
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        logger.info(f"Streaming with Azure OpenAI model: {model_id}")
+        request = prompt.as_platform_request(model_id, stream=True)
+        request["model"] = self._parameters.azure_deployment_name
 
         # Initialize message state
         message: dict[str, Any] = {
@@ -282,31 +330,30 @@ class AzureOpenAIClient(
         }
         last_message: dict[str, Any] = {}
 
-        try:
-            # Process each event through the parser
-            response = await self._azure_client.chat.completions.create(**request)
-            async for event in response:
-                async for delta in self._parsers.parse_stream_event(
-                    event,
-                    message,
-                    last_message,
-                ):
-                    yield delta
+        # Retry only the initial stream creation to keep idempotency of outputs/tool calls
+        response = await self._call_with_retries(
+            lambda: self._azure_client.responses.create(**request),
+            model,
+            stream=True,
+            context="responses.create(stream)",
+        )
 
-                # Update last message state after processing each event
-                last_message = deepcopy(message)
-        except APIError as e:
-            # Handle all OpenAI errors using the extracted error handler
-            raise self._handle_openai_error(e, model, StreamingError) from e
+        # Process each event through the parser
+        async for event in response:
+            async for delta in self._parsers.parse_stream_event(
+                event,
+                message,
+                last_message,
+            ):
+                yield delta
+
+            # Update last message state after processing each event
+            last_message = deepcopy(message)
 
         # Add final metadata and platform info
         final_event = self._generate_platform_metadata()
-        if "metadata" not in message:
-            message["metadata"] = {}
-        message["metadata"].update(final_event)
-        # TODO: encountered a run where usage was not present in the message,
-        #       so we need to check for that, this may have been a change in the OpenAI API.
-        logger.info(f"Token usage: {message.get('usage', {})}")
+        message.setdefault("metadata", {}).update(final_event)
+        log_token_usage(logger, message.get("usage", {}))
 
         # Put request ID (if any) into raw_response
         request_id = message.get("additional_response_fields", {}).get("id", "unknown")
@@ -331,7 +378,7 @@ class AzureOpenAIClient(
         model: str,
     ) -> dict[str, Any]:
         """Create embeddings using a AzureOpenAI embedding model."""
-        model_id = AzureOpenAIModelMap.model_aliases[model]
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
         logger.info(
             f"Creating embeddings with Azure model: {model} (model_id: {model_id})",
         )
@@ -342,20 +389,38 @@ class AzureOpenAIClient(
                 "model": model,
                 "usage": {"total_tokens": 0},
             }
+
         embeddings = []
         total_tokens = 0
         for text in texts:
-            response = await self.azure_embeddings_client.embeddings.create(
-                model=model_id,
-                input=text,
+            response = await self._call_with_retries(
+                lambda the_text=text: self.azure_embeddings_client.embeddings.create(
+                    model=model_id,
+                    input=the_text,
+                ),
+                model,
+                stream=False,
+                context="embeddings.create",
             )
             embedding = response.data[0].embedding
             total_tokens += response.usage.total_tokens
             embeddings.append(embedding)
+
         return {
             "embeddings": embeddings,
             "model": model,
             "usage": {"total_tokens": total_tokens},
+        }
+
+    async def get_available_models(self) -> dict[str, list[str]]:
+        # There's just really nothing good to do here unless we have the management plane
+        # APIs (which require _different_ auth...)
+        return {
+            "openai": [
+                self._parameters.azure_model_backing_deployment_name or "gpt-5",
+                self._parameters.azure_model_backing_deployment_name_embeddings
+                or "text-embedding-3-large",
+            ],
         }
 
 

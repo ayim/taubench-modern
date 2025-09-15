@@ -1,7 +1,7 @@
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
@@ -16,6 +16,7 @@ from agent_platform.core.platforms.openai.converters import OpenAIConverters
 from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
 from agent_platform.core.platforms.openai.parsers import OpenAIParsers
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
+from agent_platform.core.platforms.openai.utils import build_llm_async_http_client, log_token_usage
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 class OpenAIClient(
@@ -34,9 +36,21 @@ class OpenAIClient(
         OpenAIPrompt,
     ],
 ):
-    """A client for the OpenAI platform."""
+    """A client for the OpenAI platform using the Responses API."""
 
     NAME: ClassVar[str] = "openai"
+
+    # ---- Retry knobs (tune as desired) ---------------------------------------
+    # NOTE: 5xx errors are retried generically by the predicate in retry.py
+    # (any 5xx except 501 and 505). This set is for explicit, non-5xx statuses
+    # we also want to retry:
+    # - 408 Request Timeout: transient network/server timeout
+    # - 409 Conflict: can occur transiently (e.g., capacity/concurrency conflicts)
+    # - 429 Too Many Requests: rate limiting; honor Retry-After when present
+    _RETRYABLE_STATUS: ClassVar[set[int]] = {408, 409, 429}
+    _MAX_RETRY_ATTEMPTS: ClassVar[int] = 3
+    _BACKOFF_BASE_S: ClassVar[float] = 0.5
+    _BACKOFF_MAX_S: ClassVar[float] = 8.0
 
     def __init__(
         self,
@@ -58,7 +72,9 @@ class OpenAIClient(
         if parameters.openai_api_key is None:
             raise ValueError("OpenAI API key is required")
 
-        return AsyncOpenAI(api_key=parameters.openai_api_key.get_secret_value())
+        http = build_llm_async_http_client()
+
+        return AsyncOpenAI(api_key=parameters.openai_api_key.get_secret_value(), http_client=http)
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> OpenAIConverters:
         converters = OpenAIConverters()
@@ -77,6 +93,39 @@ class OpenAIClient(
 
     def _init_parsers(self) -> OpenAIParsers:
         return OpenAIParsers()
+
+    async def _call_with_retries(
+        self,
+        call: Callable[[], Awaitable[T]],
+        model: str,
+        *,
+        stream: bool = False,
+        context: str = "request",
+    ) -> T:
+        """Run an async SDK call with retries using a shared Tenacity decorator."""
+        from agent_platform.core.platforms.retry import build_openai_retry_decorator
+
+        # We build a decorator dynamically here, to share between Azure and OpenAI
+        # internally, this decorator uses tenacity for retries (see retry.py)
+        retry_deco = build_openai_retry_decorator(
+            logger=logger,
+            provider_name="OpenAI",
+            context=context,
+            max_attempts=self._MAX_RETRY_ATTEMPTS,
+            base_backoff_s=self._BACKOFF_BASE_S,
+            max_backoff_s=self._BACKOFF_MAX_S,
+            retryable_status=self._RETRYABLE_STATUS,
+        )
+
+        @retry_deco
+        async def _inner() -> T:
+            return await call()
+
+        try:
+            return await _inner()
+        except Exception as e:
+            error_type = StreamingError if stream else PlatformHTTPError
+            raise self._handle_openai_error(e, model, error_type) from e
 
     def _handle_openai_error(  # noqa: C901, PLR0911
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
@@ -205,19 +254,16 @@ class OpenAIClient(
         Returns:
             A ResponseMessage with the model's response.
         """
-        from openai import APIError
-
-        logger.debug(f"[OpenAI] Resolving model id: {model}")
         model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
-        logger.debug(f"[OpenAI] Resolved model id: {model} -> {model_id}")
         request = prompt.as_platform_request(model_id)
-        try:
-            logger.debug("[OpenAI] Calling chat.completions.create")
-            response = await self._openai_client.chat.completions.create(**request)
-            logger.debug("[OpenAI] Received chat.completions.create result")
-            return self._parsers.parse_response(response)
-        except APIError as e:
-            raise self._handle_openai_error(e, model, PlatformHTTPError) from e
+
+        response = await self._call_with_retries(
+            lambda: self._openai_client.responses.create(**request),
+            model,
+            stream=False,
+            context="responses.create",
+        )
+        return self._parsers.parse_response(response)
 
     async def generate_stream_response(
         self,
@@ -233,11 +279,9 @@ class OpenAIClient(
         Yields:
             GenericDeltas that update the ResponseMessage.
         """
-        from openai import APIError
-
-        logger.info(f"Streaming with OpenAI model: {model}")
         model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
         request = prompt.as_platform_request(model_id, stream=True)
+        logger.info(f"Streaming with OpenAI model: {model_id}")
 
         # Initialize message state
         message: dict[str, Any] = {
@@ -247,30 +291,29 @@ class OpenAIClient(
         }
         last_message: dict[str, Any] = {}
 
-        try:
-            # Add stream=True to ensure streaming is enabled
-            request["stream"] = True
-            response = await self._openai_client.chat.completions.create(**request)
-            async for event in response:
-                async for delta in self._parsers.parse_stream_event(
-                    event,
-                    message,
-                    last_message,
-                ):
-                    yield delta
-
-                # Update last message state after processing each event
-                last_message = deepcopy(message)
-        except APIError as e:
-            # Handle all OpenAI errors using the extracted error handler
-            raise self._handle_openai_error(e, model, StreamingError) from e
+        # Retry only the initial stream creation to avoid duplicate outputs/tool calls
+        response = await self._call_with_retries(
+            lambda: self._openai_client.responses.create(**request),
+            model,
+            stream=True,
+            context="responses.create(stream)",
+        )
+        async for event in response:
+            async for delta in self._parsers.parse_stream_event(
+                event,
+                message,
+                last_message,
+            ):
+                yield delta
+            # Update last message state after processing each event
+            last_message = deepcopy(message)
 
         # Add final metadata and platform info
         final_event = self._generate_platform_metadata()
-        if "metadata" not in message:
-            message["metadata"] = {}
-        message["metadata"].update(final_event)
-        logger.info(f"Token usage: {message['usage']}")
+        message.setdefault("metadata", {}).update(final_event)
+
+        # Log token usage in a single concise line
+        log_token_usage(logger, message.get("usage", {}))
 
         # Put request ID (if any) into raw_response
         request_id = message.get("additional_response_fields", {}).get("id", "unknown")
@@ -313,16 +356,23 @@ class OpenAIClient(
                 "model": model,
                 "usage": {"total_tokens": 0},
             }
+
         embeddings = []
         total_tokens = 0
         for text in texts:
-            response = await self._openai_client.embeddings.create(
-                model=model_id,
-                input=text,
+            response = await self._call_with_retries(
+                lambda the_text=text: self._openai_client.embeddings.create(
+                    model=model_id,
+                    input=the_text,
+                ),
+                model,
+                stream=False,
+                context="embeddings.create",
             )
             embedding = response.data[0].embedding
             total_tokens += response.usage.total_tokens
             embeddings.append(embedding)
+
         return {
             "embeddings": embeddings,
             "model": model,

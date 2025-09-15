@@ -20,6 +20,9 @@ class Platform:
 
                 return OpenAIPlatformParameters(
                     openai_api_key=SecretString(os.environ["OPENAI_API_KEY"]),
+                    # TODO: read this from yaml configs, just trying to run on gpt-5 as a kind
+                    # of integration test for now, but should be configurable
+                    models={"openai": ["gpt-5-minimal"]},
                 ).model_dump()
             case "azure":
                 from agent_platform.core.platforms.azure import AzureOpenAIPlatformParameters
@@ -30,6 +33,12 @@ class Platform:
                     azure_deployment_name=os.environ["AZURE_DEPLOYMENT_NAME"],
                     azure_deployment_name_embeddings=os.environ["AZURE_DEPLOYMENT_NAME_EMBEDDINGS"],
                     azure_api_version=os.environ["AZURE_API_VERSION"],
+                    azure_model_backing_deployment_name=os.environ[
+                        "AZURE_MODEL_BACKING_DEPLOYMENT_NAME"
+                    ],
+                    # We should be upgrading the eval harness, now that we have this filtering
+                    # ability, to have explicit models set (instead of taking platform defaults)
+                    models={"openai": ["gpt-4-1"]},
                 ).model_dump()
             case "bedrock":
                 from agent_platform.core.platforms.bedrock import BedrockPlatformParameters

@@ -143,7 +143,7 @@ Only respond with the JSON object, no other text.
                 json={
                     "prompt": prompt_data,
                     "platform_config_raw": platform_config,
-                    "model": "gpt-4.1",  # You might want to make this configurable
+                    "model": "gpt-5-low",  # You might want to make this configurable
                 },
                 headers={"Content-Type": "application/json"},
             )

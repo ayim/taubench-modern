@@ -26,7 +26,7 @@ async def test_evals_e2e(
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
-                    "models": {"openai": ["gpt-4.1"]},
+                    "models": {"openai": ["gpt-5-low"]},
                 }
             ],
             runbook="""

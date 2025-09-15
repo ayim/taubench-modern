@@ -38,8 +38,8 @@ class TestOpenAIConverters:
         result = await converters.convert_text_content(content)
 
         assert isinstance(result, dict)
-        assert result["type"] == "text"
-        assert result["text"] == "Hello, world!"
+        assert result.get("type") == "input_text"
+        assert result.get("text") == "Hello, world!"
 
     @pytest.mark.asyncio
     async def test_convert_image_content_url(
@@ -57,10 +57,11 @@ class TestOpenAIConverters:
             )
         )
         assert isinstance(result, dict)
-        assert result["type"] == "image_url"
-        assert result["image_url"]["url"] == "https://example.com/image.png"
-        assert "detail" in result["image_url"]
-        assert result["image_url"]["detail"] == "high"
+        assert result.get("type") == "input_image"
+        assert result.get("detail") == "high"
+        image_url = result.get("image_url")
+        assert isinstance(image_url, str)
+        assert image_url == "https://example.com/image.png"
 
     @pytest.mark.asyncio
     async def test_convert_image_content_b64(
@@ -72,8 +73,10 @@ class TestOpenAIConverters:
 
         result = await converters.convert_image_content(b64_image_prompt_content)
         assert isinstance(result, dict)
-        assert result["type"] == "image_url"
-        assert result["image_url"]["url"].startswith("data:image/png;base64,")
+        assert result.get("type") == "input_image"
+        image_url = result.get("image_url")
+        assert isinstance(image_url, str)
+        assert image_url.startswith("data:image/png;base64,")
 
     @pytest.mark.asyncio
     async def test_convert_tool_use_content(self, converters: OpenAIConverters) -> None:
@@ -85,9 +88,9 @@ class TestOpenAIConverters:
         )
         result = await converters.convert_tool_use_content(content)
 
-        assert result["type"] == "function"
-        assert result["id"] == "test-tool-call-id"
-        assert result["function"]["name"] == "test-tool"
+        assert result.get("type") == "function_call"
+        assert result.get("call_id") == "test-tool-call-id"
+        assert result.get("name") == "test-tool"
 
     @pytest.mark.asyncio
     async def test_convert_prompt(
@@ -106,25 +109,23 @@ class TestOpenAIConverters:
         result = await converters.convert_prompt(finalized_prompt, model_id="gpt-4o")
 
         assert isinstance(result, OpenAIPrompt)
-        assert result.messages is not None
-        assert len(result.messages) == 2
+        assert result.instructions == "You are a helpful assistant."
+        assert result.input is not None
+        assert len(result.input) == 1
 
-        developer_msg = result.messages[0]
-        assert developer_msg["role"] == "developer"
-        assert isinstance(developer_msg["content"], list)
-        assert len(developer_msg["content"]) == 1
-        assert developer_msg["content"][0]["type"] == "text"
-        assert developer_msg["content"][0]["text"] == "You are a helpful assistant."
-
-        user_msg = result.messages[1]
-        assert user_msg["role"] == "user"
-        assert isinstance(user_msg["content"], list)
-        assert len(user_msg["content"]) == 1
-        assert user_msg["content"][0]["type"] == "text"
-        assert user_msg["content"][0]["text"] == "Hello, world!"
+        user_msg = result.input[0]
+        assert isinstance(user_msg, dict)
+        assert user_msg.get("role") == "user"
+        content_list = user_msg.get("content")
+        assert isinstance(content_list, list)
+        assert len(content_list) == 1
+        first_part = content_list[0]
+        assert isinstance(first_part, dict)
+        assert first_part.get("type") == "input_text"
+        assert first_part.get("text") == "Hello, world!"
 
     @pytest.mark.asyncio
-    async def test_convert_prompt_o1_mini(
+    async def test_convert_prompt_o4_mini(
         self,
         converters: OpenAIConverters,
         kernel: Kernel,
@@ -139,28 +140,24 @@ class TestOpenAIConverters:
         finalized_prompt = await prompt.finalize_messages(kernel)
         result = await converters.convert_prompt(
             finalized_prompt,
-            model_id="o1-mini-2024-07-18",
+            model_id="o4-mini",
         )
 
         assert isinstance(result, OpenAIPrompt)
-        assert result.messages is not None
-        assert len(result.messages) == 2
-
-        developer_msg = result.messages[0]
-        # NOTE: here, for o1-mini, the role is indeed "user" as this
-        # model does not support system/developer messages!!
-        assert developer_msg["role"] == "user"
-        assert isinstance(developer_msg["content"], list)
-        assert len(developer_msg["content"]) == 1
-        assert developer_msg["content"][0]["type"] == "text"
-        assert developer_msg["content"][0]["text"] == "You are a helpful assistant."
-
-        user_msg = result.messages[1]
-        assert user_msg["role"] == "user"
-        assert isinstance(user_msg["content"], list)
-        assert len(user_msg["content"]) == 1
-        assert user_msg["content"][0]["type"] == "text"
-        assert user_msg["content"][0]["text"] == "Hello, world!"
+        # With Responses API, system instructions are provided via `instructions`
+        assert result.instructions == "You are a helpful assistant."
+        assert result.input is not None
+        assert len(result.input) == 1
+        user_msg = result.input[0]
+        assert isinstance(user_msg, dict)
+        assert user_msg.get("role") == "user"
+        content_list = user_msg.get("content")
+        assert isinstance(content_list, list)
+        assert len(content_list) == 1
+        first_part = content_list[0]
+        assert isinstance(first_part, dict)
+        assert first_part.get("type") == "input_text"
+        assert first_part.get("text") == "Hello, world!"
 
     @pytest.mark.asyncio
     async def test_convert_prompt_with_tools(
@@ -199,15 +196,14 @@ class TestOpenAIConverters:
         assert len(result.tools) == 1
 
         tool_obj = result.tools[0]
-        assert tool_obj["type"] == "function"
-        assert tool_obj["function"]["name"] == "test-tool"
-        assert "description" in tool_obj["function"]
-        assert tool_obj["function"]["description"] == "A test tool"
-        assert "parameters" in tool_obj["function"]
-        assert tool_obj["function"]["parameters"]["type"] == "object"
-        assert "properties" in tool_obj["function"]["parameters"]
-        assert "required" in tool_obj["function"]["parameters"]
-        assert tool_obj["function"]["parameters"]["required"] == ["key"]
+        assert tool_obj.get("type") == "function"
+        assert tool_obj.get("name") == "test-tool"
+        assert tool_obj.get("description") == "A test tool"
+        parameters = tool_obj.get("parameters")
+        assert isinstance(parameters, dict)
+        assert parameters.get("type") == "object"
+        assert isinstance(parameters.get("properties"), dict)
+        assert parameters.get("required") == ["key"]
 
     @pytest.mark.asyncio
     async def test_convert_tool_result_content(
@@ -223,9 +219,9 @@ class TestOpenAIConverters:
         result = await converters.convert_tool_result_content(content)
 
         assert isinstance(result, dict)
-        assert result.get("role") == "tool"
-        assert result.get("tool_call_id") == "test-tool-call-id"
-        assert result.get("content") == "Hello, world!"
+        assert result.get("type") == "function_call_output"
+        assert result.get("call_id") == "test-tool-call-id"
+        assert result.get("output") == "Hello, world!"
 
     @pytest.mark.asyncio
     async def test_convert_prompt_with_no_messages(
@@ -242,15 +238,9 @@ class TestOpenAIConverters:
         result = await converters.convert_prompt(finalized_prompt, model_id="gpt-4o")
 
         assert isinstance(result, OpenAIPrompt)
-        assert result.messages is not None
-        assert len(result.messages) == 1
-
-        developer_msg = result.messages[0]
-        assert developer_msg["role"] == "developer"
-        assert isinstance(developer_msg["content"], list)
-        assert len(developer_msg["content"]) == 1
-        assert developer_msg["content"][0]["type"] == "text"
-        assert developer_msg["content"][0]["text"] == "You are a helpful assistant."
+        assert isinstance(result.input, list)
+        assert len(result.input) == 0
+        assert result.instructions == "You are a helpful assistant."
 
     @pytest.mark.asyncio
     async def test_convert_prompt_with_no_system_instruction(
@@ -268,15 +258,19 @@ class TestOpenAIConverters:
         result = await converters.convert_prompt(finalized_prompt, model_id="gpt-4o")
 
         assert isinstance(result, OpenAIPrompt)
-        assert result.messages is not None
-        assert len(result.messages) == 1
-
-        user_msg = result.messages[0]
-        assert user_msg["role"] == "user"
-        assert isinstance(user_msg["content"], list)
-        assert len(user_msg["content"]) == 1
-        assert user_msg["content"][0]["type"] == "text"
-        assert user_msg["content"][0]["text"] == "Hello, world!"
+        assert isinstance(result.input, list)
+        assert len(result.input) == 1
+        user_msg = result.input[0]
+        assert isinstance(user_msg, dict)
+        assert user_msg.get("role") == "user"
+        content_list = user_msg.get("content")
+        assert isinstance(content_list, list)
+        assert len(content_list) == 1
+        first_part = content_list[0]
+        assert isinstance(first_part, dict)
+        assert first_part.get("type") == "input_text"
+        assert first_part.get("text") == "Hello, world!"
+        assert result.instructions is None
 
     @pytest.mark.asyncio
     async def test_tool_conversion(self, converters: OpenAIConverters) -> None:
@@ -292,85 +286,70 @@ class TestOpenAIConverters:
         assert len(tools) == 1
 
         tool_obj = tools[0]
-        assert tool_obj["type"] == "function"
-        assert tool_obj["function"]["name"] == "test-tool"
-        assert "description" in tool_obj["function"]
-        assert tool_obj["function"]["description"] == "A test tool"
-        assert "parameters" in tool_obj["function"]
-        assert tool_obj["function"]["parameters"]["type"] == "object"
+        assert tool_obj.get("type") == "function"
+        assert tool_obj.get("name") == "test-tool"
+        assert tool_obj.get("description") == "A test tool"
+        parameters = tool_obj.get("parameters")
+        assert isinstance(parameters, dict)
+        assert parameters.get("type") == "object"
 
     @pytest.mark.asyncio
     async def test_system_instruction_conversion(
         self,
         converters: OpenAIConverters,
+        kernel: Kernel,
     ) -> None:
-        """Test converting system instruction."""
-        developer_msg = await converters._convert_system_instruction_to_openai(
-            "Test instruction",
-            model_id="gpt-4o",
+        """Test system instruction handling via Responses API prompt fields."""
+        # With instruction
+        prompt = Prompt(
+            system_instruction="Test instruction",
+            messages=[PromptUserMessage([PromptTextContent(text="Hi")])],
         )
-        assert len(developer_msg) == 1
+        finalized = await prompt.finalize_messages(kernel)
+        converted = await converters.convert_prompt(finalized, model_id="gpt-4o")
+        assert converted.instructions == "Test instruction"
 
-        msg = developer_msg[0]
-        assert msg["role"] == "developer"
-        assert isinstance(msg["content"], list)
-        assert len(msg["content"]) == 1
-        assert msg["content"][0]["type"] == "text"
-        assert msg["content"][0]["text"] == "Test instruction"
+        # Without instruction
+        prompt2 = Prompt(messages=[PromptUserMessage([PromptTextContent(text="Hi")])])
+        finalized2 = await prompt2.finalize_messages(kernel)
+        converted2 = await converters.convert_prompt(finalized2, model_id="gpt-4o")
+        assert converted2.instructions is None
 
-        # Test with None
-        empty_system = await converters._convert_system_instruction_to_openai(
-            None,
-            model_id="gpt-4o",
+        # o1-mini retains instructions in `instructions`
+        prompt3 = Prompt(
+            system_instruction="Test instruction",
+            messages=[PromptUserMessage([PromptTextContent(text="Hi")])],
         )
-        assert len(empty_system) == 0
-
-        # Test with o1-mini (which does not support system/developer messages)
-        o1_mini_system = await converters._convert_system_instruction_to_openai(
-            "Test instruction",
-            model_id="o1-mini-2024-07-18",
-        )
-        assert len(o1_mini_system) == 1
-        assert o1_mini_system[0]["role"] == "user"
-        assert isinstance(o1_mini_system[0]["content"], list)
-        assert len(o1_mini_system[0]["content"]) == 1
-        assert o1_mini_system[0]["content"][0]["type"] == "text"
-        assert o1_mini_system[0]["content"][0]["text"] == "Test instruction"
-
-        # Test with o1-mini and None
-        o1_mini_empty_system = await converters._convert_system_instruction_to_openai(
-            None,
-            model_id="o1-mini-2024-07-18",
-        )
-        assert len(o1_mini_empty_system) == 0
+        finalized3 = await prompt3.finalize_messages(kernel)
+        converted3 = await converters.convert_prompt(finalized3, model_id="o1-mini-2024-07-18")
+        assert converted3.instructions == "Test instruction"
 
     @pytest.mark.asyncio
-    async def test_process_message_content(
+    async def test_process_user_message_content(
         self,
         converters: OpenAIConverters,
     ) -> None:
-        """Test processing message content."""
-        # Test with just text
+        """Test processing user message content for Responses API."""
+        # Text only
         text_content = [PromptTextContent(text="Hello, world!")]
-        result, tools = await converters._process_message_content(text_content)
+        result, tool_results = await converters._process_user_message_content(text_content)
         assert len(result) == 1
-        assert result[0]["type"] == "text"
-        assert result[0]["text"] == "Hello, world!"
-        assert len(tools) == 0
+        assert result[0].get("type") == "input_text"
+        assert result[0].get("text") == "Hello, world!"
+        assert len(tool_results) == 0
 
-        # Test with text and tool use
+        # Text and tool result (tool outputs follow the message as separate items)
         mixed_content = [
             PromptTextContent(text="Hello, world!"),
-            PromptToolUseContent(
+            PromptToolResultContent(
                 tool_call_id="test-id",
                 tool_name="test-tool",
-                tool_input_raw='{"key": "value"}',
+                content=[PromptTextContent(text="ok")],
             ),
         ]
-        result, tools = await converters._process_message_content(mixed_content)
+        result, tool_results = await converters._process_user_message_content(mixed_content)
         assert len(result) == 1
-        assert result[0]["type"] == "text"
-        assert result[0]["text"] == "Hello, world!"
-        assert len(tools) == 1
-        assert tools[0]["type"] == "function"
-        assert tools[0]["function"]["name"] == "test-tool"
+        assert result[0].get("type") == "input_text"
+        assert result[0].get("text") == "Hello, world!"
+        assert len(tool_results) == 1
+        assert tool_results[0].get("type") == "function_call_output"

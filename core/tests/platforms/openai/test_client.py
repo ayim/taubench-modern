@@ -80,11 +80,11 @@ class MockCompletions:
         self.create = MagicMock()
 
 
-class MockChatCompletions:
-    """Mock chat completions API."""
+class MockResponses:
+    """Mock Responses API."""
 
     def __init__(self):
-        self.completions = MockCompletions()
+        self.create = MagicMock()
 
 
 class MockModels:
@@ -99,7 +99,7 @@ class MockOpenAIClient:
 
     def __init__(self):
         """Initialize the mock client."""
-        self.chat = MockChatCompletions()
+        self.responses = MockResponses()
         self.embeddings = MockEmbeddings()
         self.models = MockModels()
 
@@ -112,101 +112,64 @@ class TestOpenAIClient:
         """Create a mock OpenAI client."""
         client = MockOpenAIClient()
 
-        # Set up chat completions response for non-streaming
-        async def mock_chat_response(**kwargs):
-            from openai.types.chat import ChatCompletion
-            from openai.types.chat.chat_completion import Choice
-            from openai.types.chat.chat_completion_message import ChatCompletionMessage
-            from openai.types.completion_usage import CompletionUsage
+        # Set up Responses API response for non-streaming and streaming
+        async def mock_responses_create(**kwargs):
+            from types import SimpleNamespace
 
+            # Simulate streaming by returning an async iterable of events
             if kwargs.get("stream", False):
-                # Return a mock async iterable for streaming
-                from openai.types.chat.chat_completion_chunk import (
-                    ChatCompletionChunk,
-                    ChoiceDelta,
-                )
-                from openai.types.chat.chat_completion_chunk import (
-                    Choice as ChunkChoice,
-                )
+                from types import SimpleNamespace
 
-                chunks = [
-                    ChatCompletionChunk(
-                        id="chunk1",
-                        object="chat.completion.chunk",
-                        created=1234567890,
-                        model=kwargs.get("model", "default-model"),
-                        choices=[
-                            ChunkChoice(
-                                index=0,
-                                delta=ChoiceDelta(role="assistant"),
-                                finish_reason=None,
-                            ),
-                        ],
-                    ),
-                    ChatCompletionChunk(
-                        id="chunk2",
-                        object="chat.completion.chunk",
-                        created=1234567891,
-                        model=kwargs.get("model", "default-model"),
-                        choices=[
-                            ChunkChoice(
-                                index=0,
-                                delta=ChoiceDelta(content="Hello, "),
-                                finish_reason=None,
-                            ),
-                        ],
-                    ),
-                    ChatCompletionChunk(
-                        id="chunk3",
-                        object="chat.completion.chunk",
-                        created=1234567892,
-                        model=kwargs.get("model", "default-model"),
-                        choices=[
-                            ChunkChoice(
-                                index=0,
-                                delta=ChoiceDelta(content="world!"),
-                                finish_reason="stop",
-                            ),
-                        ],
-                    ),
-                    ChatCompletionChunk(
-                        id="chunk4",
-                        object="chat.completion.chunk",
-                        created=1234567893,
-                        model=kwargs.get("model", "default-model"),
-                        choices=[],
-                        usage=CompletionUsage(
-                            prompt_tokens=10,
-                            completion_tokens=20,
-                            total_tokens=30,
-                        ),
-                    ),
-                ]
-                return MockStreamResponse(chunks)
-            else:
-                return ChatCompletion(
-                    id="response-id",
-                    object="chat.completion",
-                    created=1234567890,
+                # Define minimal event types to satisfy parser logic
+                def make_event(name: str, **fields):
+                    return SimpleNamespace(type=name, **fields)
+
+                # Build a sequence of events similar to OpenAI stream
+                response_obj = SimpleNamespace(
+                    id="resp_1",
                     model=kwargs.get("model", "default-model"),
-                    choices=[
-                        Choice(
-                            index=0,
-                            message=ChatCompletionMessage(
-                                role="assistant",
-                                content="Hello, world!",
-                            ),
-                            finish_reason="stop",
-                        ),
-                    ],
-                    usage=CompletionUsage(
-                        prompt_tokens=10,
-                        completion_tokens=20,
-                        total_tokens=30,
-                    ),
+                    usage=SimpleNamespace(input_tokens=10, output_tokens=20, total_tokens=30),
                 )
+                events = [
+                    # Output message scaffold
+                    make_event(
+                        "response.output_item.added",
+                        item=SimpleNamespace(
+                            __class__=type("ResponseOutputMessage", (), {}),
+                            id="msg_1",
+                        ),
+                    ),
+                    # Text deltas
+                    make_event("response.output_text.delta", delta="Hello, "),
+                    make_event("response.output_text.delta", delta="world!"),
+                    # Completed event with usage
+                    make_event("response.completed", response=response_obj),
+                ]
+                return MockStreamResponse(events)
 
-        client.chat.completions.create.side_effect = mock_chat_response
+            # Non-streaming: return an object with .output and .usage
+            output_message = SimpleNamespace(
+                __class__=type("ResponseOutputMessage", (), {}),
+                id="msg_1",
+                content=[
+                    SimpleNamespace(
+                        __class__=type("ResponseOutputText", (), {}),
+                        type="output_text",
+                        text="Hello, world!",
+                        annotations=[],
+                        logprobs=None,
+                    ),
+                ],
+            )
+            response = SimpleNamespace(
+                id="resp_1",
+                model=kwargs.get("model", "default-model"),
+                output=[output_message],
+                usage=SimpleNamespace(input_tokens=10, output_tokens=20, total_tokens=30),
+            )
+            return response
+
+        client.responses.create.side_effect = mock_responses_create
 
         # Set up embeddings response
         async def mock_embedding_response(**kwargs):
@@ -236,6 +199,12 @@ class TestOpenAIClient:
 
             return MagicMock(
                 data=[
+                    Model(
+                        id="gpt-5-2025-08-07",
+                        object="model",
+                        created=1234567890,
+                        owned_by="openai",
+                    ),
                     Model(
                         id="gpt-4.1-2025-04-14",
                         object="model",
@@ -321,8 +290,9 @@ class TestOpenAIClient:
             assert client.name == "openai"
             assert isinstance(client._parameters, OpenAIPlatformParameters)
             assert client._parameters.openai_api_key is not None
-            mock_openai.assert_called_once_with(
-                api_key=client._parameters.openai_api_key.get_secret_value(),
+            assert (
+                mock_openai.call_args.kwargs["api_key"]
+                == client._parameters.openai_api_key.get_secret_value()
             )
 
     def test_init_clients(self, parameters: OpenAIPlatformParameters) -> None:
@@ -331,8 +301,9 @@ class TestOpenAIClient:
         with patch("openai.AsyncOpenAI", return_value=mock_client) as mock_openai:
             client = OpenAIClient(parameters=parameters)
             assert parameters.openai_api_key is not None
-            mock_openai.assert_called_once_with(
-                api_key=parameters.openai_api_key.get_secret_value(),
+            assert (
+                mock_openai.call_args.kwargs["api_key"]
+                == parameters.openai_api_key.get_secret_value()
             )
             assert client._openai_client is mock_client
 
@@ -358,11 +329,15 @@ class TestOpenAIClient:
         OpenAIPrompt,
         "as_platform_request",
         return_value={
-            "model": "gpt-4-1",
-            "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello, world!"},
+            "model": "gpt-5",
+            "input": [
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Hello, world!"}],
+                }
             ],
+            "instructions": "You are a helpful assistant.",
         },
     )
     async def test_generate_response(
@@ -375,10 +350,10 @@ class TestOpenAIClient:
         """Test generating a response."""
         response = await openai_client.generate_response(
             prompt=openai_prompt,
-            model="gpt-4-1",
+            model="gpt-5-medium",
         )
 
-        mock_openai_client.chat.completions.create.assert_called_once()
+        mock_openai_client.responses.create.assert_called_once()
         assert isinstance(response, ResponseMessage)
         assert isinstance(response.content[0], ResponseTextContent)
         assert response.content[0].text == "Hello, world!"
@@ -388,13 +363,16 @@ class TestOpenAIClient:
         OpenAIPrompt,
         "as_platform_request",
         return_value={
-            "model": "gpt-4-1",
-            "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello, world!"},
+            "model": "gpt-5",
+            "input": [
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Hello, world!"}],
+                }
             ],
+            "instructions": "You are a helpful assistant.",
             "stream": True,
-            "stream_options": {"include_usage": True},
         },
     )
     async def test_generate_stream_response(
@@ -408,11 +386,11 @@ class TestOpenAIClient:
         deltas = []
         async for delta in openai_client.generate_stream_response(
             prompt=openai_prompt,
-            model="gpt-4-1",
+            model="gpt-5-medium",
         ):
             deltas.append(delta)
 
-        mock_openai_client.chat.completions.create.assert_called_once()
+        mock_openai_client.responses.create.assert_called_once()
         assert len(deltas) > 0
         assert all(isinstance(d, GenericDelta) for d in deltas)
 

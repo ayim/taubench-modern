@@ -191,10 +191,9 @@ class ReductoClient(
         prompt: ReductoPrompt,
         uploaded_document,
     ) -> ResponseMessage:
-        from openai.types.chat import (
-            ChatCompletionAssistantMessageParam,
-            ChatCompletionMessageParam,
-            ChatCompletionUserMessageParam,
+        from openai.types.responses import (
+            ResponseInputItemParam,
+            ResponseInputTextParam,
         )
         from reducto.types.shared.parse_response import (
             ResultURLResult,
@@ -216,24 +215,25 @@ class ReductoClient(
         chunks = parse_resp.result.chunks[:5]
         parsed_prompt_input = "\n".join([chunk.model_dump_json() for chunk in chunks])
 
-        llm_messages: list[ChatCompletionMessageParam] = []
+        llm_messages: list[ResponseInputItemParam] = []
         llm_messages.append(
-            ChatCompletionUserMessageParam(
-                role="user",
-                content=prompt.system_prompt,
-            )
+            {
+                "type": "message",
+                "role": "developer",
+                "content": [ResponseInputTextParam(type="input_text", text=prompt.system_prompt)],
+            }
         )
         llm_messages.append(
-            ChatCompletionAssistantMessageParam(
-                role="assistant",
-                content="Understood, I will assist the user with their request.",
-            )
-        )
-        llm_messages.append(
-            ChatCompletionUserMessageParam(
-                role="user",
-                content="Reply with the answer only, nothing else." + parsed_prompt_input,
-            )
+            {
+                "type": "message",
+                "role": "user",
+                "content": [
+                    ResponseInputTextParam(
+                        type="input_text",
+                        text="Reply with the answer only, nothing else." + parsed_prompt_input,
+                    )
+                ],
+            }
         )
 
         import pprint
@@ -244,14 +244,14 @@ class ReductoClient(
             pprint.pformat(llm_messages),
         )
 
-        # make an openai call
+        # make an openai call via Responses API
         return await self._delegate.generate_response(
-            model="gpt-4.1",
+            model="gpt-5-low",  # TODO: what is the "right" model for this? TBD would need testing
             prompt=OpenAIPrompt(
-                messages=llm_messages,
+                input=llm_messages,
                 tools=[],
                 temperature=0.0,
-                max_tokens=512,
+                max_output_tokens=512,
             ),
         )
 

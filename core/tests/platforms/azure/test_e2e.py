@@ -6,31 +6,14 @@ import pytest
 from agent_platform.core.delta import combine_generic_deltas
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.azure.client import AzureOpenAIClient
-from agent_platform.core.platforms.azure.configs import AzureOpenAIModelMap
 from agent_platform.core.platforms.azure.parameters import AzureOpenAIPlatformParameters
 from agent_platform.core.responses.response import ResponseMessage
 from agent_platform.core.utils import SecretString
 from core.tests.platforms.conftest import compare_responses
 from core.tests.vcrx import patched_vcr
 
-# -------------------------------------------------------------------------
-# MODEL LISTS
-# -------------------------------------------------------------------------
-MODELS_WITH_TEXT_INPUT = [
-    m
-    for m in AzureOpenAIModelMap.supported_models()
-    if m
-    not in [
-        "text-embedding-ada-002",
-        "text-embedding-3-small",
-        "text-embedding-3-large",
-    ]
-]
-MODELS_WITH_TOOL_INPUT = [
-    m for m in MODELS_WITH_TEXT_INPUT if m in ["gpt-4o", "gpt-4-turbo", "gpt-4o-mini"]
-]
 # For tests, we'll use a limited set of models to avoid excessive test time
-ALL_MODELS = ["gpt-4o", "gpt-4-turbo"]
+ALL_MODELS = ["gpt-5-medium", "gpt-5-minimal"]
 
 # -------------------------------------------------------------------------
 # TEST CASES
@@ -40,35 +23,35 @@ TEST_CASES = [
         "case_name": "basic_prompt",
         "prompt_fixture": "basic_prompt_no_tools",
         "response_fixture": "response_to_basic_prompt_no_tools",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": ALL_MODELS,
         "cassette_suffix": "basic_prompt",
     },
     {
         "case_name": "system_message",
         "prompt_fixture": "basic_prompt_with_system_message",
         "response_fixture": "response_to_basic_prompt_with_system_message",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": ALL_MODELS,
         "cassette_suffix": "basic_prompt_with_system_message",
     },
     {
         "case_name": "three_messages",
         "prompt_fixture": "basic_prompt_with_three_messages",
         "response_fixture": "response_to_basic_prompt_with_three_messages",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": ALL_MODELS,
         "cassette_suffix": "basic_prompt_with_three_messages",
     },
     {
         "case_name": "one_tool",
         "prompt_fixture": "basic_prompt_with_one_tool",
         "response_fixture": "response_to_basic_prompt_with_one_tool",
-        "models": MODELS_WITH_TOOL_INPUT,
+        "models": ALL_MODELS,
         "cassette_suffix": "basic_prompt_with_one_tool",
     },
     {
         "case_name": "tool_no_args",
         "prompt_fixture": "basic_prompt_tool_no_args",
         "response_fixture": "response_to_basic_prompt_tool_no_args",
-        "models": MODELS_WITH_TOOL_INPUT,
+        "models": ALL_MODELS,
         "cassette_suffix": "basic_prompt_tool_no_args",
     },
 ]
@@ -96,6 +79,9 @@ def azure_client(kernel: Kernel):
         "AZURE_DEPLOYMENT_NAME_EMBEDDINGS",
         "test-embeddings",
     )
+    # Don't load this from env... (anytime one switches up they azure env to be a _non_ GPT-5
+    # deployment, this'll get unhappy, even though we're replaying gpt-5 cassettes)
+    model_backing_deployment_name = "gpt-5"
 
     client = AzureOpenAIClient(
         parameters=AzureOpenAIPlatformParameters(
@@ -103,6 +89,7 @@ def azure_client(kernel: Kernel):
             azure_endpoint_url=endpoint_url,
             azure_deployment_name=deployment_name,
             azure_deployment_name_embeddings=deployment_name_embeddings,
+            azure_model_backing_deployment_name=model_backing_deployment_name,
         ),
     )
     client.attach_kernel(kernel)

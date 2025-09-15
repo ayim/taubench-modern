@@ -15,7 +15,6 @@ import pytest
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.azure.client import AzureOpenAIClient
-from agent_platform.core.platforms.azure.configs import AzureOpenAIModelMap
 from agent_platform.core.platforms.azure.parameters import (
     AzureOpenAIPlatformParameters,
 )
@@ -76,18 +75,18 @@ class MockEmbeddings:
         self.create = MagicMock()
 
 
-class MockCompletions:
-    """Mock completions API."""
+class MockResponses:
+    """Mock Responses API."""
 
     def __init__(self):
         self.create = MagicMock()
 
 
-class MockChatCompletions:
-    """Mock chat completions API."""
+class MockModels:
+    """Mock models API."""
 
     def __init__(self):
-        self.completions = MockCompletions()
+        self.list = MagicMock()
 
 
 class MockAzureOpenAIClient:
@@ -95,8 +94,11 @@ class MockAzureOpenAIClient:
 
     def __init__(self):
         """Initialize the mock client."""
-        self.chat = MockChatCompletions()
+        # Keep chat for backward compatibility (unused in aligned client)
+        self.chat = MagicMock()
+        self.responses = MockResponses()
         self.embeddings = MockEmbeddings()
+        self.models = MockModels()
 
 
 class TestAzureOpenAIClient:
@@ -107,101 +109,62 @@ class TestAzureOpenAIClient:
         """Create a mock AzureOpenAI client."""
         client = MockAzureOpenAIClient()
 
-        # Set up chat completions response for non-streaming
-        async def mock_chat_response(**kwargs):
-            from openai.types.chat import ChatCompletion
-            from openai.types.chat.chat_completion import Choice
-            from openai.types.chat.chat_completion_message import ChatCompletionMessage
-            from openai.types.completion_usage import CompletionUsage
+        # Set up Responses API response for non-streaming and streaming
+        async def mock_responses_create(**kwargs):
+            from types import SimpleNamespace
 
+            # Simulate streaming by returning an async iterable of events
             if kwargs.get("stream", False):
-                # Return a mock async iterable for streaming
-                from openai.types.chat.chat_completion_chunk import (
-                    ChatCompletionChunk,
-                    ChoiceDelta,
-                )
-                from openai.types.chat.chat_completion_chunk import (
-                    Choice as ChunkChoice,
-                )
+                # Define minimal event types to satisfy parser logic
+                def make_event(name: str, **fields):
+                    return SimpleNamespace(type=name, **fields)
 
-                chunks = [
-                    ChatCompletionChunk(
-                        id="chunk1",
-                        object="chat.completion.chunk",
-                        created=1234567890,
-                        model=kwargs.get("model", "default-model"),
-                        choices=[
-                            ChunkChoice(
-                                index=0,
-                                delta=ChoiceDelta(role="assistant"),
-                                finish_reason=None,
-                            ),
-                        ],
-                    ),
-                    ChatCompletionChunk(
-                        id="chunk2",
-                        object="chat.completion.chunk",
-                        created=1234567891,
-                        model=kwargs.get("model", "default-model"),
-                        choices=[
-                            ChunkChoice(
-                                index=0,
-                                delta=ChoiceDelta(content="Hello, "),
-                                finish_reason=None,
-                            ),
-                        ],
-                    ),
-                    ChatCompletionChunk(
-                        id="chunk3",
-                        object="chat.completion.chunk",
-                        created=1234567892,
-                        model=kwargs.get("model", "default-model"),
-                        choices=[
-                            ChunkChoice(
-                                index=0,
-                                delta=ChoiceDelta(content="world!"),
-                                finish_reason="stop",
-                            ),
-                        ],
-                    ),
-                    ChatCompletionChunk(
-                        id="chunk4",
-                        object="chat.completion.chunk",
-                        created=1234567893,
-                        model=kwargs.get("model", "default-model"),
-                        choices=[],
-                        usage=CompletionUsage(
-                            prompt_tokens=10,
-                            completion_tokens=20,
-                            total_tokens=30,
+                # Build a sequence of events similar to OpenAI stream
+                response_obj = SimpleNamespace(
+                    id="resp_1",
+                    model=kwargs.get("model", "gpt-5"),
+                    usage=SimpleNamespace(input_tokens=10, output_tokens=20, total_tokens=30),
+                )
+                events = [
+                    # Output message scaffold
+                    make_event(
+                        "response.output_item.added",
+                        item=SimpleNamespace(
+                            __class__=type("ResponseOutputMessage", (), {}),
+                            id="msg_1",
                         ),
                     ),
+                    # Text deltas
+                    make_event("response.output_text.delta", delta="Hello, "),
+                    make_event("response.output_text.delta", delta="world!"),
+                    # Completed event with usage
+                    make_event("response.completed", response=response_obj),
                 ]
-                return MockStreamResponse(chunks)
-            else:
-                return ChatCompletion(
-                    id="response-id",
-                    object="chat.completion",
-                    created=1234567890,
-                    model=kwargs.get("model", "default-model"),
-                    choices=[
-                        Choice(
-                            index=0,
-                            message=ChatCompletionMessage(
-                                role="assistant",
-                                content="Hello, world!",
-                            ),
-                            finish_reason="stop",
-                        ),
-                    ],
-                    usage=CompletionUsage(
-                        prompt_tokens=10,
-                        completion_tokens=20,
-                        total_tokens=30,
-                    ),
-                )
+                return MockStreamResponse(events)
 
-        client.chat.completions.create.side_effect = mock_chat_response
+            # Non-streaming: return an object with .output and .usage
+            output_message = SimpleNamespace(
+                __class__=type("ResponseOutputMessage", (), {}),
+                id="msg_1",
+                content=[
+                    SimpleNamespace(
+                        __class__=type("ResponseOutputText", (), {}),
+                        type="output_text",
+                        text="Hello, world!",
+                        annotations=[],
+                        logprobs=None,
+                    ),
+                ],
+            )
+            response = SimpleNamespace(
+                id="resp_1",
+                model=kwargs.get("model", "gpt-5"),
+                output=[output_message],
+                usage=SimpleNamespace(input_tokens=10, output_tokens=20, total_tokens=30),
+            )
+            return response
+
+        client.responses.create.side_effect = mock_responses_create
 
         # Set up embeddings response
         async def mock_embedding_response(**kwargs):
@@ -220,7 +183,7 @@ class TestAzureOpenAIClient:
             return CreateEmbeddingResponse(
                 object="list",
                 data=[Embedding(embedding=embedding, index=0, object="embedding")],
-                model=kwargs.get("model", "text-embedding-ada-002"),
+                model=kwargs.get("model", "text-embedding-3-small"),
                 usage=Usage(prompt_tokens=token_count, total_tokens=token_count),
             )
 
@@ -241,8 +204,10 @@ class TestAzureOpenAIClient:
             return AzureOpenAIPlatformParameters(
                 azure_api_key=mock_secret,
                 azure_endpoint_url="https://test-endpoint.openai.azure.com",
-                azure_deployment_name="test-deployment",
-                azure_deployment_name_embeddings="test-deployment-embeddings",
+                azure_deployment_name="gpt-5",
+                azure_deployment_name_embeddings="text-embedding-3-small",
+                azure_model_backing_deployment_name="gpt-5",
+                azure_model_backing_deployment_name_embeddings="text-embedding-3-small",
                 azure_api_version="2023-03-15-preview",
             )
 
@@ -254,7 +219,7 @@ class TestAzureOpenAIClient:
         mock_azure_client: Any,
     ) -> AzureOpenAIClient:
         """Create an AzureOpenAI client for testing."""
-        with patch("openai.AsyncAzureOpenAI", return_value=mock_azure_client):
+        with patch("openai.AsyncOpenAI", return_value=mock_azure_client):
             client = AzureOpenAIClient(
                 kernel=kernel,
                 parameters=parameters,
@@ -291,7 +256,7 @@ class TestAzureOpenAIClient:
 
     def test_init(self, parameters: AzureOpenAIPlatformParameters) -> None:
         """Test client initialization."""
-        with patch("openai.AsyncAzureOpenAI") as mock_azure:
+        with patch("openai.AsyncOpenAI") as mock_azure:
             client = AzureOpenAIClient(parameters=parameters)
             assert client.name == "azure"
             assert isinstance(client._parameters, AzureOpenAIPlatformParameters)
@@ -301,7 +266,7 @@ class TestAzureOpenAIClient:
     def test_init_clients(self, parameters: AzureOpenAIPlatformParameters) -> None:
         """Test client initialization with AzureOpenAI client."""
         mock_client = MockAzureOpenAIClient()
-        with patch("openai.AsyncAzureOpenAI", return_value=mock_client) as mock_azure:
+        with patch("openai.AsyncOpenAI", return_value=mock_client) as mock_azure:
             client = AzureOpenAIClient(parameters=parameters)
             assert parameters.azure_api_key is not None
             # Client gets initialized once for completions (embeddings client is lazy)
@@ -332,9 +297,9 @@ class TestAzureOpenAIClient:
         AzureOpenAIPrompt,
         "as_platform_request",
         return_value={
-            "model": "gpt-4",
-            "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
+            "model": "gpt-5",
+            "input": [
+                {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, world!"},
             ],
         },
@@ -347,35 +312,24 @@ class TestAzureOpenAIClient:
         mock_azure_client: Any,
     ) -> None:
         """Test generating a response."""
-        # Add the model to the model maps
-        test_model_map = {
-            "gpt-4": "gpt-4",
-        }
+        response = await azure_client.generate_response(
+            prompt=azure_prompt,
+            model="gpt-5-medium",
+        )
 
-        # Create a model map instance with our test mapping
-        with patch.object(
-            AzureOpenAIModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            response = await azure_client.generate_response(
-                prompt=azure_prompt,
-                model="gpt-4",
-            )
-
-            mock_azure_client.chat.completions.create.assert_called_once()
-            assert isinstance(response, ResponseMessage)
-            assert isinstance(response.content[0], ResponseTextContent)
-            assert response.content[0].text == "Hello, world!"
+        mock_azure_client.responses.create.assert_called_once()
+        assert isinstance(response, ResponseMessage)
+        assert isinstance(response.content[0], ResponseTextContent)
+        assert response.content[0].text == "Hello, world!"
 
     @pytest.mark.asyncio
     @patch.object(
         AzureOpenAIPrompt,
         "as_platform_request",
         return_value={
-            "model": "gpt-4",
-            "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
+            "model": "gpt-5",
+            "input": [
+                {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, world!"},
             ],
             "stream": True,
@@ -390,34 +344,22 @@ class TestAzureOpenAIClient:
         mock_azure_client: Any,
     ) -> None:
         """Test generating a stream response."""
-        # Add the model to the model maps
-        test_model_map = {
-            "gpt-4": "gpt-4",
-        }
-
-        with patch.object(
-            AzureOpenAIModelMap,
-            "model_aliases",
-            test_model_map,
+        deltas = []
+        async for delta in azure_client.generate_stream_response(
+            prompt=azure_prompt,
+            model="gpt-5-medium",
         ):
-            deltas = []
-            async for delta in azure_client.generate_stream_response(
-                prompt=azure_prompt,
-                model="gpt-4",
-            ):
-                deltas.append(delta)
+            deltas.append(delta)
 
-            mock_azure_client.chat.completions.create.assert_called_once()
-            assert len(deltas) > 0
-            assert all(isinstance(d, GenericDelta) for d in deltas)
+        mock_azure_client.responses.create.assert_called_once()
+        assert len(deltas) > 0
+        assert all(isinstance(d, GenericDelta) for d in deltas)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "embedding_model",
         [
-            "text-embedding-ada-002",
             "text-embedding-3-small",
-            "text-embedding-3-large",
         ],
     )
     async def test_create_embeddings_single_text(
@@ -427,19 +369,12 @@ class TestAzureOpenAIClient:
         mock_azure_client: Any,
     ) -> None:
         """Test creating embeddings for a single text."""
-        # Expected model mappings from AzureOpenAIModelMap
-        expected_model_mappings = {
-            "text-embedding-ada-002": "embedding-ada",
-            "text-embedding-3-small": "embedding-3-small",
-            "text-embedding-3-large": "embedding-3-large",
-        }
-
         text = "This is a test text for embedding"
         result = await azure_client.create_embeddings([text], embedding_model)
 
         # Verify API call
         mock_azure_client.embeddings.create.assert_called_once_with(
-            model=expected_model_mappings[embedding_model],
+            model=embedding_model,
             input=text,
         )
 
@@ -459,7 +394,6 @@ class TestAzureOpenAIClient:
     @pytest.mark.parametrize(
         "embedding_model",
         [
-            "text-embedding-ada-002",
             "text-embedding-3-small",
         ],
     )
@@ -470,12 +404,6 @@ class TestAzureOpenAIClient:
         mock_azure_client: Any,
     ) -> None:
         """Test creating embeddings for multiple texts."""
-        # Expected model mappings from AzureOpenAIModelMap
-        expected_model_mappings = {
-            "text-embedding-ada-002": "embedding-ada",
-            "text-embedding-3-small": "embedding-3-small",
-        }
-
         texts = ["First test text", "Second test text", "Third test text"]
         result = await azure_client.create_embeddings(texts, embedding_model)
 
@@ -483,7 +411,7 @@ class TestAzureOpenAIClient:
         assert mock_azure_client.embeddings.create.call_count == len(texts)
         for i, text in enumerate(texts):
             call_args = mock_azure_client.embeddings.create.call_args_list[i][1]
-            assert call_args["model"] == expected_model_mappings[embedding_model]
+            assert call_args["model"] == embedding_model
             assert call_args["input"] == text
 
         # Verify result structure

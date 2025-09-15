@@ -299,12 +299,14 @@ async def test_text_growth_partial_then_end() -> None:
         msg = ResponseMessage(content=[ResponseTextContent(text="H")], role="agent")
         yield GenericDelta(op="replace", path="", value=msg.model_dump())
 
-        await asyncio.sleep(flush_interval * 1.5)
+        # Sleep with extra margin to avoid Windows timer jitter coalescing batches
+        await asyncio.sleep(flush_interval * 2.5)
 
         # Grow: "He"
         yield GenericDelta(op="replace", path="/content/0/text", value="He")
 
-        await asyncio.sleep(flush_interval * 1.5)
+        # Sleep with extra margin to avoid Windows timer jitter coalescing batches
+        await asyncio.sleep(flush_interval * 2.5)
 
         # Grow: "Hello"
         yield GenericDelta(op="replace", path="/content/0/text", value="Hello")
@@ -338,7 +340,8 @@ async def test_new_content_item_triggers_begin_events() -> None:
         first_msg = ResponseMessage(content=[text_content], role="agent")
         yield GenericDelta(op="replace", path="", value=first_msg.model_dump())
 
-        await asyncio.sleep(flush_interval * 1.5)
+        # Extra margin to avoid timer jitter on Windows
+        await asyncio.sleep(flush_interval * 2.5)
 
         # New message with an added image content at idx=1
         image_content = ResponseImageContent(

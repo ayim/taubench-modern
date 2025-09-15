@@ -340,7 +340,7 @@ Example output:
 }
 ```
 
-Supported model/provider combos: `Bedrock` with default `claude-3-7-sonnet` model and older `claude-3-5-sonnet` model. OpenAI with `o4-mini(-high|-low)`, `gpt-4o(-mini)`, `gpt-4.1(-mini|-nano)` (and a few other older models). See the [Example TypeScript Client](./prompt-endpoint-examples/README.md) for an in depth look at streaming a prompt with an image in it. (And streaming responses from the prompt endpoint, in general.)
+Supported model/provider combos: `Bedrock` with default `claude-3-7-sonnet` model and older `claude-3-5-sonnet` model. OpenAI with `o4-mini(-high|-low)`, `gpt-4o(-mini)`, `gpt-4-1(-mini|-nano)`, `gpt-5(-high|-medium|-low|instant)`, `gpt-5(-mini|-nano)` (and a few other older models). See the [Example TypeScript Client](./prompt-endpoint-examples/README.md) for an in depth look at streaming a prompt with an image in it. (And streaming responses from the prompt endpoint, in general.)
 
 ## Audio
 

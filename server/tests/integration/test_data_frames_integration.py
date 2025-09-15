@@ -72,7 +72,7 @@ def test_data_frames_integration_with_date(base_url_agent_server, datadir, file_
                 {
                     "kind": "openai",
                     "openai_api_key": "unused",
-                    "models": {"openai": ["gpt-4.1"]},
+                    "models": {"openai": ["gpt-5-low"]},
                 },
             ],
         )
@@ -145,7 +145,7 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, fil
                 {
                     "kind": "openai",
                     "openai_api_key": "unused",
-                    "models": {"openai": ["gpt-4.1"]},
+                    "models": {"openai": ["gpt-5-low"]},
                 },
             ],
         )
@@ -239,7 +239,7 @@ def test_data_frames_integration(base_url_agent_server):
                 {
                     "kind": "openai",
                     "openai_api_key": "unused",
-                    "models": {"openai": ["gpt-4.1"]},
+                    "models": {"openai": ["gpt-5-low"]},
                 },
             ],
         )
@@ -347,7 +347,7 @@ def test_data_frames_computation_integration_success(
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
-                    "models": {"openai": ["gpt-4.1"]},
+                    "models": {"openai": ["gpt-5-low"]},
                 },
             ],
         )

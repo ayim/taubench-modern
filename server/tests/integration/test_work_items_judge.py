@@ -45,7 +45,7 @@ def _create_mock_storage_for_judge(work_item: WorkItem, openai_api_key: str):
     mock_user = User(user_id=work_item.user_id, sub="test_user")
     mock_platform_config = OpenAIPlatformParameters(
         openai_api_key=SecretString(openai_api_key),
-        models={"openai": ["gpt-4.1"]},
+        models={"openai": ["gpt-5-low"]},
         platform_id=str(uuid.uuid4()),
     )
     mock_agent = Agent(
@@ -167,7 +167,7 @@ async def test_work_item_judge_with_recorded_threads(
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
                     # Use the allowlist feature to force a specific model
-                    "models": {"openai": ["gpt-4.1"]},
+                    "models": {"openai": ["gpt-5-low"]},
                 }
             ],
         )

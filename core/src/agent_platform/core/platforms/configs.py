@@ -34,7 +34,12 @@ def _normalize_model_slug_for_lookup(slug: str) -> str:
         The normalized slug for lookup in llms.json
     """
     # Handle reasoning model suffixes (o3-high -> o3, o4-mini-low -> o4-mini)
-    if slug.endswith("-high") or slug.endswith("-low"):
+    if (
+        slug.endswith("-high")
+        or slug.endswith("-medium")
+        or slug.endswith("-low")
+        or slug.endswith("-minimal")
+    ):
         slug = slug.rsplit("-", 1)[0]
 
     # Handle specific model name differences between our config and llms.json
@@ -77,10 +82,13 @@ def get_model_metadata_by_slug(slug: str) -> LLMModelMetadata | None:
     Returns:
         A dictionary containing the model metadata if found, None otherwise.
     """
+    # Try to get the model by slug first, normalize it if needed
+    model = llms_metadata_loader.get_model_by_slug(slug)
+    if model is not None:
+        return model
+
     # Normalize the slug for lookup (handles -high/-low suffixes)
     normalized_slug = _normalize_model_slug_for_lookup(slug)
-
-    # Get model from in-memory data loader
     return llms_metadata_loader.get_model_by_slug(normalized_slug)
 
 
@@ -92,10 +100,10 @@ class PlatformModelConfigs(Configuration):
     # This is a mapping of platforms to their default models.
     platforms_to_default_model: dict[str, str] = field(
         default_factory=lambda: {
-            "azure": "azure/openai/gpt-4-1",
+            "azure": "azure/openai/gpt-5-medium",
             "bedrock": "bedrock/anthropic/claude-4-sonnet",
             "cortex": "cortex/anthropic/claude-3-5-sonnet",
-            "openai": "openai/openai/gpt-4-1",
+            "openai": "openai/openai/gpt-5-medium",
             "google": "google/google/gemini-2-5-pro",
             "groq": "groq/openai/gpt-oss-120b",
             "reducto": "reducto/reducto/reducto-standard-parse",
@@ -128,6 +136,11 @@ class PlatformModelConfigs(Configuration):
         # Note: embeddings models never make sense here
         default_factory=lambda: [
             # Azure OpenAI
+            "azure/openai/gpt-5-high",
+            "azure/openai/gpt-5-medium",
+            "azure/openai/gpt-5-low",
+            "azure/openai/gpt-5-minimal",
+            "azure/openai/gpt-5-mini",
             "azure/openai/gpt-4-1",
             "azure/openai/gpt-4-1-mini",
             "azure/openai/gpt-4o",
@@ -155,6 +168,11 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/o4-mini-low",
             "cortex/openai/gpt-4-1",
             # OpenAI
+            "openai/openai/gpt-5-high",
+            "openai/openai/gpt-5-medium",
+            "openai/openai/gpt-5-low",
+            "openai/openai/gpt-5-minimal",
+            "openai/openai/gpt-5-mini",
             "openai/openai/gpt-4-1",
             "openai/openai/gpt-4-1-mini",
             "openai/openai/gpt-4-1-nano",
@@ -187,6 +205,12 @@ class PlatformModelConfigs(Configuration):
     models_to_platform_specific_model_ids: dict[str, str] = field(
         default_factory=lambda: {
             # Azure OpenAI (pinning is done at the deployment level, we have no control)
+            "azure/openai/gpt-5-high": "gpt-5",
+            "azure/openai/gpt-5-medium": "gpt-5",
+            "azure/openai/gpt-5-low": "gpt-5",
+            "azure/openai/gpt-5-minimal": "gpt-5",
+            "azure/openai/gpt-5-mini": "gpt-5-mini",
+            "azure/openai/gpt-5-nano": "gpt-5-nano",
             "azure/openai/gpt-4-1": "gpt-4.1",
             "azure/openai/gpt-4-1-mini": "gpt-4.1-mini",
             "azure/openai/gpt-4o": "gpt-4o",
@@ -227,6 +251,12 @@ class PlatformModelConfigs(Configuration):
             "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-arctic-embed-l",
             "cortex/voyage/voyage-multilingual": "voyage-multilingual",
             # OpenAI (does have date-based pinning)
+            "openai/openai/gpt-5-high": "gpt-5-2025-08-07",
+            "openai/openai/gpt-5-medium": "gpt-5-2025-08-07",
+            "openai/openai/gpt-5-low": "gpt-5-2025-08-07",
+            "openai/openai/gpt-5-minimal": "gpt-5-2025-08-07",
+            "openai/openai/gpt-5-mini": "gpt-5-mini-2025-08-07",
+            "openai/openai/gpt-5-nano": "gpt-5-nano-2025-08-07",
             "openai/openai/gpt-4-5": "gpt-4.5-preview-2025-02-27",
             "openai/openai/gpt-4-1": "gpt-4.1-2025-04-14",
             "openai/openai/gpt-4-1-mini": "gpt-4.1-mini-2025-04-14",
@@ -267,6 +297,12 @@ class PlatformModelConfigs(Configuration):
     models_to_families: dict[str, str] = field(
         default_factory=lambda: {
             # Azure OpenAI
+            "azure/openai/gpt-5-high": "openai-gpt",
+            "azure/openai/gpt-5-medium": "openai-gpt",
+            "azure/openai/gpt-5-low": "openai-gpt",
+            "azure/openai/gpt-5-minimal": "openai-gpt",
+            "azure/openai/gpt-5-mini": "openai-gpt",
+            "azure/openai/gpt-5-nano": "openai-gpt",
             "azure/openai/gpt-4-1": "openai-gpt",
             "azure/openai/gpt-4-1-mini": "openai-gpt",
             "azure/openai/gpt-4o": "openai-gpt",
@@ -307,6 +343,12 @@ class PlatformModelConfigs(Configuration):
             "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-embeddings",
             "cortex/voyage/voyage-multilingual": "voyage-embeddings",
             # OpenAI (does have date-based pinning)
+            "openai/openai/gpt-5-high": "openai-gpt",
+            "openai/openai/gpt-5-medium": "openai-gpt",
+            "openai/openai/gpt-5-low": "openai-gpt",
+            "openai/openai/gpt-5-minimal": "openai-gpt",
+            "openai/openai/gpt-5-mini": "openai-gpt",
+            "openai/openai/gpt-5-nano": "openai-gpt",
             "openai/openai/gpt-4-5": "openai-gpt",
             "openai/openai/gpt-4-1": "openai-gpt",
             "openai/openai/gpt-4-1-mini": "openai-gpt",
@@ -346,6 +388,12 @@ class PlatformModelConfigs(Configuration):
     models_to_model_types: dict[str, str] = field(
         default_factory=lambda: {
             # Azure OpenAI
+            "azure/openai/gpt-5-high": "llm",
+            "azure/openai/gpt-5-medium": "llm",
+            "azure/openai/gpt-5-low": "llm",
+            "azure/openai/gpt-5-minimal": "llm",
+            "azure/openai/gpt-5-mini": "llm",
+            "azure/openai/gpt-5-nano": "llm",
             "azure/openai/gpt-4-1": "llm",
             "azure/openai/gpt-4-1-mini": "llm",
             "azure/openai/gpt-4o": "llm",
@@ -386,6 +434,12 @@ class PlatformModelConfigs(Configuration):
             "cortex/snowflake/snowflake-arctic-embed-l": "embedding",
             "cortex/voyage/voyage-multilingual": "embedding",
             # OpenAI
+            "openai/openai/gpt-5-high": "llm",
+            "openai/openai/gpt-5-medium": "llm",
+            "openai/openai/gpt-5-low": "llm",
+            "openai/openai/gpt-5-minimal": "llm",
+            "openai/openai/gpt-5-mini": "llm",
+            "openai/openai/gpt-5-nano": "llm",
             "openai/openai/gpt-4-5": "llm",
             "openai/openai/gpt-4-1": "llm",
             "openai/openai/gpt-4-1-mini": "llm",
@@ -425,6 +479,12 @@ class PlatformModelConfigs(Configuration):
     models_to_context_window_sizes: dict[str, int] = field(
         default_factory=lambda: {
             # Azure OpenAI
+            "azure/openai/gpt-5-high": 400_000,
+            "azure/openai/gpt-5-medium": 400_000,
+            "azure/openai/gpt-5-low": 400_000,
+            "azure/openai/gpt-5-minimal": 400_000,
+            "azure/openai/gpt-5-mini": 400_000,
+            "azure/openai/gpt-5-nano": 400_000,
             "azure/openai/gpt-4-1": 128_000,
             "azure/openai/gpt-4-1-mini": 128_000,
             "azure/openai/gpt-4o": 128_000,
@@ -465,6 +525,12 @@ class PlatformModelConfigs(Configuration):
             "cortex/snowflake/snowflake-arctic-embed-l": 8_000,
             "cortex/voyage/voyage-multilingual": 8_000,
             # OpenAI
+            "openai/openai/gpt-5-high": 400_000,
+            "openai/openai/gpt-5-medium": 400_000,
+            "openai/openai/gpt-5-low": 400_000,
+            "openai/openai/gpt-5-minimal": 400_000,
+            "openai/openai/gpt-5-mini": 400_000,
+            "openai/openai/gpt-5-nano": 400_000,
             "openai/openai/gpt-4-5": 128_000,
             "openai/openai/gpt-4-1": 128_000,
             "openai/openai/gpt-4-1-mini": 128_000,
