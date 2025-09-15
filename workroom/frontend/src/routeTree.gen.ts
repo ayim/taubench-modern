@@ -17,23 +17,23 @@ import { Route as TenantsTenantIdSigninCallbackRouteImport } from './routes/tena
 import { Route as TenantsTenantIdOauthRouteImport } from './routes/tenants/$tenantId/oauth'
 import { Route as TenantsTenantIdConfigurationRouteImport } from './routes/tenants/$tenantId/configuration'
 import { Route as TenantsTenantIdWorkItemsIndexRouteImport } from './routes/tenants/$tenantId/workItems/index'
-import { Route as TenantsTenantIdSettingsIndexRouteImport } from './routes/tenants/$tenantId/settings/index'
+import { Route as TenantsTenantIdMcpServersIndexRouteImport } from './routes/tenants/$tenantId/mcp-servers/index'
 import { Route as TenantsTenantIdHomeIndexRouteImport } from './routes/tenants/$tenantId/home/index'
 import { Route as TenantsTenantIdHelpIndexRouteImport } from './routes/tenants/$tenantId/help/index'
-import { Route as TenantsTenantIdDocumentIntelligenceIndexRouteImport } from './routes/tenants/$tenantId/documentIntelligence/index'
 import { Route as TenantsTenantIdAuditLogsIndexRouteImport } from './routes/tenants/$tenantId/auditLogs/index'
 import { Route as TenantsTenantIdAgentEvalsIndexRouteImport } from './routes/tenants/$tenantId/agentEvals/index'
 import { Route as TenantsTenantIdWorkerAgentIdRouteImport } from './routes/tenants/$tenantId/worker/$agentId'
+import { Route as TenantsTenantIdMcpServersNewRouteImport } from './routes/tenants/$tenantId/mcp-servers/new'
+import { Route as TenantsTenantIdMcpServersMcpServerIdRouteImport } from './routes/tenants/$tenantId/mcp-servers/$mcpServerId'
 import { Route as TenantsTenantIdConversationalAgentIdRouteImport } from './routes/tenants/$tenantId/conversational/$agentId'
 import { Route as TenantsTenantIdAgentsDeployRouteImport } from './routes/tenants/$tenantId/agents/deploy'
 import { Route as TenantsTenantIdConversationalAgentIdIndexRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/index'
-import { Route as TenantsTenantIdConfigurationMcpServersIndexRouteImport } from './routes/tenants/$tenantId/configuration/mcp-servers/index'
+import { Route as TenantsTenantIdConfigurationSettingsIndexRouteImport } from './routes/tenants/$tenantId/configuration/settings/index'
 import { Route as TenantsTenantIdConfigurationLlmIndexRouteImport } from './routes/tenants/$tenantId/configuration/llm/index'
+import { Route as TenantsTenantIdConfigurationDocumentIntelligenceIndexRouteImport } from './routes/tenants/$tenantId/configuration/documentIntelligence/index'
 import { Route as TenantsTenantIdWorkerAgentIdCreateRouteImport } from './routes/tenants/$tenantId/worker/$agentId/create'
 import { Route as TenantsTenantIdWorkerAgentIdWorkItemIdRouteImport } from './routes/tenants/$tenantId/worker/$agentId/$workItemId'
 import { Route as TenantsTenantIdConversationalAgentIdThreadIdRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/$threadId'
-import { Route as TenantsTenantIdConfigurationMcpServersNewRouteImport } from './routes/tenants/$tenantId/configuration/mcp-servers/new'
-import { Route as TenantsTenantIdConfigurationMcpServersMcpServerIdRouteImport } from './routes/tenants/$tenantId/configuration/mcp-servers/$mcpServerId'
 import { Route as TenantsTenantIdConfigurationLlmNewRouteImport } from './routes/tenants/$tenantId/configuration/llm/new'
 import { Route as TenantsTenantIdConfigurationLlmPlatformIdRouteImport } from './routes/tenants/$tenantId/configuration/llm/$platformId'
 import { Route as TenantsTenantIdAgentsDeployLlmsNewRouteImport } from './routes/tenants/$tenantId/agents/deploy/llms.new'
@@ -84,10 +84,10 @@ const TenantsTenantIdWorkItemsIndexRoute =
     path: '/workItems/',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
-const TenantsTenantIdSettingsIndexRoute =
-  TenantsTenantIdSettingsIndexRouteImport.update({
-    id: '/settings/',
-    path: '/settings/',
+const TenantsTenantIdMcpServersIndexRoute =
+  TenantsTenantIdMcpServersIndexRouteImport.update({
+    id: '/mcp-servers/',
+    path: '/mcp-servers/',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdHomeIndexRoute =
@@ -100,12 +100,6 @@ const TenantsTenantIdHelpIndexRoute =
   TenantsTenantIdHelpIndexRouteImport.update({
     id: '/help/',
     path: '/help/',
-    getParentRoute: () => TenantsTenantIdRoute,
-  } as any)
-const TenantsTenantIdDocumentIntelligenceIndexRoute =
-  TenantsTenantIdDocumentIntelligenceIndexRouteImport.update({
-    id: '/documentIntelligence/',
-    path: '/documentIntelligence/',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdAuditLogsIndexRoute =
@@ -126,6 +120,18 @@ const TenantsTenantIdWorkerAgentIdRoute =
     path: '/worker/$agentId',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
+const TenantsTenantIdMcpServersNewRoute =
+  TenantsTenantIdMcpServersNewRouteImport.update({
+    id: '/mcp-servers/new',
+    path: '/mcp-servers/new',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdMcpServersMcpServerIdRoute =
+  TenantsTenantIdMcpServersMcpServerIdRouteImport.update({
+    id: '/mcp-servers/$mcpServerId',
+    path: '/mcp-servers/$mcpServerId',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
 const TenantsTenantIdConversationalAgentIdRoute =
   TenantsTenantIdConversationalAgentIdRouteImport.update({
     id: '/conversational/$agentId',
@@ -144,16 +150,22 @@ const TenantsTenantIdConversationalAgentIdIndexRoute =
     path: '/',
     getParentRoute: () => TenantsTenantIdConversationalAgentIdRoute,
   } as any)
-const TenantsTenantIdConfigurationMcpServersIndexRoute =
-  TenantsTenantIdConfigurationMcpServersIndexRouteImport.update({
-    id: '/mcp-servers/',
-    path: '/mcp-servers/',
+const TenantsTenantIdConfigurationSettingsIndexRoute =
+  TenantsTenantIdConfigurationSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
     getParentRoute: () => TenantsTenantIdConfigurationRoute,
   } as any)
 const TenantsTenantIdConfigurationLlmIndexRoute =
   TenantsTenantIdConfigurationLlmIndexRouteImport.update({
     id: '/llm/',
     path: '/llm/',
+    getParentRoute: () => TenantsTenantIdConfigurationRoute,
+  } as any)
+const TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute =
+  TenantsTenantIdConfigurationDocumentIntelligenceIndexRouteImport.update({
+    id: '/documentIntelligence/',
+    path: '/documentIntelligence/',
     getParentRoute: () => TenantsTenantIdConfigurationRoute,
   } as any)
 const TenantsTenantIdWorkerAgentIdCreateRoute =
@@ -173,18 +185,6 @@ const TenantsTenantIdConversationalAgentIdThreadIdRoute =
     id: '/$threadId',
     path: '/$threadId',
     getParentRoute: () => TenantsTenantIdConversationalAgentIdRoute,
-  } as any)
-const TenantsTenantIdConfigurationMcpServersNewRoute =
-  TenantsTenantIdConfigurationMcpServersNewRouteImport.update({
-    id: '/mcp-servers/new',
-    path: '/mcp-servers/new',
-    getParentRoute: () => TenantsTenantIdConfigurationRoute,
-  } as any)
-const TenantsTenantIdConfigurationMcpServersMcpServerIdRoute =
-  TenantsTenantIdConfigurationMcpServersMcpServerIdRouteImport.update({
-    id: '/mcp-servers/$mcpServerId',
-    path: '/mcp-servers/$mcpServerId',
-    getParentRoute: () => TenantsTenantIdConfigurationRoute,
   } as any)
 const TenantsTenantIdConfigurationLlmNewRoute =
   TenantsTenantIdConfigurationLlmNewRouteImport.update({
@@ -229,23 +229,23 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
+  '/tenants/$tenantId/mcp-servers/$mcpServerId': typeof TenantsTenantIdMcpServersMcpServerIdRoute
+  '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
   '/tenants/$tenantId/agentEvals': typeof TenantsTenantIdAgentEvalsIndexRoute
   '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
-  '/tenants/$tenantId/documentIntelligence': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
-  '/tenants/$tenantId/settings': typeof TenantsTenantIdSettingsIndexRoute
+  '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
-  '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId': typeof TenantsTenantIdConfigurationMcpServersMcpServerIdRoute
-  '/tenants/$tenantId/configuration/mcp-servers/new': typeof TenantsTenantIdConfigurationMcpServersNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
   '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRoute
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
+  '/tenants/$tenantId/configuration/documentIntelligence': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
-  '/tenants/$tenantId/configuration/mcp-servers': typeof TenantsTenantIdConfigurationMcpServersIndexRoute
+  '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
@@ -259,23 +259,23 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
+  '/tenants/$tenantId/mcp-servers/$mcpServerId': typeof TenantsTenantIdMcpServersMcpServerIdRoute
+  '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
   '/tenants/$tenantId/agentEvals': typeof TenantsTenantIdAgentEvalsIndexRoute
   '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
-  '/tenants/$tenantId/documentIntelligence': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
-  '/tenants/$tenantId/settings': typeof TenantsTenantIdSettingsIndexRoute
+  '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
-  '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId': typeof TenantsTenantIdConfigurationMcpServersMcpServerIdRoute
-  '/tenants/$tenantId/configuration/mcp-servers/new': typeof TenantsTenantIdConfigurationMcpServersNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
   '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRoute
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
+  '/tenants/$tenantId/configuration/documentIntelligence': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
-  '/tenants/$tenantId/configuration/mcp-servers': typeof TenantsTenantIdConfigurationMcpServersIndexRoute
+  '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
@@ -292,23 +292,23 @@ export interface FileRoutesById {
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
+  '/tenants/$tenantId/mcp-servers/$mcpServerId': typeof TenantsTenantIdMcpServersMcpServerIdRoute
+  '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
   '/tenants/$tenantId/agentEvals/': typeof TenantsTenantIdAgentEvalsIndexRoute
   '/tenants/$tenantId/auditLogs/': typeof TenantsTenantIdAuditLogsIndexRoute
-  '/tenants/$tenantId/documentIntelligence/': typeof TenantsTenantIdDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
-  '/tenants/$tenantId/settings/': typeof TenantsTenantIdSettingsIndexRoute
+  '/tenants/$tenantId/mcp-servers/': typeof TenantsTenantIdMcpServersIndexRoute
   '/tenants/$tenantId/workItems/': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
-  '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId': typeof TenantsTenantIdConfigurationMcpServersMcpServerIdRoute
-  '/tenants/$tenantId/configuration/mcp-servers/new': typeof TenantsTenantIdConfigurationMcpServersNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
   '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRoute
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
+  '/tenants/$tenantId/configuration/documentIntelligence/': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm/': typeof TenantsTenantIdConfigurationLlmIndexRoute
-  '/tenants/$tenantId/configuration/mcp-servers/': typeof TenantsTenantIdConfigurationMcpServersIndexRoute
+  '/tenants/$tenantId/configuration/settings/': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
@@ -326,23 +326,23 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/agents/deploy'
     | '/tenants/$tenantId/conversational/$agentId'
+    | '/tenants/$tenantId/mcp-servers/$mcpServerId'
+    | '/tenants/$tenantId/mcp-servers/new'
     | '/tenants/$tenantId/worker/$agentId'
     | '/tenants/$tenantId/agentEvals'
     | '/tenants/$tenantId/auditLogs'
-    | '/tenants/$tenantId/documentIntelligence'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
-    | '/tenants/$tenantId/settings'
+    | '/tenants/$tenantId/mcp-servers'
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
-    | '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId'
-    | '/tenants/$tenantId/configuration/mcp-servers/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId'
     | '/tenants/$tenantId/worker/$agentId/$workItemId'
     | '/tenants/$tenantId/worker/$agentId/create'
+    | '/tenants/$tenantId/configuration/documentIntelligence'
     | '/tenants/$tenantId/configuration/llm'
-    | '/tenants/$tenantId/configuration/mcp-servers'
+    | '/tenants/$tenantId/configuration/settings'
     | '/tenants/$tenantId/conversational/$agentId/'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames'
@@ -356,23 +356,23 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId'
     | '/tenants/$tenantId/agents/deploy'
+    | '/tenants/$tenantId/mcp-servers/$mcpServerId'
+    | '/tenants/$tenantId/mcp-servers/new'
     | '/tenants/$tenantId/worker/$agentId'
     | '/tenants/$tenantId/agentEvals'
     | '/tenants/$tenantId/auditLogs'
-    | '/tenants/$tenantId/documentIntelligence'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
-    | '/tenants/$tenantId/settings'
+    | '/tenants/$tenantId/mcp-servers'
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
-    | '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId'
-    | '/tenants/$tenantId/configuration/mcp-servers/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId'
     | '/tenants/$tenantId/worker/$agentId/$workItemId'
     | '/tenants/$tenantId/worker/$agentId/create'
+    | '/tenants/$tenantId/configuration/documentIntelligence'
     | '/tenants/$tenantId/configuration/llm'
-    | '/tenants/$tenantId/configuration/mcp-servers'
+    | '/tenants/$tenantId/configuration/settings'
     | '/tenants/$tenantId/conversational/$agentId'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames'
@@ -388,23 +388,23 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/agents/deploy'
     | '/tenants/$tenantId/conversational/$agentId'
+    | '/tenants/$tenantId/mcp-servers/$mcpServerId'
+    | '/tenants/$tenantId/mcp-servers/new'
     | '/tenants/$tenantId/worker/$agentId'
     | '/tenants/$tenantId/agentEvals/'
     | '/tenants/$tenantId/auditLogs/'
-    | '/tenants/$tenantId/documentIntelligence/'
     | '/tenants/$tenantId/help/'
     | '/tenants/$tenantId/home/'
-    | '/tenants/$tenantId/settings/'
+    | '/tenants/$tenantId/mcp-servers/'
     | '/tenants/$tenantId/workItems/'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
-    | '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId'
-    | '/tenants/$tenantId/configuration/mcp-servers/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId'
     | '/tenants/$tenantId/worker/$agentId/$workItemId'
     | '/tenants/$tenantId/worker/$agentId/create'
+    | '/tenants/$tenantId/configuration/documentIntelligence/'
     | '/tenants/$tenantId/configuration/llm/'
-    | '/tenants/$tenantId/configuration/mcp-servers/'
+    | '/tenants/$tenantId/configuration/settings/'
     | '/tenants/$tenantId/conversational/$agentId/'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/'
@@ -474,11 +474,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdWorkItemsIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
-    '/tenants/$tenantId/settings/': {
-      id: '/tenants/$tenantId/settings/'
-      path: '/settings'
-      fullPath: '/tenants/$tenantId/settings'
-      preLoaderRoute: typeof TenantsTenantIdSettingsIndexRouteImport
+    '/tenants/$tenantId/mcp-servers/': {
+      id: '/tenants/$tenantId/mcp-servers/'
+      path: '/mcp-servers'
+      fullPath: '/tenants/$tenantId/mcp-servers'
+      preLoaderRoute: typeof TenantsTenantIdMcpServersIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/home/': {
@@ -493,13 +493,6 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/tenants/$tenantId/help'
       preLoaderRoute: typeof TenantsTenantIdHelpIndexRouteImport
-      parentRoute: typeof TenantsTenantIdRoute
-    }
-    '/tenants/$tenantId/documentIntelligence/': {
-      id: '/tenants/$tenantId/documentIntelligence/'
-      path: '/documentIntelligence'
-      fullPath: '/tenants/$tenantId/documentIntelligence'
-      preLoaderRoute: typeof TenantsTenantIdDocumentIntelligenceIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/auditLogs/': {
@@ -523,6 +516,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdWorkerAgentIdRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
+    '/tenants/$tenantId/mcp-servers/new': {
+      id: '/tenants/$tenantId/mcp-servers/new'
+      path: '/mcp-servers/new'
+      fullPath: '/tenants/$tenantId/mcp-servers/new'
+      preLoaderRoute: typeof TenantsTenantIdMcpServersNewRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/mcp-servers/$mcpServerId': {
+      id: '/tenants/$tenantId/mcp-servers/$mcpServerId'
+      path: '/mcp-servers/$mcpServerId'
+      fullPath: '/tenants/$tenantId/mcp-servers/$mcpServerId'
+      preLoaderRoute: typeof TenantsTenantIdMcpServersMcpServerIdRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
     '/tenants/$tenantId/conversational/$agentId': {
       id: '/tenants/$tenantId/conversational/$agentId'
       path: '/conversational/$agentId'
@@ -544,11 +551,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdIndexRouteImport
       parentRoute: typeof TenantsTenantIdConversationalAgentIdRoute
     }
-    '/tenants/$tenantId/configuration/mcp-servers/': {
-      id: '/tenants/$tenantId/configuration/mcp-servers/'
-      path: '/mcp-servers'
-      fullPath: '/tenants/$tenantId/configuration/mcp-servers'
-      preLoaderRoute: typeof TenantsTenantIdConfigurationMcpServersIndexRouteImport
+    '/tenants/$tenantId/configuration/settings/': {
+      id: '/tenants/$tenantId/configuration/settings/'
+      path: '/settings'
+      fullPath: '/tenants/$tenantId/configuration/settings'
+      preLoaderRoute: typeof TenantsTenantIdConfigurationSettingsIndexRouteImport
       parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
     '/tenants/$tenantId/configuration/llm/': {
@@ -556,6 +563,13 @@ declare module '@tanstack/react-router' {
       path: '/llm'
       fullPath: '/tenants/$tenantId/configuration/llm'
       preLoaderRoute: typeof TenantsTenantIdConfigurationLlmIndexRouteImport
+      parentRoute: typeof TenantsTenantIdConfigurationRoute
+    }
+    '/tenants/$tenantId/configuration/documentIntelligence/': {
+      id: '/tenants/$tenantId/configuration/documentIntelligence/'
+      path: '/documentIntelligence'
+      fullPath: '/tenants/$tenantId/configuration/documentIntelligence'
+      preLoaderRoute: typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRouteImport
       parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
     '/tenants/$tenantId/worker/$agentId/create': {
@@ -578,20 +592,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId'
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdRouteImport
       parentRoute: typeof TenantsTenantIdConversationalAgentIdRoute
-    }
-    '/tenants/$tenantId/configuration/mcp-servers/new': {
-      id: '/tenants/$tenantId/configuration/mcp-servers/new'
-      path: '/mcp-servers/new'
-      fullPath: '/tenants/$tenantId/configuration/mcp-servers/new'
-      preLoaderRoute: typeof TenantsTenantIdConfigurationMcpServersNewRouteImport
-      parentRoute: typeof TenantsTenantIdConfigurationRoute
-    }
-    '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId': {
-      id: '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId'
-      path: '/mcp-servers/$mcpServerId'
-      fullPath: '/tenants/$tenantId/configuration/mcp-servers/$mcpServerId'
-      preLoaderRoute: typeof TenantsTenantIdConfigurationMcpServersMcpServerIdRouteImport
-      parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
     '/tenants/$tenantId/configuration/llm/new': {
       id: '/tenants/$tenantId/configuration/llm/new'
@@ -634,10 +634,9 @@ declare module '@tanstack/react-router' {
 interface TenantsTenantIdConfigurationRouteChildren {
   TenantsTenantIdConfigurationLlmPlatformIdRoute: typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   TenantsTenantIdConfigurationLlmNewRoute: typeof TenantsTenantIdConfigurationLlmNewRoute
-  TenantsTenantIdConfigurationMcpServersMcpServerIdRoute: typeof TenantsTenantIdConfigurationMcpServersMcpServerIdRoute
-  TenantsTenantIdConfigurationMcpServersNewRoute: typeof TenantsTenantIdConfigurationMcpServersNewRoute
+  TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute: typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   TenantsTenantIdConfigurationLlmIndexRoute: typeof TenantsTenantIdConfigurationLlmIndexRoute
-  TenantsTenantIdConfigurationMcpServersIndexRoute: typeof TenantsTenantIdConfigurationMcpServersIndexRoute
+  TenantsTenantIdConfigurationSettingsIndexRoute: typeof TenantsTenantIdConfigurationSettingsIndexRoute
 }
 
 const TenantsTenantIdConfigurationRouteChildren: TenantsTenantIdConfigurationRouteChildren =
@@ -646,14 +645,12 @@ const TenantsTenantIdConfigurationRouteChildren: TenantsTenantIdConfigurationRou
       TenantsTenantIdConfigurationLlmPlatformIdRoute,
     TenantsTenantIdConfigurationLlmNewRoute:
       TenantsTenantIdConfigurationLlmNewRoute,
-    TenantsTenantIdConfigurationMcpServersMcpServerIdRoute:
-      TenantsTenantIdConfigurationMcpServersMcpServerIdRoute,
-    TenantsTenantIdConfigurationMcpServersNewRoute:
-      TenantsTenantIdConfigurationMcpServersNewRoute,
+    TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute:
+      TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute,
     TenantsTenantIdConfigurationLlmIndexRoute:
       TenantsTenantIdConfigurationLlmIndexRoute,
-    TenantsTenantIdConfigurationMcpServersIndexRoute:
-      TenantsTenantIdConfigurationMcpServersIndexRoute,
+    TenantsTenantIdConfigurationSettingsIndexRoute:
+      TenantsTenantIdConfigurationSettingsIndexRoute,
   }
 
 const TenantsTenantIdConfigurationRouteWithChildren =
@@ -738,13 +735,14 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdIndexRoute: typeof TenantsTenantIdIndexRoute
   TenantsTenantIdAgentsDeployRoute: typeof TenantsTenantIdAgentsDeployRouteWithChildren
   TenantsTenantIdConversationalAgentIdRoute: typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
+  TenantsTenantIdMcpServersMcpServerIdRoute: typeof TenantsTenantIdMcpServersMcpServerIdRoute
+  TenantsTenantIdMcpServersNewRoute: typeof TenantsTenantIdMcpServersNewRoute
   TenantsTenantIdWorkerAgentIdRoute: typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
   TenantsTenantIdAgentEvalsIndexRoute: typeof TenantsTenantIdAgentEvalsIndexRoute
   TenantsTenantIdAuditLogsIndexRoute: typeof TenantsTenantIdAuditLogsIndexRoute
-  TenantsTenantIdDocumentIntelligenceIndexRoute: typeof TenantsTenantIdDocumentIntelligenceIndexRoute
   TenantsTenantIdHelpIndexRoute: typeof TenantsTenantIdHelpIndexRoute
   TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute
-  TenantsTenantIdSettingsIndexRoute: typeof TenantsTenantIdSettingsIndexRoute
+  TenantsTenantIdMcpServersIndexRoute: typeof TenantsTenantIdMcpServersIndexRoute
   TenantsTenantIdWorkItemsIndexRoute: typeof TenantsTenantIdWorkItemsIndexRoute
 }
 
@@ -759,15 +757,16 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
     TenantsTenantIdAgentsDeployRouteWithChildren,
   TenantsTenantIdConversationalAgentIdRoute:
     TenantsTenantIdConversationalAgentIdRouteWithChildren,
+  TenantsTenantIdMcpServersMcpServerIdRoute:
+    TenantsTenantIdMcpServersMcpServerIdRoute,
+  TenantsTenantIdMcpServersNewRoute: TenantsTenantIdMcpServersNewRoute,
   TenantsTenantIdWorkerAgentIdRoute:
     TenantsTenantIdWorkerAgentIdRouteWithChildren,
   TenantsTenantIdAgentEvalsIndexRoute: TenantsTenantIdAgentEvalsIndexRoute,
   TenantsTenantIdAuditLogsIndexRoute: TenantsTenantIdAuditLogsIndexRoute,
-  TenantsTenantIdDocumentIntelligenceIndexRoute:
-    TenantsTenantIdDocumentIntelligenceIndexRoute,
   TenantsTenantIdHelpIndexRoute: TenantsTenantIdHelpIndexRoute,
   TenantsTenantIdHomeIndexRoute: TenantsTenantIdHomeIndexRoute,
-  TenantsTenantIdSettingsIndexRoute: TenantsTenantIdSettingsIndexRoute,
+  TenantsTenantIdMcpServersIndexRoute: TenantsTenantIdMcpServersIndexRoute,
   TenantsTenantIdWorkItemsIndexRoute: TenantsTenantIdWorkItemsIndexRoute,
 }
 

@@ -1,6 +1,14 @@
 import { FC, useMemo } from 'react';
 import { Box, Button, Link } from '@sema4ai/components';
-import { IconAgents, IconArrowUpRight, IconFileText, IconHelpCircle, IconMenu, IconSettings2 } from '@sema4ai/icons';
+import {
+  IconAgents,
+  IconArrowUpRight,
+  IconFileText,
+  IconHelpCircle,
+  IconMenu,
+  IconSettings2,
+  IconMcp,
+} from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useParams } from '@tanstack/react-router';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
@@ -57,15 +65,15 @@ export const Sidebar: FC = () => {
             Agents
           </RouterSideNavigationLink>
 
-          {features.documentIntelligence.enabled && (
-            <RouterSideNavigationLink
+          {/* {features.documentIntelligence.enabled && ( */}
+          {/* <RouterSideNavigationLink
               icon={<IconFileText />}
               to="/tenants/$tenantId/documentIntelligence"
               params={{ tenantId }}
             >
               Documents
-            </RouterSideNavigationLink>
-          )}
+            </RouterSideNavigationLink> */}
+          {/* )} */}
 
           {features.deploymentWizard.enabled && (
             <RouterSideNavigationLink icon={<IconAgents />} to="/tenants/$tenantId/agents/deploy" params={{ tenantId }}>
@@ -73,9 +81,9 @@ export const Sidebar: FC = () => {
             </RouterSideNavigationLink>
           )}
 
-          {features.settings.enabled && (
-            <RouterSideNavigationLink icon={<IconSettings2 />} to="/tenants/$tenantId/settings" params={{ tenantId }}>
-              Advanced Settings
+          {features.mcpServersManagement.enabled && (
+            <RouterSideNavigationLink icon={<IconMcp />} to="/tenants/$tenantId/mcp-servers" params={{ tenantId }}>
+              MCP Servers
             </RouterSideNavigationLink>
           )}
 

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { NewMcpServerDialog } from '~/components/platforms/mcpServers/components/NewMcpServerDialog';
 
-export const Route = createFileRoute('/tenants/$tenantId/configuration/mcp-servers/new')({
+export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/new')({
   component: RouteComponent,
 });
 
@@ -10,9 +10,6 @@ function RouteComponent() {
   const { tenantId } = Route.useParams();
 
   return (
-    <NewMcpServerDialog
-      onClose={() => navigate({ to: '/tenants/$tenantId/configuration/mcp-servers', params: { tenantId } })}
-      open
-    />
+    <NewMcpServerDialog onClose={() => navigate({ to: '/tenants/$tenantId/mcp-servers', params: { tenantId } })} open />
   );
 }

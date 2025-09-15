@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Form, Box, Header, Scroll, Input, Button, useSnackbar } from '@sema4ai/components';
+import { Form, Box, Scroll, Input, Button, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';
 
 import { getGetConfigQueryOptions, useUpdateConfigMutation } from '~/queries/settings';
@@ -19,7 +19,7 @@ const beautifyConfigType = (key: string): string => {
   }
 };
 
-export const Route = createFileRoute('/tenants/$tenantId/settings/')({
+export const Route = createFileRoute('/tenants/$tenantId/configuration/settings/')({
   loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
     const config = await queryClient.ensureQueryData(
       getGetConfigQueryOptions({
@@ -79,12 +79,8 @@ function Settings() {
 
   return (
     <Scroll>
-      <Box p="$24" pb="$48">
-        <Header size="x-large">
-          <Header.Title title="Settings" />
-        </Header>
-
-        <Form onSubmit={onSubmit} width={720} busy={isUpdatingConfig}>
+      <Box px={8}>
+        <Form onSubmit={onSubmit} busy={isUpdatingConfig}>
           <FormProvider {...formProps}>
             {config.map((configEntry) => (
               <Form.Fieldset key={configEntry.config_type}>
@@ -94,7 +90,7 @@ function Settings() {
                 />
               </Form.Fieldset>
             ))}
-            <Box>
+            <Box display="flex" justifyContent="flex-end">
               <Button type="submit" variant="primary" loading={isUpdatingConfig} round>
                 Submit
               </Button>

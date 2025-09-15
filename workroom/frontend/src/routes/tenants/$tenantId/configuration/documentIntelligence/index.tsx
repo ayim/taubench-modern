@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, Box, Button, EmptyState, Header, Scroll, Input, useSnackbar } from '@sema4ai/components';
+import { Form, Box, Button, EmptyState, Scroll, Input, useSnackbar } from '@sema4ai/components';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
 import { useCallback } from 'react';
@@ -29,7 +29,7 @@ const Configuration = z.object({
     ),
 });
 
-export const Route = createFileRoute('/tenants/$tenantId/documentIntelligence/')({
+export const Route = createFileRoute('/tenants/$tenantId/configuration/documentIntelligence/')({
   component: View,
   loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
     const documentIntelligence = await queryClient.ensureQueryData(
@@ -137,11 +137,8 @@ function View() {
 
   return (
     <Scroll>
-      <Box p="$24" pb="$48">
-        <Header size="x-large">
-          <Header.Title title="Configure Document Intelligence" />
-        </Header>
-        <Form onSubmit={onSubmit} width={720} busy={isProcessingRequest}>
+      <Box p={8}>
+        <Form onSubmit={onSubmit} busy={isProcessingRequest}>
           <FormProvider {...formProps}>
             <Form.Fieldset key={'reducto_endpoint'}>
               <Input
@@ -167,17 +164,18 @@ function View() {
                 error={formProps.formState.errors.postgresConnectionUrl?.message}
               />
             </Form.Fieldset>
-            <Box display="flex">
-              <Button type="submit" variant="primary" loading={isProcessingRequest} round>
-                {documentIntelligence.data.configured ? 'Update configuration' : 'Configure'}
-              </Button>
-              <Box pl="$8">
+            <Box display="flex" justifyContent="flex-end">
+              <Box pl="$8" display="flex" gap={8}>
                 <Button
                   variant="secondary"
                   disabled={!documentIntelligence.data.configured}
                   onClick={handleClearConfig}
+                  round
                 >
                   Clear
+                </Button>
+                <Button type="submit" variant="primary" loading={isProcessingRequest} round>
+                  {documentIntelligence.data.configured ? 'Update configuration' : 'Configure'}
                 </Button>
               </Box>
             </Box>
