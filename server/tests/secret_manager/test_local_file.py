@@ -340,17 +340,21 @@ class TestLocalFileSecretManager:
     def test_fallback_to_custom_key_migration(self):
         """Test that a manager with custom key can decrypt data encrypted with fallback key."""
         # Create first manager with no key file (uses fallback)
-        manager1 = LocalFileSecretManager()
-        manager1.setup()
+        # Ensure no environment variable is set to force fallback key usage
+        with patch.dict(os.environ, {}, clear=False):
+            # Remove the environment variable if it exists
+            os.environ.pop("SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_FILE", None)
+            manager1 = LocalFileSecretManager()
+            manager1.setup()
 
-        test_data = '{"migration": "test", "scenario": "fallback_to_custom"}'
-        encrypted_reference = manager1.store(test_data)
+            test_data = '{"migration": "test", "scenario": "fallback_to_custom"}'
+            encrypted_reference = manager1.store(test_data)
 
-        # Verify the data was encrypted with fallback key
-        from agent_platform.core.utils.encryption.envelope import EnvelopeEncryptionResult
+            # Verify the data was encrypted with fallback key
+            from agent_platform.core.utils.encryption.envelope import EnvelopeEncryptionResult
 
-        envelope_result = EnvelopeEncryptionResult.from_json(encrypted_reference)
-        assert envelope_result.metadata.key_id == "fallback"
+            envelope_result = EnvelopeEncryptionResult.from_json(encrypted_reference)
+            assert envelope_result.metadata.key_id == "fallback"
 
         # Create second manager with custom key
         temp_key = "c" * 64  # Custom key
@@ -379,17 +383,21 @@ class TestLocalFileSecretManager:
     def test_fallback_decryption_mechanism_workflow(self):
         """Test the complete fallback decryption workflow: primary fails → fallback succeeds."""
         # Step 1: Create manager with no key file (uses fallback) and encrypt data
-        manager_fallback = LocalFileSecretManager()
-        manager_fallback.setup()
+        # Ensure no environment variable is set to force fallback key usage
+        with patch.dict(os.environ, {}, clear=False):
+            # Remove the environment variable if it exists
+            os.environ.pop("SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_FILE", None)
+            manager_fallback = LocalFileSecretManager()
+            manager_fallback.setup()
 
-        test_data = '{"workflow": "test", "step": "fallback_encryption"}'
-        encrypted_reference = manager_fallback.store(test_data)
+            test_data = '{"workflow": "test", "step": "fallback_encryption"}'
+            encrypted_reference = manager_fallback.store(test_data)
 
-        # Verify the data was encrypted with fallback key
-        from agent_platform.core.utils.encryption.envelope import EnvelopeEncryptionResult
+            # Verify the data was encrypted with fallback key
+            from agent_platform.core.utils.encryption.envelope import EnvelopeEncryptionResult
 
-        envelope_result = EnvelopeEncryptionResult.from_json(encrypted_reference)
-        assert envelope_result.metadata.key_id == "fallback"
+            envelope_result = EnvelopeEncryptionResult.from_json(encrypted_reference)
+            assert envelope_result.metadata.key_id == "fallback"
 
         # Step 2: Create manager with custom key
         temp_key = "d" * 64  # Custom key
