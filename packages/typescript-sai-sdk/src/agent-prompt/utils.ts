@@ -131,39 +131,109 @@ export function createTool(
 export function createOpenAIConfig(apiKey: string): PlatformConfig {
   return {
     kind: 'openai',
-    openai_api_key: apiKey,
-  };
-}
-
-/**
- * Create a Google platform config
- */
-export function createGoogleConfig(apiKey: string): PlatformConfig {
-  return {
-    kind: 'google',
-    google_api_key: apiKey,
-  };
-}
-
-/**
- * Create a Groq platform config
- */
-export function createGroqConfig(apiKey: string): PlatformConfig {
-  return {
-    kind: 'groq',
-    groq_api_key: apiKey,
+    openai_api_key: apiKey, // TODO: Add support for other OpenAI models
   };
 }
 
 /**
  * Create a Bedrock platform config
  */
-export function createBedrockConfig(accessKeyId: string, secretAccessKey: string, region: string): PlatformConfig {
+export function createBedrockConfig(
+  accessKeyId: string,
+  secretAccessKey: string,
+  region: string,
+  apiVersion?: string,
+  useSsl?: boolean,
+  verify?: boolean,
+  endpointUrl?: string,
+  awsSessionToken?: string,
+  configParams?: Record<string, any>,
+): PlatformConfig {
   return {
     kind: 'bedrock',
     aws_access_key_id: accessKeyId,
     aws_secret_access_key: secretAccessKey,
     region_name: region,
+    api_version: apiVersion,
+    use_ssl: useSsl,
+    verify: verify,
+    endpoint_url: endpointUrl,
+    aws_session_token: awsSessionToken,
+    config_params: configParams,
+  };
+}
+
+/**
+ * Create a Azure platform config
+ */
+export function createAzureConfig(
+  apiKey: string,
+  url: string,
+  deploymentName?: string,
+  apiVersion?: string,
+  deploymentNameEmbeddings?: string,
+  generatedEndpointUrl?: string,
+  generatedEndpointUrlEmbeddings?: string,
+  modelBackingDeploymentName?: string,
+  modelBackingDeploymentNameEmbeddings?: string,
+): PlatformConfig {
+  return {
+    kind: 'azure',
+    azure_api_key: apiKey,
+    azure_endpoint_url: url,
+    azure_deployment_name: deploymentName,
+    azure_api_version: apiVersion,
+    azure_deployment_name_embeddings: deploymentNameEmbeddings,
+    azure_generated_endpoint_url: generatedEndpointUrl,
+    azure_generated_endpoint_url_embeddings: generatedEndpointUrlEmbeddings,
+    azure_model_backing_deployment_name: modelBackingDeploymentName,
+    azure_model_backing_deployment_name_embeddings: modelBackingDeploymentNameEmbeddings,
+  };
+}
+
+/**
+ * Create a OLLama platform config
+ */
+export function createOLLamaConfig(baseUrl: string): PlatformConfig {
+  return {
+    kind: 'ollama',
+    ollama_base_url: baseUrl,
+  };
+}
+
+/**
+ * Create a Anthropic platform config
+ */
+export function createAnthropicConfig(apiKey: string): PlatformConfig {
+  return {
+    kind: 'anthropic',
+    anthropic_api_key: apiKey,
+  };
+}
+
+/**
+ * Create a Snowflake platform config
+ */
+export function createSnowflakeConfig(
+  warehouse: string,
+  schema: string,
+  role: string,
+  account: string,
+  database: string,
+  host: string,
+  password: string,
+  username: string,
+): PlatformConfig {
+  return {
+    kind: 'cortex',
+    snowflake_warehouse: warehouse,
+    snowflake_schema: schema,
+    snowflake_role: role,
+    snowflake_account: account,
+    snowflake_database: database,
+    snowflake_host: host,
+    snowflake_password: password,
+    snowflake_username: username,
   };
 }
 
@@ -200,7 +270,7 @@ export function createMemoriesMessage(memoryLimit?: number): MemoriesSpecialMess
 /**
  * Create a complete prompt request with all available options
  *
- * @param platformConfig - The platform configuration (OpenAI, Google, Groq, or Bedrock)
+ * @param platformConfig - The platform configuration (OpenAI, Azure, OLLama, Anthropic, or Snowflake)
  * @param messages - Array of messages including regular and special messages
  * @param tools - Array of tool definitions available to the model
  * @param options - Optional configuration for the prompt

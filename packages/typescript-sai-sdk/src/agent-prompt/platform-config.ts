@@ -8,40 +8,77 @@ export const BasePlatformConfigSchema = z.object({
 // OpenAI platform config
 export const OpenAIPlatformConfigSchema = z.object({
   kind: z.literal('openai'),
-  openai_api_key: z.string(),
+  openai_api_key: z.string().optional(),
 });
 
-// Google platform config
-export const GooglePlatformConfigSchema = z.object({
-  kind: z.literal('google'),
-  google_api_key: z.string(),
+// Azure platform config
+export const AzurePlatformConfigSchema = z.object({
+  kind: z.literal('azure'),
+  azure_api_key: z.string().optional(),
+  azure_endpoint_url: z.string().optional(),
+  azure_deployment_name: z.string().optional(),
+  azure_api_version: z.string().optional(),
+  azure_deployment_name_embeddings: z.string().optional(),
+  azure_generated_endpoint_url: z.string().optional(),
+  azure_generated_endpoint_url_embeddings: z.string().optional(),
+  azure_model_backing_deployment_name: z.string().optional(),
+  azure_model_backing_deployment_name_embeddings: z.string().optional(),
 });
 
-// Groq platform config
-export const GroqPlatformConfigSchema = z.object({
-  kind: z.literal('groq'),
-  groq_api_key: z.string(),
+// OLLama platform config
+export const OLLamaPlatformConfigSchema = z.object({
+  kind: z.literal('ollama'),
+  ollama_base_url: z.string().optional(),
+});
+
+// Anthropic platform config
+export const AnthropicPlatformConfigSchema = z.object({
+  kind: z.literal('anthropic'),
+  anthropic_api_key: z.string().optional(),
+});
+
+// Snowflake platform config
+export const SnowflakePlatformConfigSchema = z.object({
+  kind: z.literal('cortex'),
+  snowflake_warehouse: z.string().optional(),
+  snowflake_schema: z.string().optional(),
+  snowflake_role: z.string().optional(),
+  snowflake_account: z.string().optional(),
+  snowflake_database: z.string().optional(),
+  snowflake_host: z.string().optional(),
+  snowflake_password: z.string().optional(),
+  snowflake_username: z.string().optional(),
 });
 
 // Bedrock platform config
 export const BedrockPlatformConfigSchema = z.object({
   kind: z.literal('bedrock'),
-  aws_access_key_id: z.string(),
-  aws_secret_access_key: z.string(),
-  region_name: z.string(),
+  region_name: z.string().optional(),
+  api_version: z.string().optional(),
+  use_ssl: z.boolean().optional(),
+  verify: z.boolean().optional(),
+  endpoint_url: z.string().optional(),
+  aws_access_key_id: z.string().optional(),
+  aws_secret_access_key: z.string().optional(),
+  aws_session_token: z.string().optional(),
+  config_params: z.record(z.string(), z.any()).optional(),
 });
 
 // Union of all platform configs
 export const PlatformConfigSchema = z.discriminatedUnion('kind', [
   OpenAIPlatformConfigSchema,
-  GooglePlatformConfigSchema,
-  GroqPlatformConfigSchema,
+  AzurePlatformConfigSchema,
+  OLLamaPlatformConfigSchema,
+  AnthropicPlatformConfigSchema,
+  SnowflakePlatformConfigSchema,
   BedrockPlatformConfigSchema,
 ]);
 
 // Type exports
 export type PlatformConfig = z.infer<typeof PlatformConfigSchema>;
 export type OpenAIPlatformConfig = z.infer<typeof OpenAIPlatformConfigSchema>;
-export type GooglePlatformConfig = z.infer<typeof GooglePlatformConfigSchema>;
-export type GroqPlatformConfig = z.infer<typeof GroqPlatformConfigSchema>;
+export type AzurePlatformConfig = z.infer<typeof AzurePlatformConfigSchema>;
+export type OLLamaPlatformConfig = z.infer<typeof OLLamaPlatformConfigSchema>;
+export type AnthropicPlatformConfig = z.infer<typeof AnthropicPlatformConfigSchema>;
+export type SnowflakePlatformConfig = z.infer<typeof SnowflakePlatformConfigSchema>;
 export type BedrockPlatformConfig = z.infer<typeof BedrockPlatformConfigSchema>;
