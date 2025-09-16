@@ -686,16 +686,31 @@ async def resolve_generic_model_id_to_platform_specific_model_id(  # noqa: C901,
         ]
         if platform_specific_model_id in available_models[provider]:
             return platform_specific_model_id
-        else:
-            # This is a case that really should never happen, but we'll handle it
-            # just in case (I guess maybe someone might not have access to a model
-            # the platform normally supports)
+        # This is a case that really should never happen, but we'll handle it
+        # just in case (I guess maybe someone might not have access to a model
+        # the platform normally supports)
+        elif platform == "openai":
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
                 message=(
                     f"Failed to resolve the generic model ID {model_id} to a platform-specific "
                     f"model ID, the platform-specific model ID {platform_specific_model_id} "
-                    f"is not available on the platform as configured."
+                    "is not available on the platform as configured. "
+                    "Please make sure your OpenAI API key has sufficient permissions to access "
+                    "the model you have requested."
+                    f" Available models: {available_models[provider]}"
+                ),
+                data=_get_error_data(),
+            )
+        else:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message=(
+                    f"Failed to resolve the generic model ID {model_id} to a platform-specific "
+                    f"model ID, the platform-specific model ID {platform_specific_model_id} "
+                    "is not available on the platform as configured."
+                    "Please make sure your credentials can access the model "
+                    "you have requested."
                 ),
                 data=_get_error_data(),
             )

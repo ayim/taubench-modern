@@ -127,7 +127,7 @@ class OpenAIClient(
             error_type = StreamingError if stream else PlatformHTTPError
             raise self._handle_openai_error(e, model, error_type) from e
 
-    def _handle_openai_error(  # noqa: C901, PLR0911
+    def _handle_openai_error(  # noqa: C901, PLR0911, PLR0912
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
     ) -> PlatformError:
         """Handle OpenAI errors and convert them to PlatformError instances.
@@ -184,6 +184,19 @@ class OpenAIClient(
                             f"The request to model '{model}' was rejected because it "
                             f"exceeded the context length limit. Please try again with a "
                             f"shorter request.\n\nDetails: {error.message}"
+                        ),
+                        data={"model": model, "error_message": error.message},
+                    )
+                elif error.code == "unsupported_value":
+                    logger.info(f"Error object: {error}")
+                    return error_type(
+                        error_code=ErrorCode.BAD_REQUEST,
+                        message=(
+                            "Your organization must be verified to stream this model. Please "
+                            "go to: https://platform.openai.com/settings/organization/general "
+                            "and click on Verify Organization. "
+                            "If you just verified, it can take up to 15 minutes "
+                            "for access to propagate."
                         ),
                         data={"model": model, "error_message": error.message},
                     )
