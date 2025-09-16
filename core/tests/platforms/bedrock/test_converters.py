@@ -99,6 +99,29 @@ class TestBedrockConverters:
         assert result.messages[0]["content"][0]["text"] == "Hello, world!"
 
     @pytest.mark.asyncio
+    async def test_convert_prompt_ignores_seed(
+        self,
+        converters: BedrockConverters,
+        kernel: Kernel,
+    ) -> None:
+        """Ensure unsupported seed parameter isn't forwarded to Bedrock."""
+
+        prompt = Prompt(
+            system_instruction="You are a helpful assistant.",
+            messages=[
+                PromptUserMessage(
+                    content=[PromptTextContent(text="Hello, world!")],
+                ),
+            ],
+            seed=1234,
+        )
+
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(finalized_prompt)
+
+        assert result.additional_model_request_fields is None
+
+    @pytest.mark.asyncio
     async def test_convert_prompt_with_tools(
         self,
         converters: BedrockConverters,

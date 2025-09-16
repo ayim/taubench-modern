@@ -1,7 +1,7 @@
 import base64
 import re
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
@@ -507,22 +507,6 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
 
         return None if not config else config
 
-    async def _build_additional_fields(
-        self,
-        seed: int | None,
-    ) -> dict[str, Any] | None:
-        """Build additional model request fields from prompt parameters.
-
-        Args:
-            seed: Random seed for generation.
-
-        Returns:
-            Dictionary with additional fields if any are set, None otherwise.
-        """
-        if seed is not None:
-            return {"seed": seed}
-        return None
-
     async def _convert_tools(
         self,
         tools: list[ToolDefinition],
@@ -606,7 +590,6 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             prompt.stop_sequences,
             prompt.top_p,
         )
-        additional_fields = await self._build_additional_fields(prompt.seed)
 
         # Convert tools if present
         tool_config = None
@@ -625,6 +608,5 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             messages=messages,
             system=system,
             inference_config=inference_config,
-            additional_model_request_fields=additional_fields,
             tool_config=tool_config,
         )
