@@ -8,7 +8,6 @@ from server.tests.integration.work_items.helper_functions import _wait_until
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
-@pytest.mark.skip(reason="Failing often in CI")
 @pytest.mark.asyncio
 async def test_evals_e2e(
     base_url_agent_server_evals_matrix: str,
@@ -95,7 +94,8 @@ async def test_evals_e2e(
                 )
                 return all_completed
 
-            await _wait_until(_is_final_status, interval=1.0, timeout=120)
+            five_minutes = 5 * 60
+            await _wait_until(_is_final_status, interval=1.0, timeout=five_minutes)
 
             get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/latest")
             assert get_run_resp.status_code == 200
