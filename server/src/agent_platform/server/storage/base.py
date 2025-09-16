@@ -669,7 +669,21 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Delete a scenario."""
         scenarios = self._get_table("scenarios")
 
-        stmt = sa.delete(scenarios).where(scenarios.c.scenario_id == scenario_id)
+        stmt = (
+            sa.delete(scenarios)
+            .where(scenarios.c.scenario_id == scenario_id)
+            .returning(
+                scenarios.c.scenario_id,
+                scenarios.c.name,
+                scenarios.c.description,
+                scenarios.c.thread_id,
+                scenarios.c.agent_id,
+                scenarios.c.user_id,
+                scenarios.c.created_at,
+                scenarios.c.updated_at,
+                scenarios.c.messages,
+            )
+        )
 
         async with self.engine.begin() as conn:
             result = await conn.execute(stmt)
