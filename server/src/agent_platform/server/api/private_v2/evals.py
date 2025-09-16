@@ -12,6 +12,12 @@ from agent_platform.core.thread.thread import Thread
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth.handlers import AuthedUser
 from agent_platform.server.constants import SystemConfig
+from agent_platform.server.evals.advisor import (
+    ScenarioSuggestion,
+)
+from agent_platform.server.evals.advisor import (
+    suggest_scenario_from_thread as _suggest_scenario_from_thread,
+)
 
 
 def _require_evals_enabled():
@@ -54,6 +60,23 @@ async def create_scenario(
     scenario = CreateScenarioPayload.to_scenario(payload, user.user_id, thread)
 
     return await storage.create_scenario(scenario)
+
+
+@dataclass(frozen=True)
+class SuggestScenarioPayload:
+    thread_id: str
+    max_options: int = 1
+
+
+@router.post("/scenarios/suggest", response_model=ScenarioSuggestion)
+async def suggest_scenario_from_thread(
+    payload: SuggestScenarioPayload, user: AuthedUser, storage: StorageDependency
+):
+    thread = await storage.get_thread(user.user_id, payload.thread_id)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    return await _suggest_scenario_from_thread(user, thread, storage)
 
 
 @router.get("/scenarios", response_model=list[Scenario])

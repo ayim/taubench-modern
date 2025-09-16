@@ -1839,6 +1839,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/evals/scenarios/suggest': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Suggest Scenario From Thread */
+    post: operations['suggest_scenario_from_thread_evals_scenarios_suggest_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/evals/scenarios/{scenario_id}': {
     parameters: {
       query?: never;
@@ -5222,6 +5239,15 @@ export interface components {
        */
       trials?: components['schemas']['Trial'][];
     };
+    /** ScenarioSuggestion */
+    ScenarioSuggestion: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Rationale */
+      rationale: string;
+    };
     /** SecretString */
     SecretString: {
       /**
@@ -5431,6 +5457,16 @@ export interface components {
        * @description List of errors when the operation fails
        */
       errors?: (components['schemas']['StatusError'] | string)[];
+    };
+    /** SuggestScenarioPayload */
+    SuggestScenarioPayload: {
+      /** Thread Id */
+      thread_id: string;
+      /**
+       * Max Options
+       * @default 1
+       */
+      max_options: number;
     };
     /** Thread */
     Thread: {
@@ -10636,6 +10672,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Scenario'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  suggest_scenario_from_thread_evals_scenarios_suggest_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SuggestScenarioPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioSuggestion'];
         };
       };
       /** @description Validation Error */

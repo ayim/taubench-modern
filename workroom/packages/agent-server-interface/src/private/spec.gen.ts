@@ -6016,6 +6016,46 @@ export const spec = {
         },
       },
     },
+    '/api/v2/evals/scenarios/suggest': {
+      post: {
+        tags: ['evals'],
+        summary: 'Suggest Scenario From Thread',
+        operationId:
+          'suggest_scenario_from_thread_evals_scenarios_suggest_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/SuggestScenarioPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ScenarioSuggestion',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/evals/scenarios/{scenario_id}': {
       get: {
         tags: ['evals'],
@@ -12943,6 +12983,25 @@ export const spec = {
         required: ['scenario_run_id', 'scenario_id', 'user_id'],
         title: 'ScenarioRun',
       },
+      ScenarioSuggestion: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          rationale: {
+            type: 'string',
+            title: 'Rationale',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description', 'rationale'],
+        title: 'ScenarioSuggestion',
+      },
       SecretString: {
         properties: {
           value: {
@@ -13429,6 +13488,22 @@ export const spec = {
         type: 'object',
         required: ['status'],
         title: 'StatusResponse[dict]',
+      },
+      SuggestScenarioPayload: {
+        properties: {
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+          },
+          max_options: {
+            type: 'integer',
+            title: 'Max Options',
+            default: 1,
+          },
+        },
+        type: 'object',
+        required: ['thread_id'],
+        title: 'SuggestScenarioPayload',
       },
       Thread: {
         properties: {

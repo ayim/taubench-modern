@@ -293,13 +293,15 @@ async def _evaluate_flow_adherence(
 
     import json
 
-    content = response.content[0]
-    if isinstance(content, ResponseTextContent):
-        evaluation_json = content.text
-        evaluation_data = json.loads(evaluation_json)
-        return FlowAdherenceResult.model_validate(evaluation_data)
+    content = next(
+        (item for item in response.content if isinstance(item, ResponseTextContent)), None
+    )
+    if content is None:
+        raise RuntimeError("expected ResponseTextContent")
 
-    raise RuntimeError("expected ResponseTextContent from LM judge")
+    evaluation_json = content.text
+    evaluation_data = json.loads(evaluation_json)
+    return FlowAdherenceResult.model_validate(evaluation_data)
 
 
 async def _evaluate_response_accuracy(
@@ -362,13 +364,15 @@ async def _evaluate_response_accuracy(
 
     import json
 
-    content = response.content[0]
-    if isinstance(content, ResponseTextContent):
-        evaluation_json = content.text
-        evaluation_data = json.loads(evaluation_json)
-        return ResponseAccuracyResult.model_validate(evaluation_data)
+    content = next(
+        (item for item in response.content if isinstance(item, ResponseTextContent)), None
+    )
+    if content is None:
+        raise RuntimeError("expected ResponseTextContent")
 
-    raise RuntimeError("expected ResponseTextContent from LM judge")
+    evaluation_json = content.text
+    evaluation_data = json.loads(evaluation_json)
+    return ResponseAccuracyResult.model_validate(evaluation_data)
 
 
 async def run_evaluations(task: Trial, ran_successfully: bool) -> TrialStatus:
