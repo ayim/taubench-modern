@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "postbuild": "vite-node scripts/replacePaths.ts",
-    "lint": "eslint './src/**/*.{ts,tsx}' --max-warnings 0",
+    "lint": "eslint \"./src/**/*.{ts,tsx}\" --max-warnings 0",
     "dev": "tsc --watch",
     "test": "tsc --noEmit"
   },
