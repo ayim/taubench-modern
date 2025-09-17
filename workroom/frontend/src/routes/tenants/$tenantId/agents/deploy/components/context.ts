@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import type { components } from '@sema4ai/agent-server-interface';
+
+export type McpServerType = components['schemas']['MCPServer']['type'];
+export type McpTransport = components['schemas']['MCPServer']['transport'];
 
 export enum AgentDeploymentStep {
   AgentOverview = 'AgentOverview',

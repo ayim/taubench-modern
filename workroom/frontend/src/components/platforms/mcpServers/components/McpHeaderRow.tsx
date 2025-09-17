@@ -38,7 +38,7 @@ export const McpHeaderRow: FC<Props> = ({
           { value: 'secret', label: 'Secret' },
         ]}
         value={type}
-        onChange={(v) => onTypeChange(index, v as 'string' | 'secret')}
+        onChange={(selectedType) => onTypeChange(index, selectedType as 'string' | 'secret')}
       />
       <Input
         label="Header value"

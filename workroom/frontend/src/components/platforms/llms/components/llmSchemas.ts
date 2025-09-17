@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { components } from '@sema4ai/agent-server-interface';
 export const OPENAI_MODEL_VALUES = [
   'openai:gpt-3.5-turbo',
   'openai:gpt-4-turbo',
@@ -16,8 +17,15 @@ export const BEDROCK_MODEL_VALUES = [
   'bedrock:claude-4-sonnet',
   'bedrock:claude-4-opus',
 ] as const;
-// TODO:  Replace providers with @sema4ai/agent-server-interface when it's available
-export const PROVIDERS = ['openai', 'azure', 'bedrock'] as const;
+
+type AllPlatformParameters =
+  | components['schemas']['OpenAIPlatformParameters']
+  | components['schemas']['AzureOpenAIPlatformParameters']
+  | components['schemas']['BedrockPlatformParameters'];
+
+export type Provider = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock'>;
+
+export const PROVIDERS = ['openai', 'azure', 'bedrock'] as const satisfies readonly Provider[];
 
 const baseLLMSchema = z.object({
   provider: z.enum(PROVIDERS),
@@ -32,7 +40,6 @@ const baseLLMSchema = z.object({
   region_name: z.string().optional(),
 });
 
-// Strict schema for creation (requires credentials per provider)
 export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ctx) => {
   if (values.provider === 'openai') {
     if (!values.apiKey) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['apiKey'], message: 'API key is required' });

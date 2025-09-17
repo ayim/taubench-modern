@@ -89,10 +89,20 @@ export const LLMsTable: FC<Props> = ({
           aria-label="Provider filter"
           items={[
             { value: 'all', label: 'All providers' },
-            ...Array.from(PROVIDERS).map((p) => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) })),
+            ...Array.from(PROVIDERS).map((provider) => ({
+              value: provider,
+              label: provider.charAt(0).toUpperCase() + provider.slice(1),
+            })),
           ]}
           value={providerFilter}
-          onChange={(v) => setProviderFilter(v as 'all' | Provider)}
+          onChange={(selectedProvider) => {
+            const isValidProvider = (value: string): value is 'all' | Provider => {
+              return value === 'all' || value === 'openai' || value === 'azure' || value === 'bedrock';
+            };
+            if (isValidProvider(selectedProvider)) {
+              setProviderFilter(selectedProvider);
+            }
+          }}
         />
       </Box>
     ),

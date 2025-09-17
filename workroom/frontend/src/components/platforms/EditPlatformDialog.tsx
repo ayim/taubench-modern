@@ -1,63 +1,94 @@
-import { FC, useMemo } from 'react';
-import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
-import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams } from '@tanstack/react-router';
+import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
+import { FC, useMemo } from 'react';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { InputControlled } from '~/components/InputControlled';
 import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
   editLLMFormSchema,
   type EditLLMFormSchema,
+  type Provider,
 } from '~/components/platforms/llms/components/llmSchemas';
-import { useUpdateLLMMutation, type UpdatePlatformBody, type GetPlatformResponse } from '~/queries/platforms';
+import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
 
 type Props = {
-  platformId: string;
   open: boolean;
   onClose: () => void;
   onUpdated?: (platform: GetPlatformResponse) => void;
-  initial?: {
-    name: string;
-    provider: Provider;
-    model?: string;
-  };
-  existingKeys?: { openai?: boolean; azure?: boolean; bedrock?: boolean };
+  platform: GetPlatformResponse;
+  tenantId: string;
 };
-
-type Provider = 'openai' | 'azure' | 'bedrock';
-type ModelValue =
-  | (typeof OPENAI_MODEL_VALUES)[number]
-  | (typeof AZURE_MODEL_VALUES)[number]
-  | (typeof BEDROCK_MODEL_VALUES)[number];
 
 type FormValues = EditLLMFormSchema;
 
-export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpdated, initial }) => {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
+export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdated, tenantId }) => {
   const { addSnackbar } = useSnackbar();
-  const kind: Provider = initial?.provider ?? 'openai';
-  const defaultModel: ModelValue = (() => {
-    const modelPrefix = kind + ':';
-    if (initial?.model && initial.model.startsWith(modelPrefix)) return initial.model as ModelValue;
-    if (kind === 'azure') return AZURE_MODEL_VALUES[0];
-    if (kind === 'bedrock') return BEDROCK_MODEL_VALUES[0];
-    return OPENAI_MODEL_VALUES[0];
-  })();
-  const form = useForm<FormValues>({
-    resolver: zodResolver(editLLMFormSchema),
-    defaultValues: {
-      name: initial?.name ?? '',
+
+  const providerId = String(platform.kind || 'openai').toLowerCase();
+  const isValidProvider = (p: string): p is Provider => ['openai', 'azure', 'bedrock'].includes(p);
+  const kind: Provider = isValidProvider(providerId) ? providerId : 'openai';
+  const firstModel = (platform.models?.[providerId] || [])[0];
+
+  const modelString = firstModel ? `${kind}:${firstModel}` : undefined;
+  const isValidModel = (m: string): m is EditLLMFormSchema['model'] => {
+    const allValidModels = [...AZURE_MODEL_VALUES, ...BEDROCK_MODEL_VALUES, ...OPENAI_MODEL_VALUES];
+    return allValidModels.some((validModel) => validModel === m);
+  };
+  const currentModel = modelString && isValidModel(modelString) ? modelString : undefined;
+
+  // TODO: Tighten platform types and platformKind logic in another PR - improve type discrimination
+  const getPlatformConfig = () => {
+    const baseConfig = {
+      name: platform.name,
       provider: kind,
-      model: defaultModel,
+      model:
+        currentModel ||
+        (kind === 'azure'
+          ? AZURE_MODEL_VALUES[0]
+          : kind === 'bedrock'
+            ? BEDROCK_MODEL_VALUES[0]
+            : OPENAI_MODEL_VALUES[0]),
       apiKey: undefined,
+      aws_secret_access_key: undefined,
+    };
+
+    if (platform.kind === 'azure') {
+      return {
+        ...baseConfig,
+        azure_endpoint_url: platform.azure_endpoint_url || undefined,
+        azure_api_version: platform.azure_api_version || undefined,
+        azure_deployment_name: platform.azure_deployment_name || undefined,
+        aws_access_key_id: undefined,
+        region_name: undefined,
+      };
+    }
+
+    if (platform.kind === 'bedrock') {
+      return {
+        ...baseConfig,
+        azure_endpoint_url: undefined,
+        azure_api_version: undefined,
+        azure_deployment_name: undefined,
+        aws_access_key_id: platform.aws_access_key_id || undefined,
+        region_name: platform.region_name || undefined,
+      };
+    }
+
+    return {
+      ...baseConfig,
       azure_endpoint_url: undefined,
       azure_api_version: undefined,
       azure_deployment_name: undefined,
       aws_access_key_id: undefined,
-      aws_secret_access_key: undefined,
       region_name: undefined,
-    },
+    };
+  };
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(editLLMFormSchema),
+    defaultValues: getPlatformConfig(),
     mode: 'onChange',
   });
 
@@ -86,23 +117,23 @@ export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpd
     }
 
     const payload = {
-      id: platformId,
+      id: platform.platform_id,
       name: values.name,
       kind: provider,
       models: { [provider]: [modelId] },
       credentials: Object.keys(credentials).length ? credentials : undefined,
-    } as unknown as UpdatePlatformBody;
+    } satisfies UpdatePlatformBody;
 
     mutation.mutate(
-      { tenantId, platformId, body: payload },
+      { tenantId, platformId: platform.platform_id, body: payload },
       {
         onSuccess: async (updated) => {
           addSnackbar({ message: 'LLM updated', variant: 'success' });
           onUpdated?.(updated);
           onClose();
         },
-        onError: (e) => {
-          addSnackbar({ message: e instanceof Error ? e.message : 'Failed to update LLM', variant: 'danger' });
+        onError: (error) => {
+          addSnackbar({ message: error.message, variant: 'danger' });
         },
       },
     );
@@ -111,8 +142,8 @@ export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpd
   const modelItems = useMemo(() => {
     const forProvider = (values: readonly string[]) =>
       values
-        .filter((v) => v.startsWith(kind + ':'))
-        .map((v) => ({ value: v as ModelValue, label: v.split(':')[1] || v }));
+        .filter((modelValue) => modelValue.startsWith(kind + ':'))
+        .map((modelValue) => ({ value: modelValue, label: modelValue.split(':')[1] || modelValue }));
     if (kind === 'azure') return forProvider(AZURE_MODEL_VALUES);
     if (kind === 'bedrock') return forProvider(BEDROCK_MODEL_VALUES);
     return forProvider(OPENAI_MODEL_VALUES);
@@ -121,62 +152,57 @@ export const EditPlatformDialog: FC<Props> = ({ platformId, open, onClose, onUpd
   return (
     <Dialog open={open} onClose={onClose} width={600}>
       <Form onSubmit={onSubmit} width="100%">
-        <Dialog.Header>
-          <Dialog.Header.Title title="Edit LLM" />
-        </Dialog.Header>
-        <Dialog.Content>
-          <Box display="flex" flexDirection="column" gap="$16" p="$4">
-            <Input label="Name" {...form.register('name')} error={form.formState.errors.name?.message} />
-            <Controller
-              name="model"
-              control={form.control}
-              render={({ field }) => (
-                <Select
-                  label="Model"
-                  items={modelItems}
-                  value={field.value as string}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  ref={field.ref}
-                />
-              )}
-            />
-
-            {kind === 'openai' && (
-              <Input
-                label="OpenAI API Key"
-                type="password"
-                {...form.register('apiKey')}
-                error={form.formState.errors.apiKey?.message}
+        <FormProvider {...form}>
+          <Dialog.Header>
+            <Dialog.Header.Title title="Edit LLM" />
+          </Dialog.Header>
+          <Dialog.Content>
+            <Box display="flex" flexDirection="column" gap="$16" p="$4">
+              <Input label="Name" {...form.register('name')} error={form.formState.errors.name?.message} />
+              <Controller
+                name="model"
+                control={form.control}
+                render={({ field }) => (
+                  <Select
+                    label="Model"
+                    items={modelItems}
+                    value={String(field.value)}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                  />
+                )}
               />
-            )}
 
-            {isAzure && (
-              <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <Input label="Azure Endpoint URL" {...form.register('azure_endpoint_url')} />
-                <Input label="Azure API Version" {...form.register('azure_api_version')} />
-                <Input label="Azure Deployment Name" {...form.register('azure_deployment_name')} />
-                <Input label="Azure API Key" type="password" {...form.register('apiKey')} />
-              </Box>
-            )}
+              {kind === 'openai' && <InputControlled fieldName="apiKey" label="OpenAI API Key" type="password" />}
 
-            {isBedrock && (
-              <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <Input label="AWS Access Key ID" {...form.register('aws_access_key_id')} />
-                <Input label="AWS Secret Access Key" type="password" {...form.register('aws_secret_access_key')} />
-                <Input label="Region" {...form.register('region_name')} />
-              </Box>
-            )}
-          </Box>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button variant="outline" round type="button" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="primary" round type="submit" disabled={mutation.isPending}>
-            Save
-          </Button>
-        </Dialog.Actions>
+              {isAzure && (
+                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <Input label="Azure Endpoint URL" {...form.register('azure_endpoint_url')} />
+                  <Input label="Azure API Version" {...form.register('azure_api_version')} />
+                  <Input label="Azure Deployment Name" {...form.register('azure_deployment_name')} />
+                  <InputControlled fieldName="apiKey" label="Azure API Key" type="password" />
+                </Box>
+              )}
+
+              {isBedrock && (
+                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <Input label="AWS Access Key ID" {...form.register('aws_access_key_id')} />
+                  <InputControlled fieldName="aws_secret_access_key" label="AWS Secret Access Key" type="password" />
+                  <Input label="Region" {...form.register('region_name')} />
+                </Box>
+              )}
+            </Box>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button variant="outline" round type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" round type="submit" disabled={mutation.isPending}>
+              Save
+            </Button>
+          </Dialog.Actions>
+        </FormProvider>
       </Form>
     </Dialog>
   );

@@ -1,7 +1,7 @@
 import { FC, useMemo, useState } from 'react';
 import { Button, Dialog, Form, Input, Box, Select, useSnackbar } from '@sema4ai/components';
 import { useParams } from '@tanstack/react-router';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AZURE_MODEL_VALUES,
@@ -12,14 +12,11 @@ import {
 } from './llmSchemas';
 import { beautifyLabel } from '~/lib/utils';
 import { useCreateLLMMutation, type CreatePlatformBody } from '~/queries/platforms';
+import { InputControlled } from '~/components/InputControlled';
 
 type Props = { open: boolean; onClose: (platformId?: string) => void };
 
 type Provider = 'openai' | 'azure' | 'bedrock';
-type ModelValue =
-  | (typeof OPENAI_MODEL_VALUES)[number]
-  | (typeof AZURE_MODEL_VALUES)[number]
-  | (typeof BEDROCK_MODEL_VALUES)[number];
 
 type FormValues = CreateOrUpdateLLMFormSchema;
 
@@ -37,9 +34,9 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
 
   const modelItems = useMemo(() => {
     const makeItems = (values: readonly string[]) =>
-      values.map((v) => {
-        const [prov] = v.split(':');
-        return { optgroup: prov.toUpperCase(), value: v as ModelValue, label: beautifyLabel(v) };
+      values.map((modelValue) => {
+        const [providerPrefix] = modelValue.split(':');
+        return { optgroup: providerPrefix.toUpperCase(), value: modelValue, label: beautifyLabel(modelValue) };
       });
 
     return [...makeItems(OPENAI_MODEL_VALUES), ...makeItems(AZURE_MODEL_VALUES), ...makeItems(BEDROCK_MODEL_VALUES)];
@@ -67,7 +64,7 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
       name: values.name,
       kind: provider,
       models: { [provider]: [modelId] },
-      credentials: Object.keys(credentials).length ? (credentials as Record<string, unknown>) : undefined,
+      credentials: Object.keys(credentials).length ? credentials : undefined,
     };
 
     mutation.mutate(
@@ -76,9 +73,9 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
         onSuccess: (data) => {
           onClose(data?.platform_id);
         },
-        onError: (e) => {
+        onError: (error) => {
           addSnackbar({
-            message: e instanceof Error ? e.message : 'Failed to create LLM',
+            message: error.message,
             variant: 'danger',
           });
         },
@@ -95,111 +92,104 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
       }}
     >
       <Form onSubmit={onSubmit}>
-        <Dialog.Header>
-          <Dialog.Header.Title title="New Large Language Model (LLM)" />
-          <Dialog.Header.Description>
-            Agents need LLMs to function, and you can configure an agent to use any configured LLM during deployment.
-          </Dialog.Header.Description>
-        </Dialog.Header>
-        <Dialog.Content>
-          <Box p="$4">
-            <Form.Fieldset>
-              <Input
-                label="Name"
-                {...form.register('name')}
-                error={form.formState.errors.name?.message}
-                placeholder="Type a name"
-                autoFocus
-              />
-              <Controller
-                name="model"
-                control={form.control}
-                render={({ field }) => (
-                  <Select
-                    label="Model"
-                    items={modelItems}
-                    value={field.value as string}
-                    onChange={(value) => {
-                      field.onChange(value as ModelValue);
-                      const [prov] = String(value).split(':');
-                      setSelectedProvider(prov as Provider);
-                      form.setValue('provider', prov as Provider);
-                    }}
+        <FormProvider {...form}>
+          <Dialog.Header>
+            <Dialog.Header.Title title="New Large Language Model (LLM)" />
+            <Dialog.Header.Description>
+              Agents need LLMs to function, and you can configure an agent to use any configured LLM during deployment.
+            </Dialog.Header.Description>
+          </Dialog.Header>
+          <Dialog.Content>
+            <Box p="$4">
+              <Form.Fieldset>
+                <Input
+                  label="Name"
+                  {...form.register('name')}
+                  error={form.formState.errors.name?.message}
+                  placeholder="Type a name"
+                  autoFocus
+                />
+                <Controller
+                  name="model"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select
+                      label="Model"
+                      items={modelItems}
+                      value={String(field.value)}
+                      onChange={(selectedModel) => {
+                        field.onChange(selectedModel);
+                        const [providerPrefix] = String(selectedModel).split(':');
+                        if (providerPrefix === 'openai' || providerPrefix === 'azure' || providerPrefix === 'bedrock') {
+                          setSelectedProvider(providerPrefix);
+                          form.setValue('provider', providerPrefix);
+                        }
+                      }}
+                    />
+                  )}
+                />
+
+                {selectedProvider === 'openai' && (
+                  <InputControlled
+                    fieldName="apiKey"
+                    label="OpenAI API Key"
+                    type="password"
+                    placeholder="Enter API key"
                   />
                 )}
-              />
 
-              {selectedProvider === 'openai' && (
-                <Input
-                  label="OpenAI API Key"
-                  type="password"
-                  placeholder="Enter API key"
-                  {...form.register('apiKey')}
-                  error={form.formState.errors.apiKey?.message}
-                />
-              )}
+                {selectedProvider === 'azure' && (
+                  <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <Input
+                      label="Azure Endpoint URL"
+                      placeholder="https://...azure.com/"
+                      {...form.register('azure_endpoint_url')}
+                      error={form.formState.errors.azure_endpoint_url?.message}
+                    />
+                    <Input
+                      label="Azure API Version"
+                      placeholder="2024-02-01"
+                      {...form.register('azure_api_version')}
+                      error={form.formState.errors.azure_api_version?.message}
+                    />
+                    <Input
+                      label="Azure Deployment Name"
+                      placeholder="gpt-4-1"
+                      {...form.register('azure_deployment_name')}
+                      error={form.formState.errors.azure_deployment_name?.message}
+                    />
+                    <InputControlled fieldName="apiKey" label="Azure API Key" type="password" />
+                  </Box>
+                )}
 
-              {selectedProvider === 'azure' && (
-                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <Input
-                    label="Azure Endpoint URL"
-                    placeholder="https://...azure.com/"
-                    {...form.register('azure_endpoint_url')}
-                    error={form.formState.errors.azure_endpoint_url?.message}
-                  />
-                  <Input
-                    label="Azure API Version"
-                    placeholder="2024-02-01"
-                    {...form.register('azure_api_version')}
-                    error={form.formState.errors.azure_api_version?.message}
-                  />
-                  <Input
-                    label="Azure Deployment Name"
-                    placeholder="gpt-4-1"
-                    {...form.register('azure_deployment_name')}
-                    error={form.formState.errors.azure_deployment_name?.message}
-                  />
-                  <Input
-                    label="Azure API Key"
-                    type="password"
-                    {...form.register('apiKey')}
-                    error={form.formState.errors.apiKey?.message}
-                  />
-                </Box>
-              )}
-
-              {selectedProvider === 'bedrock' && (
-                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <Input
-                    label="AWS Access Key ID"
-                    {...form.register('aws_access_key_id')}
-                    error={form.formState.errors.aws_access_key_id?.message}
-                  />
-                  <Input
-                    label="AWS Secret Access Key"
-                    type="password"
-                    {...form.register('aws_secret_access_key')}
-                    error={form.formState.errors.aws_secret_access_key?.message}
-                  />
-                  <Input
-                    label="Region"
-                    placeholder="us-east-1"
-                    {...form.register('region_name')}
-                    error={form.formState.errors.region_name?.message}
-                  />
-                </Box>
-              )}
-            </Form.Fieldset>
-          </Box>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button variant="primary" type="submit" round disabled={mutation.isPending}>
-            Create
-          </Button>
-          <Button variant="outline" type="button" round onClick={() => onClose()}>
-            Cancel
-          </Button>
-        </Dialog.Actions>
+                {selectedProvider === 'bedrock' && (
+                  <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <Input
+                      label="AWS Access Key ID"
+                      {...form.register('aws_access_key_id')}
+                      error={form.formState.errors.aws_access_key_id?.message}
+                    />
+                    <InputControlled fieldName="aws_secret_access_key" label="AWS Secret Access Key" type="password" />
+                    <Input
+                      label="Region"
+                      placeholder="us-east-1"
+                      {...form.register('region_name')}
+                      error={form.formState.errors.region_name?.message}
+                    />
+                  </Box>
+                )}
+              </Form.Fieldset>
+            </Box>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button variant="primary" type="submit" round disabled={mutation.isPending}>
+              Create
+            </Button>
+            <Button variant="outline" type="button" round onClick={() => onClose()}>
+              Cancel
+            </Button>
+          </Dialog.Actions>
+        </FormProvider>
       </Form>
     </Dialog>
   );
