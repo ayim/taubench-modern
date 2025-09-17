@@ -218,6 +218,10 @@ export const createApplication = async ({
   } else if (configuration.frontendMode === 'middleware') {
     monitoring.logger.info('Frontend will be processed using Vite middlewares');
 
+    // Fixes static assets not resolved in dev mode
+    const root = resolve(import.meta.dirname, '../../frontend/public');
+    tenantRouter.use('/', createAssetServe({ root }));
+
     const viteDevServer = await import('vite').then((vite) =>
       vite.createServer({
         configFile: resolve(import.meta.dirname, '../../frontend/vite.config.ts'),
