@@ -38,6 +38,21 @@ class CreateScenarioPayload:
 
     @classmethod
     def to_scenario(cls, payload: Self, user_id: str, thread: Thread) -> Scenario:
+        def trim_initial_agents(messages):
+            trimmed = []
+            skip = True
+            for m in messages:
+                if skip and m.role == "agent":
+                    continue
+                skip = False
+                trimmed.append(m)
+            return trimmed
+
+        # TODO the prompt for LLM judges is required to start with a user message
+        # this is a quick fix to skip the initial agent welcome message(s)
+        # that would result in an error.
+        # more info https://sema4ai.slack.com/archives/C08HF1FADTQ/p1757927280879779
+        messages = trim_initial_agents(thread.messages)
         return Scenario(
             scenario_id=str(uuid4()),
             name=payload.name,
@@ -45,7 +60,7 @@ class CreateScenarioPayload:
             thread_id=thread.thread_id,
             user_id=user_id,
             agent_id=thread.agent_id,
-            messages=thread.messages,
+            messages=messages,
         )
 
 

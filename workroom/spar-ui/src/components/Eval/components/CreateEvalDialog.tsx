@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useEffect } from "react";
 import z from "zod";
 import { Dialog, Box, Typography, Form, Input, Button, Progress } from "@sema4ai/components";
 import { IconChemicalBottle } from "@sema4ai/icons";
@@ -17,6 +17,8 @@ export interface CreateEvalDialogProps {
   onClose: () => void;
   onSubmit: (data: CreateEvalFormData) => Promise<void>;
   isLoading: boolean;
+  initialValues?: Partial<CreateEvalFormData>;
+  isFetchingSuggestion?: boolean;
 }
 
 export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
@@ -24,10 +26,15 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
   onClose,
   onSubmit,
   isLoading = false,
+  initialValues,
+  isFetchingSuggestion = false,
 }) => {
   const form = useForm<CreateEvalFormData>({
     resolver: zodResolver(createEvalFormSchema),
-    defaultValues: { name: '', description: '' },
+    defaultValues: { 
+      name: initialValues?.name || '', 
+      description: initialValues?.description || '' 
+    },
     mode: 'onChange',
   });
 
@@ -38,10 +45,18 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     reset,
   } = form;
 
+  useEffect(() => {
+    if (open && initialValues) {
+      reset({
+        name: initialValues.name || '',
+        description: initialValues.description || ''
+      });
+    }
+  }, [open, initialValues, reset]);
+
   const handleFormSubmit = handleSubmit(async (data) => {
     await onSubmit(data);
     reset();
-    onClose();
   });
 
   const handleClose = () => {
@@ -61,6 +76,32 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
             <Progress size="large" />
             <Typography variant="display-large">Creating Your Evaluation</Typography>
             <Typography variant="body-medium">Your Evaluation will be available in a few seconds.</Typography>
+          </Box>
+        </Dialog.Content>
+        
+        <Dialog.Actions>
+          <Button 
+            variant="secondary" 
+            onClick={handleClose}
+            disabled
+          >
+            Cancel
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+    );
+  }
+
+  if (isFetchingSuggestion) {
+    return (
+      <Dialog width={800} open={open} onClose={handleClose}>
+        <Dialog.Header>
+          <Dialog.Header.Title title="" />
+        </Dialog.Header>
+        
+        <Dialog.Content>
+          <Box display="flex" flexDirection="column" alignItems="center" gap="$16" padding="$32">
+            <Progress size="large" />
           </Box>
         </Dialog.Content>
         

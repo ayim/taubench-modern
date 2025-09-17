@@ -377,6 +377,16 @@ async def _evaluate_response_accuracy(
 
 async def run_evaluations(task: Trial, ran_successfully: bool) -> TrialStatus:
     storage = StorageService.get_instance()
+    # TODO we should be smarter here and report simulation errors
+    # separately from trial status/error message that could
+    # be more generic
+    action_calling = ActionCallingResult(
+        issues=[task.error_message] if task.error_message else [], passed=ran_successfully
+    )
+
+    if task.error_message:
+        await storage.update_trial_evaluation_results(task.trial_id, [action_calling])
+        return TrialStatus.ERROR
 
     system_user, _ = await storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
 
@@ -394,13 +404,6 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> TrialStatus:
 
     flow_adherence = await _evaluate_flow_adherence(thread, scenario, system_user, storage)
     response_accuracy = await _evaluate_response_accuracy(thread, scenario, system_user, storage)
-    # TODO we should be smarter here and report simulation errors
-    # separately from trial status/error message that could
-    # be more generic
-    action_calling = ActionCallingResult(
-        issues=[task.error_message] if task.error_message else [], passed=ran_successfully
-    )
-
     evaluations = [flow_adherence, response_accuracy, action_calling]
 
     await storage.update_trial_evaluation_results(task.trial_id, evaluations)

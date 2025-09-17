@@ -1,7 +1,7 @@
 import { FC, useEffect, useRef, useState } from 'react';
 import { styled } from '@sema4ai/theme';
 import { Box, Button, Input, Menu, Progress, useSnackbar } from '@sema4ai/components';
-import { IconDotsHorizontal } from '@sema4ai/icons';
+import { IconChemicalBottle, IconDotsHorizontal } from '@sema4ai/icons';
 import { useConfirmAction } from '@sema4ai/layouts';
 
 import { useNavigate, useParams } from '../../../hooks';
@@ -11,6 +11,7 @@ import { SidebarLink } from '../../../common/link';
 type ThreadItemProps = {
   threadId: string;
   name: string;
+  scenarioId: string | null;
 };
 
 const Container = styled(Box)<{ $hovered: boolean }>`
@@ -33,7 +34,7 @@ const Container = styled(Box)<{ $hovered: boolean }>`
   }
 `;
 
-export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name }) => {
+export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) => {
   const { agentId, threadId: activeThreadId } = useParams('/thread/$agentId/$threadId');
   const [menuVisible, setMenuVisible] = useState(false);
   const { mutate: deleteThread, isPending: isDeleting } = useDeleteThreadMutation({ agentId });
@@ -129,7 +130,10 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name }) => {
       {isDeleting && <Progress variant="page" />}
 
       <SidebarLink to="/thread/$agentId/$threadId" params={{ threadId, agentId }}>
+        <Box display="flex" alignItems="center" gap="$8">
+        {scenarioId && <IconChemicalBottle size={20} />}
         {name}
+        </Box>
       </SidebarLink>
 
       <Menu

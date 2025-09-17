@@ -2,12 +2,24 @@ export interface Scenario {
     scenarioId: string;
     name: string;
     description: string;
+    threadId: string | null;
+  }
+
+  export interface EvaluationResult {
+    kind: 'response_accuracy' | 'flow_adherence' | 'action_calling';
+    passed: boolean;
+    score?: number;
+    explanation?: string;
+    issues?: string[];
   }
   
   export interface Trial {
     trialId: string;
-    status: 'pending' | 'running' | 'succeeded' | 'failed';
+    status: "PENDING" | "EXECUTING" | "COMPLETED" | "ERROR" | "CANCELED"
     errorMessage: string | null;
+    threadId: string | null;
+    statusUpdatedAt: string | null;
+    evaluationResults: EvaluationResult[];
   }
   
   export interface ScenarioRun {
@@ -17,6 +29,6 @@ export interface Scenario {
   
   export interface EvaluationItem {
     scenario: Scenario;
-    latestRun?: ScenarioRun;
+    latestRun: ScenarioRun | null;
     isRunning: boolean;
   }

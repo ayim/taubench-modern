@@ -13,6 +13,13 @@ const Container = styled.div`
   padding: ${({ theme }) => theme.space.$8};
   overflow: hidden;
   width: var(--width);
+  height: calc(100vh - ${({ theme }) => theme.sizes.$64});
+  display: flex;
+  flex-direction: column;
+
+  ${({ theme }) => theme.screen.m} {
+    height: calc(100vh - 52px);
+  }
 `;
 
 // TODO: The behaviour and layout of the sidebar will change once final design is there

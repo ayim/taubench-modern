@@ -2,15 +2,22 @@ import { useParams } from '@tanstack/react-router';
 import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
 import { ThreadHeader, ThreadSearch } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
-
-import { IconDotsHorizontal, IconDoubleChatBubble, IconPaperclip, IconSpreadsheet } from '@sema4ai/icons';
+import {
+  IconChemicalBottle,
+  IconDotsHorizontal,
+  IconDoubleChatBubble,
+  IconPaperclip,
+  IconSpreadsheet,
+} from '@sema4ai/icons';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
 import { NEW_CHAT_STARTING_MSG } from '~/config/constants';
+import { useTenantContext } from '~/lib/tenantContext';
 
 export const Header = () => {
   const { agentId, tenantId, threadId } = useParams({ from: '/tenants/$tenantId/conversational/$agentId/$threadId' });
   const isMobile = useScreenSize('m');
+  const { features } = useTenantContext();
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
@@ -49,6 +56,17 @@ export const Header = () => {
               params={{ tenantId, agentId, threadId }}
             />
           </Tooltip>
+
+          {features.agentEvals.enabled && (
+            <Tooltip text="Evaluations" placement="bottom">
+              <RouterSideNavigationLink
+                to="/tenants/$tenantId/conversational/$agentId/$threadId/evaluations"
+                icon={IconChemicalBottle}
+                round
+                params={{ tenantId, agentId, threadId }}
+              />
+            </Tooltip>
+          )}
         </>
       )}
       {isMobile && (
@@ -75,6 +93,15 @@ export const Header = () => {
             >
               Data Frames
             </RouterMenuLink>
+            {features.agentEvals.enabled && (
+              <RouterMenuLink
+                to="/tenants/$tenantId/conversational/$agentId/$threadId/evaluations"
+                icon={IconChemicalBottle}
+                params={{ tenantId, agentId, threadId }}
+              >
+                Evaluations
+              </RouterMenuLink>
+            )}
           </Menu>
         </>
       )}

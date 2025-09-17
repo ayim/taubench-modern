@@ -37,7 +37,7 @@ export const ThreadsList: FC = () => {
       </Box>
       <Box display="flex" flexDirection="column">
         {threads?.map((thread) => (
-          <ThreadItem key={thread.thread_id} threadId={thread.thread_id || ''} name={thread.name} />
+          <ThreadItem key={thread.thread_id} threadId={thread.thread_id || ''} name={thread.name} scenarioId={thread.metadata?.scenario_id as string ?? null} />
         ))}
       </Box>
     </SidebarMenu>

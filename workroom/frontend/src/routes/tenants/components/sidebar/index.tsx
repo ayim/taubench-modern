@@ -87,7 +87,7 @@ export const Sidebar: FC = () => {
             </RouterSideNavigationLink>
           )}
 
-          {features.agentEvals.enabled && (
+          {false && features.agentEvals.enabled && (
             <RouterSideNavigationLink icon={<IconSettings2 />} to="/tenants/$tenantId/agentEvals" params={{ tenantId }}>
               Evals
             </RouterSideNavigationLink>

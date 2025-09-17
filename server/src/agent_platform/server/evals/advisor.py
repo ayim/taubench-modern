@@ -71,7 +71,19 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
         temp_prompt = Prompt(messages=cast(list, converted_messages))
         return temp_prompt.to_pretty_yaml(include=["messages"])
 
-    formatted_conversation_thread = await format_conversation(thread.messages)
+    def trim_initial_agents(messages):
+        trimmed = []
+        skip = True
+        for m in messages:
+            if skip and m.role == "agent":
+                continue
+            skip = False
+            trimmed.append(m)
+        return trimmed
+
+    messages = trim_initial_agents(thread.messages)
+
+    formatted_conversation_thread = await format_conversation(messages)
 
     user_prompt_msg = user_prompt_msg.format(
         exemplar_thread=formatted_conversation_thread,

@@ -2,6 +2,8 @@ import { UserTenant } from '~/queries/tenants';
 import { getBasePath } from '~/utils/base';
 import type { CreateMcpServerBody, McpServerResponse, UpdateMcpServerBody } from '~/queries/mcpServers';
 import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
+import { Scenario, Trial } from '~/queries/evals';
+import { components } from '@sema4ai/agent-server-interface';
 
 export const snakeCaseToCamelCase = (str: string): string => {
   return str
@@ -214,3 +216,74 @@ export function buildUpdateMcpBody(
 
   return base;
 }
+
+export const downloadJSON = (
+  data: unknown,
+  options: {
+    filename: string;
+    addTimestamp?: boolean;
+  },
+): void => {
+  const { filename, addTimestamp = false } = options;
+
+  const dataToDownload = addTimestamp ? { ...(data as object), exportedAt: new Date().toISOString() } : data;
+
+  const blob = new Blob([JSON.stringify(dataToDownload, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.endsWith('.json') ? filename : `${filename}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+export const transformAgentServerScenarios = (
+  scenarios: Scenario[],
+  latestRunsData: (components['schemas']['ScenarioRun'] | null)[],
+) => {
+  return scenarios.map((apiScenario, index) => {
+    const latestRunQuery = latestRunsData[index];
+
+    const isRunning =
+      latestRunQuery?.trials?.some((trial: Trial) => trial.status === 'PENDING' || trial.status === 'EXECUTING') ??
+      false;
+
+    return {
+      scenario: {
+        scenarioId: apiScenario.scenario_id,
+        name: apiScenario.name,
+        description: apiScenario.description,
+        threadId: apiScenario.thread_id,
+        messages: apiScenario.messages,
+      },
+      latestRun: latestRunQuery
+        ? {
+            scenarioRunId: latestRunQuery.scenario_run_id,
+            scenarioId: latestRunQuery.scenario_id,
+            numTrials: latestRunQuery.num_trials,
+            trials:
+              latestRunQuery.trials?.map((trial: Trial) => ({
+                trialId: trial.trial_id,
+                status: trial.status,
+                errorMessage: trial.error_message ?? null,
+                threadId: trial.thread_id ?? null,
+                statusUpdatedAt: trial.status_updated_at ?? null,
+                evaluationResults:
+                  trial.evaluation_results?.map((result) => ({
+                    kind: result.kind as 'response_accuracy' | 'flow_adherence' | 'action_calling',
+                    passed: result.passed,
+                    score: 'score' in result ? result.score : undefined,
+                    explanation: 'explanation' in result ? result.explanation : undefined,
+                    issues: 'issues' in result ? result.issues : undefined,
+                  })) || [],
+              })) || [],
+          }
+        : null,
+      isRunning,
+    };
+  });
+};
