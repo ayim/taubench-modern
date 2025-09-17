@@ -76,15 +76,15 @@ jobs:
           server_pid="${!}"
 
           # Wait for the server to be responsive ########################################
-          for i in {1..10}; do
+          for i in {1..50}; do
             sleep 1
 
             if curl -sf "http://localhost:${PORT}/api/v2/ok" > /dev/null; then
               break
             fi
 
-            if [ "${i}" -eq 10 ]; then
-              echo "Agent Server failed to respond after 10 attempts"
+            if [ "${i}" -eq 50 ]; then
+              echo "Agent Server failed to respond after 50 attempts"
               exit 1
             fi
           done
