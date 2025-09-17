@@ -286,6 +286,7 @@ async def _resolve_extract_request(
         extraction_system_prompt=extraction_system_prompt,
         extraction_config=extraction_config,
         data_model_prompt=data_model_prompt,
+        generate_citations=payload.generate_citations,
     )
 
 
@@ -323,11 +324,16 @@ async def _upload_and_start_extract(
             f"and prompt {prompt}"
         )
 
+        # Merge in the generate_citations option with extraction_config
+        extraction_config = request.extraction_config or {}
+        if request.generate_citations is not None:
+            extraction_config["generate_citations"] = request.generate_citations
+
         return await extraction_client.start_extract(
             reducto_doc_id,
             schema=request.extraction_schema,
             system_prompt=prompt,
-            extraction_config=request.extraction_config,
+            extraction_config=extraction_config,
         )
     except PlatformHTTPError:
         raise
@@ -357,9 +363,14 @@ def _create_job_result(result: Any) -> JobResult:
         case ParseResponse(result=ParseResult() as parse_result):
             return ParseJobResult(result=parse_result)
         case ExtractResponse() as extract_resp:
-            # Reducto's ExtractResponse is just a list of objects so we can't easily type it,
-            # though it should match the data model's schema.
-            return ExtractJobResult(result=extract_resp.result[0])  # type: ignore
+            # Reducto's ExtractResponse.result and .citations are both lists of objects,
+            # result can't be typed, but citations has some structure.
+            #
+            # We expect that we only get single results because we haven't enabled chunking.
+            return ExtractJobResult(
+                result=extract_resp.result[0],  # type: ignore
+                citations=extract_resp.citations[0] if extract_resp.citations else None,  # type: ignore
+            )
         case SplitResponse(result=SplitResult() as split_result):
             return SplitJobResult(result=split_result)
         case _:

@@ -1,5 +1,3 @@
-from typing import Any
-
 from fastapi import APIRouter, UploadFile
 from reducto.types.shared.parse_response import ResultFullResult as ParseResult
 from sema4ai_docint.extraction.reducto.async_ import JobType
@@ -12,6 +10,7 @@ from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
+    ExtractDocumentResponsePayload,
     ExtractJobResult,
     GenerateSchemaResponsePayload,
     JobStartResponsePayload,
@@ -40,6 +39,117 @@ logger = get_logger(__name__)
 
 
 router = APIRouter()
+
+CITATION_CORRELATION_DOCS = """
+
+## Citation Correlation
+
+The citations included with results from this endpoint can be correlated to the schema
+fields based on their types.
+
+For schema fields defined as anything but `object` and `array`, the citation will be
+a list of citation objects with a shape like the following:
+
+```json
+{
+    // this key will be the same key as the schema field
+    "sample_extracted_field": [
+        {
+            "bbox": {
+                "left": 0.1,
+                "top": 0.2,
+                "width": 0.3,
+                "height": 0.05,
+                "page": 1,
+                "original_page": 1
+            },
+            "confidence": "high",
+            "content": "granular citation",
+            "image_url": null,
+            // Parent block will likely match a similar parse block in the document
+            "parentBlock": {
+                "bbox": {
+                    "left": 0.1,
+                    "top": 0.9,
+                    "width": 0.8,
+                    "height": 0.05,
+                    "page": 1
+                },
+                "block_type": "Text",
+                "confidence": "high",
+                "content": "This is the full sentence with the granular citation."
+            },
+            "type": "Text"
+        }
+    ]
+}
+```
+
+For schema fields defined as `object` or `array`, the value of the key in the citation
+object will be similar to the defined type.
+
+That is, if the schema field is defined as `object`, the value of the key in the citation
+object will be an object with keys matching the keys in the nested object and lists of
+citations associated with each key.
+
+If the schema field is defined as `array` (of objects), the value of the key in the citation
+object will be an array where each element is an object with keys matching the keys in the
+nested objects and lists of citations associated with each key.
+
+Example extracted results for a schema field defined as `array` of objects:
+
+```json
+{
+    "sample_extracted_field": [
+        {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    ]
+}
+```
+
+Example citation object:
+
+```json
+{
+    "sample_extracted_field": [
+        {
+            "key1": [
+                {
+                    "bbox": {
+                        "left": 0.1,
+                        "top": 0.2,
+                        "width": 0.3,
+                        "height": 0.05,
+                    },
+                    ... // other citation object fields, see above
+                }
+            ],
+            "key2": [
+                {
+                    "bbox": {
+                        "left": 0.1,
+                        "top": 0.2,
+                        "width": 0.3,
+                        "height": 0.05,
+                    },
+                    ... // other citation object fields, see above
+                }
+            ]
+        }
+    ]
+}
+```
+"""
+
+
+# Decorator to add citation documentation to extraction endpoints
+def add_citation_docs(func):
+    """Decorator that adds citation correlation documentation to endpoint docstrings."""
+    original_doc = func.__doc__ or ""
+    func.__doc__ = original_doc + CITATION_CORRELATION_DOCS
+    return func
 
 
 @router.post("/documents/generate-schema")
@@ -132,6 +242,11 @@ async def parse_document(  # noqa: PLR0913
         )
         _raise_mapped_reducto_error(e)
 
+    raise PlatformHTTPError(
+        error_code=ErrorCode.UNEXPECTED,
+        message="Should be unreachable",
+    )  # can't reach
+
 
 @router.post("/documents/parse/async")
 async def parse_document_async(  # noqa: PLR0913
@@ -182,6 +297,7 @@ async def parse_document_async(  # noqa: PLR0913
 
 
 @router.post("/documents/extract")
+@add_citation_docs
 async def extract_document(  # noqa: PLR0913
     user: AuthedUser,
     payload: ExtractDocumentPayload,
@@ -189,7 +305,7 @@ async def extract_document(  # noqa: PLR0913
     file_manager: FileManagerDependency,
     extraction_client: AsyncExtractionClientDependency,
     docint_ds: DocIntDatasourceDependency,
-) -> dict[str, Any]:
+) -> ExtractDocumentResponsePayload:
     """Extract structured data from an existing document.
 
     Returns extracted data formatted according to the document's data model schema.
@@ -216,7 +332,10 @@ async def extract_document(  # noqa: PLR0913
         result = await extract_response.result(poll_interval=3.0)
         job_result = _create_job_result(result)
         if isinstance(job_result, ExtractJobResult):
-            return job_result.result
+            return ExtractDocumentResponsePayload(
+                result=job_result.result,
+                citations=job_result.citations,
+            )
         else:
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNEXPECTED,
@@ -234,6 +353,7 @@ async def extract_document(  # noqa: PLR0913
 
 
 @router.post("/documents/extract/async")
+@add_citation_docs
 async def extract_document_async(  # noqa: PLR0913
     user: AuthedUser,
     payload: ExtractDocumentPayload,

@@ -301,7 +301,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", extras = ["memory"], path = "server/wheels/sema4ai_docint-0.5.6-py3-none-any.whl" },
+    { name = "sema4ai-docint", extras = ["memory"], path = "server/wheels/sema4ai_docint-0.8.1-py3-none-any.whl" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -3464,24 +3464,25 @@ wheels = [
 
 [[package]]
 name = "sema4ai-data"
-version = "1.0.8"
+version = "1.0.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pandas" },
     { name = "sema4ai-actions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/9a/6b4d628e38cc666e7579e15f1cf54af2d743e2fd3c54fb34a00526f2aa3b/sema4ai_data-1.0.8.tar.gz", hash = "sha256:10a25f63ec18c4e50c6423036c0dc550c9a2065cbc492b91bed16e6baaeb4845", size = 35285, upload-time = "2025-08-21T16:02:01.751Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/eb/62/88e8393800ea4c5b86537e02872359a1a2816d9db2b81b11016952127855/sema4ai_data-1.0.10.tar.gz", hash = "sha256:fe19ff256d7b1bb847656e372973c81ad74f121baecc434290e2adfc7861fcd3", size = 35836, upload-time = "2025-09-08T13:21:39.006Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/39/2f43cdabf3d9bdc6f56384d420e7198bbdedfc2b44b3c2dd1debae2fe54c/sema4ai_data-1.0.8-py3-none-any.whl", hash = "sha256:72e91a082e91a2443714942889d8aa08ac1b4ad2424051ccebac3adfe2a09041", size = 36732, upload-time = "2025-08-21T16:01:59.83Z" },
+    { url = "https://files.pythonhosted.org/packages/83/9a/48844af8cd71f03d637b19654875859690726a249db06def349a1c5d8436/sema4ai_data-1.0.10-py3-none-any.whl", hash = "sha256:74d6140817f37fae6cd48f431615f93b61cca7fc9a3e209c9a45a6e01b74c730", size = 37201, upload-time = "2025-09-08T13:21:37.676Z" },
 ]
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.5.6"
-source = { path = "server/wheels/sema4ai_docint-0.5.6-py3-none-any.whl" }
+version = "0.8.1"
+source = { path = "server/wheels/sema4ai_docint-0.8.1-py3-none-any.whl" }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp" },
+    { name = "jinja2" },
     { name = "jsonschema" },
     { name = "mindsdb-sql" },
     { name = "openpyxl" },
@@ -3499,7 +3500,7 @@ dependencies = [
     { name = "sema4ai-http-helper" },
 ]
 wheels = [
-    { filename = "sema4ai_docint-0.5.6-py3-none-any.whl", hash = "sha256:06d61e4b168a6ebc461bcf20fa20bcec1e94e72323b817211a04e9aec57e25cc" },
+    { filename = "sema4ai_docint-0.8.1-py3-none-any.whl", hash = "sha256:adb20103f9138907103a8e0158a3edc0cbf5452b2443a37a9e762f81dddc4367" },
 ]
 
 [package.optional-dependencies]
@@ -3513,6 +3514,7 @@ requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "aiohttp", specifier = ">=3.10.0" },
     { name = "fastapi", marker = "extra == 'memory'", specifier = ">=0.115.6,<0.116.0" },
+    { name = "jinja2", specifier = ">=3.1.6" },
     { name = "jsonschema", specifier = ">=4.0.0" },
     { name = "mindsdb-sql", specifier = "==0.21.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
@@ -3526,7 +3528,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.3" },
     { name = "scikit-learn", specifier = ">=1.7.0" },
     { name = "sema4ai-actions", specifier = "==1.4.1" },
-    { name = "sema4ai-data", specifier = "==1.0.8" },
+    { name = "sema4ai-data", specifier = "==1.0.10" },
     { name = "sema4ai-http-helper", specifier = "==2.1.0" },
     { name = "uvicorn", marker = "extra == 'memory'", specifier = ">=0.34.0,<0.35.0" },
 ]

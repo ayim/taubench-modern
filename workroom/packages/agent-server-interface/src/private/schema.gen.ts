@@ -1307,7 +1307,108 @@ export interface paths {
      * Extract Document
      * @description Extract structured data from an existing document.
      *
-     *     Returns extracted data formatted according to the document's data model schema.
+     *         Returns extracted data formatted according to the document's data model schema.
+     *
+     *
+     *     ## Citation Correlation
+     *
+     *     The citations included with results from this endpoint can be correlated to the schema
+     *     fields based on their types.
+     *
+     *     For schema fields defined as anything but `object` and `array`, the citation will be
+     *     a list of citation objects with a shape like the following:
+     *
+     *     ```json
+     *     {
+     *         // this key will be the same key as the schema field
+     *         "sample_extracted_field": [
+     *             {
+     *                 "bbox": {
+     *                     "left": 0.1,
+     *                     "top": 0.2,
+     *                     "width": 0.3,
+     *                     "height": 0.05,
+     *                     "page": 1,
+     *                     "original_page": 1
+     *                 },
+     *                 "confidence": "high",
+     *                 "content": "granular citation",
+     *                 "image_url": null,
+     *                 // Parent block will likely match a similar parse block in the document
+     *                 "parentBlock": {
+     *                     "bbox": {
+     *                         "left": 0.1,
+     *                         "top": 0.9,
+     *                         "width": 0.8,
+     *                         "height": 0.05,
+     *                         "page": 1
+     *                     },
+     *                     "block_type": "Text",
+     *                     "confidence": "high",
+     *                     "content": "This is the full sentence with the granular citation."
+     *                 },
+     *                 "type": "Text"
+     *             }
+     *         ]
+     *     }
+     *     ```
+     *
+     *     For schema fields defined as `object` or `array`, the value of the key in the citation
+     *     object will be similar to the defined type.
+     *
+     *     That is, if the schema field is defined as `object`, the value of the key in the citation
+     *     object will be an object with keys matching the keys in the nested object and lists of
+     *     citations associated with each key.
+     *
+     *     If the schema field is defined as `array` (of objects), the value of the key in the citation
+     *     object will be an array where each element is an object with keys matching the keys in the
+     *     nested objects and lists of citations associated with each key.
+     *
+     *     Example extracted results for a schema field defined as `array` of objects:
+     *
+     *     ```json
+     *     {
+     *         "sample_extracted_field": [
+     *             {
+     *                 "key1": "value1",
+     *                 "key2": "value2"
+     *             }
+     *         ]
+     *     }
+     *     ```
+     *
+     *     Example citation object:
+     *
+     *     ```json
+     *     {
+     *         "sample_extracted_field": [
+     *             {
+     *                 "key1": [
+     *                     {
+     *                         "bbox": {
+     *                             "left": 0.1,
+     *                             "top": 0.2,
+     *                             "width": 0.3,
+     *                             "height": 0.05,
+     *                         },
+     *                         ... // other citation object fields, see above
+     *                     }
+     *                 ],
+     *                 "key2": [
+     *                     {
+     *                         "bbox": {
+     *                             "left": 0.1,
+     *                             "top": 0.2,
+     *                             "width": 0.3,
+     *                             "height": 0.05,
+     *                         },
+     *                         ... // other citation object fields, see above
+     *                     }
+     *                 ]
+     *             }
+     *         ]
+     *     }
+     *     ```
      */
     post: operations['extract_document_document_intelligence_documents_extract_post'];
     delete?: never;
@@ -1329,16 +1430,117 @@ export interface paths {
      * Extract Document Async
      * @description Extract from a document asynchronously, returning a job handle.
      *
-     *     This endpoint immediately returns a job handle that can be used to track
-     *     the extraction progress and retrieve results when complete.
+     *         This endpoint immediately returns a job handle that can be used to track
+     *         the extraction progress and retrieve results when complete.
      *
-     *     Returns:
-     *         A response containing:
-     *         - job_id: The ID of the extraction job
-     *         - job_type: The type of job ("extract")
+     *         Returns:
+     *             A response containing:
+     *             - job_id: The ID of the extraction job
+     *             - job_type: The type of job ("extract")
      *
-     *     Note:
-     *         When checking job status or results, pass job_type="extract" as a query parameter.
+     *         Note:
+     *             When checking job status or results, pass job_type="extract" as a query parameter.
+     *
+     *
+     *     ## Citation Correlation
+     *
+     *     The citations included with results from this endpoint can be correlated to the schema
+     *     fields based on their types.
+     *
+     *     For schema fields defined as anything but `object` and `array`, the citation will be
+     *     a list of citation objects with a shape like the following:
+     *
+     *     ```json
+     *     {
+     *         // this key will be the same key as the schema field
+     *         "sample_extracted_field": [
+     *             {
+     *                 "bbox": {
+     *                     "left": 0.1,
+     *                     "top": 0.2,
+     *                     "width": 0.3,
+     *                     "height": 0.05,
+     *                     "page": 1,
+     *                     "original_page": 1
+     *                 },
+     *                 "confidence": "high",
+     *                 "content": "granular citation",
+     *                 "image_url": null,
+     *                 // Parent block will likely match a similar parse block in the document
+     *                 "parentBlock": {
+     *                     "bbox": {
+     *                         "left": 0.1,
+     *                         "top": 0.9,
+     *                         "width": 0.8,
+     *                         "height": 0.05,
+     *                         "page": 1
+     *                     },
+     *                     "block_type": "Text",
+     *                     "confidence": "high",
+     *                     "content": "This is the full sentence with the granular citation."
+     *                 },
+     *                 "type": "Text"
+     *             }
+     *         ]
+     *     }
+     *     ```
+     *
+     *     For schema fields defined as `object` or `array`, the value of the key in the citation
+     *     object will be similar to the defined type.
+     *
+     *     That is, if the schema field is defined as `object`, the value of the key in the citation
+     *     object will be an object with keys matching the keys in the nested object and lists of
+     *     citations associated with each key.
+     *
+     *     If the schema field is defined as `array` (of objects), the value of the key in the citation
+     *     object will be an array where each element is an object with keys matching the keys in the
+     *     nested objects and lists of citations associated with each key.
+     *
+     *     Example extracted results for a schema field defined as `array` of objects:
+     *
+     *     ```json
+     *     {
+     *         "sample_extracted_field": [
+     *             {
+     *                 "key1": "value1",
+     *                 "key2": "value2"
+     *             }
+     *         ]
+     *     }
+     *     ```
+     *
+     *     Example citation object:
+     *
+     *     ```json
+     *     {
+     *         "sample_extracted_field": [
+     *             {
+     *                 "key1": [
+     *                     {
+     *                         "bbox": {
+     *                             "left": 0.1,
+     *                             "top": 0.2,
+     *                             "width": 0.3,
+     *                             "height": 0.05,
+     *                         },
+     *                         ... // other citation object fields, see above
+     *                     }
+     *                 ],
+     *                 "key2": [
+     *                     {
+     *                         "bbox": {
+     *                             "left": 0.1,
+     *                             "top": 0.2,
+     *                             "width": 0.3,
+     *                             "height": 0.05,
+     *                         },
+     *                         ... // other citation object fields, see above
+     *                     }
+     *                 ]
+     *             }
+     *         ]
+     *     }
+     *     ```
      */
     post: operations['extract_document_async_document_intelligence_documents_extract_async_post'];
     delete?: never;
@@ -3208,6 +3410,22 @@ export interface components {
       /** Layout Name */
       layout_name?: string | null;
       document_layout?: components['schemas']['DocumentLayoutPayload'] | null;
+      /**
+       * Generate Citations
+       * @default true
+       */
+      generate_citations: boolean;
+    };
+    /** ExtractDocumentResponsePayload */
+    ExtractDocumentResponsePayload: {
+      /** Result */
+      result: {
+        [key: string]: unknown;
+      };
+      /** Citations */
+      citations?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** ExtractJobResult */
     ExtractJobResult: {
@@ -3215,6 +3433,10 @@ export interface components {
       result: {
         [key: string]: unknown;
       };
+      /** Citations */
+      citations?: {
+        [key: string]: unknown;
+      } | null;
       /**
        * Job Type
        * @default extract
@@ -9634,9 +9856,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json': components['schemas']['ExtractDocumentResponsePayload'];
         };
       };
       /** @description Validation Error */

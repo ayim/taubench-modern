@@ -3507,10 +3507,16 @@ class TestAsyncDocumentEndpoints:
         """Test getting result of a completed extract job."""
         # Mock extract result
         mock_extract_result = {"extracted_data": {"invoice_id": "INV-123"}}
+        mock_extract_citations = {
+            "citations": {
+                "invoice_id": {"bbox": {"left": 0.1, "top": 0.2, "width": 0.3, "height": 0.4}}
+            }
+        }
 
         # Create a mock ExtractResponse object
         mock_extract_response = Mock(spec=ExtractResponse)
         mock_extract_response.result = [mock_extract_result]
+        mock_extract_response.citations = [mock_extract_citations]
 
         # Mock the extraction client (needed for dependency injection)
         fake_async_extraction_client = Mock()
@@ -3548,7 +3554,9 @@ class TestAsyncDocumentEndpoints:
 
             # Configure _create_job_result to return the expected ExtractJobResult
 
-            mock_create_job_result.return_value = ExtractJobResult(result=mock_extract_result)
+            mock_create_job_result.return_value = ExtractJobResult(
+                result=mock_extract_result, citations=mock_extract_citations
+            )
 
             resp = client.get(
                 "/api/v2/document-intelligence/jobs/extract-job-789/result",
@@ -3557,7 +3565,11 @@ class TestAsyncDocumentEndpoints:
 
         assert resp.status_code == 200
         # The endpoint returns the ExtractJobResult with both result and job_type
-        expected_response = {"result": mock_extract_result, "job_type": "extract"}
+        expected_response = {
+            "result": mock_extract_result,
+            "citations": mock_extract_citations,
+            "job_type": "extract",
+        }
         assert resp.json() == expected_response
 
     def test_get_job_result_missing_job_type(self, client: TestClient):
@@ -3733,6 +3745,7 @@ class TestExtractDocumentEndpoints:
         # Create a mock ExtractResponse object that job.result() will return
         mock_extract_response = Mock(spec=ExtractResponse)
         mock_extract_response.result = [{"extracted": "data"}]
+        mock_extract_response.citations = []
         # Mock job.result() to return the extract response (this is what extract endpoint calls now)
         mock_job.result = AsyncMock(return_value=mock_extract_response)
 
@@ -3805,7 +3818,10 @@ class TestExtractDocumentEndpoints:
             )
 
         assert resp.status_code == 200
-        assert resp.json() == {"extracted": "data"}
+        assert resp.json() == {
+            "result": {"extracted": "data"},
+            "citations": None,
+        }
 
         # Ensure lookups used normalized names
         mock_find_model.assert_called_once()
@@ -3815,7 +3831,7 @@ class TestExtractDocumentEndpoints:
         fake_extraction_client.start_extract.assert_called_once()
         _, kwargs = fake_extraction_client.start_extract.call_args
         assert kwargs["schema"] == {"type": "object", "properties": {}}
-        assert kwargs["extraction_config"] == {"mode": "strict"}
+        assert kwargs["extraction_config"] == {"mode": "strict", "generate_citations": True}
         assert kwargs["system_prompt"].startswith("BASE")
         assert "DM P" in kwargs["system_prompt"]
         assert "LAYOUT P" in kwargs["system_prompt"]
@@ -3839,6 +3855,7 @@ class TestExtractDocumentEndpoints:
         # Create a mock ExtractResponse object that job.result() will return
         mock_extract_response = Mock(spec=ExtractResponse)
         mock_extract_response.result = [{"data": 1}]
+        mock_extract_response.citations = []
         # Mock job.result() to return the extract response (this is what extract endpoint calls now)
         mock_job.result = AsyncMock(return_value=mock_extract_response)
 
@@ -3899,11 +3916,14 @@ class TestExtractDocumentEndpoints:
             )
 
         assert resp.status_code == 200
-        assert resp.json() == {"data": 1}
+        assert resp.json() == {
+            "result": {"data": 1},
+            "citations": None,
+        }
         fake_extraction_client.start_extract.assert_called_once()
         _, kwargs = fake_extraction_client.start_extract.call_args
         assert kwargs["schema"] == {"type": "object", "properties": {}}
-        assert kwargs["extraction_config"] == {"k": "v"}
+        assert kwargs["extraction_config"] == {"k": "v", "generate_citations": True}
         assert kwargs["system_prompt"].startswith("BASE")
         assert "LP" in kwargs["system_prompt"]
 
@@ -4379,6 +4399,7 @@ class TestExtractDocumentEndpoints:
         # Create a mock ExtractResponse object that job.result() will return
         mock_extract_response = Mock(spec=ExtractResponse)
         mock_extract_response.result = [{"extracted": "raw_data"}]
+        mock_extract_response.citations = []
         # Mock job.result() to return the extract response
         mock_job.result = AsyncMock(return_value=mock_extract_response)
 
@@ -4439,13 +4460,16 @@ class TestExtractDocumentEndpoints:
             )
 
         assert resp.status_code == 200
-        assert resp.json() == {"extracted": "raw_data"}
+        assert resp.json() == {
+            "result": {"extracted": "raw_data"},
+            "citations": None,
+        }
 
         # Ensure start_extract called with schema and config from document_layout
         fake_extraction_client.start_extract.assert_called_once()
         _, kwargs = fake_extraction_client.start_extract.call_args
         assert kwargs["schema"] == {"type": "object", "properties": {"field1": {"type": "string"}}}
-        assert kwargs["extraction_config"] == {"mode": "raw"}
+        assert kwargs["extraction_config"] == {"mode": "raw", "generate_citations": True}
         assert kwargs["system_prompt"].startswith("BASE")
         assert "Custom raw prompt" in kwargs["system_prompt"]
 

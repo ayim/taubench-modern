@@ -41,6 +41,9 @@ class ExtractDocumentPayload:
     layout_name: str | None = None
     document_layout: DocumentLayoutPayload | None = None
 
+    # Top level Extraction options
+    generate_citations: bool = True
+
     @classmethod
     def model_validate(cls, data: Any) -> ExtractDocumentPayload:  # noqa: C901
         # Complexity warning comes from number of if branches for validation and is not
@@ -103,7 +106,14 @@ class ExtractDocumentPayload:
             document_layout=document_layout,
             file_name=file_name,
             thread_id=thread_id,
+            generate_citations=obj.get("generate_citations", True),
         )
+
+
+@dataclass(frozen=True)
+class ExtractDocumentResponsePayload:
+    result: dict[str, Any]
+    citations: dict[str, Any] | None = None
 
 
 # Extraction Client Job result types
@@ -135,6 +145,7 @@ class ParseJobResult:
 @dataclass(frozen=True)
 class ExtractJobResult:
     result: dict[str, Any]  # Extract results are untyped objects
+    citations: dict[str, Any] | None = None  # Citations are untyped objects
     job_type: Literal["extract"] = "extract"
 
 

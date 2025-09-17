@@ -205,12 +205,14 @@ class TestReductoIntegration:
         assert schema["required"] is not None
 
     @pytest.mark.parametrize("extraction_schema_result", ["tables.pdf"], indirect=True)
+    @pytest.mark.parametrize("generate_citations", [True, False])
     def test_extract_document_with_transient_schema(
         self,
         extraction_schema_result: ExtractionSchemaResult,
         agent_server_client_with_doc_int: AgentServerClient,
         agent_factory: Callable[[], str],
         spar_resources_path: Path,
+        generate_citations: bool,
     ):
         """Test that the document can be extracted with a transient schema."""
         resource_name = extraction_schema_result["resource_name"]
@@ -227,6 +229,7 @@ class TestReductoIntegration:
             file_name=resource_name,
             thread_id=thread_id,
             document_layout=document_layout,
+            generate_citations=generate_citations,
         )
 
         extract_results = agent_server_client_with_doc_int.extract_document(extract_request)
@@ -234,3 +237,13 @@ class TestReductoIntegration:
         # Validate that we got results
         assert extract_results is not None
         assert isinstance(extract_results, dict)
+        assert "result" in extract_results
+        assert len(extract_results["result"]) > 0
+
+        # Check citations based on generate_citations parameter
+        assert "citations" in extract_results
+        if generate_citations:
+            assert extract_results["citations"] is not None
+            assert len(extract_results["citations"]) > 0
+        else:
+            assert extract_results["citations"] is None

@@ -50,3 +50,4 @@ class ResolvedExtractRequest:
     extraction_system_prompt: str | None
     extraction_config: dict[str, Any] | None
     data_model_prompt: str | None
+    generate_citations: bool | None
