@@ -344,6 +344,71 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 await conn.execute(insert_stmt)
 
     # -------------------------------------------------------------------------
+    # Agent Data Connections
+    # -------------------------------------------------------------------------
+    async def get_agent_data_connection_ids(self, agent_id: str) -> list[str]:
+        """Get data connection IDs associated with an agent."""
+        agent_data_connections = self._get_table("agent_data_connections")
+
+        stmt = (
+            sa.select(agent_data_connections.c.data_connection_id)
+            .select_from(agent_data_connections)
+            .where(agent_data_connections.c.agent_id == agent_id)
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [str(row["data_connection_id"]) for row in rows]
+
+    async def set_agent_data_connections(
+        self, agent_id: str, data_connection_ids: list[str]
+    ) -> None:
+        """Set data connections for an agent (replace all existing associations)."""
+        agent_data_connections = self._get_table("agent_data_connections")
+
+        async with self.engine.begin() as conn:
+            # First, remove existing associations
+            delete_stmt = sa.delete(agent_data_connections).where(
+                agent_data_connections.c.agent_id == agent_id
+            )
+            await conn.execute(delete_stmt)
+
+            # Then add new associations
+            if data_connection_ids:
+                insert_data = [
+                    {"agent_id": agent_id, "data_connection_id": data_connection_id}
+                    for data_connection_id in data_connection_ids
+                ]
+                insert_stmt = sa.insert(agent_data_connections).values(insert_data)
+                await conn.execute(insert_stmt)
+
+    async def get_agent_data_connections(self, agent_id: str) -> list["DataConnection"]:
+        """Get data connections associated with an agent."""
+        # Get the data connection IDs first
+        data_connection_ids = await self.get_agent_data_connection_ids(agent_id)
+
+        if not data_connection_ids:
+            return []
+
+        # Get the actual data connections
+        data_connections = self._get_table("data_connection")
+        stmt = sa.select(data_connections).where(data_connections.c.id.in_(data_connection_ids))
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        decrypted_rows = []
+        for row in rows:
+            row_dict = dict(row)
+            row_dict["configuration"] = self._decrypt_config(row_dict["enc_configuration"])
+            decrypted_rows.append(row_dict)
+
+        return [DataConnection.model_validate(row_dict) for row_dict in decrypted_rows]
+
+    # -------------------------------------------------------------------------
     # Document Intelligence convenience methods
     # -------------------------------------------------------------------------
     async def get_dids_connection_details(self) -> DataServerDetails:

@@ -660,6 +660,109 @@ export const spec = {
         },
       },
     },
+    '/api/v2/agents/{aid}/data-connections': {
+      put: {
+        tags: ['agents'],
+        summary: 'Set Agent Data Connections',
+        description:
+          'Set data connections for an agent (replace all existing associations).',
+        operationId:
+          'set_agent_data_connections_agents__aid__data_connections_put',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/SetAgentDataConnectionsPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/agent_platform__core__data_connections__data_connections__DataConnection',
+                  },
+                  title:
+                    'Response Set Agent Data Connections Agents  Aid  Data Connections Put',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ['agents'],
+        summary: 'Get Agent Data Connections',
+        description: 'Get data connections associated with an agent.',
+        operationId:
+          'get_agent_data_connections_agents__aid__data_connections_get',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/agent_platform__core__data_connections__data_connections__DataConnection',
+                  },
+                  title:
+                    'Response Get Agent Data Connections Agents  Aid  Data Connections Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/runs/{run_id}/messages': {
       get: {
         tags: ['runs'],
@@ -5526,6 +5629,9 @@ export const spec = {
                       {
                         $ref: '#/components/schemas/SemaknowledgebaseDataConnection',
                       },
+                      {
+                        $ref: '#/components/schemas/SQLiteDataConnection',
+                      },
                     ],
                   },
                   type: 'array',
@@ -5585,6 +5691,9 @@ export const spec = {
                   {
                     $ref: '#/components/schemas/SemaknowledgebaseDataConnection',
                   },
+                  {
+                    $ref: '#/components/schemas/SQLiteDataConnection',
+                  },
                 ],
                 title: 'Data',
               },
@@ -5637,6 +5746,9 @@ export const spec = {
                     },
                     {
                       $ref: '#/components/schemas/SemaknowledgebaseDataConnection',
+                    },
+                    {
+                      $ref: '#/components/schemas/SQLiteDataConnection',
                     },
                   ],
                   title:
@@ -5721,6 +5833,9 @@ export const spec = {
                     {
                       $ref: '#/components/schemas/SemaknowledgebaseDataConnection',
                     },
+                    {
+                      $ref: '#/components/schemas/SQLiteDataConnection',
+                    },
                   ],
                   title:
                     'Response Get Data Connection Data Connections  Connection Id  Get',
@@ -5802,6 +5917,9 @@ export const spec = {
                   {
                     $ref: '#/components/schemas/SemaknowledgebaseDataConnection',
                   },
+                  {
+                    $ref: '#/components/schemas/SQLiteDataConnection',
+                  },
                 ],
                 title: 'Data Connection',
               },
@@ -5853,6 +5971,9 @@ export const spec = {
                     },
                     {
                       $ref: '#/components/schemas/SemaknowledgebaseDataConnection',
+                    },
+                    {
+                      $ref: '#/components/schemas/SQLiteDataConnection',
                     },
                   ],
                   title:
@@ -8332,55 +8453,6 @@ export const spec = {
         required: ['agent_id'],
         title: 'CreateWorkItemPayload',
       },
-      DataConnection: {
-        properties: {
-          name: {
-            type: 'string',
-            title: 'Name',
-            description: 'The name of the data connection',
-          },
-          engine: {
-            type: 'string',
-            title: 'Engine',
-            description: 'The engine of the data connection',
-          },
-          configuration: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Configuration',
-            description: 'The configuration of the data connection',
-          },
-          external_id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'External Id',
-            description: 'The ID of the data connection',
-          },
-          id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Id',
-            description:
-              'The ID of the data connection (deprecated, use external_id instead)',
-            deprecated: true,
-          },
-        },
-        type: 'object',
-        required: ['name', 'engine', 'configuration'],
-        title: 'DataConnection',
-      },
       DataModelPayload: {
         properties: {
           name: {
@@ -8614,7 +8686,7 @@ export const spec = {
           },
           data_sources: {
             additionalProperties: {
-              $ref: '#/components/schemas/DataConnection',
+              $ref: '#/components/schemas/agent_platform__core__data_server__data_connection__DataConnection',
             },
             type: 'object',
             title: 'Data Sources',
@@ -8639,7 +8711,7 @@ export const spec = {
           },
           data_connections: {
             items: {
-              $ref: '#/components/schemas/DataConnection',
+              $ref: '#/components/schemas/agent_platform__core__data_server__data_connection__DataConnection',
             },
             type: 'array',
             title: 'Data Connections',
@@ -12808,6 +12880,63 @@ export const spec = {
         required: ['content'],
         title: 'RunbookTextContent',
       },
+      SQLiteDataConnection: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          configuration: {
+            $ref: '#/components/schemas/SQLiteDataConnectionConfiguration',
+          },
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+          },
+          external_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'External Id',
+          },
+          engine: {
+            type: 'string',
+            const: 'sqlite',
+            title: 'Engine',
+            default: 'sqlite',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description', 'configuration'],
+        title: 'SQLiteDataConnection',
+      },
+      SQLiteDataConnectionConfiguration: {
+        properties: {
+          db_file: {
+            type: 'string',
+            title: 'Db File',
+          },
+        },
+        type: 'object',
+        required: ['db_file'],
+        title: 'SQLiteDataConnectionConfiguration',
+      },
       SalesforceDataConnection: {
         properties: {
           name: {
@@ -13134,6 +13263,21 @@ export const spec = {
         type: 'object',
         required: ['embedding_model', 'storage'],
         title: 'SemaknowledgebaseDataConnectionConfiguration',
+      },
+      SetAgentDataConnectionsPayload: {
+        properties: {
+          data_connection_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Data Connection Ids',
+            description:
+              'List of data connection IDs to associate with the agent.',
+          },
+        },
+        type: 'object',
+        title: 'SetAgentDataConnectionsPayload',
       },
       SlackDataConnection: {
         properties: {
@@ -15772,6 +15916,175 @@ export const spec = {
         type: 'object',
         required: ['rules'],
         title: '_TranslationSchema',
+      },
+      agent_platform__core__data_connections__data_connections__DataConnection:
+        {
+          properties: {
+            id: {
+              type: 'string',
+              title: 'Id',
+              description: 'The unique identifier of the data connection',
+            },
+            name: {
+              type: 'string',
+              title: 'Name',
+              description: 'The name of the data connection',
+            },
+            description: {
+              type: 'string',
+              title: 'Description',
+              description: 'The description of the data connection',
+            },
+            engine: {
+              type: 'string',
+              title: 'Engine',
+              description: 'The engine type of the data connection',
+            },
+            configuration: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/PostgresDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/RedshiftDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/SnowflakeLinkedConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/SnowflakeCustomKeyPairConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/SnowflakeDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/ConfluenceDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/MySQLDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/MSSQLDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/OracleDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/SlackDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/SalesforceDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/TimescaledbDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/PgvectorDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/BigqueryDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/SemaknowledgebaseDataConnectionConfiguration',
+                },
+                {
+                  $ref: '#/components/schemas/SQLiteDataConnectionConfiguration',
+                },
+              ],
+              title: 'Configuration',
+              description:
+                'The configuration parameters for the data connection',
+            },
+            external_id: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'External Id',
+              description: 'The external identifier of the data connection',
+            },
+            created_at: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Created At',
+              description: 'The timestamp when the data connection was created',
+            },
+            updated_at: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Updated At',
+              description:
+                'The timestamp when the data connection was last updated',
+            },
+          },
+          type: 'object',
+          required: ['id', 'name', 'description', 'engine', 'configuration'],
+          title: 'DataConnection',
+        },
+      agent_platform__core__data_server__data_connection__DataConnection: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the data connection',
+          },
+          engine: {
+            type: 'string',
+            title: 'Engine',
+            description: 'The engine of the data connection',
+          },
+          configuration: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Configuration',
+            description: 'The configuration of the data connection',
+          },
+          external_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'External Id',
+            description: 'The ID of the data connection',
+          },
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+            description:
+              'The ID of the data connection (deprecated, use external_id instead)',
+            deprecated: true,
+          },
+        },
+        type: 'object',
+        required: ['name', 'engine', 'configuration'],
+        title: 'DataConnection',
       },
       ErrorDetail: {
         description:

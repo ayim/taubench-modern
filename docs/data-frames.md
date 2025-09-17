@@ -186,7 +186,7 @@ Note: currently requires env var `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1` to 
 
   The idea here is that when tool is returned and the result has that shape, we should create a new data frame from it automatically.
 
-# Step 9 (current PR)
+# Step 9 (done)
 
 - Allow the LLM to use vega to show charts using data frames.
 
@@ -249,14 +249,23 @@ Example:
 
 curl -X GET http://localhost:58885/api/v2/threads/116745a4-4150-4eb5-9740-da9022c05238/data-frames/top_countries_highest_mortality_last_5_years -H "accept: application/json"
 
+# Step 10 (current PR)
+
+- Create semantic data model concept.
+- Assign data sources to an agent.
+- Build semantic data model (simple, maybe just tables/columns/sample data).
+- Load data frames from a database.
+
+See [./data-frames-db-and-semantic-models.md](data-frames-db-and-semantic-models.md) for more details.
+
 # Future work (not right now):
 
-- Show column types in the LLM summary
+- Enabling/Disabling data frames should be opt-out, not opt-in.
+- It should be possible to add name and description to a `Table` to create the data frame accordingly.
 - Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)
-- Allow the user to have data frames that are backed by a database.
 - Investigate shortcomings of the "just SQL" approach and see if an approach using "sanitized but possibly unsafe python code" can be better.
   - See: https://github.com/Sema4AI/agent-platform/pull/794#issuecomment-3234347346 for use-cases to test.
-- Create a data model. Things to keep in mind:
+- Create a full semantic data model (with metrics, facts, dimensions, etc.). Things to keep in mind:
   - For categorical columns, if there's a small set of allowed values, what are those values?
   - For numerical columns, some basic stats (like min/max/median sorta deal).
   - Semantic description of the columns.

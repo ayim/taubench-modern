@@ -263,7 +263,7 @@ def test_api_interaction_with_action_server(
         result, _ = agent_client.send_message_to_agent_thread(
             agent_id, thread_id, "Please list all contacts"
         )
-        result = result.lower()
+        result = result.lower().replace("\xa0", " ")
 
         if "john doe" not in result and "jane doe" not in result:
             raise AssertionError(

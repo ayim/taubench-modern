@@ -31,6 +31,8 @@ from agent_platform.core.payloads.data_connection import (
     SnowflakeDataConnection,
     SnowflakeDataConnectionConfiguration,
     SnowflakeLinkedConfiguration,
+    SQLiteDataConnection,
+    SQLiteDataConnectionConfiguration,
     TimescaleDBDataConnection,
     TimescaledbDataConnectionConfiguration,
 )
@@ -164,10 +166,16 @@ class DataConnection:
             "pgvector": cls._parse_pgvector_config,
             "bigquery": cls._parse_bigquery_config,
             "sema4_knowledge_base": cls._parse_sema4_knowledge_base_config,
+            "sqlite": cls._parse_sqlite_config,
         }
         if engine not in parsers:
             raise ValueError(f"Unsupported engine type: {engine}")
         return parsers[engine]
+
+    @classmethod
+    def _parse_sqlite_config(cls, config_data: dict[str, Any]) -> SQLiteDataConnectionConfiguration:
+        """Parse SQLite configuration."""
+        return SQLiteDataConnectionConfiguration(**config_data)
 
     @classmethod
     def _parse_postgres_config(
@@ -311,6 +319,7 @@ class DataConnection:
             "pgvector": PgvectorDataConnection,
             "bigquery": BigqueryDataConnection,
             "sema4_knowledge_base": SemaknowledgebaseDataConnection,
+            "sqlite": SQLiteDataConnection,
         }
 
         if self.engine == "snowflake":

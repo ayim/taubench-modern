@@ -1,4 +1,6 @@
-Whenever a tool returns a Table, a data frame should be created automatically.
+# Data frames and tools/actions integration
+
+Whenever a tool/action returns a `Table` (or `Response[Table]`), a data frame should be created automatically.
 
 A table is defined as a dict with the following keys:
 

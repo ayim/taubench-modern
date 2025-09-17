@@ -1,0 +1,65 @@
+Entity,Code,year,Day,Domain,Cost (inflation-adjusted)
+AlphaCode,,2022,2022-02-02,Language,
+AlphaGo Lee,,2016,2016-01-27,Games,
+AlphaGo Master,,2017,2017-01-01,Games,471445.3
+AlphaGo Zero,,2017,2017-10-18,Games,613480.6
+AlphaStar,,2019,2019-10-30,Games,125758.1
+AlphaZero,,2017,2017-12-05,Games,229918.61
+BLOOM-176B,,2022,2022-11-08,Language,901068.7
+BigGAN-deep 512x512,,2018,2018-09-28,Image generation,5170.4565
+BlenderBot 3,,2022,2022-08-10,Language,1464700.5
+ByT5-XXL,,2021,2021-05-28,Language,92453.375
+Chinchilla,,2022,2022-03-29,Language,
+Claude 2,,2023,2023-07-11,Language,
+DALL-E,,2021,2021-01-05,Image generation,118437.36
+DeepSpeech2 (English),,2015,2015-12-08,Speech,206.30577
+ERNIE 3.0 Titan,,2021,2021-12-23,Language,
+FTW,,2018,2018-07-03,Games,
+Falcon-180B,,2023,2023-09-06,Language,10340912
+Flan-PaLM 540B,,2022,2022-10-20,Language,2961791.5
+GLM-130B,,2022,2022-08-04,Language,820296.6
+GLaM,,2021,2021-12-13,Language,541437.44
+GNMT,,2016,2016-09-26,Language,193787.11
+GOAT,,2021,2021-07-27,Games,84799.79
+GPT-2 (1.5B),,2019,2019-02-14,Language,
+GPT-3 175B (davinci),,2020,2020-05-28,Language,2056969.4
+GPT-3.5 (text-davinci-003),,2022,2022-11-28,Language,4625550.5
+GPT-4,,2023,2023-03-15,Multimodal,40586590
+Gemini 1.0 Ultra,,2023,2023-12-06,Multimodal,29827342
+Gopher (280B),,2021,2021-12-08,Language,616611.1
+Grok-1,,2023,2023-11-04,Language,
+HyperCLOVA 82B,,2021,2021-09-10,Language,586408.75
+Inflection-2,,2023,2023-11-22,Language,12961959
+JFT,,2017,2017-07-10,Vision,17239.594
+LaMDA,,2022,2022-02-10,Language,229949.98
+Libratus,,2017,2017-01-01,Games,
+Meena,,2020,2020-01-28,Language,206760.38
+Megatron-BERT,,2019,2019-09-17,Language,615532.4
+Megatron-LM (8.3B),,2019,2019-09-17,Language,106142.29
+Megatron-Turing NLG 530B,,2021,2021-10-11,Language,3704291.2
+Meta Pseudo Labels,,2021,2021-03-01,Vision,53844.28
+Minerva (540B),,2022,2022-06-29,Language,3180655.5
+MoE,,2017,2017-01-23,Language,3863.7354
+NASv3 (CIFAR-10),,2016,2016-11-05,Vision,
+OPT-175B,,2022,2022-05-02,Language,731667.6
+OpenAI Five,,2019,2019-12-13,Games,
+OpenAI Five Rerun,,2019,2019-12-13,Games,
+OpenAI TI7 DOTA 1v1,,2017,2017-08-11,Games,
+PaLM (540B),,2022,2022-04-04,Language,2945949.8
+PaLM 2,,2023,2023-05-10,Language,4865570
+Parti,,2022,2022-06-22,Image generation,344852.94
+PolyNet,,2016,2016-11-17,Vision,615.54803
+ProtT5-XXL,,2021,2021-05-04,Biology,85701.266
+ResNeXt-101 32x48d,,2018,2018-05-02,Vision,
+ResNet-152 (ImageNet),,2015,2015-12-10,Vision,
+RoBERTa Large,,2019,2019-07-01,Language,82771.08
+ST-MoE,,2022,2022-02-17,Language,
+Switch,,2021,2021-01-11,Language,139663.56
+T5-11B,,2019,2019-10-23,Language,75524.39
+Turing-NLG,,2020,2020-02-13,Language,51659.715
+U-PaLM (540B),,2022,2022-10-20,Language,2973979.2
+XLNet,,2019,2019-06-01,Language,
+Xception,,2016,2016-10-07,Vision,12617.627
+Yuan 1.0,,2021,2021-10-12,Language,
+iGPT-XL,,2020,2020-06-17,Vision and image generation,98082.336
+mT5-XXL,,2020,2020-10-20,Language,

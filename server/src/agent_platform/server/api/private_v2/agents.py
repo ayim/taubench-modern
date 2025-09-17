@@ -12,6 +12,7 @@ from agent_platform.core.actions.action_package import (
     ActionPackageDetail,
     AgentDetails,
 )
+from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.files import UploadedFile
@@ -20,6 +21,7 @@ from agent_platform.core.payloads import (
     ActionServerConfigPayload,
     AgentPackagePayload,
     PatchAgentPayload,
+    SetAgentDataConnectionsPayload,
     UpsertAgentPayload,
 )
 from agent_platform.core.utils import SecretString
@@ -427,3 +429,40 @@ async def get_agent_details(
         action_packages=action_packages,
         mcp_servers=mcp_servers,
     )
+
+
+# Agent Data Connections endpoints
+@router.put("/{aid}/data-connections", response_model=list[DataConnection])
+async def set_agent_data_connections(
+    aid: str,
+    payload: SetAgentDataConnectionsPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[DataConnection]:
+    """Set data connections for an agent (replace all existing associations)."""
+    # Verify agent exists and belongs to user
+    agent = await storage.get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Set the data connections
+    await storage.set_agent_data_connections(aid, payload.data_connection_ids)
+
+    # Return the updated data connections
+    return await storage.get_agent_data_connections(aid)
+
+
+@router.get("/{aid}/data-connections", response_model=list[DataConnection])
+async def get_agent_data_connections(
+    aid: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[DataConnection]:
+    """Get data connections associated with an agent."""
+    # Verify agent exists and belongs to user
+    agent = await storage.get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Return the data connections
+    return await storage.get_agent_data_connections(aid)

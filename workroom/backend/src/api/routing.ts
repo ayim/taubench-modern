@@ -154,6 +154,8 @@ function getRouteMap(): {
     'get /api/v2/data-connections/{connection_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'delete /api/v2/data-connections/{connection_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'put /api/v2/data-connections/{connection_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/agents/{aid}/data-connections': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'put /api/v2/agents/{aid}/data-connections': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
 
     // #region Disallowed Routes
     'get /api/v2/health': [DISALLOWED],

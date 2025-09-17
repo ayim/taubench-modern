@@ -54,8 +54,12 @@ for package in agent_arch_packages:
 
 # Add ibis dependencies
 ibis_metadata = copy_metadata("ibis-framework")
-ibis_hiddenimports = collect_submodules("ibis.backends.duckdb")
+ibis_hiddenimports = []
+ibis_hiddenimports.extend(collect_submodules("ibis.backends.datafusion"))
+ibis_hiddenimports.extend(collect_submodules("ibis.backends.duckdb"))
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.postgres"))
+ibis_hiddenimports.extend(collect_submodules("ibis.backends.snowflake"))
+ibis_hiddenimports.extend(collect_submodules("ibis.backends.sqlite"))
 
 # Used by ibis to parse the sql internally.
 sqlglot_hiddenimports = collect_submodules("sqlglot")

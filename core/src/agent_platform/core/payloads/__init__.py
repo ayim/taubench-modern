@@ -2,6 +2,10 @@
 
 from agent_platform.core.payloads.action_server_config import ActionServerConfigPayload
 from agent_platform.core.payloads.add_thread_message import AddThreadMessagePayload
+from agent_platform.core.payloads.agent_data_connections import (
+    GetAgentDataConnectionsPayload,
+    SetAgentDataConnectionsPayload,
+)
 from agent_platform.core.payloads.agent_package import AgentPackagePayload
 from agent_platform.core.payloads.document_intelligence_config import (
     DocumentIntelligenceConfigPayload,
@@ -29,9 +33,11 @@ __all__ = [
     "DocumentLayoutPayload",
     "EphemeralStreamPayload",
     "ForkThreadPayload",
+    "GetAgentDataConnectionsPayload",
     "InitiateStreamPayload",
     "MCPServerResponse",
     "PatchAgentPayload",
+    "SetAgentDataConnectionsPayload",
     "UploadFilePayload",
     "UpsertAgentPayload",
     "UpsertThreadPayload",

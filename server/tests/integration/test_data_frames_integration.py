@@ -331,6 +331,40 @@ def test_data_frames_integration(base_url_agent_server):
         assert table.to_pylist() == [{"name": "Jane", "age": 30}, {"name": "John", "age": 25}]
 
 
+def test_data_frames_with_data_sources(base_url_agent_server_with_data_frames, datadir):
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server_with_data_frames) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4.1"]},
+                },
+            ],
+        )
+        _thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        # Create a data connection (database information)
+        full_connection_info = agent_client.create_data_connection(
+            name="my-sqlite-connection",
+            description="My SQLite connection",
+            engine="sqlite",
+            configuration={
+                "db_file": str(datadir / "combined_data.sqlite"),
+            },
+        )
+
+        # Set the data connection to be used in an agent.
+        agent_client.set_agent_data_connections(agent_id, [full_connection_info["id"]])
+
+        data_connections = agent_client.get_agent_data_connections(agent_id)
+        assert len(data_connections) == 1
+        assert data_connections[0]["name"] == "my-sqlite-connection"
+
+
 @pytest.mark.integration
 def test_data_frames_computation_integration_success(
     base_url_agent_server_with_data_frames, openai_api_key

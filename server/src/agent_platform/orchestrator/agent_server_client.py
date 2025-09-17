@@ -859,6 +859,24 @@ class AgentServerClient:
             ) from e
         return response.content
 
+    def add_data_source_to_thread(
+        self, thread_id: str, data_source_name: str, engine: str, connection_data: dict
+    ) -> dict:
+        url = urljoin(self.base_url + "/", f"/threads/{thread_id}/data-sources")
+        payload = {
+            "data_source_name": data_source_name,
+            "engine": engine,
+            "connection_data": connection_data,
+        }
+        response = requests.post(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error adding data source to thread: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
     def configure_document_intelligence(self, doc_int_config: DocumentIntelligenceConfigPayload):
         url = urljoin(self.base_url + "/", "document-intelligence")
         response = requests.post(url, json=asdict(doc_int_config))
@@ -1010,5 +1028,48 @@ class AgentServerClient:
         except requests.exceptions.HTTPError as e:
             raise requests.exceptions.HTTPError(
                 f"Error getting job result: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def create_data_connection(
+        self, name: str, description: str, engine: str, configuration: dict
+    ) -> dict:
+        url = urljoin(self.base_url + "/", "/api/v2/data-connections")
+        payload = {
+            "name": name,
+            "description": description,
+            "engine": engine,
+            "configuration": configuration,
+        }
+        response = requests.post(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error creating data connection: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def set_agent_data_connections(self, agent_id: str, data_connection_ids: list[str]) -> None:
+        url = urljoin(self.base_url + "/", f"agents/{agent_id}/data-connections")
+        payload = {
+            "data_connection_ids": data_connection_ids,
+        }
+        response = requests.put(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error setting agent data connections: {response.status_code} {response.text}",
+            ) from e
+
+    def get_agent_data_connections(self, agent_id: str) -> list[dict]:
+        url = urljoin(self.base_url + "/", f"agents/{agent_id}/data-connections")
+        response = requests.get(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting agent data connections: {response.status_code} {response.text}",
             ) from e
         return response.json()

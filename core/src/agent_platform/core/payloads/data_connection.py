@@ -200,6 +200,11 @@ class BigqueryDataConnectionConfiguration:
     service_account_json: str | None = None
 
 
+@dataclass
+class SQLiteDataConnectionConfiguration:
+    db_file: str
+
+
 DataConnectionEngine = Literal[
     "postgres",
     "redshift",
@@ -214,6 +219,7 @@ DataConnectionEngine = Literal[
     "pgvector",
     "bigquery",
     "sema4_knowledge_base",
+    "sqlite",
 ]
 
 DataConnectionConfiguration = (
@@ -232,6 +238,7 @@ DataConnectionConfiguration = (
     | PgvectorDataConnectionConfiguration
     | BigqueryDataConnectionConfiguration
     | SemaknowledgebaseDataConnectionConfiguration
+    | SQLiteDataConnectionConfiguration
 )
 
 
@@ -328,6 +335,12 @@ class SemaknowledgebaseDataConnection(BaseDataConnection):
     configuration: SemaknowledgebaseDataConnectionConfiguration
 
 
+@dataclass(frozen=True)
+class SQLiteDataConnection(BaseDataConnection):
+    engine: Literal["sqlite"] = "sqlite"
+    configuration: SQLiteDataConnectionConfiguration
+
+
 # Union type for all data connection types
 DataConnection = (
     PostgresDataConnection
@@ -343,4 +356,5 @@ DataConnection = (
     | PgvectorDataConnection
     | BigqueryDataConnection
     | SemaknowledgebaseDataConnection
+    | SQLiteDataConnection
 )

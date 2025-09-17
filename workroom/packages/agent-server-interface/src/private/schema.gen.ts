@@ -212,6 +212,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/agents/{aid}/data-connections': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Agent Data Connections
+     * @description Get data connections associated with an agent.
+     */
+    get: operations['get_agent_data_connections_agents__aid__data_connections_get'];
+    /**
+     * Set Agent Data Connections
+     * @description Set data connections for an agent (replace all existing associations).
+     */
+    put: operations['set_agent_data_connections_agents__aid__data_connections_put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/runs/{run_id}/messages': {
     parameters: {
       query?: never;
@@ -2960,37 +2984,6 @@ export interface components {
        */
       callbacks?: components['schemas']['WorkItemCallback'][] | null;
     };
-    /** DataConnection */
-    DataConnection: {
-      /**
-       * Name
-       * @description The name of the data connection
-       */
-      name: string;
-      /**
-       * Engine
-       * @description The engine of the data connection
-       */
-      engine: string;
-      /**
-       * Configuration
-       * @description The configuration of the data connection
-       */
-      configuration: {
-        [key: string]: unknown;
-      };
-      /**
-       * External Id
-       * @description The ID of the data connection
-       */
-      external_id?: string | null;
-      /**
-       * Id
-       * @deprecated
-       * @description The ID of the data connection (deprecated, use external_id instead)
-       */
-      id?: string | null;
-    };
     /** DataModelPayload */
     DataModelPayload: {
       /** Name */
@@ -3097,7 +3090,9 @@ export interface components {
        * @description A mapping of Data Source names to Data Connections
        */
       data_sources: {
-        [key: string]: components['schemas']['DataConnection'];
+        [
+          key: string
+        ]: components['schemas']['agent_platform__core__data_server__data_connection__DataConnection'];
       };
     };
     /** DocumentIntelligenceConfigPayload */
@@ -3106,7 +3101,7 @@ export interface components {
       /** Integrations */
       integrations?: components['schemas']['IntegrationInput'][];
       /** Data Connections */
-      data_connections?: components['schemas']['DataConnection'][];
+      data_connections?: components['schemas']['agent_platform__core__data_server__data_connection__DataConnection'][];
     };
     /** DocumentIntelligenceConfigResponse */
     DocumentIntelligenceConfigResponse: {
@@ -5152,6 +5147,29 @@ export interface components {
        */
       content: string;
     };
+    /** SQLiteDataConnection */
+    SQLiteDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['SQLiteDataConnectionConfiguration'];
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /**
+       * Engine
+       * @default sqlite
+       * @constant
+       */
+      engine: 'sqlite';
+    };
+    /** SQLiteDataConnectionConfiguration */
+    SQLiteDataConnectionConfiguration: {
+      /** Db File */
+      db_file: string;
+    };
     /** SalesforceDataConnection */
     SalesforceDataConnection: {
       /** Name */
@@ -5293,6 +5311,14 @@ export interface components {
       content_columns?: string[] | null;
       /** Id Column */
       id_column?: string | null;
+    };
+    /** SetAgentDataConnectionsPayload */
+    SetAgentDataConnectionsPayload: {
+      /**
+       * Data Connection Ids
+       * @description List of data connection IDs to associate with the agent.
+       */
+      data_connection_ids?: string[];
     };
     /** SlackDataConnection */
     SlackDataConnection: {
@@ -6736,6 +6762,96 @@ export interface components {
       /** Rules */
       rules: components['schemas']['_TranslationRule'][];
     };
+    /** DataConnection */
+    agent_platform__core__data_connections__data_connections__DataConnection: {
+      /**
+       * Id
+       * @description The unique identifier of the data connection
+       */
+      id: string;
+      /**
+       * Name
+       * @description The name of the data connection
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the data connection
+       */
+      description: string;
+      /**
+       * Engine
+       * @description The engine type of the data connection
+       */
+      engine: string;
+      /**
+       * Configuration
+       * @description The configuration parameters for the data connection
+       */
+      configuration:
+        | components['schemas']['PostgresDataConnectionConfiguration']
+        | components['schemas']['RedshiftDataConnectionConfiguration']
+        | components['schemas']['SnowflakeLinkedConfiguration']
+        | components['schemas']['SnowflakeCustomKeyPairConfiguration']
+        | components['schemas']['SnowflakeDataConnectionConfiguration']
+        | components['schemas']['ConfluenceDataConnectionConfiguration']
+        | components['schemas']['MySQLDataConnectionConfiguration']
+        | components['schemas']['MSSQLDataConnectionConfiguration']
+        | components['schemas']['OracleDataConnectionConfiguration']
+        | components['schemas']['SlackDataConnectionConfiguration']
+        | components['schemas']['SalesforceDataConnectionConfiguration']
+        | components['schemas']['TimescaledbDataConnectionConfiguration']
+        | components['schemas']['PgvectorDataConnectionConfiguration']
+        | components['schemas']['BigqueryDataConnectionConfiguration']
+        | components['schemas']['SemaknowledgebaseDataConnectionConfiguration']
+        | components['schemas']['SQLiteDataConnectionConfiguration'];
+      /**
+       * External Id
+       * @description The external identifier of the data connection
+       */
+      external_id?: string | null;
+      /**
+       * Created At
+       * @description The timestamp when the data connection was created
+       */
+      created_at?: string | null;
+      /**
+       * Updated At
+       * @description The timestamp when the data connection was last updated
+       */
+      updated_at?: string | null;
+    };
+    /** DataConnection */
+    agent_platform__core__data_server__data_connection__DataConnection: {
+      /**
+       * Name
+       * @description The name of the data connection
+       */
+      name: string;
+      /**
+       * Engine
+       * @description The engine of the data connection
+       */
+      engine: string;
+      /**
+       * Configuration
+       * @description The configuration of the data connection
+       */
+      configuration: {
+        [key: string]: unknown;
+      };
+      /**
+       * External Id
+       * @description The ID of the data connection
+       */
+      external_id?: string | null;
+      /**
+       * Id
+       * @deprecated
+       * @description The ID of the data connection (deprecated, use external_id instead)
+       */
+      id?: string | null;
+    };
     /**
      * ErrorDetail
      * @description Pydantic model for error detail - used only for OpenAPI schema generation.
@@ -7284,6 +7400,72 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AgentDetails'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_agent_data_connections_agents__aid__data_connections_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['agent_platform__core__data_connections__data_connections__DataConnection'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  set_agent_data_connections_agents__aid__data_connections_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SetAgentDataConnectionsPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['agent_platform__core__data_connections__data_connections__DataConnection'][];
         };
       };
       /** @description Validation Error */
@@ -10420,6 +10602,7 @@ export interface operations {
             | components['schemas']['PgvectorDataConnection']
             | components['schemas']['BigqueryDataConnection']
             | components['schemas']['SemaknowledgebaseDataConnection']
+            | components['schemas']['SQLiteDataConnection']
           )[];
         };
       };
@@ -10447,7 +10630,8 @@ export interface operations {
           | components['schemas']['TimescaleDBDataConnection']
           | components['schemas']['PgvectorDataConnection']
           | components['schemas']['BigqueryDataConnection']
-          | components['schemas']['SemaknowledgebaseDataConnection'];
+          | components['schemas']['SemaknowledgebaseDataConnection']
+          | components['schemas']['SQLiteDataConnection'];
       };
     };
     responses: {
@@ -10470,7 +10654,8 @@ export interface operations {
             | components['schemas']['TimescaleDBDataConnection']
             | components['schemas']['PgvectorDataConnection']
             | components['schemas']['BigqueryDataConnection']
-            | components['schemas']['SemaknowledgebaseDataConnection'];
+            | components['schemas']['SemaknowledgebaseDataConnection']
+            | components['schemas']['SQLiteDataConnection'];
         };
       };
       /** @description Validation Error */
@@ -10514,7 +10699,8 @@ export interface operations {
             | components['schemas']['TimescaleDBDataConnection']
             | components['schemas']['PgvectorDataConnection']
             | components['schemas']['BigqueryDataConnection']
-            | components['schemas']['SemaknowledgebaseDataConnection'];
+            | components['schemas']['SemaknowledgebaseDataConnection']
+            | components['schemas']['SQLiteDataConnection'];
         };
       };
       /** @description Validation Error */
@@ -10552,7 +10738,8 @@ export interface operations {
           | components['schemas']['TimescaleDBDataConnection']
           | components['schemas']['PgvectorDataConnection']
           | components['schemas']['BigqueryDataConnection']
-          | components['schemas']['SemaknowledgebaseDataConnection'];
+          | components['schemas']['SemaknowledgebaseDataConnection']
+          | components['schemas']['SQLiteDataConnection'];
       };
     };
     responses: {
@@ -10575,7 +10762,8 @@ export interface operations {
             | components['schemas']['TimescaleDBDataConnection']
             | components['schemas']['PgvectorDataConnection']
             | components['schemas']['BigqueryDataConnection']
-            | components['schemas']['SemaknowledgebaseDataConnection'];
+            | components['schemas']['SemaknowledgebaseDataConnection']
+            | components['schemas']['SQLiteDataConnection'];
         };
       };
       /** @description Validation Error */

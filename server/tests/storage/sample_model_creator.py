@@ -3,6 +3,7 @@ from pathlib import Path
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.agent import Agent
+    from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.data_frames import (
         DataFrameSource,
         PlatformDataFrame,
@@ -219,3 +220,32 @@ class SampleModelCreator:
         )
         await self.storage.save_data_frame(self.sample_data_frame)
         return self.sample_data_frame
+
+    async def obtain_sample_data_connection(
+        self, name: str = "test_connection"
+    ) -> "DataConnection":
+        """Create a sample DataConnection for testing."""
+        from uuid import uuid4
+
+        from agent_platform.core.data_connections.data_connections import DataConnection
+        from agent_platform.core.payloads.data_connection import SQLiteDataConnectionConfiguration
+
+        db_file_dir = Path(self.tmpdir)
+        # create a temp file for the db file (name must be unique)
+        db_file_path = db_file_dir / f"sqlite_test_{uuid4()}.db"
+
+        data_connection = DataConnection(
+            id=str(uuid4()),
+            name=name,
+            description=f"Test data connection: {name}",
+            engine="sqlite",
+            configuration=SQLiteDataConnectionConfiguration(
+                db_file=str(db_file_path),
+            ),
+            external_id=None,
+            created_at=None,
+            updated_at=None,
+        )
+
+        await self.storage.set_data_connection(data_connection)
+        return data_connection
