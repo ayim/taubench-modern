@@ -14,6 +14,17 @@ PUBLIC_OPENAPI_JSON="${WORKROOM_DIR}/packages/agent-server-interface/public.open
 
 echo "Starting Agent Server for spec introspection..."
 
+# Check if port is already in use
+if lsof -i :${TMP_AGENT_SERVER_PORT} > /dev/null 2>&1; then
+  echo "Port ${TMP_AGENT_SERVER_PORT} is already in use. Current processes:"
+  lsof -i :${TMP_AGENT_SERVER_PORT}
+  echo ""
+  echo "To kill the process using this port, run:"
+  lsof -ti :${TMP_AGENT_SERVER_PORT} | xargs -I {} echo "kill {}"
+  echo "Please stop the process using this port or choose a different port."
+  exit 1
+fi
+
 cd "${ROOT_DIR}"
 
 make sync
