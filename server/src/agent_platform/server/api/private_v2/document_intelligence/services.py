@@ -286,7 +286,9 @@ async def _resolve_extract_request(
         extraction_system_prompt=extraction_system_prompt,
         extraction_config=extraction_config,
         data_model_prompt=data_model_prompt,
-        generate_citations=payload.generate_citations,
+        generate_citations=payload.generate_citations
+        if payload.generate_citations is not None
+        else True,
     )
 
 

@@ -42,7 +42,7 @@ class ExtractDocumentPayload:
     document_layout: DocumentLayoutPayload | None = None
 
     # Top level Extraction options
-    generate_citations: bool = True
+    generate_citations: bool | None = True
 
     @classmethod
     def model_validate(cls, data: Any) -> ExtractDocumentPayload:  # noqa: C901

@@ -9207,7 +9207,14 @@ export const spec = {
             ],
           },
           generate_citations: {
-            type: 'boolean',
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Generate Citations',
             default: true,
           },

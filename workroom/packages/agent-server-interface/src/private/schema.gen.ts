@@ -3420,7 +3420,7 @@ export interface components {
        * Generate Citations
        * @default true
        */
-      generate_citations: boolean;
+      generate_citations: boolean | null;
     };
     /** ExtractDocumentResponsePayload */
     ExtractDocumentResponsePayload: {
