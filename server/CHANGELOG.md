@@ -1,3 +1,13 @@
+# Sema4.ai Agent Server 2.1.2 (2025-09-18)
+
+- [PRD-857] Claude 4 Thinking [#951](https://github.com/Sema4AI/agent-platform/pull/951)
+- [GPT-1261] Allow list and create work-items endpoints w/o trailing slashes [#929](https://github.com/Sema4AI/agent-platform/pull/929)
+- [DIN-510] trim the citation docs in openapi [#952](https://github.com/Sema4AI/agent-platform/pull/952)
+- Provide citations with extract results [#905](https://github.com/Sema4AI/agent-platform/pull/905)
+- feat: integrate evaluations [#877](https://github.com/Sema4AI/agent-platform/pull/877)
+- Spec for semantic data model, CRUD to associate data connections to an agent [#936](https://github.com/Sema4AI/agent-platform/pull/936)
+- [GPT-1260] bump timeout for integration tests [#935)](https://github.com/Sema4AI/agent-platform/pull/935)
+
 # Sema4.ai Agent Server 2.1.1 (2025-09-16)
 
 - [GPT-1238] [GPT-1236] Propagate and modify user-facing errors [#886](https://github.com/Sema4AI/agent-platform/pull/886)
