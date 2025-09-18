@@ -6,7 +6,7 @@ import { FC } from 'react';
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
 import { z } from 'zod';
 import { buildCreateMcpBody } from '~/lib/utils';
-import { useCreateMcpServerMutation, type CreateMcpServerBody } from '~/queries/mcpServers';
+import { useCreateMcpServerMutation, type MCPServerCreate } from '~/queries/mcpServers';
 import { InputControlled } from '~/components/InputControlled';
 
 type Props = { open: boolean; onClose: () => void };
@@ -53,7 +53,7 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
 
   const onSubmit = form.handleSubmit((values) => {
-    const body: CreateMcpServerBody = buildCreateMcpBody({
+    const body: MCPServerCreate = buildCreateMcpBody({
       name: values.name,
       type: values.type,
       transport: values.transport,

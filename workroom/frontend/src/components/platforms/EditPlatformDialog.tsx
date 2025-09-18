@@ -12,81 +12,47 @@ import {
   type Provider,
 } from '~/components/platforms/llms/components/llmSchemas';
 import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
+import { type PlatformForEditing } from '~/queries/agent-interface-patches';
+import { beautifyLabel } from '~/lib/utils';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onUpdated?: (platform: GetPlatformResponse) => void;
-  platform: GetPlatformResponse;
+  platform: PlatformForEditing;
   tenantId: string;
 };
 
-type FormValues = EditLLMFormSchema;
-
 export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdated, tenantId }) => {
   const { addSnackbar } = useSnackbar();
+  const kind: Provider = platform.kind;
 
-  const providerId = String(platform.kind || 'openai').toLowerCase();
-  const isValidProvider = (p: string): p is Provider => ['openai', 'azure', 'bedrock'].includes(p);
-  const kind: Provider = isValidProvider(providerId) ? providerId : 'openai';
-  const firstModel = (platform.models?.[providerId] || [])[0];
+  const firstModel = platform.models?.[kind]?.[0];
+  const currentModel = firstModel ? `${kind}:${firstModel}` : `${kind}:unknown`;
 
-  const modelString = firstModel ? `${kind}:${firstModel}` : undefined;
-  const isValidModel = (m: string): m is EditLLMFormSchema['model'] => {
-    const allValidModels = [...AZURE_MODEL_VALUES, ...BEDROCK_MODEL_VALUES, ...OPENAI_MODEL_VALUES];
-    return allValidModels.some((validModel) => validModel === m);
-  };
-  const currentModel = modelString && isValidModel(modelString) ? modelString : undefined;
-
-  // TODO: Tighten platform types and platformKind logic in another PR - improve type discrimination
   const getPlatformConfig = () => {
-    const baseConfig = {
-      name: platform.name,
-      provider: kind,
-      model:
-        currentModel ||
-        (kind === 'azure'
-          ? AZURE_MODEL_VALUES[0]
-          : kind === 'bedrock'
-            ? BEDROCK_MODEL_VALUES[0]
-            : OPENAI_MODEL_VALUES[0]),
-      apiKey: undefined,
-      aws_secret_access_key: undefined,
-    };
-
-    if (platform.kind === 'azure') {
-      return {
-        ...baseConfig,
-        azure_endpoint_url: platform.azure_endpoint_url || undefined,
-        azure_api_version: platform.azure_api_version || undefined,
-        azure_deployment_name: platform.azure_deployment_name || undefined,
-        aws_access_key_id: undefined,
-        region_name: undefined,
-      };
-    }
-
-    if (platform.kind === 'bedrock') {
-      return {
-        ...baseConfig,
-        azure_endpoint_url: undefined,
-        azure_api_version: undefined,
-        azure_deployment_name: undefined,
-        aws_access_key_id: platform.aws_access_key_id || undefined,
-        region_name: platform.region_name || undefined,
-      };
-    }
+    const base = { name: platform.name, provider: kind, model: currentModel };
 
     return {
-      ...baseConfig,
-      azure_endpoint_url: undefined,
-      azure_api_version: undefined,
-      azure_deployment_name: undefined,
-      aws_access_key_id: undefined,
-      region_name: undefined,
+      ...base,
+      ...(platform.kind === 'azure' && {
+        apiKey: platform.azure_api_key?.value,
+        azure_endpoint_url: platform.azure_endpoint_url,
+        azure_api_version: platform.azure_api_version,
+        azure_deployment_name: platform.azure_deployment_name,
+      }),
+      ...(platform.kind === 'bedrock' && {
+        aws_secret_access_key: platform.aws_secret_access_key,
+        aws_access_key_id: platform.aws_access_key_id,
+        region_name: platform.region_name,
+      }),
+      ...(platform.kind === 'openai' && {
+        apiKey: platform.openai_api_key?.value,
+      }),
     };
   };
 
-  const form = useForm<FormValues>({
+  const form = useForm<EditLLMFormSchema>({
     resolver: zodResolver(editLLMFormSchema),
     defaultValues: getPlatformConfig(),
     mode: 'onChange',
@@ -98,29 +64,30 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
   const mutation = useUpdateLLMMutation();
 
   const onSubmit = form.handleSubmit((values) => {
-    const credentials: Record<string, unknown> = {};
-    const [provider, modelId] = String(values.model).split(':');
+    const [, modelId] = String(values.model).split(':');
 
-    if (provider === 'openai') {
-      if (values.apiKey) credentials.openai_api_key = values.apiKey;
-    }
-    if (provider === 'azure') {
+    const credentials: Record<string, unknown> = {};
+
+    if (kind === 'azure') {
       if (values.apiKey) credentials.azure_api_key = values.apiKey;
       if (values.azure_endpoint_url) credentials.azure_endpoint_url = values.azure_endpoint_url;
       if (values.azure_api_version) credentials.azure_api_version = values.azure_api_version;
       if (values.azure_deployment_name) credentials.azure_deployment_name = values.azure_deployment_name;
-    }
-    if (provider === 'bedrock') {
+    } else if (kind === 'bedrock') {
       if (values.aws_access_key_id) credentials.aws_access_key_id = values.aws_access_key_id;
       if (values.aws_secret_access_key) credentials.aws_secret_access_key = values.aws_secret_access_key;
       if (values.region_name) credentials.region_name = values.region_name;
+    } else if (kind === 'openai') {
+      if (values.apiKey) credentials.openai_api_key = values.apiKey;
+    } else {
+      kind satisfies never;
     }
 
     const payload = {
       id: platform.platform_id,
       name: values.name,
-      kind: provider,
-      models: { [provider]: [modelId] },
+      kind: kind,
+      models: { [kind]: [modelId] },
       credentials: Object.keys(credentials).length ? credentials : undefined,
     } satisfies UpdatePlatformBody;
 
@@ -143,10 +110,14 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     const forProvider = (values: readonly string[]) =>
       values
         .filter((modelValue) => modelValue.startsWith(kind + ':'))
-        .map((modelValue) => ({ value: modelValue, label: modelValue.split(':')[1] || modelValue }));
+        .map((modelValue) => ({ value: modelValue, label: beautifyLabel(modelValue) }));
     if (kind === 'azure') return forProvider(AZURE_MODEL_VALUES);
     if (kind === 'bedrock') return forProvider(BEDROCK_MODEL_VALUES);
-    return forProvider(OPENAI_MODEL_VALUES);
+    if (kind === 'openai') return forProvider(OPENAI_MODEL_VALUES);
+    else {
+      kind satisfies never;
+      return [];
+    }
   }, [kind]);
 
   return (

@@ -3,8 +3,8 @@ import { Box, Input, Typography, Form, Button, Select } from '@sema4ai/component
 import { IconPlus, IconTrash } from '@sema4ai/icons';
 import { useFormContext } from 'react-hook-form';
 import { PackageCard } from '@sema4ai/layouts';
+import { InputControlled } from '~/components/InputControlled';
 import { AgentDeploymentFormSchema, MCPServerSettings, MCPHeaderValue } from '../context';
-import { McpHeaderSecretInput } from './McpHeaderSecretInput';
 
 type Props = {
   index: number;
@@ -12,20 +12,10 @@ type Props = {
 };
 
 export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
-  const {
-    register,
-    watch,
-    getValues,
-    setValue,
-    trigger,
-    formState: { errors },
-  } = useFormContext<AgentDeploymentFormSchema>();
+  const { register, watch, getValues, setValue, trigger } = useFormContext<AgentDeploymentFormSchema>();
 
   const mcpServerSettings = watch(`mcpServerSettings.${index}`);
   const [editingKeys, setEditingKeys] = useState<Record<string, string>>({});
-
-  const secrets: Array<{ id: string; name: string }> | undefined = [];
-  const isLoadingSecrets = false;
 
   const headers = mcpServerSettings?.headers ?? {};
   const headerEntries = Object.entries(headers);
@@ -34,19 +24,6 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
     { label: 'Plain Text', value: 'string' },
     { label: 'Secret', value: 'secret' },
   ];
-
-  const toHeaderValueType = (hv: MCPHeaderValue) =>
-    hv.type === 'secret'
-      ? { type: 'secret' as const, secretID: hv.value ?? '' }
-      : { type: 'string' as const, value: hv.value ?? '' };
-
-  const getFieldError = (fieldName: string) => {
-    const serverErrors = errors.mcpServerSettings?.[index];
-    if (!serverErrors || typeof serverErrors !== 'object') return undefined;
-
-    const fieldError = (serverErrors as Record<string, { message?: string }>)[fieldName];
-    return fieldError?.message;
-  };
 
   const updateMcpServerSettings = async (updater: (settings: MCPServerSettings) => MCPServerSettings) => {
     const currentSettings = getValues('mcpServerSettings') || [];
@@ -58,30 +35,32 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
     }
   };
 
-  const createHeaderValue = (type: 'string' | 'secret', currentHeader?: MCPHeaderValue, value = '') => {
+  const createHeaderValue = (type: 'string' | 'secret', currentHeader?: MCPHeaderValue, value = ''): MCPHeaderValue => {
     if (type === 'secret') {
       return {
-        type: 'secret' as const,
+        type: 'secret',
         value,
-        description: currentHeader?.description ?? null,
+        description: currentHeader?.description,
       };
     }
 
     return {
-      type: 'string' as const,
+      type: 'string',
       value,
-      description: currentHeader?.description ?? null,
+      description: currentHeader?.description,
     };
   };
 
-  const addNewHeader = () =>
+  const addNewHeader = () => {
+    const tempKey = `new_header_${Date.now()}`;
     updateMcpServerSettings((settings) => ({
       ...settings,
       headers: {
         ...(settings.headers ?? {}),
-        '': createHeaderValue('string'),
+        [tempKey]: createHeaderValue('string'),
       },
     }));
+  };
 
   const removeHeader = (key: string) =>
     updateMcpServerSettings((settings) => ({
@@ -105,7 +84,7 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
     });
   };
 
-  const updateHeaderValue = (key: string, value: string) =>
+  const updateHeaderType = (key: string, type: 'string' | 'secret') =>
     updateMcpServerSettings((settings) => {
       const currentHeader = settings.headers?.[key];
       if (!currentHeader) return settings;
@@ -114,90 +93,13 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
         ...settings,
         headers: {
           ...(settings.headers ?? {}),
-          [key]: {
-            ...currentHeader,
-            value,
-          },
-        },
-      };
-    });
-
-  const updateHeaderType = (key: string, type: 'string' | 'secret') =>
-    updateMcpServerSettings((settings) => {
-      const currentHeader = settings.headers?.[key];
-      const currentValue = typeof currentHeader?.value === 'string' ? currentHeader?.value : '';
-
-      return {
-        ...settings,
-        headers: {
-          ...(settings.headers ?? {}),
-          [key]: createHeaderValue(type, currentHeader, currentValue),
-        },
-      };
-    });
-
-  const updateHeaderSecretId = (key: string, secretId: string) =>
-    updateMcpServerSettings((settings) => {
-      const currentHeader = settings.headers?.[key];
-      if (!currentHeader || currentHeader.type !== 'secret') {
-        return settings;
-      }
-
-      return {
-        ...settings,
-        headers: {
-          ...(settings.headers ?? {}),
-          [key]: {
-            ...currentHeader,
-            value: secretId,
-          },
-        },
-      };
-    });
-
-  const updateHeaderSecretValue = (key: string, value: string) =>
-    updateMcpServerSettings((settings) => {
-      const currentHeader = settings.headers?.[key];
-      if (!currentHeader || currentHeader.type !== 'secret') {
-        return settings;
-      }
-
-      return {
-        ...settings,
-        headers: {
-          ...(settings.headers ?? {}),
-          [key]: {
-            ...currentHeader,
-            value,
-          },
-        },
-      };
-    });
-
-  const resetHeaderToValue = (key: string) =>
-    updateMcpServerSettings((settings) => {
-      const currentHeader = settings.headers?.[key];
-      if (!currentHeader || currentHeader.type !== 'secret') {
-        return settings;
-      }
-
-      return {
-        ...settings,
-        headers: {
-          ...(settings.headers ?? {}),
-          [key]: {
-            ...currentHeader,
-            value: '',
-          },
+          [key]: createHeaderValue(type, currentHeader, currentHeader.value ?? ''),
         },
       };
     });
 
   const handleKeyInputChange = (originalKey: string, newValue: string) => {
-    setEditingKeys((prev) => ({
-      ...prev,
-      [originalKey]: newValue,
-    }));
+    setEditingKeys((prev) => ({ ...prev, [originalKey]: newValue }));
   };
 
   const handleKeyInputBlur = async (originalKey: string) => {
@@ -230,7 +132,7 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
               icon={IconTrash}
               aria-label="Remove MCP server"
               onClick={async () => {
-                const current = (getValues('mcpServerSettings') || []) as MCPServerSettings[];
+                const current = getValues('mcpServerSettings') || [];
                 const removed = current[index];
                 const next = current.filter((_, i) => i !== index);
                 setValue('mcpServerSettings', next, { shouldDirty: true, shouldValidate: true });
@@ -274,7 +176,6 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
                 label="URL (Optional)"
                 placeholder="Enter a URL to the MCP server"
                 {...register(`mcpServerSettings.${index}.url`)}
-                error={getFieldError('url')}
                 description="Enter a URL to the MCP server"
               />
             </Form.Fieldset>
@@ -294,6 +195,8 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
                   <Box display="flex" flexDirection="column" gap="$16" width="100%" mb="$16">
                     {headerEntries.map(([headerKey, headerValue]) => {
                       const displayKey = editingKeys[headerKey] !== undefined ? editingKeys[headerKey] : headerKey;
+
+                      if (!headerValue) return null;
 
                       return (
                         <Box key={`header-${headerKey}`} display="flex" gap="$16" alignItems="flex-end" width="100%">
@@ -321,31 +224,13 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
                             />
                           </Box>
                           <Box style={{ flex: 1 }}>
-                            {headerValue.type === 'secret' ? (
-                              <McpHeaderSecretInput
-                                headerKey={headerKey}
-                                headerValue={toHeaderValueType(headerValue)}
-                                items={
-                                  secrets?.map((secret) => ({
-                                    value: secret.id,
-                                    label: secret.name,
-                                  })) || []
-                                }
-                                onUpdateValue={updateHeaderSecretValue}
-                                onUpdateSecretId={updateHeaderSecretId}
-                                onResetToValue={resetHeaderToValue}
-                                disabled={isLoadingSecrets}
-                              />
-                            ) : (
-                              <Input
-                                label="Value"
-                                value={typeof headerValue.value === 'string' ? headerValue.value : ''}
-                                onChange={(e) => updateHeaderValue(headerKey, e.target.value)}
-                                type="text"
-                                placeholder="Header value"
-                                width="100%"
-                              />
-                            )}
+                            <InputControlled
+                              fieldName={`mcpServerSettings.${index}.headers.${headerKey}.value`}
+                              label="Value"
+                              type={headerValue.type === 'secret' ? 'password' : 'text'}
+                              placeholder={headerValue.type === 'secret' ? `Secret for ${headerKey}` : 'Header value'}
+                              width="100%"
+                            />
                           </Box>
                           <Button
                             variant="secondary"

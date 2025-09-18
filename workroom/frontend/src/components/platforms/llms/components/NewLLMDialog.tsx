@@ -7,6 +7,7 @@ import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
+  Provider,
   createOrUpdateLLMFormSchema,
   type CreateOrUpdateLLMFormSchema,
 } from './llmSchemas';
@@ -16,15 +17,11 @@ import { InputControlled } from '~/components/InputControlled';
 
 type Props = { open: boolean; onClose: (platformId?: string) => void };
 
-type Provider = 'openai' | 'azure' | 'bedrock';
-
-type FormValues = CreateOrUpdateLLMFormSchema;
-
 export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { addSnackbar } = useSnackbar();
   const [selectedProvider, setSelectedProvider] = useState<Provider>('openai');
-  const form = useForm<FormValues>({
+  const form = useForm<CreateOrUpdateLLMFormSchema>({
     resolver: zodResolver(createOrUpdateLLMFormSchema),
     defaultValues: { name: '', model: OPENAI_MODEL_VALUES[0], provider: 'openai' },
     mode: 'onChange',

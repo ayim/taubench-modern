@@ -3,7 +3,7 @@ import { useLoaderData } from '@tanstack/react-router';
 import { FC } from 'react';
 import { useFormContext } from 'react-hook-form';
 
-import type { ListMcpServersResponse } from '~/queries/mcpServers';
+import type { ListMCPServersResponse } from '~/queries/mcpServers';
 import { AgentDeploymentFormSchema, MCPServerSettings } from '../context';
 import { McpServerItem } from './McpServerItem';
 
@@ -14,7 +14,7 @@ const toTransport = (value: string): MCPServerSettings['transport'] =>
 export const McpServerSection: FC = () => {
   const { watch, getValues, setValue, trigger } = useFormContext<AgentDeploymentFormSchema>();
   const { mcpServers } = useLoaderData({ from: '/tenants/$tenantId/agents/deploy' }) as {
-    mcpServers: ListMcpServersResponse;
+    mcpServers: ListMCPServersResponse;
   };
   const mcpServerSettings = watch('mcpServerSettings') || [];
 

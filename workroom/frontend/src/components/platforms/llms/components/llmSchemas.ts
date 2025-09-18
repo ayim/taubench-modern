@@ -27,17 +27,18 @@ export type Provider = Extract<AllPlatformParameters['kind'], 'openai' | 'azure'
 
 export const PROVIDERS = ['openai', 'azure', 'bedrock'] as const satisfies readonly Provider[];
 
+// TODO: [fix-type] Backend returns string | null for fields that are required when editing
 const baseLLMSchema = z.object({
   provider: z.enum(PROVIDERS),
   name: z.string().min(1),
-  model: z.union([z.enum(OPENAI_MODEL_VALUES), z.enum(AZURE_MODEL_VALUES), z.enum(BEDROCK_MODEL_VALUES)]),
+  model: z.string().min(1),
   apiKey: z.string().optional(),
-  azure_endpoint_url: z.string().url('Must be a valid URL').optional(),
-  azure_api_version: z.string().optional(),
-  azure_deployment_name: z.string().optional(),
-  aws_access_key_id: z.string().optional(),
-  aws_secret_access_key: z.string().optional(),
-  region_name: z.string().optional(),
+  azure_endpoint_url: z.string().url('Must be a valid URL').nullable().optional(),
+  azure_api_version: z.string().nullable().optional(),
+  azure_deployment_name: z.string().nullable().optional(),
+  aws_access_key_id: z.string().nullable().optional(),
+  aws_secret_access_key: z.string().nullable().optional(),
+  region_name: z.string().nullable().optional(),
 });
 
 export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ctx) => {
@@ -62,7 +63,7 @@ export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ct
   }
 });
 
-// Relaxed schema for editing (credentials optional; server retains existing secrets)
+// TODO: [fix-type] Use strictEditLLMSchema once backend guarantees non-null values for editing
 export const editLLMFormSchema = baseLLMSchema;
 
 export type CreateOrUpdateLLMFormSchema = z.infer<typeof createOrUpdateLLMFormSchema>;

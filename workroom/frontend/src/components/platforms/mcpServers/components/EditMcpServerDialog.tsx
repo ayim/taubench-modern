@@ -9,16 +9,26 @@ import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-for
 import { z } from 'zod';
 
 import { buildUpdateMcpBody, headersToEntries } from '~/lib/utils';
-import { McpServerResponse, useUpdateMcpServerMutation, type UpdateMcpServerBody } from '~/queries/mcpServers';
+import { useUpdateMcpServerMutation, type MCPServer, type MCPServerEdit } from '~/queries/mcpServers';
+import { isValidHeaders } from '~/queries/agent-interface-patches';
 import { InputControlled } from '~/components/InputControlled';
 
-type Props = { open: boolean; onClose: () => void; initial: McpServerResponse };
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  initial: MCPServer & {
+    type: 'generic_mcp' | 'sema4ai_action_server';
+    transport: 'auto' | 'streamable-http' | 'sse' | 'stdio';
+  };
+};
+
 const keyValueSchema = z.object({
   key: z.string().min(1, 'Key is required'),
   value: z.string().optional().default(''),
   type: z.enum(['string', 'secret']).optional().default('string'),
 });
 
+// TODO: [fix-type] Create strict edit schema once backend guarantees non-null values for editing
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: z.enum(['generic_mcp', 'sema4ai_action_server']).default('generic_mcp'),
@@ -40,27 +50,20 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
   const { addSnackbar } = useSnackbar();
 
   const defaultHeadersKV = useMemo(() => {
-    const headers: Record<string, string | undefined> = {};
-    if (initial.headers && typeof initial.headers === 'object') {
-      Object.entries(initial.headers).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          headers[key] = value;
-        }
-      });
-    }
+    const headers = isValidHeaders(initial.headers) ? initial.headers : null;
     return headersToEntries(headers);
   }, [initial]);
 
   const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: initial.name ?? '',
-      type: initial.type === 'generic_mcp' || initial.type === 'sema4ai_action_server' ? initial.type : 'generic_mcp',
-      transport: 'auto',
+      name: initial.name,
+      type: initial.type,
+      transport: initial.transport,
       url: initial.url ?? undefined,
       headersKV: defaultHeadersKV,
       command: initial.command ?? undefined,
-      argsText: initial.args?.join(' ') || undefined,
+      argsText: initial.args?.join(' ') ?? undefined,
       cwd: initial.cwd ?? undefined,
     },
     mode: 'onChange',
@@ -71,10 +74,10 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
 
   const onSubmit = form.handleSubmit((values: FormValues) => {
-    const body: UpdateMcpServerBody = buildUpdateMcpBody(
+    const body: MCPServerEdit = buildUpdateMcpBody(
       {
         name: values.name,
-        type: values.type ?? 'generic_mcp',
+        type: values.type,
         transport: values.transport,
         url: values.url,
         headerEntries: values.headersKV,
@@ -197,7 +200,9 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
                               { value: 'string', label: 'Plain Text' },
                               { value: 'secret', label: 'Secret' },
                             ]}
-                            {...field}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
                           />
                         )}
                       />
@@ -205,11 +210,7 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
                         fieldName={`headersKV.${idx}.value` as const}
                         label="Header value"
                         placeholder="Value"
-                        type={
-                          (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
-                            ? 'password'
-                            : 'text'
-                        }
+                        type={(form.watch(`headersKV.${idx}.type`) || 'string') === 'secret' ? 'password' : 'text'}
                       />
                       <Button
                         variant="ghost"

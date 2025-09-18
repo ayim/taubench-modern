@@ -1,6 +1,6 @@
 import { UserTenant } from '~/queries/tenants';
 import { getBasePath } from '~/utils/base';
-import type { CreateMcpServerBody, McpServerResponse, UpdateMcpServerBody } from '~/queries/mcpServers';
+import type { MCPServerCreate, MCPServer, MCPServerEdit } from '~/queries/mcpServers';
 import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
 import { Scenario, Trial } from '~/queries/evals';
 import { components } from '@sema4ai/agent-server-interface';
@@ -164,42 +164,42 @@ export function mcpHeadersFromRecord(
 
 export function buildCreateMcpBody(values: {
   name: string;
-  type: CreateMcpServerBody['type'];
-  transport: CreateMcpServerBody['transport'];
+  type: MCPServerCreate['type'];
+  transport: MCPServerCreate['transport'];
   url?: string;
   headerEntries?: HeaderEntry[];
-}): CreateMcpServerBody {
+}): MCPServerCreate {
   const headers = entriesToHeaders(values.headerEntries);
   return {
     name: values.name,
     type: values.type ?? 'generic_mcp',
     transport: values.transport,
     url: values.url || undefined,
-    headers: Object.keys(headers).length ? (headers as CreateMcpServerBody['headers']) : undefined,
-  } as CreateMcpServerBody;
+    headers: Object.keys(headers).length ? (headers as MCPServerCreate['headers']) : undefined,
+  } as MCPServerCreate;
 }
 
 export function buildUpdateMcpBody(
   values: {
     name: string;
-    type: UpdateMcpServerBody['type'];
-    transport: UpdateMcpServerBody['transport'];
+    type: MCPServerEdit['type'];
+    transport: MCPServerEdit['transport'];
     url?: string;
     headerEntries?: HeaderEntry[];
     command?: string;
     argsText?: string;
     cwd?: string;
   },
-  initial: McpServerResponse,
-): UpdateMcpServerBody {
+  initial: MCPServer,
+): MCPServerEdit {
   const headers = entriesToHeaders(values.headerEntries);
-  const base: UpdateMcpServerBody = {
+  const base: MCPServerEdit = {
     name: values.name,
     type: values.type ?? 'generic_mcp',
     transport: values.transport,
     url: values.transport === 'stdio' ? null : values.url || null,
-    headers: Object.keys(headers).length ? (headers as UpdateMcpServerBody['headers']) : null,
-  } as UpdateMcpServerBody;
+    headers: Object.keys(headers).length ? (headers as MCPServerEdit['headers']) : null,
+  } as MCPServerEdit;
 
   if (values.transport === 'stdio') {
     const parsedArgs = (values.argsText || '')

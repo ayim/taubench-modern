@@ -2,18 +2,20 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type { components, paths } from '@sema4ai/agent-server-interface';
 import { QueryProps } from './shared';
 import { useRouteContext } from '@tanstack/react-router';
+import { transformMcpServerForEditing } from './agent-interface-patches';
 
-export type ListMcpServersResponse =
-  paths['/api/v2/mcp-servers/']['get']['responses']['200']['content']['application/json'];
-export type McpServerResponse = components['schemas']['MCPServerResponse'];
-export type CreateMcpServerBody = paths['/api/v2/mcp-servers/']['post']['requestBody']['content']['application/json'];
-export type UpdateMcpServerBody =
+// Semantic type aliases for better naming
+export type MCPServer = components['schemas']['MCPServerResponse'];
+export type MCPServerCreate = paths['/api/v2/mcp-servers/']['post']['requestBody']['content']['application/json'];
+export type MCPServerEdit =
   paths['/api/v2/mcp-servers/{mcp_server_id}']['put']['requestBody']['content']['application/json'];
+export type ListMCPServersResponse =
+  paths['/api/v2/mcp-servers/']['get']['responses']['200']['content']['application/json'];
 
 export const getListMcpServersQueryOptions = ({ tenantId, agentAPIClient }: QueryProps<{ tenantId: string }>) =>
   queryOptions({
     queryKey: ['mcp-servers', tenantId],
-    queryFn: async (): Promise<ListMcpServersResponse> => {
+    queryFn: async (): Promise<ListMCPServersResponse> => {
       const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/', {
         silent: true,
       });
@@ -48,7 +50,7 @@ export const useCreateMcpServerMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tenantId, body }: { tenantId: string; body: CreateMcpServerBody }) => {
+    mutationFn: async ({ tenantId, body }: { tenantId: string; body: MCPServerCreate }) => {
       return await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/mcp-servers/', {
         body,
         silent: true,
@@ -77,7 +79,7 @@ export const getMcpServerQueryOptions = ({
         throw new Error(response.message);
       }
 
-      return response.data;
+      return transformMcpServerForEditing(response.data);
     },
   });
 
@@ -93,7 +95,7 @@ export const useUpdateMcpServerMutation = () => {
     }: {
       tenantId: string;
       mcpServerId: string;
-      body: UpdateMcpServerBody;
+      body: MCPServerEdit;
     }) => {
       const response = await agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/mcp-servers/{mcp_server_id}', {
         params: { path: { mcp_server_id: mcpServerId } },
@@ -105,7 +107,7 @@ export const useUpdateMcpServerMutation = () => {
         throw new Error(response.message);
       }
 
-      return response.data;
+      return transformMcpServerForEditing(response.data);
     },
     onSuccess: async (_data, { tenantId, mcpServerId }) => {
       await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });

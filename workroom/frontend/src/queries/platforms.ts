@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type { paths } from '@sema4ai/agent-server-interface';
 import { QueryProps } from './shared';
 import { useRouteContext } from '@tanstack/react-router';
+import { transformPlatformForEditing, type PlatformForEditing } from './agent-interface-patches';
 
 export type ListPlatformsResponse =
   paths['/api/v2/platforms/']['get']['responses']['200']['content']['application/json'];
@@ -34,7 +35,7 @@ export const getPlatformQueryOptions = ({
 }: QueryProps<{ tenantId: string; platformId: string }>) =>
   queryOptions({
     queryKey: ['platform', tenantId, platformId],
-    queryFn: async (): Promise<GetPlatformResponse> => {
+    queryFn: async (): Promise<PlatformForEditing> => {
       const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/platforms/{platform_id}', {
         params: { path: { platform_id: platformId } },
         silent: true,
@@ -44,7 +45,7 @@ export const getPlatformQueryOptions = ({
         throw new Error(response?.message || 'Failed to fetch platform');
       }
 
-      return response.data;
+      return transformPlatformForEditing(response.data);
     },
   });
 
