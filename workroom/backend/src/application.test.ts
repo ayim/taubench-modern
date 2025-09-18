@@ -12,6 +12,7 @@ const TEST_PRIVATE_KEY_BASE64 =
 
 const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternalUrl: string }): Configuration => ({
   agentServerInternalUrl,
+  allowInsecureRequests: true,
   auth: {
     tokenIssuer: 'spar',
     type: 'none',
@@ -19,33 +20,29 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   frontendMode: 'disk',
   legacyRoutingUrl: null,
   metaUrl: null,
+  port: 'NOT_USED_IN_TESTS' as unknown as number,
+  session: null,
   tenant: {
     tenantId: 'spar-test',
     tenantName: 'SPAR test',
   },
-  port: 8001, // not used
   userIdentity: {
     cacheTTL: 300,
   },
-  controlPlaneUrl: null,
   dataServer: {
     mode: 'disabled',
   },
   workroomMeta: {
     features: {
+      agentDetails: {
+        enabled: true,
+        reason: null,
+      },
       agentEvals: {
         enabled: true,
         reason: null,
       },
-      mcpServersManagement: {
-        enabled: true,
-        reason: null,
-      },
       deploymentWizard: {
-        enabled: true,
-        reason: null,
-      },
-      settings: {
         enabled: true,
         reason: null,
       },
@@ -57,7 +54,11 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         enabled: true,
         reason: null,
       },
-      agentDetails: {
+      mcpServersManagement: {
+        enabled: true,
+        reason: null,
+      },
+      settings: {
         enabled: true,
         reason: null,
       },

@@ -13,6 +13,9 @@ export interface LogAttributes {
   errorMessage: string;
   errorName: string;
   errorStack: string;
+  fileName: string;
+  oidcIssuer: string;
+  oidcRedirectUrl: string;
   status: number;
   statusText: string;
   port: number;
@@ -33,7 +36,7 @@ export interface MonitoringContext {
 
 const buildLogMethod = (severity: LogSeverity): LogMethod => {
   return (text: string, data: Partial<LogAttributes> = {}) => {
-    const attributes: Partial<LogAttributes> = structuredClone(data);
+    const attributes: Partial<LogAttributes> = { ...data };
 
     if (data.error) {
       Object.assign(attributes, {

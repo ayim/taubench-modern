@@ -100,7 +100,7 @@ export class AgentAPIClient {
     const metaContent = await getMeta();
 
     if (metaContent.deploymentType !== undefined) {
-      metaContent.deploymentType satisfies 'spar' | 'spcs';
+      metaContent.deploymentType satisfies 'spar';
       return metaContent.deploymentType === 'spar' ? `TO_BE_DEFINED` : 'SPCS_AUTH_VIA_COOKIES';
     }
 

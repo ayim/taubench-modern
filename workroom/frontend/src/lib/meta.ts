@@ -17,6 +17,7 @@ export type Meta =
       };
     }
   | {
+      auth?: 'session';
       deploymentType: 'spar';
       workroomTenantListUrl: string;
       branding?: {

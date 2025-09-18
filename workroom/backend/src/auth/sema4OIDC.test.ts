@@ -3,9 +3,10 @@ import getPort from 'get-port';
 import { http, HttpResponse } from 'msw';
 import { setupServer, SetupServerApi } from 'msw/node';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createGetACEUser, type ACEUserResult, type GetACEUser } from './oidc.js';
+import { createGetACEUser, type GetACEUser } from './sema4OIDC.js';
 import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
+import type { Result } from '../utils/result.js';
 
 describe('createGetACEUser', () => {
   const getConfiguration = () =>
@@ -90,7 +91,7 @@ describe('createGetACEUser', () => {
 
       expect(result.success).toBe(true);
 
-      const successResult = result as Extract<ACEUserResult, { success: true }>;
+      const successResult = result as Extract<Result<{ userId: string }>, { success: true }>;
       expect(successResult.data.userId).toEqual(userId);
     });
 
@@ -107,7 +108,7 @@ describe('createGetACEUser', () => {
 
       expect(result.success).toBe(true);
 
-      const successResult = result as Extract<ACEUserResult, { success: true }>;
+      const successResult = result as Extract<Result<{ userId: string }>, { success: true }>;
       expect(successResult.data.userId).toEqual(userId);
     });
   });

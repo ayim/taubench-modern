@@ -4,21 +4,27 @@ import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
-import { createGetACEUser } from './auth/oidc.js';
+import { AuthManager } from './auth/AuthManager.js';
 import type { Configuration } from './configuration.js';
 import { createGetAgentMeta, createProxyHandler } from './handlers/agents.js';
+import { createLogoutHandler } from './handlers/auth.js';
 import { createConfigureDocumentIntelligence } from './handlers/document-intelligence.js';
 import { createHealthCheck } from './handlers/health.js';
 import { createGetMeta, createGetSparTenantsList } from './handlers/meta.js';
+import { createOIDCCallbackHandler } from './handlers/oidc.js';
 import { createAssetServe, createIndexServe, initializeFrontendPlaceholders } from './handlers/static.js';
 import { initializeWebSocketProxying } from './handlers/websocket.js';
 import { createGetWorkroomMeta } from './handlers/workroom.js';
-import { createAuthMiddleware } from './middleware/auth/index.js';
+import { createAuthMiddleware, createIndexAuthMiddleware } from './middleware/auth/index.js';
 import { badPlatform } from './middleware/badRoute.js';
 import { createRequestLogger } from './middleware/logging.js';
 import { poweredByHeaders } from './middleware/poweredBy.js';
 import { createTenantExtractionMiddleware } from './middleware/tenant.js';
 import type { MonitoringContext } from './monitoring/index.js';
+import { createSessionMemoryStore, createSessionMiddleware } from './session/middleware.js';
+import { SessionManager } from './session/SessionManager.js';
+
+const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
 export const createApplication = async ({
   configuration,
@@ -36,9 +42,20 @@ export const createApplication = async ({
     deploymentType: 'spar',
   });
 
-  const { getACEUser } = createGetACEUser({
+  const authManager = new AuthManager({
     configuration,
     monitoring,
+  });
+
+  const initAuthResult = await authManager.initialize();
+  if (!initAuthResult.success) {
+    throw new Error(`Unexpected - failed initializing auth system: ${initAuthResult.error.message}`);
+  }
+
+  const sessionManager = new SessionManager({
+    monitoring,
+    secret: configuration.session?.secret ?? '__SESSION_MANAGER_NOT_ACTIVE__',
+    store: createSessionMemoryStore(),
   });
 
   const app = express();
@@ -49,6 +66,13 @@ export const createApplication = async ({
   app.use(poweredByHeaders);
   // @TODO: Lock down CORS to public domain / explicit headers
   app.use(cors());
+  app.use(
+    createSessionMiddleware({
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
+  );
 
   app.get('/healthz', createHealthCheck());
   app.get('/ready', createHealthCheck());
@@ -56,10 +80,11 @@ export const createApplication = async ({
   app.use(createRequestLogger({ monitoring }));
 
   const { handleWebsocketUpgrade } = initializeWebSocketProxying({
+    authManager,
     configuration,
-    getACEUser,
     monitoring,
     rewriteAgentServerPath: (current) => current.replace(/^\/tenants\/[^/]+\/agents/i, ''),
+    sessionManager,
     targetBaseUrl: configuration.agentServerInternalUrl,
   });
   server.on('upgrade', (...eventArgs) =>
@@ -83,15 +108,42 @@ export const createApplication = async ({
   tenantRouter.get('/meta', createGetMeta({ configuration, monitoring }));
 
   tenantRouter.get(
+    '/auth/logout',
+    createLogoutHandler({
+      authManager,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
+  );
+
+  tenantRouter.get(
     '/tenants-list',
-    createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+    createAuthMiddleware({
+      authentication: 'without-permissions-check',
+      authManager,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
     createGetSparTenantsList({ configuration }),
   );
 
   tenantRouter.get(
     `/workroom/meta`,
-    createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+    createAuthMiddleware({
+      authentication: 'without-permissions-check',
+      authManager,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
     createGetWorkroomMeta({ configuration }),
+  );
+
+  tenantRouter.get(
+    '/workroom/oidc/callback',
+    createOIDCCallbackHandler({ authManager, configuration, monitoring, sessionManager }),
   );
 
   // Overrides
@@ -102,7 +154,13 @@ export const createApplication = async ({
 
     tenantRouter.get(
       '/workroom/agents/:agentId/threads/:threadId/action-invocations/:actionInvocationId',
-      createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+      createAuthMiddleware({
+        authentication: 'without-permissions-check',
+        authManager,
+        configuration,
+        monitoring,
+        sessionManager,
+      }),
       createProxyHandler({
         configuration,
         monitoring,
@@ -114,7 +172,13 @@ export const createApplication = async ({
 
     tenantRouter.get(
       '/workroom/agents/:agentId/me/oauth/permissions',
-      createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+      createAuthMiddleware({
+        authentication: 'without-permissions-check',
+        authManager,
+        configuration,
+        monitoring,
+        sessionManager,
+      }),
       createProxyHandler({
         configuration,
         monitoring,
@@ -126,7 +190,13 @@ export const createApplication = async ({
 
     tenantRouter.get(
       '/workroom/oauth/authorize',
-      createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+      createAuthMiddleware({
+        authentication: 'without-permissions-check',
+        authManager,
+        configuration,
+        monitoring,
+        sessionManager,
+      }),
       createProxyHandler({
         configuration,
         monitoring,
@@ -138,7 +208,13 @@ export const createApplication = async ({
 
     tenantRouter.delete(
       '/workroom/agents/:agentId/me/oauth/connections/:connectionId',
-      createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+      createAuthMiddleware({
+        authentication: 'without-permissions-check',
+        authManager,
+        configuration,
+        monitoring,
+        sessionManager,
+      }),
       createProxyHandler({
         configuration,
         monitoring,
@@ -152,12 +228,24 @@ export const createApplication = async ({
   // Agent server routes
   tenantRouter.get(
     '/workroom/agents/:agentId/meta',
-    createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+    createAuthMiddleware({
+      authentication: 'without-permissions-check',
+      authManager,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
     createGetAgentMeta(),
   );
   tenantRouter.all(
     '/agents/api/v2/*',
-    createAuthMiddleware({ authentication: 'with-permissions-check', configuration, getACEUser, monitoring }),
+    createAuthMiddleware({
+      authentication: 'with-permissions-check',
+      authManager,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
     createProxyHandler({
       configuration,
       monitoring,
@@ -167,7 +255,13 @@ export const createApplication = async ({
   );
   tenantRouter.get(
     '/workroom/agents/:agentId/details',
-    createAuthMiddleware({ authentication: 'with-permissions-check', configuration, getACEUser, monitoring }),
+    createAuthMiddleware({
+      authentication: 'with-permissions-check',
+      authManager,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
     createProxyHandler({
       configuration,
       monitoring,
@@ -179,7 +273,13 @@ export const createApplication = async ({
   // Document Intelligence routes
   tenantRouter.post(
     '/configure-document-intelligence',
-    createAuthMiddleware({ authentication: 'without-permissions-check', configuration, getACEUser, monitoring }),
+    createAuthMiddleware({
+      authentication: 'without-permissions-check',
+      authManager,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
     express.json(),
     createConfigureDocumentIntelligence({ configuration, monitoring }),
   );
@@ -204,6 +304,16 @@ export const createApplication = async ({
     const tenantPrefix = `/tenants/${configuration.tenant.tenantId}`;
     res.set('x-sema4ai-redirect-source', 'spar-gateway').redirect(302, tenantPrefix + req.originalUrl);
   });
+
+  app.use(
+    createIndexAuthMiddleware({
+      authManager,
+      bypassedPages: AUTH_BYPASSED_PAGES,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
+  );
 
   // Static routes / Frontend handling
   if (configuration.frontendMode === 'disk') {

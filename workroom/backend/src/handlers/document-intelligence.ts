@@ -72,7 +72,7 @@ const retrieveDataServerConnectionDetails = async ({
   configuration,
   monitoring,
 }: {
-  configuration: Pick<Configuration, 'controlPlaneUrl' | 'dataServer'>;
+  configuration: Configuration;
   monitoring: MonitoringContext;
 }): Promise<
   Result<
@@ -289,13 +289,7 @@ const parsePostgresConnectionUrl = (
 };
 
 export const createConfigureDocumentIntelligence =
-  ({
-    configuration,
-    monitoring,
-  }: {
-    configuration: Pick<Configuration, 'agentServerInternalUrl' | 'controlPlaneUrl' | 'dataServer'>;
-    monitoring: MonitoringContext;
-  }) =>
+  ({ configuration, monitoring }: { configuration: Configuration; monitoring: MonitoringContext }) =>
   async (req: ExpressRequest, res: ExpressResponse): Promise<ExpressResponse> => {
     const bodyParseResult = ConfigureDocumentIntelligenceInput.safeParse(req.body);
 

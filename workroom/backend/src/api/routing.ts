@@ -1,5 +1,5 @@
 import type { AgentAPIRoute } from './parsers.js';
-import type { Permission } from '../auth/oidc.js';
+import type { Permission } from '../auth/sema4OIDC.js';
 import type { Configuration } from '../configuration.js';
 import type { Result } from '../utils/result.js';
 import { signAgentToken, type SignAgentTokenErrorOutcome } from '../utils/signing.js';

@@ -1,5 +1,5 @@
 {
-  "name": "workroom",
+  "name": "@sema4ai/workroom",
   "private": true,
   "description": "Workroom frontend and API gateway",
   "version": "2.0.0",

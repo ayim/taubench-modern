@@ -1,3 +1,5 @@
+import type { ExpressRequest } from '../interfaces.js';
+
 export const NO_PROXY_HEADERS = [
   'accept-encoding',
   'content-length',
@@ -26,4 +28,8 @@ export const extractHeadersFromRequest = (
   }
 
   return headers;
+};
+
+export const getRequestBaseUrl = (req: ExpressRequest): string => {
+  return `${req.protocol}://${req.get('host')}`;
 };

@@ -1,204 +1,183 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
-import { parseAgentRequest } from '../../api/parsers.js';
-import { getRouteBehaviour } from '../../api/routing.js';
-import { validateWorkRoomToken, type GetACEUser, type Permission } from '../../auth/oidc.js';
-import type { Configuration } from '../../configuration.js';
-import { type ExpressNextFunction, type ExpressRequest, type ExpressResponse } from '../../interfaces.js';
+import type { AuthManager } from '../../auth/AuthManager.js';
+import type { ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
+import type { SessionManager } from '../../session/SessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
 
-const getAuthorizationHeaderValue = (
-  headers: Record<string, string>,
-): [value: string, header: 'sec-websocket-protocol' | 'authorization'] | [value: null] => {
-  if (headers['sec-websocket-protocol']) {
-    return [headers['sec-websocket-protocol'].replace(/^bearer[,\s]+/i, 'Bearer '), 'sec-websocket-protocol'];
-  }
-
-  return headers['authorization'] ? [headers['authorization'], 'authorization'] : [null];
-};
+type OIDCUserIdentityResult = Result<
+  {
+    userId: string;
+  },
+  | {
+      code: 'unauthorized';
+      message: string;
+    }
+  | {
+      code: 'forbidden';
+      message: string;
+    }
+  | {
+      code: 'expired';
+      message: string;
+    }
+  | {
+      code: 'pending';
+      message: string;
+    }
+>;
 
 export const handleOIDCAuthCheck = async ({
-  authentication,
-  configuration,
-  getACEUser,
+  authManager,
   monitoring,
   next,
   req,
   res,
+  sessionManager,
 }: {
-  authentication: 'with-permissions-check' | 'without-permissions-check';
-  configuration: Configuration;
-  getACEUser: GetACEUser;
+  authManager: AuthManager;
   monitoring: MonitoringContext;
   next: ExpressNextFunction;
   req: ExpressRequest;
   res: ExpressResponse;
+  sessionManager: SessionManager;
 }) => {
-  if (!res.locals.tenantId) {
-    monitoring.logger.error('Failed processing OIDC authentication checks: No tenant ID available', {
+  const userIdentityResult: OIDCUserIdentityResult = await extractOIDCUserIdentity({
+    authManager,
+    headers: extractHeadersFromRequest(req.headers),
+    monitoring,
+    sessionManager,
+  });
+
+  if (!userIdentityResult.success) {
+    monitoring.logger.error('Failed to extract OIDC user identity', {
+      errorName: userIdentityResult.error.code,
+      errorMessage: userIdentityResult.error.message,
       requestMethod: req.method,
       requestUrl: req.originalUrl,
     });
 
-    return res.status(401).send('Unauthorized');
-  }
-
-  const permissions: Array<Permission> | null = (() => {
-    if (authentication === 'without-permissions-check') {
-      return [];
-    }
-
-    authentication satisfies 'with-permissions-check';
-
-    // @TODO: Move replace to option
-    const requestPathWithQueryStringParameters = req.originalUrl.replace(/^\/tenants\/[^/]+\/agents/, '');
-
-    const route = parseAgentRequest({
-      method: req.method,
-      path: requestPathWithQueryStringParameters,
-    });
-    if (!route) {
-      monitoring.logger.error('Route is invalid for OIDC authentication', {
-        requestMethod: req.method,
-        requestUrl: req.originalUrl,
-      });
-
-      return null;
-    }
-
-    const routeBehaviour = getRouteBehaviour({
-      configuration,
-      route,
-      tenantId: configuration.tenant.tenantId,
-      userId: '', // We don't use the signer for this result, so the user ID isn't required
-    });
-
-    if (!routeBehaviour.isAllowed) {
-      monitoring.logger.error('Failed processing OIDC authentication: Route is disallowed', {
-        requestMethod: req.method,
-        requestUrl: req.originalUrl,
-      });
-
-      return null;
-    }
-
-    return routeBehaviour.permissions;
-  })();
-
-  if (permissions === null) {
-    return res.status(401).send('Unauthorized');
-  }
-
-  const userIdentityResult = await extractOIDCUserIdentity({
-    configuration,
-    getACEUser,
-    headers: extractHeadersFromRequest(req.headers),
-    monitoring,
-    permissions,
-  });
-
-  if (!userIdentityResult.success) {
     switch (userIdentityResult.error.code) {
       case 'unauthorized':
+        await sessionManager.clearSessionForRequest(req);
         return res.status(401).send('Unauthorized');
       case 'forbidden':
+        await sessionManager.clearSessionForRequest(req);
         return res.status(403).send('Forbidden');
+      case 'pending':
+        return res.status(409).send('Conflict: Wait for auth');
+      case 'expired': {
+        monitoring.logger.info('OIDC access token expired');
+
+        const refreshResult = await refreshOIDCToken({
+          authManager,
+          monitoring,
+          req,
+          sessionManager,
+        });
+
+        if (!refreshResult.success) {
+          // Monitoring logs already emitted
+          await sessionManager.clearSessionForRequest(req);
+
+          return res.status(401).send('Unauthorized');
+        }
+
+        res.locals.authSub = refreshResult.data.userId;
+
+        return next();
+      }
 
       default:
         exhaustiveCheck(userIdentityResult.error);
     }
   }
 
-  // @TODO: User Id is no longer identifiable as a Google ID.. this should
-  // be addressed, but it should not contain a colon due to the string joining
-  // in the agent server token signing process.
   res.locals.authSub = userIdentityResult.data.userId;
 
   return next();
 };
 
 export const extractOIDCUserIdentity = async ({
-  configuration,
-  getACEUser,
+  authManager,
   headers,
   monitoring,
-  permissions,
+  sessionManager,
 }: {
-  configuration: Configuration;
-  getACEUser: GetACEUser;
+  authManager: AuthManager;
   headers: Record<string, string>;
   monitoring: MonitoringContext;
-  permissions: Array<Permission>;
-}): Promise<
-  Result<
-    {
-      userId: string;
-    },
-    | {
-        code: 'unauthorized';
-        message: string;
-      }
-    | {
-        code: 'forbidden';
-        message: string;
-      }
-  >
-> => {
-  const [authHeaderValue, ...other] = getAuthorizationHeaderValue(headers);
+  sessionManager: SessionManager;
+}): Promise<OIDCUserIdentityResult> => {
+  const sessionResult = await sessionManager.extractSessionFromHeaders(headers);
+  if (!sessionResult.success) {
+    switch (sessionResult.error.code) {
+      case 'invalid_session':
+        monitoring.logger.error('OIDC authentication attempted but an invalid session was provided', {
+          errorName: sessionResult.error.code,
+          errorMessage: sessionResult.error.message,
+        });
 
-  if (!authHeaderValue) {
-    monitoring.logger.error('OIDC authentication attempted but no header found');
+        return {
+          success: false,
+          error: {
+            code: 'forbidden',
+            message: 'Session validation failed',
+          },
+        };
+      case 'no_session':
+        monitoring.logger.error('OIDC authentication attempted but no session was found');
 
-    return {
-      success: false,
-      error: {
-        code: 'unauthorized',
-        message: 'Authentication required but no header found',
-      },
-    };
+        return {
+          success: false,
+          error: {
+            code: 'unauthorized',
+            message: 'No session',
+          },
+        };
+
+      default:
+        exhaustiveCheck(sessionResult.error.code);
+    }
   }
 
-  const [headerName] = other;
+  if (!sessionResult.data.auth) {
+    if (sessionResult.data.codeVerifier) {
+      monitoring.logger.error(
+        'OIDC authentication attempted but an incomplete session was provided: Waiting for resolution',
+      );
 
-  const [authType, token] = authHeaderValue.trim().split(/\s+/);
-  if (authType.toLowerCase() !== 'bearer') {
-    monitoring.logger.info('OIDC authentication attempted but an invalid header was provided', {
-      errorMessage: `Invalid OIDC authorization header: ${headerName}`,
-    });
+      return {
+        success: false,
+        error: {
+          code: 'pending',
+          message: 'Session validation failed due to a pending login',
+        },
+      };
+    } else {
+      monitoring.logger.error('OIDC authentication attempted but an empty session was provided');
 
-    return {
-      success: false,
-      error: {
-        code: 'unauthorized',
-        message: 'OIDC authentication attempted but an invalid header was provided',
-      },
-    };
+      return {
+        success: false,
+        error: {
+          code: 'forbidden',
+          message: 'Session validation failed due to incomplete login',
+        },
+      };
+    }
   }
 
-  const validatedTokenResult = await validateWorkRoomToken(
-    {
-      configuration,
-      getACEUser,
-      permissions,
-    },
-    {
-      tenantId: configuration.tenant.tenantId,
-      encodedToken: token,
-    },
-  );
+  const authPayload = sessionResult.data.auth;
 
-  if (!validatedTokenResult.success) {
-    monitoring.logger.error('Failed to validate OIDC token', {
-      errorName: validatedTokenResult.error.code,
-      errorMessage: validatedTokenResult.error.message,
-    });
-
+  // Validate token validity
+  const validityResult = await authManager.validateTokens({ tokens: authPayload.tokens });
+  if (!validityResult.success) {
     return {
       success: false,
       error: {
-        code: 'forbidden',
-        message: `OIDC token validation failed: ${validatedTokenResult.error.message}`,
+        code: 'expired',
+        message: `Tokens are invalid: ${validityResult.error.message}`,
       },
     };
   }
@@ -206,7 +185,95 @@ export const extractOIDCUserIdentity = async ({
   return {
     success: true,
     data: {
-      userId: validatedTokenResult.data.userId,
+      userId: sessionResult.data.auth.tokens.userId,
+    },
+  };
+};
+
+export const refreshOIDCToken = async ({
+  authManager,
+  monitoring,
+  req,
+  sessionManager,
+}: {
+  authManager: AuthManager;
+  monitoring: MonitoringContext;
+  req: ExpressRequest;
+  sessionManager: SessionManager;
+}): Promise<Result<{ userId: string }>> => {
+  const sessionResult = sessionManager.extractSessionFromRequest(req);
+  if (!sessionResult.success) {
+    monitoring.logger.error('Unable to handle expired tokens: Invalid session', {
+      errorName: sessionResult.error.code,
+      errorMessage: sessionResult.error.message,
+    });
+
+    await sessionManager.clearSessionForRequest(req);
+
+    return {
+      success: false,
+      error: {
+        code: 'invalid_session',
+        message: `Invalid session: ${sessionResult.error.message}`,
+      },
+    };
+  } else if (!sessionResult.data.auth) {
+    monitoring.logger.error('Unable to handle expired tokens: No tokens currently present in session');
+
+    await sessionManager.clearSessionForRequest(req);
+
+    return {
+      success: false,
+      error: {
+        code: 'invalid_session',
+        message: 'Invalid session: No tokens found in session',
+      },
+    };
+  }
+
+  const authPayload = sessionResult.data.auth;
+
+  monitoring.logger.info('Refreshing user tokens');
+  const tokensResult = await authManager.refreshSemaphore.use(authPayload.tokens.refreshToken ?? '-', async () => {
+    const refreshResult = await authManager.refreshTokens({ tokens: authPayload.tokens });
+    if (!refreshResult.success) {
+      monitoring.logger.error('Unable to handle expired tokens: Token refresh failed', {
+        errorName: refreshResult.error.code,
+        errorMessage: refreshResult.error.message,
+      });
+
+      await sessionManager.clearSessionForRequest(req);
+
+      return {
+        success: false,
+        error: {
+          code: 'token_refresh_failed',
+          message: `Token refresh failed: ${refreshResult.error.message}`,
+        },
+      };
+    }
+
+    await sessionManager.setSessionOnRequest(req, {
+      auth: {
+        tokens: refreshResult.data,
+        type: 'oidc',
+      },
+    });
+
+    return {
+      success: true,
+      data: refreshResult.data,
+    };
+  });
+
+  if (!tokensResult.success) {
+    return tokensResult;
+  }
+
+  return {
+    success: true,
+    data: {
+      userId: tokensResult.data.userId,
     },
   };
 };

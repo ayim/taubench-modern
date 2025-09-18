@@ -1,5 +1,5 @@
 {
-  "name": "workroom-frontend",
+  "name": "@sema4ai/workroom-frontend",
   "private": true,
   "description": "Workroom frontend",
   "version": "1.0.0",

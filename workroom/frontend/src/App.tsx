@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ThemeProvider } from '@sema4ai/theme';
-import { Snackbar, useLocalStorage, ViewportProvider } from '@sema4ai/components';
+import { Box, Button, EmptyState, Snackbar, useLocalStorage, ViewportProvider } from '@sema4ai/components';
 import { ConfirmationDialogProvider } from '@sema4ai/layouts';
 
 import { RouterProvider } from './components/providers/Router';
@@ -9,8 +9,14 @@ import { AuthProvider } from './components/providers/AuthProvider';
 import { UIStateContext } from './components/providers/Theme';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ACE_WORKROOM_VERSION } from './version';
+import { resolveWorkroomURL } from './lib/utils';
+import errorIllustration from '~/assets/error.svg';
 
 export const App = () => {
+  useEffect(() => {
+    console.log(`ACE workroom ${ACE_WORKROOM_VERSION}`);
+  }, []);
+
   const { storageValue: currentTheme, setStorageValue: setTheme } = useLocalStorage<'dark' | 'light'>({
     key: 'theme',
     defaultValue: 'light',
@@ -28,7 +34,30 @@ export const App = () => {
     [currentTheme, setTheme, sidebarExpanded, setSidebarExpanded],
   );
 
-  console.log(`ACE workroom ${ACE_WORKROOM_VERSION}`);
+  const loginUrl = useMemo(() => resolveWorkroomURL('/home'), []);
+
+  // @TODO: Remove this hack - this logged-out page needs to run OUTSIDE the current auth logic,
+  // as it cannot have any requests hitting the backend (besides /meta for example).
+  if (/\/logged-out/.test(window.location.href)) {
+    return (
+      <ThemeProvider name={currentTheme}>
+        <Box display="flex" justifyContent="center" flexDirection="column" maxHeight={960} height="calc(100% - 72px)">
+          <EmptyState
+            illustration={<img src={errorIllustration} loading="lazy" alt="" />}
+            title="Logged Out"
+            description="You're logged out! Please do feel free to log in again, however."
+            action={
+              <a href={loginUrl}>
+                <Button forwardedAs="span" round>
+                  Log In
+                </Button>
+              </a>
+            }
+          />
+        </Box>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider name={currentTheme}>

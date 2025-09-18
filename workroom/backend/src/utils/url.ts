@@ -23,8 +23,8 @@ export const extractRequestPathAttributes = (
   };
 };
 
-export function joinUrl(url: string, path: string): string {
-  const urlObj = new URL(url);
-  urlObj.pathname = posix.join(urlObj.pathname, path);
+export const joinUrl = (baseUrl: string, ...parts: Array<string>): string => {
+  const urlObj = new URL(baseUrl);
+  urlObj.pathname = posix.join(urlObj.pathname, ...parts);
   return urlObj.toString();
-}
+};

@@ -5,8 +5,7 @@ export type WorkroomMeta = operations['getWorkroomMeta']['responses']['200']['co
 
 export interface Configuration {
   agentServerInternalUrl: string;
-  controlPlaneUrl: string | null;
-  dataServer: { mode: 'disabled' } | { mode: 'cloud' } | { mode: 'local'; configurationFilePath: string };
+  allowInsecureRequests: boolean;
   auth: {
     tokenIssuer: string;
   } & (
@@ -27,11 +26,26 @@ export interface Configuration {
         tokenIssuers: Array<string>;
         type: 'sema4-oidc-sso';
       }
+    | {
+        clientId: string;
+        clientSecret: string;
+        jwtPrivateKeyB64: string;
+        oidcServer: string;
+        type: 'oidc';
+      }
   );
+  dataServer:
+    | { mode: 'disabled' }
+    | { mode: 'cloud'; controlPlaneUrl: string }
+    | { mode: 'local'; configurationFilePath: string };
   frontendMode: 'disk' | 'middleware';
   legacyRoutingUrl: string | null;
   metaUrl: string | null;
   port: number;
+  session: {
+    cookieMaxAgeMs: number;
+    secret: string;
+  } | null;
   tenant: {
     tenantId: string;
     tenantName: string;
@@ -59,9 +73,6 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const agentServerInternalUrl = parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_URL');
-  const controlPlaneUrl: Configuration['controlPlaneUrl'] = process.env.SEMA4AI_WORKROOM_CONTROL_PLANE_URL
-    ? parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL')
-    : null;
 
   const dataServer = ((): Configuration['dataServer'] => {
     const dataServerConfigurationPath: string | null = process.env.SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH
@@ -75,8 +86,9 @@ export const getConfiguration = (): Configuration => {
       };
     }
 
-    if (controlPlaneUrl) {
+    if (process.env.SEMA4AI_WORKROOM_CONTROL_PLANE_URL) {
       return {
+        controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
         mode: 'cloud',
       };
     }
@@ -87,7 +99,7 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const auth = ((): Configuration['auth'] => {
-    const mode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE');
+    const mode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
     const tokenIssuer = process.env.SEMA4AI_WORKROOM_AGENT_SERVER_TOKEN_ISSUER
       ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_TOKEN_ISSUER')
       : 'spar';
@@ -119,14 +131,47 @@ export const getConfiguration = (): Configuration => {
             .filter((issuer) => issuer.trim() !== ''),
           type: 'sema4-oidc-sso',
         };
+      case 'oidc': {
+        const oidcServer = parseEnvVariable('SEMA4AI_WORKROOM_OIDC_SERVER');
+
+        return {
+          clientId: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_ID'),
+          clientSecret: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET'),
+          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
+          oidcServer,
+          tokenIssuer,
+          type: 'oidc',
+        };
+      }
 
       default:
-        throw new Error(`Unsupported auth mode: ${mode}`);
+        exhaustiveCheck(mode);
     }
   })();
 
   const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
   const tenantId = process.env.SEMA4AI_TENANT_ID ? parseEnvVariable('SEMA4AI_TENANT_ID') : null;
+
+  const session = ((): Configuration['session'] => {
+    const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
+
+    switch (authMode) {
+      case 'oidc':
+        return {
+          cookieMaxAgeMs: 24 * 60 * 60 * 1000, // 1 day
+          secret: parseEnvVariable('SEMA4AI_WORKROOM_SESSION_SECRET'),
+        };
+
+      case 'none':
+      case 'google':
+      case 'snowflake':
+      case 'sema4-oidc-sso':
+        return null;
+
+      default:
+        exhaustiveCheck(authMode);
+    }
+  })();
 
   const tenant = ((): Configuration['tenant'] => {
     const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
@@ -142,6 +187,7 @@ export const getConfiguration = (): Configuration => {
         };
       }
 
+      case 'oidc':
       case 'google':
       case 'none':
         return {
@@ -174,13 +220,14 @@ export const getConfiguration = (): Configuration => {
 
   return {
     agentServerInternalUrl,
-    controlPlaneUrl,
+    allowInsecureRequests: nodeEnv === 'development',
     auth,
     dataServer,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
     legacyRoutingUrl,
     metaUrl,
     port,
+    session,
     tenant,
     userIdentity: {
       cacheTTL: 30 * 1000, // 30 seconds

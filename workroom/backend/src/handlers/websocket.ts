@@ -4,10 +4,11 @@ import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import { WebSocket, WebSocketServer } from 'ws';
 import { parseAgentRequest } from '../api/parsers.js';
 import { getRouteBehaviour } from '../api/routing.js';
-import type { GetACEUser } from '../auth/oidc.js';
+import type { AuthManager } from '../auth/AuthManager.js';
 import type { Configuration } from '../configuration.js';
 import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import type { MonitoringContext } from '../monitoring/index.js';
+import type { SessionManager } from '../session/SessionManager.js';
 import { extractHeadersFromRequest, NO_PROXY_HEADERS, NO_PROXY_WEBSOCKET_HEADERS } from '../utils/request.js';
 import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
 
@@ -15,16 +16,18 @@ import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
  * Start websocket proxying
  */
 export const initializeWebSocketProxying = ({
+  authManager,
   configuration,
-  getACEUser,
   monitoring,
   rewriteAgentServerPath,
+  sessionManager,
   targetBaseUrl,
 }: {
+  authManager: AuthManager;
   configuration: Configuration;
-  getACEUser: GetACEUser;
   monitoring: MonitoringContext;
   rewriteAgentServerPath: (currentPath: string) => string;
+  sessionManager: SessionManager;
   targetBaseUrl: string;
 }) => {
   const webSocketServer = new WebSocketServer({
@@ -129,11 +132,12 @@ export const initializeWebSocketProxying = ({
 
     if (configuration.auth.type !== 'none') {
       const userIdentityResult = await extractAuthenticatedUserIdentity({
+        authManager,
         configuration,
-        getACEUser,
         headers: extractHeadersFromRequest(req.headers),
         monitoring,
         permissions: [],
+        sessionManager,
       });
 
       if (!userIdentityResult.success) {
@@ -147,6 +151,8 @@ export const initializeWebSocketProxying = ({
         switch (userIdentityResult.error.code) {
           case 'unauthorized':
             return unauthorizedAccess();
+          case 'pending':
+          case 'expired': // Should never get here
           case 'forbidden':
             return forbiddenAccess();
           case 'misconfigured':

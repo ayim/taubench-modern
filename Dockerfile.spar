@@ -55,8 +55,8 @@ COPY workroom .
 # Use the turbo version declared in Workroom's package.json to prune the workspace
 RUN turbo_version="$(node -p 'require("./package.json").devDependencies.turbo')" \
     && npx "turbo@${turbo_version}" prune --docker --skip-infer \
-        workroom-frontend \
-        workroom-backend \
+        @sema4ai/workroom-frontend \
+        @sema4ai/workroom-backend \
         ;
 
 ### [ Build Workroom Frontend & Backend ] ##########################################################
@@ -71,7 +71,7 @@ RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc \
 
 COPY --from=workroom-pruner /build/out/full/ .
 
-RUN npx turbo build --filter=workroom-frontend --filter=workroom-backend
+RUN npx turbo build --filter=@sema4ai/workroom-frontend --filter=@sema4ai/workroom-backend
 
 # [ Final SPAR image ] #############################################################################
 FROM node-base

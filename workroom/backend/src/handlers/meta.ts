@@ -21,10 +21,16 @@ export const createGetMeta =
       })(req, res);
     }
 
-    res.json({
+    const meta: Record<string, string> = {
       deploymentType: 'spar',
       workroomTenantListUrl: `/tenants/${configuration.tenant.tenantId}/tenants-list`,
-    });
+    };
+
+    if (configuration.session) {
+      meta.auth = 'session';
+    }
+
+    res.json(meta);
   };
 
 export const createGetSparTenantsList =

@@ -2,6 +2,7 @@ import TTLCache from '@isaacs/ttlcache';
 import { expectedValue, getTokenVerifier, keyPairHelpers } from '@sema4ai/robocloud-auth-utils';
 import { SignInterface, type WorkRoomV1 } from '@sema4ai/robocloud-sign-interface';
 import type { Configuration } from '../configuration.js';
+import type { AuthManager } from './AuthManager.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { formatZodError } from '../utils/error.js';
 import type { Result } from '../utils/result.js';
@@ -9,11 +10,7 @@ import { ControlPlaneUserResponse } from '../utils/schemas.js';
 import { joinUrl } from '../utils/url.js';
 
 // #region Interfaces
-const ACE_USER_ID_REF_TYPE = Symbol('ace-user-id');
-
-export type ACEUserId = string & Record<typeof ACE_USER_ID_REF_TYPE, never>;
-
-type UserFrom =
+export type UserFrom =
   | {
       type: 'identities';
       value: { type: 'sema4_sso' | 'email' | 'microsoft_oid' | 'slack_user_id'; value: string }[];
@@ -23,8 +20,7 @@ type UserFrom =
       value: string;
     };
 
-export type ACEUserResult = Result<{ userId: ACEUserId }>;
-export type GetACEUser = (userFrom: UserFrom) => Promise<ACEUserResult>;
+export type GetACEUser = (userFrom: UserFrom) => Promise<Result<{ userId: string }>>;
 
 export type WorkroomUser = WorkRoomV1;
 export type Permission = WorkRoomV1['capabilities']['byTenantId'][string][number];
@@ -54,13 +50,13 @@ export const createGetACEUser = ({
 }): {
   getACEUser: GetACEUser;
 } => {
-  const cachedUser = new TTLCache<IdentityHashCacheKey, { userId: ACEUserId }>({
+  const cachedUser = new TTLCache<IdentityHashCacheKey, { userId: string }>({
     ttl: configuration.userIdentity.cacheTTL,
     max: 1000,
   });
 
   return {
-    getACEUser: async (userFrom): Promise<ACEUserResult> => {
+    getACEUser: async (userFrom): Promise<Result<{ userId: string }>> => {
       if (configuration.auth.type !== 'sema4-oidc-sso') {
         return {
           success: false,
@@ -75,7 +71,7 @@ export const createGetACEUser = ({
         return {
           success: true,
           data: {
-            userId: userFrom.value as ACEUserId,
+            userId: userFrom.value,
           },
         };
       }
@@ -164,7 +160,7 @@ export const createGetACEUser = ({
         };
       }
 
-      const userId = userResult.data.userId as ACEUserId;
+      const userId = userResult.data.userId;
 
       cachedUser.set(userIdentityCacheKey, { userId });
 
@@ -180,14 +176,14 @@ export const createGetACEUser = ({
 
 export const validateWorkRoomToken = async (
   {
+    authManager,
     configuration,
-    getACEUser,
     permissions,
-  }: { configuration: Configuration; permissions: Array<Permission>; getACEUser: GetACEUser },
+  }: { authManager: AuthManager; configuration: Configuration; permissions: Array<Permission> },
   { encodedToken, tenantId }: { encodedToken: string; tenantId: string },
 ): Promise<
   Result<{
-    userId: ACEUserId;
+    userId: string;
     verifiedToken: string;
     capabilities: WorkroomUser['capabilities'];
   }>
@@ -240,7 +236,7 @@ export const validateWorkRoomToken = async (
     };
   }
 
-  const aceUserResult = await getACEUser({
+  const aceUserResult = await authManager.resolveUserId({
     type: 'identities',
     value: verifyTokenResult.payload.scope.details.identities,
   });
@@ -255,7 +251,7 @@ export const validateWorkRoomToken = async (
   return {
     success: true,
     data: {
-      userId: aceUserResult.data.userId,
+      userId: aceUserResult.data,
       verifiedToken: encodedToken,
       capabilities: verifyTokenResult.payload.capabilities,
     },
