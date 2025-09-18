@@ -15,6 +15,7 @@ import { createOIDCCallbackHandler } from './handlers/oidc.js';
 import { createAssetServe, createIndexServe, initializeFrontendPlaceholders } from './handlers/static.js';
 import { initializeWebSocketProxying } from './handlers/websocket.js';
 import { createGetWorkroomMeta } from './handlers/workroom.js';
+import type { ErrorResponse } from './interfaces.js';
 import { createAuthMiddleware, createIndexAuthMiddleware } from './middleware/auth/index.js';
 import { badPlatform } from './middleware/badRoute.js';
 import { createRequestLogger } from './middleware/logging.js';
@@ -352,7 +353,9 @@ export const createApplication = async ({
       requestUrl: req.originalUrl,
     });
 
-    res.status(500).send('Internal server error');
+    res
+      .status(500)
+      .json({ error: { code: 'internal_error', message: 'Internal server error' } } satisfies ErrorResponse);
   });
 
   return {

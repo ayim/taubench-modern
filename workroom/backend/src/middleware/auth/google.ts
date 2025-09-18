@@ -1,5 +1,5 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
-import type { ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
+import type { ErrorResponse, ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
@@ -41,7 +41,9 @@ export const handleGoogleAuthCheck = async ({
   if (!userIdentityResult.success) {
     switch (userIdentityResult.error.code) {
       case 'unauthorized':
-        return res.status(401).send('Unauthorized');
+        return res
+          .status(401)
+          .json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
 
       default:
         exhaustiveCheck(userIdentityResult.error.code);

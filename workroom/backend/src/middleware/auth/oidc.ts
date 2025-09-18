@@ -1,6 +1,6 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { AuthManager } from '../../auth/AuthManager.js';
-import type { ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
+import type { ErrorResponse, ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/SessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
@@ -61,10 +61,12 @@ export const handleOIDCAuthCheck = async ({
     switch (userIdentityResult.error.code) {
       case 'unauthorized':
         await sessionManager.clearSessionForRequest(req);
-        return res.status(401).send('Unauthorized');
+        return res
+          .status(401)
+          .json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
       case 'forbidden':
         await sessionManager.clearSessionForRequest(req);
-        return res.status(403).send('Forbidden');
+        return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
       case 'pending':
         return res.status(409).send('Conflict: Wait for auth');
       case 'expired': {
@@ -81,7 +83,9 @@ export const handleOIDCAuthCheck = async ({
           // Monitoring logs already emitted
           await sessionManager.clearSessionForRequest(req);
 
-          return res.status(401).send('Unauthorized');
+          return res
+            .status(401)
+            .json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
         }
 
         res.locals.authSub = refreshResult.data.userId;

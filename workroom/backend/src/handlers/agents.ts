@@ -3,7 +3,7 @@ import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import { parseAgentRequest } from '../api/parsers.js';
 import { getRouteBehaviour } from '../api/routing.js';
 import type { Configuration } from '../configuration.js';
-import { type ExpressRequest, type ExpressResponse } from '../interfaces.js';
+import { type ErrorResponse, type ExpressRequest, type ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { NO_PROXY_HEADERS } from '../utils/request.js';
 import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
@@ -94,7 +94,9 @@ export const createProxyHandler =
           requestUrl: requestPathWithQueryStringParameters,
         });
 
-        return res.status(404).send('Not found');
+        return res
+          .status(404)
+          .json({ error: { code: 'not_found', message: 'Missing agent workroom route' } } satisfies ErrorResponse);
       }
 
       const routeBehaviour = getRouteBehaviour({
@@ -110,7 +112,9 @@ export const createProxyHandler =
           requestUrl: requestPathWithQueryStringParameters,
         });
 
-        return res.status(404).send('Not found');
+        return res
+          .status(404)
+          .json({ error: { code: 'not_found', message: 'Missing or route not allowed' } } satisfies ErrorResponse);
       }
 
       const signResult = await routeBehaviour.signAgentToken();
@@ -123,10 +127,12 @@ export const createProxyHandler =
 
         switch (signResult.error.code) {
           case 'invalid_signing_result':
-            return res.status(403).send('Forbidden');
+            return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
           case 'invalid_signing_auth_configuration':
           case 'signing_failed':
-            return res.status(500).send('Internal server error');
+            return res
+              .status(500)
+              .json({ error: { code: 'internal_error', message: 'Internal server error' } } satisfies ErrorResponse);
 
           default:
             exhaustiveCheck(signResult.error);

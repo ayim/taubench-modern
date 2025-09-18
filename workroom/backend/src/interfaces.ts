@@ -1,9 +1,14 @@
+import type { ErrorResponse as WorkRoomErrorResponse } from '@sema4ai/workroom-interface';
 import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 
 export type ExpressNextFunction = NextFunction;
 
 export type ExpressRequest = Request;
+
+// SPAR UI expects all endpoints to follow the same shape, inherited from the "workroom interface"
+// Because some of the error responses are still handled on ACE / SPCS side (routers), we ensure that all share the same error shape
+export type ErrorResponse = WorkRoomErrorResponse;
 
 interface ExpressResponseLocals {
   authSub?: string;

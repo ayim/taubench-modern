@@ -4,7 +4,12 @@ import { getRouteBehaviour } from '../../api/routing.js';
 import type { AuthManager } from '../../auth/AuthManager.js';
 import { validateWorkRoomToken, type Permission } from '../../auth/sema4OIDC.js';
 import type { Configuration } from '../../configuration.js';
-import { type ExpressNextFunction, type ExpressRequest, type ExpressResponse } from '../../interfaces.js';
+import {
+  type ErrorResponse,
+  type ExpressNextFunction,
+  type ExpressRequest,
+  type ExpressResponse,
+} from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
@@ -42,7 +47,7 @@ export const handleSema4OIDCAuthCheck = async ({
       requestUrl: req.originalUrl,
     });
 
-    return res.status(401).send('Unauthorized');
+    return res.status(401).json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
   }
 
   const permissions: Array<Permission> | null = (() => {
@@ -88,7 +93,7 @@ export const handleSema4OIDCAuthCheck = async ({
   })();
 
   if (permissions === null) {
-    return res.status(401).send('Unauthorized');
+    return res.status(401).json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
   }
 
   const userIdentityResult = await extractSema4OIDCUserIdentity({
@@ -102,9 +107,11 @@ export const handleSema4OIDCAuthCheck = async ({
   if (!userIdentityResult.success) {
     switch (userIdentityResult.error.code) {
       case 'unauthorized':
-        return res.status(401).send('Unauthorized');
+        return res
+          .status(401)
+          .json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
       case 'forbidden':
-        return res.status(403).send('Forbidden');
+        return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
 
       default:
         exhaustiveCheck(userIdentityResult.error);

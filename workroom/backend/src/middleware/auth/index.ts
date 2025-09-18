@@ -8,6 +8,7 @@ import { extractSnowflakeUserIdentity, handleSnowflakeAuthCheck } from './snowfl
 import type { AuthManager } from '../../auth/AuthManager.js';
 import type { Permission } from '../../auth/sema4OIDC.js';
 import type { Configuration } from '../../configuration.js';
+import type { ErrorResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/SessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
@@ -85,7 +86,7 @@ export const createIndexAuthMiddleware =
     switch (authResult.error.code) {
       case 'forbidden':
         await sessionManager.clearSessionForRequest(req);
-        return res.status(403).send('Forbidden');
+        return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
       case 'unauthorized': {
         const origin = `${req.protocol}://${req.get('host')}`;
         monitoring.logger.info('Generating redirect for origin', {
@@ -99,7 +100,9 @@ export const createIndexAuthMiddleware =
             errorMessage: loginUrlResult.error.message,
           });
 
-          return res.status(500).send('Internal server error');
+          return res
+            .status(500)
+            .json({ error: { code: 'internal_error', message: 'Internal server error' } } satisfies ErrorResponse);
         }
 
         await sessionManager.setSessionOnRequest(req, {
@@ -111,7 +114,9 @@ export const createIndexAuthMiddleware =
       case 'pending': {
         monitoring.logger.error('Login is pending');
 
-        return res.status(500).send('Internal server error');
+        return res
+          .status(500)
+          .json({ error: { code: 'internal_error', message: 'Internal server error' } } satisfies ErrorResponse);
       }
       case 'expired': {
         monitoring.logger.info('OIDC access token expired');
@@ -125,7 +130,9 @@ export const createIndexAuthMiddleware =
 
         if (!refreshResult.success) {
           // Monitoring logs already emitted
-          return res.status(500).send('Internal server error');
+          return res
+            .status(500)
+            .json({ error: { code: 'internal_error', message: 'Internal server error' } } satisfies ErrorResponse);
         }
 
         return res.redirect(307, req.originalUrl);

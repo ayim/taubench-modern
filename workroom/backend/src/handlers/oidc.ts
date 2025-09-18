@@ -1,7 +1,7 @@
 import z from 'zod';
 import type { AuthManager } from '../auth/AuthManager.js';
 import type { Configuration } from '../configuration.js';
-import type { ExpressRequest, ExpressResponse } from '../interfaces.js';
+import type { ErrorResponse, ExpressRequest, ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/SessionManager.js';
 
@@ -21,7 +21,7 @@ export const createOIDCCallbackHandler =
     monitoring.logger.info('Login callback received');
 
     if (configuration.auth.type !== 'oidc') {
-      return res.status(404).send('Not found');
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } } satisfies ErrorResponse);
     }
 
     const queryResult = z
@@ -37,7 +37,9 @@ export const createOIDCCallbackHandler =
 
       await sessionManager.clearSessionForRequest(req);
 
-      return res.status(400).send('Bad request');
+      return res
+        .status(403)
+        .json({ error: { code: 'invalid_request', message: 'Bad Request' } } satisfies ErrorResponse);
     }
 
     const sessionData = sessionManager.extractSessionFromRequest(req);
@@ -47,12 +49,12 @@ export const createOIDCCallbackHandler =
         errorMessage: sessionData.error.message,
       });
 
-      return res.status(401).send('Unauthorized');
+      return res.status(401).json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
     }
     if (!sessionData.data.codeVerifier) {
       monitoring.logger.error('Bad OIDC callback: No code verifier found');
 
-      return res.status(403).send('Forbidden');
+      return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
     }
 
     const { codeVerifier } = sessionData.data;

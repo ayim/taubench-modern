@@ -4,7 +4,7 @@ import { createAgentSDK } from '@sema4ai/agent-server-interface';
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import { z } from 'zod';
 import type { Configuration } from '../configuration.js';
-import { type ExpressRequest, type ExpressResponse } from '../interfaces.js';
+import { type ErrorResponse, type ExpressRequest, type ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { Result } from '../utils/result.js';
 
@@ -298,8 +298,8 @@ export const createConfigureDocumentIntelligence =
         errorMessage: bodyParseResult.error.message,
       });
       return res.status(400).json({
-        error: { code: 'bad_request', message: `Failed to parse request body: ${bodyParseResult.error.message}` },
-      });
+        error: { code: 'invalid_request', message: `Failed to parse request body: ${bodyParseResult.error.message}` },
+      } satisfies ErrorResponse);
     }
 
     const { integrations, postgresConnectionUrl } = bodyParseResult.data;
@@ -311,10 +311,10 @@ export const createConfigureDocumentIntelligence =
       });
       return res.status(400).json({
         error: {
-          code: 'bad_request',
+          code: 'invalid_request',
           message: `Failed to parse postgres connection URL: ${postgresConnectionUrlParseResult.error.code}`,
         },
-      });
+      } satisfies ErrorResponse);
     }
     const postgresConfiguration = postgresConnectionUrlParseResult.data;
 

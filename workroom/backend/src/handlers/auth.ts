@@ -1,3 +1,4 @@
+import type { ErrorResponse } from '@sema4ai/workroom-interface';
 import type { AuthManager } from '../auth/AuthManager.js';
 import type { Configuration } from '../configuration.js';
 import type { ExpressRequest, ExpressResponse } from '../interfaces.js';
@@ -21,7 +22,9 @@ export const createLogoutHandler =
     if (!configuration.session) {
       monitoring.logger.error('Logout requested but sessions not configured');
 
-      return res.status(400).send('Bad Request');
+      return res
+        .status(403)
+        .json({ error: { code: 'invalid_request', message: 'Bad Request' } } satisfies ErrorResponse);
     }
 
     const loggedOutUrl = `${getRequestBaseUrl(req)}/tenants/${configuration.tenant.tenantId}/logged-out`;

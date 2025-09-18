@@ -1,5 +1,5 @@
 import type { Configuration } from '../configuration.js';
-import type { ExpressNextFunction, ExpressRequest, ExpressResponse } from '../interfaces.js';
+import type { ErrorResponse, ExpressNextFunction, ExpressRequest, ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { TenantRequestParameters } from '../utils/schemas.js';
 
@@ -12,7 +12,9 @@ export const createTenantExtractionMiddleware =
         error: tenantParametersResult.error,
       });
 
-      return res.status(400).send('Bad request');
+      return res
+        .status(403)
+        .json({ error: { code: 'invalid_request', message: 'Bad Request' } } satisfies ErrorResponse);
     }
 
     if (tenantParametersResult.data.tenantId !== configuration.tenant.tenantId) {
@@ -22,7 +24,7 @@ export const createTenantExtractionMiddleware =
         tenantId: tenantParametersResult.data.tenantId,
       });
 
-      return res.status(404).send('Not found');
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } } satisfies ErrorResponse);
     }
 
     res.locals.tenantId = tenantParametersResult.data.tenantId;
