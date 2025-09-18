@@ -194,7 +194,7 @@ To develop the Workroom application, you must have **NodeJS** and **NPM** instal
 You can run the full platform, without hot reloading, by running the following:
 
 ```shell
-COMPOSE_PROFILES=spar-no-auth docker compose up --build
+COMPOSE_PROFILES=spar-no-auth docker compose --env-file spar.env up --build
 ```
 
 This launches the base services as well as the SPAR module, which contains both workroom and agent server.
@@ -204,7 +204,7 @@ If you want **hot reloading** for workroom, you can run the following:
 _Terminal 1:_
 
 ```shell
-COMPOSE_PROFILES=agent-server-no-auth docker compose up --build
+COMPOSE_PROFILES=agent-server-no-auth docker compose --env-file spar.env up --build
 ```
 
 _Terminal 2:_
@@ -217,7 +217,7 @@ npm run dev
 And finally if you want to hot reload both workroom and agent server, just run the base docker stack in one terminal:
 
 ```shell
-docker compose up
+docker compose --env-file spar.env up
 ```
 
 And the other hot reloading commands in separate terminals.
@@ -249,7 +249,7 @@ Networking and other issues:
 ```sh
 docker compose down --remove-orphans
 docker network prune
-COMPOSE_PROFILES=spar-no-auth docker compose up --build --force-recreate
+COMPOSE_PROFILES=spar-no-auth docker compose --env-file spar.env up --build --force-recreate
 ```
 
 > [!TIP]

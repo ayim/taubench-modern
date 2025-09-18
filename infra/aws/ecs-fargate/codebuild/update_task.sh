@@ -7,7 +7,7 @@ task_definition_template="${script_dir}/template.ecs-task-def.json"
 repo_root="$(git rev-parse --show-toplevel)"
 
 # shellcheck disable=SC1091
-source "${repo_root}/.env"
+source "${repo_root}/spar.env"
 
 # These (required) variables are injected by CodeBuild
 # The variables are either carried from Terraform, or supplied when starting the build
