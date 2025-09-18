@@ -3,4 +3,4 @@ version: 0.2
 phases:
   build:
     commands:
-      - infra/aws-ecs-fargate/codebuild/update_task.sh
+      - infra/aws/ecs-fargate/codebuild/update_task.sh
