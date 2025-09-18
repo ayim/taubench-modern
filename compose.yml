@@ -73,7 +73,8 @@ services:
         restart: unless-stopped
 
     data-server:
-        image: 'ghcr.io/sema4ai/data-server:1.1.15_efa662b.20250826t085307z'
+        # Note: DATA_SERVER_TAG is defined in /.env
+        image: ghcr.io/sema4ai/data-server:${DATA_SERVER_TAG}
         platform: linux/amd64
         environment:
             SKIP_CONFIGURATION: 'true'

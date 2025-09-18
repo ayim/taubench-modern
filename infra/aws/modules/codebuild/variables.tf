@@ -1,0 +1,38 @@
+variable "infra_name" {
+  type = string
+}
+
+variable "cluster_name" {
+  type = string
+}
+
+variable "allowed_github_subjects_write" {
+  description = "Github subjects that can update tasks. Example: repo:robocorp/action-compute-environment:*"
+  type        = set(string)
+  default     = []
+}
+
+variable "github_oidc_provider_arn" {
+  description = "Github OIDC provider ARN. Must match the provider installed on this account."
+  type        = string
+}
+
+variable "ecs_task_execution_role_arn" {
+  type = string
+}
+
+variable "alb_target_group_arn" {
+  type = string
+}
+
+variable "rds_credentials_secret_arn" {
+  type = string
+}
+
+variable "vpc_subnet_ids" {
+  type = set(string)
+}
+
+variable "alb_targets_security_group_id" {
+  type = string
+}

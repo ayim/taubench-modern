@@ -126,6 +126,7 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
+  const tenantId = process.env.SEMA4AI_TENANT_ID ? parseEnvVariable('SEMA4AI_TENANT_ID') : null;
 
   const tenant = ((): Configuration['tenant'] => {
     const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
@@ -144,7 +145,7 @@ export const getConfiguration = (): Configuration => {
       case 'google':
       case 'none':
         return {
-          tenantId: 'spar',
+          tenantId: tenantId ?? 'spar',
           tenantName: 'Team Edition',
         };
 

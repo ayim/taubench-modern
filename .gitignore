@@ -7,7 +7,6 @@
 
 # Uploads dir
 uploads/
-*.env
 agent-server.pid
 agent-server.lock
 agent-server-config.json
@@ -150,6 +149,7 @@ celerybeat.pid
 
 # Environments
 .env
+!/.env
 .venv
 env/
 venv/

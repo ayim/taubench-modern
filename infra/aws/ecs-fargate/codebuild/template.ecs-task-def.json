@@ -1,0 +1,113 @@
+{
+  "family": "${RELEASE_NAME}",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "4096",
+  "executionRoleArn": "${ECS_TASK_EXECUTION_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "psql-init",
+      "image": "${PSQL_IMAGE_REF}",
+      "cpu": 128,
+      "memory": 128,
+      "essential": false,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/${ECS_CLUSTER_NAME}/${RELEASE_NAME}",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "secrets": [
+        { "name": "PGHOST", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:host::" },
+        { "name": "PGPORT", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:port::" },
+        { "name": "PGUSER", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:username::" },
+        { "name": "PGPASSWORD", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:password::" }
+      ],
+      "command": [
+        "sh",
+        "-c",
+        "psql -d postgres -tc \"SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'\" | grep -q 1 || psql -d postgres -c \"CREATE DATABASE ${DB_NAME}\""
+      ]
+    },
+    {
+      "name": "spar",
+      "image": "${SPAR_IMAGE_REF}",
+      "cpu": 384,
+      "memory": 512,
+      "memoryReservation": 128,
+      "essential": true,
+      "dependsOn": [{ "containerName": "psql-init", "condition": "SUCCESS" }],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/${ECS_CLUSTER_NAME}/${RELEASE_NAME}",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "portMappings": [
+        { "containerPort": 8000, "protocol": "tcp" },
+        { "containerPort": 8001, "protocol": "tcp" }
+      ],
+      "secrets": [
+        { "name": "POSTGRES_HOST", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:host::" },
+        { "name": "POSTGRES_PORT", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:port::" },
+        { "name": "POSTGRES_USER", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:username::" },
+        { "name": "POSTGRES_PASSWORD", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:password::" }
+      ],
+      "environment": [
+        { "name": "AGENT_SERVER_PORT", "value": "8000" },
+        { "name": "LOG_LEVEL", "value": "DEBUG" },
+        { "name": "POSTGRES_DB", "value": "${DB_NAME}" },
+        { "name": "SEMA4AI_AGENT_SERVER_DB_TYPE", "value": "postgres" },
+        { "name": "SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "value": "true" },
+        { "name": "SEMA4AI_TENANT_ID", "value": "${RELEASE_NAME}" },
+        { "name": "SEMA4AI_WORKROOM_AGENT_SERVER_URL", "value": "http://localhost:8000" },
+        { "name": "SEMA4AI_WORKROOM_AUTH_MODE", "value": "none" },
+        { "name": "SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH", "value": "/app/data-server-config.json" },
+        { "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES", "value": "true" },
+        { "name": "SEMA4AI_WORKROOM_PORT", "value": "8001" }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -sf http://localhost:8001/ || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    },
+    {
+      "name": "data-server",
+      "image": "${DATA_SERVER_IMAGE_REF}",
+      "cpu": 512,
+      "memory": 3456,
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/${ECS_CLUSTER_NAME}/${RELEASE_NAME}",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "portMappings": [
+        { "containerPort": 47334, "protocol": "tcp" },
+        { "containerPort": 47335, "protocol": "tcp" }
+      ],
+      "environment": [{ "name": "SKIP_CONFIGURATION", "value": "true" }],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+bucket       = "terraform-states-account-017820691865"
+key          = "s4-team-edition/terraform.tfstate"
+region       = "ca-central-1"
+use_lockfile = true

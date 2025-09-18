@@ -6,11 +6,13 @@ on:
       # Workroom
       - 'workroom/**'
       # Shared
-      - '.github/workflows/spar-build.yml'
+      - '.github/workflows/spar-build.yaml'
       - 'Dockerfile.spar'
       - '.dockerignore'
       - 'scripts/spar-healthcheck.sh'
       - 'scripts/entrypoint-spar.sh'
+      - 'infra/aws-ecs-fargate/codebuild/**'
+      - '.env'
       # Agent Server
       - 'server/**'
       - 'core/**'
@@ -32,7 +34,7 @@ env:
   ECR_REGION: 'us-east-1'
   ECR_ACCOUNT: '024848458368' # releases-dev
   AWS_ROLE_ARN: 'arn:aws:iam::024848458368:role/github-action-for-ace-repositories-ci'
-  BRANCH_NAME: ${{ github.ref_name }}
+  BRANCH_NAME: '${{ github.head_ref || github.ref_name }}'
   RELEASE_CHANNEL: ${{ github.ref_name == 'main' && 'ci' || 'manual' }}
 
 jobs:
@@ -41,6 +43,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       tag: ${{ steps.build-metadata.outputs.tag }}
+      image-uri: ${{ steps.print-image-uri.outputs.image-uri }}
       ace-prerelease: ${{ steps.build-metadata.outputs.ace-prerelease }}
       invoked-by: ${{ steps.build-metadata.outputs.invoked-by }}
     steps:
@@ -59,7 +62,6 @@ jobs:
       - name: Generate build metadata
         id: build-metadata
         env:
-          BRANCH_NAME: '${{ github.head_ref || github.ref_name }}'
           VERSION: ${{ steps.fetch-version.outputs.version }}
         run: |
           spar_version="${VERSION}"
@@ -142,8 +144,8 @@ jobs:
           context: '.'
           push: true
           tags: '${{ env.repository }}:${{ env.tag }}'
-          cache-from: type=registry,ref=${{ env.cache-repository }}:build-cache
-          cache-to: type=registry,mode=max,image-manifest=true,oci-mediatypes=true,compression=zstd,compression-level=3,ref=${{ env.cache-repository }}:build-cache
+          cache-from: type=registry,ref=${{ env.cache-repository }}:build-cache,timeout=1m
+          cache-to: type=registry,mode=max,image-manifest=true,oci-mediatypes=true,compression=zstd,compression-level=3,ref=${{ env.cache-repository }}:build-cache,ignore-error=true,timeout=3m
           provenance: false
           secret-files: |
             "npmrc=./.npmrc"
@@ -165,19 +167,19 @@ jobs:
           exit 1
 
       - name: Print Docker image URI
+        id: print-image-uri
         if: success()
         env:
           IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar:${{ steps.build-metadata.outputs.tag }}'
         run: |
+          echo "image-uri=${IMAGE_URI}" >> "${GITHUB_OUTPUT}"
           echo "Docker image URI: ${IMAGE_URI}"
           echo "::notice::Successfully published ${IMAGE_URI}"
 
-  trigger-docker-build:
+  trigger-ace-publish:
     name: Trigger ACE Publish Workflow
     needs: [build]
     runs-on: ubuntu-24.04
-    env:
-      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     steps:
       - name: Trigger ACE Publish Workflow
         uses: actions/github-script@v7
@@ -196,3 +198,24 @@ jobs:
                 'invoked-by': '${{ needs.build.outputs.invoked-by }}'
               }
             })
+
+  deploy-to-ecs:
+    name: Deploy to ECS
+    needs: [build]
+    runs-on: ubuntu-24.04
+    if: github.ref_name == 'main'
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@a03048d87541d1d9fcf2ecf528a4a65ba9bd7838 # v5
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::017820691865:role/github-deployer-team-edition-1
+
+      - name: Run CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@4d15a47425739ac2296ba5e7eee3bdd4bfbdd767 # v1
+        env:
+          SPAR_IMAGE_REF: '${{ needs.build.outputs.image-uri }}'
+          RELEASE_NAME: main
+        with:
+          project-name: team-edition-deployer-team-edition-1
+          env-vars-for-codebuild: SPAR_IMAGE_REF,RELEASE_NAME
