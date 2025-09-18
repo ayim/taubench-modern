@@ -40,15 +40,10 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
-CITATION_CORRELATION_DOCS = """
+CITATION_CORRELATION_DOCS = """The citations included with results from this endpoint can be
+correlated to the schema fields based on their types.
 
-## Citation Correlation
-
-The citations included with results from this endpoint can be correlated to the schema
-fields based on their types.
-
-For schema fields defined as anything but `object` and `array`, the citation will be
-a list of citation objects with a shape like the following:
+Example citation for a simple field in an object:
 
 ```json
 {
@@ -85,17 +80,6 @@ a list of citation objects with a shape like the following:
 }
 ```
 
-For schema fields defined as `object` or `array`, the value of the key in the citation
-object will be similar to the defined type.
-
-That is, if the schema field is defined as `object`, the value of the key in the citation
-object will be an object with keys matching the keys in the nested object and lists of
-citations associated with each key.
-
-If the schema field is defined as `array` (of objects), the value of the key in the citation
-object will be an array where each element is an object with keys matching the keys in the
-nested objects and lists of citations associated with each key.
-
 Example extracted results for a schema field defined as `array` of objects:
 
 ```json
@@ -109,7 +93,7 @@ Example extracted results for a schema field defined as `array` of objects:
 }
 ```
 
-Example citation object:
+Corresponding citation object:
 
 ```json
 {
