@@ -150,7 +150,6 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
-  const tenantId = process.env.SEMA4AI_TENANT_ID ? parseEnvVariable('SEMA4AI_TENANT_ID') : null;
 
   const session = ((): Configuration['session'] => {
     const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
@@ -189,11 +188,14 @@ export const getConfiguration = (): Configuration => {
 
       case 'oidc':
       case 'google':
-      case 'none':
+      case 'none': {
+        const tenantId = parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID');
+
         return {
           tenantId: tenantId ?? 'spar',
           tenantName: 'Team Edition',
         };
+      }
 
       case 'sema4-oidc-sso': {
         const tenantId = parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID');

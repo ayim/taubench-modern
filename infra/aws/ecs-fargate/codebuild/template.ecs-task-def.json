@@ -80,7 +80,7 @@
         { "name": "POSTGRES_DB", "value": "${DB_NAME}" },
         { "name": "SEMA4AI_AGENT_SERVER_DB_TYPE", "value": "postgres" },
         { "name": "SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "value": "true" },
-        { "name": "SEMA4AI_TENANT_ID", "value": "${RELEASE_NAME}" },
+        { "name": "SEMA4AI_WORKROOM_TENANT_ID", "value": "${RELEASE_NAME}" },
         { "name": "SEMA4AI_WORKROOM_AGENT_SERVER_URL", "value": "http://localhost:8000" },
         { "name": "SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH", "value": "/app/data-server-config.json" },
         { "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES", "value": "true" },
