@@ -17,6 +17,7 @@ x-env-spar: &template-env-spar
     SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH: /app/data-server-config.json
     SEMA4AI_ENABLE_SPAR_ONLY_FEATURES: true
     SEMA4AI_WORKROOM_PORT: 8001
+    SEMA4AI_WORKROOM_TENANT_ID: spar
 
 x-service-spar: &template-service-spar
     build:
