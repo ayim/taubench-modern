@@ -81,6 +81,9 @@ async def _agent_thread_contents_to_prompt_contents(
             case ThreadTextContent() as text_content:
                 response_text += f"{text_content.text.strip()}\n"
             case ThreadToolUsageContent() as tool_usage_content:
+                tool_output = tool_usage_content.result or ""
+                if tool_usage_content.error:
+                    tool_output += f"\nError: {tool_usage_content.error}"
                 prompt_agent_contents.append(
                     PromptToolUseContent(
                         tool_call_id=tool_usage_content.tool_call_id,
@@ -94,7 +97,7 @@ async def _agent_thread_contents_to_prompt_contents(
                         tool_name=tool_usage_content.name,
                         content=[
                             PromptTextContent(
-                                text=tool_usage_content.result or "",
+                                text=tool_output,
                             ),
                         ],
                         is_error=tool_usage_content.status == "failed",

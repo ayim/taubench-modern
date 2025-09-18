@@ -333,7 +333,7 @@ def _build_post_async_function(
         }
 
         # Only add async headers if SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION is true
-        if os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "").lower() == "true":
+        if os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true").lower() == "true":
             # The timeout can be a float (like 0.1 seconds), so handle it properly
             timeout_seconds = os.getenv("ACTIONS_ASYNC_TIMEOUT", "20")
             headers.update(

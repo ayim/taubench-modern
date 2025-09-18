@@ -69,22 +69,6 @@ async def _agent_thread_contents_to_prompt_contents(
     prompt_agent_contents: list[AgentPromptMessageContent] = []
     prompt_user_contents: list[UserPromptMessageContent] = []
 
-    # TOOL LOOP MITIGATION
-    # If ever, in the same contents list, we see a duplicate of a tool (with the same result)
-    # then we'll drop this from the context
-    seen_tool_calls: set[tuple[str, str | None]] = set()
-    keep_indices: list[int] = []
-    for idx, content in enumerate(contents):
-        if isinstance(content, ThreadToolUsageContent):
-            if (f"{content.name}({content.arguments_raw})", content.result) in seen_tool_calls:
-                continue
-            seen_tool_calls.add((f"{content.name}({content.arguments_raw})", content.result))
-            keep_indices.append(idx)
-        else:
-            keep_indices.append(idx)
-
-    contents = [contents[i] for i in keep_indices]
-
     for content in contents:
         match content:
             case ThreadThoughtContent() as thought_content:
@@ -101,6 +85,9 @@ async def _agent_thread_contents_to_prompt_contents(
                         PromptTextContent(text=text_content.text),
                     )
             case ThreadToolUsageContent() as tool_usage_content:
+                tool_output = tool_usage_content.result or ""
+                if tool_usage_content.error:
+                    tool_output += f"\nError: {tool_usage_content.error}"
                 prompt_agent_contents.append(
                     PromptToolUseContent(
                         tool_call_id=tool_usage_content.tool_call_id,
@@ -114,7 +101,7 @@ async def _agent_thread_contents_to_prompt_contents(
                         tool_name=tool_usage_content.name,
                         content=[
                             PromptTextContent(
-                                text=tool_usage_content.result or "",
+                                text=tool_output,
                             ),
                         ],
                         is_error=tool_usage_content.status == "failed",

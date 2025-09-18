@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import asdict
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
@@ -121,6 +122,35 @@ async def test_result_with_error_handling(tools_interface: AgentServerToolsInter
     }
     assert result.definition == tool_def
     assert result.tool_call_id == "call_789"
+
+
+@pytest.mark.asyncio
+async def test_async_action_timeout_error_message(
+    tools_interface: AgentServerToolsInterface,
+):
+    """Ensure ReadTimeout exceptions surface a non-empty error message."""
+
+    async def timeout_tool(**kwargs):
+        raise httpx.ReadTimeout("")
+
+    tool_def = ToolDefinition(
+        name="timeout_tool",
+        description="A tool that raises a ReadTimeout",
+        input_schema={"type": "object", "properties": {}},
+        function=timeout_tool,
+    )
+
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_timeout",
+        tool_name="timeout_tool",
+        tool_input_raw="{}",
+    )
+
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
+
+    assert result.error
+    assert "ReadTimeout" in result.error
+    assert result.output_raw is None
 
 
 @pytest.mark.asyncio

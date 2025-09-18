@@ -111,7 +111,14 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     error_message = "Received a malformed result from the tool"
                     result_output = result
             except Exception as e:
-                error_message = str(e)
+                # httpx.ReadTimeout and similar exceptions stringify to an empty string,
+                # so provide a meaningful fallback description.
+                error_message = str(e).strip()
+                if not error_message:
+                    error_message = (
+                        "An error occurred while executing the tool: "
+                        f"{repr(e).strip() or e.__class__.__name__}"
+                    )
 
         if isinstance(result_output, dict):
             result_output = await self.kernel.data_frames.auto_create_data_frame(
