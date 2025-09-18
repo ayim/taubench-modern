@@ -8,6 +8,7 @@ from starlette.concurrency import run_in_threadpool
 
 from agent_platform.core.document_intelligence.data_models import (
     CreateDataModelRequest,
+    GenerateDescriptionResponse,
     UpdateDataModelRequest,
     model_to_spec_dict,
     summary_from_model,
@@ -183,3 +184,33 @@ async def generate_data_model_from_document(  # noqa: PLR0913
         return {
             "model_schema": schema,
         }
+
+
+@router.post("/data-models/generate-description")
+async def generate_data_model_description(
+    thread_id: str,
+    file_ref: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    agent_server_client: AgentServerClientDependency,
+) -> GenerateDescriptionResponse:
+    """Generate a data model description from a document."""
+    try:
+        thread = await storage.get_thread(user.user_id, thread_id)
+        if not thread:
+            raise PlatformHTTPError(ErrorCode.NOT_FOUND, f"Thread {thread_id} not found")
+        file = await storage.get_file_by_ref(thread, file_ref, user.user_id)
+        if not file:
+            raise PlatformHTTPError(ErrorCode.NOT_FOUND, f"File {file} not found")
+
+        response = await run_in_threadpool(
+            agent_server_client.summarize,
+            file.file_ref,
+        )
+        return GenerateDescriptionResponse.model_validate(response)
+    except PlatformHTTPError:
+        raise
+    except ValueError as e:
+        raise PlatformHTTPError(
+            ErrorCode.UNEXPECTED, f"Failed to generate data model description: {e!s}"
+        ) from e

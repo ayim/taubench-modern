@@ -179,3 +179,14 @@ class GenerateDataQualityChecksResponse:
     @classmethod
     def model_validate(cls, data: list[ValidationRule]) -> GenerateDataQualityChecksResponse:
         return cls(quality_checks=data)
+
+
+@dataclass(frozen=True)
+class GenerateDescriptionResponse:
+    """Response payload for generating a data model description."""
+
+    description: str
+
+    @classmethod
+    def model_validate(cls, data: str) -> GenerateDescriptionResponse:
+        return cls(description=data)

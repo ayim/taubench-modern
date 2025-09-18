@@ -1104,6 +1104,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/data-models/generate-description': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Data Model Description
+     * @description Generate a data model description from a document.
+     */
+    post: operations['generate_data_model_description_document_intelligence_data_models_generate_description_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/quality-checks/generate': {
     parameters: {
       query?: never;
@@ -3474,6 +3494,11 @@ export interface components {
     GenerateDataQualityChecksResponse: {
       /** Quality Checks */
       quality_checks: components['schemas']['ValidationRule'][];
+    };
+    /** GenerateDescriptionResponse */
+    GenerateDescriptionResponse: {
+      /** Description */
+      description: string;
     };
     /** GenerateLayoutResponsePayload */
     GenerateLayoutResponsePayload: {
@@ -9442,6 +9467,39 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  generate_data_model_description_document_intelligence_data_models_generate_description_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+        file_ref: string;
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GenerateDescriptionResponse'];
         };
       };
       /** @description Validation Error */

@@ -2922,6 +2922,54 @@
         }
       }
     },
+    "/document-intelligence/data-models/generate-description": {
+      "post": {
+        "tags": ["document-intelligence"],
+        "summary": "Generate Data Model Description",
+        "description": "Generate a data model description from a document.",
+        "operationId": "generate_data_model_description_document_intelligence_data_models_generate_description_post",
+        "parameters": [
+          {
+            "name": "thread_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Thread Id" }
+          },
+          {
+            "name": "file_ref",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "File Ref" }
+          },
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Agent Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateDescriptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/document-intelligence/quality-checks/generate": {
       "post": {
         "tags": ["document-intelligence"],
@@ -7170,6 +7218,14 @@
         "type": "object",
         "required": ["quality_checks"],
         "title": "GenerateDataQualityChecksResponse"
+      },
+      "GenerateDescriptionResponse": {
+        "properties": {
+          "description": { "type": "string", "title": "Description" }
+        },
+        "type": "object",
+        "required": ["description"],
+        "title": "GenerateDescriptionResponse"
       },
       "GenerateLayoutResponsePayload": {
         "properties": {

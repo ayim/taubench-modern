@@ -1239,6 +1239,90 @@ class TestDataModelEndpoints:
         instance = mocked_find_by_name.return_value
         instance.update.assert_called_once()
 
+    def test_generate_description_success(self, client: TestClient, fastapi_app: FastAPI):
+        storage_instance = StorageService.get_instance()
+
+        # Arrange: thread and stored file
+        thread = SimpleNamespace(id="t1")
+        stored_file = SimpleNamespace(file_ref="file-ref-123")
+
+        # Fake agent client that returns a description
+        fake_agent_client = Mock()
+        fake_agent_client.summarize = Mock(return_value="This is a generated description")
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_thread",
+                new=AsyncMock(return_value=thread),
+            ),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=stored_file),
+            ),
+        ):
+            # Override the agent client dependency
+            fastapi_app.dependency_overrides[get_agent_server_client] = (
+                lambda agent_id, request=None, thread_id=None: fake_agent_client
+            )
+
+            resp = client.post(
+                "/api/v2/document-intelligence/data-models/generate-description",
+                params={
+                    "thread_id": "t1",
+                    "file_ref": "file-ref-123",
+                    "agent_id": "agent-1",
+                },
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["description"] == "This is a generated description"
+        fake_agent_client.summarize.assert_called_once_with("file-ref-123")
+
+    def test_generate_description_unexpected_error(self, client: TestClient, fastapi_app: FastAPI):
+        storage_instance = StorageService.get_instance()
+
+        # Arrange: thread and stored file
+        thread = SimpleNamespace(id="t1")
+        stored_file = SimpleNamespace(file_ref="bad-file-ref")
+
+        # Fake agent client that raises a ValueError leading to 500
+        fake_agent_client = Mock()
+        fake_agent_client.summarize = Mock(side_effect=ValueError("boom"))
+
+        with (
+            patch.object(
+                storage_instance,
+                "get_thread",
+                new=AsyncMock(return_value=thread),
+            ),
+            patch.object(
+                storage_instance,
+                "get_file_by_ref",
+                new=AsyncMock(return_value=stored_file),
+            ),
+        ):
+            # Override the agent client dependency
+            fastapi_app.dependency_overrides[get_agent_server_client] = (
+                lambda agent_id, request=None, thread_id=None: fake_agent_client
+            )
+
+            resp = client.post(
+                "/api/v2/document-intelligence/data-models/generate-description",
+                params={
+                    "thread_id": "t1",
+                    "file_ref": "bad-file-ref",
+                    "agent_id": "agent-1",
+                },
+            )
+
+        assert resp.status_code == 500
+        err = resp.json()["error"]
+        assert err["code"] == ErrorCode.UNEXPECTED.value.code
+        assert "Failed to generate data model description" in err["message"]
+
     def test_delete_data_model_not_found(self, client: TestClient):
         storage_instance = StorageService.get_instance()
         valid_details = self._valid_details()
