@@ -78,7 +78,7 @@ resource "aws_codebuild_project" "deployer" {
     type            = "GITHUB"
     location        = "https://github.com/Sema4AI/agent-platform.git"
     git_clone_depth = 1
-    buildspec       = "infra/aws-ecs-fargate/codebuild/buildspec.yml"
+    buildspec       = "infra/aws/ecs-fargate/codebuild/buildspec.yml"
   }
 
   source_version = "master"

@@ -11,7 +11,7 @@ on:
       - '.dockerignore'
       - 'scripts/spar-healthcheck.sh'
       - 'scripts/entrypoint-spar.sh'
-      - 'infra/aws-ecs-fargate/codebuild/**'
+      - 'infra/aws/ecs-fargate/codebuild/**'
       - '.env'
       # Agent Server
       - 'server/**'
