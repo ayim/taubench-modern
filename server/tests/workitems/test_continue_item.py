@@ -83,7 +83,7 @@ class TestContinueWorkItem:
             agent_id="789",
             status=WorkItemStatus.NEEDS_REVIEW,  # NEEDS_REVIEW status can be continued
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         # Act: Make HTTP request to continue endpoint
         response = client.post(f"/work-items/{work_item.work_item_id}/continue")
@@ -106,7 +106,7 @@ class TestContinueWorkItem:
         error_data = response.json()
         assert "error" in error_data
 
-    def test_continue_invalid_transition(
+    async def test_continue_invalid_transition(
         self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test continuing a work item from an invalid status."""
@@ -118,7 +118,7 @@ class TestContinueWorkItem:
             agent_id="789",
             status=WorkItemStatus.EXECUTING,
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         # Act: Try to continue
         response = client.post(f"/work-items/{work_item.work_item_id}/continue")
@@ -141,7 +141,7 @@ class TestContinueWorkItem:
             agent_id="789",
             status=WorkItemStatus.NEEDS_REVIEW,
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         now = datetime.now(UTC)
 
@@ -174,7 +174,7 @@ class TestContinueWorkItem:
             agent_id="789",
             status=WorkItemStatus.INDETERMINATE,
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         # Act: Make HTTP request to continue endpoint
         response = client.post(f"/work-items/{work_item.work_item_id}/continue")
@@ -214,7 +214,7 @@ class TestContinueWorkItem:
             agent_id="789",
             status=valid_status,
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         # Act: Continue the work item
         response = client.post(f"/work-items/{work_item.work_item_id}/continue")
@@ -237,7 +237,7 @@ class TestContinueWorkItem:
             WorkItemStatus.CANCELLED,  # CANCELLED -> anything not allowed (terminal)
         ],
     )
-    def test_continue_invalid_transitions_comprehensive(
+    async def test_continue_invalid_transitions_comprehensive(
         self,
         client: TestClient,
         storage: MockStorage,
@@ -254,7 +254,7 @@ class TestContinueWorkItem:
             agent_id="789",
             status=invalid_status,
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         # Act: Try to continue
         response = client.post(f"/work-items/{work_item.work_item_id}/continue")

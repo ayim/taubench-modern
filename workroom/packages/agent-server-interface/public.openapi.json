@@ -464,6 +464,114 @@
         }
       }
     },
+    "/work-items": {
+      "post": {
+        "tags": ["work-items"],
+        "summary": "Create Work Item",
+        "operationId": "create_work_item_work_items_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateWorkItemPayload" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WorkItem" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["work-items"],
+        "summary": "List Work Items",
+        "operationId": "list_work_items_work_items_get",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "The ID of the agent to filter by",
+              "title": "Agent Id"
+            },
+            "description": "The ID of the agent to filter by"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "The maximum number of work items to return",
+              "default": 100,
+              "title": "Limit"
+            },
+            "description": "The maximum number of work items to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The offset to start from",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "The offset to start from"
+          },
+          {
+            "name": "created_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "The ID of the user who created the work items",
+              "title": "Created By"
+            },
+            "description": "The ID of the user who created the work items"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItemsListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/work-items/": {
       "post": {
         "tags": ["work-items"],

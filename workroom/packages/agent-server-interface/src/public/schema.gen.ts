@@ -131,6 +131,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/public/v1/work-items': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Work Items */
+    get: operations['list_work_items_work_items_get'];
+    put?: never;
+    /** Create Work Item */
+    post: operations['create_work_item_work_items_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/public/v1/work-items/': {
     parameters: {
       query?: never;
@@ -1547,6 +1565,77 @@ export interface operations {
       };
       /** @description Internal Server Error */
       500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_work_items_work_items_get: {
+    parameters: {
+      query?: {
+        /** @description The ID of the agent to filter by */
+        agent_id?: string | null;
+        /** @description The maximum number of work items to return */
+        limit?: number;
+        /** @description The offset to start from */
+        offset?: number;
+        /** @description The ID of the user who created the work items */
+        created_by?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItemsListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_work_item_work_items_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateWorkItemPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
         headers: {
           [name: string]: unknown;
         };

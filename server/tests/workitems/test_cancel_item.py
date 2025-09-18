@@ -56,7 +56,7 @@ class TestCancelItem:
         sample_work_item.status = status
 
         # Pre-populate the mock storage with the work item
-        mock_storage.create_work_item(sample_work_item)
+        await mock_storage.create_work_item(sample_work_item)
 
         result = await cancel_item(
             work_item_id=sample_work_item.work_item_id,
@@ -85,7 +85,7 @@ class TestCancelItem:
         sample_work_item.status = status
 
         # Pre-populate the mock storage with the work item
-        mock_storage.create_work_item(sample_work_item)
+        await mock_storage.create_work_item(sample_work_item)
 
         with pytest.raises(PlatformHTTPError) as exc_info:
             await cancel_item(

@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from agent_platform.core.agent.agent import Agent
 from agent_platform.core.user import User
 from agent_platform.core.work_items import (
     WorkItem,
@@ -16,6 +17,7 @@ class MockStorage:
     def __init__(self) -> None:
         self.work_items: dict[str, WorkItem] = {}
         self.users: dict[str, User] = {}
+        self.agents: dict[str, Agent] = {}
 
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
         """Get an existing user or create a new one."""
@@ -41,7 +43,8 @@ class MockStorage:
             raise WorkItemNotFoundError(work_item.work_item_id)
         self.work_items[work_item.work_item_id] = work_item
 
-    def create_work_item(self, work_item: WorkItem) -> None:
+    async def create_work_item(self, work_item: WorkItem) -> None:
+        # TODO add mock enforcements, e.g. agent exists
         self.work_items[work_item.work_item_id] = work_item
 
     def delete_work_item(self, work_item_id: str) -> None:
@@ -52,16 +55,21 @@ class MockStorage:
     async def get_work_items_by_ids(self, work_item_ids: list[str]) -> list[WorkItem]:
         return [await self.get_work_item(wid) for wid in work_item_ids]
 
-    def list_work_items(
+    async def list_work_items(
         self,
-        user_id: str,
         agent_id: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
         created_by: str | None = None,
     ) -> list[WorkItem]:
         candidates = list(self.work_items.values())
         if agent_id:
             candidates = [item for item in candidates if item.agent_id == agent_id]
-        return candidates
+        if created_by:
+            candidates = [item for item in candidates if item.created_by == created_by]
+
+        # Apply pagination
+        return candidates[offset : offset + limit]
 
     async def update_work_item_status(
         self,
@@ -86,3 +94,7 @@ class MockStorage:
         self.work_items[work_item_id].completed_by = completed_by
         self.work_items[work_item_id].status_updated_by = completed_by.as_status_updated_by()
         self.work_items[work_item_id].status_updated_at = datetime.now(UTC)
+
+    async def get_agent(self, user_id: str, agent_id: str) -> Agent | None:
+        """Get an agent by user_id and agent_id."""
+        return self.agents.get(agent_id)

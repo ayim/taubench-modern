@@ -86,7 +86,7 @@ class TestRestartWorkItem:
             agent_id="789",
             status=WorkItemStatus.ERROR,  # ERROR status can be restarted
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         # Act: Make HTTP request to restart endpoint
         response = client.post(f"/work-items/{work_item.work_item_id}/restart")
@@ -109,7 +109,7 @@ class TestRestartWorkItem:
         error_data = response.json()
         assert "error" in error_data
 
-    def test_restart_work_item_invalid_transition(
+    async def test_restart_work_item_invalid_transition(
         self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test restarting a work item from an invalid status."""
@@ -121,7 +121,7 @@ class TestRestartWorkItem:
             agent_id="789",
             status=WorkItemStatus.PENDING,
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         # Act: Try to restart
         response = client.post(f"/work-items/{work_item.work_item_id}/restart")
@@ -144,7 +144,7 @@ class TestRestartWorkItem:
             agent_id="789",
             status=WorkItemStatus.ERROR,  # ERROR status can be restarted
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         now = datetime.now(UTC)
 
@@ -190,7 +190,7 @@ class TestRestartWorkItem:
             messages=[initial_msg, agent_msg],
             payload={},
         )
-        storage.create_work_item(work_item)
+        await storage.create_work_item(work_item)
 
         # Act: Make HTTP request to restart endpoint
         response = client.post(f"/work-items/{work_item.work_item_id}/restart")

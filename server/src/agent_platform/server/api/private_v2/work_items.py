@@ -71,6 +71,7 @@ async def _validate_callbacks(callbacks: list[WorkItemCallback] | None) -> list[
 
 
 @router.post("/", response_model=WorkItem)
+@router.post("", response_model=WorkItem)
 async def create_work_item(
     payload: CreateWorkItemPayload,
     user: AuthedUser,
@@ -275,6 +276,7 @@ async def upload_work_item_file(
 
 
 @router.get("/", response_model=WorkItemsListResponse)
+@router.get("", response_model=WorkItemsListResponse)
 async def list_work_items(  # noqa: PLR0913
     user: AuthedUser,
     storage: StorageDependency,
