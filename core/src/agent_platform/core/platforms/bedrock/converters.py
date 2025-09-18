@@ -1,20 +1,20 @@
 import base64
 import re
 from io import BytesIO
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
 from agent_platform.core.platforms.bedrock.configs import (
     BedrockContentLimits,
     BedrockMimeTypeMap,
-    BedrockRoleMap,
 )
 from agent_platform.core.platforms.bedrock.prompts import BedrockPrompt
 from agent_platform.core.prompts import Prompt
 from agent_platform.core.prompts.content.audio import PromptAudioContent
 from agent_platform.core.prompts.content.document import PromptDocumentContent
 from agent_platform.core.prompts.content.image import PromptImageContent
+from agent_platform.core.prompts.content.reasoning import PromptReasoningContent
 from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
 from agent_platform.core.prompts.content.tool_use import PromptToolUseContent
@@ -386,6 +386,38 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         document_block = await self._convert_to_document_block(content)
         return ContentBlockTypeDef(document=document_block)
 
+    async def convert_reasoning_content(
+        self,
+        content: PromptReasoningContent,
+    ) -> "ContentBlockTypeDef":
+        """Converts reasoning content to Bedrock format."""
+        from types_boto3_bedrock_runtime.type_defs import (
+            ContentBlockTypeDef,
+            ReasoningContentBlockTypeDef,
+            ReasoningTextBlockTypeDef,
+        )
+
+        reasoning_content: ReasoningContentBlockTypeDef
+
+        if content.reasoning is not None or content.signature is not None:
+            reasoning_text_kwargs: dict[str, str] = {
+                "text": content.reasoning or "",
+                "signature": content.signature or "",
+            }
+            reasoning_content = ReasoningContentBlockTypeDef(
+                reasoningText=ReasoningTextBlockTypeDef(**reasoning_text_kwargs),
+            )
+        elif content.redacted_content is not None:
+            reasoning_content = ReasoningContentBlockTypeDef(
+                redactedContent=content.redacted_content,
+            )
+        else:
+            reasoning_content = ReasoningContentBlockTypeDef(
+                reasoningText=ReasoningTextBlockTypeDef(text="", signature=""),
+            )
+
+        return ContentBlockTypeDef(reasoningContent=reasoning_content)
+
     async def _reverse_role_map(self, role: str) -> Literal["user", "assistant"]:
         """Reverse the role map.
 
@@ -398,12 +430,15 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If the role is not found in the map.
         """
-        for bedrock_role, our_role in BedrockRoleMap.role_map.items():
-            if our_role == role:
-                return cast(Literal["user", "assistant"], bedrock_role)
-        raise ValueError(f"Role '{role}' not found in BedrockRoleMap")
+        match role:
+            case "user":
+                return "user"
+            case "agent":
+                return "assistant"
+            case _:
+                raise ValueError(f"Role '{role}' not mapped to Bedrock role")
 
-    async def _convert_messages(
+    async def _convert_messages(  # noqa: C901
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
     ) -> list["MessageTypeDef"]:
@@ -428,20 +463,30 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         for message in messages:
             content_blocks: list[ContentBlockTypeDef] = []
             for content in message.content:
-                if isinstance(content, PromptTextContent):
-                    content_blocks.append(await self.convert_text_content(content))
-                elif isinstance(content, PromptImageContent):
-                    content_blocks.append(await self.convert_image_content(content))
-                elif isinstance(content, PromptAudioContent):
-                    content_blocks.append(await self.convert_audio_content(content))
-                elif isinstance(content, PromptToolUseContent):
-                    content_blocks.append(await self.convert_tool_use_content(content))
-                elif isinstance(content, PromptToolResultContent):
-                    content_blocks.append(
-                        await self.convert_tool_result_content(content),
-                    )
-                elif isinstance(content, PromptDocumentContent):
-                    content_blocks.append(await self.convert_document_content(content))
+                match content:
+                    case PromptTextContent():
+                        content_blocks.append(await self.convert_text_content(content))
+                    case PromptImageContent():
+                        content_blocks.append(await self.convert_image_content(content))
+                    case PromptAudioContent():
+                        content_blocks.append(await self.convert_audio_content(content))
+                    case PromptToolUseContent():
+                        content_blocks.append(await self.convert_tool_use_content(content))
+                    case PromptToolResultContent():
+                        content_blocks.append(await self.convert_tool_result_content(content))
+                    case PromptDocumentContent():
+                        content_blocks.append(await self.convert_document_content(content))
+                    case PromptReasoningContent():
+                        # No empty thinking blocks (say, same thread, we have an empty thought from
+                        # a non-thinking model, and then flop to a thinking model)
+                        if content.reasoning is not None or content.redacted_content is not None:
+                            content_blocks.append(await self.convert_reasoning_content(content))
+                    case _:
+                        raise ValueError(f"Unsupported content type: {type(content)}")
+
+            # Within a content block list, tool use needs to get sorted to the _end_ of the
+            # content block list
+            content_blocks.sort(key=lambda x: "toolUse" in x)
 
             # Verify content limits
             await self._verify_image_count(content_blocks)
@@ -563,9 +608,6 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         else:
             return ToolChoiceTypeDef(tool=SpecificToolChoiceTypeDef(name=tool_choice))
 
-    # TODO: Add tool use from the model back to ToolUsePromptContent, but we need to
-    #       add hueristics to handle if the model uses the wrong case for the tool name.
-
     async def convert_prompt(
         self,
         prompt: Prompt,
@@ -582,13 +624,15 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If any content in the prompt exceeds Bedrock's limits.
         """
+        is_thinking_model = model_id and "thinking" in model_id
+
         messages = await self._convert_messages(prompt.finalized_messages)
         system = await self._convert_system_instruction(prompt.system_instruction)
         inference_config = await self._build_inference_config(
-            prompt.temperature,
+            prompt.temperature if not is_thinking_model else None,
             prompt.max_output_tokens,
             prompt.stop_sequences,
-            prompt.top_p,
+            prompt.top_p if not is_thinking_model else None,
         )
 
         # Convert tools if present
@@ -604,9 +648,47 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
                 ),
             )
 
+        overrides = self._build_model_request_overrides(
+            model_id,
+            minimize_reasoning=prompt.minimize_reasoning,
+        )
+
         return BedrockPrompt(
             messages=messages,
             system=system,
             inference_config=inference_config,
             tool_config=tool_config,
+            additional_model_request_fields=overrides,
         )
+
+    def _build_model_request_overrides(
+        self,
+        model_id: str | None,
+        minimize_reasoning: bool,
+    ) -> dict[str, Any] | None:
+        """Build provider-specific request overrides for thinking models."""
+
+        if model_id is None:
+            return None
+
+        if minimize_reasoning:
+            return None
+
+        overrides = {
+            "thinking": {
+                "type": "enabled",
+                "budget_tokens": 2048,
+            },
+            "anthropic_beta": ["interleaved-thinking-2025-05-14"],
+        }
+
+        if model_id.endswith("-high"):
+            overrides["thinking"]["budget_tokens"] = 16384
+        elif model_id.endswith("-medium"):
+            overrides["thinking"]["budget_tokens"] = 8192
+        elif model_id.endswith("-low"):
+            overrides["thinking"]["budget_tokens"] = 4096
+        else:
+            return None
+
+        return overrides

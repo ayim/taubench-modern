@@ -99,6 +99,16 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
 
         super().__post_init__()
 
+        if isinstance(self.azure_model_backing_deployment_name_embeddings, list):
+            # This value is (currently) unused, and may have been stored (incorrectly) as a
+            # list; we will overwrite to None in such a case to normalize it back
+            # to the correct type of str | None
+            object.__setattr__(
+                self,
+                "azure_model_backing_deployment_name_embeddings",
+                None,
+            )
+
         # Handle case where azure_api_key is passed as a string
         if self.azure_api_key and not isinstance(self.azure_api_key, SecretString):
             object.__setattr__(
@@ -159,7 +169,7 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
             "azure_generated_endpoint_url_embeddings": self.azure_generated_endpoint_url_embeddings,
             "azure_model_backing_deployment_name": self.azure_model_backing_deployment_name,
             "azure_model_backing_deployment_name_embeddings": (
-                self.azure_model_backing_deployment_name_embeddings,
+                self.azure_model_backing_deployment_name_embeddings
             ),
         }
 

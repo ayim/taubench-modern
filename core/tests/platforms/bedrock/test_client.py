@@ -20,7 +20,6 @@ from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.bedrock.client import BedrockClient
-from agent_platform.core.platforms.bedrock.configs import BedrockModelMap
 from agent_platform.core.platforms.bedrock.converters import BedrockConverters
 from agent_platform.core.platforms.bedrock.parameters import BedrockPlatformParameters
 from agent_platform.core.platforms.bedrock.parsers import BedrockParsers
@@ -28,6 +27,35 @@ from agent_platform.core.platforms.bedrock.prompts import BedrockPrompt
 from agent_platform.core.prompts import Prompt, PromptTextContent, PromptUserMessage
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
+
+
+@pytest.fixture
+def bedrock_parameters() -> BedrockPlatformParameters:
+    return BedrockPlatformParameters(
+        region_name="us-west-2",
+        aws_access_key_id="test-access-key",
+        aws_secret_access_key="test-secret-key",
+    )
+
+
+@pytest.fixture
+def bedrock_client_factory(bedrock_parameters: BedrockPlatformParameters):
+    def _factory() -> BedrockClient:
+        with patch("aiobotocore.session.get_session"):
+            return BedrockClient(parameters=bedrock_parameters)
+
+    return _factory
+
+
+@pytest.fixture(autouse=True)
+def reset_bedrock_global_caches():
+    BedrockClient._GLOBAL_MODEL_ARN_CACHE.clear()
+    BedrockClient._GLOBAL_PROFILE_ARN_CACHE.clear()
+    BedrockClient._GLOBAL_AVAILABLE_MODELS_CACHE.clear()
+    yield
+    BedrockClient._GLOBAL_MODEL_ARN_CACHE.clear()
+    BedrockClient._GLOBAL_PROFILE_ARN_CACHE.clear()
+    BedrockClient._GLOBAL_AVAILABLE_MODELS_CACHE.clear()
 
 
 class MockBedrockRuntimeClient:
@@ -113,10 +141,10 @@ class TestBedrockErrorHandling:
             aws_access_key_id="test-access-key",
             aws_secret_access_key="test-secret-key",
         )
-        with patch("boto3.client"):
+        with patch("aiobotocore.session.get_session"):
             client = BedrockClient(parameters=parameters)
 
-            async def _mock_get_available_models() -> dict[str, list[str]]:
+            async def mock_get_available_models():
                 return {
                     "amazon": [
                         "amazon.titan-embed-text-v2:0:8k",
@@ -135,7 +163,13 @@ class TestBedrockErrorHandling:
                     ],
                 }
 
-            client.get_available_models = _mock_get_available_models
+            client.get_available_models = mock_get_available_models
+
+            # Mock the _get_model_arn_from_local_model_id method to return the model ID as ARN
+            async def mock_get_model_arn(model_id: str) -> str:
+                return f"arn:aws:bedrock:us-west-2::foundation-model/{model_id}"
+
+            client._get_model_arn_from_local_model_id = mock_get_model_arn
             return client
 
     def test_handle_bedrock_error_throttling_exception(self, bedrock_client: BedrockClient) -> None:
@@ -414,17 +448,11 @@ class TestBedrockErrorHandling:
         )
 
         # Use a real model from the existing model map
-        # Speed up test: constrain retries and eliminate backoff sleeps
-        with patch.dict(
-            "os.environ",
-            {"BEDROCK_MAX_ATTEMPTS": "1", "BEDROCK_BACKOFF_BASE": "0", "BEDROCK_BACKOFF_CAP": "0"},
-            clear=False,
-        ):
-            with patch.object(bedrock_client, "_bedrock_client") as mock_client:
-                mock_client.converse.side_effect = client_error
+        with patch.object(bedrock_client, "_bedrock_client") as mock_client:
+            mock_client.converse.side_effect = client_error
 
-                with pytest.raises(PlatformHTTPError) as exc_info:
-                    await bedrock_client.generate_response(bedrock_prompt, "claude-3-5-sonnet")
+            with pytest.raises(PlatformHTTPError) as exc_info:
+                await bedrock_client.generate_response(bedrock_prompt, "claude-3-5-sonnet")
 
             assert exc_info.value.response.code == "too_many_requests"
 
@@ -447,20 +475,14 @@ class TestBedrockErrorHandling:
         )
 
         # Use a real model from the existing model map
-        # Speed up test: constrain retries and eliminate backoff sleeps
-        with patch.dict(
-            "os.environ",
-            {"BEDROCK_MAX_ATTEMPTS": "1", "BEDROCK_BACKOFF_BASE": "0", "BEDROCK_BACKOFF_CAP": "0"},
-            clear=False,
-        ):
-            with patch.object(bedrock_client, "_bedrock_client") as mock_client:
-                mock_client.converse_stream.side_effect = client_error
+        with patch.object(bedrock_client, "_bedrock_client") as mock_client:
+            mock_client.converse_stream.side_effect = client_error
 
-                with pytest.raises(StreamingError) as exc_info:
-                    async for _ in bedrock_client.generate_stream_response(
-                        bedrock_prompt, "claude-3-5-sonnet"
-                    ):
-                        pass  # This shouldn't execute due to the exception
+            with pytest.raises(StreamingError) as exc_info:
+                async for _ in bedrock_client.generate_stream_response(
+                    bedrock_prompt, "claude-3-5-sonnet"
+                ):
+                    pass  # This shouldn't execute due to the exception
 
             assert exc_info.value.response.code == "forbidden"
 
@@ -614,25 +636,12 @@ class TestBedrockClient:
         parameters: BedrockPlatformParameters,
         mock_boto3_client: MagicMock,
     ) -> BedrockClient:
-        with patch("boto3.client", return_value=mock_boto3_client):
+        with patch("aiobotocore.session.get_session"):
             client = BedrockClient(kernel=kernel, parameters=parameters)
             client._bedrock_client = mock_boto3_client
 
-            mock_response = ResponseMessage(
-                content=[ResponseTextContent(text="test response")],
-                raw_response={},
-                role="agent",
-            )
-            client.parsers.parse_response = MagicMock(return_value=mock_response)
-            mock_delta = MagicMock(spec=GenericDelta)
-
-            async def mock_aiter() -> AsyncGenerator[GenericDelta, None]:
-                yield mock_delta
-
-            client.parsers.parse_stream_event = AsyncMock()
-            client.parsers.parse_stream_event.return_value = mock_aiter()
-
-            async def _mock_get_available_models() -> dict[str, list[str]]:
+            # Mock the get_available_models method
+            async def mock_get_available_models():
                 return {
                     "amazon": [
                         "amazon.titan-embed-text-v2:0:8k",
@@ -651,7 +660,27 @@ class TestBedrockClient:
                     ],
                 }
 
-            client.get_available_models = _mock_get_available_models
+            client.get_available_models = mock_get_available_models
+
+            # Mock the _get_model_arn_from_local_model_id method to return the model ID as ARN
+            async def mock_get_model_arn(model_id: str) -> str:
+                return f"arn:aws:bedrock:us-west-2::foundation-model/{model_id}"
+
+            client._get_model_arn_from_local_model_id = mock_get_model_arn
+
+            mock_response = ResponseMessage(
+                content=[ResponseTextContent(text="test response")],
+                raw_response={},
+                role="agent",
+            )
+            client.parsers.parse_response = MagicMock(return_value=mock_response)
+            mock_delta = MagicMock(spec=GenericDelta)
+
+            async def mock_aiter() -> AsyncGenerator[GenericDelta, None]:
+                yield mock_delta
+
+            client.parsers.parse_stream_event = AsyncMock()
+            client.parsers.parse_stream_event.return_value = mock_aiter()
             return client
 
     @pytest.fixture
@@ -666,7 +695,7 @@ class TestBedrockClient:
         return BedrockPrompt()
 
     def test_init(self, parameters: BedrockPlatformParameters) -> None:
-        with patch("boto3.client"):
+        with patch("aiobotocore.session.get_session"):
             client = BedrockClient(parameters=parameters)
             assert client.name == "bedrock"
             assert isinstance(client.converters, BedrockConverters)
@@ -721,7 +750,7 @@ class TestBedrockClient:
         BedrockPrompt,
         "as_platform_request",
         return_value={
-            "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "modelId": "anthropic.claude-3-5-sonnet-20241022-v2:0",
             "messages": [{"role": "user", "content": [{"text": "Hello, world!"}]}],
             "system": "You are a helpful assistant.",
         },
@@ -733,61 +762,21 @@ class TestBedrockClient:
         bedrock_prompt: BedrockPrompt,
         mock_boto3_client: MagicMock,
     ) -> None:
-        test_model_map = {
-            "claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        }
-        with patch.object(
-            BedrockModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            response = await bedrock_client.generate_response(
-                bedrock_prompt,
-                "claude-3-5-sonnet",
-            )
-            mock_boto3_client.converse.assert_called_once()
-            assert isinstance(response, ResponseMessage)
-            assert isinstance(response.content[0], ResponseTextContent)
-            assert response.content[0].text == "test response"
+        response = await bedrock_client.generate_response(
+            bedrock_prompt,
+            "claude-3-5-sonnet",
+        )
+        mock_boto3_client.converse.assert_called_once()
+        assert isinstance(response, ResponseMessage)
+        assert isinstance(response.content[0], ResponseTextContent)
+        assert response.content[0].text == "test response"
 
     @pytest.mark.asyncio
     @patch.object(
         BedrockPrompt,
         "as_platform_request",
         return_value={
-            "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-            "messages": [{"role": "user", "content": [{"text": "Hello, world!"}]}],
-            "system": "You are a helpful assistant.",
-        },
-    )
-    async def test_generate_response_with_model_selector(
-        self,
-        mock_as_platform_request: MagicMock,
-        bedrock_client: BedrockClient,
-        bedrock_prompt: BedrockPrompt,
-        mock_boto3_client: MagicMock,
-    ) -> None:
-        test_model_map = {
-            "claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        }
-        with patch.object(
-            BedrockModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            response = await bedrock_client.generate_response(
-                bedrock_prompt,
-                "claude-3-5-sonnet",
-            )
-            mock_boto3_client.converse.assert_called_once()
-            assert isinstance(response, ResponseMessage)
-
-    @pytest.mark.asyncio
-    @patch.object(
-        BedrockPrompt,
-        "as_platform_request",
-        return_value={
-            "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "modelId": "anthropic.claude-3-5-sonnet-20241022-v2:0",
             "messages": [{"role": "user", "content": [{"text": "Hello, world!"}]}],
             "system": "You are a helpful assistant.",
             "stream": True,
@@ -800,86 +789,26 @@ class TestBedrockClient:
         bedrock_prompt: BedrockPrompt,
         mock_boto3_client: MagicMock,
     ) -> None:
-        test_model_map = {
-            "claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        }
-
         async def mock_stream_generator(
             *args: Any,
             **kwargs: Any,
         ) -> AsyncGenerator[GenericDelta, None]:
             yield MagicMock(spec=GenericDelta)
 
-        with patch.object(
-            BedrockModelMap,
-            "model_aliases",
-            test_model_map,
+        async def _dummy_stream():
+            yield {}
+
+        mock_boto3_client.converse_stream.return_value = {"stream": _dummy_stream()}
+        bedrock_client.parsers.parse_stream_event = mock_stream_generator
+
+        deltas: list[GenericDelta] = []
+        async for delta in bedrock_client.generate_stream_response(
+            bedrock_prompt,
+            "claude-3-5-sonnet",
         ):
-
-            async def _dummy_stream():
-                yield {}
-
-            mock_boto3_client.converse_stream.return_value = {"stream": _dummy_stream()}
-            bedrock_client.parsers.parse_stream_event = mock_stream_generator
-
-            deltas: list[GenericDelta] = []
-            async for delta in bedrock_client.generate_stream_response(
-                bedrock_prompt,
-                "claude-3-5-sonnet",
-            ):
-                deltas.append(delta)
-            mock_boto3_client.converse_stream.assert_called_once()
-            assert len(deltas) > 0
-
-    # We will bring this back when we remove ModelMap
-    # @pytest.mark.asyncio
-    # @patch.object(
-    #     BedrockPrompt,
-    #     "as_platform_request",
-    #     return_value={
-    #         "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-    #         "messages": [{"role": "user", "content": [{"text": "Hello, world!"}]}],
-    #         "system": "You are a helpful assistant.",
-    #         "stream": True,
-    #     },
-    # )
-    # async def test_generate_stream_response_with_model_selector(
-    #     self,
-    #     mock_as_platform_request: MagicMock,
-    #     bedrock_client: BedrockClient,
-    #     bedrock_prompt: BedrockPrompt,
-    #     mock_boto3_client: MagicMock,
-    # ) -> None:
-    #     test_model_map = {
-    #         "claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-    #     }
-
-    #     async def mock_stream_generator(
-    #         *args: Any,
-    #         **kwargs: Any,
-    #     ) -> AsyncGenerator[GenericDelta, None]:
-    #         yield MagicMock(spec=GenericDelta)
-
-    #     with patch.object(
-    #         BedrockModelMap,
-    #         "model_aliases",
-    #         test_model_map,
-    #     ):
-
-    #         async def _dummy_stream():
-    #             yield {}
-
-    #         mock_boto3_client.converse_stream.return_value = {"stream": _dummy_stream()}
-    #         bedrock_client.parsers.parse_stream_event = mock_stream_generator
-
-    #         deltas: list[GenericDelta] = []
-    #         async for delta in bedrock_client.generate_stream_response(
-    #             bedrock_prompt,
-    #             "claude-3-5-sonnet",
-    #         ):
-    #             deltas.append(delta)
-    #         mock_boto3_client.converse_stream.assert_called_once()
-    #         assert len(deltas) > 0
+            deltas.append(delta)
+        mock_boto3_client.converse_stream.assert_called_once()
+        assert len(deltas) > 0
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -926,8 +855,10 @@ class TestBedrockClient:
 
         mock_boto3_client.invoke_model.assert_called_once()
         call_kwargs = mock_boto3_client.invoke_model.call_args[1]
-        expected_model_id = BedrockModelMap.model_aliases[text_embedding_model]
-        assert call_kwargs["modelId"] == expected_model_id
+        if "cohere" in text_embedding_model:
+            assert text_embedding_model.replace("cohere-", "cohere.") in call_kwargs["modelId"]
+        else:
+            assert text_embedding_model in call_kwargs["modelId"]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -987,39 +918,128 @@ class TestBedrockClient:
             assert result["embeddings"][1] == [0.4, 0.5, 0.6]
             assert result["usage"]["total_tokens"] == 8
 
-    # This will be brought back in a follow-on, when we're ready to remove the old model map
-    # @pytest.mark.asyncio
-    # async def test_create_embeddings_with_model_selector(
-    #     self,
-    #     bedrock_client: BedrockClient,
-    #     mock_boto3_client: MagicMock,
-    # ) -> None:
-    #     model_selector = DefaultModelSelector()
-    #     text_embedding_model = model_selector.select_model(
-    #         bedrock_client,
-    #         ModelSelectionRequest(model_type="embedding"),
-    #     )
 
-    #     if text_embedding_model.endswith("titan-embed-text-v2"):
-    #         mock_response = {"body": MagicMock()}
-    #         mock_response["body"].read.return_value = json.dumps(
-    #             {"embedding": [0.1, 0.2, 0.3], "inputTextTokenCount": 5},
-    #         ).encode()
-    #     else:
-    #         mock_response = {"body": MagicMock()}
-    #         mock_response["body"].read.return_value = json.dumps(
-    #             {
-    #                 "embeddings": [[0.1, 0.2, 0.3]],
-    #                 "texts": ["This is a test"],
-    #                 "token_count": 5,
-    #             },
-    #         ).encode()
+@pytest.mark.asyncio
+async def test_get_model_arn_returns_cached_value(
+    bedrock_client_factory,
+):
+    client = bedrock_client_factory()
+    client._model_arn_cache["anthropic.test-model"] = "arn:cached"
+    control_client = MagicMock()
+    control_client.list_inference_profiles = AsyncMock()
+    control_client.list_foundation_models = AsyncMock()
+    client._bedrock_control_plane_client = control_client
 
-    #     mock_boto3_client.invoke_model.return_value = mock_response
-    #     texts = ["This is a test"]
-    #     result = await bedrock_client.create_embeddings(texts, text_embedding_model)
+    arn = await client._get_model_arn_from_local_model_id("anthropic.test-model")
 
-    #     assert text_embedding_model == "titan-embed-text-v2"
-    #     assert isinstance(result, dict)
-    #     assert "embeddings" in result
-    #     assert len(result["embeddings"]) == 1
+    assert arn == "arn:cached"
+    control_client.list_inference_profiles.assert_not_awaited()
+    control_client.list_foundation_models.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_model_arn_uses_global_profile_cache(
+    bedrock_client_factory,
+):
+    profile_id = "profile/anthropic.test-model"
+    BedrockClient._GLOBAL_PROFILE_ARN_CACHE[profile_id] = "arn:profile"
+
+    client = bedrock_client_factory()
+    control_client = MagicMock()
+    control_client.list_inference_profiles = AsyncMock()
+    control_client.list_foundation_models = AsyncMock()
+    client._bedrock_control_plane_client = control_client
+
+    arn = await client._get_model_arn_from_local_model_id("anthropic.test-model")
+
+    assert arn == "arn:profile"
+    assert client._model_arn_cache["anthropic.test-model"] == "arn:profile"
+    assert BedrockClient._GLOBAL_MODEL_ARN_CACHE["anthropic.test-model"] == "arn:profile"
+    control_client.list_inference_profiles.assert_not_awaited()
+    control_client.list_foundation_models.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_model_arn_falls_back_to_foundation_models(
+    bedrock_client_factory,
+):
+    client = bedrock_client_factory()
+    control_client = MagicMock()
+    control_client.list_inference_profiles = AsyncMock(
+        return_value={"inferenceProfileSummaries": []},
+    )
+    control_client.list_foundation_models = AsyncMock(
+        return_value={
+            "modelSummaries": [
+                {
+                    "modelId": "anthropic.test-model",
+                    "modelArn": "arn:foundation",
+                },
+            ],
+        },
+    )
+    client._bedrock_control_plane_client = control_client
+
+    arn = await client._get_model_arn_from_local_model_id("anthropic.test-model")
+
+    assert arn == "arn:foundation"
+    assert client._model_arn_cache["anthropic.test-model"] == "arn:foundation"
+    assert BedrockClient._GLOBAL_MODEL_ARN_CACHE["anthropic.test-model"] == "arn:foundation"
+    control_client.list_inference_profiles.assert_awaited()
+    control_client.list_foundation_models.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_available_models_caches_per_instance(
+    bedrock_client_factory,
+):
+    client = bedrock_client_factory()
+    control_client = MagicMock()
+    control_client.list_foundation_models = AsyncMock(
+        return_value={
+            "modelSummaries": [
+                {"providerName": "Anthropic", "modelId": "anthropic.test-model"},
+            ],
+        },
+    )
+    client._bedrock_control_plane_client = control_client
+
+    first = await client.get_available_models()
+    second = await client.get_available_models()
+
+    expected = {"anthropic": ["anthropic.test-model"]}
+    assert first == expected
+    assert second == expected
+    assert control_client.list_foundation_models.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_get_available_models_warms_global_cache_for_new_instance(
+    bedrock_client_factory,
+):
+    client_a = bedrock_client_factory()
+    control_client_a = MagicMock()
+    control_client_a.list_foundation_models = AsyncMock(
+        return_value={
+            "modelSummaries": [
+                {"providerName": "Anthropic", "modelId": "anthropic.test-model"},
+            ],
+        },
+    )
+    client_a._bedrock_control_plane_client = control_client_a
+
+    await client_a.get_available_models()
+    assert control_client_a.list_foundation_models.await_count == 1
+    assert BedrockClient._GLOBAL_AVAILABLE_MODELS_CACHE == {"anthropic": ["anthropic.test-model"]}
+
+    client_b = bedrock_client_factory()
+    control_client_b = MagicMock()
+    control_client_b.list_foundation_models = AsyncMock(
+        side_effect=AssertionError("global cache should avoid refetch"),
+    )
+    client_b._bedrock_control_plane_client = control_client_b
+
+    models = await client_b.get_available_models()
+
+    assert models == {"anthropic": ["anthropic.test-model"]}
+    control_client_b.list_foundation_models.assert_not_called()

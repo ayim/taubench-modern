@@ -328,12 +328,22 @@ async def test_model_platform_params(
 async def list_mcp_tools(
     user: AuthedUser,
     payload: ListMCPToolsRequest,
+    request: Request,
 ) -> dict:
     """List tools available from the provided MCP servers.
 
     Returns a mapping of each server to the tools discovered for that server.
     """
+    context = AgentServerContext.from_request(
+        request=request,
+        user=user,
+    )
+    kernel = create_minimal_kernel(context)
+
     iface = AgentServerToolsInterface()
+    # Recent changes to how headers are passed require this method
+    # to have a minimal kernel, else tool listing will fail
+    iface.attach_kernel(kernel)
 
     async def _per_server(server: MCPServer):
         # Create task first, then wait with timeout to avoid cancel scope issues

@@ -176,6 +176,10 @@ class _BedrockPatcher:
                 self._capture_streaming_response(vcr_request, resp)
             elif "/converse" in url_str:
                 await self._capture_json_response(vcr_request, resp)
+            elif any(
+                endpoint in url_str for endpoint in ("/inference-profiles", "/foundation-models")
+            ):
+                await self._capture_json_response(vcr_request, resp)
         except Exception as e:
             debug(f"[VCR][bedrock] Failed to capture response for {url_str}: {e}")
         return resp

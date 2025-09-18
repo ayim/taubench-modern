@@ -7,7 +7,6 @@ from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import PlatformParsers
 from agent_platform.core.platforms.bedrock.configs import (
     BedrockMimeTypeMap,
-    BedrockRoleMap,
 )
 from agent_platform.core.responses.content.audio import ResponseAudioContent
 from agent_platform.core.responses.content.base import ResponseMessageContent
@@ -19,6 +18,7 @@ from agent_platform.core.responses.content.image import (
     ResponseImageContent,
     ResponseImageMimeTypes,
 )
+from agent_platform.core.responses.content.reasoning import ResponseReasoningContent
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.responses.response import ResponseMessage, TokenUsage
@@ -26,6 +26,7 @@ from agent_platform.core.streaming.error import StreamingError
 
 if TYPE_CHECKING:
     from types_boto3_bedrock_runtime.type_defs import (
+        BlobTypeDef,
         ContentBlockOutputTypeDef,
         ContentBlockTypeDef,
         ConverseResponseTypeDef,
@@ -34,10 +35,28 @@ if TYPE_CHECKING:
         DocumentBlockTypeDef,
         ImageBlockOutputTypeDef,
         ImageBlockTypeDef,
+        ReasoningContentBlockOutputTypeDef,
+        ReasoningContentBlockTypeDef,
         ResponseMetadataTypeDef,
         ToolUseBlockOutputTypeDef,
         ToolUseBlockTypeDef,
     )
+
+
+def _normalize_blob_type_to_str(blob: "BlobTypeDef | None") -> str | None:
+    from botocore.response import StreamingBody
+
+    if blob is None:
+        return None
+
+    if isinstance(blob, str):
+        return blob
+    elif isinstance(blob, bytes):
+        return blob.decode("utf-8")
+    elif isinstance(blob, StreamingBody):
+        return blob.read().decode("utf-8")
+    else:
+        raise ValueError(f"Invalid blob type: {type(blob)}")
 
 
 class BedrockParsers(PlatformParsers):
@@ -53,6 +72,24 @@ class BedrockParsers(PlatformParsers):
         elif isinstance(content, dict) and "text" in content:
             return ResponseTextContent(text=content["text"])
         raise ValueError(f"Invalid text content format: {content}")
+
+    def parse_reasoning_content(
+        self, content: "ReasoningContentBlockTypeDef | ReasoningContentBlockOutputTypeDef"
+    ) -> ResponseReasoningContent:
+        """Parses a platform-specific reasoning content to an agent-server
+        reasoning content."""
+        text_block = content.get("reasoningText", {})
+        reasoning_text = text_block.get("text", "")
+        signature = text_block.get("signature", None)
+        redacted_content = _normalize_blob_type_to_str(
+            content.get("redactedContent", None),
+        )
+
+        return ResponseReasoningContent(
+            reasoning=reasoning_text,
+            signature=signature,
+            redacted_content=redacted_content,
+        )
 
     def parse_image_content(
         self,
@@ -202,6 +239,8 @@ class BedrockParsers(PlatformParsers):
 
         if "text" in item:
             return self.parse_text_content(item["text"])
+        elif "reasoningContent" in item:
+            return self.parse_reasoning_content(item["reasoningContent"])
         elif "image" in item:
             return self.parse_image_content(item["image"])
         elif "document" in item:
@@ -325,7 +364,7 @@ class BedrockParsers(PlatformParsers):
             event: The message start event.
             message: The message state to update.
         """
-        message["role"] = BedrockRoleMap.role_map[event["messageStart"]["role"]]
+        message["role"] = "user" if event["messageStart"]["role"] == "user" else "agent"
         message["content"] = []
 
     def _handle_content_block_start(self, event: dict, message: dict) -> None:
@@ -346,7 +385,11 @@ class BedrockParsers(PlatformParsers):
                 },
             )
 
-    def _handle_content_block_delta(self, event: dict, message: dict) -> None:
+    def _handle_content_block_delta(  # noqa: C901, PLR0912
+        self,
+        event: dict,
+        message: dict,
+    ) -> None:
         """Handle a content block delta event.
 
         Args:
@@ -359,6 +402,8 @@ class BedrockParsers(PlatformParsers):
             kind = "text"
         elif "toolUse" in delta["delta"]:
             kind = "tool_use"
+        elif "reasoningContent" in delta["delta"]:
+            kind = "reasoning"
         else:
             raise ValueError(
                 f"Unsupported content block type: {delta['delta']}",
@@ -369,6 +414,10 @@ class BedrockParsers(PlatformParsers):
             new_block = {"kind": kind}
             if kind == "text":
                 new_block["text"] = ""
+            elif kind == "reasoning":
+                new_block["reasoning"] = ""
+                new_block["signature"] = ""
+                new_block["redacted_content"] = ""
             else:
                 new_block["tool_input_raw"] = ""
             message["content"].append(new_block)
@@ -383,6 +432,18 @@ class BedrockParsers(PlatformParsers):
             tool_delta = delta["delta"]["toolUse"]
             if "input" in tool_delta:
                 message["content"][content_block_index]["tool_input_raw"] += tool_delta["input"]
+        elif delta.get("delta", {}).get("reasoningContent"):
+            reasoning_delta = delta["delta"]["reasoningContent"]
+            if "text" in reasoning_delta:
+                message["content"][content_block_index]["reasoning"] += reasoning_delta["text"]
+            if "signature" in reasoning_delta:
+                message["content"][content_block_index]["signature"] = reasoning_delta["signature"]
+            if "redactedContent" in reasoning_delta:
+                # TODO: Will we even ever see these? This might've been a 3.7 sonnet
+                # specific quirk prior to the use of summarization for 4.0+...
+                message["content"][content_block_index]["redacted_content"] = (
+                    _normalize_blob_type_to_str(reasoning_delta["redactedContent"])
+                )
 
     def _handle_message_stop(self, event: dict, message: dict) -> None:
         """Handle a message stop event.

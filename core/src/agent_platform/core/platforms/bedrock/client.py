@@ -13,21 +13,16 @@ from agent_platform.core.delta import GenericDelta, compute_generic_deltas
 from agent_platform.core.errors import ErrorCode
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.streaming import StreamingError
-from agent_platform.core.platforms.base import (
-    PlatformClient,
-    PlatformConfigs,
-    PlatformModelMap,
-)
-from agent_platform.core.platforms.bedrock.configs import (
-    BedrockModelMap,
-    BedrockPlatformConfigs,
-)
+from agent_platform.core.platforms.base import PlatformClient
 from agent_platform.core.platforms.bedrock.converters import BedrockConverters
 from agent_platform.core.platforms.bedrock.parameters import (
     BedrockPlatformParameters,
 )
 from agent_platform.core.platforms.bedrock.parsers import BedrockParsers
 from agent_platform.core.platforms.bedrock.prompts import BedrockPrompt
+from agent_platform.core.platforms.configs import (
+    resolve_generic_model_id_to_platform_specific_model_id,
+)
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
@@ -48,8 +43,10 @@ class BedrockClient(
     ]
 ):
     NAME: ClassVar[str] = "bedrock"
-    configs: ClassVar[type[PlatformConfigs]] = BedrockPlatformConfigs
-    model_map: ClassVar[type[PlatformModelMap]] = BedrockModelMap
+    _GLOBAL_MODEL_ARN_CACHE: ClassVar[dict[str, str]] = {}
+    _GLOBAL_PROFILE_ARN_CACHE: ClassVar[dict[str, str]] = {}
+    _GLOBAL_AVAILABLE_MODELS_CACHE: ClassVar[dict[str, list[str]]] = {}
+    _GLOBAL_AVAILABLE_MODELS_LOCK: ClassVar[asyncio.Lock] = asyncio.Lock()
 
     # ------------------------------------------------------------------#
     # Construction
@@ -78,6 +75,14 @@ class BedrockClient(
         )
 
         self._bedrock_client: Any | None = None
+        self._bedrock_control_plane_client: Any | None = None
+        # Warm local caches from any previously discovered ARNs so new
+        # clients do not repeat the control-plane discovery.
+        self._model_arn_cache: dict[str, str] = dict(self._GLOBAL_MODEL_ARN_CACHE)
+        self._profile_arn_cache: dict[str, str] = dict(self._GLOBAL_PROFILE_ARN_CACHE)
+        self._available_models_cache: dict[str, list[str]] = deepcopy(
+            self._GLOBAL_AVAILABLE_MODELS_CACHE,
+        )
 
     async def _client(self):
         """
@@ -91,14 +96,75 @@ class BedrockClient(
             ).__aenter__()
         return self._bedrock_client
 
-    async def aclose(self) -> None:
-        """Close the underlying aiobotocore client if open."""
-        if self._bedrock_client is not None:
-            try:
-                # Symmetric to explicit __aenter__ above
-                await self._bedrock_client.__aexit__(None, None, None)
-            finally:
-                self._bedrock_client = None
+    async def _control_plane_client(self):
+        if self._bedrock_control_plane_client is None:
+            self._bedrock_control_plane_client = await self._session.create_client(
+                "bedrock",
+                config=self._config,
+                **self._parameters.aws_client_params(),
+            ).__aenter__()
+        return self._bedrock_control_plane_client
+
+    async def _get_model_arn_from_local_model_id(self, model_id: str) -> str:  # noqa: C901
+        # So bedrock is complex... we need to list _inference profiles_ and
+        # try and find a matching one... can fall back to the foundation model
+        # listing (but that likely wont work, unless on-demand is enabled)
+        if model_id in self._model_arn_cache:
+            return self._model_arn_cache[model_id]
+        if model_id in self._GLOBAL_MODEL_ARN_CACHE:
+            arn = self._GLOBAL_MODEL_ARN_CACHE[model_id]
+            self._model_arn_cache[model_id] = arn
+            return arn
+
+        def _find_matching_profile_from_cache(model_id: str) -> str | None:
+            for cache in (self._profile_arn_cache, self._GLOBAL_PROFILE_ARN_CACHE):
+                for profile_id, profile_arn in cache.items():
+                    if profile_id.endswith(model_id):
+                        # Synchronise both caches when we hit on a global entry.
+                        self._profile_arn_cache[profile_id] = profile_arn
+                        self._GLOBAL_PROFILE_ARN_CACHE[profile_id] = profile_arn
+                        self._model_arn_cache[model_id] = profile_arn
+                        self._GLOBAL_MODEL_ARN_CACHE[model_id] = profile_arn
+                        return profile_arn
+            return None
+
+        if profile_arn := _find_matching_profile_from_cache(model_id):
+            return profile_arn
+
+        # First, try and find a matching profile
+        client = await self._control_plane_client()
+        response = await client.list_inference_profiles()
+        for profile in response.get("inferenceProfileSummaries", []):
+            profile_id = profile["inferenceProfileId"]
+            profile_arn = profile["inferenceProfileArn"]
+            self._profile_arn_cache[profile_id] = profile_arn
+            self._GLOBAL_PROFILE_ARN_CACHE[profile_id] = profile_arn
+
+        if profile_arn := _find_matching_profile_from_cache(model_id):
+            return profile_arn
+
+        log.warning(f"No inference profile found for model '{model_id}'")
+        log.warning("Falling back to foundation model listing, this may not work")
+
+        # If no profile found, fall back to foundation model
+        if model_id in self._model_arn_cache:
+            return self._model_arn_cache[model_id]
+
+        response = await client.list_foundation_models()
+        for model in response.get("modelSummaries", []):
+            model_key = model["modelId"]
+            model_arn = model["modelArn"]
+            self._model_arn_cache[model_key] = model_arn
+            self._GLOBAL_MODEL_ARN_CACHE[model_key] = model_arn
+
+        if model_id not in self._model_arn_cache:
+            raise ValueError(
+                f"Neither inference profile nor foundation model ARN found for '{model_id}'",
+            )
+
+        arn = self._model_arn_cache[model_id]
+        self._GLOBAL_MODEL_ARN_CACHE[model_id] = arn
+        return arn
 
     # ------------------------------------------------------------------#
     # Public API
@@ -109,18 +175,18 @@ class BedrockClient(
         prompt: BedrockPrompt,
         model: str,
     ) -> ResponseMessage:
-        model_id = BedrockModelMap.model_aliases[model]
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        # Need to get the model_arn and use that
+        model_arn = await self._get_model_arn_from_local_model_id(model_id)
 
         try:
             # Bedrock's `converse` is POST; returns JSON body.
-            # Rely on botocore/aiobotocore built-in retry policy (AioConfig.retries)
             client = await self._client()
             response = await client.converse(
-                **prompt.as_platform_request(model_id, stream=False),
+                **prompt.as_platform_request(model_arn, stream=False),
             )
             return self._parsers.parse_response(response)
         except Exception as exc:
-            # Surface as a PlatformHTTPError with Bedrock-specific mapping
             raise self._handle_bedrock_error(exc, model, PlatformHTTPError) from exc
 
     async def generate_stream_response(
@@ -128,17 +194,17 @@ class BedrockClient(
         prompt: BedrockPrompt,
         model: str,
     ) -> AsyncGenerator[GenericDelta, None]:
-        model_id = BedrockModelMap.model_aliases[model]
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        # Need to get the model_arn and use that
+        model_arn = await self._get_model_arn_from_local_model_id(model_id)
 
         try:
             # Returns an async iterator over SSE / HTTP2 frames
-            # Rely on botocore/aiobotocore built-in retry policy (AioConfig.retries)
             client = await self._client()
             response = await client.converse_stream(
-                **prompt.as_platform_request(model_id, stream=True),
+                **prompt.as_platform_request(model_arn, stream=True),
             )
         except Exception as exc:
-            # Surface as a StreamingError with Bedrock-specific mapping
             raise self._handle_bedrock_error(exc, model, StreamingError) from exc
 
         # ------------------------------------------------------------ #
@@ -183,7 +249,9 @@ class BedrockClient(
         continue to propagate unchanged to satisfy test expectations.
         """
 
-        model_id = BedrockModelMap.model_aliases[model]
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        # Need to get the model_arn and use that
+        model_arn = await self._get_model_arn_from_local_model_id(model_id)
 
         try:
             if model_id.startswith("amazon.titan-embed-text"):
@@ -193,7 +261,7 @@ class BedrockClient(
                     body = {"inputText": txt}
                     client = await self._client()
                     response = await client.invoke_model(
-                        modelId=model_id,
+                        modelId=model_arn,
                         body=json.dumps(body),
                     )
                     # The response body is a stream; read() returns the raw JSON bytes
@@ -216,7 +284,7 @@ class BedrockClient(
                 }
                 client = await self._client()
                 response = await client.invoke_model(
-                    modelId=model_id,
+                    modelId=model_arn,
                     body=json.dumps(request),
                 )
                 # The response body is a stream; read() returns the raw JSON bytes
@@ -256,6 +324,34 @@ class BedrockClient(
 
     def _init_parsers(self) -> BedrockParsers:
         return BedrockParsers()
+
+    async def get_available_models(self) -> dict[str, list[str]]:
+        if self._available_models_cache:
+            return deepcopy(self._available_models_cache)
+
+        if self._GLOBAL_AVAILABLE_MODELS_CACHE:
+            self._available_models_cache = deepcopy(self._GLOBAL_AVAILABLE_MODELS_CACHE)
+            return deepcopy(self._available_models_cache)
+
+        async with self._GLOBAL_AVAILABLE_MODELS_LOCK:
+            if self._GLOBAL_AVAILABLE_MODELS_CACHE:
+                self._available_models_cache = deepcopy(self._GLOBAL_AVAILABLE_MODELS_CACHE)
+                return deepcopy(self._available_models_cache)
+
+            client = await self._control_plane_client()
+            response = await client.list_foundation_models()
+            result: dict[str, list[str]] = {}
+            for model in response.get("modelSummaries", []):
+                provider = model["providerName"].lower()
+                result.setdefault(provider, []).append(model["modelId"])
+
+            # Refresh the shared cache in-place so existing references stay valid.
+            self._GLOBAL_AVAILABLE_MODELS_CACHE.clear()
+            for provider, models in result.items():
+                self._GLOBAL_AVAILABLE_MODELS_CACHE[provider] = list(models)
+
+            self._available_models_cache = deepcopy(self._GLOBAL_AVAILABLE_MODELS_CACHE)
+            return deepcopy(self._available_models_cache)
 
     # ------------------------------------------------------------------#
     # Error handling

@@ -132,6 +132,13 @@ class OpenAIPrompt(PlatformPrompt):
         if self.instructions is not None:
             results_dict["instructions"] = self.instructions
 
+        # Take last / segment piece of model name as the real model name
+        if "/" in model:
+            # This comes from, in the azure case, receiving a generic model ID here
+            # (which is part of us gracefully handling missing model backing deployment
+            # name, to preserve a level of backwards compatibility)
+            model = model.split("/")[-1].strip()
+
         can_reason = model.startswith("gpt-5") or model.startswith("o3") or model.startswith("o4")
 
         if can_reason:

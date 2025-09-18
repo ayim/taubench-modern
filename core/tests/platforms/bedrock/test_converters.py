@@ -7,6 +7,7 @@ from agent_platform.core.platforms.bedrock.converters import BedrockConverters
 from agent_platform.core.platforms.bedrock.prompts import BedrockPrompt
 from agent_platform.core.prompts import (
     Prompt,
+    PromptReasoningContent,
     PromptTextContent,
     PromptToolUseContent,
     PromptUserMessage,
@@ -37,6 +38,69 @@ class TestBedrockConverters:
         result = await converters.convert_text_content(text_content)
 
         assert result == {"text": "Hello, world!"}
+
+    @pytest.mark.asyncio
+    async def test_convert_reasoning_content_prefers_reasoning_text(
+        self,
+        converters: BedrockConverters,
+    ) -> None:
+        """Ensure reasoning content uses reasoningText when available."""
+        reasoning_content = PromptReasoningContent(
+            reasoning="Chain of thought",
+            redacted_content="[redacted]",
+            signature="signature",
+        )
+
+        result = await converters.convert_reasoning_content(reasoning_content)
+
+        assert "reasoningContent" in result
+        block = result["reasoningContent"]
+        assert "reasoningText" in block
+        assert block["reasoningText"]["text"] == "Chain of thought"
+        assert "signature" in block["reasoningText"]
+        assert block["reasoningText"]["signature"] == "signature"
+        assert "redactedContent" not in block
+
+    @pytest.mark.asyncio
+    async def test_convert_reasoning_content_uses_redacted_when_only_option(
+        self,
+        converters: BedrockConverters,
+    ) -> None:
+        """Ensure reasoning content falls back to redactedContent when needed."""
+        reasoning_content = PromptReasoningContent(
+            reasoning=None,
+            redacted_content="[redacted]",
+            signature=None,
+        )
+
+        result = await converters.convert_reasoning_content(reasoning_content)
+
+        assert "reasoningContent" in result
+        block = result["reasoningContent"]
+        assert "redactedContent" in block
+        assert block["redactedContent"] == "[redacted]"
+        assert "reasoningText" not in block
+
+    @pytest.mark.asyncio
+    async def test_convert_reasoning_content_includes_signature_key_when_missing(
+        self,
+        converters: BedrockConverters,
+    ) -> None:
+        """Ensure the signature field is always present when using reasoningText."""
+        reasoning_content = PromptReasoningContent(
+            reasoning="Chain of thought",
+            redacted_content=None,
+            signature=None,
+        )
+
+        result = await converters.convert_reasoning_content(reasoning_content)
+
+        assert "reasoningContent" in result
+        assert "reasoningText" in result["reasoningContent"]
+        block = result["reasoningContent"]["reasoningText"]
+        assert block["text"] == "Chain of thought"
+        assert "signature" in block
+        assert block["signature"] == ""
 
     @pytest.mark.asyncio
     async def test_convert_image_content(self, converters: BedrockConverters) -> None:

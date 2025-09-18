@@ -101,7 +101,7 @@ class PlatformModelConfigs(Configuration):
     platforms_to_default_model: dict[str, str] = field(
         default_factory=lambda: {
             "azure": "azure/openai/gpt-5-medium",
-            "bedrock": "bedrock/anthropic/claude-4-sonnet",
+            "bedrock": "bedrock/anthropic/claude-4-sonnet-thinking-medium",
             "cortex": "cortex/anthropic/claude-3-5-sonnet",
             "openai": "openai/openai/gpt-5-medium",
             "google": "google/google/gemini-2-5-pro",
@@ -150,12 +150,18 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/o4-mini-high",
             "azure/openai/o4-mini-low",
             # Amazon Bedrock
+            "bedrock/anthropic/claude-4-sonnet-thinking-high",
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium",
+            "bedrock/anthropic/claude-4-sonnet-thinking-low",
             "bedrock/anthropic/claude-4-sonnet",
+            "bedrock/anthropic/claude-4-1-opus-thinking-high",
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium",
+            "bedrock/anthropic/claude-4-1-opus-thinking-low",
+            "bedrock/anthropic/claude-4-1-opus",
             "bedrock/anthropic/claude-4-opus",
             "bedrock/anthropic/claude-3-7-sonnet",
             "bedrock/anthropic/claude-3-5-sonnet",
             "bedrock/anthropic/claude-3-5-haiku",
-            "bedrock/deepseek/deepseek-r1",
             "bedrock/meta/llama-4-scout",
             "bedrock/meta/llama-4-maverick",
             "bedrock/cohere/command-r-plus",
@@ -223,12 +229,30 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/text-embedding-3-small": "text-embedding-3-small",
             "azure/openai/text-embedding-3-large": "text-embedding-3-large",
             # Amazon Bedrock (does have date/version pinning)
+            "bedrock/anthropic/claude-4-sonnet-thinking-high": (
+                "anthropic.claude-sonnet-4-20250514-v1:0"
+            ),
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium": (
+                "anthropic.claude-sonnet-4-20250514-v1:0"
+            ),
+            "bedrock/anthropic/claude-4-sonnet-thinking-low": (
+                "anthropic.claude-sonnet-4-20250514-v1:0"
+            ),
             "bedrock/anthropic/claude-4-sonnet": "anthropic.claude-sonnet-4-20250514-v1:0",
+            "bedrock/anthropic/claude-4-1-opus-thinking-high": (
+                "anthropic.claude-opus-4-1-20250805-v1:0"
+            ),
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium": (
+                "anthropic.claude-opus-4-1-20250805-v1:0"
+            ),
+            "bedrock/anthropic/claude-4-1-opus-thinking-low": (
+                "anthropic.claude-opus-4-1-20250805-v1:0"
+            ),
+            "bedrock/anthropic/claude-4-1-opus": "anthropic.claude-opus-4-1-20250805-v1:0",
             "bedrock/anthropic/claude-4-opus": "anthropic.claude-opus-4-20250514-v1:0",
             "bedrock/anthropic/claude-3-7-sonnet": "anthropic.claude-3-7-sonnet-20250219-v1:0",
             "bedrock/anthropic/claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20241022-v2:0",
             "bedrock/anthropic/claude-3-5-haiku": "anthropic.claude-3-haiku-20240307-v1:0",
-            "bedrock/deepseek/deepseek-r1": "deepseek.r1-v1:0",
             "bedrock/meta/llama-4-scout": "meta.llama4-scout-17b-instruct-v1:0",
             "bedrock/meta/llama-4-maverick": "meta.llama4-maverick-17b-instruct-v1:0",
             "bedrock/cohere/command-r-plus": "cohere.command-r-plus-v1:0",
@@ -244,7 +268,6 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/o4-mini-high": "o4-mini",
             "cortex/openai/o4-mini-low": "o4-mini",
             "cortex/openai/gpt-4-1": "gpt-4.1",
-            "cortex/deepseek/deepseek-r1": "deepseek-r1",
             "cortex/meta/llama-4-scout": "llama-4-scout",
             "cortex/meta/llama-4-maverick": "llama-4-maverick",
             "cortex/snowflake/snowflake-arctic-embed-m": "snowflake-arctic-embed-m",
@@ -315,12 +338,18 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/text-embedding-3-small": "openai-embeddings",
             "azure/openai/text-embedding-3-large": "openai-embeddings",
             # Amazon Bedrock (does have date/version pinning)
+            "bedrock/anthropic/claude-4-sonnet-thinking-high": "claude",
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium": "claude",
+            "bedrock/anthropic/claude-4-sonnet-thinking-low": "claude",
             "bedrock/anthropic/claude-4-sonnet": "claude",
+            "bedrock/anthropic/claude-4-1-opus-thinking-high": "claude",
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium": "claude",
+            "bedrock/anthropic/claude-4-1-opus-thinking-low": "claude",
+            "bedrock/anthropic/claude-4-1-opus": "claude",
             "bedrock/anthropic/claude-4-opus": "claude",
             "bedrock/anthropic/claude-3-7-sonnet": "claude",
             "bedrock/anthropic/claude-3-5-sonnet": "claude",
             "bedrock/anthropic/claude-3-5-haiku": "claude",
-            "bedrock/deepseek/deepseek-r1": "deepseek",
             "bedrock/meta/llama-4-scout": "llama",
             "bedrock/meta/llama-4-maverick": "llama",
             "bedrock/cohere/command-r-plus": "cohere",
@@ -336,7 +365,6 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/o4-mini-high": "openai-o-series",
             "cortex/openai/o4-mini-low": "openai-o-series",
             "cortex/openai/gpt-4-1": "openai-gpt",
-            "cortex/deepseek/deepseek-r1": "deepseek",
             "cortex/meta/llama-4-scout": "llama",
             "cortex/meta/llama-4-maverick": "llama",
             "cortex/snowflake/snowflake-arctic-embed-m": "snowflake-embeddings",
@@ -406,12 +434,18 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/text-embedding-3-small": "embedding",
             "azure/openai/text-embedding-3-large": "embedding",
             # Amazon Bedrock
+            "bedrock/anthropic/claude-4-sonnet-thinking-high": "llm",
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium": "llm",
+            "bedrock/anthropic/claude-4-sonnet-thinking-low": "llm",
             "bedrock/anthropic/claude-4-sonnet": "llm",
+            "bedrock/anthropic/claude-4-1-opus-thinking-high": "llm",
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium": "llm",
+            "bedrock/anthropic/claude-4-1-opus-thinking-low": "llm",
+            "bedrock/anthropic/claude-4-1-opus": "llm",
             "bedrock/anthropic/claude-4-opus": "llm",
             "bedrock/anthropic/claude-3-7-sonnet": "llm",
             "bedrock/anthropic/claude-3-5-sonnet": "llm",
             "bedrock/anthropic/claude-3-5-haiku": "llm",
-            "bedrock/deepseek/deepseek-r1": "llm",
             "bedrock/meta/llama-4-scout": "llm",
             "bedrock/meta/llama-4-maverick": "llm",
             "bedrock/cohere/command-r-plus": "llm",
@@ -427,7 +461,6 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/o4-mini-high": "llm",
             "cortex/openai/o4-mini-low": "llm",
             "cortex/openai/gpt-4-1": "llm",
-            "cortex/deepseek/deepseek-r1": "llm",
             "cortex/meta/llama-4-scout": "llm",
             "cortex/meta/llama-4-maverick": "llm",
             "cortex/snowflake/snowflake-arctic-embed-m": "embedding",
@@ -502,7 +535,6 @@ class PlatformModelConfigs(Configuration):
             "bedrock/anthropic/claude-3-7-sonnet": 200_000,
             "bedrock/anthropic/claude-3-5-sonnet": 200_000,
             "bedrock/anthropic/claude-3-5-haiku": 200_000,
-            "bedrock/deepseek/deepseek-r1": 128_000,
             "bedrock/meta/llama-4-scout": 128_000,
             "bedrock/meta/llama-4-maverick": 128_000,
             "bedrock/cohere/command-r-plus": 128_000,
@@ -518,7 +550,6 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/o4-mini-high": 200_000,
             "cortex/openai/o4-mini-low": 200_000,
             "cortex/openai/gpt-4-1": 128_000,
-            "cortex/deepseek/deepseek-r1": 128_000,
             "cortex/meta/llama-4-scout": 128_000,
             "cortex/meta/llama-4-maverick": 128_000,
             "cortex/snowflake/snowflake-arctic-embed-m": 8_000,

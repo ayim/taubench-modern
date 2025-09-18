@@ -11,9 +11,6 @@ from agent_platform.core.platforms.azure.parameters import AzureOpenAIPlatformPa
 from agent_platform.core.platforms.azure.parsers import AzureOpenAIParsers
 from agent_platform.core.platforms.azure.prompts import AzureOpenAIPrompt
 from agent_platform.core.platforms.base import PlatformClient
-from agent_platform.core.platforms.configs import (
-    resolve_generic_model_id_to_platform_specific_model_id,
-)
 from agent_platform.core.platforms.openai.utils import build_llm_async_http_client, log_token_usage
 from agent_platform.core.responses.response import ResponseMessage
 
@@ -297,8 +294,12 @@ class AzureOpenAIClient(
         model: str,
     ) -> ResponseMessage:
         """Generate a response from the AzureOpenAI platform."""
-        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
-        request = prompt.as_platform_request(model_id)
+        if self._parameters.azure_deployment_name is None:
+            raise ValueError("Azure OpenAI deployment name is required to use generate response")
+
+        logger.info(f"Generating response with Azure OpenAI model: {model}")
+        request = prompt.as_platform_request(model)
+        # We need to overwrite to deployment name here
         request["model"] = self._parameters.azure_deployment_name
 
         response = await self._call_with_retries(
@@ -317,9 +318,12 @@ class AzureOpenAIClient(
         """Stream a response from the AzureOpenAI platform."""
         from copy import deepcopy
 
-        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
-        logger.info(f"Streaming with Azure OpenAI model: {model_id}")
-        request = prompt.as_platform_request(model_id, stream=True)
+        if self._parameters.azure_deployment_name is None:
+            raise ValueError("Azure OpenAI deployment name is required to use stream response")
+
+        logger.info(f"Streaming with Azure OpenAI model: {model}")
+        request = prompt.as_platform_request(model, stream=True)
+        # We need to overwrite to deployment name here
         request["model"] = self._parameters.azure_deployment_name
 
         # Initialize message state
@@ -378,9 +382,12 @@ class AzureOpenAIClient(
         model: str,
     ) -> dict[str, Any]:
         """Create embeddings using a AzureOpenAI embedding model."""
-        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        embedding_deployment = self._parameters.azure_deployment_name_embeddings
+        if embedding_deployment is None:
+            raise ValueError("Azure OpenAI embedding deployment name is required to use embeddings")
+
         logger.info(
-            f"Creating embeddings with Azure model: {model} (model_id: {model_id})",
+            f"Creating embeddings with Azure model: {model} (model_id: {embedding_deployment})",
         )
 
         if not texts:
@@ -395,7 +402,7 @@ class AzureOpenAIClient(
         for text in texts:
             response = await self._call_with_retries(
                 lambda the_text=text: self.azure_embeddings_client.embeddings.create(
-                    model=model_id,
+                    model=embedding_deployment,
                     input=the_text,
                 ),
                 model,
@@ -413,15 +420,9 @@ class AzureOpenAIClient(
         }
 
     async def get_available_models(self) -> dict[str, list[str]]:
-        # There's just really nothing good to do here unless we have the management plane
-        # APIs (which require _different_ auth...)
-        return {
-            "openai": [
-                self._parameters.azure_model_backing_deployment_name or "gpt-5",
-                self._parameters.azure_model_backing_deployment_name_embeddings
-                or "text-embedding-3-large",
-            ],
-        }
+        # Azure is such a stinker here... it's less a "platform" and more
+        # "talk to this individual deployment"
+        raise NotImplementedError("Azure OpenAI does not support getting available models")
 
 
 PlatformClient.register_platform_client("azure", AzureOpenAIClient)

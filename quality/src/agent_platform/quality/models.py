@@ -33,9 +33,6 @@ class Platform:
                     azure_deployment_name=os.environ["AZURE_DEPLOYMENT_NAME"],
                     azure_deployment_name_embeddings=os.environ["AZURE_DEPLOYMENT_NAME_EMBEDDINGS"],
                     azure_api_version=os.environ["AZURE_API_VERSION"],
-                    azure_model_backing_deployment_name=os.environ[
-                        "AZURE_MODEL_BACKING_DEPLOYMENT_NAME"
-                    ],
                     # We should be upgrading the eval harness, now that we have this filtering
                     # ability, to have explicit models set (instead of taking platform defaults)
                     models={"openai": ["gpt-4-1"]},
@@ -47,6 +44,8 @@ class Platform:
                     aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
                     aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
                     region_name=os.environ["AWS_DEFAULT_REGION"],
+                    # Force to sonnet 4 thinking medium
+                    models={"anthropic": ["claude-4-sonnet-thinking-medium"]},
                 ).model_dump()
             case "cortex":
                 from agent_platform.core.platforms.cortex import CortexPlatformParameters

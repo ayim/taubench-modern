@@ -79,9 +79,6 @@ def azure_client(kernel: Kernel):
         "AZURE_DEPLOYMENT_NAME_EMBEDDINGS",
         "test-embeddings",
     )
-    # Don't load this from env... (anytime one switches up they azure env to be a _non_ GPT-5
-    # deployment, this'll get unhappy, even though we're replaying gpt-5 cassettes)
-    model_backing_deployment_name = "gpt-5"
 
     client = AzureOpenAIClient(
         parameters=AzureOpenAIPlatformParameters(
@@ -89,7 +86,8 @@ def azure_client(kernel: Kernel):
             azure_endpoint_url=endpoint_url,
             azure_deployment_name=deployment_name,
             azure_deployment_name_embeddings=deployment_name_embeddings,
-            azure_model_backing_deployment_name=model_backing_deployment_name,
+            # We are purposely not setting the model backing deployment name here
+            # (as a test that we can operate without it... even if we'd _like_ to have it always)
         ),
     )
     client.attach_kernel(kernel)
