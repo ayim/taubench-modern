@@ -181,7 +181,7 @@ jobs:
 
   build:
     name: Build Server • ${{ matrix.os }}
-    needs: [version, unit-tests, compute-matrix]
+    needs: [version, compute-matrix]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
