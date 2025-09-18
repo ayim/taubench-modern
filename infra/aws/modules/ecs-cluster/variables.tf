@@ -6,11 +6,15 @@ variable "logs_region" {
   type = string
 }
 
-variable "database_credentials_secret_arn" {
+variable "rds_credentials_secret_arn" {
   type = string
 }
 
-variable "database_credentials_encryption_key_arn" {
+variable "auth_configuration_secret_arn" {
+  type = string
+}
+
+variable "secrets_encryption_key_arn" {
   type = string
 }
 

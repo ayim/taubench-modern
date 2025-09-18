@@ -1,4 +1,4 @@
-variable "infra_name" {
+variable "infra_id" {
   type = string
 }
 
@@ -22,6 +22,10 @@ variable "ecs_task_execution_role_arn" {
 }
 
 variable "alb_target_group_arn" {
+  type = string
+}
+
+variable "auth_configuration_secret_arn" {
   type = string
 }
 

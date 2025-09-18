@@ -79,25 +79,34 @@ module "postgres" {
 module "ecs-cluster" {
   source = "../modules/ecs-cluster"
 
-  cluster_name                            = var.infra_id
-  logs_region                             = var.aws_region
-  execution_role_name                     = "ecs-execution-${var.infra_id}"
-  database_credentials_secret_arn         = module.postgres.cluster_credentials_secret_arn
-  database_credentials_encryption_key_arn = aws_kms_key.key.arn
+  cluster_name                  = var.infra_id
+  logs_region                   = var.aws_region
+  execution_role_name           = "ecs-execution-${var.infra_id}"
+  auth_configuration_secret_arn = module.app-auth.auth_configuration_secret_arn
+  rds_credentials_secret_arn    = module.postgres.cluster_credentials_secret_arn
+  secrets_encryption_key_arn    = aws_kms_key.key.arn
 }
 
 module "codebuild" {
   source = "../modules/codebuild"
 
   cluster_name = module.ecs-cluster.ecs_cluster_name
-  infra_name   = var.infra_id
+  infra_id     = var.infra_id
 
   allowed_github_subjects_write = ["repo:Sema4AI/agent-platform:*"]
   github_oidc_provider_arn      = aws_iam_openid_connect_provider.github.arn
 
   ecs_task_execution_role_arn   = module.ecs-cluster.ecs_task_execution_role_arn
+  auth_configuration_secret_arn = module.app-auth.auth_configuration_secret_arn
   rds_credentials_secret_arn    = module.postgres.cluster_credentials_secret_arn
   alb_target_group_arn          = module.alb.alb_target_group_arn
   alb_targets_security_group_id = module.alb.alb_targets_security_group_id
   vpc_subnet_ids                = module.vpc.private_subnet_ids
+}
+
+module "app-auth" {
+  source = "../modules/app-auth"
+
+  infra_id           = var.infra_id
+  encryption_key_arn = aws_kms_key.key.arn
 }

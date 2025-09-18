@@ -1,4 +1,3 @@
-
 data "aws_subnet" "subnets" {
   count = length(var.subnet_ids)
   id    = var.subnet_ids[count.index]
@@ -14,7 +13,6 @@ locals {
   cluster_username = "clusteradmin"
   cluster_password = random_password.cluster_admin_password.result
 }
-
 
 resource "aws_kms_key" "cluster_data" {
   description  = "Encryption of RDS cluster ${var.cluster_name}"

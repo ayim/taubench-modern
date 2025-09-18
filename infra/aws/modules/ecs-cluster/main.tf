@@ -64,23 +64,23 @@ resource "aws_iam_role_policy" "ecs_logs_policy" {
   policy = data.aws_iam_policy_document.ecs_logs_policy.json
 }
 
-data "aws_iam_policy_document" "database_credentials_policy" {
+data "aws_iam_policy_document" "read_secrets_policy" {
   statement {
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.database_credentials_secret_arn]
+    resources = [var.rds_credentials_secret_arn, var.auth_configuration_secret_arn]
   }
   statement {
     effect    = "Allow"
     actions   = ["kms:Decrypt"]
-    resources = [var.database_credentials_encryption_key_arn]
+    resources = [var.secrets_encryption_key_arn]
   }
 }
 
-resource "aws_iam_role_policy" "database_credentials_policy" {
+resource "aws_iam_role_policy" "read_secrets_policy" {
   name   = "ecs-database-credentials-policy-${var.cluster_name}"
   role   = aws_iam_role.ecs_execution_role.id
-  policy = data.aws_iam_policy_document.database_credentials_policy.json
+  policy = data.aws_iam_policy_document.read_secrets_policy.json
 }
 
 data "aws_iam_policy_document" "ecs_task_assume_role" {

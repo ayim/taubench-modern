@@ -3,7 +3,7 @@ data "aws_region" "current" {}
 
 # CodeBuild Project
 resource "aws_codebuild_project" "deployer" {
-  name          = "team-edition-deployer-${var.infra_name}"
+  name          = "team-edition-deployer-${var.infra_id}"
   description   = "Deploys Sema4.ai Team Edition to dev environment"
   build_timeout = 10 # minutes
 
@@ -46,6 +46,12 @@ resource "aws_codebuild_project" "deployer" {
     environment_variable {
       name  = "ECS_TASK_EXECUTION_ROLE_ARN"
       value = var.ecs_task_execution_role_arn
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "AUTH_CONFIGURATION_SECRET_ARN"
+      value = var.auth_configuration_secret_arn
       type  = "PLAINTEXT"
     }
 
@@ -163,7 +169,7 @@ data "aws_iam_policy_document" "deployer_access_policy" {
 
 # GitHub Role for running the CodeBuild
 resource "aws_iam_role" "github_deployer_role" {
-  name               = "github-deployer-${var.infra_name}"
+  name               = "github-deployer-${var.infra_id}"
   assume_role_policy = data.aws_iam_policy_document.assume_role_from_github_policy.json
 }
 
