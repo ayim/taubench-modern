@@ -61,9 +61,30 @@ export const createIndexAuthMiddleware =
     sessionManager: SessionManager;
   }) =>
   async (req: Request, res: Response, next: NextFunction) => {
-    if (configuration.auth.type !== 'oidc') return next();
+    // @TODO: REMOVE AFTER DEBUG SESSION
+    monitoring.logger.info('Index auth debug: Check URL', {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+    });
 
-    if (!req.headers.accept?.includes('text/html')) return next();
+    if (configuration.auth.type !== 'oidc') {
+      // @TODO: REMOVE AFTER DEBUG SESSION
+      monitoring.logger.info('Index auth debug: Auth not OIDC', {
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+      });
+      return next();
+    }
+
+    if (!req.headers.accept?.includes('text/html')) {
+      // @TODO: REMOVE AFTER DEBUG SESSION
+      monitoring.logger.info('Index auth debug: Page not accept HTML', {
+        errorMessage: JSON.stringify(req.rawHeaders),
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+      });
+      return next();
+    }
 
     if (bypassedPages.some((pagePattern) => pathToRegexp(pagePattern).regexp.test(req.url))) {
       monitoring.logger.info('Page bypasses authentication checks', {
@@ -81,7 +102,16 @@ export const createIndexAuthMiddleware =
       sessionManager,
     });
 
-    if (authResult.success) return next();
+    if (authResult.success) {
+      // @TODO: REMOVE AFTER DEBUG SESSION
+      monitoring.logger.info('Index auth debug: Auth success', {
+        errorName: JSON.stringify(req.rawHeaders),
+        errorMessage: JSON.stringify(authResult),
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+      });
+      return next();
+    }
 
     switch (authResult.error.code) {
       case 'forbidden':
