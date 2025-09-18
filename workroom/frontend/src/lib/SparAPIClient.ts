@@ -112,10 +112,8 @@ export const createSparAPIClient = (
     window.location.href = uri;
   },
 
-  useParamsFn: <T extends keyof SparUIRoutes>(sparRoute: T) => {
-    const from = routesMapping[sparRoute];
-    const params = useParams({ from });
-
+  useParamsFn: <T extends keyof SparUIRoutes>() => {
+    const params = useParams({ strict: false });
     return params as SparUIRoutes[T];
   },
 

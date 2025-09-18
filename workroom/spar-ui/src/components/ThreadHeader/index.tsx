@@ -89,19 +89,21 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
           {agent.name}
         </Typography>
       </Box>
-      <Box display="flex" alignItems="center" gap="$8" ml="auto">
-        <Tooltip text="New Thread" placement="bottom">
-          <SideNavigation.Item
-            icon={IconWriteNote}
-            disabled={isCreatingThread}
-            round
-            aria-label="New Thread"
-            onClick={onNewThread}
-          />
-        </Tooltip>
-        {children}
-        <ThreadSearch />
-      </Box>
+      {agent.metadata?.mode === 'conversational' && (
+        <Box display="flex" alignItems="center" gap="$8" ml="auto">
+          <Tooltip text="New Thread" placement="bottom">
+            <SideNavigation.Item
+              icon={IconWriteNote}
+              disabled={isCreatingThread}
+              round
+              aria-label="New Thread"
+              onClick={onNewThread}
+            />
+          </Tooltip>
+          {children}
+          <ThreadSearch />
+        </Box>
+      )}
     </Container>
   );
 };
