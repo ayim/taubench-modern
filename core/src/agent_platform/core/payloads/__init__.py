@@ -14,6 +14,11 @@ from agent_platform.core.payloads.ephemeral_stream import EphemeralStreamPayload
 from agent_platform.core.payloads.fork_thread import ForkThreadPayload
 from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.payloads.mcp_server_response import MCPServerResponse
+from agent_platform.core.payloads.semantic_data_model_payloads import (
+    DeleteSemanticDataModelPayload,
+    GetSemanticDataModelPayload,
+    SetSemanticDataModelPayload,
+)
 from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.core.payloads.upsert_agent import (
     PatchAgentPayload,
@@ -29,15 +34,18 @@ __all__ = [
     "ActionServerConfigPayload",
     "AddThreadMessagePayload",
     "AgentPackagePayload",
+    "DeleteSemanticDataModelPayload",
     "DocumentIntelligenceConfigPayload",
     "DocumentLayoutPayload",
     "EphemeralStreamPayload",
     "ForkThreadPayload",
     "GetAgentDataConnectionsPayload",
+    "GetSemanticDataModelPayload",
     "InitiateStreamPayload",
     "MCPServerResponse",
     "PatchAgentPayload",
     "SetAgentDataConnectionsPayload",
+    "SetSemanticDataModelPayload",
     "UploadFilePayload",
     "UpsertAgentPayload",
     "UpsertThreadPayload",

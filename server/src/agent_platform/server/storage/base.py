@@ -1344,3 +1344,133 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 .where(data_connections.c.id == data_connection.id)
                 .values(data_connection_dict)
             )
+
+    # -------------------------------------------------------------------------
+    # Methods for Semantic Data Models
+    # -------------------------------------------------------------------------
+    async def set_semantic_data_model(
+        self,
+        semantic_data_model_id: str | None,
+        semantic_model: dict,
+        data_connection_ids: list[str],
+        file_references: list[tuple[str, str]],  # (thread_id, file_ref)
+    ) -> str:
+        """Set a semantic data model with its input data connections and file references
+        and return the ID of the semantic data model."""
+        import asyncio
+        import uuid
+
+        semantic_data_models = self._get_table("semantic_data_model")
+        input_data_connections = self._get_table("semantic_data_model_input_data_connections")
+        input_file_references = self._get_table("semantic_data_model_input_file_references")
+
+        # Note: there's currently no validation at all here!
+        semantic_model_as_json = json.dumps(semantic_model)
+
+        async with self.engine.begin() as conn:
+            if semantic_data_model_id is None:
+                semantic_data_model_id = str(uuid.uuid4())
+
+                # Insert the semantic data model
+                insert_stmt = sa.insert(semantic_data_models).values(
+                    id=semantic_data_model_id,
+                    semantic_model=semantic_model_as_json,
+                    updated_at=datetime.now(UTC),
+                )
+
+                await conn.execute(insert_stmt)
+            else:
+                # Clear existing associations
+                task1 = conn.execute(
+                    sa.delete(input_data_connections).where(
+                        input_data_connections.c.semantic_data_model_id == semantic_data_model_id
+                    )
+                )
+                task2 = conn.execute(
+                    sa.delete(input_file_references).where(
+                        input_file_references.c.semantic_data_model_id == semantic_data_model_id
+                    )
+                )
+                await asyncio.gather(task1, task2)
+
+                # The upsert is database-specific (so, we need to use the proper dialect
+                # in order to do the on_conflict_update, even though it's the same thing).
+                if self.engine.dialect.name == "sqlite":
+                    from sqlalchemy.dialects.sqlite import insert
+                else:
+                    from sqlalchemy.dialects.postgresql import insert
+
+                upsert_stmt = insert(semantic_data_models).values(
+                    id=semantic_data_model_id,
+                    semantic_model=semantic_model_as_json,
+                    updated_at=datetime.now(UTC),
+                )
+
+                # Update (or insert) the semantic data model
+                upsert_stmt = upsert_stmt.on_conflict_do_update(
+                    index_elements=[semantic_data_models.c.id],
+                    set_={
+                        "semantic_model": upsert_stmt.excluded.semantic_model,
+                        "updated_at": upsert_stmt.excluded.updated_at,
+                    },
+                )
+
+                await conn.execute(upsert_stmt)
+
+            # Add new data connection associations
+            if data_connection_ids:
+                insert_data_connections = [
+                    {
+                        "semantic_data_model_id": semantic_data_model_id,
+                        "data_connection_id": conn_id,
+                    }
+                    for conn_id in data_connection_ids
+                ]
+                await conn.execute(
+                    sa.insert(input_data_connections).values(insert_data_connections)
+                )
+
+            # Add new file reference associations
+            if file_references:
+                insert_file_references = [
+                    {
+                        "semantic_data_model_id": semantic_data_model_id,
+                        "thread_id": thread_id,
+                        "file_ref": file_ref,
+                    }
+                    for thread_id, file_ref in file_references
+                ]
+                await conn.execute(sa.insert(input_file_references).values(insert_file_references))
+
+        return semantic_data_model_id
+
+    async def get_semantic_data_model(self, semantic_data_model_id: str) -> dict:
+        """Get a semantic data model by ID."""
+        semantic_data_models = self._get_table("semantic_data_model")
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(
+                sa.select(semantic_data_models).where(
+                    semantic_data_models.c.id == semantic_data_model_id
+                )
+            )
+            row = result.mappings().fetchone()
+            if row is None:
+                raise ValueError(f"Semantic data model with ID {semantic_data_model_id} not found")
+
+        # Parse the JSON semantic model
+        semantic_model = json.loads(row["semantic_model"])
+        return semantic_model
+
+    async def delete_semantic_data_model(self, semantic_data_model_id: str) -> None:
+        """Delete a semantic data model by ID."""
+        semantic_data_models = self._get_table("semantic_data_model")
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(
+                sa.delete(semantic_data_models).where(
+                    semantic_data_models.c.id == semantic_data_model_id
+                )
+            )
+            if result.rowcount == 0:
+                raise ValueError(f"Semantic data model with ID {semantic_data_model_id} not found")

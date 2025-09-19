@@ -1,13 +1,13 @@
 # Note: the test is just check if the structure can be type-checked from
 # an example (using pyright).
 
-from agent_platform.core.data_frames.semantic_model import (
+from agent_platform.core.data_frames.semantic_data_model_types import (
     BaseTable,
     Dimension,
     Fact,
     Filter,
     LogicalTable,
-    SemanticModel,
+    SemanticDataModel,
     TimeDimension,
 )
 
@@ -118,7 +118,7 @@ tables_example: list[LogicalTable] = [
     }
 ]
 
-semantic_model_example: SemanticModel = {
+semantic_model_example: SemanticDataModel = {
     "name": "Sales Data",
     "description": "This semantic model can be used for asking questions over the sales data.",
     "tables": tables_example,

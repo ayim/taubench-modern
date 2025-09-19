@@ -253,6 +253,7 @@ curl -X GET http://localhost:58885/api/v2/threads/116745a4-4150-4eb5-9740-da9022
 
 - Create semantic data model concept.
 - Assign data sources to an agent.
+- Inspect data sources for tables/columns/sample data.
 - Build semantic data model (simple, maybe just tables/columns/sample data).
 - Load data frames from a database.
 
@@ -260,6 +261,13 @@ See [./data-frames-db-and-semantic-models.md](data-frames-db-and-semantic-models
 
 # Future work (not right now):
 
+- Investigate issue where creating a data frame from a csv with no values for one of the columns makes the data frame unusable afterwards.
+- https://sema4ai.slack.com/archives/C07LMU0AQFR/p1758257549592739
+  - make is so that the agent understands an existing data frame cannot be overwritten.
+- https://sema4ai.slack.com/archives/C06CYLQ7S4R/p1758018826886949 (
+  - Remove `data_frame_` prefix from the data frame name, current logic is `data_frame_<slugified(action_name)>`, we can make it simply `<slugified(action_name)>`).
+  - We could also add name and description to the Table so that the user could have more control over it.)
+- Versioning of data frames (or provide more information to the UI so that it can know what's supposed to be a new version of an existing data frame and what's not).
 - Enabling/Disabling data frames should be opt-out, not opt-in.
 - It should be possible to add name and description to a `Table` to create the data frame accordingly.
 - Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)

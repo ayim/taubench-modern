@@ -1,3 +1,7 @@
+# References for semantic data models:
+
+- [Snowflake semantic model generator](https://github.com/Snowflake-Labs/semantic-model-generator)
+
 # Step 1:
 
 `Feature`: associate a list of data connections to an agent.
@@ -46,16 +50,42 @@ Related information (in agent server database):
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
 
     v2_semantic_data_model_input_data_connections -- junction table (references semantic data model id and data connection id)
-        semantic_data_model_id TEXT NOT NULL,
-        data_connection_id TEXT NOT NULL,
+        semantic_data_model_id UUID NOT NULL,
+        data_connection_id UUID NOT NULL,
 
     v2_semantic_data_model_input_file_references -- junction table (references semantic data model id and file reference)
-        semantic_data_model_id TEXT NOT NULL,
-        thread_id TEXT NOT NULL,
+        semantic_data_model_id UUID NOT NULL,
+        thread_id UUID NOT NULL,
         file_ref TEXT NOT NULL,
     ```
 
+- Create new APIs to add/remove a data connection to an agent.
+  - `set_semantic_data_model`, which receives a `SetSemanticDataModelPayload` needs to accept a `dict` with the semantic data model and a list of `data_connection_id`s and `file_reference`s (thread_id and file_ref) (REST API: `PUT /api/v2/semantic-data-models/{semantic_data_model_id}/input-data-connections`) -- if the `uuid` is not provided, a new one will be created.
+  - `get_semantic_data_model`, which receives a `GetSemanticDataModelPayload` needs to accept a `semantic_data_model_id` and return a `dict` with the semantic data model (REST API: `GET /api/v2/semantic-data-models/{semantic_data_model_id}`).
+  - `delete_semantic_data_model`, which receives a `DeleteSemanticDataModelPayload` needs to accept a `semantic_data_model_id` and delete the semantic data model (REST API: `DELETE /api/v2/semantic-data-models/{semantic_data_model_id}`).
+
+Note: in this APIs, the semantic data model is passed as json, the data_connection_ids and file_references are extracted from
+the semantic data model tables specified (so, it's implicit in the semantic data model what connections and files are used,
+those are extracted from the schema to build those junction tables).
+
+For files the model has to specify in the base_table the thread_id (as the database) and file_ref (as the schema) and
+potentially the sheet name (as the table).
+
+For data connections the model has to specify in the base_table the data_connection_id (and then specify the database,
+schema and table as usual -- note that the database and schema are not required for all databases
+(as not all databases have a database and schema -- i.e.: SQLite).
+
 # Step 3:
+
+`Feature`: Inspect data connections for tables/columns/sample data.
+
+- New REST API to collect tables/columns/sample data for a data source.
+
+API:
+
+- `GET /api/v2/data-connections/{data_connection_id}/inspect`
+
+# Step 4:
 
 `Feature`: Create a semantic data model (initially pretty simple, maybe just
 tables/columns/sample data) and pass it to the agent when needed in a way that allows the agent to recognize
@@ -100,7 +130,7 @@ Agent Server related APIs:
 `Note`: at this point, further reviewing and editing a semantic data model is always done as a whole (so, there'll be CRUD apis
 related to the semantic data model -- the UI can initially just show the json -- maybe as a yaml to be a bit more readable).
 
-# Step 4:
+# Step 5:
 
 `Feature`: Enable the user to create data frames from a data source.
 
@@ -112,6 +142,6 @@ available, not only when a data frame is already created and we need to build th
 Also, we need to be able to run the queries in a way that allows queries to be run containing both data frames created from
 files as well as sql targetting a data source to extract table information from a database.
 
-# Step 5:
+# Step 6:
 
 Create a "Full semantic data model" which includes metrics, facts, dimensions, etc.

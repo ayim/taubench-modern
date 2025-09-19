@@ -6644,6 +6644,181 @@ export const spec = {
         },
       },
     },
+    '/api/v2/semantic-data-models/{semantic_data_model_id}': {
+      put: {
+        tags: ['semantic-data-models'],
+        summary: 'Set Semantic Data Model',
+        description:
+          'Set a semantic data mode.\nReturns the ID of the semantic data model (the same one passed in) as well as the\ndata connection IDs and file references that were used to set the semantic data model.',
+        operationId:
+          'set_semantic_data_model_semantic_data_models__semantic_data_model_id__put',
+        parameters: [
+          {
+            name: 'semantic_data_model_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Semantic Data Model Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/SetSemanticDataModelPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/_SetSemanticDataModelResult',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ['semantic-data-models'],
+        summary: 'Get Semantic Data Model',
+        description: 'Get a semantic data model by ID.',
+        operationId:
+          'get_semantic_data_model_semantic_data_models__semantic_data_model_id__get',
+        parameters: [
+          {
+            name: 'semantic_data_model_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Semantic Data Model Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  additionalProperties: true,
+                  title:
+                    'Response Get Semantic Data Model Semantic Data Models  Semantic Data Model Id  Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['semantic-data-models'],
+        summary: 'Delete Semantic Data Model',
+        description: 'Delete a semantic data model by ID.',
+        operationId:
+          'delete_semantic_data_model_semantic_data_models__semantic_data_model_id__delete',
+        parameters: [
+          {
+            name: 'semantic_data_model_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Semantic Data Model Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/semantic-data-models/': {
+      post: {
+        tags: ['semantic-data-models'],
+        summary: 'Create Semantic Data Model',
+        description:
+          'Create a new semantic data model.\nReturns the ID of the created semantic data model as well as the\ndata connection IDs and file references that were used to create the semantic data model.',
+        operationId: 'create_semantic_data_model_semantic_data_models__post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/SetSemanticDataModelPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/_SetSemanticDataModelResult',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/health': {
       get: {
         summary: 'Health',
@@ -13525,6 +13700,19 @@ export const spec = {
         type: 'object',
         title: 'SetAgentDataConnectionsPayload',
       },
+      SetSemanticDataModelPayload: {
+        properties: {
+          semantic_model: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Semantic Model',
+            description: 'The semantic data model as a dictionary.',
+          },
+        },
+        type: 'object',
+        required: ['semantic_model'],
+        title: 'SetSemanticDataModelPayload',
+      },
       SlackDataConnection: {
         properties: {
           name: {
@@ -16011,6 +16199,50 @@ export const spec = {
         type: 'object',
         required: ['host', 'port'],
         title: '_MysqlConfig',
+      },
+      _SetSemanticDataModeFileReference: {
+        properties: {
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+          },
+          file_ref: {
+            type: 'string',
+            title: 'File Ref',
+          },
+        },
+        type: 'object',
+        required: ['thread_id', 'file_ref'],
+        title: '_SetSemanticDataModeFileReference',
+      },
+      _SetSemanticDataModelResult: {
+        properties: {
+          semantic_data_model_id: {
+            type: 'string',
+            title: 'Semantic Data Model Id',
+          },
+          data_connection_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Data Connection Ids',
+          },
+          file_references: {
+            items: {
+              $ref: '#/components/schemas/_SetSemanticDataModeFileReference',
+            },
+            type: 'array',
+            title: 'File References',
+          },
+        },
+        type: 'object',
+        required: [
+          'semantic_data_model_id',
+          'data_connection_ids',
+          'file_references',
+        ],
+        title: '_SetSemanticDataModelResult',
       },
       _SliceDataInput: {
         properties: {

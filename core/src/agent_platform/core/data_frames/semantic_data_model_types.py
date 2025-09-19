@@ -216,13 +216,52 @@ class Metric(TypedDict, total=False):
     ]
 
 
-class BaseTable(TypedDict):
-    """A base table represents fully qualified table names."""
+class FileReference(TypedDict, total=False):
+    """A file reference represents a file reference."""
 
-    # Required fields
-    database: Annotated[str, "Name of the database"]
-    schema: Annotated[str, "Name of the schema"]
-    table: Annotated[str, "Name of the table"]
+    thread_id: Annotated[str, "The thread_id of the file"]
+    file_ref: Annotated[str, "The file_ref of the file"]
+    sheet_name: Annotated[str | None, "The sheet name of the file"]
+
+
+class BaseTable(TypedDict, total=False):
+    """A base table represents fully qualified table names.
+
+    Note that as an extension to the default snowflake model we provide a way
+    to reference either a data connection or a file reference in the following way:
+
+    For a database, the `data_connection_id` must be specified with the id of the data connection.
+        In this case the database/schema/table must be specified as usual
+
+    For a file, the `file_reference` must be specified with the thread_id and file_ref of the file.
+    """
+
+    # Not required for all databases (not all databases have a database and schema
+    # -- i.e.: SQLite or files)
+    database: Annotated[
+        str | None,
+        "Name of the database (when a data_connection_id is specified)",
+    ]
+
+    # Not required for all databases (not all databases have a database and schema
+    # -- i.e.: SQLite or files)
+    schema: Annotated[
+        str | None,
+        "Name of the schema (when a data_connection_id is specified)",
+    ]
+
+    # The real table name is required for all use cases, for files, the table is the data frame name
+    # (because we can only reference it in a sql after it's in a data frame format).
+    table: Annotated[
+        str | None,
+        "Name of the table (or data frame name for a file)",
+    ]
+
+    # For data connections the data_connection_id is required
+    data_connection_id: Annotated[str | None, "ID of the data connection"]
+    file_reference: Annotated[
+        FileReference | None, "File reference (thread_id, file_ref, sheet_name) for a file"
+    ]
 
 
 class PrimaryKey(TypedDict):
@@ -297,7 +336,7 @@ class LogicalTable(TypedDict, total=False):
     filters: Annotated[list[Filter] | None, "Predefined filters on this table, if any"]
 
 
-class SemanticModel(TypedDict, total=False):
+class SemanticDataModel(TypedDict, total=False):
     """A semantic model represents a collection of tables with their relationships."""
 
     # Required fields

@@ -2158,6 +2158,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/semantic-data-models/{semantic_data_model_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Semantic Data Model
+     * @description Get a semantic data model by ID.
+     */
+    get: operations['get_semantic_data_model_semantic_data_models__semantic_data_model_id__get'];
+    /**
+     * Set Semantic Data Model
+     * @description Set a semantic data mode.
+     *     Returns the ID of the semantic data model (the same one passed in) as well as the
+     *     data connection IDs and file references that were used to set the semantic data model.
+     */
+    put: operations['set_semantic_data_model_semantic_data_models__semantic_data_model_id__put'];
+    post?: never;
+    /**
+     * Delete Semantic Data Model
+     * @description Delete a semantic data model by ID.
+     */
+    delete: operations['delete_semantic_data_model_semantic_data_models__semantic_data_model_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/semantic-data-models/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Semantic Data Model
+     * @description Create a new semantic data model.
+     *     Returns the ID of the created semantic data model as well as the
+     *     data connection IDs and file references that were used to create the semantic data model.
+     */
+    post: operations['create_semantic_data_model_semantic_data_models__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/health': {
     parameters: {
       query?: never;
@@ -5553,6 +5605,16 @@ export interface components {
        */
       data_connection_ids?: string[];
     };
+    /** SetSemanticDataModelPayload */
+    SetSemanticDataModelPayload: {
+      /**
+       * Semantic Model
+       * @description The semantic data model as a dictionary.
+       */
+      semantic_model: {
+        [key: string]: unknown;
+      };
+    };
     /** SlackDataConnection */
     SlackDataConnection: {
       /** Name */
@@ -6950,6 +7012,22 @@ export interface components {
       host: string;
       /** Port */
       port: number;
+    };
+    /** _SetSemanticDataModeFileReference */
+    _SetSemanticDataModeFileReference: {
+      /** Thread Id */
+      thread_id: string;
+      /** File Ref */
+      file_ref: string;
+    };
+    /** _SetSemanticDataModelResult */
+    _SetSemanticDataModelResult: {
+      /** Semantic Data Model Id */
+      semantic_data_model_id: string;
+      /** Data Connection Ids */
+      data_connection_ids: string[];
+      /** File References */
+      file_references: components['schemas']['_SetSemanticDataModeFileReference'][];
     };
     /** _SliceDataInput */
     _SliceDataInput: {
@@ -11421,6 +11499,138 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ScenarioRun'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_semantic_data_model_semantic_data_models__semantic_data_model_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        semantic_data_model_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  set_semantic_data_model_semantic_data_models__semantic_data_model_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        semantic_data_model_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SetSemanticDataModelPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['_SetSemanticDataModelResult'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_semantic_data_model_semantic_data_models__semantic_data_model_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        semantic_data_model_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_semantic_data_model_semantic_data_models__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SetSemanticDataModelPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['_SetSemanticDataModelResult'];
         };
       };
       /** @description Validation Error */

@@ -1073,3 +1073,58 @@ class AgentServerClient:
                 f"Error getting agent data connections: {response.status_code} {response.text}",
             ) from e
         return response.json()
+
+    def create_semantic_data_model(self, semantic_model: dict) -> dict:
+        """Create a new semantic data model."""
+        url = urljoin(self.base_url + "/", "semantic-data-models/")
+        payload = {"semantic_model": semantic_model}
+        response = requests.post(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error creating semantic data model: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def set_semantic_data_model(
+        self,
+        semantic_data_model_id: str,
+        semantic_model: dict,
+    ) -> dict:
+        """Set/update a semantic data model."""
+        url = urljoin(self.base_url + "/", f"semantic-data-models/{semantic_data_model_id}")
+        payload = {
+            "semantic_model": semantic_model,
+        }
+        response = requests.put(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error setting semantic data model: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def get_semantic_data_model(self, semantic_data_model_id: str) -> dict:
+        """Get a semantic data model by ID."""
+        url = urljoin(self.base_url + "/", f"semantic-data-models/{semantic_data_model_id}")
+        response = requests.get(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting semantic data model: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def delete_semantic_data_model(self, semantic_data_model_id: str) -> None:
+        """Delete a semantic data model by ID."""
+        url = urljoin(self.base_url + "/", f"semantic-data-models/{semantic_data_model_id}")
+        response = requests.delete(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error deleting semantic data model: {response.status_code} {response.text}",
+            ) from e

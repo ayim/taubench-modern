@@ -17,6 +17,9 @@ from agent_platform.server.api.private_v2.package import router as package_route
 from agent_platform.server.api.private_v2.platforms import router as platforms_router
 from agent_platform.server.api.private_v2.prompt import router as prompt_router
 from agent_platform.server.api.private_v2.runs import router as runs_router
+from agent_platform.server.api.private_v2.semantic_data_model_api import (
+    router as semantic_data_models_router,
+)
 from agent_platform.server.api.private_v2.threads import router as threads_router
 from agent_platform.server.api.private_v2.threads_data_frames import (
     router as threads_data_frames_router,
@@ -118,4 +121,10 @@ router.include_router(
     evals_router,
     prefix="/evals",
     tags=["evals"],
+)
+
+router.include_router(
+    semantic_data_models_router,
+    prefix="/semantic-data-models",
+    tags=["semantic-data-models"],
 )

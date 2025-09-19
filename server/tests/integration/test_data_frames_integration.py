@@ -331,7 +331,7 @@ def test_data_frames_integration(base_url_agent_server):
         assert table.to_pylist() == [{"name": "Jane", "age": 30}, {"name": "John", "age": 25}]
 
 
-def test_data_frames_with_data_sources(base_url_agent_server_with_data_frames, datadir):
+def test_data_frames_with_data_sources(base_url_agent_server_with_data_frames, resources_dir):
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server_with_data_frames) as agent_client:
@@ -347,13 +347,16 @@ def test_data_frames_with_data_sources(base_url_agent_server_with_data_frames, d
         )
         _thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
+        db_file = resources_dir / "data_frames" / "combined_data.sqlite"
+        assert db_file.exists()
+
         # Create a data connection (database information)
         full_connection_info = agent_client.create_data_connection(
             name="my-sqlite-connection",
             description="My SQLite connection",
             engine="sqlite",
             configuration={
-                "db_file": str(datadir / "combined_data.sqlite"),
+                "db_file": str(db_file),
             },
         )
 
