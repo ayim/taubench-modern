@@ -1,21 +1,32 @@
 /* eslint-disable camelcase */
 import { ThreadAttachmentContent } from '@sema4ai/agent-server-interface';
 import { Box, FileItem } from '@sema4ai/components';
-import { useQueryClient } from '@tanstack/react-query';
-import { FC, useEffect, useState } from 'react';
+import { FC, useState } from 'react';
 
 import { useSparUIContext } from '../../../api/context';
 import { getFileTypeIcon } from '../../../common/helpers';
 import { useParams } from '../../../hooks';
-import { useAgentQuery, workItemQueryOptions } from '../../../queries';
 
 type Props = {
   content: ThreadAttachmentContent;
 };
 
-const AttachmentBase: FC<Props & { threadId: string }> = ({ content: { name, mime_type, description }, threadId }) => {
+export const Attachment: FC<Props> = ({ content: { name, mime_type, description } }) => {
   const { sparAPIClient } = useSparUIContext();
   const [downloading, setDownloading] = useState(false);
+
+  /**
+   * This component can be rendered in either conversational or worker agent.
+   * trying to get threadId from both possible routes.
+   */
+  const { threadId: convThreadId } = useParams('/thread/$agentId/$threadId');
+  const { threadId: workerThreadId } = useParams('/workItem/$agentId/$workItemId/$threadId');
+
+  const threadId = convThreadId || workerThreadId;
+
+  if (!threadId) {
+    return null;
+  }
 
   const onDownload = async () => {
     setDownloading(true);
@@ -34,32 +45,4 @@ const AttachmentBase: FC<Props & { threadId: string }> = ({ content: { name, mim
       />
     </Box>
   );
-};
-
-export const Attachment: FC<Props> = ({ content }) => {
-  const [threadId, setThreadId] = useState<string | null>(null);
-
-  const queryClient = useQueryClient();
-  const { agentId, threadId: possibleThreadId } = useParams('/thread/$agentId/$threadId');
-  const { workItemId } = useParams('/workItem/$agentId/$workItemId');
-
-  const { data: agent } = useAgentQuery({ agentId });
-  const { sparAPIClient } = useSparUIContext();
-
-  useEffect(() => {
-    (async () => {
-      if (agent?.metadata?.mode === 'conversational') {
-        setThreadId(possibleThreadId);
-      } else {
-        const workItem = await queryClient.ensureQueryData(workItemQueryOptions({ workItemId, sparAPIClient }));
-        setThreadId(workItem.thread_id || null);
-      }
-    })();
-  }, [possibleThreadId, agent?.metadata?.mode, queryClient, workItemId, sparAPIClient]);
-
-  if (!threadId) {
-    return null;
-  }
-
-  return <AttachmentBase content={content} threadId={threadId} />;
 };

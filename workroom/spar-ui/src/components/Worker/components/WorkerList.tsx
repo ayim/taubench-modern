@@ -1,13 +1,13 @@
-import { FC } from 'react';
 import { Box, Typography } from '@sema4ai/components';
 import { SidebarMenu } from '@sema4ai/layouts';
+import { FC } from 'react';
 
 import { useParams } from '../../../hooks';
 import { useWorkItemsQuery } from '../../../queries/workItems';
 import { WorkerItem } from './WorkerItem';
 
 export const WorkerList: FC = () => {
-  const { agentId } = useParams('/thread/$agentId/$threadId');
+  const { agentId } = useParams('/workItem/$agentId/$workItemId/$threadId');
   const { data: workItems, isLoading } = useWorkItemsQuery({ agentId });
 
   // TODO-V2: Loading state for panels?
@@ -16,7 +16,7 @@ export const WorkerList: FC = () => {
   }
 
   return (
-    <SidebarMenu name="threads-list" title="Threads list">
+    <SidebarMenu name="work-items-list" title="Work Items">
       <Box display="flex" alignItems="center" justifyContent="space-between" p="$8" gap="$8">
         <Typography variant="body-medium" fontWeight="medium">
           Work Items

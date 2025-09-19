@@ -3,7 +3,7 @@ import { useWorkItemQuery } from '@sema4ai/spar-ui/queries';
 import { createFileRoute } from '@tanstack/react-router';
 import { Sidebar } from '~/components/Sidebar';
 
-export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/$workItemId/files/')({
+export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files/')({
   component: RouteComponent,
 });
 
