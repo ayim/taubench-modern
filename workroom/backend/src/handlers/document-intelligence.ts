@@ -322,6 +322,7 @@ export const createConfigureDocumentIntelligence =
     if (!dataServerCredentials.success) {
       monitoring.logger.error('Failed to get Data Server credentials', {
         errorCause: dataServerCredentials.error.code,
+        errorMessage: dataServerCredentials.error.message,
       });
       return res.status(500).json({
         error: {
