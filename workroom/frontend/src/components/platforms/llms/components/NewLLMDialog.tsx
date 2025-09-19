@@ -1,5 +1,5 @@
 import { FC, useMemo, useState } from 'react';
-import { Button, Dialog, Form, Input, Box, Select, useSnackbar } from '@sema4ai/components';
+import { Button, Dialog, Form, Input, Box, Select, useSnackbar, Checkbox } from '@sema4ai/components';
 import { useParams } from '@tanstack/react-router';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +23,7 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
   const [selectedProvider, setSelectedProvider] = useState<Provider>('openai');
   const form = useForm<CreateOrUpdateLLMFormSchema>({
     resolver: zodResolver(createOrUpdateLLMFormSchema),
-    defaultValues: { name: '', model: OPENAI_MODEL_VALUES[0], provider: 'openai' },
+    defaultValues: { name: '', model: OPENAI_MODEL_VALUES[0], provider: 'openai', validateLLM: true },
     mode: 'onChange',
   });
 
@@ -65,7 +65,7 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
     };
 
     mutation.mutate(
-      { tenantId, body: payload },
+      { tenantId, validateLLM: values.validateLLM, body: payload },
       {
         onSuccess: (data) => {
           onClose(data?.platform_id);
@@ -88,7 +88,7 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
         onClose();
       }}
     >
-      <Form onSubmit={onSubmit}>
+      <Form onSubmit={onSubmit} busy={mutation.isPending}>
         <FormProvider {...form}>
           <Dialog.Header>
             <Dialog.Header.Title title="New Large Language Model (LLM)" />
@@ -122,6 +122,18 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
                           form.setValue('provider', providerPrefix);
                         }
                       }}
+                    />
+                  )}
+                />
+                <Controller
+                  name="validateLLM"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Checkbox
+                      checked={field.value}
+                      onChange={field.onChange}
+                      label="Validate LLM Configuration"
+                      description="By default, a connectivity test will run using these settings before saving. Uncheck this if your LLM is behind strict network rules that prevent validation."
                     />
                   )}
                 />
@@ -179,10 +191,10 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
             </Box>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button variant="primary" type="submit" round disabled={mutation.isPending}>
+            <Button variant="primary" type="submit" round loading={mutation.isPending}>
               Create
             </Button>
-            <Button variant="outline" type="button" round onClick={() => onClose()}>
+            <Button variant="outline" type="button" round onClick={() => onClose()} disabled={mutation.isPending}>
               Cancel
             </Button>
           </Dialog.Actions>

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
+import { Box, Button, Checkbox, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
 import { FC, useMemo } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { InputControlled } from '~/components/InputControlled';
@@ -31,7 +31,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
   const currentModel = firstModel ? `${kind}:${firstModel}` : `${kind}:unknown`;
 
   const getPlatformConfig = () => {
-    const base = { name: platform.name, provider: kind, model: currentModel };
+    const base = { name: platform.name, provider: kind, model: currentModel, validateLLM: true };
 
     return {
       ...base,
@@ -92,7 +92,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     } satisfies UpdatePlatformBody;
 
     mutation.mutate(
-      { tenantId, platformId: platform.platform_id, body: payload },
+      { tenantId, platformId: platform.platform_id, validateLLM: values.validateLLM, body: payload },
       {
         onSuccess: async (updated) => {
           addSnackbar({ message: 'LLM updated', variant: 'success' });
@@ -122,7 +122,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
 
   return (
     <Dialog open={open} onClose={onClose} width={600}>
-      <Form onSubmit={onSubmit} width="100%">
+      <Form onSubmit={onSubmit} width="100%" busy={mutation.isPending}>
         <FormProvider {...form}>
           <Dialog.Header>
             <Dialog.Header.Title title="Edit LLM" />
@@ -141,6 +141,18 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
                     onChange={field.onChange}
                     onBlur={field.onBlur}
                     ref={field.ref}
+                  />
+                )}
+              />
+              <Controller
+                name="validateLLM"
+                control={form.control}
+                render={({ field }) => (
+                  <Checkbox
+                    checked={field.value}
+                    onChange={field.onChange}
+                    label="Validate LLM Configuration"
+                    description="By default, a connectivity test will run using these settings before saving. Uncheck this if your LLM is behind strict network rules that prevent validation."
                   />
                 )}
               />
@@ -166,11 +178,11 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
             </Box>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button variant="outline" round type="button" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button variant="primary" round type="submit" disabled={mutation.isPending}>
+            <Button variant="primary" round type="submit" loading={mutation.isPending}>
               Save
+            </Button>
+            <Button variant="outline" round type="button" onClick={onClose} disabled={mutation.isPending}>
+              Cancel
             </Button>
           </Dialog.Actions>
         </FormProvider>

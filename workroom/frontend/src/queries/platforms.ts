@@ -71,7 +71,35 @@ export const useCreateLLMMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tenantId, body }: { tenantId: string; body: CreatePlatformBody }) => {
+    mutationFn: async ({
+      tenantId,
+      validateLLM,
+      body,
+    }: {
+      tenantId: string;
+      validateLLM: boolean;
+      body: CreatePlatformBody;
+    }) => {
+      if (validateLLM) {
+        const { credentials, ...bodyWithoutCredentials } = body;
+        const flattenedBody = {
+          ...bodyWithoutCredentials,
+          ...(credentials || {}),
+        };
+        const response = await agentAPIClient.agentFetch(
+          tenantId,
+          'post',
+          '/api/v2/capabilities/platforms/{kind}/test',
+          {
+            params: { path: { kind: body.kind } },
+            body: flattenedBody,
+            errorMsg: 'Failed to validate LLM',
+          },
+        );
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+      }
       const response = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/platforms/', {
         body,
         errorMsg: 'Failed to create LLM',
@@ -97,12 +125,34 @@ export const useUpdateLLMMutation = () => {
     mutationFn: async ({
       tenantId,
       platformId,
+      validateLLM,
       body,
     }: {
       tenantId: string;
       platformId: string;
+      validateLLM: boolean;
       body: UpdatePlatformBody;
     }) => {
+      if (validateLLM) {
+        const { credentials, id, ...updatedBody } = body;
+        const flattenedBody = {
+          ...updatedBody,
+          ...(credentials || {}),
+        };
+        const response = await agentAPIClient.agentFetch(
+          tenantId,
+          'post',
+          '/api/v2/capabilities/platforms/{kind}/test',
+          {
+            params: { path: { kind: body.kind } },
+            body: flattenedBody,
+            errorMsg: 'Failed to validate LLM',
+          },
+        );
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+      }
       const response = await agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/platforms/{platform_id}', {
         params: { path: { platform_id: platformId } },
         body,

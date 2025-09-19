@@ -30,6 +30,7 @@ export const PROVIDERS = ['openai', 'azure', 'bedrock'] as const satisfies reado
 // TODO: [fix-type] Backend returns string | null for fields that are required when editing
 const baseLLMSchema = z.object({
   provider: z.enum(PROVIDERS),
+  validateLLM: z.boolean(),
   name: z.string().min(1),
   model: z.string().min(1),
   apiKey: z.string().optional(),
