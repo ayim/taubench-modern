@@ -276,7 +276,8 @@ class _DataFrameTools:
             str,
             """The name of the data frame to create (IMPORTANT: It must be a valid variable name
             such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
-            and it cannot start with a number or be a python keyword.""",
+            and it cannot start with a number or be a python keyword. IMPORTANT: The name must
+            be unique in the thread (updating an existing data frame is not possible).""",
         ],
         file_ref: Annotated[
             str, "The file reference to create the data frame from (usually the file name)."
@@ -285,7 +286,9 @@ class _DataFrameTools:
         description: Annotated[str | None, "The description for the data frame."] = None,
         num_samples: Annotated[int, "The number of samples to return for each data frame."] = 0,
     ) -> dict[str, Any]:
-        """Creates a data frame from a file."""
+        """Creates a data frame from a file. This should only be used for files containing tabular
+        data such as .csv, .xlsx, .xls (creating a data frame is only useful when further analysis
+        of the data is needed in a tabular format)."""
         from dataclasses import asdict
 
         from agent_platform.server.api.private_v2.threads_data_frames import (
@@ -419,7 +422,8 @@ class _DataFrameTools:
             str,
             """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
             such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
-            and it cannot start with a number or be a python keyword.""",
+            and it cannot start with a number or be a python keyword. IMPORTANT: The name must be
+            unique in the thread (updating an existing data frame is not possible).""",
         ],
         new_data_frame_description: Annotated[
             str | None,
