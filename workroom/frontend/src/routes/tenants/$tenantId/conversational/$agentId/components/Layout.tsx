@@ -21,4 +21,6 @@ export const Layout = styled.section`
   > div {
     grid-area: sidebar;
   }
+
+  max-height: 100vh;
 `;

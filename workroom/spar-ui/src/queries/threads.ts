@@ -1,12 +1,14 @@
 import {
+  paths as AgentServerPaths,
   Thread,
   ThreadAttachmentContent,
   ThreadMessage,
-  paths as AgentServerPaths,
 } from '@sema4ai/agent-server-interface';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
-import { createSparMutation, createSparQueryOptions, createSparQuery } from './shared';
 import { getFileSize } from '../common/helpers';
+import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
 
 /**
  * List Threads
@@ -211,7 +213,7 @@ export type ThreadFiles =
   AgentServerPaths['/api/v2/threads/{tid}/files']['get']['responses'][200]['content']['application/json'];
 export const threadFilesQueryOptions = createSparQueryOptions<{ threadId: string }>()(
   ({ sparAPIClient, threadId }) => ({
-    queryKey: threadsQueryKey(threadId),
+    queryKey: threadFilesQueryKey(threadId),
     queryFn: async () => {
       const response = await sparAPIClient.queryAgentServer('get', '/api/v2/threads/{tid}/files', {
         params: { path: { tid: threadId } },
@@ -230,3 +232,11 @@ export const threadFilesQueryOptions = createSparQueryOptions<{ threadId: string
  * Get Thread Files
  */
 export const useThreadFilesQuery = createSparQuery(threadFilesQueryOptions);
+
+export const useThreadFilesRefetch = ({ threadId }: { threadId: string }) => {
+  const queryClient = useQueryClient();
+
+  return useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: threadFilesQueryKey(threadId) });
+  }, [queryClient, threadId]);
+};

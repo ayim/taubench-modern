@@ -1,14 +1,15 @@
 import { Box, Button, Menu, Tooltip, Typography, useScreenSize } from '@sema4ai/components';
-import { IconDotsHorizontal, IconPlus, IconPoll } from '@sema4ai/icons';
+import { IconDotsHorizontal, IconPaperclip, IconPlus, IconPoll } from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
-import { useParams } from '@tanstack/react-router';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
+import { useParams } from '@tanstack/react-router';
 
 import { Header as HeaderBase } from '~/components/layout/Header';
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
 
 export const Header = () => {
   const { agentId, tenantId } = useParams({ from: '/tenants/$tenantId/worker/$agentId' });
+  const { workItemId } = useParams({ strict: false });
 
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const isMobile = useScreenSize('m');
@@ -50,6 +51,16 @@ export const Header = () => {
                 activeOptions={{ exact: true }}
               />
             </Tooltip>
+            {workItemId && (
+              <Tooltip text="Files" placement="bottom">
+                <RouterSideNavigationLink
+                  to="/tenants/$tenantId/worker/$agentId/$workItemId/files"
+                  icon={<IconPaperclip />}
+                  round
+                  params={{ tenantId, agentId, workItemId }}
+                />
+              </Tooltip>
+            )}
           </>
         )}
 
@@ -66,6 +77,15 @@ export const Header = () => {
               <RouterMenuLink to="/tenants/$tenantId/worker/$agentId" icon={IconPoll} params={{ tenantId, agentId }}>
                 Work Items
               </RouterMenuLink>
+              {workItemId && (
+                <RouterMenuLink
+                  to="/tenants/$tenantId/worker/$agentId/$workItemId/files"
+                  icon={IconPoll}
+                  params={{ tenantId, agentId, workItemId }}
+                >
+                  Files
+                </RouterMenuLink>
+              )}
             </Menu>
           </>
         )}

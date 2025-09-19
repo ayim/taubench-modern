@@ -9,6 +9,7 @@ import { TenantMeta } from './tenantContext';
 const routesMapping = {
   '/thread/$agentId/$threadId': '/tenants/$tenantId/conversational/$agentId/$threadId',
   '/thread/$agentId': '/tenants/$tenantId/conversational/$agentId',
+  '/workItem/$agentId/$workItemId': '/tenants/$tenantId/worker/$agentId/$workItemId',
 } satisfies Record<keyof SparUIRoutes, FileRouteTypes['id']>;
 
 export const createSparAPIClient = (

@@ -1,5 +1,6 @@
 import { IconTableRows, IconType } from '@sema4ai/icons';
-import { IconPDF, IconAnyFile, IconWord, IconExcel } from '@sema4ai/icons/logos';
+import { IconAnyFile, IconExcel, IconPDF, IconWord } from '@sema4ai/icons/logos';
+import { Accept } from 'react-dropzone';
 
 export function getFileTypeIcon(fileType: string): IconType {
   switch (fileType) {
@@ -36,4 +37,11 @@ export const getFileSize = (bytes: number): string => {
   const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytes) / Math.log(k)));
 
   return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+};
+
+/**
+ * Gets the list of supported extension from accept property of dropzon config
+ */
+export const getSupportedExtensions = (accept: Accept): string[] => {
+  return Array.from(new Set(Object.values(accept).flat())).sort();
 };

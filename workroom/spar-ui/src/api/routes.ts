@@ -6,4 +6,8 @@ export type SparUIRoutes = {
   '/thread/$agentId': {
     agentId: string;
   };
+  '/workItem/$agentId/$workItemId': {
+    agentId: string;
+    workItemId: string;
+  };
 };

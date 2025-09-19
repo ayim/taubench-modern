@@ -8,7 +8,7 @@ import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { AgentErrorStreamPayload, StreamingDelta, StreamingDeltaMessageContent } from '../lib/AgentServerTypes';
 import { SparAPIClient } from '../api';
 import { useSparUIContext } from '../api/context';
-import { threadMessagesQueryKey, useUploadThreadFilesMutation } from '../queries/threads';
+import { threadMessagesQueryKey, useThreadFilesRefetch, useUploadThreadFilesMutation } from '../queries/threads';
 import { DataFrameClientTools } from '../components/DataFrame/tools/Definitions';
 
 type MessageListener = (
@@ -285,19 +285,28 @@ class StreamManager {
   }
 }
 
-const streamManager = new StreamManager();
+export const streamManager = new StreamManager();
 
 export const useMessageStream = ({ agentId, threadId }: { agentId: string; threadId: string }) => {
   const { sparAPIClient } = useSparUIContext();
   const queryClient = useQueryClient();
   const { mutateAsync: uploadFiles, isPending: uploadingFiles } = useUploadThreadFilesMutation({ threadId });
+  const refetchFiles = useThreadFilesRefetch({ threadId });
 
   const [streamingMessages, setStreamingMessages] = useState<ThreadMessage[] | undefined>(undefined);
   const [streamError, setStreamError] = useState<AgentErrorStreamPayload | undefined>(undefined);
 
   const sendMessage = async (text: string, files: File[]) => {
     const uploadedAttachments = files.length ? await uploadFiles({ files }) : [];
-    const content: ThreadContent[] = [...uploadedAttachments, { kind: 'text', text, complete: true }];
+    if (files.length) {
+      // only refetch files if any file is uploaded
+      await refetchFiles();
+    }
+    const content: ThreadContent[] = [...uploadedAttachments];
+    if (text.trim()) {
+      // only add text message if it is not empty
+      content.push({ kind: 'text', text, complete: true });
+    }
     await streamManager.initiateStream({ sparAPIClient, queryClient, content, threadId, agentId });
   };
 

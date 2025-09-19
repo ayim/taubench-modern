@@ -37,6 +37,7 @@ import { Route as TenantsTenantIdConversationalAgentIdThreadIdRouteImport } from
 import { Route as TenantsTenantIdConfigurationLlmNewRouteImport } from './routes/tenants/$tenantId/configuration/llm/new'
 import { Route as TenantsTenantIdConfigurationLlmPlatformIdRouteImport } from './routes/tenants/$tenantId/configuration/llm/$platformId'
 import { Route as TenantsTenantIdAgentsDeployLlmsNewRouteImport } from './routes/tenants/$tenantId/agents/deploy/llms.new'
+import { Route as TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRouteImport } from './routes/tenants/$tenantId/worker/$agentId/$workItemId/files/index'
 import { Route as TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/$threadId/files/index'
 import { Route as TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/index'
 import { Route as TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/index'
@@ -205,6 +206,12 @@ const TenantsTenantIdAgentsDeployLlmsNewRoute =
     path: '/llms/new',
     getParentRoute: () => TenantsTenantIdAgentsDeployRoute,
   } as any)
+const TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRoute =
+  TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRouteImport.update({
+    id: '/files/',
+    path: '/files/',
+    getParentRoute: () => TenantsTenantIdWorkerAgentIdWorkItemIdRoute,
+  } as any)
 const TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRoute =
   TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRouteImport.update({
     id: '/files/',
@@ -250,7 +257,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
-  '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/configuration/documentIntelligence': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations': typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/files': typeof TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId/files': typeof TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -281,7 +289,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
-  '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/configuration/documentIntelligence': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
@@ -291,6 +299,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations': typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/files': typeof TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId/files': typeof TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -315,7 +324,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
-  '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/configuration/documentIntelligence/': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm/': typeof TenantsTenantIdConfigurationLlmIndexRoute
@@ -325,6 +334,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/': typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/files/': typeof TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId/files/': typeof TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/files'
+    | '/tenants/$tenantId/worker/$agentId/$workItemId/files'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/files'
+    | '/tenants/$tenantId/worker/$agentId/$workItemId/files'
   id:
     | '__root__'
     | '/'
@@ -424,6 +436,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/files/'
+    | '/tenants/$tenantId/worker/$agentId/$workItemId/files/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -629,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdAgentsDeployLlmsNewRouteImport
       parentRoute: typeof TenantsTenantIdAgentsDeployRoute
     }
+    '/tenants/$tenantId/worker/$agentId/$workItemId/files/': {
+      id: '/tenants/$tenantId/worker/$agentId/$workItemId/files/'
+      path: '/files'
+      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/files'
+      preLoaderRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRouteImport
+      parentRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdRoute
+    }
     '/tenants/$tenantId/conversational/$agentId/$threadId/files/': {
       id: '/tenants/$tenantId/conversational/$agentId/$threadId/files/'
       path: '/files'
@@ -734,15 +754,30 @@ const TenantsTenantIdConversationalAgentIdRouteWithChildren =
     TenantsTenantIdConversationalAgentIdRouteChildren,
   )
 
+interface TenantsTenantIdWorkerAgentIdWorkItemIdRouteChildren {
+  TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRoute
+}
+
+const TenantsTenantIdWorkerAgentIdWorkItemIdRouteChildren: TenantsTenantIdWorkerAgentIdWorkItemIdRouteChildren =
+  {
+    TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRoute:
+      TenantsTenantIdWorkerAgentIdWorkItemIdFilesIndexRoute,
+  }
+
+const TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren =
+  TenantsTenantIdWorkerAgentIdWorkItemIdRoute._addFileChildren(
+    TenantsTenantIdWorkerAgentIdWorkItemIdRouteChildren,
+  )
+
 interface TenantsTenantIdWorkerAgentIdRouteChildren {
-  TenantsTenantIdWorkerAgentIdWorkItemIdRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdRoute
+  TenantsTenantIdWorkerAgentIdWorkItemIdRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren
   TenantsTenantIdWorkerAgentIdCreateRoute: typeof TenantsTenantIdWorkerAgentIdCreateRoute
 }
 
 const TenantsTenantIdWorkerAgentIdRouteChildren: TenantsTenantIdWorkerAgentIdRouteChildren =
   {
     TenantsTenantIdWorkerAgentIdWorkItemIdRoute:
-      TenantsTenantIdWorkerAgentIdWorkItemIdRoute,
+      TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren,
     TenantsTenantIdWorkerAgentIdCreateRoute:
       TenantsTenantIdWorkerAgentIdCreateRoute,
   }
