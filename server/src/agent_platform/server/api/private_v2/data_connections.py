@@ -23,11 +23,20 @@ async def create_data_connection(
     storage: StorageDependency,
 ) -> DataConnectionPayload:
     """Create a new data connection."""
+    import datetime
+
     if data.id is not None:
         raise HTTPException(
             status_code=400,
             detail="Data connection ID must be None when creating a new data connection",
         )
+
+    if data.created_at is None:
+        data.created_at = datetime.datetime.now(datetime.UTC)
+
+    if data.updated_at is None:
+        data.updated_at = datetime.datetime.now(datetime.UTC)
+
     try:
         connection_id = str(uuid.uuid4())
         db_data_connection = DbDataConnection.from_payload(

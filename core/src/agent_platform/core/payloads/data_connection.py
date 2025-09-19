@@ -243,32 +243,32 @@ DataConnectionConfiguration = (
 )
 
 
-@dataclass(frozen=True)
+@dataclass
 class BaseDataConnection:
     """Base class for all data connections."""
 
     name: str
     description: str
     configuration: DataConnectionConfiguration
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     id: str | None = None
     external_id: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass
 class PostgresDataConnection(BaseDataConnection):
     engine: Literal["postgres"] = "postgres"
     configuration: PostgresDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class RedshiftDataConnection(BaseDataConnection):
     engine: Literal["redshift"] = "redshift"
     configuration: RedshiftDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class SnowflakeDataConnection(BaseDataConnection):
     engine: Literal["snowflake"] = "snowflake"
     configuration: (
@@ -278,67 +278,67 @@ class SnowflakeDataConnection(BaseDataConnection):
     )
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConfluenceDataConnection(BaseDataConnection):
     engine: Literal["confluence"] = "confluence"
     configuration: ConfluenceDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class MySQLDataConnection(BaseDataConnection):
     engine: Literal["mysql"] = "mysql"
     configuration: MySQLDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class MSSQLDataConnection(BaseDataConnection):
     engine: Literal["mssql"] = "mssql"
     configuration: MSSQLDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class OracleDataConnection(BaseDataConnection):
     engine: Literal["oracle"] = "oracle"
     configuration: OracleDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class SlackDataConnection(BaseDataConnection):
     engine: Literal["slack"] = "slack"
     configuration: SlackDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class SalesforceDataConnection(BaseDataConnection):
     engine: Literal["salesforce"] = "salesforce"
     configuration: SalesforceDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class TimescaleDBDataConnection(BaseDataConnection):
     engine: Literal["timescaledb"] = "timescaledb"
     configuration: TimescaledbDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class PgvectorDataConnection(BaseDataConnection):
     engine: Literal["pgvector"] = "pgvector"
     configuration: PgvectorDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class BigqueryDataConnection(BaseDataConnection):
     engine: Literal["bigquery"] = "bigquery"
     configuration: BigqueryDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class SemaknowledgebaseDataConnection(BaseDataConnection):
     engine: Literal["sema4_knowledge_base"] = "sema4_knowledge_base"
     configuration: SemaknowledgebaseDataConnectionConfiguration
 
 
-@dataclass(frozen=True)
+@dataclass
 class SQLiteDataConnection(BaseDataConnection):
     engine: Literal["sqlite"] = "sqlite"
     configuration: SQLiteDataConnectionConfiguration

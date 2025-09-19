@@ -8010,13 +8010,27 @@ export const spec = {
             $ref: '#/components/schemas/BigqueryDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -8049,13 +8063,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'BigqueryDataConnection',
       },
       BigqueryDataConnectionConfiguration: {
@@ -8473,13 +8481,27 @@ export const spec = {
             $ref: '#/components/schemas/ConfluenceDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -8512,13 +8534,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'ConfluenceDataConnection',
       },
       ConfluenceDataConnectionConfiguration: {
@@ -10686,13 +10702,27 @@ export const spec = {
             $ref: '#/components/schemas/MSSQLDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -10725,13 +10755,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'MSSQLDataConnection',
       },
       MSSQLDataConnectionConfiguration: {
@@ -10844,13 +10868,27 @@ export const spec = {
             $ref: '#/components/schemas/MySQLDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -10883,13 +10921,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'MySQLDataConnection',
       },
       MySQLDataConnectionConfiguration: {
@@ -11238,13 +11270,27 @@ export const spec = {
             $ref: '#/components/schemas/OracleDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -11277,13 +11323,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'OracleDataConnection',
       },
       OracleDataConnectionConfiguration: {
@@ -11586,13 +11626,27 @@ export const spec = {
             $ref: '#/components/schemas/PgvectorDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -11625,13 +11679,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'PgvectorDataConnection',
       },
       PgvectorDataConnectionConfiguration: {
@@ -11690,13 +11738,27 @@ export const spec = {
             $ref: '#/components/schemas/PostgresDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -11729,13 +11791,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'PostgresDataConnection',
       },
       PostgresDataConnectionConfiguration: {
@@ -12271,13 +12327,27 @@ export const spec = {
             $ref: '#/components/schemas/RedshiftDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -12310,13 +12380,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'RedshiftDataConnection',
       },
       RedshiftDataConnectionConfiguration: {
@@ -13451,13 +13515,27 @@ export const spec = {
             $ref: '#/components/schemas/SQLiteDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -13490,13 +13568,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'SQLiteDataConnection',
       },
       SQLiteDataConnectionConfiguration: {
@@ -13524,13 +13596,27 @@ export const spec = {
             $ref: '#/components/schemas/SalesforceDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -13563,13 +13649,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'SalesforceDataConnection',
       },
       SalesforceDataConnectionConfiguration: {
@@ -13772,13 +13852,27 @@ export const spec = {
             $ref: '#/components/schemas/SemaknowledgebaseDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -13811,13 +13905,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'SemaknowledgebaseDataConnection',
       },
       SemaknowledgebaseDataConnectionConfiguration: {
@@ -13937,13 +14025,27 @@ export const spec = {
             $ref: '#/components/schemas/SlackDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -13976,13 +14078,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'SlackDataConnection',
       },
       SlackDataConnectionConfiguration: {
@@ -14090,13 +14186,27 @@ export const spec = {
             title: 'Configuration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -14129,13 +14239,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'SnowflakeDataConnection',
       },
       SnowflakeDataConnectionConfiguration: {
@@ -15021,13 +15125,27 @@ export const spec = {
             $ref: '#/components/schemas/TimescaledbDataConnectionConfiguration',
           },
           created_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Created At',
           },
           updated_at: {
-            type: 'string',
-            format: 'date-time',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Updated At',
           },
           id: {
@@ -15060,13 +15178,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'configuration',
-          'created_at',
-          'updated_at',
-        ],
+        required: ['name', 'description', 'configuration'],
         title: 'TimescaleDBDataConnection',
       },
       TimescaledbDataConnectionConfiguration: {

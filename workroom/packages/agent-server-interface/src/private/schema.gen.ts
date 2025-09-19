@@ -2894,16 +2894,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['BigqueryDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -3074,16 +3068,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['ConfluenceDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -4047,16 +4035,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['MSSQLDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -4121,16 +4103,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['MySQLDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -4323,16 +4299,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['OracleDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -4454,16 +4424,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['PgvectorDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -4501,16 +4465,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['PostgresDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -4846,16 +4804,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['RedshiftDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -5523,16 +5475,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['SQLiteDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -5556,16 +5502,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['SalesforceDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -5686,16 +5626,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['SemaknowledgebaseDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -5752,16 +5686,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['SlackDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -5815,16 +5743,10 @@ export interface components {
         | components['schemas']['SnowflakeLinkedConfiguration']
         | components['schemas']['SnowflakeCustomKeyPairConfiguration']
         | components['schemas']['SnowflakeDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
@@ -6429,16 +6351,10 @@ export interface components {
       /** Description */
       description: string;
       configuration: components['schemas']['TimescaledbDataConnectionConfiguration'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
       /** Id */
       id?: string | null;
       /** External Id */
