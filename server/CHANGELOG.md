@@ -1,3 +1,9 @@
+# Sema4.ai Agent Server 2.1.3 (2025-09-18)
+
+- [GPT-1276] Studio Failing on 5+ minute Action Invocations (Turn Async Actions Default ON) [#980](https://github.com/Sema4AI/agent-platform/pull/980)
+- [DIN-578] Make generate_citations optional on /extract [#981](https://github.com/Sema4AI/agent-platform/pull/981)
+- [DIN-566] Endpoint for generating a description for a data model [#950](https://github.com/Sema4AI/agent-platform/pull/950)
+
 # Sema4.ai Agent Server 2.1.2 (2025-09-18)
 
 - [PRD-857] Claude 4 Thinking [#951](https://github.com/Sema4AI/agent-platform/pull/951)
