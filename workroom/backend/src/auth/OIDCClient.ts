@@ -24,10 +24,18 @@ export interface OIDCPKCEChallenge {
 const emailSchema = z.string().email();
 
 export class OIDCClient {
-  private config: ClientConfiguration;
+  private monitoring: MonitoringContext;
+  private oidcClientConfiguration: ClientConfiguration;
 
-  constructor(config: ClientConfiguration) {
-    this.config = config;
+  constructor({
+    monitoring,
+    oidcClientConfiguration,
+  }: {
+    monitoring: MonitoringContext;
+    oidcClientConfiguration: ClientConfiguration;
+  }) {
+    this.monitoring = monitoring;
+    this.oidcClientConfiguration = oidcClientConfiguration;
   }
 
   async exchangeCodeForTokens({
@@ -39,9 +47,13 @@ export class OIDCClient {
     redirectUri: string;
     codeVerifier: string;
   }): Promise<TokenEndpointResponse & TokenEndpointResponseHelpers> {
-    const tokenSet = await oidcClient.authorizationCodeGrant(this.config, new URL(`${redirectUri}?code=${code}`), {
-      pkceCodeVerifier: codeVerifier,
-    });
+    const tokenSet = await oidcClient.authorizationCodeGrant(
+      this.oidcClientConfiguration,
+      new URL(`${redirectUri}?code=${code}`),
+      {
+        pkceCodeVerifier: codeVerifier,
+      },
+    );
 
     return tokenSet;
   }
@@ -53,16 +65,34 @@ export class OIDCClient {
     codeChallenge: string;
     redirectUri: string;
   }): Promise<string> {
-    const authUrl = oidcClient.buildAuthorizationUrl(this.config, {
+    const authParams: Record<string, string> = {
       redirect_uri: redirectUri,
+      state: oidcClient.randomState(),
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+    };
+
+    const issuerUrl = new URL(this.oidcClientConfiguration.serverMetadata().issuer);
+
+    if (issuerUrl.host === 'accounts.google.com') {
+      // Google handles offline access (refresh tokens) differently, so we cannot specify the
+      // 'offline_access' scope, and instead need to use non-standard parameters:
+      authParams.scope = 'openid email';
+      authParams.access_type = 'offline';
+      authParams.prompt = 'consent';
+    } else {
       // Required scopes:
       //  email           => Email address sub
       //  offline_access  => Refresh tokens
       //  openid          => ID tokens
-      scope: 'openid email offline_access',
-      state: oidcClient.randomState(),
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
+      authParams.scope = 'openid email offline_access';
+    }
+
+    const authUrl = oidcClient.buildAuthorizationUrl(this.oidcClientConfiguration, authParams);
+
+    this.monitoring.logger.info('Generated OIDC authorization URL', {
+      oidcIssuer: issuerUrl.toString(),
+      requestUrl: authUrl.toString(),
     });
 
     return authUrl.href;
@@ -90,7 +120,7 @@ export class OIDCClient {
       params.id_token_hint = idToken;
     }
 
-    const endSessionUrl = oidcClient.buildEndSessionUrl(this.config, params);
+    const endSessionUrl = oidcClient.buildEndSessionUrl(this.oidcClientConfiguration, params);
 
     return endSessionUrl.href;
   }
@@ -100,7 +130,7 @@ export class OIDCClient {
   }: {
     refreshToken: string;
   }): Promise<TokenEndpointResponse & TokenEndpointResponseHelpers> {
-    const tokenSet = await oidcClient.refreshTokenGrant(this.config, refreshToken);
+    const tokenSet = await oidcClient.refreshTokenGrant(this.oidcClientConfiguration, refreshToken);
 
     return tokenSet;
   }
@@ -112,7 +142,7 @@ export class OIDCClient {
     token: string;
     tokenType: 'access_token' | 'refresh_token';
   }): Promise<void> {
-    await oidcClient.tokenRevocation(this.config, token, {
+    await oidcClient.tokenRevocation(this.oidcClientConfiguration, token, {
       token_type_hint: tokenType,
     });
   }
@@ -152,7 +182,10 @@ export class OIDCClient {
       oidcIssuer: config.serverMetadata().issuer,
     });
 
-    return new OIDCClient(config);
+    return new OIDCClient({
+      monitoring,
+      oidcClientConfiguration: config,
+    });
   }
 
   static extractUserIdFromClaims(claims: IDToken): string {

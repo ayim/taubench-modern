@@ -1,6 +1,7 @@
 import { Configuration } from 'openid-client';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OIDCClient, type OIDCPKCEChallenge } from './OIDCClient.js';
+import type { MonitoringContext } from '../monitoring/index.js';
 
 describe('OIDCClient', () => {
   const getConfiguration = (): Configuration => {
@@ -15,8 +16,18 @@ describe('OIDCClient', () => {
     return config;
   };
 
+  const monitoring: MonitoringContext = {
+    logger: {
+      info: () => {},
+      error: () => {},
+    },
+  };
+
   it('can be instantiated', () => {
-    const client = new OIDCClient(getConfiguration());
+    const client = new OIDCClient({
+      oidcClientConfiguration: getConfiguration(),
+      monitoring,
+    });
 
     expect(client).toBeInstanceOf(OIDCClient);
   });
@@ -31,7 +42,10 @@ describe('OIDCClient', () => {
     let client: OIDCClient;
 
     beforeEach(() => {
-      client = new OIDCClient(getConfiguration());
+      client = new OIDCClient({
+        oidcClientConfiguration: getConfiguration(),
+        monitoring,
+      });
     });
 
     describe('getAuthorizationUrl', () => {
