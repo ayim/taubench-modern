@@ -1,12 +1,14 @@
-import { FC } from 'react';
-import { Box, Dropzone, Typography } from '@sema4ai/components';
+import { ReactNode } from 'react';
+import { Box, Button, useSnackbar } from '@sema4ai/components';
 import { useParams, useRouteContext } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-
-import type { AgentDeploymentFormSchema } from './context';
+import { FileRejection, useDropzone } from 'react-dropzone';
+import type { AgentDeploymentFormSchema } from '../../agents/deploy/components/context';
+import { IconPlus } from '@sema4ai/icons';
+import { useUploadAgentPackageMutation } from '~/queries/agentPackageUpload';
 
 export type LLMFromIntrospection = {
   provider: 'OpenAI';
@@ -25,8 +27,9 @@ export type AgentPackageResponse = {
   agentTemplate: {
     name: string;
     description: string;
+    version: string;
+    icon?: string;
     metadata: { mode: 'worker' | 'conversational' };
-    actions: Array<{ id: string; name: string }>;
     mcpServers: Array<{
       config: {
         name: string;
@@ -35,19 +38,36 @@ export type AgentPackageResponse = {
         headers: unknown;
       };
     }>;
+    action_packages: Array<{
+      name: string;
+      description: string;
+      action_package_version: string;
+      actions?: Array<{
+        name: string;
+        description: string;
+        summary: string;
+      }>;
+      icon?: ReactNode;
+      queries?: Array<{
+        name: string;
+        description?: string;
+      }>;
+      mcpTools?: Array<{
+        name: string;
+        description?: string;
+      }>;
+    }>;
     dataSources: Array<{ id: string; engine: string; name: string }>;
     model: LLMFromIntrospection;
   };
   defaultValues: AgentDeploymentFormSchema;
 };
 
-type Props = {
-  onSuccess: (result: { file: File; extracted: AgentPackageResponse }) => void;
-};
-
-export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
+export const AgentUploadForm = () => {
+  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  const { addSnackbar } = useSnackbar();
+  const uploadAgentPackageMutation = useUploadAgentPackageMutation();
 
   const schema = z.object({
     file: z
@@ -57,13 +77,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
 
   type FormValues = z.infer<typeof schema>;
 
-  const {
-    setValue,
-    trigger,
-    setError,
-    watch,
-    formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), mode: 'onChange' });
+  const { setValue, trigger } = useForm<FormValues>({ resolver: zodResolver(schema), mode: 'onChange' });
 
   const inspectMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -71,9 +85,21 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
     },
   });
 
-  const onDrop = async (files: File[]) => {
+  const onDrop = async (files: File[], fileRejection: FileRejection[]) => {
     const file = files[0];
-    if (!file) return;
+
+    const error = fileRejection?.[0]?.errors?.[0];
+    if (error && error.message) {
+      addSnackbar({
+        message: error.message,
+        variant: 'danger',
+      });
+      return;
+    }
+
+    if (!file) {
+      return;
+    }
 
     setValue('file', file, { shouldValidate: true });
     const valid = await trigger('file');
@@ -92,6 +118,8 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
         | {
             name: string;
             description?: string;
+            version: string;
+            icon?: string;
             metadata?: { mode?: 'worker' | 'conversational' };
             mcp_servers?: Array<{
               name?: string;
@@ -99,6 +127,25 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
               url?: string;
               type?: 'generic_mcp' | 'sema4ai_action_server';
               headers?: Record<string, unknown>;
+            }>;
+            action_packages: Array<{
+              name: string;
+              description: string;
+              action_package_version: string;
+              actions?: Array<{
+                name: string;
+                description: string;
+                summary: string;
+              }>;
+              icon?: ReactNode;
+              queries?: Array<{
+                name: string;
+                description?: string;
+              }>;
+              mcpTools?: Array<{
+                name: string;
+                description?: string;
+              }>;
             }>;
             datasources?: Array<{ engine?: string; customer_facing_name?: string }>;
             model: LLMFromIntrospection;
@@ -114,7 +161,7 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
             transport: (srv.transport === 'sse' || srv.transport === 'streamable-http'
               ? srv.transport
               : 'streamable-http') as 'sse' | 'streamable-http',
-            headers: null,
+            headers: srv.headers ?? {},
             tools: [],
           },
         }));
@@ -123,7 +170,8 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
           name: data.name,
           description: data.description ?? '',
           metadata: { mode: data.metadata?.mode === 'worker' ? 'worker' : 'conversational' },
-          actions: [],
+          version: data.version,
+          action_packages: data.action_packages,
           mcpServers,
           dataSources: (data.datasources ?? []).map((ds, i) => ({
             id: `${ds.engine ?? 'source'}-${i}`,
@@ -153,71 +201,49 @@ export const AgentUploadForm: FC<Props> = ({ onSuccess }) => {
         };
 
         const extracted: AgentPackageResponse = { agentTemplate, defaultValues };
-        onSuccess({ file, extracted });
+
+        // Store the agent package data in React Query cache and navigate
+        await uploadAgentPackageMutation.mutateAsync({
+          tenantId,
+          data: {
+            file,
+            fileContent: extracted,
+          },
+        });
       } else {
-        setError('file', {
-          type: 'server',
+        addSnackbar({
           message: 'Failed to process agent package. Please check the file format.',
+          variant: 'danger',
         });
       }
     } catch (err) {
       console.error('❌ Error processing ZIP file:', err);
-      setError('file', {
-        type: 'server',
+      addSnackbar({
         message: 'Failed to process agent package. Please check the file format.',
+        variant: 'danger',
       });
     }
   };
 
+  const { getInputProps, open } = useDropzone({
+    multiple: false,
+    accept: {
+      'application/zip': ['.zip'],
+    },
+    maxSize: 100_000_000,
+    onDrop: onDrop,
+
+    // Disable click and keydown behavior since we're using a button
+    noClick: true,
+    noKeyboard: true,
+  });
+
   return (
-    <>
-      <div className="h-full overflow-x-hidden">
-        <div className="mx-12 my-10">
-          <div className="flex flex-col h-full overflow-auto">
-            <header className="text-center">
-              <div className="flex items-center justify-center gap-2 !mb-2 h-11">
-                <img src="/svg/IconAgentsPage.svg" className="h-full" />
-                <Typography
-                  lineHeight="29px"
-                  fontFamily="Heldane Display"
-                  fontWeight="500"
-                  as="h1"
-                  className="text-[2.5rem]"
-                >
-                  Deploy Agent
-                </Typography>
-              </div>
-              <p className="text-sm">Upload an agent package to get started with deployment.</p>
-            </header>
-            <Box className="border border-solid bg-white border-[#CDCDCD] rounded-[10px] p-8 flex-grow my-8">
-              <div className="flex justify-center items-center h-full">
-                <Box width="100%" maxWidth={720}>
-                  <Dropzone
-                    onDrop={onDrop}
-                    title={inspectMutation.isPending ? 'Processing...' : 'Drop your package here'}
-                    dropTitle={inspectMutation.isPending ? 'Processing agent package...' : 'Drop Files to Upload'}
-                    description={
-                      inspectMutation.isPending
-                        ? 'Please wait while we process your agent package...'
-                        : 'Upload a .zip file containing the code for an agent that follows the agent structure guidelines.'
-                    }
-                    error={
-                      errors.file?.message ||
-                      (inspectMutation.error instanceof Error ? inspectMutation.error.message : undefined)
-                    }
-                    disabled={inspectMutation.isPending}
-                  />
-                  {watch('file') && !inspectMutation.isPending && (
-                    <Box mt="$16" textAlign="center">
-                      <p>Uploaded: {watch('file')?.name}</p>
-                    </Box>
-                  )}
-                </Box>
-              </div>
-            </Box>
-          </div>
-        </div>
-      </div>
-    </>
+    <Box height="100%" display="flex" flexDirection="row" gap={2}>
+      <input {...getInputProps()} />
+      <Button icon={IconPlus} round onClick={open} loading={uploadAgentPackageMutation.isPending}>
+        Agent
+      </Button>
+    </Box>
   );
 };

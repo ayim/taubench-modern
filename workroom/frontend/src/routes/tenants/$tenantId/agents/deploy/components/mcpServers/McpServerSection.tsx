@@ -61,7 +61,32 @@ export const McpServerSection: FC = () => {
                   type: 'generic_mcp',
                   url: srv.transport === 'stdio' ? null : (srv.url ?? null),
                   transport,
-                  headers: {},
+                  headers: (() => {
+                    const headers = srv.headers ?? {};
+                    const result: Record<
+                      string,
+                      {
+                        type: 'string' | 'secret';
+                        value?: string | null | undefined;
+                        description?: string | null | undefined;
+                      }
+                    > = {};
+
+                    for (const [key, value] of Object.entries(headers)) {
+                      if (typeof value === 'string') {
+                        result[key] = { type: 'string', value };
+                      } else if (value && typeof value === 'object' && 'type' in value) {
+                        // Already in the expected format
+                        result[key] = value as {
+                          type: 'string' | 'secret';
+                          value?: string | null | undefined;
+                          description?: string | null | undefined;
+                        };
+                      }
+                    }
+
+                    return result;
+                  })(),
                   command: null,
                   args: null,
                   env: null,

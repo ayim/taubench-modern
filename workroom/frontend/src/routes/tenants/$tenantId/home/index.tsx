@@ -3,14 +3,14 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { Box, Button, Filter, FilterGroup, Grid, Menu, ToggleInputButton, Typography } from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
 import { IconAgents } from '@sema4ai/icons/logos';
-import { IconSearch, IconDotsHorizontal } from '@sema4ai/icons';
+import { IconDotsHorizontal, IconSearch } from '@sema4ai/icons';
 import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 import { components } from '@sema4ai/agent-server-interface';
-
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
 import { DeleteAgentMenuItem } from './components/DeleteAgentMenuItem';
+import { AgentUploadForm } from './components/AgentUploadForm';
 
 export const Route = createFileRoute('/tenants/$tenantId/home/')({
   component: HomePage,
@@ -85,9 +85,12 @@ function HomePage() {
 
   return (
     <Box py="$64" px={['$16', '$16', '$40']} maxWidth={1280} mx="auto">
-      <Box display="flex" gap="$16" mb="$20">
-        <IconAgents size={36} />
-        <Typography variant="display-large">Sema4.ai Agents</Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb="$20">
+        <Box display="flex" gap="$16">
+          <IconAgents size={36} />
+          <Typography variant="display-large">Sema4.ai Agents</Typography>
+        </Box>
+        <AgentUploadForm />
       </Box>
       <Filter
         contentBefore={searchInput}
@@ -97,7 +100,7 @@ function HomePage() {
         moreLabel="Filter"
       />
 
-      <Grid columns={[1, 1, 2, 3]} gap="$16" mt="$20" mb="$32">
+      <Grid columns={[1, 2, 3, 4]} gap="$16" mt="$20" mb="$32">
         {filteredAgents.map((agent) => {
           return (
             agent.id && (

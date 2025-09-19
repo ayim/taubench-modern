@@ -1,5 +1,6 @@
-import { FC } from 'react';
-import { Button } from '@sema4ai/components';
+import { FC, useState } from 'react';
+import { Button, Dialog } from '@sema4ai/components';
+import { useNavigate, useParams } from '@tanstack/react-router';
 
 type Props = {
   isFinalStep: boolean;
@@ -11,14 +12,17 @@ type Props = {
 };
 
 export const StepNavigation: FC<Props> = ({ isFinalStep, isPending, isFirstStep, onBack, onNext, onDeploy }) => {
+  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
+  const navigate = useNavigate();
+  const [isCancel, setIsCancel] = useState(false);
   const handleCancel = () => {
-    console.log('Cancel clicked');
+    navigate({ to: '/tenants/$tenantId/home', params: { tenantId } });
   };
 
   return (
     <>
-      {isFinalStep ? (
-        <Button type="button" loading={isPending} round onClick={onDeploy}>
+      {isFinalStep || isFirstStep ? (
+        <Button type="button" loading={isPending} round onClick={isFinalStep ? onDeploy : onNext}>
           Deploy
         </Button>
       ) : (
@@ -27,13 +31,29 @@ export const StepNavigation: FC<Props> = ({ isFinalStep, isPending, isFirstStep,
         </Button>
       )}
       {isFirstStep ? (
-        <Button variant="outline" round onClick={handleCancel}>
+        <Button variant="outline" round onClick={() => setIsCancel(true)}>
           Cancel
         </Button>
       ) : (
         <Button variant="outline" round onClick={onBack}>
           Back
         </Button>
+      )}
+      {isCancel && (
+        <Dialog open onClose={() => setIsCancel(false)}>
+          <Dialog.Header>
+            <Dialog.Header.Title title="Are you sure?" />
+          </Dialog.Header>
+          <Dialog.Content> This will discard all changes and return to the home page. </Dialog.Content>
+          <Dialog.Actions>
+            <Button variant="primary" round onClick={handleCancel}>
+              Confirm
+            </Button>
+            <Button variant="outline" round onClick={() => setIsCancel(false)}>
+              Cancel
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
       )}
     </>
   );

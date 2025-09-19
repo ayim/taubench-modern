@@ -1,9 +1,9 @@
 import { FC } from 'react';
-import { Box, Header, Grid } from '@sema4ai/components';
+import { Box, Grid } from '@sema4ai/components';
 import { AgentIcon, AgentCard } from '@sema4ai/layouts';
 import { IconMcp } from '@sema4ai/icons/logos';
-import { IconLightning } from '@sema4ai/icons';
-import { AgentPackageResponse } from './AgentUploadForm';
+import { IconActions, IconLightning } from '@sema4ai/icons';
+import { AgentPackageResponse } from '../../../home/components/AgentUploadForm';
 
 type Props = {
   agentTemplate: AgentPackageResponse['agentTemplate'];
@@ -16,11 +16,26 @@ export const AgentOverviewStep: FC<Props> = ({ agentTemplate }) => {
     <Box>
       <AgentCard
         illustration={<AgentIcon mode={agentTemplate.metadata.mode} />}
-        version="1.4.2"
+        version={agentTemplate.version}
         title={agentTemplate.name}
         description={agentTemplate.description}
       >
         <AgentCard.Content>
+          <AgentCard.ActionPackageList>
+            {agentTemplate.action_packages.map((actionPackage) => (
+              <AgentCard.ActionPackageList.Item
+                key={`${actionPackage.name}-${actionPackage.action_package_version}`}
+                illustration={actionPackage.icon ? actionPackage.icon : <IconActions size="m" />}
+                name={actionPackage.name}
+                description={actionPackage.description}
+                version={actionPackage.action_package_version}
+                actions={actionPackage.actions || []}
+                queries={actionPackage.queries || []}
+                mcpTools={actionPackage.mcpTools || []}
+              />
+            ))}
+          </AgentCard.ActionPackageList>
+
           {/* MCP servers overview (top) */}
           {agentTemplate.mcpServers.length > 0 && (
             <Box mb="$24" display="flex" flexDirection="column" gap="$16">
@@ -59,9 +74,6 @@ export const AgentOverviewStep: FC<Props> = ({ agentTemplate }) => {
               ))}
             </Box>
           )}
-          <Header>
-            <Header.Title title="Agent configuration" />
-          </Header>
 
           <Grid columns={[1, 2, 3]} gap="$24">
             <AgentCard.Kpi label="Agent Type" value={agentType} />

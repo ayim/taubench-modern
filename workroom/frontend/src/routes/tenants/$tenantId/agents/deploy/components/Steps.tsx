@@ -37,11 +37,6 @@ export const Steps: FC<Props> = ({ activeStep, setWizardStep }) => {
   useEffect(() => {
     setSteps([
       {
-        step: AgentDeploymentStep.AgentOverview,
-        label: 'Review Agent',
-        visited: false,
-      },
-      {
         step: AgentDeploymentStep.AgentSettings,
         label: 'Agent Configuration',
         visited: false,

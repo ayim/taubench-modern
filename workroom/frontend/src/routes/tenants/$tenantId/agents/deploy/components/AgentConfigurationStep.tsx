@@ -1,11 +1,13 @@
-import { Box, Button, Input, Select } from '@sema4ai/components';
+import { Box, Button, Input, Select, Typography } from '@sema4ai/components';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useRouteContext } from '@tanstack/react-router';
 import { FC, useMemo } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { getListPlatformsQueryOptions } from '~/queries/platforms';
-import { AgentPackageResponse } from './AgentUploadForm';
+import { AgentPackageResponse } from '../../../home/components/AgentUploadForm';
 import { AgentDeploymentFormSchema } from './context';
+import { IconActions } from '@sema4ai/icons';
+import { AgentIcon } from '@sema4ai/layouts';
 
 type Props = {
   agentTemplate: AgentPackageResponse['agentTemplate'];
@@ -48,10 +50,20 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
     return llmOptions;
   }, [configuredLLMModels, agentTemplate]);
 
+  const Icon = agentTemplate.icon;
+
   return (
     <Box display="flex" flexDirection="column" gap="$24">
       <Box>
-        <Input label="Name" {...register('name')} error={errors.name?.message} />
+        <Typography variant="body-medium" mb="$8" fontWeight={500}>
+          Icon & Name
+        </Typography>
+        <Box display="flex" gap="$8">
+          {Icon ? <AgentIcon icon={Icon} /> : <AgentIcon icon={IconActions} />}
+          <Box width="100%">
+            <Input label="" {...register('name')} error={errors.name?.message} />
+          </Box>
+        </Box>
       </Box>
 
       <Box>
@@ -59,7 +71,7 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
           label="Description"
           {...register('description')}
           description="This description is visible to all users who have access to the agent."
-          autoGrow={4}
+          rows={4}
           error={errors.description?.message}
         />
       </Box>
@@ -74,16 +86,21 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
               items={providerItems}
               {...field}
               error={errors.llmId?.message ?? ''}
-              description="Choose a model platform (e.g., openai, google, anthropic)."
+              description={
+                <span>
+                  Choose a model platform (e.g., openai, google, anthropic).
+                  <Button
+                    variant="link"
+                    onClick={() => navigate({ to: '/tenants/$tenantId/agents/deploy/llms/new', params: { tenantId } })}
+                  >
+                    Create New
+                  </Button>
+                </span>
+              }
               disabled={providerItems.length === 0}
             />
           )}
         />
-        <Box mt="$8">
-          <Button onClick={() => navigate({ to: '/tenants/$tenantId/agents/deploy/llms/new', params: { tenantId } })}>
-            Configure new LLM
-          </Button>
-        </Box>
         {platformsError && (
           <Box mt="$8" color="content.error" fontSize="$12">
             {platformsError.message}

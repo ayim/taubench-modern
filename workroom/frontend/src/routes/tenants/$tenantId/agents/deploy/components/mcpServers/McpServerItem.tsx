@@ -124,8 +124,8 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
     <Box p="$0" display="flex" flexDirection="column" gap="$16">
       <PackageCard
         title={
-          <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
-            <span>{mcpServer.name}</span>
+          <Box display="flex" alignItems="center" gap="$8" width="100%">
+            <Typography>{mcpServer.name}</Typography>
             <Button
               variant="outline"
               size="small"
@@ -152,106 +152,108 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
         description={readOnly ? 'Global configured MCP server' : null}
         version={null}
       >
-        {!readOnly && (
-          <>
-            <Form.Fieldset>
-              <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <Select
-                  label="Type"
-                  value={mcpServerSettings?.type ?? 'generic_mcp'}
-                  items={[
-                    { label: 'Generic MCP', value: 'generic_mcp' },
-                    { label: 'Sema4 Action Server', value: 'sema4ai_action_server' },
-                  ]}
-                  onChange={async (value) => {
-                    if (value !== 'generic_mcp' && value !== 'sema4ai_action_server') return;
-                    await updateMcpServerSettings((settings) => ({
-                      ...settings,
-                      type: value,
-                    }));
-                  }}
-                />
+        <Form.Fieldset>
+          <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <Select
+              label="Type"
+              value={mcpServerSettings?.type ?? 'generic_mcp'}
+              items={[
+                { label: 'Generic MCP', value: 'generic_mcp' },
+                { label: 'Sema4 Action Server', value: 'sema4ai_action_server' },
+              ]}
+              readOnly={readOnly}
+              onChange={async (value) => {
+                if (value !== 'generic_mcp' && value !== 'sema4ai_action_server') return;
+                await updateMcpServerSettings((settings) => ({
+                  ...settings,
+                  type: value,
+                }));
+              }}
+            />
+          </Box>
+          <Input
+            label="URL (Optional)"
+            placeholder="Enter a URL to the MCP server"
+            {...register(`mcpServerSettings.${index}.url`)}
+            description="Enter a URL to the MCP server"
+            readOnly={readOnly}
+          />
+        </Form.Fieldset>
+
+        <Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb="$8">
+            <Typography fontSize="$16" fontWeight={500} color="content.primary">
+              Headers
+            </Typography>
+          </Box>
+          <Typography fontSize="$12" color="content.subtle" mb="$16">
+            Specified values will be added to the headers when making requests to the MCP Server.
+          </Typography>
+
+          <Form.Fieldset>
+            {headerEntries.length > 0 && (
+              <Box display="flex" flexDirection="column" gap="$16" width="100%">
+                {headerEntries.map(([headerKey, headerValue]) => {
+                  const displayKey = editingKeys[headerKey] !== undefined ? editingKeys[headerKey] : headerKey;
+
+                  if (!headerValue) return null;
+
+                  return (
+                    <Box key={`header-${headerKey}`} display="flex" gap="$16" alignItems="flex-end" width="100%">
+                      <Box style={{ flex: 1 }}>
+                        <Input
+                          label="Key"
+                          value={displayKey}
+                          onChange={(e) => handleKeyInputChange(headerKey, e.target.value)}
+                          onBlur={() => handleKeyInputBlur(headerKey)}
+                          placeholder="Header key"
+                          width="100%"
+                          readOnly={readOnly}
+                        />
+                      </Box>
+                      <Box style={{ flex: 1 }}>
+                        <Select
+                          label="Type"
+                          value={headerValue.type}
+                          onChange={(value) => {
+                            if (value === 'string' || value === 'secret') {
+                              updateHeaderType(headerKey, value);
+                            }
+                          }}
+                          width="100%"
+                          items={typeOptions}
+                          readOnly={readOnly}
+                        />
+                      </Box>
+                      <Box style={{ flex: 1 }}>
+                        <InputControlled
+                          fieldName={`mcpServerSettings.${index}.headers.${headerKey}.value`}
+                          label="Value"
+                          type={headerValue.type === 'secret' ? 'password' : 'text'}
+                          placeholder={headerValue.type === 'secret' ? `Secret for ${headerKey}` : 'Header value'}
+                          width="100%"
+                          readOnly={readOnly}
+                        />
+                      </Box>
+                      <Button
+                        variant="secondary"
+                        icon={IconTrash}
+                        onClick={() => removeHeader(headerKey)}
+                        aria-label="Remove header"
+                        disabled={readOnly}
+                      />
+                    </Box>
+                  );
+                })}
               </Box>
-              <Input
-                label="URL (Optional)"
-                placeholder="Enter a URL to the MCP server"
-                {...register(`mcpServerSettings.${index}.url`)}
-                description="Enter a URL to the MCP server"
-              />
-            </Form.Fieldset>
-
-            <Box mb="$16">
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb="$8">
-                <Typography fontSize="$16" fontWeight={500} color="content.primary">
-                  Headers
-                </Typography>
-              </Box>
-              <Typography fontSize="$12" color="content.subtle" mb="$16">
-                Specified values will be added to the headers when making requests to the MCP Server.
-              </Typography>
-
-              <Form.Fieldset>
-                {headerEntries.length > 0 && (
-                  <Box display="flex" flexDirection="column" gap="$16" width="100%" mb="$16">
-                    {headerEntries.map(([headerKey, headerValue]) => {
-                      const displayKey = editingKeys[headerKey] !== undefined ? editingKeys[headerKey] : headerKey;
-
-                      if (!headerValue) return null;
-
-                      return (
-                        <Box key={`header-${headerKey}`} display="flex" gap="$16" alignItems="flex-end" width="100%">
-                          <Box style={{ flex: 1 }}>
-                            <Input
-                              label="Key"
-                              value={displayKey}
-                              onChange={(e) => handleKeyInputChange(headerKey, e.target.value)}
-                              onBlur={() => handleKeyInputBlur(headerKey)}
-                              placeholder="Header key"
-                              width="100%"
-                            />
-                          </Box>
-                          <Box style={{ flex: 1 }}>
-                            <Select
-                              label="Type"
-                              value={headerValue.type}
-                              onChange={(value) => {
-                                if (value === 'string' || value === 'secret') {
-                                  updateHeaderType(headerKey, value);
-                                }
-                              }}
-                              width="100%"
-                              items={typeOptions}
-                            />
-                          </Box>
-                          <Box style={{ flex: 1 }}>
-                            <InputControlled
-                              fieldName={`mcpServerSettings.${index}.headers.${headerKey}.value`}
-                              label="Value"
-                              type={headerValue.type === 'secret' ? 'password' : 'text'}
-                              placeholder={headerValue.type === 'secret' ? `Secret for ${headerKey}` : 'Header value'}
-                              width="100%"
-                            />
-                          </Box>
-                          <Button
-                            variant="secondary"
-                            icon={IconTrash}
-                            onClick={() => removeHeader(headerKey)}
-                            aria-label="Remove header"
-                          />
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                )}
-                <Box display="flex" justifyContent="flex-start">
-                  <Button round variant="outline" icon={IconPlus} onClick={addNewHeader} size="small">
-                    Header
-                  </Button>
-                </Box>
-              </Form.Fieldset>
+            )}
+            <Box display="flex" justifyContent="flex-start">
+              <Button round variant="outline" icon={IconPlus} onClick={addNewHeader} size="small" disabled={readOnly}>
+                Header
+              </Button>
             </Box>
-          </>
-        )}
+          </Form.Fieldset>
+        </Box>
       </PackageCard>
     </Box>
   );
