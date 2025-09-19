@@ -2,11 +2,12 @@ import { useState, useMemo, useCallback } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Box, Button, Filter, FilterGroup, Grid, Menu, ToggleInputButton, Typography } from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
-import { IconAgents } from '@sema4ai/icons/logos';
 import { IconDotsHorizontal, IconSearch } from '@sema4ai/icons';
 import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 import { components } from '@sema4ai/agent-server-interface';
+
+import { Page } from '~/components/layout/Page';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
 import { DeleteAgentMenuItem } from './components/DeleteAgentMenuItem';
@@ -84,14 +85,7 @@ function HomePage() {
   }
 
   return (
-    <Box py="$64" px={['$16', '$16', '$40']} maxWidth={1280} mx="auto">
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb="$20">
-        <Box display="flex" gap="$16">
-          <IconAgents size={36} />
-          <Typography variant="display-large">Sema4.ai Agents</Typography>
-        </Box>
-        <AgentUploadForm />
-      </Box>
+    <Page title="Sema4.ai Agents" actions={<AgentUploadForm />}>
       <Filter
         contentBefore={searchInput}
         options={filterOptions}
@@ -153,6 +147,6 @@ function HomePage() {
           </Button>
         </Box>
       )}
-    </Box>
+    </Page>
   );
 }

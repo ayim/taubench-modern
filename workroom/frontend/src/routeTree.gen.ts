@@ -20,6 +20,7 @@ import { Route as TenantsTenantIdWorkItemsIndexRouteImport } from './routes/tena
 import { Route as TenantsTenantIdMcpServersIndexRouteImport } from './routes/tenants/$tenantId/mcp-servers/index'
 import { Route as TenantsTenantIdHomeIndexRouteImport } from './routes/tenants/$tenantId/home/index'
 import { Route as TenantsTenantIdHelpIndexRouteImport } from './routes/tenants/$tenantId/help/index'
+import { Route as TenantsTenantIdConfigurationIndexRouteImport } from './routes/tenants/$tenantId/configuration/index'
 import { Route as TenantsTenantIdAuditLogsIndexRouteImport } from './routes/tenants/$tenantId/auditLogs/index'
 import { Route as TenantsTenantIdAgentEvalsIndexRouteImport } from './routes/tenants/$tenantId/agentEvals/index'
 import { Route as TenantsTenantIdWorkerAgentIdRouteImport } from './routes/tenants/$tenantId/worker/$agentId'
@@ -104,6 +105,12 @@ const TenantsTenantIdHelpIndexRoute =
     id: '/help/',
     path: '/help/',
     getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdConfigurationIndexRoute =
+  TenantsTenantIdConfigurationIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => TenantsTenantIdConfigurationRoute,
   } as any)
 const TenantsTenantIdAuditLogsIndexRoute =
   TenantsTenantIdAuditLogsIndexRouteImport.update({
@@ -257,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
   '/tenants/$tenantId/agentEvals': typeof TenantsTenantIdAgentEvalsIndexRoute
   '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
+  '/tenants/$tenantId/configuration/': typeof TenantsTenantIdConfigurationIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
@@ -279,7 +287,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/tenants/$tenantId/configuration': typeof TenantsTenantIdConfigurationRouteWithChildren
   '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
@@ -290,6 +297,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
   '/tenants/$tenantId/agentEvals': typeof TenantsTenantIdAgentEvalsIndexRoute
   '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
+  '/tenants/$tenantId/configuration': typeof TenantsTenantIdConfigurationIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersIndexRoute
@@ -326,6 +334,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
   '/tenants/$tenantId/agentEvals/': typeof TenantsTenantIdAgentEvalsIndexRoute
   '/tenants/$tenantId/auditLogs/': typeof TenantsTenantIdAuditLogsIndexRoute
+  '/tenants/$tenantId/configuration/': typeof TenantsTenantIdConfigurationIndexRoute
   '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/mcp-servers/': typeof TenantsTenantIdMcpServersIndexRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/worker/$agentId'
     | '/tenants/$tenantId/agentEvals'
     | '/tenants/$tenantId/auditLogs'
+    | '/tenants/$tenantId/configuration/'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
     | '/tenants/$tenantId/mcp-servers'
@@ -385,7 +395,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/tenants/$tenantId/configuration'
     | '/tenants/$tenantId/oauth'
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
@@ -396,6 +405,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/worker/$agentId'
     | '/tenants/$tenantId/agentEvals'
     | '/tenants/$tenantId/auditLogs'
+    | '/tenants/$tenantId/configuration'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
     | '/tenants/$tenantId/mcp-servers'
@@ -431,6 +441,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/worker/$agentId'
     | '/tenants/$tenantId/agentEvals/'
     | '/tenants/$tenantId/auditLogs/'
+    | '/tenants/$tenantId/configuration/'
     | '/tenants/$tenantId/help/'
     | '/tenants/$tenantId/home/'
     | '/tenants/$tenantId/mcp-servers/'
@@ -535,6 +546,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tenants/$tenantId/help'
       preLoaderRoute: typeof TenantsTenantIdHelpIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/configuration/': {
+      id: '/tenants/$tenantId/configuration/'
+      path: '/'
+      fullPath: '/tenants/$tenantId/configuration/'
+      preLoaderRoute: typeof TenantsTenantIdConfigurationIndexRouteImport
+      parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
     '/tenants/$tenantId/auditLogs/': {
       id: '/tenants/$tenantId/auditLogs/'
@@ -694,6 +712,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface TenantsTenantIdConfigurationRouteChildren {
+  TenantsTenantIdConfigurationIndexRoute: typeof TenantsTenantIdConfigurationIndexRoute
   TenantsTenantIdConfigurationLlmPlatformIdRoute: typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   TenantsTenantIdConfigurationLlmNewRoute: typeof TenantsTenantIdConfigurationLlmNewRoute
   TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute: typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
@@ -703,6 +722,8 @@ interface TenantsTenantIdConfigurationRouteChildren {
 
 const TenantsTenantIdConfigurationRouteChildren: TenantsTenantIdConfigurationRouteChildren =
   {
+    TenantsTenantIdConfigurationIndexRoute:
+      TenantsTenantIdConfigurationIndexRoute,
     TenantsTenantIdConfigurationLlmPlatformIdRoute:
       TenantsTenantIdConfigurationLlmPlatformIdRoute,
     TenantsTenantIdConfigurationLlmNewRoute:

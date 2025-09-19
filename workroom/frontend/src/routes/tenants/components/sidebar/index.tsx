@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Box, Button, Link } from '@sema4ai/components';
+import { Box, Button, Link, useScreenSize } from '@sema4ai/components';
 import {
   IconAgents,
   IconArrowUpRight,
@@ -25,7 +25,7 @@ const MenuOuterToggle = styled(Button)<{ $expanded?: boolean }>`
   display: block;
   position: absolute;
   top: ${({ theme }) => theme.space.$14};
-  z-index: ${({ theme }) => theme.zIndex.dropdown + 1};
+  z-index: ${({ theme }) => theme.zIndex.dropdown - 1};
 
   ${({ theme }) => theme.screen.m} {
     display: block;
@@ -39,12 +39,18 @@ export const Sidebar: FC = () => {
   const { features } = useTenantContext();
   const { triggerProps, triggerRef } = useSidebarMenu('main-menu');
   const { width, expanded } = useSidebarMenu('main-menu');
+  const isMobile = useScreenSize('m');
 
   const menuStyle = useMemo(() => {
+    if (isMobile) {
+      return {
+        left: 8,
+      };
+    }
     return {
       left: expanded ? width - 48 : 20,
     };
-  }, [width, expanded]);
+  }, [width, expanded, isMobile]);
 
   return (
     <>
@@ -55,6 +61,7 @@ export const Sidebar: FC = () => {
         variant="ghost-subtle"
         aria-label="Toggle main menu"
         style={menuStyle}
+        $expanded={expanded}
       />
 
       <SidebarMenu name="main-menu" title="Main menu" minWidth={240} primary>

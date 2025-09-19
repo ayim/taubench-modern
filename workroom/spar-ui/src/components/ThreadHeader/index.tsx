@@ -16,7 +16,7 @@ type Props = {
 const ThreadsToggle = styled(Button)<{ $expanded?: boolean }>`
   display: ${({ $expanded }) => ($expanded ? 'none' : 'block')};
   position: relative;
-  z-index: ${({ theme }) => theme.zIndex.dropdown + 1};
+  z-index: ${({ theme }) => theme.zIndex.dropdown - 1};
 `;
 
 const Container = styled.header<{ $sidebarExpanded: boolean }>`

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Form, Box, Scroll, Input, Button, useSnackbar } from '@sema4ai/components';
+import { Form, Box, Input, Button, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';
 
 import { getGetConfigQueryOptions, useUpdateConfigMutation } from '~/queries/settings';
@@ -78,26 +78,22 @@ function Settings() {
   });
 
   return (
-    <Scroll>
-      <Box px={8}>
-        <Form onSubmit={onSubmit} busy={isUpdatingConfig}>
-          <FormProvider {...formProps}>
-            {config.map((configEntry) => (
-              <Form.Fieldset key={configEntry.config_type}>
-                <Input
-                  label={beautifyConfigType(configEntry.config_type)}
-                  {...formProps.register(configEntry.config_type)}
-                />
-              </Form.Fieldset>
-            ))}
-            <Box display="flex" justifyContent="flex-end">
-              <Button type="submit" variant="primary" loading={isUpdatingConfig} round>
-                Submit
-              </Button>
-            </Box>
-          </FormProvider>
-        </Form>
-      </Box>
-    </Scroll>
+    <Form onSubmit={onSubmit} busy={isUpdatingConfig}>
+      <FormProvider {...formProps}>
+        {config.map((configEntry) => (
+          <Form.Fieldset key={configEntry.config_type}>
+            <Input
+              label={beautifyConfigType(configEntry.config_type)}
+              {...formProps.register(configEntry.config_type)}
+            />
+          </Form.Fieldset>
+        ))}
+        <Box display="flex" justifyContent="flex-end">
+          <Button type="submit" variant="primary" loading={isUpdatingConfig} round>
+            Submit
+          </Button>
+        </Box>
+      </FormProvider>
+    </Form>
   );
 }

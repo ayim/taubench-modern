@@ -1,5 +1,6 @@
-import { Box } from '@sema4ai/components';
 import { createFileRoute } from '@tanstack/react-router';
+
+import { Page } from '~/components/layout/Page';
 import WorkItemsTable from './components/WorkItemsTable';
 
 export const Route = createFileRoute('/tenants/$tenantId/workItems/')({
@@ -8,8 +9,8 @@ export const Route = createFileRoute('/tenants/$tenantId/workItems/')({
 
 function WorkItems() {
   return (
-    <Box overflow="hidden" display="flex" flexDirection="column" gap={4}>
+    <Page title="Work Items">
       <WorkItemsTable />
-    </Box>
+    </Page>
   );
 }

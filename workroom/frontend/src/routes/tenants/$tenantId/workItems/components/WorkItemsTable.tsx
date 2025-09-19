@@ -164,7 +164,7 @@ const WorkItemsTable: FC<Props> = () => {
 
   return (
     <Box flexGrow={1} display="flex" flexDirection="column" gap={4} overflow="hidden" height="100%" pt="$20">
-      <Box px="$16">
+      <Box>
         <TableFilter />
       </Box>
       {selectedItems.length > 0 && (
@@ -176,7 +176,7 @@ const WorkItemsTable: FC<Props> = () => {
           onReprocess={() => {}}
         />
       )}
-      <Box flexGrow={1} style={{ overflowY: 'auto', overflowX: 'hidden' }} px="$16">
+      <Box flexGrow={1} style={{ overflowY: 'auto', overflowX: 'hidden' }}>
         <Table
           columns={workitemsTableColumns}
           data={workItems}

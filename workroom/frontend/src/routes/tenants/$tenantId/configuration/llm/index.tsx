@@ -1,7 +1,7 @@
 import { Outlet, createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Dialog, Button, useSnackbar, Box, Scroll } from '@sema4ai/components';
+import { Dialog, Button, useSnackbar } from '@sema4ai/components';
 import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/LLMsTable';
 import { getListPlatformsQueryOptions, type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
 
@@ -64,21 +64,17 @@ function RouteComponent() {
 
   return (
     <>
-      <Scroll>
-        <Box p={8}>
-          <LLMsTable
-            items={items}
-            onCreate={() => navigate({ to: '/tenants/$tenantId/configuration/llm/new', params: { tenantId } })}
-            onEdit={(i) =>
-              navigate({
-                to: '/tenants/$tenantId/configuration/llm/$platformId',
-                params: { tenantId, platformId: i.id },
-              })
-            }
-            onDelete={(i) => setDeleteTarget(i)}
-          />
-        </Box>
-      </Scroll>
+      <LLMsTable
+        items={items}
+        onCreate={() => navigate({ to: '/tenants/$tenantId/configuration/llm/new', params: { tenantId } })}
+        onEdit={(i) =>
+          navigate({
+            to: '/tenants/$tenantId/configuration/llm/$platformId',
+            params: { tenantId, platformId: i.id },
+          })
+        }
+        onDelete={(i) => setDeleteTarget(i)}
+      />
       {deleteTarget && (
         <Dialog open onClose={() => setDeleteTarget(null)}>
           <Dialog.Header>

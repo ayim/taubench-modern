@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, Box, Button, EmptyState, Scroll, Input, useSnackbar } from '@sema4ai/components';
+import { Form, Box, Button, EmptyState, Input, useSnackbar } from '@sema4ai/components';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
 import { useCallback } from 'react';
@@ -136,52 +136,48 @@ function View() {
   const isProcessingRequest = isUpdatingConfig || isClearingConfig;
 
   return (
-    <Scroll>
-      <Box p={8}>
-        <Form onSubmit={onSubmit} busy={isProcessingRequest}>
-          <FormProvider {...formProps}>
-            <Form.Fieldset key={'reducto_endpoint'}>
-              <Input
-                label="Reducto Endpoint"
-                placeholder="Reducto endpoint"
-                {...formProps.register('reductoEndpoint')}
-                error={formProps.formState.errors.reductoEndpoint?.message}
-              />
-            </Form.Fieldset>
-            <Form.Fieldset key={'reducto_api_key'}>
-              <Input
-                label="Reducto API Key"
-                placeholder="Your API Key"
-                {...formProps.register('reductoApiKey')}
-                error={formProps.formState.errors.reductoApiKey?.message}
-              />
-            </Form.Fieldset>
-            <Form.Fieldset key={'postgres_connection_details'}>
-              <Input
-                label="Bring your Own Database"
-                placeholder="PostgreSQL connection string"
-                {...formProps.register('postgresConnectionUrl')}
-                error={formProps.formState.errors.postgresConnectionUrl?.message}
-              />
-            </Form.Fieldset>
-            <Box display="flex" justifyContent="flex-end">
-              <Box pl="$8" display="flex" gap={8}>
-                <Button
-                  variant="secondary"
-                  disabled={!documentIntelligence.data.configured}
-                  onClick={handleClearConfig}
-                  round
-                >
-                  Clear
-                </Button>
-                <Button type="submit" variant="primary" loading={isProcessingRequest} round>
-                  {documentIntelligence.data.configured ? 'Update configuration' : 'Configure'}
-                </Button>
-              </Box>
-            </Box>
-          </FormProvider>
-        </Form>
-      </Box>
-    </Scroll>
+    <Form onSubmit={onSubmit} busy={isProcessingRequest}>
+      <FormProvider {...formProps}>
+        <Form.Fieldset key={'reducto_endpoint'}>
+          <Input
+            label="Reducto Endpoint"
+            placeholder="Reducto endpoint"
+            {...formProps.register('reductoEndpoint')}
+            error={formProps.formState.errors.reductoEndpoint?.message}
+          />
+        </Form.Fieldset>
+        <Form.Fieldset key={'reducto_api_key'}>
+          <Input
+            label="Reducto API Key"
+            placeholder="Your API Key"
+            {...formProps.register('reductoApiKey')}
+            error={formProps.formState.errors.reductoApiKey?.message}
+          />
+        </Form.Fieldset>
+        <Form.Fieldset key={'postgres_connection_details'}>
+          <Input
+            label="Bring your Own Database"
+            placeholder="PostgreSQL connection string"
+            {...formProps.register('postgresConnectionUrl')}
+            error={formProps.formState.errors.postgresConnectionUrl?.message}
+          />
+        </Form.Fieldset>
+        <Box display="flex" justifyContent="flex-end">
+          <Box pl="$8" display="flex" gap={8}>
+            <Button
+              variant="secondary"
+              disabled={!documentIntelligence.data.configured}
+              onClick={handleClearConfig}
+              round
+            >
+              Clear
+            </Button>
+            <Button type="submit" variant="primary" loading={isProcessingRequest} round>
+              {documentIntelligence.data.configured ? 'Update configuration' : 'Configure'}
+            </Button>
+          </Box>
+        </Box>
+      </FormProvider>
+    </Form>
   );
 }
