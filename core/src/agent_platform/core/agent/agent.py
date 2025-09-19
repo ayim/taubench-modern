@@ -12,6 +12,7 @@ from agent_platform.core.mcp import MCPServer
 from agent_platform.core.platforms import AnyPlatformParameters
 from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.runbook.runbook import Runbook
+from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils import assert_literal_value_valid
 
 
@@ -74,6 +75,14 @@ class Agent:
         default_factory=list,
     )
     """The IDs of Model Context Protocol (MCP) servers this agent uses."""
+
+    selected_tools: SelectedTools = field(
+        metadata={
+            "description": "Configuration for tools selected for this agent.",
+        },
+        default_factory=SelectedTools,
+    )
+    """Configuration for tools selected for this agent."""
 
     platform_params_ids: list[str] = field(
         metadata={
@@ -177,6 +186,12 @@ class Agent:
                     ]
                 elif field_name == "observability_configs":
                     constructor_args[field_name] = [config.copy() for config in original_value]
+                elif field_name == "selected_tools":
+                    constructor_args[field_name] = (
+                        original_value.copy()
+                        if hasattr(original_value, "copy")
+                        else deepcopy(original_value)
+                    )
                 elif field_name == "extra":
                     constructor_args[field_name] = deepcopy(original_value)
                 else:
@@ -193,6 +208,9 @@ class Agent:
             ],
             "mcp_servers": [mcp_server.model_dump() for mcp_server in self.mcp_servers],
             "mcp_server_ids": self.mcp_server_ids,
+            "selected_tools": self.selected_tools.model_dump()
+            if hasattr(self.selected_tools, "model_dump")
+            else self.selected_tools,
             "platform_params_ids": self.platform_params_ids,
             "agent_architecture": self.agent_architecture.model_dump(),
             "created_at": self.created_at.isoformat(),
@@ -256,6 +274,13 @@ class Agent:
             for platform_config in data.pop("platform_configs", [])
         ]
 
+        # Parse selected_tools
+        selected_tools_data = data.pop("selected_tools", {})
+        if isinstance(selected_tools_data, dict):
+            selected_tools = SelectedTools.model_validate(selected_tools_data)
+        else:
+            selected_tools = selected_tools_data
+
         # Parse datetime fields
         if "created_at" in data and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
@@ -270,6 +295,7 @@ class Agent:
             question_groups=question_groups,
             runbook_structured=runbook_structured,
             platform_configs=cast(list[AnyPlatformParameters], platform_configs),
+            selected_tools=selected_tools,
             **data,
         )
 

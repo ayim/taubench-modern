@@ -83,6 +83,7 @@ async def deploy_agent_from_package(
             mcp_server_ids=validated_payload.mcp_server_ids,
             langsmith=validated_payload.langsmith,
             platform_params_ids=validated_payload.platform_params_ids,
+            selected_tools=validated_payload.selected_tools,
         )
 
         # Log binary ZIP metadata for tracking
@@ -139,6 +140,7 @@ async def update_agent_from_package(
             mcp_server_ids=validated_payload.mcp_server_ids,
             langsmith=validated_payload.langsmith,
             platform_params_ids=validated_payload.platform_params_ids,
+            selected_tools=validated_payload.selected_tools,
         )
 
         # Log binary ZIP metadata for tracking
@@ -472,6 +474,7 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
         ],
         mcp_servers=normalized_mcp_servers,
         mcp_server_ids=mcp_server_ids,
+        selected_tools=payload.selected_tools,
         platform_params_ids=platform_params_ids,
         runbook=agent_package.runbook_text,
         advanced_config=advanced_config,

@@ -9,6 +9,7 @@ from agent_platform.core.mcp.mcp_types import (
     MCPVariableTypeString,
 )
 from agent_platform.core.payloads.upsert_agent import UpsertAgentPayload
+from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 
 DEFAULT_ARCH = AgentArchitecture(name="agent_platform.architectures.default", version="1.0.0")
@@ -25,10 +26,10 @@ def _create_payload(metadata: dict) -> UpsertAgentPayload:
     )
 
 
-def process_payload(payload: UpsertAgentPayload) -> Agent:
+def process_payload(payload: dict) -> Agent:
     # Dummy function to simulate endpoint or handler
-    payload = UpsertAgentPayload.model_validate(payload)
-    return UpsertAgentPayload.to_agent(payload, user_id="u1")
+    validated_payload = UpsertAgentPayload.model_validate(payload)
+    return UpsertAgentPayload.to_agent(validated_payload, user_id="u1")
 
 
 class TestLegacyModelDictToAllowlist:
@@ -489,3 +490,157 @@ def test_non_new_architecture_gets_default_architecture():
         name="agent_platform.architectures.default",
         version="1.0.0",
     )
+
+
+class TestSelectedTools:
+    """Test the SelectedTools functionality in UpsertAgentPayload."""
+
+    def test_selected_tools_creation_and_validation(self):
+        """Test SelectedTools creation, validation, and serialization."""
+        # Test default factory
+        payload = UpsertAgentPayload(
+            name="Test Agent",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=DEFAULT_ARCH,
+        )
+        assert isinstance(payload.selected_tools, SelectedTools)
+        assert payload.selected_tools.tool_names == []
+
+        # Test with specific tool names
+        selected_tools = SelectedTools(
+            tool_names=[
+                SelectedToolConfig(tool_name="greet_country"),
+                SelectedToolConfig(tool_name="search_web"),
+            ]
+        )
+        payload_with_tools = UpsertAgentPayload(
+            name="Test Agent",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=DEFAULT_ARCH,
+            selected_tools=selected_tools,
+        )
+        assert len(payload_with_tools.selected_tools.tool_names) == 2
+        assert payload_with_tools.selected_tools.tool_names[0].tool_name == "greet_country"
+        assert payload_with_tools.selected_tools.tool_names[1].tool_name == "search_web"
+
+        # Test model_validate with dict
+        data = {
+            "name": "Test Agent",
+            "description": "desc",
+            "version": "1.0.0",
+            "runbook": "hi",
+            "agent_architecture": {
+                "name": "agent_platform.architectures.default",
+                "version": "1.0.0",
+            },
+            "selected_tools": {"tool_names": [{"tool_name": "tool1"}, {"tool_name": "tool2"}]},
+        }
+        validated_payload = UpsertAgentPayload.model_validate(data)
+        assert isinstance(validated_payload.selected_tools, SelectedTools)
+        assert len(validated_payload.selected_tools.tool_names) == 2
+        assert validated_payload.selected_tools.tool_names[0].tool_name == "tool1"
+        assert validated_payload.selected_tools.tool_names[1].tool_name == "tool2"
+
+        # Test model_validate with missing selected_tools (should use default)
+        data_no_tools = {
+            "name": "Test Agent",
+            "description": "desc",
+            "version": "1.0.0",
+            "runbook": "hi",
+            "agent_architecture": {
+                "name": "agent_platform.architectures.default",
+                "version": "1.0.0",
+            },
+        }
+        payload_no_tools = UpsertAgentPayload.model_validate(data_no_tools)
+        assert isinstance(payload_no_tools.selected_tools, SelectedTools)
+        assert payload_no_tools.selected_tools.tool_names == []
+
+        # Test SelectedTools model_dump and model_validate
+        selected_tools_obj = SelectedTools(
+            tool_names=[
+                SelectedToolConfig(tool_name="tool1"),
+                SelectedToolConfig(tool_name="tool2"),
+            ]
+        )
+        dumped = selected_tools_obj.model_dump()
+        assert dumped == {"tool_names": [{"tool_name": "tool1"}, {"tool_name": "tool2"}]}
+
+        validated_obj = SelectedTools.model_validate(
+            {"tool_names": [{"tool_name": "tool3"}, {"tool_name": "tool4"}]}
+        )
+        assert len(validated_obj.tool_names) == 2
+        assert validated_obj.tool_names[0].tool_name == "tool3"
+        assert validated_obj.tool_names[1].tool_name == "tool4"
+
+    def test_selected_tools_integration(self):
+        """Test SelectedTools integration with Agent creation and serialization."""
+        # Test to_agent preserves selected_tools
+        selected_tools = SelectedTools(
+            tool_names=[
+                SelectedToolConfig(tool_name="greet_country"),
+                SelectedToolConfig(tool_name="search_web"),
+            ]
+        )
+        payload = UpsertAgentPayload(
+            name="Test Agent",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=DEFAULT_ARCH,
+            selected_tools=selected_tools,
+        )
+        agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+        assert isinstance(agent.selected_tools, SelectedTools)
+        assert len(agent.selected_tools.tool_names) == 2
+        assert agent.selected_tools.tool_names[0].tool_name == "greet_country"
+        assert agent.selected_tools.tool_names[1].tool_name == "search_web"
+
+        # Test agent model_dump includes selected_tools
+        agent_dict = agent.model_dump()
+        assert "selected_tools" in agent_dict
+        assert agent_dict["selected_tools"]["tool_names"] == [
+            {"tool_name": "greet_country"},
+            {"tool_name": "search_web"},
+        ]
+
+        # Test process_payload function
+        data = {
+            "name": "Test Agent",
+            "description": "desc",
+            "version": "1.0.0",
+            "runbook": "hi",
+            "agent_architecture": {
+                "name": "agent_platform.architectures.default",
+                "version": "1.0.0",
+            },
+            "selected_tools": {"tool_names": [{"tool_name": "process_tool"}]},
+        }
+        processed_agent = process_payload(data)
+        assert isinstance(processed_agent.selected_tools, SelectedTools)
+        assert len(processed_agent.selected_tools.tool_names) == 1
+        assert processed_agent.selected_tools.tool_names[0].tool_name == "process_tool"
+
+    def test_backward_compatibility_with_string_format(self):
+        """Test that SelectedTools can handle legacy string format for backward compatibility."""
+        # Test with legacy format (list of strings)
+        legacy_data = {
+            "name": "Test Agent",
+            "description": "desc",
+            "version": "1.0.0",
+            "runbook": "hi",
+            "agent_architecture": {
+                "name": "agent_platform.architectures.default",
+                "version": "1.0.0",
+            },
+            "selected_tools": {"tool_names": ["legacy_tool1", "legacy_tool2"]},
+        }
+        validated_payload = UpsertAgentPayload.model_validate(legacy_data)
+        assert isinstance(validated_payload.selected_tools, SelectedTools)
+        assert len(validated_payload.selected_tools.tool_names) == 2
+        assert validated_payload.selected_tools.tool_names[0].tool_name == "legacy_tool1"
+        assert validated_payload.selected_tools.tool_names[1].tool_name == "legacy_tool2"

@@ -281,6 +281,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 "observability_configs",
                 "platform_configs",
                 "extra",
+                "selected_tools",
             ),
         ).select_from(agent)
 

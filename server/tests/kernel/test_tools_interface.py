@@ -1270,3 +1270,49 @@ async def test_internal_tool_no_headers(tools_interface: AgentServerToolsInterfa
     # Verify that the function was called with ONLY the JSON args, no extra_headers
     assert function_called_with == {"param": "test_value"}
     assert "extra_headers" not in function_called_with
+
+
+@pytest.mark.asyncio
+async def test_mcp_tools_with_null_selected_tools(
+    tools_interface: AgentServerToolsInterface, mock_kernel
+):
+    """Test that MCP tool filtering works when selected_tools is None (legacy agents)."""
+    from agent_platform.core.mcp import MCPServer
+    from agent_platform.core.tools import ToolDefinition
+
+    # Set selected_tools to None to simulate legacy agents
+    mock_kernel.agent.selected_tools = None
+
+    # Create mock MCP tools
+    mock_tools = [
+        ToolDefinition(
+            name="test_tool_1",
+            description="Test tool 1",
+            input_schema={"type": "object", "properties": {}},
+            function=lambda: "result1",
+        ),
+        ToolDefinition(
+            name="test_tool_2",
+            description="Test tool 2",
+            input_schema={"type": "object", "properties": {}},
+            function=lambda: "result2",
+        ),
+    ]
+
+    # Mock the MCP server tools fetching
+    with patch.object(tools_interface, "_fetch_mcp_tools", return_value=(mock_tools, [])):
+        # Create a mock MCP server
+        mcp_server = MCPServer(
+            name="test_server",
+            url="http://test.com",
+            transport="streamable-http",
+        )
+
+        # Call from_mcp_servers - this should not raise AttributeError
+        tools, issues = await tools_interface.from_mcp_servers([mcp_server])
+
+        # Verify that all tools are returned (no filtering applied when selected_tools is None)
+        assert len(tools) == 2
+        assert tools[0].name == "test_tool_1"
+        assert tools[1].name == "test_tool_2"
+        assert len(issues) == 0

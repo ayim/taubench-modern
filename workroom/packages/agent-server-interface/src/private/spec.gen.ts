@@ -7288,6 +7288,10 @@ export const spec = {
             description:
               'The IDs of Model Context Protocol (MCP) servers this agent uses.',
           },
+          selected_tools: {
+            $ref: '#/components/schemas/SelectedTools',
+            description: 'Configuration for tools selected for this agent.',
+          },
           platform_params_ids: {
             items: {
               type: 'string',
@@ -7515,6 +7519,10 @@ export const spec = {
               },
             ],
             description: 'The Langsmith configuration for the agent.',
+          },
+          selected_tools: {
+            $ref: '#/components/schemas/SelectedTools',
+            description: 'Configuration for tools selected for this agent.',
           },
         },
         type: 'object',
@@ -13564,6 +13572,32 @@ export const spec = {
         required: ['value'],
         title: 'SecretString',
       },
+      SelectedToolConfig: {
+        properties: {
+          tool_name: {
+            type: 'string',
+            title: 'Tool Name',
+            description: 'The name of the selected tool.',
+          },
+        },
+        type: 'object',
+        required: ['tool_name'],
+        title: 'SelectedToolConfig',
+      },
+      SelectedTools: {
+        properties: {
+          tool_names: {
+            items: {
+              $ref: '#/components/schemas/SelectedToolConfig',
+            },
+            type: 'array',
+            title: 'Tool Names',
+            description: 'List of selected tool configurations for this agent.',
+          },
+        },
+        type: 'object',
+        title: 'SelectedTools',
+      },
       SemaknowledgebaseDataConnection: {
         properties: {
           name: {
@@ -15247,6 +15281,10 @@ export const spec = {
             title: 'Mcp Server Ids',
             description:
               'The IDs of Model Context Protocol (MCP) servers this agent uses.',
+          },
+          selected_tools: {
+            $ref: '#/components/schemas/SelectedTools',
+            description: 'Configuration for tools selected for this agent.',
           },
           platform_params_ids: {
             items: {

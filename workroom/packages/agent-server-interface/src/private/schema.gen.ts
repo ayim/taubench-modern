@@ -2492,6 +2492,8 @@ export interface components {
        * @description The IDs of Model Context Protocol (MCP) servers this agent uses.
        */
       mcp_server_ids?: string[];
+      /** @description Configuration for tools selected for this agent. */
+      selected_tools?: components['schemas']['SelectedTools'];
       /**
        * Platform Params Ids
        * @description The IDs of platform params this agent uses.
@@ -2628,6 +2630,8 @@ export interface components {
       mcp_server_ids?: string[];
       /** @description The Langsmith configuration for the agent. */
       langsmith?: components['schemas']['AgentPackagePayloadLangsmith'] | null;
+      /** @description Configuration for tools selected for this agent. */
+      selected_tools?: components['schemas']['SelectedTools'];
     };
     /** AgentPackagePayloadActionServer */
     AgentPackagePayloadActionServer: {
@@ -5559,6 +5563,22 @@ export interface components {
        */
       value: string;
     };
+    /** SelectedToolConfig */
+    SelectedToolConfig: {
+      /**
+       * Tool Name
+       * @description The name of the selected tool.
+       */
+      tool_name: string;
+    };
+    /** SelectedTools */
+    SelectedTools: {
+      /**
+       * Tool Names
+       * @description List of selected tool configurations for this agent.
+       */
+      tool_names?: components['schemas']['SelectedToolConfig'][];
+    };
     /** SemaknowledgebaseDataConnection */
     SemaknowledgebaseDataConnection: {
       /** Name */
@@ -6516,6 +6536,8 @@ export interface components {
        * @description The IDs of Model Context Protocol (MCP) servers this agent uses.
        */
       mcp_server_ids?: string[];
+      /** @description Configuration for tools selected for this agent. */
+      selected_tools?: components['schemas']['SelectedTools'];
       /**
        * Platform Params Ids
        * @description The IDs of platform params this agent uses.

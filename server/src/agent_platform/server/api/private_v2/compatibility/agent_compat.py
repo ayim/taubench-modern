@@ -319,6 +319,7 @@ class AgentCompat(Agent):
                 for s in agent.mcp_servers
             ],
             mcp_server_ids=agent.mcp_server_ids,
+            selected_tools=agent.selected_tools,
             platform_params_ids=agent.platform_params_ids,
             agent_architecture=agent.agent_architecture,
             question_groups=agent.question_groups,

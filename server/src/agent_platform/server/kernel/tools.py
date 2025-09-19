@@ -629,8 +629,16 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 key=srv.cache_key,
                 fetch_coro=_fetch(srv, additional_headers=additional_headers),
             )
+
             all_tools.extend(subtools)
             all_issues.extend(subissues)
+
+        # Apply agent-level selected_tools filtering
+        if self.kernel.agent.selected_tools is not None:
+            agent_selected_tools = self.kernel.agent.selected_tools.tool_names
+            if agent_selected_tools and len(agent_selected_tools) > 0:
+                agent_selected_tools_set = set(tool.tool_name for tool in agent_selected_tools)
+                all_tools = [td for td in all_tools if td.name in agent_selected_tools_set]
 
         # Deduplicate
         all_tools, dups = self._deduplicate_tool_names(all_tools)

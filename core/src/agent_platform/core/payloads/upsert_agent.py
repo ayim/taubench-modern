@@ -13,6 +13,7 @@ from agent_platform.core.platforms import AnyPlatformParameters
 from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.platforms.configs import resolve_provider_from_model_name
 from agent_platform.core.runbook import Runbook
+from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils import assert_literal_value_valid
 
 
@@ -94,6 +95,14 @@ class UpsertAgentPayload:
         default_factory=list,
     )
     """The IDs of Model Context Protocol (MCP) servers this agent uses."""
+
+    selected_tools: SelectedTools = field(
+        metadata={
+            "description": "Configuration for tools selected for this agent.",
+        },
+        default_factory=SelectedTools,
+    )
+    """Configuration for tools selected for this agent."""
 
     platform_params_ids: list[str] = field(
         metadata={
@@ -716,6 +725,7 @@ class UpsertAgentPayload:
             action_packages=payload.action_packages,
             mcp_servers=payload.mcp_servers,
             mcp_server_ids=payload.mcp_server_ids,
+            selected_tools=payload.selected_tools,
             platform_params_ids=payload.platform_params_ids,
             agent_architecture=payload.agent_architecture,
             platform_configs=[
@@ -798,5 +808,13 @@ class UpsertAgentPayload:
                 ObservabilityConfig.model_validate(config) if isinstance(config, dict) else config
                 for config in validated_data["observability_configs"]
             ]
+
+        # Convert selected_tools from dict to SelectedTools object
+        if "selected_tools" in validated_data and isinstance(
+            validated_data["selected_tools"], dict
+        ):
+            validated_data["selected_tools"] = SelectedTools.model_validate(
+                validated_data["selected_tools"]
+            )
 
         return cls(**validated_data)

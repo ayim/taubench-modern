@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from agent_platform.core.mcp.mcp_server import MCPServer
+from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils import SecretString
 
 
@@ -146,5 +147,13 @@ class AgentPackagePayload:
         },
     )
     """The Langsmith configuration for the agent."""
+
+    selected_tools: SelectedTools = field(
+        metadata={
+            "description": "Configuration for tools selected for this agent.",
+        },
+        default_factory=SelectedTools,
+    )
+    """Configuration for tools selected for this agent."""
 
     # TODO: platform_configs for v2?

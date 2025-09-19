@@ -29,6 +29,7 @@ from agent_platform.core.payloads.upsert_document_layout import (
     _TranslationRule,
 )
 from agent_platform.core.payloads.upsert_thread import UpsertThreadPayload
+from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
 
 __all__ = [
     "ActionServerConfigPayload",
@@ -44,6 +45,8 @@ __all__ = [
     "InitiateStreamPayload",
     "MCPServerResponse",
     "PatchAgentPayload",
+    "SelectedToolConfig",
+    "SelectedTools",
     "SetAgentDataConnectionsPayload",
     "SetSemanticDataModelPayload",
     "UploadFilePayload",

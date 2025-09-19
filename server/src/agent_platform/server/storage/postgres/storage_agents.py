@@ -125,6 +125,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
             "observability_configs",
             "platform_configs",
             "extra",
+            "selected_tools",
         ]:
             agent_dict[field] = Jsonb(agent_dict[field])
 
@@ -137,7 +138,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                       agent_id, name, description, user_id, runbook_structured,
                       version, created_at, updated_at, action_packages,
                       mcp_servers, agent_architecture, question_groups,
-                      observability_configs, platform_configs, extra, mode
+                      observability_configs, platform_configs, extra, selected_tools, mode
                     )
                     VALUES (
                       %(agent_id)s::uuid, %(name)s, %(description)s,
@@ -145,7 +146,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                       %(created_at)s, %(updated_at)s, %(action_packages)s,
                       %(mcp_servers)s, %(agent_architecture)s, %(question_groups)s,
                       %(observability_configs)s, %(platform_configs)s,
-                      %(extra)s, %(mode)s
+                      %(extra)s, %(selected_tools)s, %(mode)s
                     )
                     ON CONFLICT DO NOTHING
                     RETURNING agent_id
@@ -173,6 +174,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                           observability_configs = %(observability_configs)s,
                           platform_configs = %(platform_configs)s,
                           extra = %(extra)s,
+                          selected_tools = %(selected_tools)s,
                           mode = %(mode)s
                         WHERE
                           agent_id = %(agent_id)s::uuid

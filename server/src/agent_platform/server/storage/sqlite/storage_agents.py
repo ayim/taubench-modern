@@ -138,6 +138,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
             "observability_configs",
             "platform_configs",
             "extra",
+            "selected_tools",
         ]:
             agent_dict[field] = json.dumps(agent_dict.get(field))
 
@@ -150,13 +151,13 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                         agent_id, name, description, user_id, runbook_structured,
                         version, created_at, updated_at, action_packages,
                         mcp_servers, agent_architecture, question_groups,
-                        observability_configs, platform_configs, extra, mode
+                        observability_configs, platform_configs, extra, selected_tools, mode
                     )
                     VALUES (
                         :agent_id, :name, :description, :user_id, :runbook_structured,
                         :version, :created_at, :updated_at, :action_packages,
                         :mcp_servers, :agent_architecture, :question_groups,
-                        :observability_configs, :platform_configs, :extra, :mode
+                        :observability_configs, :platform_configs, :extra, :selected_tools, :mode
                     )
                     ON CONFLICT DO NOTHING
                     """,
@@ -181,6 +182,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                             observability_configs = :observability_configs,
                             platform_configs = :platform_configs,
                             extra = :extra,
+                            selected_tools = :selected_tools,
                             mode = :mode
                         WHERE
                             agent_id = :agent_id
@@ -443,6 +445,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
             "observability_configs",
             "platform_configs",
             "extra",
+            "selected_tools",
         ]:
             if agent_dict.get(field) is not None:
                 agent_dict[field] = json.loads(agent_dict[field])
