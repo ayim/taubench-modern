@@ -45,8 +45,8 @@ for i in {1..20}; do
 
   echo "Agent Server not responsive yet (try #${i})..."
 
-  if [ "${i}" -eq 10 ]; then
-    echo "Agent Server failed to respond after 10 attempts"
+  if [ "${i}" -eq 50 ]; then
+    echo "Agent Server failed to respond after 50 attempts"
     exit 1
   fi
 done
