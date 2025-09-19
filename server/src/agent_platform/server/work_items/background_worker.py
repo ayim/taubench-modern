@@ -33,12 +33,16 @@ from agent_platform.server.api.private_v2.runs import (
 )
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
+from agent_platform.server.shutdown_manager import ShutdownManager
 from agent_platform.server.storage import StorageService
 from agent_platform.server.storage.errors import NoSystemUserError
 from agent_platform.server.work_items.callbacks import execute_callbacks
 from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
 
 logger = logging.getLogger(__name__)
+
+# Worker name constant for shutdown manager
+WORKER_NAME = "work_items"
 
 
 def _load_judge_prompt() -> str:
@@ -255,13 +259,12 @@ async def run_agent(item: WorkItem) -> bool:
 
 
 async def worker_loop(
-    shutdown_event: asyncio.Event,
-    work_func: Callable[[WorkItem], Awaitable[bool]],
+    work_func: Callable[[WorkItem], Awaitable[bool]] = run_agent,
 ) -> None:
     """
     Runs a loop which processes work items, sleeping the configured amount between iterations.
     """
-    while not shutdown_event.is_set():
+    while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
         logger.debug("searching for work items to process")
         try:
             await worker_iteration(work_func)
@@ -358,7 +361,8 @@ async def run_batch(
             results.append(TimeoutError("Work item timeout exceeded"))
             logger.error(f"Work item {item.work_item_id} timed out, marking as ERROR")
 
-    # For all timed out work items which are still PENDING/EXECUTING, mark them as having ERROR'ed.
+    # For all timed out work items which are still PENDING/EXECUTING,
+    # mark them as having ERROR'ed.
     # We do this to prevent races between the task writing to the DB after we signaled
     # the cancellation
     if incomplete_work_item_ids:

@@ -172,6 +172,7 @@ function getRouteMap(): {
 
     // #region Disallowed Routes
     'get /api/v2/health': [DISALLOWED],
+    'get /api/v2/ready': [DISALLOWED],
     'get /api/v2/ok': [DISALLOWED],
     'get /api/v2/metrics': [DISALLOWED],
     'put /api/v2/agents/{aid}': [DISALLOWED],

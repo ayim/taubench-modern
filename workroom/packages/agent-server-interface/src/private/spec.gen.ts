@@ -6821,7 +6821,10 @@ export const spec = {
     },
     '/api/v2/health': {
       get: {
+        tags: ['health'],
         summary: 'Health',
+        description:
+          'Health check endpoint - always returns OK if server is running.',
         operationId: 'health_health_get',
         responses: {
           '200': {
@@ -6829,9 +6832,28 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  additionalProperties: true,
-                  type: 'object',
-                  title: 'Response Health Health Get',
+                  $ref: '#/components/schemas/HealthResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/ready': {
+      get: {
+        tags: ['health'],
+        summary: 'Ready',
+        description:
+          'Readiness probe endpoint for Kubernetes.\n\nReturns:\n    200 OK if server is HEALTHY and ready to accept requests\n    503 Service Unavailable if server is DRAINING',
+        operationId: 'ready_ready_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ReadyResponse',
                 },
               },
             },
@@ -9815,6 +9837,17 @@ export const spec = {
         title: 'GroqPlatformParameters',
         required: ['platform_id'],
       },
+      HealthResponse: {
+        properties: {
+          status: {
+            type: 'string',
+            title: 'Status',
+          },
+        },
+        type: 'object',
+        required: ['status'],
+        title: 'HealthResponse',
+      },
       IngestDocumentResponse: {
         properties: {
           document: {
@@ -12312,6 +12345,21 @@ export const spec = {
         type: 'object',
         required: ['title'],
         title: 'QuestionGroup',
+      },
+      ReadyResponse: {
+        properties: {
+          status: {
+            type: 'string',
+            title: 'Status',
+          },
+          message: {
+            type: 'string',
+            title: 'Message',
+          },
+        },
+        type: 'object',
+        required: ['status', 'message'],
+        title: 'ReadyResponse',
       },
       RedshiftDataConnection: {
         properties: {

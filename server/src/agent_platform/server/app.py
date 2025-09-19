@@ -23,6 +23,7 @@ from agent_platform.server.api.agent_mcp import (
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
+from agent_platform.server.api.private_v2.health import router as health_router
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.lifespan import create_combined_lifespan
@@ -197,6 +198,10 @@ def create_app() -> FastAPI:
         title="Sema4.ai Agent Server Private API Version 2",
     )
     app_private_v2.include_router(private_v2_router)
+    app_private_v2.include_router(
+        health_router,
+        tags=["health"],
+    )
     add_exception_handlers(app_private_v2)
 
     app_public_v2 = _PublicAgentServerApp(
@@ -204,10 +209,6 @@ def create_app() -> FastAPI:
     )
     app_public_v2.include_router(public_v2_router)
     add_exception_handlers(app_public_v2)
-
-    @app_private_v2.get("/health")
-    async def health() -> dict:
-        return {"status": "ok"}
 
     @app_private_v2.get("/metrics")
     async def metrics(storage: StorageDependency) -> dict:

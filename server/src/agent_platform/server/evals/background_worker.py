@@ -17,7 +17,12 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Generic, Protocol, TypeVar, runtime_checkable
 
+from agent_platform.server.shutdown_manager import ShutdownManager
+
 logger = logging.getLogger(__name__)
+
+# Worker name constant for shutdown manager
+WORKER_NAME = "evals"
 
 
 @runtime_checkable
@@ -98,9 +103,9 @@ class WorkQueue(Generic[T]):
         self.callbacks = callbacks
         self.settings = settings or QueueSettings()
 
-    async def worker_loop(self, shutdown_event: asyncio.Event) -> None:
+    async def worker_loop(self) -> None:
         """Continuously polls for work and processes it in batches."""
-        while not shutdown_event.is_set():
+        while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
             logger.info("searching for tasks to process")
             try:
                 await self._worker_iteration()

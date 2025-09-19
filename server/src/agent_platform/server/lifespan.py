@@ -1,5 +1,4 @@
-import asyncio
-from contextlib import AsyncExitStack, asynccontextmanager, suppress
+from contextlib import AsyncExitStack, asynccontextmanager
 
 import structlog
 from fastapi import FastAPI
@@ -11,45 +10,42 @@ from agent_platform.core.platforms.llms_metadata_loader import llms_metadata_loa
 from agent_platform.core.responses.streaming.stream_pipe import ResponseStreamPipe
 from agent_platform.server.constants import SystemConfig, SystemPaths
 from agent_platform.server.data_retention_policy import start_data_retention_worker
-from agent_platform.server.evals.background_worker import QueueSettings, WorkQueue
+from agent_platform.server.evals.background_worker import (
+    WORKER_NAME as EVALS_WORKER_NAME,
+)
+from agent_platform.server.evals.background_worker import (
+    QueueSettings,
+    WorkQueue,
+)
 from agent_platform.server.evals.repository import ScenarioRunTrialRepository
 from agent_platform.server.evals.run_scenario import run_evaluations, run_scenario
 
 # Import the data migration function
 from agent_platform.server.scripts.migration.auto_migrate import run_automatic_migration
 from agent_platform.server.secret_manager.option import SecretService
-from agent_platform.server.storage import StorageService
 
 # Use our new telemetry module instead of the old otel module
+from agent_platform.server.shutdown_manager import ShutdownManager
+from agent_platform.server.storage import StorageService
 from agent_platform.server.telemetry import setup_telemetry
-from agent_platform.server.work_items.background_worker import run_agent, worker_loop
+from agent_platform.server.work_items.background_worker import (
+    WORKER_NAME as WORK_ITEMS_WORKER_NAME,
+)
+from agent_platform.server.work_items.background_worker import (
+    worker_loop,
+)
 
 logger = structlog.get_logger(__name__)
 
 
-def _start_work_items_background_worker() -> tuple[asyncio.Task, asyncio.Event]:
+def _start_work_items_background_worker() -> None:
     logger.info("Starting work-items background worker")
-    shutdown_event = asyncio.Event()
 
-    def _callback(future: asyncio.Task):
-        try:
-            if exc := future.exception():
-                logger.error(f"Background worker error: {exc}", exc_info=exc)
-
-        except asyncio.CancelledError:
-            pass
-
-        logger.info("work-items shut down")
-
-    t = asyncio.create_task(worker_loop(shutdown_event, run_agent))
-    t.add_done_callback(_callback)
-
-    return t, shutdown_event
+    ShutdownManager.register_drainable_background_worker(WORK_ITEMS_WORKER_NAME, worker_loop)
 
 
-def _start_evals_background_worker() -> tuple[asyncio.Task, asyncio.Event]:
+def _start_evals_background_worker() -> None:
     logger.info("Starting evals background worker")
-    shutdown_event = asyncio.Event()
 
     queue = WorkQueue[Trial](
         repository=ScenarioRunTrialRepository(),
@@ -62,20 +58,7 @@ def _start_evals_background_worker() -> tuple[asyncio.Task, asyncio.Event]:
         ),
     )
 
-    def _callback(future: asyncio.Task):
-        try:
-            if exc := future.exception():
-                logger.error(f"Background worker error: {exc}", exc_info=exc)
-
-        except asyncio.CancelledError:
-            pass
-
-        logger.info("evals shut down")
-
-    t = asyncio.create_task(queue.worker_loop(shutdown_event))
-    t.add_done_callback(_callback)
-
-    return t, shutdown_event
+    ShutdownManager.register_drainable_background_worker(EVALS_WORKER_NAME, queue.worker_loop)
 
 
 @asynccontextmanager
@@ -120,16 +103,13 @@ async def lifespan(app: FastAPI):
         logger.warning("Data migration from v1 to v2 failed, but server will continue")
 
     # Start the work-items background worker only if enabled in configuration
-    work_items_task: asyncio.Task | None = None
-    work_items_shutdown_event: asyncio.Event | None = None
-
     if SystemConfig.enable_workitems:
-        work_items_task, work_items_shutdown_event = _start_work_items_background_worker()
+        _start_work_items_background_worker()
     else:
         logger.info("Work-items feature disabled; background worker will not start")
 
     if SystemConfig.enable_evals:
-        evals_task, evals_shutdown_event = _start_evals_background_worker()
+        _start_evals_background_worker()
     else:
         logger.info("Evals feature disabled; background worker will not start")
 
@@ -139,16 +119,10 @@ async def lifespan(app: FastAPI):
         yield
 
     finally:
+        # Start graceful shutdown process
+        await ShutdownManager.drain_background_workers()
+
         data_retention_task.cancel()
-
-        # Shut down the background worker only if it was started
-        if work_items_shutdown_event is not None and work_items_task is not None:
-            logger.info("Shutting down work-items background worker")
-            work_items_shutdown_event.set()
-
-            with suppress(asyncio.CancelledError):
-                logger.info("Waiting for work-items background worker to shut down")
-                await work_items_task
 
         # Shutdown separate diff pool for ResponseStreamPipe
         logger.info("Shutting down ResponseStreamPipe diff pool")

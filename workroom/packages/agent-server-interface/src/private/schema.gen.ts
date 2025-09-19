@@ -2217,8 +2217,35 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Health */
+    /**
+     * Health
+     * @description Health check endpoint - always returns OK if server is running.
+     */
     get: operations['health_health_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/ready': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Ready
+     * @description Readiness probe endpoint for Kubernetes.
+     *
+     *     Returns:
+     *         200 OK if server is HEALTHY and ready to accept requests
+     *         503 Service Unavailable if server is DRAINING
+     */
+    get: operations['ready_ready_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -3671,6 +3698,11 @@ export interface components {
       /** @description The Groq API key. If not provided, it will be attempted to be inferred from the environment. */
       groq_api_key?: components['schemas']['SecretString'] | null;
     };
+    /** HealthResponse */
+    HealthResponse: {
+      /** Status */
+      status: string;
+    };
     /** IngestDocumentResponse */
     IngestDocumentResponse: {
       /** Document */
@@ -4796,6 +4828,13 @@ export interface components {
        * @description The questions in the question group.
        */
       questions?: string[];
+    };
+    /** ReadyResponse */
+    ReadyResponse: {
+      /** Status */
+      status: string;
+      /** Message */
+      message: string;
     };
     /** RedshiftDataConnection */
     RedshiftDataConnection: {
@@ -11737,9 +11776,27 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json': components['schemas']['HealthResponse'];
+        };
+      };
+    };
+  };
+  ready_ready_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReadyResponse'];
         };
       };
     };

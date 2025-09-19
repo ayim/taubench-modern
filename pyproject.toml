@@ -28,6 +28,7 @@ dev = [
     "flaky>=3.8.1,<4.0.0",
     "pytest-timeout>=2.4.0,<3.0.0",
     "nbstripout>=0.7.1",
+    "pyleak>=0.1.14",
 ]
 lint = ["ruff>=0.7.2,<0.12.0"]
 notebooks = [
