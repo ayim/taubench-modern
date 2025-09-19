@@ -27,6 +27,8 @@ export const DataAccessRow: FC<DataAccessRowProps> = ({
       </Box>
     </Table.Cell>
     <Table.Cell>{rowData.description}</Table.Cell>
+    <Table.Cell>{rowData.created_at}</Table.Cell>
+    <Table.Cell>{rowData.updated_at}</Table.Cell>
     <Table.Cell controls>
       {(onEdit || onDelete) && (
         <Menu trigger={<Button aria-label="Actions" icon={IconDotsHorizontal} variant="ghost" size="small" />}>

@@ -33,15 +33,16 @@ export const DataConnectionTable = () => {
       : dataSources.filter((item) => item.engine === providerFilter);
   }, [dataSources, providerFilter]);
 
-  // TODO: Correct column names to match the data connection schema
   
   const filterConfiguration: TableWithFilterConfiguration<DataSourceItem> = {
     id: 'data-connections',
     label: { singular: 'Data Connection', plural: 'Data Connections' },
     columns: [
       { id: 'name', title: 'Name', sortable: true, required: true },
-      { id: 'engine', title: 'Provider', sortable: true },
-      { id: 'description', title: 'Model', sortable: false },
+      { id: 'engine', title: 'Type', sortable: true },
+      { id: 'description', title: 'Description', sortable: false },
+      { id: 'createdAt', title: 'Created At', sortable: true },
+      { id: 'updatedAt', title: 'Updated At', sortable: true },
       { id: 'actions', title: '', sortable: false },
     ],
     sort: ['name', 'asc'],
@@ -49,6 +50,8 @@ export const DataConnectionTable = () => {
       name: { value: (item) => item.name },
       engine: { value: (item) => item.engine },
       description: { value: (item) => item.description },
+      createdAt: { value: (item) => item.created_at },
+      updatedAt: { value: (item) => item.updated_at },
     },
     sortRules: {
       name: { type: 'string', value: (item) => item.name },
