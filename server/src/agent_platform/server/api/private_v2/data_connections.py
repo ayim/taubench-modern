@@ -1,5 +1,4 @@
 import uuid
-from dataclasses import replace
 
 from fastapi import APIRouter, HTTPException
 from structlog import get_logger
@@ -44,7 +43,8 @@ async def create_data_connection(
             user_id=user.user_id,
         )
 
-        return replace(data, id=connection_id)
+        created_db_data_connection = await storage.get_data_connection(connection_id)
+        return created_db_data_connection.to_payload()
 
     except Exception as e:
         logger.error(
@@ -117,7 +117,9 @@ async def update_data_connection(
         )
 
         await storage.update_data_connection(db_data_connection)
-        return data_connection
+
+        updated_db_data_connection = await storage.get_data_connection(connection_id)
+        return updated_db_data_connection.to_payload()
 
     except Exception as e:
         logger.error(

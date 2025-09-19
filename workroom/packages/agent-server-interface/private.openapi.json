@@ -6374,6 +6374,16 @@
           "configuration": {
             "$ref": "#/components/schemas/BigqueryDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -6390,7 +6400,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "BigqueryDataConnection"
       },
       "BigqueryDataConnectionConfiguration": {
@@ -6680,6 +6696,16 @@
           "configuration": {
             "$ref": "#/components/schemas/ConfluenceDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -6696,7 +6722,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "ConfluenceDataConnection"
       },
       "ConfluenceDataConnectionConfiguration": {
@@ -8113,6 +8145,16 @@
           "configuration": {
             "$ref": "#/components/schemas/MSSQLDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -8129,7 +8171,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "MSSQLDataConnection"
       },
       "MSSQLDataConnectionConfiguration": {
@@ -8194,6 +8242,16 @@
           "configuration": {
             "$ref": "#/components/schemas/MySQLDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -8210,7 +8268,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "MySQLDataConnection"
       },
       "MySQLDataConnectionConfiguration": {
@@ -8428,6 +8492,16 @@
           "configuration": {
             "$ref": "#/components/schemas/OracleDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -8444,7 +8518,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "OracleDataConnection"
       },
       "OracleDataConnectionConfiguration": {
@@ -8612,6 +8692,16 @@
           "configuration": {
             "$ref": "#/components/schemas/PgvectorDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -8628,7 +8718,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "PgvectorDataConnection"
       },
       "PgvectorDataConnectionConfiguration": {
@@ -8661,6 +8757,16 @@
           "configuration": {
             "$ref": "#/components/schemas/PostgresDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -8677,7 +8783,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "PostgresDataConnection"
       },
       "PostgresDataConnectionConfiguration": {
@@ -9067,6 +9179,16 @@
           "configuration": {
             "$ref": "#/components/schemas/RedshiftDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -9083,7 +9205,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "RedshiftDataConnection"
       },
       "RedshiftDataConnectionConfiguration": {
@@ -9920,6 +10048,16 @@
           "configuration": {
             "$ref": "#/components/schemas/SQLiteDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -9936,7 +10074,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "SQLiteDataConnection"
       },
       "SQLiteDataConnectionConfiguration": {
@@ -9951,6 +10095,16 @@
           "description": { "type": "string", "title": "Description" },
           "configuration": {
             "$ref": "#/components/schemas/SalesforceDataConnectionConfiguration"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
           },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -9968,7 +10122,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "SalesforceDataConnection"
       },
       "SalesforceDataConnectionConfiguration": {
@@ -10106,6 +10266,16 @@
           "configuration": {
             "$ref": "#/components/schemas/SemaknowledgebaseDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -10122,7 +10292,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "SemaknowledgebaseDataConnection"
       },
       "SemaknowledgebaseDataConnectionConfiguration": {
@@ -10198,6 +10374,16 @@
           "configuration": {
             "$ref": "#/components/schemas/SlackDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -10214,7 +10400,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "SlackDataConnection"
       },
       "SlackDataConnectionConfiguration": {
@@ -10275,6 +10467,16 @@
             ],
             "title": "Configuration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -10291,7 +10493,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "SnowflakeDataConnection"
       },
       "SnowflakeDataConnectionConfiguration": {
@@ -10972,6 +11180,16 @@
           "configuration": {
             "$ref": "#/components/schemas/TimescaledbDataConnectionConfiguration"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
@@ -10988,7 +11206,13 @@
           }
         },
         "type": "object",
-        "required": ["name", "description", "configuration"],
+        "required": [
+          "name",
+          "description",
+          "configuration",
+          "created_at",
+          "updated_at"
+        ],
         "title": "TimescaleDBDataConnection"
       },
       "TimescaledbDataConnectionConfiguration": {

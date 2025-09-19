@@ -56,6 +56,8 @@ def test_create_data_connection(client: TestClient, sample_postgres_data_connect
     assert data["configuration"] == sample_postgres_data_connection["configuration"]
     assert "id" in data
     assert data["id"] is not None
+    assert data["created_at"] is not None
+    assert data["updated_at"] is not None
 
 
 def test_create_data_connection_with_storage_error(
@@ -192,6 +194,9 @@ def test_update_data_connection(client: TestClient, sample_postgres_data_connect
     assert data["description"] == "Updated PostgreSQL connection"
     assert data["configuration"]["host"] == "updated-host"
     assert data["configuration"]["database"] == "updateddb"
+    assert data["id"] == connection_id
+    assert data["created_at"] is not None
+    assert data["updated_at"] is not None
 
 
 def test_update_data_connection_with_storage_error(

@@ -305,6 +305,23 @@ class DataConnection:
 
     def to_payload(self) -> PayloadDataConnection:
         """Convert to payload DataConnection object"""
+        from datetime import datetime
+
+        # Convert string timestamps to datetime objects if they exist, otherwise use current time
+        created_at = datetime.now()
+        updated_at = datetime.now()
+
+        if self.created_at:
+            if isinstance(self.created_at, str):
+                created_at = datetime.fromisoformat(self.created_at.replace("Z", "+00:00"))
+            else:
+                created_at = self.created_at
+        if self.updated_at:
+            if isinstance(self.updated_at, str):
+                updated_at = datetime.fromisoformat(self.updated_at.replace("Z", "+00:00"))
+            else:
+                updated_at = self.updated_at
+
         # Direct conversion based on engine type
         engine_mapping = {
             "postgres": PostgresDataConnection,
@@ -338,6 +355,8 @@ class DataConnection:
                 external_id=self.external_id,
                 engine="snowflake",
                 configuration=snowflake_config,
+                created_at=created_at,
+                updated_at=updated_at,
             )
 
         if self.engine in engine_mapping:
@@ -349,6 +368,8 @@ class DataConnection:
                 external_id=self.external_id,
                 engine=self.engine,
                 configuration=self.configuration,
+                created_at=created_at,
+                updated_at=updated_at,
             )
 
         raise ValueError(f"Unsupported engine type: {self.engine}")

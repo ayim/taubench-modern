@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Literal
 
@@ -249,6 +250,8 @@ class BaseDataConnection:
     name: str
     description: str
     configuration: DataConnectionConfiguration
+    created_at: datetime
+    updated_at: datetime
     id: str | None = None
     external_id: str | None = None
 
