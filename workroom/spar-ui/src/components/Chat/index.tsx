@@ -120,45 +120,42 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
         renderer={MessageRenderer}
       />
       <Footer>
-        {requiresOAuth ? (
-          <OAuth />
-        ) : (
-          <ChatInput streaming={isStreaming} busy={uploadingFiles} onSend={onSubmit}>
-            {attachements.length > 0 && (
-              <ChatInput.FileList>
-                {attachements.map((file) => (
-                  <FileItem
-                    key={file.name}
-                    label={file.name}
-                    icon={getFileTypeIcon(file.type)}
-                    embeded
-                    onCloseClick={() => onRemoveAttachement(file)}
-                  />
-                ))}
-              </ChatInput.FileList>
-            )}
-            <input {...getInputProps()} />
-            <ChatInput.Field
-              ref={(e) => {
-                ref(e);
-                chatInputRef.current = e;
-              }}
-              {...inputProps}
-              onPaste={onPaste}
-              placeholder="Message Agent"
+        {requiresOAuth && <OAuth />}
+        <ChatInput streaming={isStreaming} busy={uploadingFiles} onSend={onSubmit}>
+          {attachements.length > 0 && (
+            <ChatInput.FileList>
+              {attachements.map((file) => (
+                <FileItem
+                  key={file.name}
+                  label={file.name}
+                  icon={getFileTypeIcon(file.type)}
+                  embeded
+                  onCloseClick={() => onRemoveAttachement(file)}
+                />
+              ))}
+            </ChatInput.FileList>
+          )}
+          <input {...getInputProps()} />
+          <ChatInput.Field
+            ref={(e) => {
+              ref(e);
+              chatInputRef.current = e;
+            }}
+            {...inputProps}
+            onPaste={onPaste}
+            placeholder="Message Agent"
+          />
+          <ChatInput.Actions>
+            <Button
+              onClick={onOpenFilePicker}
+              icon={IconPaperclip}
+              aria-label="Attach file button"
+              variant="ghost"
+              round
+              disabled={isStreaming}
             />
-            <ChatInput.Actions>
-              <Button
-                onClick={onOpenFilePicker}
-                icon={IconPaperclip}
-                aria-label="Attach file button"
-                variant="ghost"
-                round
-                disabled={isStreaming}
-              />
-            </ChatInput.Actions>
-          </ChatInput>
-        )}
+          </ChatInput.Actions>
+        </ChatInput>
       </Footer>
       {isDragActive && <DropzoneOverlay />}
     </Container>

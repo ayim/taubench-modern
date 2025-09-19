@@ -1,6 +1,5 @@
 import { FC } from 'react';
-import { Box, Button } from '@sema4ai/components';
-import { IconCheckmark } from '@sema4ai/icons';
+import { Box, Button, Typography } from '@sema4ai/components';
 import { oAuthProviderIcons } from '@sema4ai/oauth-client/icons';
 
 import { useAgentOAuthStateQuery } from '../../../queries/agents';
@@ -17,25 +16,43 @@ export const OAuth: FC = () => {
   };
 
   return (
-    <Box display="flex" flexDirection="column" borderRadius="$24" p="$12" borderColor="border.subtle" boxShadow="small">
+    <Box display="flex" flexDirection="column" gap="$16" mb="$16">
       {oAuthState.map(({ providerType, isAuthorized, uri }) => {
+        if (isAuthorized) {
+          return null;
+        }
+
         const ProviderIcon = oAuthProviderIcons[providerType];
+        const isConfigured = !!uri;
 
         return (
-          <div key={providerType}>
-            <div>
-              <ProviderIcon size="$48" />
-            </div>
-            <Box>
-              {isAuthorized ? (
-                <IconCheckmark size={32} />
-              ) : (
-                <Button type="button" onClick={() => onConnect(uri)}>
-                  Connect
-                </Button>
-              )}
+          <Box
+            display="flex"
+            flexDirection={['column', 'column', 'row', 'row']}
+            gap="$20"
+            key={providerType}
+            borderRadius="$20"
+            p="$20"
+            backgroundColor="background.subtle"
+            boxShadow="small"
+          >
+            <Box display="flex" gap="$16">
+              <ProviderIcon size={32} />
+              <Box>
+                <Typography variant="body-large" mb="$4" fontWeight="medium">
+                  {isConfigured ? 'Connect' : 'Configure'} {providerType}
+                </Typography>
+                <Typography color="content.subtle">
+                  Review the permissions this agent needs and approce access.
+                </Typography>
+              </Box>
             </Box>
-          </div>
+            <Box ml="auto" alignSelf="center">
+              <Button type="button" round onClick={() => onConnect(uri)}>
+                Connect
+              </Button>
+            </Box>
+          </Box>
         );
       })}
     </Box>

@@ -7,7 +7,6 @@ import { IconLayoutRight, IconWriteNote } from '@sema4ai/icons';
 import { useNavigate, useParams } from '../../hooks';
 import { useAgentQuery } from '../../queries/agents';
 import { useCreateThreadMutation, useThreadsQuery } from '../../queries/threads';
-import { ThreadSearch } from '../ThreadSearch';
 
 type Props = {
   newThreadStartingMesssage: string;
@@ -89,8 +88,8 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
           {agent.name}
         </Typography>
       </Box>
-      {agent.metadata?.mode === 'conversational' && (
-        <Box display="flex" alignItems="center" gap="$8" ml="auto">
+      <Box display="flex" alignItems="center" gap="$8" ml="auto">
+        {agent.metadata?.mode === 'conversational' && (
           <Tooltip text="New Thread" placement="bottom">
             <SideNavigation.Item
               icon={IconWriteNote}
@@ -100,10 +99,9 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
               onClick={onNewThread}
             />
           </Tooltip>
-          {children}
-          <ThreadSearch />
-        </Box>
-      )}
+        )}
+        {children}
+      </Box>
     </Container>
   );
 };

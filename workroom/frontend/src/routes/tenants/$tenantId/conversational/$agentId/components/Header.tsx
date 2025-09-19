@@ -1,6 +1,6 @@
 import { useParams } from '@tanstack/react-router';
 import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
-import { ThreadHeader, ThreadSearch } from '@sema4ai/spar-ui';
+import { ThreadHeader } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 import {
   IconChemicalBottle,
@@ -105,7 +105,6 @@ export const Header = () => {
           </Menu>
         </>
       )}
-      <ThreadSearch />
     </ThreadHeader>
   );
 };
