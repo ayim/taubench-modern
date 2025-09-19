@@ -1,5 +1,17 @@
 # OIDC
 
+## Introduction
+
+SPAR supports OIDC providers as authentication targets, allowing users to log in via their preferred authentication service (such as Microsoft, Google, Okta etc.).
+
+The target OIDC service must support the following features for it to be a viable target:
+
+- Must provide a valid, public **discovery** URL (A `SEMA4AI_WORKROOM_OIDC_SERVER` of `https://test.com` would have a discovery URL at precisely `https://test.com/.well-known/openid-configuration`)
+- Must support the following scopes under the provided client:
+  - `openid`
+  - `email`
+  - `offline_access`
+
 ## Auth Payload Examples
 
 ### Okta

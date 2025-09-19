@@ -46,7 +46,7 @@ export const createAuthMiddleware =
     }
   };
 
-export const createIndexAuthMiddleware =
+export const createAuthRedirectMiddleware =
   ({
     authManager,
     bypassedPages = [],

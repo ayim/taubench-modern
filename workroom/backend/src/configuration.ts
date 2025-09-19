@@ -188,14 +188,11 @@ export const getConfiguration = (): Configuration => {
 
       case 'oidc':
       case 'google':
-      case 'none': {
-        const tenantId = parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID');
-
+      case 'none':
         return {
-          tenantId: tenantId ?? 'spar',
+          tenantId: parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID'),
           tenantName: 'Team Edition',
         };
-      }
 
       case 'sema4-oidc-sso': {
         const tenantId = parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID');

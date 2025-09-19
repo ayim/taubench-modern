@@ -40,6 +40,7 @@ The following environment variables should be configured for this setup:
 | `SEMA4AI_WORKROOM_OIDC_SERVER`         | `http://dev.okta.com` | The OIDC compatible server URL. See **foot notes**.    |
 | `SEMA4AI_WORKROOM_SESSION_SECRET`      | `secret-value`        | Session secret for encoding session data.              |
 | `SEMA4AI_WORKROOM_PORT`                | `8001`                | Workroom / gateway HTTP listen port.                   |
+| `SEMA4AI_WORKROOM_TENANT_ID`           | `spar`                | Tenant identifier.                                     |
 
 > [!IMPORTANT]
 > This setup implies the use of the **Base Environment Variables** listed earlier in this document.

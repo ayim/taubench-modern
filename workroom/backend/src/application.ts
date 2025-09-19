@@ -16,7 +16,7 @@ import { createAssetServe, createIndexServe, initializeFrontendPlaceholders } fr
 import { initializeWebSocketProxying } from './handlers/websocket.js';
 import { createGetWorkroomMeta } from './handlers/workroom.js';
 import type { ErrorResponse } from './interfaces.js';
-import { createAuthMiddleware, createIndexAuthMiddleware } from './middleware/auth/index.js';
+import { createAuthMiddleware, createAuthRedirectMiddleware } from './middleware/auth/index.js';
 import { badPlatform } from './middleware/badRoute.js';
 import { createRequestLogger } from './middleware/logging.js';
 import { poweredByHeaders } from './middleware/poweredBy.js';
@@ -294,6 +294,16 @@ export const createApplication = async ({
   tenantRouter.get('/workroom/audit-logs', badPlatform);
   tenantRouter.use('/api/v1', badPlatform);
 
+  tenantRouter.use(
+    createAuthRedirectMiddleware({
+      authManager,
+      bypassedPages: AUTH_BYPASSED_PAGES,
+      configuration,
+      monitoring,
+      sessionManager,
+    }),
+  );
+
   // Index bounce
   app.get('/', (_req, res) => {
     res
@@ -305,16 +315,6 @@ export const createApplication = async ({
     const tenantPrefix = `/tenants/${configuration.tenant.tenantId}`;
     res.set('x-sema4ai-redirect-source', 'spar-gateway').redirect(302, tenantPrefix + req.originalUrl);
   });
-
-  app.use(
-    createIndexAuthMiddleware({
-      authManager,
-      bypassedPages: AUTH_BYPASSED_PAGES,
-      configuration,
-      monitoring,
-      sessionManager,
-    }),
-  );
 
   // Static routes / Frontend handling
   if (configuration.frontendMode === 'disk') {
