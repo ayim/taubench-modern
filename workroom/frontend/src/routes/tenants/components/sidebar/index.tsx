@@ -65,6 +65,16 @@ export const Sidebar: FC = () => {
             Agents
           </RouterSideNavigationLink>
 
+          {features.deploymentWizard.enabled && (
+            <RouterSideNavigationLink
+              icon={<IconAgents />}
+              to="/tenants/$tenantId/data-access/data-connections"
+              params={{ tenantId }}
+            >
+              Data Access
+            </RouterSideNavigationLink>
+          )}
+
           {features.mcpServersManagement.enabled && (
             <RouterSideNavigationLink icon={<IconMcp />} to="/tenants/$tenantId/mcp-servers" params={{ tenantId }}>
               MCP Servers

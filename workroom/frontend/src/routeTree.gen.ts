@@ -27,6 +27,7 @@ import { Route as TenantsTenantIdMcpServersNewRouteImport } from './routes/tenan
 import { Route as TenantsTenantIdMcpServersMcpServerIdRouteImport } from './routes/tenants/$tenantId/mcp-servers/$mcpServerId'
 import { Route as TenantsTenantIdConversationalAgentIdRouteImport } from './routes/tenants/$tenantId/conversational/$agentId'
 import { Route as TenantsTenantIdAgentsDeployRouteImport } from './routes/tenants/$tenantId/agents/deploy'
+import { Route as TenantsTenantIdDataAccessDataConnectionsIndexRouteImport } from './routes/tenants/$tenantId/data-access/data-connections/index'
 import { Route as TenantsTenantIdConversationalAgentIdIndexRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/index'
 import { Route as TenantsTenantIdConfigurationSettingsIndexRouteImport } from './routes/tenants/$tenantId/configuration/settings/index'
 import { Route as TenantsTenantIdConfigurationLlmIndexRouteImport } from './routes/tenants/$tenantId/configuration/llm/index'
@@ -146,6 +147,12 @@ const TenantsTenantIdAgentsDeployRoute =
     path: '/agents/deploy',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
+const TenantsTenantIdDataAccessDataConnectionsIndexRoute =
+  TenantsTenantIdDataAccessDataConnectionsIndexRouteImport.update({
+    id: '/data-access/data-connections/',
+    path: '/data-access/data-connections/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
 const TenantsTenantIdConversationalAgentIdIndexRoute =
   TenantsTenantIdConversationalAgentIdIndexRouteImport.update({
     id: '/',
@@ -263,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
   '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
+  '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations': typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRoute
@@ -295,6 +303,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
   '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdIndexRoute
+  '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations': typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRoute
@@ -330,6 +339,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/configuration/llm/': typeof TenantsTenantIdConfigurationLlmIndexRoute
   '/tenants/$tenantId/configuration/settings/': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
+  '/tenants/$tenantId/data-access/data-connections/': typeof TenantsTenantIdDataAccessDataConnectionsIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/': typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRoute
@@ -366,6 +376,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/llm'
     | '/tenants/$tenantId/configuration/settings'
     | '/tenants/$tenantId/conversational/$agentId/'
+    | '/tenants/$tenantId/data-access/data-connections'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/llm'
     | '/tenants/$tenantId/configuration/settings'
     | '/tenants/$tenantId/conversational/$agentId'
+    | '/tenants/$tenantId/data-access/data-connections'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations'
@@ -432,6 +444,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/llm/'
     | '/tenants/$tenantId/configuration/settings/'
     | '/tenants/$tenantId/conversational/$agentId/'
+    | '/tenants/$tenantId/data-access/data-connections/'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/'
     | '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/'
@@ -570,6 +583,13 @@ declare module '@tanstack/react-router' {
       path: '/agents/deploy'
       fullPath: '/tenants/$tenantId/agents/deploy'
       preLoaderRoute: typeof TenantsTenantIdAgentsDeployRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/data-access/data-connections/': {
+      id: '/tenants/$tenantId/data-access/data-connections/'
+      path: '/data-access/data-connections'
+      fullPath: '/tenants/$tenantId/data-access/data-connections'
+      preLoaderRoute: typeof TenantsTenantIdDataAccessDataConnectionsIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/conversational/$agentId/': {
@@ -804,6 +824,7 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute
   TenantsTenantIdMcpServersIndexRoute: typeof TenantsTenantIdMcpServersIndexRoute
   TenantsTenantIdWorkItemsIndexRoute: typeof TenantsTenantIdWorkItemsIndexRoute
+  TenantsTenantIdDataAccessDataConnectionsIndexRoute: typeof TenantsTenantIdDataAccessDataConnectionsIndexRoute
 }
 
 const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
@@ -828,6 +849,8 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdHomeIndexRoute: TenantsTenantIdHomeIndexRoute,
   TenantsTenantIdMcpServersIndexRoute: TenantsTenantIdMcpServersIndexRoute,
   TenantsTenantIdWorkItemsIndexRoute: TenantsTenantIdWorkItemsIndexRoute,
+  TenantsTenantIdDataAccessDataConnectionsIndexRoute:
+    TenantsTenantIdDataAccessDataConnectionsIndexRoute,
 }
 
 const TenantsTenantIdRouteWithChildren = TenantsTenantIdRoute._addFileChildren(
