@@ -6,9 +6,6 @@ script_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 task_definition_template="${script_dir}/template.ecs-task-def.json"
 repo_root="$(git rev-parse --show-toplevel)"
 
-# shellcheck disable=SC1091
-source "${repo_root}/spar.env"
-
 # These (required) variables are injected by CodeBuild
 # The variables are either carried from Terraform, or supplied when starting the build
 required_vars=(
@@ -21,8 +18,6 @@ required_vars=(
   AUTH_CONFIGURATION_SECRET_ARN
   RDS_CREDENTIALS_SECRET_ARN
   VPC_SUBNETS
-  # From .env
-  PSQL_IMAGE_REF
   # Supplied when starting the build
   RELEASE_NAME
   SPAR_IMAGE_REF
@@ -38,8 +33,11 @@ for var in "${required_vars[@]}"; do
   fi
 done
 
+data_server_tag=$(cat compose.yml | sed -n '/x-data-server-image:/s/.*data-server:\([^"]*\).*/\1/p')
+
 export DB_NAME="agents_${RELEASE_NAME//-/_}" # PostgreSQL database names should use underscores for separating words
-export DATA_SERVER_IMAGE_REF="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:${DATA_SERVER_TAG}"
+export DATA_SERVER_IMAGE_REF="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:${data_server_tag}"
+export PSQL_IMAGE_REF="024848458362.dkr.ecr.us-east-1.amazonaws.com/docker-hub/library/postgres:13-alpine"
 
 envsubst < "${task_definition_template}"
 

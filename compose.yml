@@ -1,3 +1,7 @@
+# Dynamic images and tags - do not rename them as they are looked up dynamically:
+x-data-server-image: &data-server-image "ghcr.io/sema4ai/data-server:1.1.15_e65fbf8.20250916T124606Z"
+x-postgres-image: &postgres-image "postgres:17"
+
 x-env-spar: &template-env-spar
     # Agent Server
     AGENT_SERVER_PORT: 8000
@@ -53,7 +57,7 @@ x-service-spar: &template-service-spar
 
 services:
     postgres:
-        image: postgres:17
+        image: *postgres-image
         environment:
             POSTGRES_DB: agents
             POSTGRES_USER: agents
@@ -74,8 +78,7 @@ services:
         restart: unless-stopped
 
     data-server:
-        # Note: DATA_SERVER_TAG is defined in /.env
-        image: ghcr.io/sema4ai/data-server:${DATA_SERVER_TAG}
+        image: *data-server-image
         platform: linux/amd64
         environment:
             SKIP_CONFIGURATION: 'true'
