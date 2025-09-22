@@ -177,7 +177,7 @@ jobs:
 
       - name: Run unit tests
         timeout-minutes: 30 # TODO: This might be longer than needed.
-        run: make test-unit
+        run: make test-unit PYTEST_PARALLEL=0
 
   build:
     name: Build Server • ${{ matrix.os }}
@@ -278,7 +278,7 @@ jobs:
         timeout-minutes: 30 # TODO: This might be longer than needed.
         env:
           SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE: ${{ runner.os == 'Windows' && '.\\dist\\agent-server.exe' || './dist/agent-server' }}
-        run: make test-integration
+        run: make test-integration PYTEST_PARALLEL=0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

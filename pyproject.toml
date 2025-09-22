@@ -29,6 +29,7 @@ dev = [
     "pytest-timeout>=2.4.0,<3.0.0",
     "nbstripout>=0.7.1",
     "pyleak>=0.1.14",
+    "pytest-xdist>=3.8.0,<4.0.0",
 ]
 lint = ["ruff>=0.7.2,<0.12.0"]
 notebooks = [

@@ -11,12 +11,14 @@ IS_MACOS   := $(shell test "$$(uname -s)" = "Darwin" && echo true || echo false)
 # Default variables for building
 # You can override on the command line, e.g.:
 #   make build-exe DEBUG=true CI=true
+#   make test-unit PYTEST_PARALLEL=0
 # --------------------------------------------------------------------
-DEBUG     ?= false
-CI        ?= false
-EXE_NAME  ?= agent-server
-DIST_PATH ?= dist
-VERSION   ?=
+DEBUG           ?= false
+CI              ?= false
+EXE_NAME        ?= agent-server
+DIST_PATH       ?= dist
+VERSION         ?=
+PYTEST_PARALLEL ?= auto
 
 # Update the EXE_NAME if we're on Windows
 ifeq ($(IS_WINDOWS),true)
@@ -183,23 +185,23 @@ test:  sync check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 test-unit: sync  ## Run only unit tests
 ifeq ($(CI),true)
 ifeq ($(IS_LINUX),true)
-	VCR_RECORD=none uv run pytest -v -m "not integration and not spar"
+	VCR_RECORD=none uv run pytest -v -m "not integration and not spar" --durations=50 --durations-min=1 -n $(PYTEST_PARALLEL)
 else
-	VCR_RECORD=none uv run pytest -v -m "not integration and not postgresql and not spar"
+	VCR_RECORD=none uv run pytest -v -m "not integration and not postgresql and not spar" --durations=50 --durations-min=1 -n $(PYTEST_PARALLEL)
 endif
 else
-	VCR_RECORD=none uv run pytest -v -m "not integration and not spar"
+	VCR_RECORD=none uv run pytest -v -m "not integration and not spar" --durations=50 --durations-min=1 -n $(PYTEST_PARALLEL)
 endif
 
 test-integration:  sync check-env-or-no-env ## Run only integration tests
 ifeq ($(CI),true)
 ifeq ($(IS_LINUX),true)
-	VCR_RECORD=none uv run pytest -v -m "integration"
+	VCR_RECORD=none uv run pytest -v -m "integration" --durations=50 --durations-min=1 -n $(PYTEST_PARALLEL)
 else
-	VCR_RECORD=none uv run pytest -v -m "integration and not postgresql"
+	VCR_RECORD=none uv run pytest -v -m "integration and not postgresql" --durations=50 --durations-min=1 -n $(PYTEST_PARALLEL)
 endif
 else
-	VCR_RECORD=none uv run pytest -v -m "integration"
+	VCR_RECORD=none uv run pytest -v -m "integration" --durations=50 --durations-min=1 -n $(PYTEST_PARALLEL)
 endif
 
 test-vcr-record-new:  check-env ## Run tests with pytest and record VCR cassettes for new requests
