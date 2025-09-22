@@ -10,6 +10,9 @@ const routesMapping = {
   '/thread/$agentId/$threadId': '/tenants/$tenantId/conversational/$agentId/$threadId',
   '/thread/$agentId': '/tenants/$tenantId/conversational/$agentId',
   '/workItem/$agentId/$workItemId/$threadId': '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId',
+  '/data-connections': '/tenants/$tenantId/data-access/data-connections',
+  '/data-connections/create': '/tenants/$tenantId/data-access/data-connections/create',
+  '/data-connections/$dataConnectionId': '/tenants/$tenantId/data-access/data-connections/$dataConnectionId',
 } satisfies Record<keyof SparUIRoutes, FileRouteTypes['id']>;
 
 export const createSparAPIClient = (

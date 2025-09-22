@@ -1,7 +1,7 @@
 import { paths as AgentServerPaths } from '@sema4ai/agent-server-interface';
 
 import type { OpenAPIClient } from './OpenAPIClient';
-import type { SparUIRoutes } from './routes';
+import type { SparUIRoutes, LooseRouteParams } from './routes';
 import { AgentOAuthProviderState } from '../lib/OAuth';
 
 export enum SparUIFeatureFlag {
@@ -56,7 +56,10 @@ export interface SparAPIClient {
   /**
    * Returns required params for a given route
    */
-  useParamsFn: <T extends keyof SparUIRoutes>(route: T) => SparUIRoutes[T];
+  useParamsFn: {
+    (route: { strict: false }): LooseRouteParams;
+    <T extends keyof SparUIRoutes>(route: T): SparUIRoutes[T];
+  };
 
   /**
    * Get route path for a given route and params

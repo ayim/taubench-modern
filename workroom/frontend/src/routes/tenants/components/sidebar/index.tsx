@@ -25,7 +25,7 @@ const MenuOuterToggle = styled(Button)<{ $expanded?: boolean }>`
   display: block;
   position: absolute;
   top: ${({ theme }) => theme.space.$14};
-  z-index: ${({ theme }) => theme.zIndex.dropdown - 1};
+  z-index: 1;
 
   ${({ theme }) => theme.screen.m} {
     display: block;

@@ -29,6 +29,10 @@ export const snakeCaseToTitleCase = (str: string) => {
   return str.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
+export const snakeToCapitalCase = (str: string) => {
+  return str.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 export const getFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 B';
 
