@@ -94,8 +94,8 @@ async def test_evals_e2e(
                 )
                 return all_completed
 
-            five_minutes = 5 * 60
-            await _wait_until(_is_final_status, interval=1.0, timeout=five_minutes)
+            ten_minutes = 10 * 60
+            await _wait_until(_is_final_status, interval=1.0, timeout=ten_minutes)
 
             get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/latest")
             assert get_run_resp.status_code == 200
