@@ -6220,6 +6220,59 @@ export const spec = {
         },
       },
     },
+    '/api/v2/data-connections/{connection_id}/inspect': {
+      post: {
+        tags: ['data-connections'],
+        summary: 'Inspect Data Connection',
+        description:
+          'Inspect a data connection to get tables, columns and sample data.',
+        operationId:
+          'inspect_data_connection_data_connections__connection_id__inspect_post',
+        parameters: [
+          {
+            name: 'connection_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Connection Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/DataConnectionsInspectRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/DataConnectionsInspectResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/evals/scenarios': {
       post: {
         tags: ['evals'],
@@ -8434,6 +8487,88 @@ export const spec = {
         required: ['document_uri', 'start_char_index', 'end_char_index'],
         title: 'Citation',
       },
+      ColumnInfo: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          data_type: {
+            type: 'string',
+            title: 'Data Type',
+          },
+          sample_values: {
+            anyOf: [
+              {
+                items: {},
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sample Values',
+          },
+          primary_key: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Primary Key',
+          },
+          unique: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Unique',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          synonyms: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Synonyms',
+          },
+        },
+        type: 'object',
+        required: [
+          'name',
+          'data_type',
+          'sample_values',
+          'primary_key',
+          'unique',
+          'description',
+          'synonyms',
+        ],
+        title: 'ColumnInfo',
+      },
       ConfigPayload: {
         properties: {
           config_type: {
@@ -8892,6 +9027,50 @@ export const spec = {
         type: 'object',
         required: ['agent_id'],
         title: 'CreateWorkItemPayload',
+      },
+      DataConnectionsInspectRequest: {
+        properties: {
+          tables_to_inspect: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/TableToInspect',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Tables To Inspect',
+          },
+          inspect_columns: {
+            type: 'boolean',
+            title: 'Inspect Columns',
+            default: true,
+          },
+          n_sample_rows: {
+            type: 'integer',
+            title: 'N Sample Rows',
+            default: 10,
+          },
+        },
+        type: 'object',
+        title: 'DataConnectionsInspectRequest',
+      },
+      DataConnectionsInspectResponse: {
+        properties: {
+          tables: {
+            items: {
+              $ref: '#/components/schemas/TableInfo',
+            },
+            type: 'array',
+            title: 'Tables',
+          },
+        },
+        type: 'object',
+        required: ['tables'],
+        title: 'DataConnectionsInspectResponse',
       },
       DataModelPayload: {
         properties: {
@@ -14476,6 +14655,104 @@ export const spec = {
         type: 'object',
         required: ['thread_id'],
         title: 'SuggestScenarioPayload',
+      },
+      TableInfo: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          database: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Database',
+          },
+          schema: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Schema',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          columns: {
+            items: {
+              $ref: '#/components/schemas/ColumnInfo',
+            },
+            type: 'array',
+            title: 'Columns',
+          },
+        },
+        type: 'object',
+        required: ['name', 'database', 'schema', 'description', 'columns'],
+        title: 'TableInfo',
+      },
+      TableToInspect: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          database: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Database',
+          },
+          schema: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Schema',
+          },
+          columns_to_inspect: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Columns To Inspect',
+          },
+        },
+        type: 'object',
+        required: ['name', 'database', 'schema'],
+        title: 'TableToInspect',
       },
       Thread: {
         properties: {

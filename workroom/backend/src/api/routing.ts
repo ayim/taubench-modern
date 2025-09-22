@@ -169,6 +169,7 @@ function getRouteMap(): {
     'delete /api/v2/semantic-data-models/{semantic_data_model_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
 
     'post /api/v2/semantic-data-models/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/data-connections/{connection_id}/inspect': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
 
     // #region Disallowed Routes
     'get /api/v2/health': [DISALLOWED],

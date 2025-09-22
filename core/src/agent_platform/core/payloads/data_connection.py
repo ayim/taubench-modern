@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Literal
+from typing import Annotated, Any, Literal
 
 
 class Sslmode(Enum):
@@ -361,3 +361,46 @@ DataConnection = (
     | SemaknowledgebaseDataConnection
     | SQLiteDataConnection
 )
+
+
+# Data connection inspection models
+@dataclass
+class TableToInspect:
+    name: str
+    database: str | None
+    schema: str | None
+    # If the columns are passed, inspect only those columns, if not passed, inspect all columns
+    columns_to_inspect: list[str] | None = None
+
+
+@dataclass
+class DataConnectionsInspectRequest:
+    # If the tables are passed, inspect only those tables, if not passed, inspect all tables
+    tables_to_inspect: list[TableToInspect] | None = None
+    inspect_columns: Annotated[bool, "If True, inspect the columns of the tables"] = True
+    n_sample_rows: Annotated[int, "The number of rows to sample from the tables"] = 10
+
+
+@dataclass
+class ColumnInfo:
+    name: str
+    data_type: str
+    sample_values: list[Any] | None
+    primary_key: bool | None
+    unique: bool | None
+    description: str | None
+    synonyms: list[str] | None
+
+
+@dataclass
+class TableInfo:
+    name: str
+    database: str | None
+    schema: str | None
+    description: str | None
+    columns: list[ColumnInfo]
+
+
+@dataclass
+class DataConnectionsInspectResponse:
+    tables: list[TableInfo]

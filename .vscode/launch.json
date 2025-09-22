@@ -187,7 +187,7 @@
       "type": "pydevd",
       "name": "PyDev Test Template",
       "request": "test-template",
-      "args": ["--capture=no", "--force-regen", "--tb=short"]
+      "args": ["--capture=no", "--force-regen", "--tb=short", "-m", "not postgresql"]
       // "args": ["--capture=no", "--regen-all", "--tb=short"]
     }
   ],

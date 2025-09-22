@@ -84,7 +84,61 @@ schema and table as usual -- note that the database and schema are not required 
 
 API:
 
-- `GET /api/v2/data-connections/{data_connection_id}/inspect`
+- `POST /api/v2/data-connections/{data_connection_id}/inspect` (it's a POST because it should receive a body with the information to inspect)
+
+The API must:
+
+1. Be implemented in `server/src/agent_platform/server/api/private_v2/data_connections.py`
+2. Get the data connection information. Input:
+
+```python
+@dataclass
+class TableToInspect:
+    name: str
+    database: str | None
+    schema: str | None
+    # If the columns are passed, inspect only those columns, if not passed, inspect all columns
+    columns_to_inspect: list[str] | None = None
+
+@dataclass
+class DataConnectionsInspectRequest:
+    # If the tables are passed, inspect only those tables, if not passed, inspect all tables
+    tables_to_inspect: list[TableToInspect] | None = None
+```
+
+3. Based on the data connection type, get the tables/columns/sample data
+   - Right now we need to support only the following:
+     - SQLite
+     - Postgres
+     - Redshift
+     - Snowflake
+   - Note: we should get the information using ibis to collect the database metadata.
+   - The API should be implemented in `server/src/agent_platform/server/api/private_v2/data_connections.py`
+4. Return the information in the following format:
+
+```python
+@dataclass
+class ColumnInfo:
+    name: str
+    data_type: str
+    sample_values: list[Any] | None
+    primary_key: bool | None
+    unique: bool | None
+    description: str | None
+    synonyms: list[str] | None
+
+@dataclass
+class TableInfo:
+    name: str
+    database: str | None
+    schema: str | None
+    description: str | None
+    columns: list[ColumnInfo]
+
+@dataclass
+class DataConnectionsInspectResponse:
+    tables: list[TableInfo]
+```
 
 # Step 4:
 
@@ -105,31 +159,18 @@ when creating a new semantic data model for some other data (if the shape of one
 
 - Data connections of interest
 
-- Files of interest
+- Files of interest (based on the related created data frames)
 
 Agent Server related APIs:
 
 - Existing REST API which allows collecting sheets/columns/sample data from a file (dataframe API)
-
-- New REST API(s) to collect tables/columns/sample data for a data source(s).
-
-  - We may have to do it in a way that the UI can query parts of it to build a tree as needed (depends on how much data is available fast in a single call).
 
 - New API to auto-generate a semantic model based on the tables/columns/samples for a file/data source as well as details given by the user.
 
   - `Note`: the UI must collect the information and then call this new API to actually build the semantic data model.
   - `Note`: the initial implementation will be very simple, not agentic.
 
-- Storing the semantic data model:
-  - The semantic data model by itself will be stored as json in the DB (in the v2_semantic_data_model) and it should reference
-    the inputs that were used to build it.
-  - Right now we collect the tables/columns/sample data from data frames to provide to the LLM, now, after a semantic data model is available,
-    instead of that information, "multiple" semantic data models will be fetched from the database and passed in place
-    of that information (as it should be a superset). Fetching should be done based on the data connections available as
-    well as the files being currently used.
-
-`Note`: at this point, further reviewing and editing a semantic data model is always done as a whole (so, there'll be CRUD apis
-related to the semantic data model -- the UI can initially just show the json -- maybe as a yaml to be a bit more readable).
+- Storing the semantic data model should be done using the APIs from step 2.
 
 # Step 5:
 
@@ -146,3 +187,5 @@ files as well as sql targetting a data source to extract table information from 
 # Step 6:
 
 Create a "Full semantic data model" which includes metrics, facts, dimensions, etc.
+
+Extract primary keys/uniqueness from the database directly when available.

@@ -2053,6 +2053,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/data-connections/{connection_id}/inspect': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Inspect Data Connection
+     * @description Inspect a data connection to get tables, columns and sample data.
+     */
+    post: operations['inspect_data_connection_data_connections__connection_id__inspect_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/evals/scenarios': {
     parameters: {
       query?: never;
@@ -3058,6 +3078,23 @@ export interface components {
        */
       cited_text?: string | null;
     };
+    /** ColumnInfo */
+    ColumnInfo: {
+      /** Name */
+      name: string;
+      /** Data Type */
+      data_type: string;
+      /** Sample Values */
+      sample_values: unknown[] | null;
+      /** Primary Key */
+      primary_key: boolean | null;
+      /** Unique */
+      unique: boolean | null;
+      /** Description */
+      description: string | null;
+      /** Synonyms */
+      synonyms: string[] | null;
+    };
     /** ConfigPayload */
     ConfigPayload: {
       config_type: components['schemas']['ConfigType'];
@@ -3282,6 +3319,26 @@ export interface components {
        * @description A list of callbacks to trigger when the work item reaches a certain status.
        */
       callbacks?: components['schemas']['WorkItemCallback'][] | null;
+    };
+    /** DataConnectionsInspectRequest */
+    DataConnectionsInspectRequest: {
+      /** Tables To Inspect */
+      tables_to_inspect?: components['schemas']['TableToInspect'][] | null;
+      /**
+       * Inspect Columns
+       * @default true
+       */
+      inspect_columns: boolean;
+      /**
+       * N Sample Rows
+       * @default 10
+       */
+      n_sample_rows: number;
+    };
+    /** DataConnectionsInspectResponse */
+    DataConnectionsInspectResponse: {
+      /** Tables */
+      tables: components['schemas']['TableInfo'][];
     };
     /** DataModelPayload */
     DataModelPayload: {
@@ -5899,6 +5956,30 @@ export interface components {
        * @default 1
        */
       max_options: number;
+    };
+    /** TableInfo */
+    TableInfo: {
+      /** Name */
+      name: string;
+      /** Database */
+      database: string | null;
+      /** Schema */
+      schema: string | null;
+      /** Description */
+      description: string | null;
+      /** Columns */
+      columns: components['schemas']['ColumnInfo'][];
+    };
+    /** TableToInspect */
+    TableToInspect: {
+      /** Name */
+      name: string;
+      /** Database */
+      database: string | null;
+      /** Schema */
+      schema: string | null;
+      /** Columns To Inspect */
+      columns_to_inspect?: string[] | null;
     };
     /** Thread */
     Thread: {
@@ -11325,6 +11406,41 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  inspect_data_connection_data_connections__connection_id__inspect_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        connection_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DataConnectionsInspectRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DataConnectionsInspectResponse'];
         };
       };
       /** @description Validation Error */

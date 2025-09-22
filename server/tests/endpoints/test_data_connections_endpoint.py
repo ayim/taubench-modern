@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -38,6 +39,38 @@ def sample_mysql_data_connection():
             "user": "testuser",
             "password": "testpass",
             "ssl": True,
+        },
+    }
+
+
+@pytest.fixture
+def sample_sqlite_data_connection(tmp_path: Path):
+    """Sample SQLite data connection payload for API requests."""
+    import sqlite3
+
+    db_file = tmp_path / "sample_sqlite_data_connection.db"
+
+    # Create the sqlite database
+    conn = sqlite3.connect(db_file)
+    conn.execute("CREATE TABLE user_and_country (user_id INTEGER, country TEXT)")
+    conn.execute("INSERT INTO user_and_country (user_id, country) VALUES (1, 'England')")
+    conn.execute("INSERT INTO user_and_country (user_id, country) VALUES (2, 'France')")
+    conn.execute("INSERT INTO user_and_country (user_id, country) VALUES (3, 'Germany')")
+
+    conn.execute("CREATE TABLE user_and_city (user_id INTEGER, city TEXT)")
+    conn.execute("INSERT INTO user_and_city (user_id, city) VALUES (1, 'London')")
+    conn.execute("INSERT INTO user_and_city (user_id, city) VALUES (2, 'Paris')")
+    conn.execute("INSERT INTO user_and_city (user_id, city) VALUES (3, 'Berlin')")
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "name": "sample-sqlite-connection",
+        "description": "Test SQLite connection",
+        "engine": "sqlite",
+        "configuration": {
+            "db_file": str(db_file),
         },
     }
 
@@ -304,3 +337,27 @@ def test_data_connection_response_format(client: TestClient, sample_postgres_dat
 
     assert get_data["id"] == connection_id
     assert get_data["name"] == sample_postgres_data_connection["name"]
+
+
+def test_inspect_data_connection_success(client: TestClient, sample_sqlite_data_connection: dict):
+    """Test inspecting a data connection successfully."""
+    # Create a data connection first
+    create_response = client.post(
+        "/api/v2/private/data-connections/", json=sample_sqlite_data_connection
+    )
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    response = client.post(
+        f"/api/v2/private/data-connections/{connection_id}/inspect",
+        json={"tables_to_inspect": None},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "tables" in data
+    assert {"user_and_country", "user_and_city"} == {table["name"] for table in data["tables"]}
+    coutry_table = next(table for table in data["tables"] if table["name"] == "user_and_country")
+    city_table = next(table for table in data["tables"] if table["name"] == "user_and_city")
+    assert {"user_id", "country"} == {column["name"] for column in coutry_table["columns"]}
+    assert {"user_id", "city"} == {column["name"] for column in city_table["columns"]}

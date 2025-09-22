@@ -9,6 +9,10 @@ from agent_platform.core.data_connections.data_connections import (
 from agent_platform.core.payloads.data_connection import (
     DataConnection as DataConnectionPayload,
 )
+from agent_platform.core.payloads.data_connection import (
+    DataConnectionsInspectRequest,
+    DataConnectionsInspectResponse,
+)
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
 
@@ -162,4 +166,42 @@ async def delete_data_connection(
         )
         raise HTTPException(
             status_code=500, detail=f"Failed to delete data connection: {e!s}"
+        ) from e
+
+
+@router.post("/{connection_id}/inspect")
+async def inspect_data_connection(
+    connection_id: str,
+    request: DataConnectionsInspectRequest,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> DataConnectionsInspectResponse:
+    """Inspect a data connection to get tables, columns and sample data."""
+    try:
+        # Get the data connection
+        db_data_connection = await storage.get_data_connection(connection_id)
+
+        # Import the inspection logic
+        from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
+
+        inspector = DataConnectionInspector(db_data_connection, request)
+        result = await inspector.inspect_connection()
+
+        logger.info(
+            "Successfully inspected data connection",
+            connection_id=connection_id,
+            tables_found=len(result.tables),
+            user_id=user.user_id,
+        )
+
+        return result
+    except Exception as e:
+        logger.error(
+            "Failed to inspect data connection",
+            connection_id=connection_id,
+            error=str(e),
+            user_id=user.user_id,
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to inspect data connection: {e!s}"
         ) from e
