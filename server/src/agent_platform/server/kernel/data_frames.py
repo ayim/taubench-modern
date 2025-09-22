@@ -26,14 +26,23 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         self._data_frame_tools: tuple[ToolDefinition, ...] = ()
 
     def is_enabled(self) -> bool:
+        """Returns True if data frames are enabled (and False otherwise).
+        Note: it's opt-out, so, by default data frames are enabled
+        unless explicitly disabled (in env var or agent settings)."""
         import os
 
-        enable_data_frames = os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES") in ("1", "true")
-        if not enable_data_frames:
-            agent_settings = self.kernel.agent.extra.get("agent_settings", {})
-            enable_data_frames = agent_settings.get("enable_data_frames", False)
+        agent_settings = self.kernel.agent.extra.get("agent_settings", {})
+        if "enable_data_frames" in agent_settings:
+            return bool(agent_settings["enable_data_frames"])
 
-        return enable_data_frames
+        if "SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES" in os.environ:
+            disable_data_frames = os.environ["SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES"].lower() in (
+                "0",
+                "false",
+            )
+            return not disable_data_frames
+
+        return True
 
     async def step_initialize(
         self, *, storage: "BaseStorage|None" = None, state: "DataFrameArchState"
