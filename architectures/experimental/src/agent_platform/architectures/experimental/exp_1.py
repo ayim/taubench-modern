@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
@@ -100,6 +100,9 @@ class ToolsBundle:
             *self.data_frames_tools,
         )
 
+    def __iter__(self) -> Iterator["ToolDefinition"]:
+        return iter(self.all)
+
 
 # ---- Entry Point --------------------------------------------------------------
 
@@ -157,6 +160,9 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
         tag_expected_pre_response=None,
     )
     message.agent_metadata["models"] = []
+    message.agent_metadata["platform"] = platform.name
+    message.agent_metadata["model"] = model  # Keep for backward compatibility
+    message.agent_metadata["tools"] = [tool.model_dump() for tool in tools]
 
     # -------------------- Tool Loop --------------------
     while state.step != "done" and state.current_iteration < MAX_ITERATIONS:
