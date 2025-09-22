@@ -1,3 +1,10 @@
+# Sema4.ai Agent Server 2.1.5 (2025-09-22)
+
+- [GPT-1287] Lock new models to the new architecture; improve backward compatibility [#1019](https://github.com/Sema4AI/agent-platform/pull/1019)
+- Add APIs to extract tables, columns, and sample data from data connections (via Ibis) [#1006](https://github.com/Sema4AI/agent-platform/pull/1006)
+- Skip frequently failing `test_evals_e2e` [#1020](https://github.com/Sema4AI/agent-platform/pull/1020)
+- GPT-1282: Increase timeouts for evals integration tests [#1013](https://github.com/Sema4AI/agent-platform/pull/1013)
+
 # Sema4.ai Agent Server 2.1.4 (2025-09-22)
 
 - Graceful shutdown of work items with health endpoints [#940](https://github.com/Sema4AI/agent-platform/pull/940)
