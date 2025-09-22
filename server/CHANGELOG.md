@@ -1,3 +1,12 @@
+# Sema4.ai Agent Server 2.1.4 (2025-09-22)
+
+- Graceful shutdown of work items with health endpoints [#940](https://github.com/Sema4AI/agent-platform/pull/940)
+- Add created_at and updated_at ts for data connection payload [#996](https://github.com/Sema4AI/agent-platform/pull/996)
+- [GPT-1266] Implement whitelisting of tools for MCP Servers [#943](https://github.com/Sema4AI/agent-platform/pull/943)
+- Data Frames are now opt-out (disabled with `agent_settings.enable_data_frames` as False or `SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES` env var as `0`/`false`). [#1005](https://github.com/Sema4AI/agent-platform/pull/1005)
+- [Data Frames] Provide CRUD APIs for creating semantic data models. [#968](https://github.com/Sema4AI/agent-platform/pull/968)
+- [Data Frames] Improve data frames tool description. [#991](https://github.com/Sema4AI/agent-platform/pull/991)
+
 # Sema4.ai Agent Server 2.1.3 (2025-09-18)
 
 - [GPT-1276] Studio Failing on 5+ minute Action Invocations (Turn Async Actions Default ON) [#980](https://github.com/Sema4AI/agent-platform/pull/980)

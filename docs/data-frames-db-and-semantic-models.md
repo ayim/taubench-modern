@@ -1,6 +1,7 @@
 # References for semantic data models:
 
 - [Snowflake semantic model generator](https://github.com/Snowflake-Labs/semantic-model-generator)
+- [Snowflake semantic model spec](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst/semantic-model-spec)
 
 # Step 1:
 
