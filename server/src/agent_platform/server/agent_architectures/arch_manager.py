@@ -16,12 +16,10 @@ class AgentArchManager:
 
         # A list of “trusted” or “builtin” packages that can run in-process:
         self.in_process_allowlist = {
-            ("agent_platform.architectures.default", "1.0.0"),
-            # TODO: version wildcard for these? (Doesn't really matter until
-            # we possibly get into serious versioning here...)
-            ("agent_platform.architectures.experimental_1", "1.0.0"),
-            ("agent_platform.architectures.experimental_2", "1.0.0"),
-            ("agent_platform.architectures.experimental_3", "1.0.0"),
+            ("agent_platform.architectures.default", "*"),
+            ("agent_platform.architectures.experimental_1", "*"),
+            ("agent_platform.architectures.experimental_2", "*"),
+            ("agent_platform.architectures.experimental_3", "*"),
         }
 
     def get_architectures(self) -> list[ArchitectureInfo]:
@@ -45,7 +43,11 @@ class AgentArchManager:
             return self.active_runners[key]
 
         # Decide if in-process or out-of-process
-        if (package_name, version) in self.in_process_allowlist:
+        in_process = (package_name, version) in self.in_process_allowlist or (
+            package_name,
+            "*",
+        ) in self.in_process_allowlist
+        if in_process:
             runner = InProcessAgentRunner(package_name, version, thread_id)
         else:
             # Out-of-process

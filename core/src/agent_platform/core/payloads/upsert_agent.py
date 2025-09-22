@@ -8,10 +8,19 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.agent.agent import AgentArchitecture
 from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.agent.question_group import QuestionGroup
+from agent_platform.core.architectures.resolver import (
+    PlatformCandidateSet as ArchPlatformCandidateSet,
+)
+from agent_platform.core.architectures.resolver import (
+    resolve_architecture as resolve_architecture_for_platforms,
+)
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.platforms import AnyPlatformParameters
 from agent_platform.core.platforms.base import PlatformParameters
-from agent_platform.core.platforms.configs import resolve_provider_from_model_name
+from agent_platform.core.platforms.configs import (
+    PlatformModelConfigs,
+    resolve_provider_from_model_name,
+)
 from agent_platform.core.runbook import Runbook
 from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils import assert_literal_value_valid
@@ -587,6 +596,31 @@ class UpsertAgentPayload:
             self._handle_legacy_model_google()
             self._handle_legacy_model_groq()
 
+    def _validate_architecture_based_on_platform_configs(
+        self, platform_configs: list[AnyPlatformParameters]
+    ) -> AgentArchitecture:
+        """Resolve a compatible architecture for the given platform configs."""
+        if not platform_configs:
+            # Type guard: ensured non-None in __post_init__
+            assert self.agent_architecture is not None
+            return self.agent_architecture
+
+        platform_sets: list[ArchPlatformCandidateSet] = []
+        for idx, cfg in enumerate(platform_configs):
+            raw_cfg = self.platform_configs[idx] if idx < len(self.platform_configs) else {}
+            explicit_allowlist = isinstance(raw_cfg, dict) and ("models" in raw_cfg)
+            platform_sets.append(
+                ArchPlatformCandidateSet(config=cfg, explicit_allowlist=explicit_allowlist)
+            )
+
+        # Type guard: ensured non-None in __post_init__
+        assert self.agent_architecture is not None
+        return resolve_architecture_for_platforms(
+            self.agent_architecture,
+            platform_sets,
+            cfg_provider=PlatformModelConfigs,
+        )
+
     def __post_init__(self):
         # Handle backward compatibility conversions first
         self._handle_legacy_architecture()
@@ -681,7 +715,19 @@ class UpsertAgentPayload:
         if payload.agent_architecture is None:
             raise ValueError("agent_architecture is required")
 
-        def get_mode(payload: Self) -> Literal["conversational", "worker"] | None:
+        platform_configs = [
+            cast(AnyPlatformParameters, PlatformParameters.model_validate(config))
+            for config in payload.platform_configs
+        ]
+
+        # If for any of the platform configs, there's an allowlist
+        # Check to see if any of the models in the allowlist have an
+        # architecture requirement that is not met by the agent_architecture
+        validated_architecture = payload._validate_architecture_based_on_platform_configs(
+            platform_configs
+        )
+
+        def _get_mode(payload: Self) -> Literal["conversational", "worker"] | None:
             try:
                 mode = getattr(payload, "mode", None)
                 if mode in ("conversational", "worker"):
@@ -696,7 +742,7 @@ class UpsertAgentPayload:
 
             return None
 
-        maybe_mode = get_mode(payload=payload)
+        maybe_mode = _get_mode(payload=payload)
 
         metadata = getattr(payload, "metadata", None)
         if not isinstance(metadata, dict):
@@ -727,11 +773,8 @@ class UpsertAgentPayload:
             mcp_server_ids=payload.mcp_server_ids,
             selected_tools=payload.selected_tools,
             platform_params_ids=payload.platform_params_ids,
-            agent_architecture=payload.agent_architecture,
-            platform_configs=[
-                cast(AnyPlatformParameters, PlatformParameters.model_validate(config))
-                for config in payload.platform_configs
-            ],
+            agent_architecture=validated_architecture,
+            platform_configs=platform_configs,
             extra={
                 **metadata_without_mode,
                 **extra,

@@ -4,6 +4,7 @@ import logging
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from importlib.metadata import version
 from typing import Literal
 
 from agent_platform.architectures.experimental.checkpoint import (
@@ -24,6 +25,12 @@ from agent_platform.core.prompts.selector.default import select_prompt
 from agent_platform.core.responses.streaming.stream_pipe import ResponseStreamPipe
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.tools.tool_execution_result import ToolExecutionResult
+
+__author__ = "Sema4.ai Engineering"
+__copyright__ = "Copyright 2025, Sema4.ai"
+__license__ = "Proprietary"
+__summary__ = "Experimental architecture for the Agent Platform"
+__version__ = version("agent_platform_architectures_experimental")
 
 logger = logging.getLogger(__name__)
 

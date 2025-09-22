@@ -84,6 +84,67 @@ class TestPlatformModelConfigs:
             f"{family_only}"
         )
 
+    def test_architecture_requirements_are_valid(self):
+        """Test that all architecture requirements are valid."""
+
+        # Load architectures via entrypoints
+        from importlib import import_module
+        from importlib.metadata import entry_points
+
+        from packaging.requirements import Requirement
+        from packaging.version import Version
+
+        architectures = entry_points(group="agent_platform.architectures")
+        architecture_names = set([arch.name for arch in architectures])
+        # Map architecture entrypoint name -> module version string (via module.__version__)
+        arch_name_to_version: dict[str, str] = {}
+        for ep in architectures:
+            try:
+                module_path = ep.value.split(":", 1)[0]
+                mod = import_module(module_path)
+                version = getattr(mod, "__version__", None)
+                if isinstance(version, str):
+                    arch_name_to_version[ep.name] = version
+            except Exception:
+                # Best-effort; we still validate naming and syntax below
+                pass
+
+        # Every key in models_to_architecture_overrides should be in
+        # models_to_platform_specific_model_ids
+        config = PlatformModelConfigs()
+        for (
+            model_id,
+            _,
+        ) in config.models_to_architecture_overrides.items():
+            assert model_id in config.models_to_platform_specific_model_ids, (
+                f"Model {model_id} in models_to_architecture_overrides but not "
+                "in models_to_platform_specific_model_ids"
+            )
+
+        # Every requirement should be a valid requirement string with name matching an
+        # architecture entry point, and its version spec must be valid semver.
+        # Additionally, if we can resolve the installed module version for that architecture,
+        # verify the spec is satisfied by the installed version.
+        for (
+            _,
+            architecture_requirements,
+        ) in config.models_to_architecture_overrides.items():
+            for requirement in architecture_requirements:
+                # Parse with packaging to validate requirement syntax
+                req = Requirement(requirement)
+                name = req.name
+                assert name in architecture_names, (
+                    f"Architecture {name} in requirement {requirement} but not in loaded "
+                    "architectures"
+                )
+                # If we know the installed version for this architecture, check the spec
+                installed_version = arch_name_to_version.get(name)
+                if installed_version and req.specifier:
+                    assert req.specifier.contains(Version(installed_version), prereleases=True), (
+                        f"Installed architecture {name} version {installed_version} does not "
+                        f"satisfy requirement {requirement}"
+                    )
+
     def test_all_models_have_type_assignments(self):
         """Test that all models in the configuration have type assignments.
 

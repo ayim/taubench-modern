@@ -271,6 +271,11 @@ class AgentCompat(Agent):
                 # Create a new config object with masked data
                 masked_platform_configs.append(type(config).model_validate(config_dict))
 
+        # We have agreed upon yet _more_ back compat (for now, until we overhaul agent spec)
+        compat_arch_name = "agent"
+        if "experimental" in agent.agent_architecture.name.lower():
+            compat_arch_name = agent.agent_architecture.name.lower().strip()
+
         return cls(
             id=agent.agent_id,
             runbook=runbook_text,
@@ -291,7 +296,7 @@ class AgentCompat(Agent):
             ),
             model=model,
             advanced_config=dict(
-                architecture=agent.agent_architecture.name,
+                architecture=compat_arch_name,
                 reasoning="disabled",
                 recursion_limit=100,
                 langsmith=langsmith_config,

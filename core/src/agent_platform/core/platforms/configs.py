@@ -20,6 +20,8 @@ ModelType = Literal[
 
 ModelPrioritization = Literal["intelligence", "speed", "cost"]
 
+EXPERIMENTAL_ARCH_2_0_0 = "agent_platform.architectures.experimental_1==2.0.0"
+
 
 def _normalize_model_slug_for_lookup(slug: str) -> str:
     """Normalize a model slug for lookup in llms.json.
@@ -593,6 +595,39 @@ class PlatformModelConfigs(Configuration):
         },
         metadata=FieldMetadata(
             description="A mapping of model names to their context window sizes.",
+        ),
+    )
+
+    # MODEL IDS TO ARCHITECTURE OVERRIDES
+    # If a model is in this mapping, an agent created with an incompatible architecture
+    # will be overridden to an architecture that supports the model. (If feasible, if
+    # there's no compatible architecture, we'll raise an error.)
+    models_to_architecture_overrides: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            # Azure OpenAI
+            "azure/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "azure/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "azure/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "azure/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0],
+            "azure/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0],
+            "azure/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0],
+            # OpenAI
+            "openai/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "openai/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "openai/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "openai/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0],
+            "openai/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0],
+            "openai/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0],
+            # Bedrock
+            "bedrock/anthropic/claude-4-sonnet-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-sonnet-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-1-opus-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-1-opus-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
+        },
+        metadata=FieldMetadata(
+            description="A mapping of model IDs to the architectures they require to be used with.",
         ),
     )
 

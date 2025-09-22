@@ -1,6 +1,9 @@
 import json
 
+import pytest
+
 from agent_platform.core.agent.agent import Agent, AgentArchitecture
+from agent_platform.core.architectures.resolver import ArchitectureResolutionError
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.mcp.mcp_types import (
     MCPVariableTypeDataServerInfo,
@@ -644,3 +647,213 @@ class TestSelectedTools:
         assert len(validated_payload.selected_tools.tool_names) == 2
         assert validated_payload.selected_tools.tool_names[0].tool_name == "legacy_tool1"
         assert validated_payload.selected_tools.tool_names[1].tool_name == "legacy_tool2"
+
+
+class TestArchitectureCompatibility:
+    def test_allowlist_incompatible_architecture_switches(self):
+        payload = UpsertAgentPayload(
+            name="A",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=AgentArchitecture(
+                name="agent_platform.architectures.default",
+                version="1.0.0",
+            ),
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "name": "test",
+                    "openai_api_key": "dummy",
+                    "models": {"openai": ["gpt-5-high"]},
+                }
+            ],
+        )
+
+        agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+        # Should switch from default to experimental arch to satisfy model requirement
+        assert agent.agent_architecture.name == "agent_platform.architectures.experimental_1"
+
+    def test_allowlist_compatible_architecture_passes(self):
+        payload = UpsertAgentPayload(
+            name="A",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=AgentArchitecture(
+                name="agent_platform.architectures.experimental_1",
+                version="2.0.0",
+            ),
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "name": "test",
+                    "openai_api_key": "dummy",
+                    "models": {"openai": ["gpt-5-high"]},
+                }
+            ],
+        )
+
+        agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+        assert agent.agent_architecture.name == "agent_platform.architectures.experimental_1"
+
+
+class TestArchitectureSolverResolution:
+    def _patch_configs(
+        self, monkeypatch, mapping_models: dict[str, str], mapping_reqs: dict[str, list[str]]
+    ):
+        # Patch the symbol used inside upsert_agent to a dummy object that
+        # behaves both as a class (for attribute access) and as a callable
+        # returning itself (for constructor calls).
+        class DummyCfg:
+            def __init__(self):
+                self.models_to_platform_specific_model_ids = mapping_models
+                self.models_to_architecture_overrides = mapping_reqs
+
+            def __call__(self):
+                return self
+
+        dummy = DummyCfg()
+        from agent_platform.core.payloads import upsert_agent as ua
+
+        original = ua.PlatformModelConfigs
+        monkeypatch.setattr(ua, "PlatformModelConfigs", dummy, raising=False)
+        return original
+
+    def _patch_arch_entry_points(self, monkeypatch, versions: dict[str, str]):
+        import types
+        from importlib import import_module as real_import_module
+
+        class EP:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+        def fake_entry_points(group=None):
+            if group == "agent_platform.architectures":
+                return [EP(name, f"fake_{name}:entry") for name in versions.keys()]
+            return []
+
+        def fake_import_module(name):
+            if name.startswith("fake_"):
+                mod = types.ModuleType(name)
+                arch_name = name.replace("fake_", "")
+                mod.__version__ = versions.get(arch_name, "0.0.0")  # type: ignore[attr-defined]
+                return mod
+            return real_import_module(name)
+
+        monkeypatch.setattr("importlib.metadata.entry_points", fake_entry_points)
+        monkeypatch.setattr("importlib.import_module", fake_import_module)
+
+    def test_resolves_to_stricter_arch_version_across_models(self, monkeypatch):
+        # Require A>=1.0 for m1, and (B>=1.0 or A>=1.2) for m2; only A satisfies both -> A>=1.2
+        models_map = {
+            "openai/prov/m1": "m1",
+            "openai/prov/m2": "m2",
+        }
+        reqs_map = {
+            "openai/prov/m1": ["A>=1.0"],
+            "openai/prov/m2": ["B>=1.0", "A>=1.2"],
+        }
+
+        original_cfg = self._patch_configs(monkeypatch, models_map, reqs_map)
+        try:
+            # Present arch versions: A==1.2.0, B==2.0.0
+            self._patch_arch_entry_points(monkeypatch, {"A": "1.2.0", "B": "2.0.0"})
+
+            payload = UpsertAgentPayload(
+                name="X",
+                description="d",
+                version="1.0.0",
+                runbook="hi",
+                agent_architecture=AgentArchitecture(name="irrelevant.arch", version="1.0.0"),
+                platform_configs=[{"kind": "openai", "name": "t", "openai_api_key": "k"}],
+            )
+            agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+            assert agent.agent_architecture.name == "A"
+            assert agent.agent_architecture.version == "1.2.0"
+        finally:
+            from agent_platform.core.payloads import upsert_agent as ua
+
+            ua.PlatformModelConfigs = original_cfg
+
+    def test_no_solution_raises(self, monkeypatch):
+        # m1 requires A>=3.0, m2 requires B>=4.0; single arch cannot satisfy both -> error
+        models_map = {
+            "openai/prov/m1": "m1",
+            "openai/prov/m2": "m2",
+        }
+        reqs_map = {
+            "openai/prov/m1": ["A>=3.0"],
+            "openai/prov/m2": ["B>=4.0"],
+        }
+        original_cfg = self._patch_configs(monkeypatch, models_map, reqs_map)
+        try:
+            self._patch_arch_entry_points(monkeypatch, {"A": "2.5.0", "B": "3.5.0"})
+
+            payload = UpsertAgentPayload(
+                name="X",
+                description="d",
+                version="1.0.0",
+                runbook="hi",
+                agent_architecture=AgentArchitecture(name="irrelevant.arch", version="1.0.0"),
+                platform_configs=[{"kind": "openai", "name": "t", "openai_api_key": "k"}],
+            )
+            with pytest.raises(ArchitectureResolutionError):
+                UpsertAgentPayload.to_agent(payload, user_id="u1")
+        finally:
+            from agent_platform.core.payloads import upsert_agent as ua
+
+            ua.PlatformModelConfigs = original_cfg
+
+    def test_preserve_default_arch_when_no_constraints(self, monkeypatch):
+        # No requirements: preserve the provided architecture
+        models_map = {
+            "openai/prov/m1": "m1",
+        }
+        reqs_map = {}
+        original_cfg = self._patch_configs(monkeypatch, models_map, reqs_map)
+        try:
+            payload = UpsertAgentPayload(
+                name="X",
+                description="d",
+                version="1.0.0",
+                runbook="hi",
+                agent_architecture=AgentArchitecture(
+                    name="agent_platform.architectures.default", version="1.0.0"
+                ),
+                platform_configs=[{"kind": "openai", "name": "t", "openai_api_key": "k"}],
+            )
+            agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+            assert agent.agent_architecture.name == "agent_platform.architectures.default"
+            assert agent.agent_architecture.version == "1.0.0"
+        finally:
+            from agent_platform.core.payloads import upsert_agent as ua
+
+            ua.PlatformModelConfigs = original_cfg
+
+    def test_no_allowlist_any_model_on_platform(self):
+        # With no allowlist, we require the architecture to satisfy the conjunction
+        # of all model constraints on the platform. OpenAI has models requiring
+        # the experimental architecture, so the solver should switch to it.
+        payload = UpsertAgentPayload(
+            name="A",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=AgentArchitecture(
+                name="agent_platform.architectures.default",
+                version="1.0.0",
+            ),
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "name": "test",
+                    "openai_api_key": "dummy",
+                    # No models field -> treat as full platform set
+                }
+            ],
+        )
+
+        agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+        assert agent.agent_architecture.name == "agent_platform.architectures.experimental_1"
