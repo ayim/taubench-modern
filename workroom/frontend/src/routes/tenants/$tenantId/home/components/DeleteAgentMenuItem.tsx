@@ -48,7 +48,13 @@ export const DeleteAgentMenuItem: FC<DeleteAgentMenuItemProps> = ({ agent }) => 
   });
 
   return (
-    <Menu.Item onClick={handleDelete} icon={IconTrash}>
+    <Menu.Item
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDelete();
+      }}
+      icon={IconTrash}
+    >
       Delete
     </Menu.Item>
   );

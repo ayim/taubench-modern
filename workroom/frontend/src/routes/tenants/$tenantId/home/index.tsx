@@ -80,6 +80,7 @@ function HomePage() {
         description="Agents will appear here once someone deploys one and shares it with you."
         illustration="agents"
         docsLink="MAIN_WORKROOM_HELP"
+        action={<AgentUploadForm />}
       />
     );
   }
