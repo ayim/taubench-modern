@@ -45,13 +45,14 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
      */
     const searchParams = new URLSearchParams(location.search);
     const initialThreadMessage = searchParams.get('initial_thread_message')?.trim();
+    const conversationStarter = agent.extra?.conversation_starter as string | undefined;
 
     if (initialThreadMessage) {
       const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
         body: {
           name: 'New Chat',
           agent_id: agentId,
-          starting_message: (agent.metadata?.welcome_message as string) ?? NEW_CHAT_STARTING_MSG,
+          starting_message: initialThreadMessage ?? conversationStarter ?? NEW_CHAT_STARTING_MSG,
         },
         errorMsg: 'Failed to create thread',
       });
@@ -125,7 +126,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       body: {
         name: 'Chat 1',
         agent_id: agentId,
-        starting_message: (agent.metadata?.welcome_message as string) ?? NEW_CHAT_STARTING_MSG,
+        starting_message: initialThreadMessage ?? conversationStarter ?? NEW_CHAT_STARTING_MSG,
       },
       errorMsg: 'Failed to create thread',
     });
