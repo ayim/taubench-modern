@@ -12,6 +12,7 @@ import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
 import { DeleteAgentMenuItem } from './components/DeleteAgentMenuItem';
 import { AgentUploadForm } from './components/AgentUploadForm';
+import { InlineLoader } from '~/components/Loaders';
 
 export const Route = createFileRoute('/tenants/$tenantId/home/')({
   component: HomePage,
@@ -21,7 +22,7 @@ const agentSearchRules: SearchRules<components['schemas']['AgentCompat']> = { na
 
 function HomePage() {
   const { tenantId } = Route.useParams();
-  const { data: allAgents = [] } = useAgentsQuery({});
+  const { data: allAgents = [], isLoading } = useAgentsQuery({});
   const [search, setSearch] = useState<string>('');
   const [filters, setFilters] = useState({
     type: [] as string[],
@@ -72,6 +73,10 @@ function HomePage() {
       );
     });
   }, [search, filters, onAgentSearch]);
+
+  if (isLoading) {
+    return <InlineLoader />;
+  }
 
   if (allAgents.length === 0) {
     return (
