@@ -2,8 +2,8 @@
   "family": "${RELEASE_NAME}",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "1024",
-  "memory": "4096",
+  "cpu": "2048",
+  "memory": "8192",
   "executionRoleArn": "${ECS_TASK_EXECUTION_ROLE_ARN}",
   "containerDefinitions": [
     {
@@ -36,9 +36,8 @@
     {
       "name": "spar",
       "image": "${SPAR_IMAGE_REF}",
-      "cpu": 384,
-      "memory": 512,
-      "memoryReservation": 128,
+      "cpu": 896,
+      "memory": 3456,
       "essential": true,
       "dependsOn": [{ "containerName": "psql-init", "condition": "SUCCESS" }],
       "logConfiguration": {
@@ -98,8 +97,8 @@
     {
       "name": "data-server",
       "image": "${DATA_SERVER_IMAGE_REF}",
-      "cpu": 512,
-      "memory": 3456,
+      "cpu": 1024,
+      "memory": 4608,
       "essential": true,
       "logConfiguration": {
         "logDriver": "awslogs",
