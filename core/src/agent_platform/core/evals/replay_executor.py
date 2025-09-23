@@ -304,7 +304,7 @@ class ReplayToolExecutor(ToolExecutor):
         return
 
     @classmethod
-    def from_conversation(cls, messages: list[ThreadMessage]) -> "ReplayToolExecutor":  # noqa: C901
+    def from_conversation(cls, messages: list[ThreadMessage]) -> "ReplayToolExecutor":  # noqa: C901, PLR0912
         expected: list[ExpectedCall] = []
         models = set()
         platforms = set()
@@ -346,7 +346,13 @@ class ReplayToolExecutor(ToolExecutor):
                 if isinstance(tool, str):
                     raise ValueError("Tool should be an object")
 
+                tool_category = tool.get("category")
                 tool_name = tool.get("name")
+
+                if tool_category not in ["action-tool", "mcp-tool"]:
+                    # No ops
+                    continue
+
                 if not tool_name:
                     raise ValueError("Tool should have a name")
 

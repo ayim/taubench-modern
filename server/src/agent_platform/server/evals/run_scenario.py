@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from textwrap import dedent
 from typing import cast
@@ -9,6 +11,7 @@ from fastapi import Request
 from agent_platform.architectures.default.thread_conversion import (
     thread_messages_to_prompt_messages,
 )
+from agent_platform.core.agent.agent import Agent
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.evals.agent_client import (
     AgentClient,
@@ -34,6 +37,7 @@ from agent_platform.core.responses.content import ResponseTextContent
 from agent_platform.core.runs.run import Run
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.thread import Thread
+from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.user import User
 from agent_platform.server.agent_architectures.arch_manager import AgentArchManager
 from agent_platform.server.api.dependencies import StorageDependency
@@ -41,6 +45,7 @@ from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
 from agent_platform.server.kernel.kernel import AgentServerKernel
+from agent_platform.server.kernel.tools import AgentServerToolsInterface
 from agent_platform.server.storage.option import StorageService
 
 logger = logging.getLogger(__name__)
@@ -106,6 +111,44 @@ def _get_termination_reason(e: Exception) -> str:
     return "UNEXPECTED_ERROR"
 
 
+@dataclass(frozen=True)
+class ToolsBundle:
+    action_tools: Sequence[ToolDefinition]
+    mcp_tools: Sequence[ToolDefinition]
+
+    @property
+    def all(self) -> tuple[ToolDefinition, ...]:
+        return (
+            *self.action_tools,
+            *self.mcp_tools,
+        )
+
+    def has_tool(self, tool: ToolDefinition) -> bool:
+        return any(t.name == tool.name and t.input_schema == tool.input_schema for t in self.all)
+
+
+async def _gather_agent_tools(
+    agent: Agent, context: AgentServerContext
+) -> tuple[ToolsBundle, list[str]]:
+    kernel = create_minimal_kernel(context)
+    iface = AgentServerToolsInterface()
+    iface.attach_kernel(kernel)
+
+    action_tools, action_issues = await iface.from_action_packages(agent.action_packages)
+    mcp_tools, mcp_issues = await iface.from_mcp_servers(agent.mcp_servers)
+
+    issues = [*action_issues, *mcp_issues]
+
+    logger.info(f"Tools gathered: action={len(action_tools)}, mcp={len(mcp_tools)}")
+    if issues:
+        logger.info(f"Tool issues: {', '.join(issues)}")
+
+    return ToolsBundle(
+        action_tools=action_tools,
+        mcp_tools=mcp_tools,
+    ), issues
+
+
 async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901
     if task.status != TrialStatus.EXECUTING:
         raise RuntimeError(f"Trial {task.trial_id} is not being executing.")
@@ -126,15 +169,16 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901
     if agent is None:
         raise RuntimeError(f"Cannot find agent {scenario.agent_id}")
 
-    # force agent to use client side tools
-    agent = agent.copy(mcp_servers=[], action_packages=[])
-
     server_context = AgentServerContext.from_request(
         request=Request(scope={"type": "http", "method": "POST"}),
         user=system_user,
         version="2.0.0",
         agent_id=agent.agent_id,
     )
+
+    agent_tools, _ = await _gather_agent_tools(agent, server_context)
+    # force agent to use client side tools
+    agent = agent.copy(mcp_servers=[], action_packages=[])
 
     agent_arch_manager = AgentArchManager(
         wheels_path="./todo-for-out-of-process/wheels",
@@ -195,6 +239,24 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901
             )
 
             tool_executor = ReplayToolExecutor.from_conversation(agent_messages_from_scenario)
+            missing_tools_in_agent = [
+                tool for tool in tool_executor.tools if not agent_tools.has_tool(tool)
+            ]
+
+            if len(missing_tools_in_agent) > 0:
+                logger.info("Agent tools don't match the conversation")
+                state.termination = "AGENT_TOOL_MISMATCH"
+                state.status = "ERROR"
+                state.error_message = (
+                    f"The following tools used in the conversation "
+                    f"are missing from agent or have different input schema "
+                    f"in the selected agent: "
+                    f"{', '.join([tool.name for tool in missing_tools_in_agent])}"
+                )
+                state.drift_events = drifts + tool_executor.drifts
+                state.finished_at = datetime.now()
+
+                return False
 
             for user_message in user_messages_from_scenario:
                 await storage.add_message_to_thread(
