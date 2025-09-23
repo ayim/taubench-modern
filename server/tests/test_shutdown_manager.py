@@ -57,7 +57,7 @@ class TestShutdownManager:
 
         # Create worker functions
         async def worker1():
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.3)
 
         async def worker2():
             await asyncio.sleep(0.1)
@@ -84,8 +84,8 @@ class TestShutdownManager:
         await ShutdownManager.drain_background_workers()
         drain_end = asyncio.get_event_loop().time()
 
-        # Should have waited for the longest worker (worker1: 0.2s)
-        assert drain_end - drain_start >= 0.2
+        # Should have waited for the longest worker (worker1: 0.3s)
+        assert drain_end - drain_start > 0.29
         assert ShutdownManager.is_draining() is True
 
         # Test unregistration

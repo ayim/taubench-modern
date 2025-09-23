@@ -1,3 +1,14 @@
+# Sema4.ai Agent Server 2.1.6 (2025-09-23)
+
+- [PRD-892] Add optional user-friendly work_item_name to work_item [#1024](https://github.com/Sema4AI/agent-platform/pull/1024)
+- [GPT-1284] mismatch agent tools vs conversation error [#1016](https://github.com/Sema4AI/agent-platform/pull/1016)
+- Ensure that initial thread message AND conversation starters works fo… [#1037](https://github.com/Sema4AI/agent-platform/pull/1037)
+- Add remote run id in the response from the action server [#1014](https://github.com/Sema4AI/agent-platform/pull/1014)
+- [GPT-1248] Improve error management in scenario runs [#963](https://github.com/Sema4AI/agent-platform/pull/963)
+- Fix user scoping for OIDC auth [#1027](https://github.com/Sema4AI/agent-platform/pull/1027)
+- Increase memory allocation for SPAR on ECS/Fargate [#1029](https://github.com/Sema4AI/agent-platform/pull/1029)
+- [Cloud-5293]: BUG: the Agent list briefly shows "no agents yet" even if there are agents [#1028](https://github.com/Sema4AI/agent-platform/pull/1028)
+
 # Sema4.ai Agent Server 2.1.5 (2025-09-22)
 
 - [GPT-1287] Lock new models to the new architecture; improve backward compatibility [#1019](https://github.com/Sema4AI/agent-platform/pull/1019)
