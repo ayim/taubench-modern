@@ -64,6 +64,12 @@ class ToolExecutionResult:
     )
     """The metadata of the tool execution"""
 
+    action_server_run_id: str | None = field(
+        default=None,
+        metadata={"description": "The remote run ID from the action server"},
+    )
+    """The remote run ID from the action server"""
+
     def __post_init__(self) -> None:
         """Validates and processes the tool input after initialization.
 

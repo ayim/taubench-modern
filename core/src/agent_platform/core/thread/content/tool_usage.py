@@ -97,6 +97,12 @@ class ThreadToolUsageContent(ThreadMessageContent):
     )
     """The timestamp when the tool call ended"""
 
+    action_server_run_id: str | None = field(
+        default=None,
+        metadata={"description": "The run ID from the action server"},
+    )
+    """The run ID from the action server"""
+
     metadata: dict[str, Any] = field(
         default_factory=dict,
         metadata={"description": "The metadata of the tool call"},
@@ -152,6 +158,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
             "ended_at": (
                 self.ended_at.isoformat() if isinstance(self.ended_at, datetime) else None
             ),
+            "action_server_run_id": self.action_server_run_id,
             "metadata": self.metadata,
         }
 

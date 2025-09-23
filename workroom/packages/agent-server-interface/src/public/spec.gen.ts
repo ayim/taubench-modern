@@ -2268,6 +2268,18 @@ export const spec = {
             title: 'Ended At',
             description: 'The timestamp when the tool call ended',
           },
+          action_server_run_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Action Server Run Id',
+            description: 'The run ID from the action server',
+          },
           metadata: {
             additionalProperties: true,
             type: 'object',

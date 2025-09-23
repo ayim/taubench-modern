@@ -91,6 +91,7 @@ class ActionResponse:
 
     result: Any | None
     error: str | None
+    action_server_run_id: str | None = None
 
 
 def _dereference_refs_recursive(item: Any, full_schema: dict) -> Any:
@@ -260,12 +261,14 @@ async def _check_action_status(
         return {"status": -1}
 
 
-def _handle_status_check(status_result: ActionStatusResponse) -> ActionResponse | None:
+def _handle_status_check(
+    status_result: ActionStatusResponse, action_server_run_id: str | None = None
+) -> ActionResponse | None:
     """Handle the status check response from an async action.
 
     Args:
-        status: The status code from the action run (can be None)
         status_result: The full status response from the action server
+        action_server_run_id: The action run ID from the action server
 
     Returns:
         dict: Response with error and result keys, or None if action is still running
@@ -275,6 +278,7 @@ def _handle_status_check(status_result: ActionStatusResponse) -> ActionResponse 
         return ActionResponse(
             result=status_result.get("result"),
             error=status_result.get("error_message"),
+            action_server_run_id=action_server_run_id,
         )
     elif status == ActionRunStatus.FAILED:
         error = status_result.get("error_message")
@@ -293,11 +297,13 @@ def _handle_status_check(status_result: ActionStatusResponse) -> ActionResponse 
         return ActionResponse(
             result=status_result.get("result"),
             error=error or "Action failed",
+            action_server_run_id=action_server_run_id,
         )
     elif status == ActionRunStatus.CANCELLED:
         return ActionResponse(
             result=None,
             error="Action was cancelled",
+            action_server_run_id=action_server_run_id,
         )
     else:
         logger.debug(f"Retrying action status check (status={status})")
@@ -363,10 +369,10 @@ def _build_post_async_function(
             # if the action is async.
             # Ref: https://github.com/Sema4AI/actions/blob/master/action_server/docs/guides/16-run-action-sync-async.md
             is_async_action = response.headers.get("x-action-async-completion") == "1"
-            async_action_run_id = response.headers.get("x-action-server-run-id")
+            action_server_run_id = response.headers.get("x-action-server-run-id")
             action_server_id = response.headers.get("x-action-server-pod-ip", "")
             if is_async_action:
-                logger.info(f"Action running async, polling for completion: {async_action_run_id}")
+                logger.info(f"Action running async, polling for completion: {action_server_run_id}")
                 # Extract base URL from the action URL
                 base_url = action_url.split("/api/actions/")[0]
 
@@ -384,17 +390,19 @@ def _build_post_async_function(
                 ) as status_client:
                     while retries < max_retries:
                         try:
-                            if async_action_run_id:
+                            if action_server_run_id:
                                 # Check action status
                                 status_result = await _check_action_status(
                                     client=status_client,
                                     base_url=base_url,
                                     api_key=api_key,
-                                    async_action_run_id=async_action_run_id,
+                                    async_action_run_id=action_server_run_id,
                                     action_server_id=action_server_id,
                                 )
                                 # Handle different status codes
-                                status_response = _handle_status_check(status_result)
+                                status_response = _handle_status_check(
+                                    status_result, action_server_run_id
+                                )
                                 if status_response is not None:
                                     if status_response.error:
                                         logger.warning(
@@ -419,10 +427,15 @@ def _build_post_async_function(
                     return ActionResponse(
                         result=None,
                         error="Async action did not complete after timeout",
+                        action_server_run_id=action_server_run_id,
                     )
             else:
                 logger.info("Action completed synchronously")
-                return result
+                return ActionResponse(
+                    result=result,
+                    error=None,
+                    action_server_run_id=action_server_run_id,
+                )
 
     return _post_async_function
 

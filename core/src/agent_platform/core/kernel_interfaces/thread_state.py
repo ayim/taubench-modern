@@ -453,6 +453,7 @@ class ThreadMessageWithThreadState:
 
         match_as_tool_use.error = result.error
         match_as_tool_use.metadata["execution"] = result.execution_metadata
+        match_as_tool_use.action_server_run_id = result.action_server_run_id
         match_as_tool_use.status = "failed" if result.error else "finished"
 
     def copy(self) -> "ThreadMessageWithThreadState":

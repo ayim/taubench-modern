@@ -77,6 +77,7 @@ async def test_non_async_action_direct_return(mock_client_class, monkeypatch):
     mock_session = AsyncMockHttpxClient(
         post_response_data="immediate_success",
         get_responses=[],  # Should not be called for non-async actions
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -89,8 +90,11 @@ async def test_non_async_action_direct_return(mock_client_class, monkeypatch):
     # Call the function
     result = await async_function(param1="value1")
 
-    # Should return the immediate result
-    assert result == "immediate_success"
+    # Should return an ActionResponse with the immediate result
+    assert isinstance(result, ActionResponse)
+    assert result.result == "immediate_success"
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
 
 
 @patch("httpx.AsyncClient")
@@ -142,7 +146,7 @@ async def test_sync_action_dict_response_without_result_error(mock_client_class,
     mock_session = AsyncMockHttpxClient(
         post_response_data=response_data,
         get_responses=[],
-        post_headers={},  # No async headers
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -151,8 +155,11 @@ async def test_sync_action_dict_response_without_result_error(mock_client_class,
     )
     result = await async_func(test_param="value")
 
-    # Raw response: result becomes str(dict)
-    assert result == response_data
+    # Should return an ActionResponse with the raw response data
+    assert isinstance(result, ActionResponse)
+    assert result.result == response_data
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
     assert mock_session.get_call_count == 0
 
 
@@ -167,7 +174,7 @@ async def test_sync_action_response_object_with_truthy_values(mock_client_class,
     mock_session = AsyncMockHttpxClient(
         post_response_data=response_data,
         get_responses=[],
-        post_headers={},  # No async headers
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -176,7 +183,10 @@ async def test_sync_action_response_object_with_truthy_values(mock_client_class,
     )
     result = await async_func(test_param="value")
 
-    assert result == {"result": "operation_successful", "error": "some_warning"}
+    assert isinstance(result, ActionResponse)
+    assert result.result == {"result": "operation_successful", "error": "some_warning"}
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
     assert mock_session.get_call_count == 0
 
 
@@ -190,7 +200,7 @@ async def test_sync_action_dict_with_result_none_error(mock_client_class, monkey
     mock_session = AsyncMockHttpxClient(
         post_response_data=response_data,
         get_responses=[],
-        post_headers={},  # No async headers
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -200,7 +210,10 @@ async def test_sync_action_dict_with_result_none_error(mock_client_class, monkey
     result = await async_func(test_param="value")
 
     # Response object: both keys exist, so extract result and error (None)
-    assert result == {"result": "operation_successful", "error": None}
+    assert isinstance(result, ActionResponse)
+    assert result.result == {"result": "operation_successful", "error": None}
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
     assert mock_session.get_call_count == 0
 
 
@@ -214,7 +227,7 @@ async def test_sync_action_dict_with_none_result(mock_client_class, monkeypatch)
     mock_session = AsyncMockHttpxClient(
         post_response_data=response_data,
         get_responses=[],
-        post_headers={},  # No async headers
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -224,7 +237,10 @@ async def test_sync_action_dict_with_none_result(mock_client_class, monkeypatch)
     result = await async_func(test_param="value")
 
     # Response object: should extract result (None) and error from the response
-    assert result == {"result": None, "error": "something failed"}
+    assert isinstance(result, ActionResponse)
+    assert result.result == {"result": None, "error": "something failed"}
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
     assert mock_session.get_call_count == 0
 
 
@@ -237,7 +253,7 @@ async def test_sync_action_number_response(mock_client_class, monkeypatch):
     mock_session = AsyncMockHttpxClient(
         post_response_data=42,
         get_responses=[],
-        post_headers={},  # No async headers
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -246,7 +262,10 @@ async def test_sync_action_number_response(mock_client_class, monkeypatch):
     )
     result = await async_func(test_param="value")
 
-    assert result == 42
+    assert isinstance(result, ActionResponse)
+    assert result.result == 42
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
     assert mock_session.get_call_count == 0
 
 
@@ -260,7 +279,7 @@ async def test_sync_action_list_response(mock_client_class, monkeypatch):
     mock_session = AsyncMockHttpxClient(
         post_response_data=response_data,
         get_responses=[],
-        post_headers={},  # No async headers
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -269,7 +288,10 @@ async def test_sync_action_list_response(mock_client_class, monkeypatch):
     )
     result = await async_func(test_param="value")
 
-    assert result == response_data
+    assert isinstance(result, ActionResponse)
+    assert result.result == response_data
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
     assert mock_session.get_call_count == 0
 
 
@@ -282,7 +304,7 @@ async def test_sync_action_null_response(mock_client_class, monkeypatch):
     mock_session = AsyncMockHttpxClient(
         post_response_data=None,
         get_responses=[],
-        post_headers={},  # No async headers
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -291,7 +313,10 @@ async def test_sync_action_null_response(mock_client_class, monkeypatch):
     )
     result = await async_func(test_param="value")
 
-    assert result is None
+    assert isinstance(result, ActionResponse)
+    assert result.result is None
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
     assert mock_session.get_call_count == 0
 
 
@@ -304,7 +329,7 @@ async def test_sync_action_boolean_response(mock_client_class, monkeypatch):
     mock_session = AsyncMockHttpxClient(
         post_response_data=True,
         get_responses=[],
-        post_headers={},  # No async headers
+        post_headers={"x-action-server-run-id": "test-run-id"},
     )
     mock_client_class.return_value = mock_session
 
@@ -313,7 +338,10 @@ async def test_sync_action_boolean_response(mock_client_class, monkeypatch):
     )
     result = await async_func(test_param="value")
 
-    assert result is True
+    assert isinstance(result, ActionResponse)
+    assert result.result is True
+    assert result.error is None
+    assert result.action_server_run_id == "test-run-id"
     assert mock_session.get_call_count == 0
 
 
@@ -359,6 +387,7 @@ async def test_async_action_malformed_json_response(mock_sleep, mock_client_clas
     assert result == ActionResponse(
         result=None,
         error="Async action did not complete after timeout",
+        action_server_run_id="test-run-id",
     )
 
 
@@ -405,6 +434,7 @@ async def test_async_action_multiple_retries_eventual_success(
     assert result == ActionResponse(
         result="finally_done",
         error=None,
+        action_server_run_id="test-run-id",
     )
     # Verify sleep was called for retries
     assert mock_sleep.call_count >= 3  # At least 3 retries
@@ -442,6 +472,7 @@ async def test_async_action_successful_execution(mock_sleep, mock_client_class, 
     assert result == ActionResponse(
         result='{"result": "success", "error": null}',
         error=None,
+        action_server_run_id="test-run-id",
     )
 
 
@@ -471,6 +502,7 @@ async def test_async_action_failed_execution(mock_sleep, mock_client_class, monk
     assert result == ActionResponse(
         result=None,
         error="Action failed",
+        action_server_run_id="test-run-id",
     )
 
 
@@ -497,6 +529,7 @@ async def test_async_action_cancelled(mock_sleep, mock_client_class, monkeypatch
     assert result == ActionResponse(
         result=None,
         error="Action was cancelled",
+        action_server_run_id="test-run-id",
     )
 
 
@@ -536,6 +569,7 @@ async def test_async_action_timeout(mock_sleep, mock_client_class, monkeypatch):
     assert result == ActionResponse(
         result=None,
         error="Async action did not complete after timeout",
+        action_server_run_id="test-run-id",
     )
 
 
@@ -562,6 +596,7 @@ async def test_async_action_network_error(mock_sleep, mock_client_class, monkeyp
     assert result == ActionResponse(
         result=None,
         error="Async action did not complete after timeout",
+        action_server_run_id="test-run-id",
     )
 
 
@@ -615,6 +650,7 @@ async def test_async_action_invalid_status(mock_sleep, mock_client_class, monkey
     assert result == ActionResponse(
         result=None,
         error="Async action did not complete after timeout",
+        action_server_run_id="test-run-id",
     )
 
 

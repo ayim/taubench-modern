@@ -84,6 +84,9 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     logger.info(f"ActionResponse: {result}")
                     result_output = result.result
                     error_message = result.error
+                    # Store the action_run_id directly in the result
+                    if result.action_server_run_id:
+                        tool_result_args["action_server_run_id"] = result.action_server_run_id
                 elif isinstance(result, dict):
                     # Check for error_code format
                     if "error_code" in result and result["error_code"] != "":

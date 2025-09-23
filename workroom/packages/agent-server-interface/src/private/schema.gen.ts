@@ -6468,6 +6468,11 @@ export interface components {
        */
       ended_at?: string | null;
       /**
+       * Action Server Run Id
+       * @description The run ID from the action server
+       */
+      action_server_run_id?: string | null;
+      /**
        * Metadata
        * @description The metadata of the tool call
        */
