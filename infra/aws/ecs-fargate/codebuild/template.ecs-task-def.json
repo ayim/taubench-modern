@@ -54,6 +54,7 @@
         { "containerPort": 8001, "protocol": "tcp" }
       ],
       "secrets": [
+        { "name": "JWT_DECODE_KEY_B64", "valueFrom": "${AUTH_CONFIGURATION_SECRET_ARN}:jwt_public_key_b64::" },
         { "name": "POSTGRES_HOST", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:host::" },
         { "name": "POSTGRES_PORT", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:port::" },
         { "name": "POSTGRES_USER", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:username::" },
@@ -75,6 +76,10 @@
       ],
       "environment": [
         { "name": "AGENT_SERVER_PORT", "value": "8000" },
+        { "name": "AUTH_TYPE", "value": "jwt_local" },
+        { "name": "JWT_ALG", "value": "ES256" },
+        { "name": "JWT_AUD", "value": "agent_server" },
+        { "name": "JWT_ISS", "value": "spar" },
         { "name": "LOG_LEVEL", "value": "DEBUG" },
         { "name": "POSTGRES_DB", "value": "${DB_NAME}" },
         { "name": "SEMA4AI_AGENT_SERVER_DB_TYPE", "value": "postgres" },

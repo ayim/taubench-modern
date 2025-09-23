@@ -24,6 +24,7 @@ resource "aws_secretsmanager_secret_version" "auth-configuration" {
     oidc_server         = "REPLACE_ME_WITH_OIDC_SERVER_URL"
     session_secret      = random_password.session_secret.result
     jwt_private_key_b64 = base64encode(tls_private_key.jwt_private_key.private_key_pem)
+    jwt_public_key_b64  = base64encode(tls_private_key.jwt_private_key.public_key_pem)
   })
   lifecycle {
     ignore_changes = [secret_string]

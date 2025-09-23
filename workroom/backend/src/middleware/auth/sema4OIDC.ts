@@ -1,6 +1,4 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
-import { parseAgentRequest } from '../../api/parsers.js';
-import { getRouteBehaviour } from '../../api/routing.js';
 import type { AuthManager } from '../../auth/AuthManager.js';
 import { validateWorkRoomToken, type Permission } from '../../auth/sema4OIDC.js';
 import type { Configuration } from '../../configuration.js';
@@ -10,6 +8,7 @@ import {
   type ExpressRequest,
   type ExpressResponse,
 } from '../../interfaces.js';
+import { extractRoutePermissions } from './helpers/permissions.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
@@ -50,47 +49,10 @@ export const handleSema4OIDCAuthCheck = async ({
     return res.status(401).json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
   }
 
-  const permissions: Array<Permission> | null = (() => {
-    if (authentication === 'without-permissions-check') {
-      return [];
-    }
-
-    authentication satisfies 'with-permissions-check';
-
-    // @TODO: Move replace to option
-    const requestPathWithQueryStringParameters = req.originalUrl.replace(/^\/tenants\/[^/]+\/agents/, '');
-
-    const route = parseAgentRequest({
-      method: req.method,
-      path: requestPathWithQueryStringParameters,
-    });
-    if (!route) {
-      monitoring.logger.error('Route is invalid for OIDC authentication', {
-        requestMethod: req.method,
-        requestUrl: req.originalUrl,
-      });
-
-      return null;
-    }
-
-    const routeBehaviour = getRouteBehaviour({
-      configuration,
-      route,
-      tenantId: configuration.tenant.tenantId,
-      userId: '', // We don't use the signer for this result, so the user ID isn't required
-    });
-
-    if (!routeBehaviour.isAllowed) {
-      monitoring.logger.error('Failed processing OIDC authentication: Route is disallowed', {
-        requestMethod: req.method,
-        requestUrl: req.originalUrl,
-      });
-
-      return null;
-    }
-
-    return routeBehaviour.permissions;
-  })();
+  const permissions =
+    authentication === 'without-permissions-check'
+      ? []
+      : await extractRoutePermissions({ configuration, monitoring, req });
 
   if (permissions === null) {
     return res.status(401).json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);

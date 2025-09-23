@@ -58,6 +58,7 @@ function getRouteMap(): {
     'post /api/v2/evals/scenarios': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'post /api/v2/evals/scenarios/{scenario_id}/runs': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'post /api/v2/evals/scenarios/suggest': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'post /api/v2/package/deploy/agent': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
 
     // Allowed routes with user-level signing
     'delete /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
@@ -129,7 +130,6 @@ function getRouteMap(): {
     'get /api/v2/document-intelligence/jobs/{job_id}/result': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/documents/ingest': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/layouts/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
-    'post /api/v2/package/deploy/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/package/environment-hash/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/package/inspect/action': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/package/inspect/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
