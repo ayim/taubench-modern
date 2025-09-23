@@ -65,17 +65,17 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
                 await cur.execute(
                     """
                     INSERT INTO v2.work_items (
-                        work_item_id, user_id, created_by, agent_id, thread_id, status,
-                        created_at, updated_at, completed_by,
+                        work_item_id, user_id, created_by, agent_id,
+                        thread_id, status, created_at, updated_at, completed_by,
                         status_updated_at, status_updated_by,
-                        messages, payload, callbacks, initial_messages, user_subject
+                        messages, payload, callbacks, initial_messages, user_subject, work_item_name
                     ) VALUES (
                         %(work_item_id)s::uuid, %(user_id)s::uuid,
-                        %(created_by)s::uuid, %(agent_id)s::uuid, %(thread_id)s::uuid, %(status)s,
-                        %(created_at)s, %(updated_at)s, %(completed_by)s,
+                        %(created_by)s::uuid, %(agent_id)s::uuid, %(thread_id)s::uuid,
+                        %(status)s, %(created_at)s, %(updated_at)s, %(completed_by)s,
                         %(status_updated_at)s, %(status_updated_by)s,
                         %(messages)s, %(payload)s, %(callbacks)s, %(initial_messages)s,
-                        %(user_subject)s
+                        %(user_subject)s, %(work_item_name)s
                     )
                     """,
                     work_item_dict,
@@ -383,7 +383,8 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
                        completed_by = %(completed_by)s,
                        status_updated_at = %(status_updated_at)s,
                        status_updated_by = %(status_updated_by)s,
-                       updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
+                       updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+                       work_item_name = %(work_item_name)s
                  WHERE work_item_id = %(work_item_id)s::uuid
                    AND v2.check_user_access(user_id, %(user_id)s::uuid)
                 """,

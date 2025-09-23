@@ -9,6 +9,9 @@ from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.text import ThreadTextContent
 
+# Maximum length for work_item_name
+MAX_WORK_ITEM_NAME_LENGTH = 255
+
 
 class WorkItemStatus(StrEnum):
     """The status of a work item."""
@@ -312,6 +315,14 @@ class WorkItem:
     )
     """The callbacks for the work item."""
 
+    work_item_name: str | None = field(
+        default=None,
+        metadata={
+            "description": "User-friendly name for the work item. Must be less than 255 characters."
+        },
+    )
+    """User-friendly name for the work item. Must be less than 255 characters."""
+
     def model_dump(self) -> dict:
         return {
             "work_item_id": self.work_item_id,
@@ -331,13 +342,29 @@ class WorkItem:
             "payload": self.payload,
             "callbacks": [callback.model_dump() for callback in self.callbacks],
             "user_subject": self.user_subject,
+            "work_item_name": self.work_item_name,
         }
+
+    @staticmethod
+    def normalize_work_item_name(name: str | None) -> str | None:
+        """Normalize work item name by stripping whitespace and truncating if needed."""
+        normalized = name.strip() if name else None
+        if not normalized:
+            return None
+        if len(normalized) > MAX_WORK_ITEM_NAME_LENGTH:
+            normalized = normalized[: MAX_WORK_ITEM_NAME_LENGTH - 3] + "..."
+        return normalized
+
+    def get_thread_name(self) -> str:
+        """Get the thread name for this work item, using work_item_name if available."""
+        normalized_name = self.normalize_work_item_name(self.work_item_name)
+        return normalized_name or f"Work Item {self.work_item_id}"
 
     def to_initiate_stream_payload(self) -> InitiateStreamPayload:
         return InitiateStreamPayload(
             agent_id=self.agent_id or "",
             thread_id=self.thread_id,
-            name=f"Work Item {self.work_item_id}",
+            name=self.get_thread_name(),
             messages=self._build_messages_for_thread(),
             metadata={
                 "from_work_item": True,
@@ -377,6 +404,8 @@ class WorkItem:
             data["work_item_url"] = str(data["work_item_url"])
         if "user_subject" in data and isinstance(data["user_subject"], str):
             data["user_subject"] = str(data["user_subject"])
+        if "work_item_name" in data and isinstance(data["work_item_name"], str):
+            data["work_item_name"] = cls.normalize_work_item_name(data["work_item_name"])
 
         # Parse nested objects
         if "status" in data and isinstance(data["status"], str):

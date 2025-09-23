@@ -174,3 +174,58 @@ class TestCreateWorkItem:
         # Verify the work item was stored
         work_item_id = response_data["work_item_id"]
         assert work_item_id in storage.work_items
+
+    def test_create_work_item_with_name(
+        self,
+        client: TestClient,
+        storage: MockStorage,
+        sample_create_payload: CreateWorkItemPayload,
+    ):
+        """Test creating a work item with a user-friendly name."""
+        # Act: Make HTTP POST request with work_item_name
+        payload_dict = {
+            "agent_id": sample_create_payload.agent_id,
+            "messages": [msg.model_dump() for msg in sample_create_payload.messages],
+            "payload": sample_create_payload.payload,
+            "work_item_name": "SNOW12345",
+        }
+        response = client.post("/work-items", json=payload_dict)
+
+        # Assert: Check the response
+        assert response.status_code == 200
+        response_data = response.json()
+
+        # Verify work_item_name is included in response
+        assert "work_item_name" in response_data
+        assert response_data["work_item_name"] == "SNOW12345"
+
+        # Verify the work item was stored with the name
+        work_item_id = response_data["work_item_id"]
+        stored_work_item = storage.work_items[work_item_id]
+        assert stored_work_item.work_item_name == "SNOW12345"
+
+    def test_create_work_item_name_validation(
+        self,
+        client: TestClient,
+        storage: MockStorage,
+        sample_create_payload: CreateWorkItemPayload,
+    ):
+        """Test that work_item_name validation works correctly."""
+        # Test empty string becomes None
+        payload_dict = {
+            "agent_id": sample_create_payload.agent_id,
+            "messages": [msg.model_dump() for msg in sample_create_payload.messages],
+            "payload": sample_create_payload.payload,
+            "work_item_name": "   ",  # Only whitespace
+        }
+        response = client.post("/work-items", json=payload_dict)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["work_item_name"] is None
+
+        # Test whitespace trimming
+        payload_dict["work_item_name"] = "  INVABC123  "
+        response = client.post("/work-items", json=payload_dict)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["work_item_name"] == "INVABC123"

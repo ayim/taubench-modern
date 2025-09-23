@@ -1770,6 +1770,19 @@ export const spec = {
             title: 'Work Item Id',
             description: 'The ID of the work item.',
           },
+          work_item_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Name',
+            description:
+              'User-friendly name for the work item.Must be less than 255 characters.',
+          },
           callbacks: {
             anyOf: [
               {
@@ -2485,6 +2498,19 @@ export const spec = {
             type: 'array',
             title: 'Callbacks',
             description: 'The callbacks for the work item',
+          },
+          work_item_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Name',
+            description:
+              'User-friendly name for the work item. Must be less than 255 characters.',
           },
         },
         type: 'object',

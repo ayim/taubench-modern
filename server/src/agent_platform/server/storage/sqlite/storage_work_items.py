@@ -55,15 +55,17 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
             await cur.execute(
                 """
                 INSERT INTO v2_work_items (
-                    work_item_id, user_id, created_by, agent_id, thread_id, status,
-                    created_at, updated_at, completed_by,
+                    work_item_id, user_id, created_by, agent_id,
+                    thread_id, status, created_at, updated_at, completed_by,
                     status_updated_at, status_updated_by,
-                    messages, payload, callbacks, initial_messages, user_subject
+                    messages, payload, callbacks, initial_messages, user_subject,
+                    work_item_name
                 ) VALUES (
-                    :work_item_id, :user_id, :created_by, :agent_id, :thread_id, :status,
-                    :created_at, :updated_at, :completed_by,
+                    :work_item_id, :user_id, :created_by, :agent_id,
+                    :thread_id, :status, :created_at, :updated_at, :completed_by,
                     :status_updated_at, :status_updated_by,
-                    :messages, :payload, :callbacks, :initial_messages, :user_subject
+                    :messages, :payload, :callbacks, :initial_messages, :user_subject,
+                    :work_item_name
                 )
                 """,
                 work_item_dict,
@@ -342,13 +344,15 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
                        completed_by = :completed_by,
                        status_updated_at = :status_updated_at,
                        status_updated_by = :status_updated_by,
-                       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                       work_item_name = :work_item_name
                  WHERE work_item_id = :work_item_id
                    AND v2_check_user_access(user_id, :user_id) = 1
                 """,
                 {
                     "agent_id": work_item.agent_id,
                     "thread_id": work_item.thread_id,
+                    "work_item_name": work_item.work_item_name,
                     "messages": messages_json,
                     "payload": payload_json,
                     "callbacks": callbacks_json,

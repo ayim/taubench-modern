@@ -39,6 +39,14 @@ class CreateWorkItemPayload:
     )
     """The ID of the work item."""
 
+    work_item_name: str | None = field(
+        default=None,
+        metadata={
+            "description": "User-friendly name for the work item.Must be less than 255 characters."
+        },
+    )
+    """User-friendly name for the work item. Must be less than 255 characters."""
+
     callbacks: list[WorkItemCallback] | None = field(
         default=None,
         metadata={
@@ -64,6 +72,7 @@ class CreateWorkItemPayload:
             messages=payload.messages,
             payload=payload.payload,
             work_item_id=str(uuid4()),
+            work_item_name=WorkItem.normalize_work_item_name(payload.work_item_name),
             status=WorkItemStatus.PENDING,
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),

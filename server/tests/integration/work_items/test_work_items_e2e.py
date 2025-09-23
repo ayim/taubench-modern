@@ -111,6 +111,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
                 "agent_id": agent_id,
                 "messages": make_text_message("What is 2+2?"),
                 "payload": {"task": "simple_math", "test_type": "e2e_comprehensive"},
+                "work_item_name": "  E2E Test Work Item  ",
                 "callbacks": [
                     {
                         "url": completed_callback_srv.url,
@@ -137,6 +138,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
             ]
             assert work_item["agent_id"] == agent_id
             assert work_item["work_item_id"] == work_item_id
+            assert work_item["work_item_name"] == "E2E Test Work Item"
 
             # 4. Wait for main work item to reach final status
             # Note: The judge can return either COMPLETED or NEEDS_REVIEW
@@ -159,6 +161,16 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
                 f"The judge can return either status for simple questions."
             )
             assert final_work_item["thread_id"] is not None
+
+            # Verify thread name uses the custom work item name
+            thread_id = final_work_item["thread_id"]
+            async with AsyncClient(
+                base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
+            ) as thread_client:
+                thread_resp = await thread_client.get(f"/threads/{thread_id}/state")
+                assert thread_resp.status_code == 200
+                thread_data = thread_resp.json()
+                assert thread_data["name"] == "E2E Test Work Item"
 
             # 6. Verify appropriate callback was triggered based on final status
             if final_status == WorkItemStatus.COMPLETED:
@@ -341,8 +353,9 @@ async def test_work_items_e2e(
             # Verify final describe still works
             final_desc_resp = await client.get(f"/{work_item_id}")
             assert final_desc_resp.status_code == 200
-            assert final_desc_resp.json()["work_item_id"] == work_item_id
-            assert final_desc_resp.json()["status"] == final_status.value
+            final_desc_data = final_desc_resp.json()
+            assert final_desc_data["work_item_id"] == work_item_id
+            assert final_desc_data["status"] == final_status.value
 
             # Verify payload made it into thread messages after completion
             thread_id = final_work_item["thread_id"]

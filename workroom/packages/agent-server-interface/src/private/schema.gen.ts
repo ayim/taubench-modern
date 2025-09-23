@@ -3315,6 +3315,11 @@ export interface components {
        */
       work_item_id?: string | null;
       /**
+       * Work Item Name
+       * @description User-friendly name for the work item.Must be less than 255 characters.
+       */
+      work_item_name?: string | null;
+      /**
        * Callbacks
        * @description A list of callbacks to trigger when the work item reaches a certain status.
        */
@@ -7087,6 +7092,11 @@ export interface components {
        * @description The callbacks for the work item
        */
       callbacks?: components['schemas']['WorkItemCallback'][];
+      /**
+       * Work Item Name
+       * @description User-friendly name for the work item. Must be less than 255 characters.
+       */
+      work_item_name?: string | null;
     };
     /** WorkItemCallback */
     WorkItemCallback: {

@@ -176,7 +176,7 @@ async def run_agent(item: WorkItem) -> bool:
         user_id=system_user.user_id,
         thread_id=str(uuid4()),
         agent_id=item.agent_id,
-        name=f"Work Item {item.work_item_id}",
+        name=item.get_thread_name(),
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
         work_item_id=item.work_item_id,

@@ -98,6 +98,7 @@ async def create_work_item(
         payload.callbacks = await _validate_callbacks(payload.callbacks)
         work_item.callbacks = payload.callbacks
         work_item.payload = payload.payload
+        work_item.work_item_name = WorkItem.normalize_work_item_name(payload.work_item_name)
 
         # set agent ID as it wouldn't have been set before.
         work_item.agent_id = payload.agent_id

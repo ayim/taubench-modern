@@ -6,6 +6,7 @@ import pytest
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.core.work_items.work_item import (
+    MAX_WORK_ITEM_NAME_LENGTH,
     WorkItem,
     WorkItemCallback,
     WorkItemCallbackPayload,
@@ -189,6 +190,7 @@ def test_work_item_to_initiate_stream_payload():
     payload = work_item.to_initiate_stream_payload()
     assert payload.agent_id == work_item.agent_id
     assert payload.thread_id == work_item.thread_id
+    assert payload.name == f"Work Item {work_item.work_item_id}"  # default with no work_item_name
     assert payload.messages == work_item.messages, (
         "InitialStreamPayload should have all messages, not just initial_messages"
     )
@@ -421,3 +423,124 @@ def test_work_item_subject_field():
     serialized_none = work_item_no_subject.model_dump()
     assert "user_subject" in serialized_none
     assert serialized_none["user_subject"] is None
+
+
+def test_work_item_name_field():
+    """Test that work_item_name field is properly handled."""
+    # Test with work_item_name
+    work_item_with_name = WorkItem(
+        work_item_id="123",
+        user_id="456",
+        created_by="789",
+        work_item_name="SNOW12345",
+    )
+
+    assert work_item_with_name.work_item_name == "SNOW12345"
+
+    # Test serialization includes work_item_name
+    serialized = work_item_with_name.model_dump()
+    assert "work_item_name" in serialized
+    assert serialized["work_item_name"] == "SNOW12345"
+
+    # Test deserialization handles work_item_name
+    deserialized = WorkItem.model_validate(serialized)
+    assert deserialized.work_item_name == "SNOW12345"
+
+
+def test_work_item_name_validation():
+    """Test work_item_name validation during deserialization."""
+    # Test whitespace trimming
+    data = {
+        "work_item_id": "123",
+        "user_id": "456",
+        "created_by": "789",
+        "work_item_name": "  INVABC123  ",
+    }
+    work_item = WorkItem.model_validate(data)
+    assert work_item.work_item_name == "INVABC123"
+
+    # Test empty string becomes None
+    data["work_item_name"] = "   "
+    work_item = WorkItem.model_validate(data)
+    assert work_item.work_item_name is None
+
+    # Test length truncation (no longer raises error, truncates instead)
+    data["work_item_name"] = "x" * 256
+    work_item = WorkItem.model_validate(data)
+    assert work_item.work_item_name == "x" * 252 + "..."
+
+
+def test_work_item_to_initiate_stream_payload_with_custom_name():
+    """Test that to_initiate_stream_payload uses custom work_item_name when provided."""
+    initial_msg = ThreadMessage(content=[ThreadTextContent(text="Initial request")], role="user")
+
+    work_item = WorkItem(
+        work_item_id="test-123",
+        agent_id=str(uuid4()),
+        thread_id=str(uuid4()),
+        user_id=str(uuid4()),
+        created_by=str(uuid4()),
+        status=WorkItemStatus.EXECUTING,
+        work_item_name="SNOW12345",
+        initial_messages=[initial_msg],
+        messages=[initial_msg],
+    )
+
+    payload = work_item.to_initiate_stream_payload()
+    assert payload.name == "SNOW12345"  # Should use custom name
+    assert payload.agent_id == work_item.agent_id
+    assert payload.thread_id == work_item.thread_id
+
+
+def test_normalize_work_item_name():
+    """Test the normalize_work_item_name static method."""
+    # Test None input
+    assert WorkItem.normalize_work_item_name(None) is None
+
+    # Test empty string
+    assert WorkItem.normalize_work_item_name("") is None
+
+    # Test whitespace only
+    assert WorkItem.normalize_work_item_name("   ") is None
+    assert WorkItem.normalize_work_item_name("\t\n") is None
+
+    # Test normal string
+    assert WorkItem.normalize_work_item_name("SNOW12345") == "SNOW12345"
+
+    # Test whitespace trimming
+    assert WorkItem.normalize_work_item_name("  INVABC123  ") == "INVABC123"
+
+    # Test length truncation
+    long_name = "x" * (MAX_WORK_ITEM_NAME_LENGTH + 1)
+    expected = "x" * (MAX_WORK_ITEM_NAME_LENGTH - 3) + "..."
+    assert WorkItem.normalize_work_item_name(long_name) == expected
+
+    # Test exact length boundary
+    exact_length = "x" * MAX_WORK_ITEM_NAME_LENGTH
+    assert WorkItem.normalize_work_item_name(exact_length) == exact_length
+
+
+def test_get_thread_name():
+    """Test the get_thread_name method."""
+    work_item_id = "test-123"
+
+    # Test with custom name
+    work_item = WorkItem(
+        work_item_id=work_item_id,
+        user_id="456",
+        created_by="789",
+        work_item_name="SNOW12345",
+    )
+    assert work_item.get_thread_name() == "SNOW12345"
+
+    # Test with None name (fallback to auto-generated)
+    work_item.work_item_name = None
+    assert work_item.get_thread_name() == f"Work Item {work_item_id}"
+
+    # Test with empty string name (fallback to auto-generated)
+    work_item.work_item_name = ""
+    assert work_item.get_thread_name() == f"Work Item {work_item_id}"
+
+    # Test with whitespace-only name (fallback to auto-generated)
+    work_item.work_item_name = "   "
+    assert work_item.get_thread_name() == f"Work Item {work_item_id}"
