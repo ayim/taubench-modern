@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 
@@ -37,6 +38,19 @@ class ToolExecutor:
     @abstractmethod
     async def execute(self, tool: Tool) -> ToolExecutionResult:
         raise NotImplementedError("Not implemented yet")
+
+
+class ToolExecutionError(Exception):
+    """Base class for tool execution errors with a standardized shape."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+class UnexpectedToolError(ToolExecutionError):
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__(message, details)
 
 
 class AgentClient:

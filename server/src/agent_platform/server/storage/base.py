@@ -16,12 +16,12 @@ from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.core.evals.types import (
     EvaluationResult,
+    ExecutionState,
     Scenario,
     ScenarioRun,
     Trial,
     TrialStatus,
 )
-from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.server.storage.abstract import AbstractStorage
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
@@ -792,7 +792,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     trials.c.scenario_id,
                     trials.c.thread_id,
                     trials.c.index_in_run,
-                    trials.c.messages,
                     trials.c.status,
                     trials.c.created_at,
                     trials.c.updated_at,
@@ -832,7 +831,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.scenario_id,
             trials.c.thread_id,
             trials.c.index_in_run,
-            trials.c.messages,
             trials.c.status,
             trials.c.created_at,
             trials.c.updated_at,
@@ -893,7 +891,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.scenario_id,
             trials.c.thread_id,
             trials.c.index_in_run,
-            trials.c.messages,
             trials.c.status,
             trials.c.created_at,
             trials.c.updated_at,
@@ -901,6 +898,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.status_updated_by,
             trials.c.error_message,
             trials.c.evaluation_results,
+            trials.c.execution_state,
         ).where(trials.c.scenario_run_id == scenario_run_id)
 
         async with self.engine.begin() as conn:
@@ -919,7 +917,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.scenario_id,
             trials.c.thread_id,
             trials.c.index_in_run,
-            trials.c.messages,
             trials.c.status,
             trials.c.created_at,
             trials.c.updated_at,
@@ -927,6 +924,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.status_updated_by,
             trials.c.error_message,
             trials.c.evaluation_results,
+            trials.c.execution_state,
         ).where(
             sa.and_(
                 trials.c.scenario_run_id == scenario_run_id, trials.c.index_in_run == trial_index
@@ -938,32 +936,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             row = result.mappings().fetchone()
 
         return Trial.model_validate(dict(row)) if row is not None else None
-
-    async def add_messages_to_trial(self, trial_id: str, messages: list[ThreadMessage]):
-        trials = self._get_table("trials")
-
-        get_stmt = sa.select(
-            trials.c.trial_id,
-            trials.c.messages,
-        ).where(trials.c.trial_id == trial_id)
-
-        async with self.engine.begin() as conn:
-            result = await conn.execute(get_stmt)
-            trial_row = result.mappings().fetchone()
-
-            if trial_row is None:
-                raise RuntimeError("Cannot find trial")
-
-            new_messages_json = [message.model_dump() for message in messages]
-            insert_stmt = (
-                sa.update(trials)
-                .where(trials.c.trial_id == trial_id)
-                .values(
-                    messages=trial_row["messages"] + new_messages_json,
-                )
-            )
-
-            await conn.execute(insert_stmt)
 
     async def set_trial_thread(self, trial_id: str, thread_id: str):
         trials = self._get_table("trials")
@@ -1023,7 +995,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.scenario_run_id,
             trials.c.scenario_id,
             trials.c.index_in_run,
-            trials.c.messages,
             trials.c.status,
             trials.c.created_at,
             trials.c.updated_at,
@@ -1043,12 +1014,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.scenario_run_id,
             trials.c.scenario_id,
             trials.c.index_in_run,
-            trials.c.messages,
             trials.c.status,
             trials.c.created_at,
             trials.c.updated_at,
             trials.c.error_message,
             trials.c.thread_id,
+            trials.c.evaluation_results,
+            trials.c.execution_state,
         ).where(trials.c.trial_id == trial_id)
 
         async with self.engine.begin() as conn:
@@ -1130,7 +1102,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return row["trial_id"] if row is not None else None
 
-    async def update_trial_status(self, trial_id: str, user_id: str, status: TrialStatus):
+    async def update_trial_status(
+        self, trial_id: str, user_id: str, status: TrialStatus, error: str | None
+    ):
         trials = self._get_table("trials")
         now = datetime.now(UTC)
 
@@ -1139,6 +1113,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .where(trials.c.trial_id == trial_id)
             .values(
                 status=status,
+                error_message=error,
                 updated_at=now,
                 status_updated_at=now,
             )
@@ -1160,12 +1135,33 @@ class BaseStorage(AbstractStorage, CommonMixin):
         now = datetime.now(UTC)
 
         evals_data = [e.model_dump() for e in evaluations]
-        print(evals_data)
         update_trials_stmt = (
             sa.update(trials)
             .where(trials.c.trial_id == trial_id)
             .values(
                 evaluation_results=evals_data,
+                updated_at=now,
+            )
+            .returning(
+                trials.c.trial_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(update_trials_stmt)
+            row = result.mappings().fetchone()
+
+        return row["trial_id"] if row is not None else None
+
+    async def update_trial_execution(self, trial_id: str, execution: ExecutionState):
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+
+        update_trials_stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial_id)
+            .values(
+                execution_state=execution.model_dump(),
                 updated_at=now,
             )
             .returning(

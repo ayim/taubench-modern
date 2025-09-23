@@ -1,0 +1,2 @@
+ALTER TABLE v2.trials DROP COLUMN IF EXISTS execution_state;
+ALTER TABLE v2.trials ADD COLUMN IF NOT EXISTS messages JSONB NOT NULL DEFAULT '[]'::jsonb;

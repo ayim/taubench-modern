@@ -3544,12 +3544,66 @@ export interface components {
       include: boolean;
       params?: components['schemas']['DocumentsParams'];
     };
+    /** DriftEvent */
+    DriftEvent: {
+      /** Index Before */
+      index_before: number;
+      drift_type: components['schemas']['DriftType'];
+      /** Message */
+      message: string;
+      /** Expected Tool */
+      expected_tool?: string | null;
+      /** Actual Tool */
+      actual_tool?: string | null;
+      /** Expected Args */
+      expected_args?: {
+        [key: string]: unknown;
+      } | null;
+      /** Actual Args */
+      actual_args?: {
+        [key: string]: unknown;
+      } | null;
+      /** Repair Action */
+      repair_action?: string | null;
+    };
+    /**
+     * DriftType
+     * @enum {string}
+     */
+    DriftType:
+      | 'ORDER_MISMATCH'
+      | 'NAME_MISMATCH'
+      | 'ARG_MISMATCH'
+      | 'EXTRA_ACTUAL_CALL'
+      | 'MISSING_ACTUAL_CALL'
+      | 'LEFTOVER_RECORDED_CALLS';
     /** ExecuteDataQualityChecksRequest */
     ExecuteDataQualityChecksRequest: {
       /** Quality Checks */
       quality_checks: components['schemas']['ValidationRule'][];
       /** Document Id */
       document_id: string;
+    };
+    /** ExecutionState */
+    ExecutionState: {
+      /**
+       * Status
+       * @default STARTED
+       */
+      status: string;
+      /** Termination */
+      termination?: string | null;
+      /** Drift Events */
+      drift_events?: components['schemas']['DriftEvent'][];
+      /** Error Message */
+      error_message?: string | null;
+      /**
+       * Started At
+       * Format: date-time
+       */
+      started_at?: string;
+      /** Finished At */
+      finished_at?: string | null;
     };
     /** ExtractDocumentPayload */
     ExtractDocumentPayload: {
@@ -6575,17 +6629,13 @@ export interface components {
       scenario_id: string;
       /** Index In Run */
       index_in_run: number;
-      /**
-       * Messages
-       * @description All messages generated in the simulation.
-       */
-      messages: components['schemas']['ThreadMessage'][];
       /** Evaluation Results */
       evaluation_results?: (
         | components['schemas']['ResponseAccuracyResult']
         | components['schemas']['FlowAdherenceResult']
         | components['schemas']['ActionCallingResult']
       )[];
+      execution_state?: components['schemas']['ExecutionState'];
       /** Thread Id */
       thread_id?: string | null;
       /** @default PENDING */
@@ -6612,6 +6662,13 @@ export interface components {
       status_updated_by: string;
       /** Error Message */
       error_message?: string | null;
+      /**
+       * Metadata
+       * @description Arbitrary trial metadata.
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
     };
     /**
      * TrialStatus

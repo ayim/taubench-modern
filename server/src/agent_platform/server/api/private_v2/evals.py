@@ -132,7 +132,6 @@ class CreateScenarioRunPayload:
                 scenario_id=scenario_id,
                 thread_id=None,
                 index_in_run=index_in_run,
-                messages=[],
             )
             for index_in_run in range(payload.num_trials)
         ]

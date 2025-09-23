@@ -26,7 +26,7 @@ class ScenarioRunTrialRepository(TaskRepository[Trial]):
         except Exception:
             return None
 
-    async def set_status(self, task: Trial, status: str) -> None:
+    async def set_status(self, task: Trial, status: str, error: str | None) -> None:
         # Map generic status to domain enums if needed
         if status == "COMPLETED":
             # domain-specific "complete" call also triggers timestamps, etc.
@@ -42,4 +42,4 @@ class ScenarioRunTrialRepository(TaskRepository[Trial]):
             except Exception:
                 system_user, _ = await self.storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
                 system_user_id = system_user.user_id
-            await self.storage.update_trial_status(task.trial_id, system_user_id, status)  # type: ignore
+            await self.storage.update_trial_status(task.trial_id, system_user_id, status, error)  # type: ignore

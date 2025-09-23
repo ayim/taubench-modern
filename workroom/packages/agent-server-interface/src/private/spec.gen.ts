@@ -9567,6 +9567,93 @@ export const spec = {
         required: ['role'],
         title: 'DocumentsSpecialMessage',
       },
+      DriftEvent: {
+        properties: {
+          index_before: {
+            type: 'integer',
+            title: 'Index Before',
+          },
+          drift_type: {
+            $ref: '#/components/schemas/DriftType',
+          },
+          message: {
+            type: 'string',
+            title: 'Message',
+          },
+          expected_tool: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Expected Tool',
+          },
+          actual_tool: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Actual Tool',
+          },
+          expected_args: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Expected Args',
+          },
+          actual_args: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Actual Args',
+          },
+          repair_action: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Repair Action',
+          },
+        },
+        type: 'object',
+        required: ['index_before', 'drift_type', 'message'],
+        title: 'DriftEvent',
+      },
+      DriftType: {
+        type: 'string',
+        enum: [
+          'ORDER_MISMATCH',
+          'NAME_MISMATCH',
+          'ARG_MISMATCH',
+          'EXTRA_ACTUAL_CALL',
+          'MISSING_ACTUAL_CALL',
+          'LEFTOVER_RECORDED_CALLS',
+        ],
+        title: 'DriftType',
+      },
       ExecuteDataQualityChecksRequest: {
         properties: {
           quality_checks: {
@@ -9584,6 +9671,63 @@ export const spec = {
         type: 'object',
         required: ['quality_checks', 'document_id'],
         title: 'ExecuteDataQualityChecksRequest',
+      },
+      ExecutionState: {
+        properties: {
+          status: {
+            type: 'string',
+            title: 'Status',
+            default: 'STARTED',
+          },
+          termination: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Termination',
+          },
+          drift_events: {
+            items: {
+              $ref: '#/components/schemas/DriftEvent',
+            },
+            type: 'array',
+            title: 'Drift Events',
+          },
+          error_message: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Error Message',
+          },
+          started_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Started At',
+          },
+          finished_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Finished At',
+          },
+        },
+        type: 'object',
+        title: 'ExecutionState',
       },
       ExtractDocumentPayload: {
         properties: {
@@ -15625,14 +15769,6 @@ export const spec = {
             type: 'integer',
             title: 'Index In Run',
           },
-          messages: {
-            items: {
-              $ref: '#/components/schemas/ThreadMessage',
-            },
-            type: 'array',
-            title: 'Messages',
-            description: 'All messages generated in the simulation.',
-          },
           evaluation_results: {
             items: {
               anyOf: [
@@ -15649,6 +15785,9 @@ export const spec = {
             },
             type: 'array',
             title: 'Evaluation Results',
+          },
+          execution_state: {
+            $ref: '#/components/schemas/ExecutionState',
           },
           thread_id: {
             anyOf: [
@@ -15696,6 +15835,12 @@ export const spec = {
             ],
             title: 'Error Message',
           },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Arbitrary trial metadata.',
+          },
         },
         type: 'object',
         required: [
@@ -15703,7 +15848,6 @@ export const spec = {
           'scenario_run_id',
           'scenario_id',
           'index_in_run',
-          'messages',
         ],
         title: 'Trial',
       },

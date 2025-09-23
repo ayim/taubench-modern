@@ -54,7 +54,7 @@ class TaskRepository(Protocol[T]):
         """
         ...
 
-    async def set_status(self, task: T, status: str) -> None: ...
+    async def set_status(self, task: T, status: str, error: str | None) -> None: ...
 
 
 class TaskRunner(Protocol[T]):  # type: ignore
@@ -71,7 +71,7 @@ class TaskValidator(Protocol[T]):  # type: ignore
     status to "COMPLETED" on True and "ERROR" on False.
     """
 
-    async def __call__(self, task: T, ran_successfully: bool) -> str: ...
+    async def __call__(self, task: T, ran_successfully: bool) -> tuple[str, str | None]: ...
 
 
 class TaskCallbacks(Protocol[T]):  # type: ignore
@@ -211,17 +211,18 @@ class WorkQueue(Generic[T]):
         # Determine final status
         if self.validator is not None:
             try:
-                final_status = await self.validator(refreshed_task, ran_ok)
+                final_status, final_error_message = await self.validator(refreshed_task, ran_ok)
             except Exception as e:  # pragma: no cover - defensive
                 traceback.print_exc()
-                logger.warning("Validator failed: %s; falling back to default", e)
+                logger.error("Validator failed: %s; falling back to default", e)
                 final_status = "COMPLETED" if ran_ok else "ERROR"
+                final_error_message = "Unexpected error"
         else:
             final_status = "COMPLETED" if ran_ok else "ERROR"
 
         # Persist final status
         try:
-            await self.repo.set_status(refreshed_task, final_status)
+            await self.repo.set_status(refreshed_task, final_status, final_error_message)
         except Exception as e:  # pragma: no cover - defensive
             logger.error("Failed to persist status '%s': %s", final_status, e, exc_info=e)
 

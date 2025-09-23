@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from textwrap import dedent
 from typing import cast
 from uuid import uuid4
@@ -9,12 +10,17 @@ from agent_platform.architectures.default.thread_conversion import (
     thread_messages_to_prompt_messages,
 )
 from agent_platform.core.context import AgentServerContext
-from agent_platform.core.evals.agent_client import AgentClient
-from agent_platform.core.evals.replay_executor import ReplayToolExecutor
+from agent_platform.core.evals.agent_client import (
+    AgentClient,
+    ToolExecutionError,
+    UnexpectedToolError,
+)
+from agent_platform.core.evals.replay_executor import ReplayDriftError, ReplayToolExecutor
 from agent_platform.core.evals.session import Session
 from agent_platform.core.evals.types import (
     ActionCallingResult,
     EvaluationResult,
+    ExecutionState,
     FlowAdherenceResult,
     ResponseAccuracyResult,
     Scenario,
@@ -90,7 +96,17 @@ def _list_scenario_next_agent_messages(
     return [message.copy_with_new_ids() for message in agents_block], next_agent_index
 
 
-async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915
+def _get_termination_reason(e: Exception) -> str:
+    if isinstance(e, ReplayDriftError):
+        return "REPLAY_DRIFT_ERROR"
+
+    if isinstance(e, UnexpectedToolError) or isinstance(e, ToolExecutionError):
+        return "UNEXPECTED_TOOL_ERROR"
+
+    return "UNEXPECTED_ERROR"
+
+
+async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901
     if task.status != TrialStatus.EXECUTING:
         raise RuntimeError(f"Trial {task.trial_id} is not being executing.")
 
@@ -151,16 +167,21 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915
 
     await storage.set_trial_thread(trial_id=task.trial_id, thread_id=new_thread.thread_id)
 
+    state = ExecutionState()
     current_user_message_index = len(initial_agent_messages)
     current_turn = 1
-    while True:
-        try:
+    drifts = []
+    try:
+        while True:
             logger.info(f"[turn={current_turn}] starting a new turn")
 
             if current_user_message_index is None:
                 logger.info("No further user messages. Terminating...")
+                state.termination = "END_OF_CONVERSATION"
+                state.status = "COMPLETED"
+                state.drift_events = drifts
+                state.finished_at = datetime.now()
 
-                await storage.complete_trial(task.trial_id, system_user.user_id)
                 return True
 
             offset = current_user_message_index
@@ -180,8 +201,6 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915
                     system_user.user_id, new_thread.thread_id, user_message
                 )
             new_thread = await storage.get_thread(system_user.user_id, new_thread.thread_id)
-
-            await storage.add_messages_to_trial(task.trial_id, user_messages_from_scenario)
 
             run = Run(
                 run_id=str(uuid4()),
@@ -211,22 +230,43 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915
             )
             logger.info(f"[turn={current_turn}] Waiting for agent response")
 
-            new_agent_messages = await agent_client.run_once()
+            try:
+                await agent_client.run_once()
+                tool_executor.finalize()
+            except Exception as e:
+                logger.info(f"Turn {current_turn}: {e}.")
+                state.termination = _get_termination_reason(e)
+                state.status = "ERROR"
+                state.error_message = str(e)
+                state.drift_events = drifts + tool_executor.drifts
+                state.finished_at = datetime.now()
 
-            await storage.add_messages_to_trial(task.trial_id, new_agent_messages)
+                return False
 
             current_turn += 1
             current_user_message_index = next_user_message_index
-        except Exception as e:
-            logger.error(f"Turn {current_turn}: simulation error {e}. Terminating...")
+            drifts.extend(tool_executor.drifts)
+    except Exception as e:
+        logger.error(f"Unexpected error when processing evals: {e}.")
+        state.termination = _get_termination_reason(e)
+        state.error_message = str(e)
+        state.drift_events = drifts
+        state.status = "ERROR"
+        state.finished_at = datetime.now()
+
+        return False
+    finally:
+        logger.info("Updating states and terminating")
+
+        await storage.update_trial_execution(task.trial_id, state)
+
+        # TODO we want to save metadata, but we need to
+        # recreate messages with new ids
+        if state.error_message:
             messages = [message.copy_with_new_ids() for message in new_thread.messages]
-            new_thread.metadata["simulation_error"] = f"{e}"
+            new_thread.metadata["evaluation_error"] = state.error_message
             new_thread.messages = messages
             await storage.upsert_thread(system_user.user_id, new_thread)
-
-            await storage.mark_trial_as_failed(task.trial_id, f"{e}")
-
-            return False
 
 
 async def _evaluate_flow_adherence(
@@ -375,18 +415,25 @@ async def _evaluate_response_accuracy(
     return ResponseAccuracyResult.model_validate(evaluation_data)
 
 
-async def run_evaluations(task: Trial, ran_successfully: bool) -> TrialStatus:
+async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[TrialStatus, str | None]:
     storage = StorageService.get_instance()
-    # TODO we should be smarter here and report simulation errors
-    # separately from trial status/error message that could
-    # be more generic
+
+    if (
+        task.execution_state.status == "ERROR"
+        and task.execution_state.termination != "REPLAY_DRIFT_ERROR"
+    ):
+        return TrialStatus.ERROR, task.execution_state.error_message
+
     action_calling = ActionCallingResult(
-        issues=[task.error_message] if task.error_message else [], passed=ran_successfully
+        issues=[event.message for event in task.execution_state.drift_events],
+        passed=task.execution_state.status == "COMPLETED",
     )
 
-    if task.error_message:
+    # if simulation is terminated because of drift
+    # no need to run LLM judges: return error
+    if task.execution_state.termination == "REPLAY_DRIFT_ERROR":
         await storage.update_trial_evaluation_results(task.trial_id, [action_calling])
-        return TrialStatus.ERROR
+        return TrialStatus.ERROR, None
 
     system_user, _ = await storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
 
@@ -410,4 +457,4 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> TrialStatus:
 
     status = TrialStatus.COMPLETED if all(e.passed for e in evaluations) else TrialStatus.ERROR
 
-    return status
+    return status, None

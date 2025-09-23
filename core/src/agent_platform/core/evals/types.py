@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, Literal
 from uuid import UUID
 
+from agent_platform.core.evals.replay_executor import DriftEvent
 from agent_platform.core.thread.base import ThreadMessage
 
 
@@ -92,6 +93,21 @@ def parse_evaluation_result(data: dict) -> "EvaluationResult":
         raise ValueError(f"Unknown evaluation kind: {kind!r}")
 
 
+def parse_execution_state(data: dict) -> "ExecutionState":
+    if "drift_events" in data and isinstance(data["drift_events"], list):
+        data["drift_events"] = [DriftEvent.model_validate(event) for event in data["drift_events"]]
+    else:
+        data["drift_events"] = []
+
+    if "started_at" in data and isinstance(data["started_at"], str):
+        data["started_at"] = datetime.fromisoformat(data["started_at"])
+
+    if "finished_at" in data and isinstance(data["finished_at"], str):
+        data["finished_at"] = datetime.fromisoformat(data["finished_at"])
+
+    return ExecutionState(**data)
+
+
 @dataclass(frozen=True)
 class FlowAdherenceResult:
     """
@@ -151,6 +167,27 @@ class ActionCallingResult:
 EvaluationResult = ResponseAccuracyResult | FlowAdherenceResult | ActionCallingResult
 
 
+@dataclass
+class ExecutionState:
+    status: str = "STARTED"
+    termination: str | None = None
+    drift_events: list[DriftEvent] = field(default_factory=list)
+    error_message: str | None = None
+
+    started_at: datetime = field(default_factory=datetime.now)
+    finished_at: datetime | None = None
+
+    def model_dump(self) -> dict:
+        return {
+            "status": self.status,
+            "termination": self.termination,
+            "drift_events": [event.model_dump() for event in self.drift_events],
+            "error_message": self.error_message,
+            "started_at": self.started_at.isoformat(),
+            "finished_at": self.finished_at.isoformat() if self.finished_at else None,
+        }
+
+
 @dataclass(frozen=True)
 class Trial:
     trial_id: str
@@ -159,10 +196,8 @@ class Trial:
     # 0..num_trials-1 within the run
     index_in_run: int
 
-    messages: list[ThreadMessage] = field(
-        metadata={"description": "All messages generated in the simulation."},
-    )
     evaluation_results: list[EvaluationResult] = field(default_factory=list)
+    execution_state: ExecutionState = field(default_factory=ExecutionState)
 
     thread_id: str | None = None
     status: TrialStatus = TrialStatus.PENDING
@@ -173,6 +208,11 @@ class Trial:
 
     # error if status is failed
     error_message: str | None = None
+
+    metadata: dict = field(
+        default_factory=dict,
+        metadata={"description": "Arbitrary trial metadata."},
+    )
 
     def __repr__(self) -> str:
         base = (
@@ -196,7 +236,7 @@ class Trial:
         return str(self.status)
 
     @classmethod
-    def model_validate(cls, data: dict) -> "Trial":
+    def model_validate(cls, data: dict) -> "Trial":  # noqa: C901
         """Create a trial from a dictionary."""
         data = data.copy()
 
@@ -224,6 +264,11 @@ class Trial:
             data["evaluation_results"] = [
                 parse_evaluation_result(result) for result in data["evaluation_results"]
             ]
+        if "execution_state" in data and isinstance(data["execution_state"], dict):
+            data["execution_state"] = parse_execution_state(data["execution_state"])
+
+        if "status" in data and isinstance(data["status"], str):
+            data["status"] = TrialStatus(data["status"])
 
         return cls(
             **data,
@@ -236,8 +281,10 @@ class Trial:
             "scenario_id": self.scenario_id,
             "index_in_run": self.index_in_run,
             "thread_id": self.thread_id,
-            "messages": [message.model_dump() for message in self.messages],
             "evaluation_results": [result.model_dump() for result in self.evaluation_results],
+            "execution_state": {
+                "drift_events": [event.model_dump() for event in self.execution_state.drift_events],
+            },
             "status": self.status,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
