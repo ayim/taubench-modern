@@ -14,3 +14,5 @@ agent-spec/validation/_spec_validation_tests/test_spec*/**
 packages/golang-agent-cli/tests
 workroom/**
 compose.yml
+server/tests/**/*.yml
+core/tests/**/*.yml

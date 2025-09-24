@@ -257,3 +257,180 @@ def test_semantic_data_models_integration(base_url_agent_server, datadir, resour
         # Test getting non-existent model
         with pytest.raises(Exception, match="404"):
             agent_client.get_semantic_data_model("non-existent")
+
+
+def check_upload_response(thread_response) -> str:
+    from starlette.status import HTTP_200_OK
+
+    assert thread_response.status_code == HTTP_200_OK, (
+        f"File upload to thread: bad response: {thread_response.status_code} {thread_response.text}"
+    )
+
+    response_as_json = thread_response.json()
+    assert len(response_as_json) == 1, "Expected exactly one file in the response"
+    file_id = response_as_json[0]["file_id"]
+    mime_type = response_as_json[0]["mime_type"]
+
+    assert mime_type in (
+        "text/csv",
+        "text/tab-separated-values",
+        "application/vnd.ms-excel",  # Even for a .csv this is what can be received in Windows.
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.oasis.opendocument.spreadsheet",  # open office (.ods)
+    ), f"Unexpected mime type: {mime_type}"
+
+    return file_id
+
+
+@pytest.mark.integration
+def test_generate_semantic_data_model_generation_integration(
+    base_url_agent_server, resources_dir, data_regression
+):
+    """Test generate semantic data model API endpoint integration."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        # Create an agent and thread
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4.1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        db_file_1 = resources_dir / "data_frames" / "combined_data.sqlite"
+
+        # Create data connections
+        data_connection_1 = agent_client.create_data_connection(
+            name="test-connection-1",
+            description="Test connection 1",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file_1),
+            },
+        )
+
+        # Inspect the data connection to get table/column info: In this case most of the info
+        # is exactly what'll be expected to be passed to the generate semantic data model
+        # API (in the UI this should be presented to the user as a list of tables/columns/sample
+        # data to select from).
+        inspect_response = agent_client.inspect_data_connection(
+            connection_id=data_connection_1["id"],
+        )
+        data_regression.check(inspect_response, basename="data_connection_inspect_response")
+        tables_info = inspect_response["tables"]
+        for table_info in tables_info:
+            assert "name" in table_info, "Table name is expected"
+            assert "columns" in table_info, "Table columns are expected"
+            assert "description" in table_info, "Table description is expected"
+            assert "database" in table_info, "Table database is expected"
+            assert "schema" in table_info, "Table schema is expected"
+            for column_info in table_info["columns"]:
+                assert "name" in column_info, "Column name is expected"
+                assert "data_type" in column_info, "Column data type is expected"
+                assert "sample_values" in column_info, "Column sample values are expected"
+
+        # Upload a file to the thread
+        name_file_1 = "hardware-and-energy-cost-to-train-notable-ai-systems.csv"
+        file_1 = resources_dir / "data_frames" / name_file_1
+        thread_response = agent_client.upload_file_to_thread(
+            thread_id,
+            name_file_1,
+            embedded=False,
+            content=file_1.read_bytes(),
+        )
+        file_id = check_upload_response(thread_response)
+        found_data_frames = agent_client.inspect_file_as_data_frame(
+            thread_id,
+            file_id=file_id,
+        )
+        assert len(found_data_frames) == 1, "Expected exactly one data frame in the response"
+        data_frame_info = next(iter(found_data_frames))
+
+        # Delete fields that change on each run (so that the data_regression can be used to check
+        # the expected results).
+        assert "created_at" in data_frame_info, "Created at is expected"
+        assert "file_id" in data_frame_info, "File id is expected"
+        assert "thread_id" in data_frame_info, "Thread id is expected"
+        data_frame_info["created_at"] = "<redacted>"
+        data_frame_info["file_id"] = "<redacted>"
+        data_frame_info["thread_id"] = "<redacted>"
+
+        data_regression.check([data_frame_info], basename="file_data_frames")
+
+        # Now, convert the data frame information to the expected table info to
+        # generate the semantic data model.
+
+        # That's all we get right now from the file inspection related to data
+        # frame information (column names and sample values)
+        column_headers = data_frame_info["column_headers"]
+        # Note: the data-type is still not extracted in the file inspection right now
+        # (so, use 'unknown' for the time being)
+        column_infos = [{"name": column_name} for column_name in column_headers]
+        sample_rows = data_frame_info["sample_rows"]
+
+        # For a .csv it'll actually be None, but on a multi-sheet file it'll be the name of
+        # the sheet.
+        sheet_name = data_frame_info["sheet_name"]
+
+        # Things are in a row-based format, so we need to convert them to a column-based format.
+        for i in range(len(column_headers)):
+            sample_value_for_column = [row[i] for row in sample_rows]
+            column_infos[i]["sample_values"] = sample_value_for_column
+
+        # Note: the name of the table here is "tricky" because it must be the name
+        # of the data frame that'll be used later on!
+        # At this point we're considering it to be `data_frame_1`, but this is
+        # something that the user should select in the UI (and it needs to be
+        # a valid variable name so that the sql can reference as a table later
+        # on).
+        file_tables_info = [
+            {
+                "name": "data_frame_1",
+                "columns": column_infos,
+                "database": None,
+                "schema": None,
+                "description": None,
+            }
+        ]
+
+        # Generate semantic data model from the inspection results
+        generate_payload = {
+            "name": "generated_semantic_model",
+            "description": "A generated semantic model for testing",
+            "data_connections_info": [
+                {
+                    "data_connection_id": data_connection_1["id"],
+                    "tables_info": inspect_response["tables"],
+                }
+            ],
+            "files_info": [
+                {
+                    "thread_id": thread_id,
+                    "file_ref": name_file_1,
+                    "sheet_name": sheet_name,
+                    "tables_info": file_tables_info,
+                }
+            ],
+        }
+
+        # Generate the semantic data model
+        generated_model = agent_client.generate_semantic_data_model(generate_payload)
+
+        semantic_model = generated_model["semantic_model"]
+
+        # Redact the fields that change on each run (so that the data_regression can be used
+        # to check the expected results).
+        for table in semantic_model["tables"]:
+            if "data_connection_id" in table["base_table"]:
+                table["base_table"]["data_connection_id"] = "<redacted>"
+            if "file_reference" in table["base_table"]:
+                table["base_table"]["file_reference"]["thread_id"] = "<redacted>"
+                table["base_table"]["file_reference"]["file_ref"] = "<redacted>"
+
+        data_regression.check(generated_model, basename="generated_semantic_model")

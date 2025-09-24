@@ -7,7 +7,11 @@ from typing import TypedDict
 from fastapi import APIRouter, HTTPException
 from structlog import get_logger
 
-from agent_platform.core.payloads import SetSemanticDataModelPayload
+from agent_platform.core.payloads import (
+    GenerateSemanticDataModelPayload,
+    GenerateSemanticDataModelResponse,
+    SetSemanticDataModelPayload,
+)
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
 
@@ -214,4 +218,36 @@ async def delete_semantic_data_model(
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error("Error deleting semantic data model", error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error") from e
+
+
+@router.post("/generate")
+async def generate_semantic_data_model(
+    payload: GenerateSemanticDataModelPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> GenerateSemanticDataModelResponse:
+    """Generate a semantic data model from data connections and files."""
+    try:
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+
+        generator = SemanticDataModelGenerator()
+        semantic_model = await generator.generate_semantic_data_model(
+            name=payload.name,
+            description=payload.description,
+            data_connections_info=payload.data_connections_info,
+            files_info=payload.files_info,
+        )
+
+        logger.info(
+            "Successfully generated semantic data model",
+            model_name=payload.name,
+            user_id=user.user_id,
+        )
+
+        return GenerateSemanticDataModelResponse(semantic_model=semantic_model)
+    except Exception as e:
+        logger.error("Error generating semantic data model", error=str(e))
         raise HTTPException(status_code=500, detail="Internal server error") from e

@@ -16,6 +16,8 @@ from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.payloads.mcp_server_response import MCPServerResponse
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     DeleteSemanticDataModelPayload,
+    GenerateSemanticDataModelPayload,
+    GenerateSemanticDataModelResponse,
     GetSemanticDataModelPayload,
     SetSemanticDataModelPayload,
 )
@@ -40,6 +42,8 @@ __all__ = [
     "DocumentLayoutPayload",
     "EphemeralStreamPayload",
     "ForkThreadPayload",
+    "GenerateSemanticDataModelPayload",
+    "GenerateSemanticDataModelResponse",
     "GetAgentDataConnectionsPayload",
     "GetSemanticDataModelPayload",
     "InitiateStreamPayload",

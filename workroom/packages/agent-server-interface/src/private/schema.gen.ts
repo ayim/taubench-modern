@@ -2230,6 +2230,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/semantic-data-models/generate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Semantic Data Model
+     * @description Generate a semantic data model from data connections and files.
+     */
+    post: operations['generate_semantic_data_model_semantic_data_models_generate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/health': {
     parameters: {
       query?: never;
@@ -3078,23 +3098,6 @@ export interface components {
        */
       cited_text?: string | null;
     };
-    /** ColumnInfo */
-    ColumnInfo: {
-      /** Name */
-      name: string;
-      /** Data Type */
-      data_type: string;
-      /** Sample Values */
-      sample_values: unknown[] | null;
-      /** Primary Key */
-      primary_key: boolean | null;
-      /** Unique */
-      unique: boolean | null;
-      /** Description */
-      description: string | null;
-      /** Synonyms */
-      synonyms: string[] | null;
-    };
     /** ConfigPayload */
     ConfigPayload: {
       config_type: components['schemas']['ConfigType'];
@@ -3325,6 +3328,13 @@ export interface components {
        */
       callbacks?: components['schemas']['WorkItemCallback'][] | null;
     };
+    /** DataConnectionInfo */
+    DataConnectionInfo: {
+      /** Data Connection Id */
+      data_connection_id: string;
+      /** Tables Info */
+      tables_info: components['schemas']['agent_platform__core__payloads__semantic_data_model_payloads__TableInfo'][];
+    };
     /** DataConnectionsInspectRequest */
     DataConnectionsInspectRequest: {
       /** Tables To Inspect */
@@ -3343,7 +3353,7 @@ export interface components {
     /** DataConnectionsInspectResponse */
     DataConnectionsInspectResponse: {
       /** Tables */
-      tables: components['schemas']['TableInfo'][];
+      tables: components['schemas']['agent_platform__core__payloads__data_connection__TableInfo'][];
     };
     /** DataModelPayload */
     DataModelPayload: {
@@ -3657,6 +3667,17 @@ export interface components {
        */
       job_type: 'extract';
     };
+    /** FileInfo */
+    FileInfo: {
+      /** Thread Id */
+      thread_id: string;
+      /** File Ref */
+      file_ref: string;
+      /** Tables Info */
+      tables_info: components['schemas']['agent_platform__core__payloads__semantic_data_model_payloads__TableInfo'][];
+      /** Sheet Name */
+      sheet_name?: string | null;
+    };
     /** FlowAdherenceResult */
     FlowAdherenceResult: {
       /** Explanation */
@@ -3719,6 +3740,24 @@ export interface components {
         [key: string]: unknown;
       };
       file?: components['schemas']['UploadedFile'] | null;
+    };
+    /** GenerateSemanticDataModelPayload */
+    GenerateSemanticDataModelPayload: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string | null;
+      /** Data Connections Info */
+      data_connections_info: components['schemas']['DataConnectionInfo'][];
+      /** Files Info */
+      files_info: components['schemas']['FileInfo'][];
+    };
+    /** GenerateSemanticDataModelResponse */
+    GenerateSemanticDataModelResponse: {
+      /** Semantic Model */
+      semantic_model: {
+        [key: string]: unknown;
+      };
     };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
@@ -6016,19 +6055,6 @@ export interface components {
        */
       max_options: number;
     };
-    /** TableInfo */
-    TableInfo: {
-      /** Name */
-      name: string;
-      /** Database */
-      database: string | null;
-      /** Schema */
-      schema: string | null;
-      /** Description */
-      description: string | null;
-      /** Columns */
-      columns: components['schemas']['ColumnInfo'][];
-    };
     /** TableToInspect */
     TableToInspect: {
       /** Name */
@@ -7432,6 +7458,65 @@ export interface components {
        * @description The ID of the data connection (deprecated, use external_id instead)
        */
       id?: string | null;
+    };
+    /** ColumnInfo */
+    agent_platform__core__payloads__data_connection__ColumnInfo: {
+      /** Name */
+      name: string;
+      /** Data Type */
+      data_type: string;
+      /** Sample Values */
+      sample_values: unknown[] | null;
+      /** Primary Key */
+      primary_key: boolean | null;
+      /** Unique */
+      unique: boolean | null;
+      /** Description */
+      description: string | null;
+      /** Synonyms */
+      synonyms: string[] | null;
+    };
+    /** TableInfo */
+    agent_platform__core__payloads__data_connection__TableInfo: {
+      /** Name */
+      name: string;
+      /** Database */
+      database: string | null;
+      /** Schema */
+      schema: string | null;
+      /** Description */
+      description: string | null;
+      /** Columns */
+      columns: components['schemas']['agent_platform__core__payloads__data_connection__ColumnInfo'][];
+    };
+    /** ColumnInfo */
+    agent_platform__core__payloads__semantic_data_model_payloads__ColumnInfo: {
+      /** Name */
+      name: string;
+      /**
+       * Data Type
+       * @default unknown
+       */
+      data_type: string;
+      /** Sample Values */
+      sample_values?: unknown[] | null;
+      /** Description */
+      description?: string | null;
+      /** Synonyms */
+      synonyms?: string[] | null;
+    };
+    /** TableInfo */
+    agent_platform__core__payloads__semantic_data_model_payloads__TableInfo: {
+      /** Name */
+      name: string;
+      /** Columns */
+      columns: components['schemas']['agent_platform__core__payloads__semantic_data_model_payloads__ColumnInfo'][];
+      /** Database */
+      database?: string | null;
+      /** Schema */
+      schema?: string | null;
+      /** Description */
+      description?: string | null;
     };
     /**
      * ErrorDetail
@@ -11936,6 +12021,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['_SetSemanticDataModelResult'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  generate_semantic_data_model_semantic_data_models_generate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GenerateSemanticDataModelPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GenerateSemanticDataModelResponse'];
         };
       };
       /** @description Validation Error */

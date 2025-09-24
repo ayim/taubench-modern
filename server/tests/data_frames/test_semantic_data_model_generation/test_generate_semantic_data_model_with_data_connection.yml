@@ -1,0 +1,24 @@
+description: Test semantic model
+name: test_model
+tables:
+- base_table:
+    data_connection_id: conn_123
+    database: test_db
+    schema: public
+    table: users
+  description: User table
+  dimensions:
+  - data_type: INTEGER
+    description: User identifier
+    expr: user_id
+    name: user_id
+    sample_values:
+    - 1
+    - 2
+    - 3
+    synonyms:
+    - id
+    - user_identifier
+  facts: []
+  name: users
+  time_dimensions: []

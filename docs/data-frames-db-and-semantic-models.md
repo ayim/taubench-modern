@@ -3,7 +3,7 @@
 - [Snowflake semantic model generator](https://github.com/Snowflake-Labs/semantic-model-generator)
 - [Snowflake semantic model spec](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst/semantic-model-spec)
 
-# Step 1:
+# Step 1 (done):
 
 `Feature`: associate a list of data connections to an agent.
 
@@ -23,7 +23,7 @@ v2_agent_data_connections -- junction table (references agent id and data source
   - `set_agent_data_connections`, which receives a `SetAgentDataConnectionsPayload` needs to accept a `agent_id` and a list of `data_connection_id`s (REST API: `PUT /api/v2/agents/{agent_id}/data-connections`).
   - `get_agent_data_connections`, which receives a `GetAgentDataConnectionsPayload` needs to accept an `agent_id` and return a list of `DataConnection`s (REST API: `GET /api/v2/agents/{agent_id}/data-connections`).
 
-# Step 2:
+# Step 2 (done):
 
 `Feature`: add the concept of a semantic data model in the agent server database.
 
@@ -39,7 +39,7 @@ Related information (in agent server database):
     - multiple files (by referencing the `v2_file_owner.thread_id` and `v2_file_owner.file_ref`)
   - The semantic data model itself will be stored in a json column.
 
-    - Note: the semantic model types in python can be found in [`core/src/agent_platform/core/data_frames/semantic_model.py`](../core/src/agent_platform/core/data_frames/semantic_model.py).
+    - Note: the semantic model types in python can be found in [`core/src/agent_platform/core/data_frames/semantic_data_model_types.py`](../core/src/agent_platform/core/data_frames/semantic_data_model_types.py).
 
   - Format (pseudo-code, constraints not included) of the table:
 
@@ -61,9 +61,16 @@ Related information (in agent server database):
     ```
 
 - Create new APIs to add/remove a data connection to an agent.
-  - `set_semantic_data_model`, which receives a `SetSemanticDataModelPayload` needs to accept a `dict` with the semantic data model and a list of `data_connection_id`s and `file_reference`s (thread_id and file_ref) (REST API: `PUT /api/v2/semantic-data-models/{semantic_data_model_id}/input-data-connections`) -- if the `uuid` is not provided, a new one will be created.
-  - `get_semantic_data_model`, which receives a `GetSemanticDataModelPayload` needs to accept a `semantic_data_model_id` and return a `dict` with the semantic data model (REST API: `GET /api/v2/semantic-data-models/{semantic_data_model_id}`).
-  - `delete_semantic_data_model`, which receives a `DeleteSemanticDataModelPayload` needs to accept a `semantic_data_model_id` and delete the semantic data model (REST API: `DELETE /api/v2/semantic-data-models/{semantic_data_model_id}`).
+  - `set_semantic_data_model`, which receives a `SetSemanticDataModelPayload`
+    - `PUT /api/v2/semantic-data-models/{semantic_data_model_id}`
+    - `POST /api/v2/semantic-data-models`
+    - Note: the connections and file references are extracted from the semantic data model to populate the junction tables.
+      i.e.: A `base_table` in the semantic data model must have either a `data_connection_id` (str)
+      or a `file_reference` (dict with `thread_id` and `file_ref` and optionally `sheet_name`).
+  - `get_semantic_data_model`, which receives a `GetSemanticDataModelPayload`
+    - `GET /api/v2/semantic-data-models/{semantic_data_model_id}`
+  - `delete_semantic_data_model`, which receives a `DeleteSemanticDataModelPayload`
+    - `DELETE /api/v2/semantic-data-models/{semantic_data_model_id}`
 
 Note: in this APIs, the semantic data model is passed as json, the data_connection_ids and file_references are extracted from
 the semantic data model tables specified (so, it's implicit in the semantic data model what connections and files are used,
@@ -76,7 +83,7 @@ For data connections the model has to specify in the base_table the data_connect
 schema and table as usual -- note that the database and schema are not required for all databases
 (as not all databases have a database and schema -- i.e.: SQLite).
 
-# Step 3:
+# Step 3 (done):
 
 `Feature`: Inspect data connections for tables/columns/sample data.
 
@@ -142,37 +149,83 @@ class DataConnectionsInspectResponse:
 
 # Step 4:
 
-`Feature`: Create a semantic data model (initially pretty simple, maybe just
-tables/columns/sample data) and pass it to the agent when needed in a way that allows the agent to recognize
+`Feature`: Generate a semantic data model (initially pretty simple, just tables/columns/sample data but in the snowflake semantic data model format, see types in: [`core/src/agent_platform/core/data_frames/semantic_data_model_types.py`](../core/src/agent_platform/core/data_frames/semantic_data_model_types.py)) and pass it to the agent when needed in a way that allows the agent to recognize
 that the data source and the related tables may be queried by the agent.
 
-`Decision`: the Semantic Data Model can reference multiple databases or files at once.
-
-`Note`: when a semantic data model is later needed just for a subset (say a semantic data model was created from 2 databases and a file), if
-later on a file is required, it should be possible to extract a subset of the semantic data model to be used just for that file.
-i.e.: semantic models are "globally" available and it should be possible to reuse a semantic model (or a part of it) when needed
-when creating a new semantic data model for some other data (if the shape of one model is a subset or superset of another model).
+`Note`: the Semantic Data Model can reference multiple databases or files at once.
 
 `Requirement`: Create semantic data model using the agent server:
 
-`Requires`:
+`REST-API`:
 
-- Data connections of interest
+- `POST /api/v2/semantic-data-models/generate`
 
-- Files of interest (based on the related created data frames)
+Receives a `GenerateSemanticDataModelPayload` with the following fields:
 
-Agent Server related APIs:
+```python
+class ColumnInfo:
+  name: str
+  data_type: str
+  sample_values: list[Any] | None
+  description: str | None
+  synonyms: list[str] | None
 
-- Existing REST API which allows collecting sheets/columns/sample data from a file (dataframe API)
+class TableInfo:
+  name: str
+  database: str | None
+  schema: str | None
+  description: str | None
+  columns: list[ColumnInfo]
 
-- New API to auto-generate a semantic model based on the tables/columns/samples for a file/data source as well as details given by the user.
+class DataConnectionInfo:
+  data_connection_id: str
+  tables_info: list[TableInfo]
 
-  - `Note`: the UI must collect the information and then call this new API to actually build the semantic data model.
-  - `Note`: the initial implementation will be very simple, not agentic.
+class FileInfo:
+  thread_id: str
+  file_ref: str
+  sheet_name: str | None
+  tables_info: list[TableInfo]
 
-- Storing the semantic data model should be done using the APIs from step 2.
+class GenerateSemanticDataModelPayload:
+  name: str
+  description: str | None
+  data_connections_info: list[DataConnectionInfo]
+  files_info: list[FileInfo]
+
+```
+
+It then returns the semantic data model in the snowflake semantic data model format.
+
+The idea is that the client (UI) should:
+
+- Use the existing REST API(s) which allows collecting sheets/columns/sample data from a data source or a file.
+
+- Call the new API to generate the semantic data model.
+
+- Store the semantic data model using the APIs from step 2.
 
 # Step 5:
+
+`Feature`: associate a list of semantic data models to an agent.
+
+Related information (in agent server database):
+
+- Existing table: `v2_semantic_data_model`: has the information related to the semantic data model
+
+- New `v2_agent_semantic_data_models` junction table to reference semantic data models and agents:
+
+```sql
+v2_agent_semantic_data_models -- junction table (references agent id and semantic data model id)
+    agent_id TEXT NOT NULL,
+    semantic_data_model_id TEXT NOT NULL,
+```
+
+- Create new APIs to add/remove a semantic data model to an agent.
+  - `set_agent_semantic_data_models`, which receives a `SetAgentSemanticDataModelsPayload` needs to accept a `agent_id` and a list of `semantic_data_model_id`s (REST API: `PUT /api/v2/agents/{agent_id}/semantic-data-models`).
+  - `get_agent_semantic_data_models`, which receives a `GetAgentSemanticDataModelsPayload` needs to accept an `agent_id` and return a list of `SemanticDataModel`s (REST API: `GET /api/v2/agents/{agent_id}/semantic-data-models`).
+
+# Step 6:
 
 `Feature`: Enable the user to create data frames from a data source.
 
@@ -184,8 +237,15 @@ available, not only when a data frame is already created and we need to build th
 Also, we need to be able to run the queries in a way that allows queries to be run containing both data frames created from
 files as well as sql targetting a data source to extract table information from a database.
 
-# Step 6:
+# Step 7:
 
 Create a "Full semantic data model" which includes metrics, facts, dimensions, etc.
 
 Extract primary keys/uniqueness from the database directly when available.
+
+# Step 8:
+
+When a semantic data model is later needed just for a subset (say a semantic data model was created from 2 databases and a file), if
+later on a file is required, it should be possible to extract a subset of the semantic data model to be used just for that file.
+i.e.: semantic models are "globally" available and it should be possible to reuse a semantic model (or a part of it) when needed
+when creating a new semantic data model for some other data (if the shape of one model is a subset or superset of another model).

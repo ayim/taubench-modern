@@ -96,7 +96,7 @@ def base_url_agent_server_with_async_actions(tmpdir, logs_dir, files_location):
         env_vars = {
             "SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION": "true",
             "ACTIONS_ASYNC_RETRY_INTERVAL": "0.1",
-            "ACTIONS_ASYNC_MAX_RETRIES": "50",
+            "ACTIONS_ASYNC_MAX_RETRIES": "100",
             "ACTIONS_ASYNC_TIMEOUT": "0.1",  # 0.1 seconds - forces async mode
         }
 

@@ -1,0 +1,46 @@
+- column_headers:
+  - Entity
+  - Code
+  - year
+  - Day
+  - Domain
+  - Cost (inflation-adjusted)
+  created_at: <redacted>
+  file_id: <redacted>
+  file_ref: hardware-and-energy-cost-to-train-notable-ai-systems.csv
+  name: hardware-and-energy-cost-to-train-notable-ai-systems.csv
+  num_columns: 6
+  num_rows: 64
+  sample_rows:
+  - - AlphaCode
+    - null
+    - 2022
+    - '2022-02-02'
+    - Language
+    - null
+  - - AlphaGo Lee
+    - null
+    - 2016
+    - '2016-01-27'
+    - Games
+    - null
+  - - AlphaGo Master
+    - null
+    - 2017
+    - '2017-01-01'
+    - Games
+    - 471445.3
+  - - AlphaGo Zero
+    - null
+    - 2017
+    - '2017-10-18'
+    - Games
+    - 613480.6
+  - - AlphaStar
+    - null
+    - 2019
+    - '2019-10-30'
+    - Games
+    - 125758.1
+  sheet_name: null
+  thread_id: <redacted>

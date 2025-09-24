@@ -2,8 +2,10 @@ import argparse
 import os
 import pprint
 import sys
-
 import pkg_resources
+import PyInstaller
+
+from pathlib import Path
 from PyInstaller.building.api import COLLECT, EXE, PYZ
 from PyInstaller.building.build_main import Analysis
 from PyInstaller.log import logger
@@ -64,6 +66,10 @@ ibis_hiddenimports.extend(collect_submodules("ibis.backends.sqlite"))
 # Used by ibis to parse the sql internally.
 sqlglot_hiddenimports = collect_submodules("sqlglot")
 
+numpy_datas, numpy_binaries, numpy_hiddenimports = collect_all("numpy")
+pandas_datas, pandas_binaries, pandas_hiddenimports = collect_all("pandas")
+
+
 logger.info("=== Analyzing Imports ===")
 logger.info("Starting Analysis phase...")
 
@@ -104,6 +110,75 @@ psycopg_hiddenimports.extend(
     ]
 )
 
+# This is a hack because `numpy.libs` has (on windows) 2 entries:
+#
+# libscipy_openblas64_-860d95b1c38e637ce4509f5fa24fbf2a.dll
+# msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll
+#
+# the libscipy one is found but the second is not (and without it
+# trying to import numpy fails).
+#
+# so we collect the contents of the numpy.libs directory manually
+# and add it to the binaries list.
+site_packages_dir = Path(PyInstaller.__file__).parent.parent
+
+numpy_libs_dir = site_packages_dir / "numpy.libs"
+numpy_libs_binaries = []
+# Collect the contents of the numpy.libs directory
+if numpy_libs_dir.exists():
+    for file in numpy_libs_dir.glob("*"):
+        if file.is_file():
+            relative_path = file.relative_to(numpy_libs_dir)
+            numpy_libs_binaries.append((str(file), "numpy.libs"))
+print(f"numpy_libs_binaries: {numpy_libs_binaries}")
+
+
+ALL_BINARIES = [
+    # *chromadb_binaries,
+    *tiktoken_binaries,
+    *psycopg_binaries,
+    *psyco_binary_binaries,
+    *numpy_binaries,
+    *pandas_binaries,
+    *numpy_libs_binaries,
+]
+
+ALL_DATAS = [
+    (
+        "src/agent_platform/server/migrations",
+        "agent_platform/server/migrations",
+    ),
+    (
+        "../core/src/agent_platform/core/platforms/llms.json",
+        "agent_platform/core/platforms/",
+    ),
+    # TODO: auto add a prompts dir for each architecture automatically?
+    (
+        "../architectures/default/src/agent_platform/architectures/default/prompts",
+        "agent_platform/architectures/default/prompts",
+    ),
+    (
+        "../architectures/experimental/src/agent_platform/architectures/experimental/prompts",
+        "agent_platform/architectures/experimental/prompts",
+    ),
+    *agent_arch_metadata,
+    # *chromadb_datas,
+    # *tiktoken_datas,
+    *psycopg_datas,
+    *psyco_binary_datas,
+    ("LICENSE", "."),
+    (
+        "src/agent_platform/server/work_items",
+        "agent_platform/server/work_items",
+    ),
+    *di_datas,
+    *di_binaries,
+    *ibis_metadata,
+    *numpy_datas,
+    *pandas_datas,
+]
+
+
 logger.info("Starting main Analysis...")
 a = Analysis(
     ["src/agent_platform/server/server.py"],
@@ -113,44 +188,8 @@ a = Analysis(
         "architectures/experimental/src",
         "server/src",
     ],
-    binaries=[
-        # *chromadb_binaries,
-        *tiktoken_binaries,
-        *psycopg_binaries,
-        *psyco_binary_binaries,
-    ],
-    datas=[
-        (
-            "src/agent_platform/server/migrations",
-            "agent_platform/server/migrations",
-        ),
-        (
-            "../core/src/agent_platform/core/platforms/llms.json",
-            "agent_platform/core/platforms/",
-        ),
-        # TODO: auto add a prompts dir for each architecture automatically?
-        (
-            "../architectures/default/src/agent_platform/architectures/default/prompts",
-            "agent_platform/architectures/default/prompts",
-        ),
-        (
-            "../architectures/experimental/src/agent_platform/architectures/experimental/prompts",
-            "agent_platform/architectures/experimental/prompts",
-        ),
-        *agent_arch_metadata,
-        # *chromadb_datas,
-        # *tiktoken_datas,
-        *psycopg_datas,
-        *psyco_binary_datas,
-        ("LICENSE", "."),
-        (
-            "src/agent_platform/server/work_items",
-            "agent_platform/server/work_items",
-        ),
-        *di_datas,
-        *di_binaries,
-        *ibis_metadata,
-    ],
+    binaries=ALL_BINARIES,
+    datas=ALL_DATAS,
     hiddenimports=[
         "pydantic.deprecated.decorator",
         "chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2",
@@ -171,12 +210,13 @@ a = Analysis(
         *di_hiddenimports,
         *ibis_hiddenimports,
         *sqlglot_hiddenimports,
+        *numpy_hiddenimports,
+        *pandas_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    # Since numpy is excluded, we also exclude pandas as it depends on numpy and save some space.
-    excludes=["numpy", "pandas"],
+    excludes=[],
     noarchive=False,
     optimize=0,
 )

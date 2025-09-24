@@ -26,7 +26,12 @@ class CortexSearchService(TypedDict, total=False):
 
 
 class Dimension(TypedDict, total=False):
-    """A dimension describes categorical values such as state, user_type, platform, etc."""
+    """A dimension describes categorical values such as state, user_type, platform, etc.
+
+    Use when it's categorical/descriptive context you'll group or filter by
+    (e.g., product_name, customer_id, region).
+    Dimensions answer who/what/where/how and provide labels for facts.
+    """
 
     # Required fields
     name: Annotated[
@@ -76,7 +81,12 @@ class Dimension(TypedDict, total=False):
 
 
 class TimeDimension(TypedDict, total=False):
-    """A time dimension describes time values, such as sale_date, created_at, and year."""
+    """A time dimension describes time values, such as sale_date, created_at, and year.
+
+    Use when it's temporal context you'll use to slice trends (e.g., order_date, ship_month,
+    or even a computed duration like DATEDIFF(...)). Time dimensions enable period aggregations
+    and time based analyses (day/week/month/year, etc.).
+    """
 
     # Required fields
     name: Annotated[
@@ -118,7 +128,13 @@ class TimeDimension(TypedDict, total=False):
 
 
 class Fact(TypedDict, total=False):
-    """A fact describes numerical values, such as revenue, impressions, and salary."""
+    """A fact describes numerical values, such as revenue, impressions, and salary.
+
+    Use when it's a row-level numeric value observed for each event/entity
+    (e.g., quantity, unit_price, net_revenue = price * (1-discount)).
+    Facts are unaggregated measures stored/calculated.
+    (In newer docs, “facts” are what some tools call “measures”.)
+    """
 
     # Required fields
     name: Annotated[
@@ -178,7 +194,13 @@ class Filter(TypedDict, total=False):
 
 
 class Metric(TypedDict, total=False):
-    """A metric describes quantifiable measures of business performance."""
+    """A metric describes quantifiable measures of business performance.
+
+    Use when it's a business KPI that aggregates (often over facts) across rows
+    e.g., total_revenue = SUM(net_revenue), avg_order_value = AVG(order_total),
+    or a composite like margin %. Define metrics at the most granular level so
+    they can roll up by any dimension.
+    """
 
     # Required fields
     name: Annotated[

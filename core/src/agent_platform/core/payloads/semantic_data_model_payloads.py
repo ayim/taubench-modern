@@ -53,3 +53,60 @@ class DeleteSemanticDataModelPayload:
         return DeleteSemanticDataModelPayload(
             semantic_data_model_id=data["semantic_data_model_id"],
         )
+
+
+@dataclass(frozen=True)
+class ColumnInfo:
+    """Information about a column in a table."""
+
+    name: str
+    data_type: str = "unknown"
+    sample_values: list[Any] | None = None
+    description: str | None = None
+    synonyms: list[str] | None = None
+
+
+@dataclass(frozen=True)
+class TableInfo:
+    """Information about a table."""
+
+    name: str
+    columns: list[ColumnInfo]
+    database: str | None = None
+    schema: str | None = None
+    description: str | None = None
+
+
+@dataclass(frozen=True)
+class DataConnectionInfo:
+    """Information about a data connection with its tables."""
+
+    data_connection_id: str
+    tables_info: list[TableInfo]
+
+
+@dataclass(frozen=True)
+class FileInfo:
+    """Information about a file with its tables."""
+
+    thread_id: str
+    file_ref: str
+    tables_info: list[TableInfo]
+    sheet_name: str | None = None
+
+
+@dataclass(frozen=True)
+class GenerateSemanticDataModelPayload:
+    """Payload for generating a semantic data model."""
+
+    name: str
+    description: str | None
+    data_connections_info: list[DataConnectionInfo]
+    files_info: list[FileInfo]
+
+
+@dataclass(frozen=True)
+class GenerateSemanticDataModelResponse:
+    """Response for generating a semantic data model."""
+
+    semantic_model: dict[str, Any]

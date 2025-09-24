@@ -3,7 +3,7 @@ import os
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from functools import partial
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 from urllib.parse import urljoin
 
 import requests
@@ -1128,3 +1128,47 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error deleting semantic data model: {response.status_code} {response.text}",
             ) from e
+
+    def generate_semantic_data_model(self, payload: dict) -> dict:
+        """Generate a semantic data model from data connections and files."""
+        url = urljoin(self.base_url + "/", "semantic-data-models/generate")
+        response = requests.post(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error generating semantic data model: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    class TableToInspectTypedDict(TypedDict):
+        name: str
+        database: str | None
+        schema: str | None
+        # If the columns are passed, inspect only those columns, if not passed, inspect all columns
+        columns_to_inspect: list[str] | None
+
+    def inspect_data_connection(
+        self,
+        connection_id: str,
+        tables_to_inspect: "list[TableToInspectTypedDict] | None" = None,
+        inspect_columns: bool = True,
+        n_sample_rows: int = 5,
+    ) -> dict:
+        """Inspect a data connection to get tables, columns and sample data."""
+        url = urljoin(self.base_url + "/", f"data-connections/{connection_id}/inspect")
+        response = requests.post(
+            url,
+            json={
+                "tables_to_inspect": tables_to_inspect,
+                "inspect_columns": inspect_columns,
+                "n_sample_rows": n_sample_rows,
+            },
+        )
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error inspecting data connection: {response.status_code} {response.text}",
+            ) from e
+        return response.json()

@@ -6872,6 +6872,48 @@ export const spec = {
         },
       },
     },
+    '/api/v2/semantic-data-models/generate': {
+      post: {
+        tags: ['semantic-data-models'],
+        summary: 'Generate Semantic Data Model',
+        description:
+          'Generate a semantic data model from data connections and files.',
+        operationId:
+          'generate_semantic_data_model_semantic_data_models_generate_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/GenerateSemanticDataModelPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/GenerateSemanticDataModelResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/health': {
       get: {
         tags: ['health'],
@@ -8487,88 +8529,6 @@ export const spec = {
         required: ['document_uri', 'start_char_index', 'end_char_index'],
         title: 'Citation',
       },
-      ColumnInfo: {
-        properties: {
-          name: {
-            type: 'string',
-            title: 'Name',
-          },
-          data_type: {
-            type: 'string',
-            title: 'Data Type',
-          },
-          sample_values: {
-            anyOf: [
-              {
-                items: {},
-                type: 'array',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Sample Values',
-          },
-          primary_key: {
-            anyOf: [
-              {
-                type: 'boolean',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Primary Key',
-          },
-          unique: {
-            anyOf: [
-              {
-                type: 'boolean',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Unique',
-          },
-          description: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Description',
-          },
-          synonyms: {
-            anyOf: [
-              {
-                items: {
-                  type: 'string',
-                },
-                type: 'array',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Synonyms',
-          },
-        },
-        type: 'object',
-        required: [
-          'name',
-          'data_type',
-          'sample_values',
-          'primary_key',
-          'unique',
-          'description',
-          'synonyms',
-        ],
-        title: 'ColumnInfo',
-      },
       ConfigPayload: {
         properties: {
           config_type: {
@@ -9041,6 +9001,24 @@ export const spec = {
         required: ['agent_id'],
         title: 'CreateWorkItemPayload',
       },
+      DataConnectionInfo: {
+        properties: {
+          data_connection_id: {
+            type: 'string',
+            title: 'Data Connection Id',
+          },
+          tables_info: {
+            items: {
+              $ref: '#/components/schemas/agent_platform__core__payloads__semantic_data_model_payloads__TableInfo',
+            },
+            type: 'array',
+            title: 'Tables Info',
+          },
+        },
+        type: 'object',
+        required: ['data_connection_id', 'tables_info'],
+        title: 'DataConnectionInfo',
+      },
       DataConnectionsInspectRequest: {
         properties: {
           tables_to_inspect: {
@@ -9075,7 +9053,7 @@ export const spec = {
         properties: {
           tables: {
             items: {
-              $ref: '#/components/schemas/TableInfo',
+              $ref: '#/components/schemas/agent_platform__core__payloads__data_connection__TableInfo',
             },
             type: 'array',
             title: 'Tables',
@@ -9866,6 +9844,39 @@ export const spec = {
         required: ['result'],
         title: 'ExtractJobResult',
       },
+      FileInfo: {
+        properties: {
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+          },
+          file_ref: {
+            type: 'string',
+            title: 'File Ref',
+          },
+          tables_info: {
+            items: {
+              $ref: '#/components/schemas/agent_platform__core__payloads__semantic_data_model_payloads__TableInfo',
+            },
+            type: 'array',
+            title: 'Tables Info',
+          },
+          sheet_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sheet Name',
+          },
+        },
+        type: 'object',
+        required: ['thread_id', 'file_ref', 'tables_info'],
+        title: 'FileInfo',
+      },
       FlowAdherenceResult: {
         properties: {
           explanation: {
@@ -10008,6 +10019,59 @@ export const spec = {
         type: 'object',
         required: ['schema'],
         title: 'GenerateSchemaResponsePayload',
+      },
+      GenerateSemanticDataModelPayload: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          data_connections_info: {
+            items: {
+              $ref: '#/components/schemas/DataConnectionInfo',
+            },
+            type: 'array',
+            title: 'Data Connections Info',
+          },
+          files_info: {
+            items: {
+              $ref: '#/components/schemas/FileInfo',
+            },
+            type: 'array',
+            title: 'Files Info',
+          },
+        },
+        type: 'object',
+        required: [
+          'name',
+          'description',
+          'data_connections_info',
+          'files_info',
+        ],
+        title: 'GenerateSemanticDataModelPayload',
+      },
+      GenerateSemanticDataModelResponse: {
+        properties: {
+          semantic_model: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Semantic Model',
+          },
+        },
+        type: 'object',
+        required: ['semantic_model'],
+        title: 'GenerateSemanticDataModelResponse',
       },
       GooglePlatformParameters: {
         properties: {
@@ -14813,57 +14877,6 @@ export const spec = {
         required: ['thread_id'],
         title: 'SuggestScenarioPayload',
       },
-      TableInfo: {
-        properties: {
-          name: {
-            type: 'string',
-            title: 'Name',
-          },
-          database: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Database',
-          },
-          schema: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Schema',
-          },
-          description: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Description',
-          },
-          columns: {
-            items: {
-              $ref: '#/components/schemas/ColumnInfo',
-            },
-            type: 'array',
-            title: 'Columns',
-          },
-        },
-        type: 'object',
-        required: ['name', 'database', 'schema', 'description', 'columns'],
-        title: 'TableInfo',
-      },
       TableToInspect: {
         properties: {
           name: {
@@ -17444,6 +17457,244 @@ export const spec = {
         type: 'object',
         required: ['name', 'engine', 'configuration'],
         title: 'DataConnection',
+      },
+      agent_platform__core__payloads__data_connection__ColumnInfo: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          data_type: {
+            type: 'string',
+            title: 'Data Type',
+          },
+          sample_values: {
+            anyOf: [
+              {
+                items: {},
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sample Values',
+          },
+          primary_key: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Primary Key',
+          },
+          unique: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Unique',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          synonyms: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Synonyms',
+          },
+        },
+        type: 'object',
+        required: [
+          'name',
+          'data_type',
+          'sample_values',
+          'primary_key',
+          'unique',
+          'description',
+          'synonyms',
+        ],
+        title: 'ColumnInfo',
+      },
+      agent_platform__core__payloads__data_connection__TableInfo: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          database: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Database',
+          },
+          schema: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Schema',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          columns: {
+            items: {
+              $ref: '#/components/schemas/agent_platform__core__payloads__data_connection__ColumnInfo',
+            },
+            type: 'array',
+            title: 'Columns',
+          },
+        },
+        type: 'object',
+        required: ['name', 'database', 'schema', 'description', 'columns'],
+        title: 'TableInfo',
+      },
+      agent_platform__core__payloads__semantic_data_model_payloads__ColumnInfo:
+        {
+          properties: {
+            name: {
+              type: 'string',
+              title: 'Name',
+            },
+            data_type: {
+              type: 'string',
+              title: 'Data Type',
+              default: 'unknown',
+            },
+            sample_values: {
+              anyOf: [
+                {
+                  items: {},
+                  type: 'array',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Sample Values',
+            },
+            description: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Description',
+            },
+            synonyms: {
+              anyOf: [
+                {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Synonyms',
+            },
+          },
+          type: 'object',
+          required: ['name'],
+          title: 'ColumnInfo',
+        },
+      agent_platform__core__payloads__semantic_data_model_payloads__TableInfo: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          columns: {
+            items: {
+              $ref: '#/components/schemas/agent_platform__core__payloads__semantic_data_model_payloads__ColumnInfo',
+            },
+            type: 'array',
+            title: 'Columns',
+          },
+          database: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Database',
+          },
+          schema: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Schema',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+        },
+        type: 'object',
+        required: ['name', 'columns'],
+        title: 'TableInfo',
       },
       ErrorDetail: {
         description:

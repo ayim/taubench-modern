@@ -1,0 +1,24 @@
+description: File-based semantic model
+name: file_model
+tables:
+- base_table:
+    file_reference:
+      file_ref: file_456
+      sheet_name: Sheet1
+      thread_id: thread_123
+    table: products
+  description: Product table
+  dimensions:
+  - data_type: TEXT
+    description: Product name
+    expr: product_name
+    name: product_name
+    sample_values:
+    - Product A
+    - Product B
+    synonyms:
+    - name
+    - product
+  facts: []
+  name: products
+  time_dimensions: []

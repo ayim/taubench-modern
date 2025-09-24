@@ -1,0 +1,23 @@
+description: Model with time columns
+name: time_model
+tables:
+- base_table:
+    data_connection_id: conn_123
+    database: test_db
+    schema: public
+    table: events
+  description: Event table
+  dimensions: []
+  facts: []
+  name: events
+  time_dimensions:
+  - data_type: TIMESTAMP
+    description: Creation timestamp
+    expr: created_at
+    name: created_at
+    sample_values:
+    - '2023-01-01 10:00:00'
+    - '2023-01-02 11:00:00'
+    synonyms:
+    - timestamp
+    - date_created

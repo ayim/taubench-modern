@@ -1,0 +1,23 @@
+description: Model with numeric columns
+name: numeric_model
+tables:
+- base_table:
+    data_connection_id: conn_123
+    database: test_db
+    schema: public
+    table: products
+  description: Product table
+  dimensions: []
+  facts:
+  - data_type: DECIMAL
+    description: Product price
+    expr: price
+    name: price
+    sample_values:
+    - 10.99
+    - 20.5
+    synonyms:
+    - cost
+    - amount
+  name: products
+  time_dimensions: []
