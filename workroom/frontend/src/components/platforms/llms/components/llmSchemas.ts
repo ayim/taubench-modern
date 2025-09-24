@@ -1,21 +1,31 @@
 import { z } from 'zod';
 import type { components } from '@sema4ai/agent-server-interface';
 export const OPENAI_MODEL_VALUES = [
-  'openai:gpt-3.5-turbo',
-  'openai:gpt-4-turbo',
-  'openai:gpt-4o',
+  'openai:gpt-5-high',
+  'openai:gpt-5-medium',
+  'openai:gpt-5-low',
+  'openai:gpt-5-minimal',
+  'openai:o4-mini-high',
+  'openai:o3-high',
+  'openai:o3-low',
   'openai:gpt-4.1',
   'openai:gpt-4.1-mini',
-  'openai:o3-low',
-  'openai:o3-high',
-  'openai:o4-mini-high',
+  'openai:gpt-4o',
+  'openai:gpt-4-turbo',
+  'openai:gpt-3.5-turbo',
 ] as const;
 export const AZURE_MODEL_VALUES = ['azure:azure-openai-service'] as const;
 export const BEDROCK_MODEL_VALUES = [
-  'bedrock:amazon-bedrock',
-  'bedrock:claude-3.7-sonnet',
-  'bedrock:claude-4-sonnet',
+  'bedrock:claude-4-1-opus-thinking-high',
+  'bedrock:claude-4-1-opus-thinking-medium',
+  'bedrock:claude-4-1-opus-thinking-low',
+  'bedrock:claude-4-sonnet-thinking-high',
+  'bedrock:claude-4-sonnet-thinking-medium',
+  'bedrock:claude-4-sonnet-thinking-low',
   'bedrock:claude-4-opus',
+  'bedrock:claude-4-sonnet',
+  'bedrock:claude-3.7-sonnet',
+  'bedrock:amazon-bedrock',
 ] as const;
 
 type AllPlatformParameters =
