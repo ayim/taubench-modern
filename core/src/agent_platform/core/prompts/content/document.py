@@ -1,13 +1,9 @@
 from base64 import b64decode
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Literal
 
-# from agent_platform.core.files import UploadedFile
 from agent_platform.core.prompts.content.base import PromptMessageContent
 from agent_platform.core.utils.asserts import assert_literal_value_valid
-
-# TODO: Remove this once the files module is implemented
-UploadedFile = Any
 
 
 @dataclass
@@ -34,14 +30,13 @@ class PromptDocumentContent(PromptMessageContent):
     )
     """MIME type of the document"""
 
-    value: str | bytes | UploadedFile = field(
+    # TODO Reintroduce UploadedFile when we have a way to leverage FileService properly
+    value: str | bytes = field(
         metadata={
-            "description": "The document data - either an agent-server UploadedFile, "
-            "base64 encoded string, or raw bytes",
+            "description": "The document data - either a base64 encoded string, or raw bytes",
         },
     )
-    """The document data - either an agent-server UploadedFile, base64 encoded string,
-    or raw bytes"""
+    """The document data - either a base64 encoded string or raw bytes"""
 
     name: str = field(
         metadata={
@@ -57,11 +52,11 @@ class PromptDocumentContent(PromptMessageContent):
     )
     """Message kind identifier, always 'document'"""
 
-    sub_type: Literal["UploadedFile", "base64", "raw_bytes", "url"] = field(
-        default="UploadedFile",
+    sub_type: Literal["base64", "raw_bytes", "url"] = field(
+        default="base64",
         metadata={
             "description": "Format of the document data - either an agent-server "
-            "UploadedFile, base64 encoded string, raw bytes, or URL",
+            "base64 encoded string, raw bytes, or URL",
         },
     )
     """Format of the document data - either an agent-server UploadedFile, base64
@@ -79,10 +74,6 @@ class PromptDocumentContent(PromptMessageContent):
         # Check for empty value
         if not self.value:
             raise ValueError("Document value cannot be empty")
-
-        # Validate UploadedFile if applicable
-        if self.sub_type == "UploadedFile":
-            raise NotImplementedError("UploadedFile is not implemented")
 
         # Validate base64 data if applicable
         if self.sub_type == "base64":
@@ -102,6 +93,13 @@ class PromptDocumentContent(PromptMessageContent):
                 raise ValueError("Document value must be a string")
             if not self.value.startswith("http"):
                 raise ValueError("Document value must be a valid URL")
+
+            from urllib.parse import urlparse
+
+            try:
+                urlparse(self.value)
+            except Exception as e:
+                raise ValueError("Document value must be a valid URL") from e
 
     def model_dump(self) -> dict:
         """Returns a dictionary representation suitable for serialization."""

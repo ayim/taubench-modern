@@ -10,6 +10,7 @@ from fastapi import Request
 from agent_platform.core.agent import Agent
 from agent_platform.core.agent.agent_architecture import AgentArchitecture
 from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
+from agent_platform.core.prompts.content.document import PromptDocumentContent
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
 from agent_platform.core.prompts.finalizers.truncation_finalizer import (
     TruncationFinalizer,
@@ -467,3 +468,80 @@ async def test_generate_endpoint_uses_thread_id(monkeypatch):
     )
 
     assert called["cfg"] == agent.platform_configs[0].model_dump()
+
+
+@pytest.mark.asyncio
+async def test_generate_endpoint_with_document_content(monkeypatch):
+    """Test /generate endpoint with PromptDocumentContent."""
+    import base64
+
+    # Create a simple test document (mimicking a PDF)
+    test_document_content = b"This is a test PDF document content"
+    base64_content = base64.b64encode(test_document_content).decode("utf-8")
+
+    # Mock _create_platform_interface_and_get_model to help with the test
+    monkeypatch.setattr(
+        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
+        lambda **kwargs: (_DummyPlatformClient("openai"), "some-override-model"),
+    )
+
+    # Create a prompt with document content following the spar-prompt-generate.py pattern
+    prompt_with_document = Prompt(
+        messages=[
+            PromptUserMessage(
+                [
+                    PromptTextContent(text="Please summarize this document."),
+                    PromptDocumentContent(
+                        name="test_document.pdf",
+                        mime_type="application/pdf",
+                        value=base64_content,
+                        sub_type="base64",
+                    ),
+                ]
+            )
+        ]
+    )
+
+    response = await prompt_generate(
+        prompt=prompt_with_document,
+        platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
+        user=User(user_id="testing", sub="testing"),
+        model="some-override-model",
+        request=Request(
+            scope={
+                "type": "http",
+                "method": "POST",
+                "path": "/api/v2/prompts/generate",
+            }
+        ),
+        storage=_DummyStorage(),  # type: ignore
+    )
+
+    # Verify the response structure matches expected format
+    expected = {
+        "content": [{"kind": "text", "text": "Madison."}],
+        "role": "agent",
+        "stop_reason": None,
+        "usage": {},
+        "model": "some-override-model",
+    }
+    assert response == expected
+
+    # Verify the document content was properly included in the prompt
+    assert len(prompt_with_document.messages) == 1
+    user_message = prompt_with_document.messages[0]
+    assert isinstance(user_message, PromptUserMessage)
+    assert len(user_message.content) == 2
+
+    # Check text content
+    text_content = user_message.content[0]
+    assert isinstance(text_content, PromptTextContent)
+    assert text_content.text == "Please summarize this document."
+
+    # Check document content
+    doc_content = user_message.content[1]
+    assert isinstance(doc_content, PromptDocumentContent)
+    assert doc_content.name == "test_document.pdf"
+    assert doc_content.mime_type == "application/pdf"
+    assert doc_content.value == base64_content
+    assert doc_content.sub_type == "base64"

@@ -12580,11 +12580,10 @@
               {
                 "type": "string",
                 "format": "binary"
-              },
-              {}
+              }
             ],
             "title": "Value",
-            "description": "The document data - either an agent-server UploadedFile, base64 encoded string, or raw bytes"
+            "description": "The document data - either a base64 encoded string, or raw bytes"
           },
           "name": {
             "type": "string",
@@ -12593,10 +12592,10 @@
           },
           "sub_type": {
             "type": "string",
-            "enum": ["UploadedFile", "base64", "raw_bytes", "url"],
+            "enum": ["base64", "raw_bytes", "url"],
             "title": "Sub Type",
-            "description": "Format of the document data - either an agent-server UploadedFile, base64 encoded string, raw bytes, or URL",
-            "default": "UploadedFile"
+            "description": "Format of the document data - either an agent-server base64 encoded string, raw bytes, or URL",
+            "default": "base64"
           }
         },
         "type": "object",

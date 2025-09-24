@@ -1,14 +1,17 @@
 import base64
 import json
+import mimetypes
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.prompts.content.reasoning import PromptReasoningContent
 
 if TYPE_CHECKING:
     from openai.types.responses import (
         ResponseFunctionToolCallParam,
         ResponseInputContentParam,
+        ResponseInputFileParam,
         ResponseInputImageParam,
         ResponseInputItemParam,
         ResponseInputTextParam,
@@ -165,9 +168,58 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def convert_document_content(
         self,
         content: PromptDocumentContent,
-    ):
+    ) -> "ResponseInputFileParam":
         """Converts document content to OpenAI format."""
-        raise NotImplementedError("Document not supported yet")
+        from openai.types.responses import ResponseInputFileParam
+
+        filename = content.name or "document"
+        if "." not in filename:
+            guessed_extension = mimetypes.guess_extension(content.mime_type)
+            if guessed_extension:
+                filename = f"{filename}{guessed_extension}"
+
+        if content.sub_type == "base64" and isinstance(content.value, str):
+            file_data = content.value
+        elif content.sub_type == "raw_bytes" and isinstance(content.value, bytes):
+            file_data = base64.b64encode(content.value).decode("utf-8")
+        elif content.sub_type == "url" and isinstance(content.value, str):
+            import os
+            import tempfile
+
+            from sema4ai_http import download_with_resume
+
+            # Download the file to a temporary file and then encode it to base64
+            # On Windows, NamedTemporaryFile keeps the file open which prevents
+            # download_with_resume from replacing it. Use mkstemp instead.
+            fd, temp_file_path = tempfile.mkstemp()
+            os.close(fd)  # Close the file descriptor immediately
+
+            try:
+                # Make sure to force_overwrite=True, else download_with_resume will
+                # not actually download the file.
+                download_result = download_with_resume(
+                    content.value, temp_file_path, overwrite_existing=True
+                )
+                file_data = base64.b64encode(download_result.path.read_bytes()).decode("utf-8")
+            finally:
+                # Clean up the temporary file
+                try:
+                    os.unlink(temp_file_path)
+                except Exception:
+                    pass
+
+        else:
+            raise ValueError(
+                "Document content must provide base64, raw_bytes, or url for the OpenAI"
+            )
+
+        OpenAIConverters._check_file_size(content.mime_type, file_data)
+
+        return ResponseInputFileParam(
+            type="input_file",
+            filename=filename,
+            file_data=f"data:{content.mime_type};base64,{file_data}",
+        )
 
     async def _process_user_message_content(
         self,
@@ -210,8 +262,8 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
                     content_parts.append(await self.convert_image_content(image_content))
                 case PromptAudioContent():
                     raise NotImplementedError("Audio not supported yet")
-                case PromptDocumentContent():
-                    raise NotImplementedError("Document content not supported yet")
+                case PromptDocumentContent() as document_content:
+                    content_parts.append(await self.convert_document_content(document_content))
 
         return content_parts, tool_results
 
@@ -429,3 +481,17 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             max_output_tokens=prompt.max_output_tokens or 4096,
             reasoning=reasoning,
         )
+
+    @classmethod
+    def _check_file_size(
+        cls, mime_type: str, b64_encoded_file_data: str, limit_mb: int = 10
+    ) -> None:
+        """Coarse check to ensure that a single file doesn't exceed the 10MB limit."""
+
+        approximate_size_bytes = len(b64_encoded_file_data) / 1.33
+        if approximate_size_bytes > limit_mb * 1024 * 1024:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="OpenAI limits the size of a single file to 10MB "
+                f"(saw {approximate_size_bytes} bytes)",
+            )

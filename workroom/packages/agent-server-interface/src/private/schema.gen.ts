@@ -4815,9 +4815,9 @@ export interface components {
         | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
       /**
        * Value
-       * @description The document data - either an agent-server UploadedFile, base64 encoded string, or raw bytes
+       * @description The document data - either a base64 encoded string, or raw bytes
        */
-      value: string | unknown;
+      value: string;
       /**
        * Name
        * @description The name of the document
@@ -4825,11 +4825,11 @@ export interface components {
       name: string;
       /**
        * Sub Type
-       * @description Format of the document data - either an agent-server UploadedFile, base64 encoded string, raw bytes, or URL
-       * @default UploadedFile
+       * @description Format of the document data - either an agent-server base64 encoded string, raw bytes, or URL
+       * @default base64
        * @enum {string}
        */
-      sub_type: 'UploadedFile' | 'base64' | 'raw_bytes' | 'url';
+      sub_type: 'base64' | 'raw_bytes' | 'url';
     };
     /** PromptImageContent */
     PromptImageContent: {

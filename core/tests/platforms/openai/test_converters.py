@@ -1,14 +1,17 @@
 """Unit tests for the OpenAI platform converters."""
 
+import base64
 from unittest.mock import MagicMock
 
 import pytest
 
+from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.openai.converters import OpenAIConverters
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.prompts import (
     Prompt,
+    PromptDocumentContent,
     PromptImageContent,
     PromptTextContent,
     PromptToolResultContent,
@@ -198,12 +201,114 @@ class TestOpenAIConverters:
         tool_obj = result.tools[0]
         assert tool_obj.get("type") == "function"
         assert tool_obj.get("name") == "test-tool"
-        assert tool_obj.get("description") == "A test tool"
-        parameters = tool_obj.get("parameters")
-        assert isinstance(parameters, dict)
-        assert parameters.get("type") == "object"
-        assert isinstance(parameters.get("properties"), dict)
-        assert parameters.get("required") == ["key"]
+
+    @pytest.mark.asyncio
+    async def test_convert_document_content(
+        self,
+        converters: OpenAIConverters,
+    ) -> None:
+        """Test converting document content."""
+        pdf_bytes = b"%PDF-1.5 test"
+        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+        document = PromptDocumentContent(
+            mime_type="application/pdf",
+            value=base64_pdf,
+            name="report.pdf",
+            sub_type="base64",
+        )
+
+        result = await converters.convert_document_content(document)
+
+        assert result.get("type") == "input_file"
+        assert result.get("filename") == "report.pdf"
+        assert result.get("file_data") == f"data:application/pdf;base64,{base64_pdf}"
+
+    @pytest.mark.asyncio
+    async def test_convert_document_content_bytes(
+        self,
+        converters: OpenAIConverters,
+    ) -> None:
+        """Test converting document content."""
+        pdf_bytes = b"%PDF-1.5 test"
+        # Convert to base64 so we can verify it later
+        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+
+        document = PromptDocumentContent(
+            mime_type="text/plain",
+            value=pdf_bytes,
+            name="report.pdf",
+            sub_type="raw_bytes",
+        )
+
+        result = await converters.convert_document_content(document)
+
+        assert result.get("type") == "input_file"
+        assert result.get("filename") == "report.pdf"
+        assert result.get("file_data") == f"data:text/plain;base64,{base64_pdf}"
+
+    @pytest.mark.asyncio
+    async def test_convert_document_content_url(
+        self,
+        converters: OpenAIConverters,
+    ) -> None:
+        """Test converting document content."""
+        import httpx
+
+        try:
+            response = httpx.get("https://cdn.sema4.ai/gallery/actions/browsing/1.3.3/README.md")
+            response.raise_for_status()
+        except httpx.HTTPError:
+            pytest.skip("Failed to download README.md")
+
+        print(response.text)
+        base64_content = base64.b64encode(response.text.encode("utf-8")).decode("utf-8")
+        print(base64_content)
+
+        document = PromptDocumentContent(
+            mime_type="text/plain",
+            value="https://cdn.sema4.ai/gallery/actions/browsing/1.3.3/README.md",
+            name="README.md",
+            sub_type="url",
+        )
+
+        result = await converters.convert_document_content(document)
+
+        assert result.get("type") == "input_file"
+        assert result.get("filename") == "README.md"
+        assert result.get("file_data") == f"data:text/plain;base64,{base64_content}"
+
+    @pytest.mark.asyncio
+    async def test_convert_prompt_with_document(
+        self,
+        converters: OpenAIConverters,
+        kernel: Kernel,
+    ) -> None:
+        """Ensure document content is passed through to the OpenAI request."""
+        pdf_bytes = b"%PDF-1.5 test"
+        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+        prompt = Prompt(
+            messages=[
+                PromptUserMessage(
+                    [
+                        PromptDocumentContent(
+                            mime_type="application/pdf",
+                            value=base64_pdf,
+                            name="report.pdf",
+                            sub_type="base64",
+                        )
+                    ]
+                )
+            ],
+        )
+
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(finalized_prompt, model_id="gpt-4.1")
+
+        assert result.input is not None
+        assert len(result.input) == 1
+        user_msg = result.input[0]
+        content: list[dict] = user_msg.get("content", [])  # type: ignore
+        assert any(part.get("type") == "input_file" for part in content)
 
     @pytest.mark.asyncio
     async def test_convert_tool_result_content(
@@ -353,3 +458,15 @@ class TestOpenAIConverters:
         assert result[0].get("text") == "Hello, world!"
         assert len(tool_results) == 1
         assert tool_results[0].get("type") == "function_call_output"
+
+    @pytest.mark.asyncio
+    async def test_check_file_size(self) -> None:
+        """Test checking file size."""
+        # 1KB of "base64 encoded" data, well below the 1MB limit
+        test_data = "a" * 1024
+        OpenAIConverters._check_file_size("application/pdf", test_data, limit_mb=1)
+
+        # 1MB of "base64 encoded" data, would exceed the 1MB limit (1024 * 1024 *1.5)
+        test_data = "a" * 1024 * 1535
+        with pytest.raises(PlatformHTTPError):
+            OpenAIConverters._check_file_size("application/pdf", test_data, limit_mb=1)

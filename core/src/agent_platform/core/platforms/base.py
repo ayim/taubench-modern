@@ -303,6 +303,8 @@ class PlatformConverters(ABC, UsesKernelMixin):
             return await self.convert_tool_use_content(content)
         elif ctype == "tool_result" and isinstance(content, PromptToolResultContent):
             return await self.convert_tool_result_content(content)
+        elif ctype == "document" and isinstance(content, PromptDocumentContent):
+            return await self.convert_document_content(content)
         else:
             raise ValueError(f"Unsupported PromptMessageContent type: {ctype}.")
 
