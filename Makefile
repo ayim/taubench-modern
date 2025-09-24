@@ -130,6 +130,10 @@ observability-clean: ## Clean the observability stack and volumes.
 # --------------------------------------------------------------------
 # Run & Test
 # --------------------------------------------------------------------
+run-openapi-spec:
+	@echo "Running openapi spec from agent_platform.server..."
+	uv run -m agent_platform.server --generate-openapi-spec-only --private-openapi-file "$(PRIVATE_OPENAPI_FILE)" --public-openapi-file "$(PUBLIC_OPENAPI_FILE)"
+
 run-server:  ## Run the agent server
 	@echo "Running server from agent_platform.server..."
 	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"

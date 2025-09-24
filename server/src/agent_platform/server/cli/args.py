@@ -31,6 +31,9 @@ class ServerArgs:
     ignore_config: bool = SystemConfig.ignore_config
     export_config: PathLike | None = None
     log_level: str = SystemConfig.log_level
+    generate_openapi_spec_only: bool = False
+    private_openapi_file: str = "private.openapi.json"
+    public_openapi_file: str = "public.openapi.json"
 
 
 def set_no_logging(args: ServerArgs) -> None:
@@ -160,6 +163,21 @@ def parse_args() -> ServerArgs:
         type=str,
         default=SystemConfig.log_level,
         help=f"Log level to use, defaults to '{SystemConfig.log_level}'.",
+    )
+    parser.add_argument(
+        "--generate-openapi-spec-only",
+        action="store_true",
+        help="Generate OpenAPI Spec without starting the server",
+    )
+    parser.add_argument(
+        "--private-openapi-file",
+        default="private.openapi.json",
+        help="Path to write the OpenAPI JSON (default: private.openapi.json).",
+    )
+    parser.add_argument(
+        "--public-openapi-file",
+        default="public.openapi.json",
+        help="Path to write the OpenAPI JSON (default: public.openapi.json).",
     )
     args = parser.parse_args()
     logger.debug(f"Parsed command-line arguments: {vars(args)}")

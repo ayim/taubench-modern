@@ -2,72 +2,18 @@
 
 set -eou pipefail
 
-# We run a temporary instance of Agent Server on a non-standard port to make sure we have the latest code running
-TMP_AGENT_SERVER_PORT="28123"
 SCRIPT_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 ROOT_DIR="${SCRIPT_DIR}/.."
 WORKROOM_DIR="${ROOT_DIR}/workroom"
 PRIVATE_OPENAPI_JSON="${WORKROOM_DIR}/packages/agent-server-interface/private.openapi.json"
 PUBLIC_OPENAPI_JSON="${WORKROOM_DIR}/packages/agent-server-interface/public.openapi.json"
 
-# [Boot Agent Server] ##############################################################################
-
-echo "Starting Agent Server for spec introspection..."
-
-# Check if port is already in use
-if lsof -i :${TMP_AGENT_SERVER_PORT} > /dev/null 2>&1; then
-  echo "Port ${TMP_AGENT_SERVER_PORT} is already in use. Current processes:"
-  lsof -i :${TMP_AGENT_SERVER_PORT}
-  echo ""
-  echo "To kill the process using this port, run:"
-  lsof -ti :${TMP_AGENT_SERVER_PORT} | xargs -I {} echo "kill {}"
-  echo "Please stop the process using this port or choose a different port."
-  exit 1
-fi
-
 cd "${ROOT_DIR}"
 
 make sync
-PORT="${TMP_AGENT_SERVER_PORT}" make run-server &> /dev/null &
-server_pid="${!}"
-
-kill_server() {
-  kill "${server_pid}"
-}
-trap kill_server EXIT
-
-for i in {1..20}; do
-  sleep 2
-
-  if curl -sf "http://localhost:${TMP_AGENT_SERVER_PORT}/api/v2/ok" > /dev/null; then
-    break
-  fi
-
-  echo "Agent Server not responsive yet (try #${i})..."
-
-  if [ "${i}" -eq 50 ]; then
-    echo "Agent Server failed to respond after 50 attempts"
-    exit 1
-  fi
-done
+PRIVATE_OPENAPI_FILE="${PRIVATE_OPENAPI_JSON}" PUBLIC_OPENAPI_FILE="${PUBLIC_OPENAPI_JSON}" make run-openapi-spec &> /dev/null
 
 # [Generate Interface] #############################################################################
-
-echo "Synchronizing OpenAPI specifications..."
-
-cd "${WORKROOM_DIR}"
-
-curl \
-  --silent \
-  --fail-with-body \
-  --show-error \
-  "http://localhost:${TMP_AGENT_SERVER_PORT}/api/v2/openapi.json" > "${PRIVATE_OPENAPI_JSON}"
-
-curl \
-  --silent \
-  --fail-with-body \
-  --show-error \
-  "http://localhost:${TMP_AGENT_SERVER_PORT}/api/public/v1/openapi.json" > "${PUBLIC_OPENAPI_JSON}"
 
 echo "Generating TS types for the interface..."
 cd "${ROOT_DIR}/workroom/packages/agent-server-interface" && \

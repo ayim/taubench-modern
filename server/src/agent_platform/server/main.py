@@ -10,6 +10,7 @@ from agent_platform.server.cli import (
     parse_config_path_args,
     print_config,
     print_license,
+    print_openapi_spec,
     set_no_logging,
 )
 from agent_platform.server.configuration_manager import (
@@ -76,6 +77,13 @@ def main():
     # Handle config output or schema export actions
     if args.export_config:
         print_config(should_exit=True, export_path=args.export_config)
+
+    if args.generate_openapi_spec_only:
+        print_openapi_spec(
+            should_exit=True,
+            private_path=args.private_openapi_file,
+            public_path=args.public_openapi_file,
+        )
 
     # Create and run the server lifecycle manager
     lifecycle_manager = ServerLifecycleManager(args)

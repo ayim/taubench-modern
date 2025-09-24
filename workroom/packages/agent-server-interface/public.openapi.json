@@ -4,7 +4,6 @@
     "title": "Sema4.ai Agent Server Public API Version 2",
     "version": "2.1.6"
   },
-  "servers": [{ "url": "/api/public/v1" }],
   "paths": {
     "/agents": {
       "get": {
@@ -18,7 +17,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [{ "type": "integer" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Limit"
             }
           },
@@ -27,7 +33,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "Filter agents by name (starts with, case insensitive).",
               "title": "Name"
             },
@@ -39,7 +52,9 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaginatedResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
               }
             }
           },
@@ -47,7 +62,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -55,7 +72,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -73,7 +92,10 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Aid" }
+            "schema": {
+              "type": "string",
+              "title": "Aid"
+            }
           }
         ],
         "responses": {
@@ -81,7 +103,9 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AgentCompat" }
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCompat"
+                }
               }
             }
           },
@@ -89,7 +113,9 @@
             "description": "Agent not found",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -97,7 +123,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -105,7 +133,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -123,14 +153,24 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Aid" }
+            "schema": {
+              "type": "string",
+              "title": "Aid"
+            }
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [{ "type": "integer" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Limit"
             }
           }
@@ -140,7 +180,9 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaginatedResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
               }
             }
           },
@@ -148,7 +190,9 @@
             "description": "Bad Request",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -156,7 +200,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -164,7 +210,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -180,14 +228,19 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Aid" }
+            "schema": {
+              "type": "string",
+              "title": "Aid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateChatRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateChatRequest"
+              }
             }
           }
         },
@@ -196,7 +249,9 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Conversation" }
+                "schema": {
+                  "$ref": "#/components/schemas/Conversation"
+                }
               }
             }
           },
@@ -204,7 +259,9 @@
             "description": "Bad Request",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -212,7 +269,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -220,7 +279,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -238,13 +299,19 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Aid" }
+            "schema": {
+              "type": "string",
+              "title": "Aid"
+            }
           },
           {
             "name": "cid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Cid" }
+            "schema": {
+              "type": "string",
+              "title": "Cid"
+            }
           }
         ],
         "responses": {
@@ -252,7 +319,9 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaginatedResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
               }
             }
           },
@@ -260,7 +329,9 @@
             "description": "Agent/Conversation not found",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -268,7 +339,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -276,7 +349,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -292,20 +367,28 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Aid" }
+            "schema": {
+              "type": "string",
+              "title": "Aid"
+            }
           },
           {
             "name": "cid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Cid" }
+            "schema": {
+              "type": "string",
+              "title": "Cid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ChatMessageRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ChatMessageRequest"
+              }
             }
           }
         },
@@ -314,7 +397,9 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaginatedResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
               }
             }
           },
@@ -322,7 +407,9 @@
             "description": "Bad Request",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -330,7 +417,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -338,7 +427,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -356,20 +447,28 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Aid" }
+            "schema": {
+              "type": "string",
+              "title": "Aid"
+            }
           },
           {
             "name": "cid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Cid" }
+            "schema": {
+              "type": "string",
+              "title": "Cid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ChatMessageRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ChatMessageRequest"
+              }
             }
           }
         },
@@ -377,7 +476,9 @@
           "200": {
             "description": "SSE stream of Delta messages",
             "content": {
-              "application/json": { "schema": {} },
+              "application/json": {
+                "schema": {}
+              },
               "text/event-stream": {}
             }
           },
@@ -385,7 +486,9 @@
             "description": "Bad Request",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -393,7 +496,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -401,7 +506,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -419,13 +526,19 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Aid" }
+            "schema": {
+              "type": "string",
+              "title": "Aid"
+            }
           },
           {
             "name": "cid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Cid" }
+            "schema": {
+              "type": "string",
+              "title": "Cid"
+            }
           }
         ],
         "responses": {
@@ -433,7 +546,9 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Conversation" }
+                "schema": {
+                  "$ref": "#/components/schemas/Conversation"
+                }
               }
             }
           },
@@ -441,7 +556,9 @@
             "description": "Conversation not found",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -449,7 +566,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           },
@@ -457,7 +576,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -473,7 +594,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateWorkItemPayload" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkItemPayload"
+              }
             }
           }
         },
@@ -482,7 +605,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/WorkItem" }
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItem"
+                }
               }
             }
           },
@@ -490,7 +615,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -506,7 +633,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "The ID of the agent to filter by",
               "title": "Agent Id"
             },
@@ -543,7 +677,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "The ID of the user who created the work items",
               "title": "Created By"
             },
@@ -565,7 +706,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -581,7 +724,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateWorkItemPayload" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkItemPayload"
+              }
             }
           }
         },
@@ -590,7 +735,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/WorkItem" }
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItem"
+                }
               }
             }
           },
@@ -598,7 +745,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -614,7 +763,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "The ID of the agent to filter by",
               "title": "Agent Id"
             },
@@ -651,7 +807,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "The ID of the user who created the work items",
               "title": "Created By"
             },
@@ -673,7 +836,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -690,7 +855,10 @@
             "name": "work_item_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Work Item Id" }
+            "schema": {
+              "type": "string",
+              "title": "Work Item Id"
+            }
           },
           {
             "name": "results",
@@ -710,7 +878,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/WorkItem" }
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItem"
+                }
               }
             }
           },
@@ -718,7 +888,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -736,7 +908,10 @@
             "name": "work_item_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Work Item Id" }
+            "schema": {
+              "type": "string",
+              "title": "Work Item Id"
+            }
           }
         ],
         "requestBody": {
@@ -756,7 +931,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "string"
+                  },
                   "title": "Response Confirm File Work Items  Work Item Id  Confirm File Post"
                 }
               }
@@ -766,7 +943,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -785,7 +964,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Work Item Id"
             }
           }
@@ -809,8 +995,13 @@
                   "type": "object",
                   "additionalProperties": {
                     "anyOf": [
-                      { "type": "string" },
-                      { "type": "object", "additionalProperties": true }
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
                     ]
                   },
                   "title": "Response Upload Work Item File Work Items Upload File Post"
@@ -822,7 +1013,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -839,7 +1032,10 @@
             "name": "work_item_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Work Item Id" }
+            "schema": {
+              "type": "string",
+              "title": "Work Item Id"
+            }
           }
         ],
         "responses": {
@@ -847,7 +1043,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/WorkItem" }
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItem"
+                }
               }
             }
           },
@@ -855,7 +1053,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -872,7 +1072,10 @@
             "name": "work_item_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Work Item Id" }
+            "schema": {
+              "type": "string",
+              "title": "Work Item Id"
+            }
           }
         ],
         "responses": {
@@ -880,7 +1083,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/WorkItem" }
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItem"
+                }
               }
             }
           },
@@ -888,7 +1093,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -905,19 +1112,28 @@
             "name": "work_item_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Work Item Id" }
+            "schema": {
+              "type": "string",
+              "title": "Work Item Id"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": { "application/json": { "schema": {} } }
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -935,19 +1151,28 @@
             "name": "work_item_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Work Item Id" }
+            "schema": {
+              "type": "string",
+              "title": "Work Item Id"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": { "application/json": { "schema": {} } }
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
               }
             }
           }
@@ -961,7 +1186,11 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": { "application/json": { "schema": {} } }
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
           }
         }
       }
@@ -975,7 +1204,10 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Agent ID" }
+            "schema": {
+              "type": "string",
+              "title": "Agent ID"
+            }
           }
         ],
         "requestBody": {
@@ -988,11 +1220,23 @@
                     "type": "object",
                     "required": ["jsonrpc", "id", "method"],
                     "properties": {
-                      "jsonrpc": { "type": "string", "enum": ["2.0"] },
-                      "id": {
-                        "oneOf": [{ "type": "integer" }, { "type": "string" }]
+                      "jsonrpc": {
+                        "type": "string",
+                        "enum": ["2.0"]
                       },
-                      "method": { "type": "string" },
+                      "id": {
+                        "oneOf": [
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "method": {
+                        "type": "string"
+                      },
                       "params": {
                         "type": "object",
                         "additionalProperties": true
@@ -1007,14 +1251,23 @@
                           "type": "object",
                           "required": ["jsonrpc", "id", "method"],
                           "properties": {
-                            "jsonrpc": { "type": "string", "enum": ["2.0"] },
+                            "jsonrpc": {
+                              "type": "string",
+                              "enum": ["2.0"]
+                            },
                             "id": {
                               "oneOf": [
-                                { "type": "integer" },
-                                { "type": "string" }
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "string"
+                                }
                               ]
                             },
-                            "method": { "type": "string" },
+                            "method": {
+                              "type": "string"
+                            },
                             "params": {
                               "type": "object",
                               "additionalProperties": true
@@ -1025,12 +1278,21 @@
                           "type": "object",
                           "required": ["jsonrpc", "id"],
                           "properties": {
-                            "jsonrpc": { "type": "string", "enum": ["2.0"] },
+                            "jsonrpc": {
+                              "type": "string",
+                              "enum": ["2.0"]
+                            },
                             "id": {
                               "oneOf": [
-                                { "type": "integer" },
-                                { "type": "string" },
-                                { "type": "null" }
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             },
                             "result": {
@@ -1041,8 +1303,12 @@
                               "type": "object",
                               "required": ["code", "message"],
                               "properties": {
-                                "code": { "type": "integer" },
-                                "message": { "type": "string" },
+                                "code": {
+                                  "type": "integer"
+                                },
+                                "message": {
+                                  "type": "string"
+                                },
                                 "data": {
                                   "type": "object",
                                   "additionalProperties": true
@@ -1055,8 +1321,13 @@
                           "type": "object",
                           "required": ["jsonrpc", "method"],
                           "properties": {
-                            "jsonrpc": { "type": "string", "enum": ["2.0"] },
-                            "method": { "type": "string" },
+                            "jsonrpc": {
+                              "type": "string",
+                              "enum": ["2.0"]
+                            },
+                            "method": {
+                              "type": "string"
+                            },
                             "params": {
                               "type": "object",
                               "additionalProperties": true
@@ -1070,12 +1341,21 @@
                     "type": "object",
                     "required": ["jsonrpc", "id"],
                     "properties": {
-                      "jsonrpc": { "type": "string", "enum": ["2.0"] },
+                      "jsonrpc": {
+                        "type": "string",
+                        "enum": ["2.0"]
+                      },
                       "id": {
                         "oneOf": [
-                          { "type": "integer" },
-                          { "type": "string" },
-                          { "type": "null" }
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
                         ]
                       },
                       "result": {
@@ -1086,8 +1366,12 @@
                         "type": "object",
                         "required": ["code", "message"],
                         "properties": {
-                          "code": { "type": "integer" },
-                          "message": { "type": "string" },
+                          "code": {
+                            "type": "integer"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
                           "data": {
                             "type": "object",
                             "additionalProperties": true
@@ -1099,7 +1383,11 @@
                 ]
               }
             },
-            "text/event-stream": { "schema": { "type": "string" } }
+            "text/event-stream": {
+              "schema": {
+                "type": "string"
+              }
+            }
           }
         },
         "responses": {
@@ -1116,12 +1404,21 @@
                       "type": "object",
                       "required": ["jsonrpc", "id"],
                       "properties": {
-                        "jsonrpc": { "type": "string", "enum": ["2.0"] },
+                        "jsonrpc": {
+                          "type": "string",
+                          "enum": ["2.0"]
+                        },
                         "id": {
                           "oneOf": [
-                            { "type": "integer" },
-                            { "type": "string" },
-                            { "type": "null" }
+                            {
+                              "type": "integer"
+                            },
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
                           ]
                         },
                         "result": {
@@ -1132,8 +1429,12 @@
                           "type": "object",
                           "required": ["code", "message"],
                           "properties": {
-                            "code": { "type": "integer" },
-                            "message": { "type": "string" },
+                            "code": {
+                              "type": "integer"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
                             "data": {
                               "type": "object",
                               "additionalProperties": true
@@ -1150,14 +1451,23 @@
                             "type": "object",
                             "required": ["jsonrpc", "id", "method"],
                             "properties": {
-                              "jsonrpc": { "type": "string", "enum": ["2.0"] },
+                              "jsonrpc": {
+                                "type": "string",
+                                "enum": ["2.0"]
+                              },
                               "id": {
                                 "oneOf": [
-                                  { "type": "integer" },
-                                  { "type": "string" }
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
                                 ]
                               },
-                              "method": { "type": "string" },
+                              "method": {
+                                "type": "string"
+                              },
                               "params": {
                                 "type": "object",
                                 "additionalProperties": true
@@ -1168,12 +1478,21 @@
                             "type": "object",
                             "required": ["jsonrpc", "id"],
                             "properties": {
-                              "jsonrpc": { "type": "string", "enum": ["2.0"] },
+                              "jsonrpc": {
+                                "type": "string",
+                                "enum": ["2.0"]
+                              },
                               "id": {
                                 "oneOf": [
-                                  { "type": "integer" },
-                                  { "type": "string" },
-                                  { "type": "null" }
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
                                 ]
                               },
                               "result": {
@@ -1184,8 +1503,12 @@
                                 "type": "object",
                                 "required": ["code", "message"],
                                 "properties": {
-                                  "code": { "type": "integer" },
-                                  "message": { "type": "string" },
+                                  "code": {
+                                    "type": "integer"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
                                   "data": {
                                     "type": "object",
                                     "additionalProperties": true
@@ -1198,8 +1521,13 @@
                             "type": "object",
                             "required": ["jsonrpc", "method"],
                             "properties": {
-                              "jsonrpc": { "type": "string", "enum": ["2.0"] },
-                              "method": { "type": "string" },
+                              "jsonrpc": {
+                                "type": "string",
+                                "enum": ["2.0"]
+                              },
+                              "method": {
+                                "type": "string"
+                              },
                               "params": {
                                 "type": "object",
                                 "additionalProperties": true
@@ -1227,14 +1555,21 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "title": "Agent ID" }
+            "schema": {
+              "type": "string",
+              "title": "Agent ID"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Server-Sent Events stream of JSON-RPC requests/notifications",
             "content": {
-              "text/event-stream": { "schema": { "type": "string" } }
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           },
           "405": {
@@ -1248,10 +1583,22 @@
     "schemas": {
       "AgentCompat": {
         "properties": {
-          "id": { "type": "string", "title": "Id" },
-          "name": { "type": "string", "title": "Name" },
-          "description": { "type": "string", "title": "Description" },
-          "mode": { "type": "string", "title": "Mode" }
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          }
         },
         "type": "object",
         "required": ["id", "name", "description", "mode"],
@@ -1261,8 +1608,13 @@
         "properties": {
           "file": {
             "anyOf": [
-              { "type": "string", "format": "binary" },
-              { "type": "string" }
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "string"
+              }
             ],
             "title": "File"
           }
@@ -1272,7 +1624,12 @@
         "title": "Body_upload_work_item_file_work_items_upload_file_post"
       },
       "ChatMessageRequest": {
-        "properties": { "content": { "type": "string", "title": "Content" } },
+        "properties": {
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
         "type": "object",
         "required": ["content"],
         "title": "ChatMessageRequest"
@@ -1295,7 +1652,14 @@
             "description": "The end character index of the citation in the document"
           },
           "cited_text": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Cited Text",
             "description": "The text that is being cited (if provided, may be None)"
           }
@@ -1306,8 +1670,14 @@
       },
       "ConfirmRemoteFileUploadPayload": {
         "properties": {
-          "file_ref": { "type": "string", "title": "File Ref" },
-          "file_id": { "type": "string", "title": "File Id" }
+          "file_ref": {
+            "type": "string",
+            "title": "File Ref"
+          },
+          "file_id": {
+            "type": "string",
+            "title": "File Id"
+          }
         },
         "type": "object",
         "required": ["file_ref", "file_id"],
@@ -1315,16 +1685,30 @@
       },
       "Conversation": {
         "properties": {
-          "id": { "type": "string", "title": "Id" },
-          "name": { "type": "string", "title": "Name" },
-          "agent_id": { "type": "string", "title": "Agent Id" }
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          }
         },
         "type": "object",
         "required": ["id", "name", "agent_id"],
         "title": "Conversation"
       },
       "CreateChatRequest": {
-        "properties": { "name": { "type": "string", "title": "Name" } },
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
         "type": "object",
         "required": ["name"],
         "title": "CreateChatRequest"
@@ -1337,7 +1721,9 @@
             "description": "The ID of the agent that will process this work item."
           },
           "messages": {
-            "items": { "$ref": "#/components/schemas/ThreadMessage" },
+            "items": {
+              "$ref": "#/components/schemas/ThreadMessage"
+            },
             "type": "array",
             "title": "Messages",
             "description": "The messages in the work item conversation."
@@ -1349,22 +1735,40 @@
             "description": "The payload of the work item."
           },
           "work_item_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Work Item Id",
             "description": "The ID of the work item."
           },
           "work_item_name": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Work Item Name",
             "description": "User-friendly name for the work item.Must be less than 255 characters."
           },
           "callbacks": {
             "anyOf": [
               {
-                "items": { "$ref": "#/components/schemas/WorkItemCallback" },
+                "items": {
+                  "$ref": "#/components/schemas/WorkItemCallback"
+                },
                 "type": "array"
               },
-              { "type": "null" }
+              {
+                "type": "null"
+              }
             ],
             "title": "Callbacks",
             "description": "A list of callbacks to trigger when the work item reaches a certain status."
@@ -1377,11 +1781,25 @@
       "PaginatedResponse": {
         "properties": {
           "next": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Next"
           },
-          "has_more": { "type": "boolean", "title": "Has More" },
-          "data": { "items": {}, "type": "array", "title": "Data" }
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          },
+          "data": {
+            "items": {},
+            "type": "array",
+            "title": "Data"
+          }
         },
         "type": "object",
         "required": ["next", "has_more", "data"],
@@ -1417,17 +1835,38 @@
             "description": "The MIME type of the attachment"
           },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Description",
             "description": "The description of the attachment"
           },
           "uri": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Uri",
             "description": "The URI of the attachment, if the attachment is a handle"
           },
           "base64_data": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Base64 Data",
             "description": "The base64 encoded data of the attachment, if the attachment is a file"
           }
@@ -1441,12 +1880,24 @@
           "content": {
             "items": {
               "anyOf": [
-                { "$ref": "#/components/schemas/ThreadTextContent" },
-                { "$ref": "#/components/schemas/ThreadQuickActionsContent" },
-                { "$ref": "#/components/schemas/ThreadVegaChartContent" },
-                { "$ref": "#/components/schemas/ThreadToolUsageContent" },
-                { "$ref": "#/components/schemas/ThreadThoughtContent" },
-                { "$ref": "#/components/schemas/ThreadAttachmentContent" }
+                {
+                  "$ref": "#/components/schemas/ThreadTextContent"
+                },
+                {
+                  "$ref": "#/components/schemas/ThreadQuickActionsContent"
+                },
+                {
+                  "$ref": "#/components/schemas/ThreadVegaChartContent"
+                },
+                {
+                  "$ref": "#/components/schemas/ThreadToolUsageContent"
+                },
+                {
+                  "$ref": "#/components/schemas/ThreadThoughtContent"
+                },
+                {
+                  "$ref": "#/components/schemas/ThreadAttachmentContent"
+                }
               ]
             },
             "type": "array",
@@ -1496,7 +1947,14 @@
             "description": "The metadata associated with the message (for agent-server use only)"
           },
           "parent_run_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Parent Run Id",
             "description": "The unique identifier for the run that created this message or None if this message was not created by a run"
           },
@@ -1523,7 +1981,14 @@
             "description": "The value of the quick action (the text that will be submitted when the action is clicked)"
           },
           "icon": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Icon",
             "description": "The icon of the quick action (if any)"
           }
@@ -1595,7 +2060,9 @@
             "description": "The actual text content of the message"
           },
           "citations": {
-            "items": { "$ref": "#/components/schemas/Citation" },
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
             "type": "array",
             "title": "Citations",
             "description": "The citations in the text content"
@@ -1697,49 +2164,90 @@
             "default": "pending"
           },
           "result": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Result",
             "description": "The result of the tool call, if it has finished"
           },
           "error": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Error",
             "description": "The error message of the tool call, if it has failed"
           },
           "discovered_at": {
             "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
             ],
             "title": "Discovered At",
             "description": "The timestamp when the tool call was discovered in stream or response"
           },
           "pending_at": {
             "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
             ],
             "title": "Pending At",
             "description": "The timestamp when the tool call was pending (fully formed, not yet executed)"
           },
           "started_at": {
             "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
             ],
             "title": "Started At",
             "description": "The timestamp when the tool call started"
           },
           "ended_at": {
             "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
             ],
             "title": "Ended At",
             "description": "The timestamp when the tool call ended"
           },
           "action_server_run_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Action Server Run Id",
             "description": "The run ID from the action server"
           },
@@ -1794,8 +2302,13 @@
           },
           "_chart_spec": {
             "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
             ],
             "title": "Chart Spec"
           }
@@ -1822,12 +2335,26 @@
             "description": "The ID of the user who created the work item"
           },
           "agent_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Agent Id",
             "description": "The ID of the agent that will process this work item"
           },
           "thread_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Thread Id",
             "description": "The ID of the thread associated with this work item (may be null until created)."
           },
@@ -1850,8 +2377,12 @@
           },
           "completed_by": {
             "anyOf": [
-              { "$ref": "#/components/schemas/WorkItemCompletedBy" },
-              { "type": "null" }
+              {
+                "$ref": "#/components/schemas/WorkItemCompletedBy"
+              },
+              {
+                "type": "null"
+              }
             ],
             "description": "The type of user who completed the work item"
           },
@@ -1867,23 +2398,41 @@
             "default": "HUMAN"
           },
           "user_subject": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "User Subject",
             "description": "The subject of the user who created the work item"
           },
           "initial_messages": {
-            "items": { "$ref": "#/components/schemas/ThreadMessage" },
+            "items": {
+              "$ref": "#/components/schemas/ThreadMessage"
+            },
             "type": "array",
             "title": "Initial Messages",
             "description": "The initial conversation messages for this work item"
           },
           "work_item_url": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Work Item Url",
             "description": "The URL to access this work item in the workroom interface"
           },
           "messages": {
-            "items": { "$ref": "#/components/schemas/ThreadMessage" },
+            "items": {
+              "$ref": "#/components/schemas/ThreadMessage"
+            },
             "type": "array",
             "title": "Messages",
             "description": "The messages in the work item conversation"
@@ -1895,13 +2444,22 @@
             "description": "The payload of the work item"
           },
           "callbacks": {
-            "items": { "$ref": "#/components/schemas/WorkItemCallback" },
+            "items": {
+              "$ref": "#/components/schemas/WorkItemCallback"
+            },
             "type": "array",
             "title": "Callbacks",
             "description": "The callbacks for the work item"
           },
           "work_item_name": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Work Item Name",
             "description": "User-friendly name for the work item. Must be less than 255 characters."
           }
@@ -1918,7 +2476,14 @@
             "description": "The URL to call (POST) when the work item reaches the specified status."
           },
           "signature_secret": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Signature Secret",
             "description": "The secret to use to sign the callback payload. If not provided, the callback will not be signed."
           },
@@ -1970,12 +2535,21 @@
       "WorkItemsListResponse": {
         "properties": {
           "records": {
-            "items": { "$ref": "#/components/schemas/WorkItem" },
+            "items": {
+              "$ref": "#/components/schemas/WorkItem"
+            },
             "type": "array",
             "title": "Records"
           },
           "next_offset": {
-            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Next Offset"
           }
         },
@@ -2010,12 +2584,19 @@
       "ErrorEnvelope": {
         "description": "Pydantic model for error envelope - used only for OpenAPI schema generation.\n\nThis matches the exact structure returned by our error handlers:\n{\n    \"error\": {\n        \"error_id\": \"<uuid>\",\n        \"code\": \"<family.code>\",\n        \"message\": \"<human-readable>\"\n    }\n}",
         "properties": {
-          "error": { "$ref": "#/components/schemas/ErrorDetail" }
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
         },
         "required": ["error"],
         "title": "ErrorEnvelope",
         "type": "object"
       }
     }
-  }
+  },
+  "servers": [
+    {
+      "url": "/api/public/v1"
+    }
+  ]
 }
