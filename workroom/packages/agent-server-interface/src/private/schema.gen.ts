@@ -236,6 +236,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/agents/{aid}/semantic-data-models': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Agent Semantic Data Models
+     * @description Get semantic data models associated with an agent.
+     */
+    get: operations['get_agent_semantic_data_models_agents__aid__semantic_data_models_get'];
+    /**
+     * Set Agent Semantic Data Models
+     * @description Set semantic data models for an agent (replace all existing associations).
+     */
+    put: operations['set_agent_semantic_data_models_agents__aid__semantic_data_models_put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/runs/{run_id}/messages': {
     parameters: {
       query?: never;
@@ -566,6 +590,30 @@ export interface paths {
     put?: never;
     /** Request Remote File Upload */
     post: operations['request_remote_file_upload_threads__tid__files_request_upload_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/semantic-data-models': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Thread Semantic Data Models
+     * @description Get semantic data models associated with a thread.
+     */
+    get: operations['get_thread_semantic_data_models_threads__tid__semantic_data_models_get'];
+    /**
+     * Set Thread Semantic Data Models
+     * @description Set semantic data models for a thread (replace all existing associations).
+     */
+    put: operations['set_thread_semantic_data_models_threads__tid__semantic_data_models_put'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -5863,6 +5911,14 @@ export interface components {
        */
       data_connection_ids?: string[];
     };
+    /** SetAgentSemanticDataModelsPayload */
+    SetAgentSemanticDataModelsPayload: {
+      /**
+       * Semantic Data Model Ids
+       * @description List of semantic data model IDs to associate with the agent.
+       */
+      semantic_data_model_ids?: string[];
+    };
     /** SetSemanticDataModelPayload */
     SetSemanticDataModelPayload: {
       /**
@@ -5872,6 +5928,14 @@ export interface components {
       semantic_model: {
         [key: string]: unknown;
       };
+    };
+    /** SetThreadSemanticDataModelsPayload */
+    SetThreadSemanticDataModelsPayload: {
+      /**
+       * Semantic Data Model Ids
+       * @description List of semantic data model IDs to associate with the thread.
+       */
+      semantic_data_model_ids?: string[];
     };
     /** SlackDataConnection */
     SlackDataConnection: {
@@ -8145,6 +8209,76 @@ export interface operations {
       };
     };
   };
+  get_agent_semantic_data_models_agents__aid__semantic_data_models_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          }[];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  set_agent_semantic_data_models_agents__aid__semantic_data_models_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SetAgentSemanticDataModelsPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          }[];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   get_run_messages_runs__run_id__messages_get: {
     parameters: {
       query?: never;
@@ -8923,6 +9057,76 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_thread_semantic_data_models_threads__tid__semantic_data_models_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          }[];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  set_thread_semantic_data_models_threads__tid__semantic_data_models_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SetThreadSemanticDataModelsPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          }[];
         };
       };
       /** @description Validation Error */

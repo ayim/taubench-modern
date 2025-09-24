@@ -1473,3 +1473,119 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
             if result.rowcount == 0:
                 raise ValueError(f"Semantic data model with ID {semantic_data_model_id} not found")
+
+    # -------------------------------------------------------------------------
+    # Methods for Agent Semantic Data Models
+    # -------------------------------------------------------------------------
+    async def set_agent_semantic_data_models(
+        self, agent_id: str, semantic_data_model_ids: list[str]
+    ) -> None:
+        """Set semantic data models for an agent (replace all existing associations)."""
+        agent_semantic_data_models = self._get_table("agent_semantic_data_models")
+
+        async with self.engine.begin() as conn:
+            # First, remove existing associations
+            delete_stmt = sa.delete(agent_semantic_data_models).where(
+                agent_semantic_data_models.c.agent_id == agent_id
+            )
+            await conn.execute(delete_stmt)
+
+            # Then add new associations
+            if semantic_data_model_ids:
+                insert_data = [
+                    {"agent_id": agent_id, "semantic_data_model_id": semantic_data_model_id}
+                    for semantic_data_model_id in semantic_data_model_ids
+                ]
+                insert_stmt = sa.insert(agent_semantic_data_models).values(insert_data)
+                await conn.execute(insert_stmt)
+
+    async def get_agent_semantic_data_models(self, agent_id: str) -> list[dict]:
+        """Get semantic data models associated with an agent."""
+        # Get the semantic data model IDs first
+        semantic_data_model_ids = await self.get_agent_semantic_data_model_ids(agent_id)
+
+        if not semantic_data_model_ids:
+            return []
+
+        # Get the semantic data models
+        semantic_data_models = []
+        for semantic_data_model_id in semantic_data_model_ids:
+            try:
+                semantic_data_model = await self.get_semantic_data_model(semantic_data_model_id)
+                semantic_data_models.append({semantic_data_model_id: semantic_data_model})
+            except ValueError:
+                # Skip if semantic data model doesn't exist
+                continue
+
+        return semantic_data_models
+
+    async def get_agent_semantic_data_model_ids(self, agent_id: str) -> list[str]:
+        """Get semantic data model IDs associated with an agent."""
+        agent_semantic_data_models = self._get_table("agent_semantic_data_models")
+
+        async with self.engine.begin() as conn:
+            stmt = sa.select(agent_semantic_data_models.c.semantic_data_model_id).where(
+                agent_semantic_data_models.c.agent_id == agent_id
+            )
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [str(row["semantic_data_model_id"]) for row in rows]
+
+    # -------------------------------------------------------------------------
+    # Methods for Thread Semantic Data Models
+    # -------------------------------------------------------------------------
+    async def set_thread_semantic_data_models(
+        self, thread_id: str, semantic_data_model_ids: list[str]
+    ) -> None:
+        """Set semantic data models for a thread (replace all existing associations)."""
+        thread_semantic_data_models = self._get_table("thread_semantic_data_models")
+
+        async with self.engine.begin() as conn:
+            # First, remove existing associations
+            delete_stmt = sa.delete(thread_semantic_data_models).where(
+                thread_semantic_data_models.c.thread_id == thread_id
+            )
+            await conn.execute(delete_stmt)
+
+            # Then add new associations
+            if semantic_data_model_ids:
+                insert_data = [
+                    {"thread_id": thread_id, "semantic_data_model_id": semantic_data_model_id}
+                    for semantic_data_model_id in semantic_data_model_ids
+                ]
+                insert_stmt = sa.insert(thread_semantic_data_models).values(insert_data)
+                await conn.execute(insert_stmt)
+
+    async def get_thread_semantic_data_models(self, thread_id: str) -> list[dict]:
+        """Get semantic data models associated with a thread."""
+        # Get the semantic data model IDs first
+        semantic_data_model_ids = await self.get_thread_semantic_data_model_ids(thread_id)
+
+        if not semantic_data_model_ids:
+            return []
+
+        # Get the semantic data models
+        semantic_data_models = []
+        for semantic_data_model_id in semantic_data_model_ids:
+            try:
+                semantic_data_model = await self.get_semantic_data_model(semantic_data_model_id)
+                semantic_data_models.append({semantic_data_model_id: semantic_data_model})
+            except ValueError:
+                # Skip if semantic data model doesn't exist
+                continue
+
+        return semantic_data_models
+
+    async def get_thread_semantic_data_model_ids(self, thread_id: str) -> list[str]:
+        """Get semantic data model IDs associated with a thread."""
+        thread_semantic_data_models = self._get_table("thread_semantic_data_models")
+
+        async with self.engine.begin() as conn:
+            stmt = sa.select(thread_semantic_data_models.c.semantic_data_model_id).where(
+                thread_semantic_data_models.c.thread_id == thread_id
+            )
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [str(row["semantic_data_model_id"]) for row in rows]

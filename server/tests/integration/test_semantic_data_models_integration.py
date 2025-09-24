@@ -145,7 +145,7 @@ def test_semantic_data_models_integration(base_url_agent_server, datadir, resour
 
         # Create the semantic data model
         created_model_id_and_references = agent_client.create_semantic_data_model(
-            semantic_model=semantic_model,
+            dict(semantic_model=semantic_model),
         )
         assert semantic_model == agent_client.get_semantic_data_model(
             created_model_id_and_references["semantic_data_model_id"]
@@ -159,7 +159,7 @@ def test_semantic_data_models_integration(base_url_agent_server, datadir, resour
         model_id = "test-model-id-123"
         created_model_with_id = agent_client.set_semantic_data_model(
             semantic_data_model_id=model_id,
-            semantic_model=semantic_model,
+            semantic_model=dict(semantic_model=semantic_model),
         )
         assert created_model_with_id["semantic_data_model_id"] == model_id
         assert created_model_with_id["data_connection_ids"] == [data_connection_1["id"]]
@@ -231,7 +231,7 @@ def test_semantic_data_models_integration(base_url_agent_server, datadir, resour
         # Test updating the semantic data model (leave just the file reference, not the connection)
         updated_model_id_and_references = agent_client.set_semantic_data_model(
             semantic_data_model_id=model_id,
-            semantic_model=updated_semantic_model,
+            semantic_model=dict(semantic_model=updated_semantic_model),
         )
         assert updated_model_id_and_references["data_connection_ids"] == []
         assert updated_model_id_and_references["file_references"] == [
@@ -283,7 +283,7 @@ def check_upload_response(thread_response) -> str:
 
 
 @pytest.mark.integration
-def test_generate_semantic_data_model_generation_integration(
+def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
     base_url_agent_server, resources_dir, data_regression
 ):
     """Test generate semantic data model API endpoint integration."""
@@ -434,3 +434,18 @@ def test_generate_semantic_data_model_generation_integration(
                 table["base_table"]["file_reference"]["file_ref"] = "<redacted>"
 
         data_regression.check(generated_model, basename="generated_semantic_model")
+
+        semantic_data_model_id = agent_client.create_semantic_data_model(generated_model)[
+            "semantic_data_model_id"
+        ]
+
+        agent_client.set_agent_semantic_data_models(agent_id, [semantic_data_model_id])
+        agent_client.set_thread_semantic_data_models(thread_id, [semantic_data_model_id])
+
+        assert agent_client.get_thread_semantic_data_models(thread_id) == [
+            {semantic_data_model_id: generated_model["semantic_model"]}
+        ]
+
+        assert agent_client.get_agent_semantic_data_models(agent_id) == [
+            {semantic_data_model_id: generated_model["semantic_model"]}
+        ]

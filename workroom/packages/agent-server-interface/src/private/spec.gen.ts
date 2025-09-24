@@ -763,6 +763,111 @@ export const spec = {
         },
       },
     },
+    '/api/v2/agents/{aid}/semantic-data-models': {
+      put: {
+        tags: ['agents'],
+        summary: 'Set Agent Semantic Data Models',
+        description:
+          'Set semantic data models for an agent (replace all existing associations).',
+        operationId:
+          'set_agent_semantic_data_models_agents__aid__semantic_data_models_put',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/SetAgentSemanticDataModelsPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                  title:
+                    'Response Set Agent Semantic Data Models Agents  Aid  Semantic Data Models Put',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ['agents'],
+        summary: 'Get Agent Semantic Data Models',
+        description: 'Get semantic data models associated with an agent.',
+        operationId:
+          'get_agent_semantic_data_models_agents__aid__semantic_data_models_get',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                  title:
+                    'Response Get Agent Semantic Data Models Agents  Aid  Semantic Data Models Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/runs/{run_id}/messages': {
       get: {
         tags: ['runs'],
@@ -1904,6 +2009,111 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/semantic-data-models': {
+      put: {
+        tags: ['threads'],
+        summary: 'Set Thread Semantic Data Models',
+        description:
+          'Set semantic data models for a thread (replace all existing associations).',
+        operationId:
+          'set_thread_semantic_data_models_threads__tid__semantic_data_models_put',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/SetThreadSemanticDataModelsPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                  title:
+                    'Response Set Thread Semantic Data Models Threads  Tid  Semantic Data Models Put',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ['threads'],
+        summary: 'Get Thread Semantic Data Models',
+        description: 'Get semantic data models associated with a thread.',
+        operationId:
+          'get_thread_semantic_data_models_threads__tid__semantic_data_models_get',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                  },
+                  title:
+                    'Response Get Thread Semantic Data Models Threads  Tid  Semantic Data Models Get',
+                },
               },
             },
           },
@@ -14446,6 +14656,21 @@ export const spec = {
         type: 'object',
         title: 'SetAgentDataConnectionsPayload',
       },
+      SetAgentSemanticDataModelsPayload: {
+        properties: {
+          semantic_data_model_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Semantic Data Model Ids',
+            description:
+              'List of semantic data model IDs to associate with the agent.',
+          },
+        },
+        type: 'object',
+        title: 'SetAgentSemanticDataModelsPayload',
+      },
       SetSemanticDataModelPayload: {
         properties: {
           semantic_model: {
@@ -14458,6 +14683,21 @@ export const spec = {
         type: 'object',
         required: ['semantic_model'],
         title: 'SetSemanticDataModelPayload',
+      },
+      SetThreadSemanticDataModelsPayload: {
+        properties: {
+          semantic_data_model_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Semantic Data Model Ids',
+            description:
+              'List of semantic data model IDs to associate with the thread.',
+          },
+        },
+        type: 'object',
+        title: 'SetThreadSemanticDataModelsPayload',
       },
       SlackDataConnection: {
         properties: {

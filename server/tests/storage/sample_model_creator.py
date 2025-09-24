@@ -249,3 +249,33 @@ class SampleModelCreator:
 
         await self.storage.set_data_connection(data_connection)
         return data_connection
+
+    async def obtain_sample_semantic_data_model(self, name: str = "test_model") -> str:
+        """Create a sample semantic data model for testing."""
+
+        # Create a simple semantic data model
+        semantic_model = {
+            "name": name,
+            "description": f"Test semantic data model: {name}",
+            "entities": [
+                {
+                    "name": "test_entity",
+                    "description": "A test entity",
+                    "base_table": {
+                        "database": "test_db",
+                        "schema": "test_schema",
+                        "table": "test_table",
+                    },
+                }
+            ],
+        }
+
+        # Create the semantic data model in storage
+        semantic_data_model_id = await self.storage.set_semantic_data_model(
+            semantic_data_model_id=None,
+            semantic_model=semantic_model,
+            data_connection_ids=[],
+            file_references=[],
+        )
+
+        return semantic_data_model_id

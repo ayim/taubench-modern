@@ -1077,8 +1077,7 @@ class AgentServerClient:
     def create_semantic_data_model(self, semantic_model: dict) -> dict:
         """Create a new semantic data model."""
         url = urljoin(self.base_url + "/", "semantic-data-models/")
-        payload = {"semantic_model": semantic_model}
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=semantic_model)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -1094,10 +1093,7 @@ class AgentServerClient:
     ) -> dict:
         """Set/update a semantic data model."""
         url = urljoin(self.base_url + "/", f"semantic-data-models/{semantic_data_model_id}")
-        payload = {
-            "semantic_model": semantic_model,
-        }
-        response = requests.put(url, json=payload)
+        response = requests.put(url, json=semantic_model)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -1170,5 +1166,63 @@ class AgentServerClient:
         except requests.exceptions.HTTPError as e:
             raise requests.exceptions.HTTPError(
                 f"Error inspecting data connection: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def set_thread_semantic_data_models(
+        self, thread_id: str, semantic_data_model_ids: list[str]
+    ) -> None:
+        """Set the semantic data models for a thread."""
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/semantic-data-models")
+        payload = {
+            "semantic_data_model_ids": semantic_data_model_ids,
+        }
+        response = requests.put(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error setting thread semantic data models: "
+                f"{response.status_code} {response.text}",
+            ) from e
+
+    def get_thread_semantic_data_models(self, thread_id: str) -> list[dict]:
+        """Get the semantic data models for a thread."""
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/semantic-data-models")
+        response = requests.get(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting thread semantic data models: "
+                f"{response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
+    def set_agent_semantic_data_models(
+        self, agent_id: str, semantic_data_model_ids: list[str]
+    ) -> None:
+        """Set the semantic data models for an agent."""
+        url = urljoin(self.base_url + "/", f"agents/{agent_id}/semantic-data-models")
+        payload = {
+            "semantic_data_model_ids": semantic_data_model_ids,
+        }
+        response = requests.put(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error setting agent semantic data models: {response.status_code} {response.text}",
+            ) from e
+
+    def get_agent_semantic_data_models(self, agent_id: str) -> list[dict]:
+        """Get the semantic data models for an agent."""
+        url = urljoin(self.base_url + "/", f"agents/{agent_id}/semantic-data-models")
+        response = requests.get(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting agent semantic data models: {response.status_code} {response.text}",
             ) from e
         return response.json()

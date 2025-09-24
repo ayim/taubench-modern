@@ -7,6 +7,9 @@ from agent_platform.core.payloads.agent_data_connections import (
     SetAgentDataConnectionsPayload,
 )
 from agent_platform.core.payloads.agent_package import AgentPackagePayload
+from agent_platform.core.payloads.agent_semantic_data_models import (
+    SetAgentSemanticDataModelsPayload,
+)
 from agent_platform.core.payloads.document_intelligence_config import (
     DocumentIntelligenceConfigPayload,
 )
@@ -20,6 +23,9 @@ from agent_platform.core.payloads.semantic_data_model_payloads import (
     GenerateSemanticDataModelResponse,
     GetSemanticDataModelPayload,
     SetSemanticDataModelPayload,
+)
+from agent_platform.core.payloads.thread_semantic_data_models import (
+    SetThreadSemanticDataModelsPayload,
 )
 from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.core.payloads.upsert_agent import (
@@ -52,7 +58,9 @@ __all__ = [
     "SelectedToolConfig",
     "SelectedTools",
     "SetAgentDataConnectionsPayload",
+    "SetAgentSemanticDataModelsPayload",
     "SetSemanticDataModelPayload",
+    "SetThreadSemanticDataModelsPayload",
     "UploadFilePayload",
     "UpsertAgentPayload",
     "UpsertThreadPayload",

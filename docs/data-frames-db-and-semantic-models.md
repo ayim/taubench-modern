@@ -2,6 +2,7 @@
 
 - [Snowflake semantic model generator](https://github.com/Snowflake-Labs/semantic-model-generator)
 - [Snowflake semantic model spec](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst/semantic-model-spec)
+- [UI Mockups](https://www.figma.com/design/nQPS1LcxbxaSp1TBqGFpOy/Spar-UI?node-id=2089-3400)
 
 # Step 1 (done):
 
@@ -147,7 +148,7 @@ class DataConnectionsInspectResponse:
     tables: list[TableInfo]
 ```
 
-# Step 4:
+# Step 4 (done):
 
 `Feature`: Generate a semantic data model (initially pretty simple, just tables/columns/sample data but in the snowflake semantic data model format, see types in: [`core/src/agent_platform/core/data_frames/semantic_data_model_types.py`](../core/src/agent_platform/core/data_frames/semantic_data_model_types.py)) and pass it to the agent when needed in a way that allows the agent to recognize
 that the data source and the related tables may be queried by the agent.
@@ -207,23 +208,30 @@ The idea is that the client (UI) should:
 
 # Step 5:
 
-`Feature`: associate a list of semantic data models to an agent.
+`Feature`: associate a list of semantic data models to an agent or a thread (conversation).
 
 Related information (in agent server database):
 
 - Existing table: `v2_semantic_data_model`: has the information related to the semantic data model
 
 - New `v2_agent_semantic_data_models` junction table to reference semantic data models and agents:
+- New `v2_thread_semantic_data_models` junction table to reference semantic data models and threads:
 
 ```sql
 v2_agent_semantic_data_models -- junction table (references agent id and semantic data model id)
     agent_id TEXT NOT NULL,
     semantic_data_model_id TEXT NOT NULL,
+
+v2_thread_semantic_data_models -- junction table (references thread id and semantic data model id)
+    thread_id TEXT NOT NULL,
+    semantic_data_model_id TEXT NOT NULL,
 ```
 
-- Create new APIs to add/remove a semantic data model to an agent.
+- Create new APIs to add/remove a semantic data model to an agent or a thread.
   - `set_agent_semantic_data_models`, which receives a `SetAgentSemanticDataModelsPayload` needs to accept a `agent_id` and a list of `semantic_data_model_id`s (REST API: `PUT /api/v2/agents/{agent_id}/semantic-data-models`).
-  - `get_agent_semantic_data_models`, which receives a `GetAgentSemanticDataModelsPayload` needs to accept an `agent_id` and return a list of `SemanticDataModel`s (REST API: `GET /api/v2/agents/{agent_id}/semantic-data-models`).
+  - `get_agent_semantic_data_models`, which needs to accept an `agent_id` and return a list of `SemanticDataModel`s (REST API: `GET /api/v2/agents/{agent_id}/semantic-data-models`).
+  - `set_thread_semantic_data_models`, which receives a `SetThreadSemanticDataModelsPayload` needs to accept a `thread_id` and a list of `semantic_data_model_id`s (REST API: `PUT /api/v2/threads/{thread_id}/semantic-data-models`).
+  - `get_thread_semantic_data_models`, which needs to accept a `thread_id` and return a list of `SemanticDataModel`s (REST API: `GET /api/v2/threads/{thread_id}/semantic-data-models`).
 
 # Step 6:
 
@@ -236,6 +244,9 @@ available, not only when a data frame is already created and we need to build th
 
 Also, we need to be able to run the queries in a way that allows queries to be run containing both data frames created from
 files as well as sql targetting a data source to extract table information from a database.
+
+i.e.: the DataFramesKernel should be able to target tables in data connections (based on the semantic data models that
+are accessible both in the thread as well as in the agent).
 
 # Step 7:
 

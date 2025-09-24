@@ -145,3 +145,167 @@ async def test_semantic_data_model_storage_crud_postgres(
 
     model_creator = SampleModelCreator(postgres_storage, tmpdir)
     await check_semantic_data_model_storage_crud(model_creator)
+
+
+async def check_thread_semantic_data_model_storage_crud(
+    model_creator: "SampleModelCreator",
+) -> None:
+    """Test thread semantic data model storage CRUD operations."""
+    await model_creator.setup()
+
+    # Create sample thread and semantic data models
+    sample_thread = await model_creator.obtain_sample_thread()
+    semantic_data_model_1 = await model_creator.obtain_sample_semantic_data_model("model_1")
+    semantic_data_model_2 = await model_creator.obtain_sample_semantic_data_model("model_2")
+    semantic_data_model_3 = await model_creator.obtain_sample_semantic_data_model("model_3")
+
+    # Test initial state - no semantic data models associated
+    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(
+        sample_thread.thread_id
+    )
+    assert model_ids == []
+
+    models = await model_creator.storage.get_thread_semantic_data_models(sample_thread.thread_id)
+    assert models == []
+
+    # Test setting semantic data models
+    initial_model_ids = [semantic_data_model_1, semantic_data_model_2]
+    await model_creator.storage.set_thread_semantic_data_models(
+        sample_thread.thread_id, initial_model_ids
+    )
+
+    # Verify the models were set
+    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(
+        sample_thread.thread_id
+    )
+    assert set(model_ids) == set(initial_model_ids)
+
+    models = await model_creator.storage.get_thread_semantic_data_models(sample_thread.thread_id)
+    assert len(models) == 2
+
+    # Test replacing models (set_thread_semantic_data_models should replace all existing)
+    new_model_ids = [semantic_data_model_2, semantic_data_model_3]
+    await model_creator.storage.set_thread_semantic_data_models(
+        sample_thread.thread_id, new_model_ids
+    )
+
+    # Verify the models were replaced
+    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(
+        sample_thread.thread_id
+    )
+    assert set(model_ids) == set(new_model_ids)
+
+    models = await model_creator.storage.get_thread_semantic_data_models(sample_thread.thread_id)
+    assert len(models) == 2
+
+    # Test setting empty models list (should remove all associations)
+    await model_creator.storage.set_thread_semantic_data_models(sample_thread.thread_id, [])
+
+    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(
+        sample_thread.thread_id
+    )
+    assert model_ids == []
+
+    models = await model_creator.storage.get_thread_semantic_data_models(sample_thread.thread_id)
+    assert models == []
+
+
+@pytest.mark.asyncio
+async def test_thread_semantic_data_model_storage_crud_sqlite(
+    sqlite_storage: "SQLiteStorage",
+    tmpdir: Path,
+) -> None:
+    """Test thread semantic data model storage CRUD operations with SQLite."""
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await check_thread_semantic_data_model_storage_crud(model_creator)
+
+
+@pytest.mark.asyncio
+async def test_thread_semantic_data_model_storage_crud_postgres(
+    postgres_storage: "PostgresStorage",
+    tmpdir: Path,
+) -> None:
+    """Test thread semantic data model storage CRUD operations with Postgres."""
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(postgres_storage, tmpdir)
+    await check_thread_semantic_data_model_storage_crud(model_creator)
+
+
+async def check_agent_semantic_data_model_storage_crud(
+    model_creator: "SampleModelCreator",
+) -> None:
+    """Test agent semantic data model storage CRUD operations."""
+    await model_creator.setup()
+
+    # Create sample agent and semantic data models
+    sample_agent = await model_creator.obtain_sample_agent()
+    semantic_data_model_1 = await model_creator.obtain_sample_semantic_data_model("model_1")
+    semantic_data_model_2 = await model_creator.obtain_sample_semantic_data_model("model_2")
+    semantic_data_model_3 = await model_creator.obtain_sample_semantic_data_model("model_3")
+
+    # Test initial state - no semantic data models associated
+    model_ids = await model_creator.storage.get_agent_semantic_data_model_ids(sample_agent.agent_id)
+    assert model_ids == []
+
+    models = await model_creator.storage.get_agent_semantic_data_models(sample_agent.agent_id)
+    assert models == []
+
+    # Test setting semantic data models
+    initial_model_ids = [semantic_data_model_1, semantic_data_model_2]
+    await model_creator.storage.set_agent_semantic_data_models(
+        sample_agent.agent_id, initial_model_ids
+    )
+
+    # Verify the models were set
+    model_ids = await model_creator.storage.get_agent_semantic_data_model_ids(sample_agent.agent_id)
+    assert set(model_ids) == set(initial_model_ids)
+
+    models = await model_creator.storage.get_agent_semantic_data_models(sample_agent.agent_id)
+    assert len(models) == 2
+
+    # Test replacing models (set_agent_semantic_data_models should replace all existing)
+    new_model_ids = [semantic_data_model_2, semantic_data_model_3]
+    await model_creator.storage.set_agent_semantic_data_models(sample_agent.agent_id, new_model_ids)
+
+    # Verify the models were replaced
+    model_ids = await model_creator.storage.get_agent_semantic_data_model_ids(sample_agent.agent_id)
+    assert set(model_ids) == set(new_model_ids)
+
+    models = await model_creator.storage.get_agent_semantic_data_models(sample_agent.agent_id)
+    assert len(models) == 2
+
+    # Test setting empty models list (should remove all associations)
+    await model_creator.storage.set_agent_semantic_data_models(sample_agent.agent_id, [])
+
+    model_ids = await model_creator.storage.get_agent_semantic_data_model_ids(sample_agent.agent_id)
+    assert model_ids == []
+
+    models = await model_creator.storage.get_agent_semantic_data_models(sample_agent.agent_id)
+    assert models == []
+
+
+@pytest.mark.asyncio
+async def test_agent_semantic_data_model_storage_crud_sqlite(
+    sqlite_storage: "SQLiteStorage",
+    tmpdir: Path,
+) -> None:
+    """Test agent semantic data model storage CRUD operations with SQLite."""
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await check_agent_semantic_data_model_storage_crud(model_creator)
+
+
+@pytest.mark.asyncio
+async def test_agent_semantic_data_model_storage_crud_postgres(
+    postgres_storage: "PostgresStorage",
+    tmpdir: Path,
+) -> None:
+    """Test agent semantic data model storage CRUD operations with Postgres."""
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(postgres_storage, tmpdir)
+    await check_agent_semantic_data_model_storage_crud(model_creator)

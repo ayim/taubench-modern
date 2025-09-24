@@ -13,6 +13,7 @@ from agent_platform.core.files import (
 from agent_platform.core.payloads import (
     AddThreadMessagePayload,
     ForkThreadPayload,
+    SetThreadSemanticDataModelsPayload,
     UploadFilePayload,
     UpsertThreadPayload,
 )
@@ -627,3 +628,40 @@ async def request_remote_file_upload(
         owner=thread, file_name=payload.file_name
     )
     return response
+
+
+# Thread Semantic Data Models endpoints
+@router.put("/{tid}/semantic-data-models", response_model=list[dict])
+async def set_thread_semantic_data_models(
+    tid: str,
+    payload: SetThreadSemanticDataModelsPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[dict]:
+    """Set semantic data models for a thread (replace all existing associations)."""
+    # Verify thread exists and belongs to user
+    thread = await storage.get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Set the semantic data models
+    await storage.set_thread_semantic_data_models(tid, payload.semantic_data_model_ids)
+
+    # Return the updated semantic data models
+    return await storage.get_thread_semantic_data_models(tid)
+
+
+@router.get("/{tid}/semantic-data-models", response_model=list[dict])
+async def get_thread_semantic_data_models(
+    tid: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[dict]:
+    """Get semantic data models associated with a thread."""
+    # Verify thread exists and belongs to user
+    thread = await storage.get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Return the semantic data models
+    return await storage.get_thread_semantic_data_models(tid)

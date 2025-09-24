@@ -22,6 +22,7 @@ from agent_platform.core.payloads import (
     AgentPackagePayload,
     PatchAgentPayload,
     SetAgentDataConnectionsPayload,
+    SetAgentSemanticDataModelsPayload,
     UpsertAgentPayload,
 )
 from agent_platform.core.utils import SecretString
@@ -466,3 +467,40 @@ async def get_agent_data_connections(
 
     # Return the data connections
     return await storage.get_agent_data_connections(aid)
+
+
+# Agent Semantic Data Models endpoints
+@router.put("/{aid}/semantic-data-models", response_model=list[dict])
+async def set_agent_semantic_data_models(
+    aid: str,
+    payload: SetAgentSemanticDataModelsPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[dict]:
+    """Set semantic data models for an agent (replace all existing associations)."""
+    # Verify agent exists and belongs to user
+    agent = await storage.get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Set the semantic data models
+    await storage.set_agent_semantic_data_models(aid, payload.semantic_data_model_ids)
+
+    # Return the updated semantic data models
+    return await storage.get_agent_semantic_data_models(aid)
+
+
+@router.get("/{aid}/semantic-data-models", response_model=list[dict])
+async def get_agent_semantic_data_models(
+    aid: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[dict]:
+    """Get semantic data models associated with an agent."""
+    # Verify agent exists and belongs to user
+    agent = await storage.get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Return the semantic data models
+    return await storage.get_agent_semantic_data_models(aid)
