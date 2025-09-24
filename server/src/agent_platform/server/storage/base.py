@@ -837,6 +837,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.status_updated_at,
             trials.c.status_updated_by,
             trials.c.error_message,
+            trials.c.evaluation_results,
+            trials.c.execution_state,
         ).where(trials.c.scenario_run_id == scenario_run_id)
 
         async with self.engine.begin() as conn:
