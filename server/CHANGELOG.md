@@ -1,3 +1,16 @@
+# Sema4.ai Agent Server 2.1.7 (2025-09-24)
+
+- [GPT-1302] Replay only `action-external` and `mcp-external` tools [#1070](https://github.com/Sema4AI/agent-platform/pull/1070)
+- [Data Frames] Associate a semantic data model to an agent or thread [#1061](https://github.com/Sema4AI/agent-platform/pull/1061)
+- Generate OpenAPI without starting the server [#1067](https://github.com/Sema4AI/agent-platform/pull/1067)
+- Ignore extra kwargs in Agent and Thread model validation [#1064](https://github.com/Sema4AI/agent-platform/pull/1064)
+- [GPT-1274] Store `models`, `architecture` and `runbook` in run metadata [#1032](https://github.com/Sema4AI/agent-platform/pull/1032)
+- [Data Frames] APIs to generate a semantic data model from a data connection inspection or a file inspection [#1033](https://github.com/Sema4AI/agent-platform/pull/1033)
+- [GPT-1285] Use PromptDocumentContent via prompts/generate [#1004](https://github.com/Sema4AI/agent-platform/pull/1004)
+- Fix missing fields when getting a single scenario run [#1040](https://github.com/Sema4AI/agent-platform/pull/1040)
+- Prevent Bedrock VCR playback from writing new cassettes [#1047](https://github.com/Sema4AI/agent-platform/pull/1047)
+- Small agent architecture tweaks [#1052](https://github.com/Sema4AI/agent-platform/pull/1052)
+
 # Sema4.ai Agent Server 2.1.6 (2025-09-23)
 
 - [PRD-892] Add optional user-friendly work_item_name to work_item [#1024](https://github.com/Sema4AI/agent-platform/pull/1024)
