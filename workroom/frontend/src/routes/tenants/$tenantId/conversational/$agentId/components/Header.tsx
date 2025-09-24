@@ -6,6 +6,7 @@ import {
   IconChemicalBottle,
   IconDotsHorizontal,
   IconDoubleChatBubble,
+  IconInformation,
   IconPaperclip,
   IconSpreadsheet,
 } from '@sema4ai/icons';
@@ -48,6 +49,14 @@ export const Header = () => {
             <RouterSideNavigationLink
               to="/tenants/$tenantId/conversational/$agentId/$threadId/files"
               icon={<IconPaperclip />}
+              round
+              params={{ tenantId, agentId, threadId }}
+            />
+          </Tooltip>
+          <Tooltip text="Details" placement="bottom">
+            <RouterSideNavigationLink
+              to="/tenants/$tenantId/conversational/$agentId/$threadId/chat-details"
+              icon={<IconInformation />}
               round
               params={{ tenantId, agentId, threadId }}
             />

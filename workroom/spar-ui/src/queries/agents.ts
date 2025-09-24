@@ -49,6 +49,28 @@ export const agentQueryOptions = createSparQueryOptions<{ agentId: string }>()((
 export const useAgentQuery = createSparQuery(agentQueryOptions);
 
 /**
+ * Get Agent Details query
+ */
+export const agentDetailsQueryKey = (agentId: string) => ['agentDetails', agentId];
+
+export const agentDetailsQueryOptions = createSparQueryOptions<{ agentId: string }>()(({ sparAPIClient, agentId }) => ({
+  queryKey: agentDetailsQueryKey(agentId),
+  queryFn: async () => {
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/agents/{aid}/agent-details', {
+      params: { path: { aid: agentId } },
+    });
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to fetch agent details');
+    }
+
+    return response.data;
+  },
+}));
+
+export const useAgentDetailsQuery = createSparQuery(agentDetailsQueryOptions);
+
+/**
  * Agent OAuth state query
  */
 export const agentOAuthStateQueryKey = (agentId: string) => ['agentOAuthState', agentId];

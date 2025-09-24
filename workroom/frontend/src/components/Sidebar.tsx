@@ -32,7 +32,7 @@ export const Sidebar: FC<Props> = ({ children, name }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { width: resizeWidth, resizeHandlerRef } = useResizeHandle({
     initialWidth,
-    minWidth: 200,
+    minWidth: 325,
     maxWidth: 400,
     dependencies: [],
     position: 'left',

@@ -120,7 +120,7 @@ export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ agentId, i
   }, [onClose, form.reset]);
 
   return (
-    <Dialog open={isOpen} onClose={onClose} width={800}>
+    <Dialog open={isOpen} onClose={handleCancel} width={800}>
       <Form onSubmit={onSubmit} width="100%" busy={isCreatingWorkItem} height="100%">
         <Dialog.Header>
           <Box display="flex" flexDirection="column" gap={16} px={4}>
