@@ -284,10 +284,14 @@ class ReplayToolExecutor(ToolExecutor):
             ],
         }
 
+        remaining_names = [tool.tool_name for tool in remaining]
         evt = DriftEvent(
             index_before=self._i,
             drift_type=DriftType.LEFTOVER_RECORDED_CALLS,
-            message=f"{len(remaining)} recorded call(s) left unconsumed at end of replay.",
+            message=(
+                f"{len(remaining)} recorded call(s) left unconsumed "
+                f"at end of replay: {', '.join(remaining_names)}."
+            ),
             expected_tool=remaining[0].tool_name if remaining else None,
             expected_args=remaining[0].expected_args if remaining else None,
         )
@@ -313,6 +317,8 @@ class ReplayToolExecutor(ToolExecutor):
         for msg in messages:
             for item in msg.content:
                 if isinstance(item, ThreadToolUsageContent):
+                    if item.sub_type not in {"action-external", "mcp-external"}:
+                        continue
                     tool_name = item.name
                     # Inputs/outputs are JSON strings in the provided log.
                     tool_args = item.arguments_raw

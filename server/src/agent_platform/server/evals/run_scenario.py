@@ -211,6 +211,9 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
     )
 
     agent_tools, _ = await _gather_agent_tools(agent, server_context)
+
+    agent_tool_names = [tool.name for tool in agent_tools.all]
+    logger.info(f"agent has the following tools available: {', '.join(agent_tool_names)}")
     # force agent to use client side tools
     agent = agent.copy(mcp_servers=[], action_packages=[])
 
