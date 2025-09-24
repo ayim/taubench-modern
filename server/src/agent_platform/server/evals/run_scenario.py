@@ -149,7 +149,18 @@ async def _gather_agent_tools(
     ), issues
 
 
-async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901
+async def _terminate_and_return_not_ok(
+    storage: StorageDependency, task_id: str, state: ExecutionState, issues: list[str]
+) -> bool:
+    state.termination = "INVALID_AGENT_CONFIGURATION"
+    state.status = "ERROR"
+    state.error_message = "; ".join(issues)
+    state.finished_at = datetime.now()
+    await storage.update_trial_execution(task_id, state)
+    return False
+
+
+async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
     if task.status != TrialStatus.EXECUTING:
         raise RuntimeError(f"Trial {task.trial_id} is not being executing.")
 
@@ -168,6 +179,29 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901
     agent = await storage.get_agent(system_user.user_id, scenario.agent_id)
     if agent is None:
         raise RuntimeError(f"Cannot find agent {scenario.agent_id}")
+
+    state = ExecutionState()
+
+    runbook = scenario_run.configuration.get("runbook", None)
+    architecture_version = scenario_run.configuration.get("architecture_version", None)
+    models = scenario_run.configuration.get("models", None)
+
+    configuration_issues = []
+    for label, expected, found in [
+        ("architecture version", architecture_version, agent.agent_architecture.version),
+        ("runbook", runbook, agent.runbook_structured.raw_text),
+        ("models", models, agent.get_agent_models()),
+    ]:
+        if expected != found:
+            configuration_issues.append(f"expected {label} {expected}, found {found}")
+
+    if configuration_issues:
+        logger.info(f"Agent configuration is invalid: {configuration_issues}")
+        # this is a very edge case
+        # it can happen only if an agent is updated between a run and its execution
+        return await _terminate_and_return_not_ok(
+            storage, task.trial_id, state, configuration_issues
+        )
 
     server_context = AgentServerContext.from_request(
         request=Request(scope={"type": "http", "method": "POST"}),
@@ -211,7 +245,6 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901
 
     await storage.set_trial_thread(trial_id=task.trial_id, thread_id=new_thread.thread_id)
 
-    state = ExecutionState()
     current_user_message_index = len(initial_agent_messages)
     current_turn = 1
     drifts = []
@@ -244,15 +277,16 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901
             ]
 
             if len(missing_tools_in_agent) > 0:
-                logger.info("Agent tools don't match the conversation")
-                state.termination = "AGENT_TOOL_MISMATCH"
-                state.status = "ERROR"
-                state.error_message = (
+                message = (
                     f"The following tools used in the conversation "
                     f"are missing from agent or have different input schema "
                     f"in the selected agent: "
                     f"{', '.join([tool.name for tool in missing_tools_in_agent])}"
                 )
+                logger.info(f"Agent tools don't match the conversation: {message}")
+                state.termination = "AGENT_TOOL_MISMATCH"
+                state.status = "ERROR"
+                state.error_message = message
                 state.drift_events = drifts + tool_executor.drifts
                 state.finished_at = datetime.now()
 

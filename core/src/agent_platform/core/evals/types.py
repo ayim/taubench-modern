@@ -300,9 +300,6 @@ class ScenarioRun:
     scenario_id: str
     user_id: str
     num_trials: int = 1
-    # we store "overrides" that are applied in trials
-    # we can store also agent config (e.g. runbook)
-    # because it could change before the actual exec
     configuration: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     trials: list[Trial] = field(

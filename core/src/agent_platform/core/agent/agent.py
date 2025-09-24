@@ -235,6 +235,11 @@ class Agent:
             "version": self.version,
         }
 
+    def get_agent_models(self) -> list[str]:
+        return sorted(
+            {m for cfg in self.platform_configs for m in PlatformParameters.build_model_slugs(cfg)}
+        )
+
     @classmethod
     def model_validate(cls, data: dict) -> "Agent":
         """Create an agent from a dictionary."""

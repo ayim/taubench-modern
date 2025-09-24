@@ -214,6 +214,20 @@ class PlatformParameters(ABC):
             if datetime_field in obj and isinstance(obj[datetime_field], str):
                 obj[datetime_field] = datetime.fromisoformat(obj[datetime_field])
 
+    @classmethod
+    def build_model_slugs(cls, cfg: "PlatformParameters") -> list[str]:
+        pairs = []
+
+        if cfg.models is None:
+            # TODO we should return all models for the given platform
+            return [f"{cfg.kind}/*"]
+
+        for provider, models in cfg.models.items():
+            for model in models:
+                pairs.append(f"{cfg.kind}/{provider}/{model}")
+
+        return list(dict.fromkeys(pairs))
+
 
 class PlatformConverters(ABC, UsesKernelMixin):
     """Platform-specific converters for content kinds to transform agent-server

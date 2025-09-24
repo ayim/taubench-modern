@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self
+from typing import Any, Self
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -123,7 +123,9 @@ class CreateScenarioRunPayload:
             raise ValueError("'num_trials' must be >= 1")
 
     @classmethod
-    def to_scenario_run(cls, payload: Self, user_id: str, scenario_id: str) -> ScenarioRun:
+    def to_scenario_run(
+        cls, payload: Self, user_id: str, scenario_id: str, configuration: dict[str, Any]
+    ) -> ScenarioRun:
         scenario_run_id = str(uuid4())
         trials = [
             Trial(
@@ -141,6 +143,7 @@ class CreateScenarioRunPayload:
             scenario_id=scenario_id,
             trials=trials,
             user_id=user_id,
+            configuration=configuration,
         )
 
 
@@ -156,8 +159,19 @@ async def create_scenario_run(
     if scenario is None:
         raise HTTPException(status_code=404, detail="Scenario not found")
 
+    agent = await storage.get_agent(user_id=user.user_id, agent_id=scenario.agent_id)
+
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    configuration = {
+        "models": agent.get_agent_models(),
+        "architecture_version": agent.agent_architecture.version,
+        "runbook": agent.runbook_structured.raw_text,
+    }
+
     scenario_run = CreateScenarioRunPayload.to_scenario_run(
-        payload, user.user_id, scenario.scenario_id
+        payload, user.user_id, scenario.scenario_id, configuration
     )
 
     return await storage.create_scenario_run(scenario_run)
