@@ -1,3 +1,8 @@
+variable "cluster_master_key_arn" {
+  type        = string
+  description = "Master cluster KMS key ARN"
+}
+
 variable "cluster_name" {
   type = string
 }
@@ -19,5 +24,9 @@ variable "secrets_encryption_key_arn" {
 }
 
 variable "execution_role_name" {
+  type = string
+}
+
+variable "infra_id" {
   type = string
 }

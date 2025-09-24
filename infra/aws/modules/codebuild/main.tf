@@ -50,8 +50,20 @@ resource "aws_codebuild_project" "deployer" {
     }
 
     environment_variable {
+      name  = "ECS_TASK_RUNTIME_ROLE_ARN"
+      value = var.ecs_task_runtime_role_arn
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
       name  = "AUTH_CONFIGURATION_SECRET_ARN"
       value = var.auth_configuration_secret_arn
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "AGENT_SERVER_ENCRYPTION_KMS_KEY_ARN"
+      value = var.cluster_master_key_arn
       type  = "PLAINTEXT"
     }
 

@@ -5,6 +5,7 @@
   "cpu": "2048",
   "memory": "8192",
   "executionRoleArn": "${ECS_TASK_EXECUTION_ROLE_ARN}",
+  "taskRoleArn": "${ECS_TASK_RUNTIME_ROLE_ARN}",
   "containerDefinitions": [
     {
       "name": "psql-init",
@@ -82,6 +83,11 @@
         { "name": "JWT_ISS", "value": "spar" },
         { "name": "LOG_LEVEL", "value": "DEBUG" },
         { "name": "POSTGRES_DB", "value": "${DB_NAME}" },
+        { "name": "SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_SOURCE", "value": "aws" },
+        {
+          "name": "SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_AWS_KMS_ARN",
+          "value": "${AGENT_SERVER_ENCRYPTION_KMS_KEY_ARN}"
+        },
         { "name": "SEMA4AI_AGENT_SERVER_DB_TYPE", "value": "postgres" },
         { "name": "SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "value": "true" },
         { "name": "SEMA4AI_WORKROOM_TENANT_ID", "value": "${RELEASE_NAME}" },

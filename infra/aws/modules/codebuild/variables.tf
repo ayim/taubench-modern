@@ -2,6 +2,11 @@ variable "infra_id" {
   type = string
 }
 
+variable "cluster_master_key_arn" {
+  type        = string
+  description = "Master cluster KMS key ARN"
+}
+
 variable "cluster_name" {
   type = string
 }
@@ -18,6 +23,10 @@ variable "github_oidc_provider_arn" {
 }
 
 variable "ecs_task_execution_role_arn" {
+  type = string
+}
+
+variable "ecs_task_runtime_role_arn" {
   type = string
 }
 

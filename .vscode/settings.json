@@ -27,5 +27,11 @@
   },
   "[yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "json.schemas": [
+    {
+      "fileMatch": ["*ecs-task-def.json"],
+      "url": "https://ecs-intellisense.s3-us-west-2.amazonaws.com/task-definition/schema.json"
+    }
+  ]
 }

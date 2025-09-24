@@ -1,7 +1,6 @@
 data "aws_caller_identity" "current" {}
 
-# ECS
-
+#region ECS
 resource "aws_ecs_cluster" "ecs_cluster" {
   name = var.cluster_name
 
@@ -22,9 +21,9 @@ resource "aws_ecs_cluster_capacity_providers" "ecs_cluster" {
     capacity_provider = "FARGATE"
   }
 }
+#endregion
 
-# IAM
-
+#region IAM
 data "aws_iam_policy_document" "ecs_execution_assume_role" {
   statement {
     effect = "Allow"
@@ -98,3 +97,4 @@ resource "aws_iam_role" "ecs_task_role" {
   name               = "ecs-task-${var.cluster_name}"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
 }
+#endregion
