@@ -19,3 +19,4 @@ export * from './components/DataConnection/DataConnectionConfiguration';
 
 export * from './components/Eval';
 export { CreateWorkItemDialog } from './components/CreateWorkItemDialog';
+export * from './components/Worker/WorkItemDetails';

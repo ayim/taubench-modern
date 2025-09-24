@@ -1,5 +1,12 @@
 import { Box, Button, Menu, Tooltip, Typography, useScreenSize } from '@sema4ai/components';
-import { IconDotsHorizontal, IconLayoutRight, IconPaperclip, IconPlus, IconPoll } from '@sema4ai/icons';
+import {
+  IconDotsHorizontal,
+  IconInformation,
+  IconLayoutRight,
+  IconPaperclip,
+  IconPlus,
+  IconPoll,
+} from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 import { styled } from '@sema4ai/theme';
@@ -59,25 +66,36 @@ export const Header = () => {
         {!isMobile && (
           <>
             {workItemId && threadId && (
-              <Tooltip text="Work Items" placement="bottom">
-                <RouterSideNavigationLink
-                  to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId"
-                  icon={<IconPoll />}
-                  round
-                  params={{ tenantId, agentId, workItemId, threadId }}
-                  activeOptions={{ exact: true }}
-                />
-              </Tooltip>
-            )}
-            {workItemId && threadId && (
-              <Tooltip text="Files" placement="bottom">
-                <RouterSideNavigationLink
-                  to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files"
-                  icon={<IconPaperclip />}
-                  round
-                  params={{ tenantId, agentId, workItemId, threadId }}
-                />
-              </Tooltip>
+              <>
+                <Tooltip text="Work Items" placement="bottom">
+                  <RouterSideNavigationLink
+                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId"
+                    icon={<IconPoll />}
+                    round
+                    params={{ tenantId, agentId, workItemId, threadId }}
+                    activeOptions={{ exact: true }}
+                  />
+                </Tooltip>
+
+                <Tooltip text="Work Item Details" placement="bottom">
+                  <RouterSideNavigationLink
+                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details"
+                    icon={<IconInformation />}
+                    round
+                    params={{ tenantId, agentId, workItemId, threadId }}
+                    activeOptions={{ exact: true }}
+                  />
+                </Tooltip>
+
+                <Tooltip text="Files" placement="bottom">
+                  <RouterSideNavigationLink
+                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files"
+                    icon={<IconPaperclip />}
+                    round
+                    params={{ tenantId, agentId, workItemId, threadId }}
+                  />
+                </Tooltip>
+              </>
             )}
           </>
         )}
@@ -92,23 +110,31 @@ export const Header = () => {
               >
                 New Work Item
               </RouterMenuLink>
+
               {workItemId && threadId && (
-                <RouterMenuLink
-                  to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId"
-                  icon={IconPoll}
-                  params={{ tenantId, agentId, workItemId, threadId }}
-                >
-                  Work Items
-                </RouterMenuLink>
-              )}
-              {workItemId && threadId && (
-                <RouterMenuLink
-                  to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files"
-                  icon={IconPaperclip}
-                  params={{ tenantId, agentId, workItemId, threadId }}
-                >
-                  Files
-                </RouterMenuLink>
+                <>
+                  <RouterMenuLink
+                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId"
+                    icon={IconPoll}
+                    params={{ tenantId, agentId, workItemId, threadId }}
+                  >
+                    Work Items
+                  </RouterMenuLink>
+                  <RouterMenuLink
+                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details"
+                    icon={IconInformation}
+                    params={{ tenantId, agentId, workItemId, threadId }}
+                  >
+                    Work Item Details
+                  </RouterMenuLink>
+                  <RouterMenuLink
+                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files"
+                    icon={IconPaperclip}
+                    params={{ tenantId, agentId, workItemId, threadId }}
+                  >
+                    Files
+                  </RouterMenuLink>
+                </>
               )}
             </Menu>
           </>

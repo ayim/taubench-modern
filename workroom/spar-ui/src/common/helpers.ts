@@ -49,3 +49,37 @@ export const getFileSize = (bytes: number): string => {
 export const getSupportedExtensions = (accept: Accept): string[] => {
   return Array.from(new Set(Object.values(accept).flat())).sort();
 };
+
+export const formatWorkItemStatus = (status: string): string => {
+  return status
+    .toLowerCase()
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+export const formatDateTime = (dateString: string | undefined): string => {
+  if (!dateString) {
+    return '';
+  }
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const datePart = new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+
+  const timePart = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+
+  return `${datePart} at ${timePart}`;
+};
