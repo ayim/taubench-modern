@@ -14,10 +14,11 @@ from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils import assert_literal_value_valid
+from agent_platform.core.utils.dataclass_meta import TolerantDataclass
 
 
 @dataclass(frozen=True)
-class Agent:
+class Agent(TolerantDataclass):
     """Agent definition."""
 
     name: str = field(metadata={"description": "The name of the agent."})

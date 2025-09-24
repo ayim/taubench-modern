@@ -105,6 +105,21 @@ class TestThread:
         assert copied_thread.work_item_id == thread.work_item_id
         assert copied_thread.work_item_id == "work-item-123"
 
+    def test_model_validate_ignores_unknown_fields(self) -> None:
+        thread = Thread.model_validate(
+            {
+                "thread_id": "thread-123",
+                "name": "Thread Name",
+                "agent_id": "agent-456",
+                "user_id": "user-789",
+                "messages": [],
+                "unexpected_column": "ignored",
+            }
+        )
+
+        assert thread.thread_id == "thread-123"
+        assert not hasattr(thread, "unexpected_column")
+
     def test_get_last_n_messages_empty_thread(self):
         thread = Thread(user_id="dummy", agent_id="dummy", name="test-thread")
         assert thread.get_last_n_messages(1) == []

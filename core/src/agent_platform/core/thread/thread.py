@@ -3,10 +3,11 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.utils.dataclass_meta import TolerantDataclass
 
 
 @dataclass
-class Thread:
+class Thread(TolerantDataclass):
     """Represents an entire conversation (thread) consisting of multiple messages
     with multiple content types (text, tool usage, vega chart, etc.) nested within
     each message.
