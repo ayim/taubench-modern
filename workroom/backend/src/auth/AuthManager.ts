@@ -4,8 +4,9 @@ import { OIDCClient } from './OIDCClient.js';
 import { createGetACEUser, type GetACEUser, type UserFrom } from './sema4OIDC.js';
 import type { Tokens } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { Result } from '../utils/result.js';
+import { asResult, type Result } from '../utils/result.js';
 import { Semaphore } from './utils/Semaphore.js';
+import { safeParseUrl } from '../utils/url.js';
 
 export type EndSessionResult = Result<{ logoutUri: string }>;
 
@@ -147,18 +148,16 @@ export class AuthManager {
         };
 
       case 'oidc': {
-        if (!this.oidcClient) {
-          return {
-            success: false,
-            error: {
-              code: 'no_oidc_client',
-              message: 'Invalid configuration: No OIDC client present',
-            },
-          };
-        }
-
-        let tokens: Tokens;
-        try {
+        return await asResult(async () => {
+          if (!this.oidcClient) {
+            return {
+              success: false,
+              error: {
+                code: 'no_oidc_client',
+                message: 'Invalid configuration: No OIDC client present',
+              },
+            };
+          }
           const response = await this.oidcClient.exchangeCodeForTokens({ code, codeVerifier, redirectUri });
 
           if (!response.id_token) {
@@ -176,36 +175,19 @@ export class AuthManager {
 
           const userId = OIDCClient.extractUserIdFromClaims(claims);
 
-          tokens = {
-            accessToken: response.access_token,
-            expiresAt: OIDCClient.resolveExpiresAt(response.expiresIn()),
-            idToken: response.id_token ?? null,
-            refreshToken: response.refresh_token ?? null,
-            state,
-            tokenType: response.token_type,
-            userId,
-          };
-
-          // @TODO: User info?
-        } catch (err) {
-          this.monitoring.logger.error('Token exchange request failed', {
-            error: err as Error,
-            oidcRedirectUrl: redirectUri,
-          });
-
           return {
-            success: false,
-            error: {
-              code: 'oidc_token_exchange_failed',
-              message: 'Token exchange failed',
+            success: true,
+            data: {
+              accessToken: response.access_token,
+              expiresAt: OIDCClient.resolveExpiresAt(response.expiresIn()),
+              idToken: response.id_token ?? null,
+              refreshToken: response.refresh_token ?? null,
+              state,
+              tokenType: response.token_type,
+              userId,
             },
           };
-        }
-
-        return {
-          success: true,
-          data: tokens,
-        };
+        });
       }
 
       default:
@@ -243,10 +225,21 @@ export class AuthManager {
           };
         }
 
+        const redirectUrlResult = safeParseUrl(origin);
+        if (!redirectUrlResult.success) {
+          return {
+            success: false,
+            error: {
+              code: 'invalid_request_origin',
+              message: `Request origin invalid: ${redirectUrlResult.error.message}`,
+            },
+          };
+        }
+
         try {
           const pkce = await OIDCClient.generatePKCE();
 
-          const redirectUrl = new URL(origin);
+          const redirectUrl = redirectUrlResult.data;
           redirectUrl.pathname = `/tenants/${this.configuration.tenant.tenantId}/workroom/oidc/callback`;
 
           this.monitoring.logger.info('Generating login URL for origin', {

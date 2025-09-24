@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { extractRequestPathAttributes, joinUrl } from './url.js';
+import type { Result } from './result.js';
+import { extractRequestPathAttributes, joinUrl, safeParseUrl } from './url.js';
 
 describe('extractRequestPathAttributes', () => {
   it.each([
@@ -29,5 +30,21 @@ describe('joinUrl', () => {
   ])('joins the following components: %a', (components, url) => {
     // @ts-expect-error Must have type tuple
     expect(joinUrl(...components)).toEqual(url);
+  });
+});
+
+describe('safeParseUrl', () => {
+  it.each([['http://test.com'], ['https://test.com/sub-page/?abc-123']])('handles valid URL: %s', (url) => {
+    const parseResult = safeParseUrl(url);
+    expect(parseResult.success).toEqual(true);
+  });
+
+  it('handles invalid URLs', () => {
+    const parseResult = safeParseUrl('/invalid');
+    expect(parseResult.success).toEqual(false);
+
+    const badResult = parseResult as Extract<Result<URL>, { success: false }>;
+    expect(badResult.error.code).toEqual('invalid_url');
+    expect(badResult.error.message).toContain('/invalid');
   });
 });

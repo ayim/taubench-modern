@@ -47,6 +47,7 @@
     "esbuild": "^0.25.9",
     "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.32.0",
+    "expect-type": "^1.2.2",
     "get-port": "^7.1.0",
     "msw": "^2.10.4",
     "supertest": "^7.1.4",

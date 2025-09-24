@@ -9,6 +9,7 @@ import * as oidcClient from 'openid-client';
 import z from 'zod';
 import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
+import { safeParseUrl } from '../utils/url.js';
 
 export interface OIDCClientOptions {
   clientId: string;
@@ -72,9 +73,12 @@ export class OIDCClient {
       code_challenge_method: 'S256',
     };
 
-    const issuerUrl = new URL(this.oidcClientConfiguration.serverMetadata().issuer);
+    const issuerUrlResult = safeParseUrl(this.oidcClientConfiguration.serverMetadata().issuer);
+    if (!issuerUrlResult.success) {
+      throw new Error(`Failed parsing OIDC issuer URL: ${issuerUrlResult.error.message}`);
+    }
 
-    if (issuerUrl.host === 'accounts.google.com') {
+    if (issuerUrlResult.data.host === 'accounts.google.com') {
       // Google handles offline access (refresh tokens) differently, so we cannot specify the
       // 'offline_access' scope, and instead need to use non-standard parameters:
       authParams.scope = 'openid email';
@@ -91,7 +95,7 @@ export class OIDCClient {
     const authUrl = oidcClient.buildAuthorizationUrl(this.oidcClientConfiguration, authParams);
 
     this.monitoring.logger.info('Generated OIDC authorization URL', {
-      oidcIssuer: issuerUrl.toString(),
+      oidcIssuer: issuerUrlResult.data.toString(),
       requestUrl: authUrl.toString(),
     });
 
