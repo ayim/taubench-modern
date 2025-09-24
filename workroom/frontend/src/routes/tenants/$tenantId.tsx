@@ -37,7 +37,7 @@ function View() {
   const sparUIContext = useMemo(() => {
     return tenantMeta
       ? {
-          sparAPIClient: createSparAPIClient(tenantId, tenantMeta!, agentAPIClient, router),
+          sparAPIClient: createSparAPIClient(tenantId, tenantMeta, agentAPIClient, router),
         }
       : undefined;
   }, [agentAPIClient, tenantId, tenantMeta]);
