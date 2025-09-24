@@ -9,6 +9,7 @@ export * from './components/ThreadHeader';
 
 export * from './components/FilesView';
 export * from './components/Chat';
+export * from './components/ConversationGuides';
 
 export * from './lib/OAuth';
 

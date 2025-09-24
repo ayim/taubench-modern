@@ -6,6 +6,7 @@ import {
   IconChemicalBottle,
   IconDotsHorizontal,
   IconDoubleChatBubble,
+  IconMap,
   IconInformation,
   IconPaperclip,
   IconSpreadsheet,
@@ -70,6 +71,17 @@ export const Header = () => {
               params={{ tenantId, agentId, threadId }}
             />
           </Tooltip>
+
+          {agent.question_groups && agent.question_groups.length > 0 && (
+            <Tooltip text="Conversation Guides" placement="bottom">
+              <RouterSideNavigationLink
+                to="/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides"
+                icon={<IconMap />}
+                round
+                params={{ tenantId, agentId, threadId }}
+              />
+            </Tooltip>
+          )}
 
           {features.agentEvals.enabled && (
             <Tooltip text="Evaluations" placement="bottom">
