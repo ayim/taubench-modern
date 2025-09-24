@@ -186,13 +186,23 @@ class _BedrockPatcher:
 
     async def _patched_send_logic(self, session: Any, request: Any) -> AioAWSResponse:
         vcr_request = self._make_vcr_request(request)
-        if get_vcr_record_mode() == RecordMode.NONE and self.cassette.can_play_response_for(
-            vcr_request
-        ):
+        mode = get_vcr_record_mode()
+
+        if mode == RecordMode.NONE:
+            if self.cassette.can_play_response_for(vcr_request):
+                return await self._handle_replay(vcr_request)
+
+            msg = (
+                "[VCR][bedrock] Missing cassette entry for request while running in playback "
+                "mode (VCR_RECORD=none). Re-record the cassette with VCR_RECORD=new_episodes."
+            )
+            debug(msg)
+            raise RuntimeError(msg)
+
+        if self.cassette.can_play_response_for(vcr_request):
             return await self._handle_replay(vcr_request)
-        debug(
-            f"[VCR][aiohttp][send] mode={get_vcr_record_mode()} url={getattr(request, 'url', '')}"
-        )
+
+        debug(f"[VCR][aiohttp][send] mode={mode} url={getattr(request, 'url', '')}")
         return await self._handle_record(session, request)
 
     def save_recorded_streams(self):
