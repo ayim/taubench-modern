@@ -86,7 +86,7 @@ class Exp1State(aa.StateBase):
 # ---- Helpers & Data Structures ------------------------------------------------
 
 
-@dataclass(frozen=True)
+@dataclass
 class ToolsBundle:
     """All tools we attach to prompts this turn."""
 
@@ -151,9 +151,6 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
     # Convert thread messages to prompt messages for this architecture
     kernel.converters.set_thread_message_conversion_function(thread_messages_to_prompt_messages)
 
-    # Initialize data frame tooling (if any)
-    await kernel.data_frames.step_initialize(state=state)
-
     # Tools and configuration checks
     tools, issues = await _gather_tools(kernel, state)
     state.configuration_issues = issues
@@ -173,6 +170,10 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
 
     # -------------------- Tool Loop --------------------
     while state.step != "done" and state.current_iteration < MAX_ITERATIONS:
+        # Make sure we do this _per inner tool loop_ so if we create a frame
+        # those conditional tools are readied
+        tools.data_frames_tools = await _update_dataframes_state(kernel, state, message)
+
         state.current_iteration += 1
         _update_elapsed_time(state)
 
@@ -285,6 +286,30 @@ def _initialize_state_for_run(state: Exp1State) -> None:
     state.tool_loop_detected = False
     state.callable_tools_summary = ""
     state.memories = []
+
+
+async def _update_dataframes_state(
+    kernel: Kernel,
+    state: Exp1State,
+    message: ThreadMessageWithThreadState,
+) -> tuple[ToolDefinition, ...]:
+    """Helper to update dataframes state in our tool loop."""
+    await kernel.data_frames.step_initialize(state=state)
+    data_frames_tools = kernel.data_frames.get_data_frame_tools()
+
+    # If we aren't tracking tools in metadata, we can return early
+    if "tools" not in message.agent_metadata:
+        return data_frames_tools
+
+    # Reconcile tool records in metadata
+    for tool in data_frames_tools:
+        already_in_metadata = any(
+            tool.name == metadata.get("name") for metadata in message.agent_metadata["tools"]
+        )
+        if not already_in_metadata:
+            message.agent_metadata["tools"].append(tool.model_dump())
+
+    return data_frames_tools
 
 
 async def _gather_tools(kernel: Kernel, state: Exp1State) -> tuple[ToolsBundle, list[str]]:

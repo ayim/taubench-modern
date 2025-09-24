@@ -268,6 +268,9 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         "reasoning_tokens": 0,
     }
 
+    message.append_thought("Thinking... ")
+    message.append_content("")
+
     # And use the formatted prompt, model, and message to receive a stream
     # of output from the model as it processes the conversation
     async with platform.stream_response(conversation_prompt, model) as stream:
@@ -328,6 +331,13 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
                 message,
                 [*action_tools, *mcp_tools, *kernel.client_tools, *data_frames_tools],
             )
+
+    # If somehow we got here with no message content, add "Processing..."
+    message_text_content = message.get_text_content()
+    if not message_text_content:
+        message.append_content("Processing...")
+        await message.stream_delta()
+
     # Update the message to show that the tool calls are running in the chat
     for _, tool_call in state.pending_tool_calls:
         message.update_tool_running(tool_call.tool_call_id)

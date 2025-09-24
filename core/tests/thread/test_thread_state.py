@@ -2,9 +2,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
+from agent_platform.core.kernel_interfaces.thread_state import (
+    ThreadMessageWithThreadState,
+    ThreadStateInterface,
+)
+from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.streaming import StreamingDelta, StreamingError
 from agent_platform.core.thread.content.text import ThreadTextContent
+from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.thread.messages import ThreadAgentMessage, ThreadMessage
 
 
@@ -72,3 +77,58 @@ class TestThreadState:
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
             # We try to instantiate the ABC directly, should fail
             _ = ThreadStateInterface()  # type: ignore
+
+    async def test_tool_use_complete_flag_set_on_initial_completion(self):
+        ts = ThreadStateTestImpl()
+        message = ThreadMessageWithThreadState(ThreadAgentMessage(content=[]), ts)
+
+        tool_content = ResponseToolUseContent(
+            tool_call_id="call-1",
+            tool_name="test-tool",
+            tool_input_raw="{}",
+        )
+
+        message.update_tool_use(tool_content, tool_def=None, completed=True)
+
+        tool_usages = [
+            content
+            for content in message.message.content
+            if isinstance(content, ThreadToolUsageContent)
+        ]
+        assert len(tool_usages) == 1
+        assert tool_usages[0].complete is True
+        assert tool_usages[0].pending_at is not None
+
+    async def test_tool_use_complete_flag_not_cleared_by_followup_updates(self):
+        ts = ThreadStateTestImpl()
+        message = ThreadMessageWithThreadState(ThreadAgentMessage(content=[]), ts)
+
+        partial = ResponseToolUseContent(
+            tool_call_id="call-2",
+            tool_name="test-tool",
+            tool_input_raw="{}",
+        )
+        message.update_tool_use(partial, tool_def=None, completed=False)
+
+        final = ResponseToolUseContent(
+            tool_call_id="call-2",
+            tool_name="test-tool",
+            tool_input_raw="{}",
+        )
+        message.update_tool_use(final, tool_def=None, completed=True)
+
+        follow_up = ResponseToolUseContent(
+            tool_call_id="call-2",
+            tool_name="test-tool",
+            tool_input_raw="{}",
+        )
+        message.update_tool_use(follow_up, tool_def=None, completed=False)
+
+        tool_usage = next(
+            content
+            for content in message.message.content
+            if isinstance(content, ThreadToolUsageContent)
+        )
+
+        assert tool_usage.complete is True
+        assert tool_usage.pending_at is not None

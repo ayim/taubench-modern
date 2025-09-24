@@ -111,6 +111,7 @@ async def _agent_thread_contents_to_prompt_contents(
     # and a run of prompt text <response>...</response> and combine them
     # into a single <formatting>...</formatting> tag.
     collapsed_text = "<formatting>\n<thinking>\n"
+    thought_text = thought_text.removeprefix("Thinking... ")
     collapsed_text += thought_text
     collapsed_text += "\n</thinking>\n<response>\n"
     collapsed_text += response_text

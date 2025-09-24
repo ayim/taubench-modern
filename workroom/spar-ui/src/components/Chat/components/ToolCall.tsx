@@ -70,7 +70,7 @@ export const ToolCall: FC<Props> = ({ content }) => {
 
   return (
     <Fragment key={content.content_id}>
-      <Chat.Action actionName={snakeCaseToTitleCase(content.name)} running={!content.complete}>
+      <Chat.Action actionName={snakeCaseToTitleCase(content.name)} running={['streaming', 'pending', 'running'].includes(content.status)}>
         <Code value={result} toolbar={toolbar} lang="json" />
         <Box display="flex" gap="$8">
           {showActionLogs && (

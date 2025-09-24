@@ -103,6 +103,14 @@ class ThreadMessageWithThreadState:
         """The metadata of the message."""
         return self._message.agent_metadata
 
+    def get_text_content(self) -> str:
+        """Gets the text content of the message."""
+        text_content = ""
+        for content in self._message.content:
+            if isinstance(content, ThreadTextContent):
+                text_content += content.text
+        return text_content
+
     def mark_prompt_start(self) -> None:
         """Marks the prompt as started."""
         if "content_idx_to_prompt_idx" not in self._message.agent_metadata:
@@ -333,42 +341,27 @@ class ThreadMessageWithThreadState:
             match_as_tool_use.name = tool_use.tool_name
             match_as_tool_use.arguments_raw = tool_use.tool_input_raw
             match_as_tool_use.sub_type = _get_sub_type_from_tool_category(tool_def)
-            match_as_tool_use.pending_at = datetime.now(UTC) if completed else None
-            match_as_tool_use.complete = completed
+            # Complete means "we have got all the content from the LLM"
+            if completed:
+                # If we are complete, the tool is no _pending execution_
+                match_as_tool_use.pending_at = datetime.now(UTC)
+            # Once we are complete, we shouldn't flop back to incomplete
+            # (The LLM can't take the tokens back from us)
+            match_as_tool_use.complete = match_as_tool_use.complete or completed
             break  # Only can match one tool use
 
         else:  # No matching tool use found, so we add a new one
-            # Our UX contract is thoughts -> content -> tool calls
-            # So if we don't yet have thoughts or text (which can
-            # happen with some models) add it now
-            any_thought = any(
-                isinstance(content, ThreadThoughtContent) for content in self._message.content
+            new_tool_usage = ThreadToolUsageContent(
+                name=tool_use.tool_name,
+                arguments_raw=tool_use.tool_input_raw,
+                tool_call_id=tool_use.tool_call_id,
+                sub_type=_get_sub_type_from_tool_category(tool_def),
+                status="streaming",
+                discovered_at=datetime.now(UTC),
+                pending_at=datetime.now(UTC) if completed else None,
             )
-            any_text = any(
-                isinstance(content, ThreadTextContent) for content in self._message.content
-            )
-            if not any_thought:
-                self._message.content.append(ThreadThoughtContent(thought=""))
-            if not any_text:
-                self._message.content.append(ThreadTextContent(text=""))
-                # A little odd, but when complete = False (which is the default)
-                # we're going to immediately see a spinner in workroom; here, we
-                # know we're going to get more content... but not right away.
-                # So, we'll set complete = True to avoid the spinner.
-                self._message.content[-1].complete = True
-
-            # Add the tool use
-            self._message.content.append(
-                ThreadToolUsageContent(
-                    name=tool_use.tool_name,
-                    arguments_raw=tool_use.tool_input_raw,
-                    tool_call_id=tool_use.tool_call_id,
-                    sub_type=_get_sub_type_from_tool_category(tool_def),
-                    status="streaming",
-                    discovered_at=datetime.now(UTC),
-                    pending_at=datetime.now(UTC) if completed else None,
-                ),
-            )
+            new_tool_usage.complete = completed
+            self._message.content.append(new_tool_usage)
 
     def update_tool_running(self, tool_call_id: str) -> None:
         """Updates the tool to "running" for the message from a tool call ID."""
