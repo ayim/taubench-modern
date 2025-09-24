@@ -12,7 +12,7 @@ import {
   $setSelection,
 } from 'lexical';
 
-import { TRANSFORMERS } from '.';
+import { TRANSFORMERS } from './index';
 import { indexBy, PUNCTUATION_OR_SPACE, transformersByType } from './utils';
 
 // invariant(condition, message) will refine types based on "condition", and
