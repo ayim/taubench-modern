@@ -1,8 +1,9 @@
+import { createToolResultContent } from '../utils';
 import { getSDKConfig } from './config';
 import { createContext } from './context';
 import { Scenario, Context, ScenarioSchema, ContextSchema, ScenarioTool } from './types';
 import { AllMessage, PromptRequest } from '../agent-prompt/prompt';
-import { createToolResultContent, JsonPatchOperation, PromptResponse, ToolResultContent } from '../agent-prompt';
+import { JsonPatchOperation, PromptResponse, ToolResultContent } from '../agent-prompt';
 import { parse, Allow } from 'partial-json';
 import { logger } from '../logger';
 

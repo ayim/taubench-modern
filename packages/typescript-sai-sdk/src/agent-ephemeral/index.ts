@@ -55,6 +55,8 @@
  * });
  * ```
  */
+// Export all agents
+export * from './agents';
 
 // Export all types
 export * from './types';
@@ -65,12 +67,9 @@ export {
   createEphemeralAgentClient,
   createBasicAgentConfig,
   createUserMessage,
-  createAgentMessage,
   createUserMessageWithCitations,
-  createAgentMessageWithCitations,
   createCitation,
   createHumanMessage,
-  createSystemMessage,
   isEphemeralAgentStreamError,
   getEphemeralAgentErrorMessage,
 } from './client';

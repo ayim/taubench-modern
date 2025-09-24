@@ -1,166 +1,341 @@
 ## Agent Prompt
 
-This module implements the client-side and data structures used to compose and execute prompts against the SAI agent. It provides strongly-typed helpers to build prompt messages, content, tools, and platform configurations, plus a streaming API to apply incremental JSON Patch operations as results are produced.
+This module provides a complete TypeScript SDK for composing and executing prompts against the SAI Agent Platform. It includes strongly-typed helpers for building messages, content, tools, and platform configurations, plus a streaming API that uses JSON Patch operations for real-time response updates.
 
-The API is validated with `zod` schemas to ensure prompt requests and responses conform to the expected shapes.
+All types and requests are validated using Zod schemas to ensure type safety and runtime validation.
 
-### Key concepts
+### Architecture
 
-- PromptRequest: an object that wraps a platform configuration with a `prompt` description. See `platform_config` and `prompt` schemas in `./index`.
-- Prompt: a collection of optional fields that influence generation, including `system_instruction`, `messages`, `tools`, `tool_choice`, `temperature`, `seed`, `max_output_tokens`, `stop_sequences`, and `top_p`.
-- Message and Content: messages can be normal user/agent messages or special messages (e.g., `$conversation_history`, `$documents`, `$memories`). Content supports text, images, tool calls, and tool results.
-- Tools: definitions of external tools that the model can call, described by a name, description, and input schema.
+The module is organized into several core files:
 
-### Quick start
+- **`content.ts`** - Content types (text, images, tool calls/results)
+- **`prompt.ts`** - Message types, special messages, and prompt schemas
+- **`response.ts`** - Response types and streaming JSON patch operations
+- **`tools.ts`** - Tool definition schemas and categories
+- **`client.ts`** - `PromptEndpointClient` for API communication
+- **`index.ts`** - Barrel exports for all types and schemas
 
-- Install and import the module from your TypeScript project (paths may vary depending on your setup). The package entry exports the main types and helpers.
+Helper functions are provided in the main SDK's `utils.ts` for easy object creation.
 
-```ts
-// Example imports (adjust to your package layout)
-import {
-  createOpenAIConfig,
-  createPromptRequest,
-  createTextUserMessage,
-  createTool,
-} from './modules/sai-sdk/src/agent-prompt';
-import { PromptEndpointClient } from './modules/sai-sdk/src/agent-prompt/client';
-```
+### Key Concepts
 
-- Build a minimal prompt (no tools):
+- **PromptRequest**: Complete request object containing platform configuration and prompt definition
+- **Prompt**: Configuration for generation including system instruction, messages, tools, and parameters
+- **Messages**: Regular user/agent messages or special messages (`$conversation_history`, `$documents`, `$memories`)
+- **Content**: Text, images, tool calls, or tool results that can appear in messages
+- **Tools**: External tool definitions with JSON schemas for input validation
+- **Platform Configs**: Authentication and settings for different AI platforms
 
-```ts
-const platformConfig = createOpenAIConfig('sk-your-api-key');
-const messages = [createTextUserMessage('Hello, how can I assist you today?')];
-const promptRequest = createPromptRequest(platformConfig, messages);
-```
-
-- Send the prompt to a streaming endpoint:
+### Quick Start
 
 ```ts
+import { PromptEndpointClient, createOpenAIConfig, createTextUserMessage, createPromptRequest } from '@sema4ai/sai-sdk';
+
+// Create platform configuration
+const config = createOpenAIConfig('sk-your-api-key');
+
+// Create messages
+const messages = [createTextUserMessage('What is the weather like today?')];
+
+// Build the request
+const request = createPromptRequest(config, messages);
+
+// Create client and send request
 const client = new PromptEndpointClient({ baseUrl: 'https://your-sai-server' });
+const response = await client.generate(request);
 
-async function run() {
-  for await (const patch of client.stream(promptRequest)) {
-    // apply patch to a local accumulator if you want to reconstruct state incrementally
-    console.log('patch:', patch);
-  }
-}
-run();
+console.log(response.content[0].text);
 ```
 
-- Rebuild the final response from streaming patches:
+### Platform Configurations
+
+The SDK supports multiple AI platforms with dedicated helper functions:
 
 ```ts
-const finalResponse = await client.streamToResponse(promptRequest);
-console.log(finalResponse);
-```
+// OpenAI
+const openai = createOpenAIConfig('sk-...');
 
-### Content helpers
+// Azure OpenAI
+const azure = createAzureConfig('api-key', 'https://your-resource.openai.azure.com/', 'deployment-name');
 
-- Create content items that can appear in messages:
-  - `createTextContent(text)`
-  - `createImageContent(base64Data, mimeType, detail)`
-  - `createToolUseContent(toolName, toolCallId, toolInput)`
-  - `createToolResultContent(toolName, toolCallId, result)`
-- Create messages:
-  - `createUserMessage(content)`
-  - `createAgentMessage(content)`
-  - `createTextUserMessage(text)`
-  - `createTextAgentMessage(text)`
-- Common convenience: `createPromptRequest(...)` to assemble a full, validated request.
+// Anthropic Claude
+const anthropic = createAnthropicConfig('sk-ant-...');
 
-Code references (examples):
+// AWS Bedrock
+const bedrock = createBedrockConfig('access-key-id', 'secret-access-key', 'us-east-1');
 
-```ts
-import { createTextContent, createUserMessage, createTextUserMessage } from './modules/sai-sdk/src/agent-prompt';
-```
+// Ollama (local)
+const ollama = createOLLamaConfig('http://localhost:11434');
 
-### Tool definitions
-
-- Define a tool with a name, description, and a JSON input schema:
-
-```ts
-import { createTool } from './modules/sai-sdk/src/agent-prompt';
-const weatherTool = createTool(
-  'get_weather',
-  'Fetch current weather for a location',
-  {
-    location: { type: 'string', description: 'City name' },
-  },
-  ['location'],
+// Snowflake Cortex
+const snowflake = createSnowflakeConfig(
+  'warehouse',
+  'schema',
+  'role',
+  'account',
+  'database',
+  'host',
+  'password',
+  'username',
 );
 ```
 
-- Tools are supplied to `createPromptRequest` as a second array parameter.
+### Content and Messages
 
-### Platform configurations
-
-- OpenAI
+#### Content Types
 
 ```ts
-import { createOpenAIConfig } from './modules/sai-sdk/src/agent-prompt';
-const openAiCfg = createOpenAIConfig('sk-...');
+// Text content
+const text = createTextContent('Hello world');
+
+// Image content (base64)
+const image = createImageContent(base64Data, 'image/jpeg', 'high_res');
+
+// Tool use (when AI calls a tool)
+const toolUse = createToolUseContent('get_weather', 'call-123', { location: 'San Francisco' });
+
+// Tool result (response from tool execution)
+const toolResult = createToolResultContent('get_weather', 'call-123', 'Sunny, 72°F');
 ```
 
-- Google, Groq, Bedrock follow similar patterns with their respective keys.
+#### Message Creation
 
-### Prompt construction
+```ts
+// User messages
+const userMsg = createUserMessage([createTextContent('Hello')]);
+const simpleUserMsg = createTextUserMessage('Hello'); // Convenience function
 
-`createPromptRequest(platformConfig, messages, tools = [], options = {})` builds a validated `PromptRequest`.
+// Agent messages
+const agentMsg = createAgentMessage([createTextContent('Hi there!')]);
+const simpleAgentMsg = createTextAgentMessage('Hi there!'); // Convenience function
+```
 
-- Options include:
-  - `systemInstruction?: string`
-  - `toolChoice?: 'auto' | 'any' | string` (tool name)
-  - `temperature?: number`, `seed?: number`, `maxOutputTokens?: number`, `stopSequences?: string[]`, `topP?: number`
+#### Special Messages
 
-### Streaming API
+Special messages provide access to conversation context, documents, and memories:
 
-- `PromptEndpointClient` (in `client.ts`) exposes:
+```ts
+// Include conversation history (last N turns)
+const history = createConversationHistoryMessage(10);
 
-  - `generate(request, model?)` for a standard, non-streaming generation
-  - `stream(request, model?)` to receive a streaming sequence of `JsonPatchOperation` objects
-  - `streamToResponse(request, model?)` to reconstruct a full `PromptResponse` from streaming patches
+// Include specific documents
+const docs = createDocumentsMessage(['doc-id-1', 'doc-id-2']);
 
-- Streaming events use JSON Patch-like operations:
+// Include relevant memories
+const memories = createMemoriesMessage(5); // limit to 5 memories
+```
 
-  - `add`, `replace` to set values
-  - `remove` to delete fields
-  - `inc` to increment numbers
-  - `concat_string` to concatenate strings
+### Tool Definitions
 
-- Streaming endpoint path:
-  - POST `/api/v2/prompts/stream` (with optional `model` query param)
-  - POST `/api/v2/prompts/generate` for non-streaming responses
+Tools allow the AI to call external functions during generation:
 
-### Types and validation
+```ts
+// Define a tool
+const weatherTool = createTool(
+  'get_weather',
+  'Get current weather for a location',
+  {
+    location: { type: 'string', description: 'City name' },
+    units: { type: 'string', enum: ['celsius', 'fahrenheit'], description: 'Temperature units' },
+  },
+  ['location'], // required fields
+  'client-exec-tool', // category
+);
 
-All shapes are defined in `modules/sai-sdk/src/agent-prompt/index.ts` and exported through the module barrel. Validation uses `zod` and occurs both when constructing a request and when parsing responses.
+// Tool categories:
+// - 'internal-tool' - Platform internal tools
+// - 'action-tool' - External action tools
+// - 'mcp-tool' - MCP protocol tools
+// - 'client-exec-tool' - Client-side executable tools
+// - 'client-info-tool' - Client information tools
+```
 
-### Examples (full)
+### Advanced Prompt Configuration
+
+```ts
+const request = createPromptRequest(platformConfig, messages, tools, {
+  systemInstruction: 'You are a helpful assistant specialized in weather.',
+  toolChoice: 'auto', // 'auto', 'any', or specific tool name
+  temperature: 0.7,
+  seed: 42,
+  maxOutputTokens: 1000,
+  stopSequences: ['\n\n'],
+  topP: 0.9,
+});
+```
+
+### Client API
+
+The `PromptEndpointClient` provides three main methods:
+
+#### Standard Generation
+
+```ts
+const response = await client.generate(request, 'gpt-4'); // optional model override
+```
+
+#### Streaming with JSON Patch
+
+```ts
+// Stream individual patches
+for await (const patch of client.stream(request)) {
+  console.log('Patch:', patch);
+  // patch.op can be: 'add', 'replace', 'remove', 'inc', 'concat_string'
+  // patch.path indicates where the change occurs
+  // patch.value contains the new/additional data
+}
+```
+
+#### Stream to Complete Response
+
+```ts
+// Automatically accumulate patches into final response
+const response = await client.streamToResponse(request);
+```
+
+### Response Structure
+
+Responses contain rich metadata about the generation:
+
+```ts
+interface PromptResponse {
+  content: Content[]; // Generated content (text, tool calls, etc.)
+  role: 'agent'; // Always 'agent' for responses
+  raw_response: any; // Original platform response
+  stop_reason: 'STOP' | 'end_turn' | null;
+  usage: {
+    // Token usage
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+  };
+  metrics: {
+    // Performance metrics
+    latencyMs?: number;
+  };
+  metadata: {
+    // Request metadata
+    request_id?: string;
+    http_status_code?: number;
+    host_id?: string;
+    token_metrics?: {
+      thinking_tokens?: number;
+      modality_tokens?: Record<string, number>;
+    };
+  };
+}
+```
+
+### Error Handling
+
+The client handles HTTP errors and validation errors:
+
+```ts
+try {
+  const response = await client.generate(request);
+} catch (error) {
+  if (error.message.includes('HTTP 400')) {
+    console.log('Bad request - check your prompt format');
+  } else if (error.message.includes('HTTP 401')) {
+    console.log('Authentication failed - check your API key');
+  }
+}
+```
+
+### Complete Example
 
 ```ts
 import {
+  PromptEndpointClient,
   createOpenAIConfig,
   createTextUserMessage,
   createTool,
   createPromptRequest,
-} from './modules/sai-sdk/src/agent-prompt';
-import { PromptEndpointClient } from './modules/sai-sdk/src/agent-prompt/client';
+  createConversationHistoryMessage,
+} from '@sema4ai/sai-sdk';
 
-const platform = createOpenAIConfig('sk-...');
-const messages = [createTextUserMessage('Hello there')];
-const tools = [createTool('echo', 'Echo input', { text: { type: 'string' } }, ['text'])];
-const promptReq = createPromptRequest(platform, messages, tools, {
-  toolChoice: 'auto',
-  temperature: 0.2,
-});
+async function weatherAssistant() {
+  // Setup
+  const config = createOpenAIConfig(process.env.OPENAI_API_KEY!);
+  const client = new PromptEndpointClient({
+    baseUrl: 'https://your-sai-server.com',
+  });
 
-const client = new PromptEndpointClient({ baseUrl: 'https://sai.example.com' });
+  // Define tool
+  const weatherTool = createTool(
+    'get_weather',
+    'Get current weather conditions',
+    {
+      location: { type: 'string', description: 'City name' },
+      units: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+    },
+    ['location'],
+  );
 
-(async () => {
-  const response = await client.streamToResponse(promptReq);
-  console.log('final response:', response);
-})();
+  // Create request with conversation history
+  const request = createPromptRequest(
+    config,
+    [createConversationHistoryMessage(5), createTextUserMessage("What's the weather in Tokyo?")],
+    [weatherTool],
+    {
+      systemInstruction: 'You are a weather assistant. Always use the weather tool for current conditions.',
+      toolChoice: 'auto',
+      temperature: 0.3,
+    },
+  );
+
+  // Stream the response
+  console.log('Weather Assistant Response:');
+  for await (const patch of client.stream(request)) {
+    if (patch.op === 'concat_string' && patch.path.includes('content/0/text')) {
+      process.stdout.write(patch.value);
+    }
+  }
+}
 ```
 
-If you need a quick reference to the individual exports, see the barrel file exports in `./index`.
+### Import Paths
+
+All functions are exported from the main SDK package:
+
+```ts
+import {
+  // Client
+  PromptEndpointClient,
+
+  // Platform configs
+  createOpenAIConfig,
+  createAzureConfig,
+  createAnthropicConfig,
+  createBedrockConfig,
+  createOLLamaConfig,
+  createSnowflakeConfig,
+
+  // Content creation
+  createTextContent,
+  createImageContent,
+  createToolUseContent,
+  createToolResultContent,
+
+  // Message creation
+  createUserMessage,
+  createAgentMessage,
+  createTextUserMessage,
+  createTextAgentMessage,
+
+  // Special messages
+  createConversationHistoryMessage,
+  createDocumentsMessage,
+  createMemoriesMessage,
+
+  // Tools and requests
+  createTool,
+  createPromptRequest,
+
+  // Types (if needed)
+  type PromptRequest,
+  type PromptResponse,
+  type Tool,
+  type JsonPatchOperation,
+} from '@sema4ai/sai-sdk';
+```

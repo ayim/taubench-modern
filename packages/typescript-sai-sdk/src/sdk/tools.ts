@@ -70,7 +70,6 @@ class ToolBuilder implements ToolDefinitionBuilder {
   }
 
   // Add properties to the tool input schema
-
   addProperty(name: string, property: JsonSchemaProperty): ToolDefinitionBuilder {
     if (!this.tool.input_schema) {
       this.tool.input_schema = { type: 'object', properties: {} };
@@ -143,7 +142,6 @@ class ToolBuilder implements ToolDefinitionBuilder {
   }
 
   // Set required fields for the tool input schema
-
   setRequired(fields: string[]): ToolDefinitionBuilder {
     if (!this.tool.input_schema) {
       this.tool.input_schema = { type: 'object', properties: {} };
@@ -179,6 +177,8 @@ export function createTool(name: string, description: string): ToolDefinitionBui
   const builder = new ToolBuilder();
   builder.setName(name);
   builder.setDescription(description);
+  builder.setCallback(() => {});
+  builder.setCategory('client-info-tool');
   return builder;
 }
 

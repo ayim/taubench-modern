@@ -3,6 +3,7 @@
  * Provides WebSocket-based streaming for ephemeral agents
  */
 
+import { PlatformConfig } from '../platform-config';
 import { logger } from '../logger';
 import {
   EphemeralAgentClientConfig,
@@ -20,18 +21,21 @@ import {
   UpsertAgentPayload,
   Citation,
 } from './types';
+import { parse, Allow } from 'partial-json';
 
 /**
  * Client for creating and managing ephemeral agent streams
  */
 export class EphemeralAgentClient {
   private config: EphemeralAgentClientConfig;
+  private verbose: boolean;
 
   constructor(config: EphemeralAgentClientConfig) {
     this.config = {
       timeout: 30000, // 30 seconds default
       ...config,
     };
+    this.verbose = config.verbose || false;
   }
 
   /**
@@ -106,16 +110,19 @@ export class EphemeralAgentClient {
                   agent_id: readyEvent.agent_id,
                 };
                 handlers.onAgentReady?.(readyEvent);
+                logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Agent ready:`, readyEvent);
 
                 // Resolve the Promise only when agent is ready
                 resolve(createStreamResult());
                 break;
 
               case 'agent_finished':
+                logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Agent finished:`, data);
                 handlers.onAgentFinished?.(data as AgentFinishedEvent);
                 break;
 
               case 'agent_error':
+                logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Agent error:`, data);
                 const errorEvent = data as AgentErrorEvent;
                 handlers.onAgentError?.(errorEvent);
 
@@ -126,12 +133,50 @@ export class EphemeralAgentClient {
                 }
                 break;
 
-              case 'message':
+              case 'message_begin':
+                logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Message begin:`, data);
                 handlers.onMessage?.(data as MessageEvent);
+                handlers.onMessageBegin?.(data as MessageEvent);
+                break;
+
+              case 'message_content':
+                logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Message content:`, data);
+                handlers.onMessage?.(data as MessageEvent);
+                handlers.onMessageContent?.(data as MessageEvent);
+                break;
+
+              case 'message_end':
+                logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Message end:`, data);
+                handlers.onMessage?.(data as MessageEvent);
+                handlers.onMessageEnd?.(data as MessageEvent);
                 break;
 
               case 'data':
+                logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Data:`, data);
                 handlers.onData?.(data as DataEvent);
+                break;
+
+              case 'request_tool_execution':
+                const requestedTool = client_tools?.find((tool) => tool.name === data.tool_name);
+                if (requestedTool && requestedTool.callback) {
+                  // Calculate the callback input
+                  const input_raw = data.input_raw;
+                  const callback_input =
+                    typeof input_raw === 'object' && input_raw !== null
+                      ? input_raw
+                      : parse(input_raw, Allow.STR | Allow.OBJ);
+                  logger.infoIf(
+                    this.verbose,
+                    `[EphemeralAgentClient.createStream] Calling callback for tool: ${requestedTool.name} with input:`,
+                    callback_input,
+                  );
+                  // Call the callback with the correct input
+                  requestedTool.callback(callback_input);
+                  logger.infoIf(
+                    this.verbose,
+                    `[EphemeralAgentClient.createStream] Callback for tool: ${requestedTool.name} called successfully`,
+                  );
+                }
                 break;
 
               default:
@@ -147,6 +192,7 @@ export class EphemeralAgentClient {
         };
 
         websocket.onclose = (event) => {
+          logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Connection closed:`, event);
           handlers.onClose?.(event.code, event.reason);
 
           // Only reject if Promise hasn't been resolved yet
@@ -161,11 +207,13 @@ export class EphemeralAgentClient {
         };
 
         websocket.onerror = (error) => {
+          logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Connection error:`, error);
           if (!isResolved) {
             reject(new EphemeralAgentStreamError('WebSocket connection error', 'CONNECTION_ERROR', { error }));
           }
         };
       } catch (error) {
+        logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Connection error:`, error);
         if (!isResolved) {
           reject(
             new EphemeralAgentStreamError('Failed to create WebSocket connection', 'CONNECTION_FAILED', { error }),
@@ -204,27 +252,12 @@ export function createBasicAgentConfig(options: {
   name: string;
   description: string;
   runbook: string;
-  openai_api_key?: string;
-  anthropic_api_key?: string;
+  platform_configs: PlatformConfig[];
+  agent_id?: string;
 }): UpsertAgentPayload {
-  const { name, description, runbook, openai_api_key, anthropic_api_key } = options;
-
-  // Determine platform configs based on available API keys
-  const platform_configs = [];
-  if (openai_api_key) {
-    platform_configs.push({
-      kind: 'openai',
-      openai_api_key,
-    });
-  }
-  if (anthropic_api_key) {
-    platform_configs.push({
-      kind: 'anthropic',
-      anthropic_api_key,
-    });
-  }
-
+  const { name, description, runbook, platform_configs, agent_id } = options;
   return {
+    agent_id: agent_id,
     name,
     description,
     version: '1.0.0',
@@ -261,29 +294,7 @@ export function createUserMessage(text: string, messageId?: string): ThreadMessa
     role: 'user',
     content: [{ text, citations: [], kind: 'text' }],
     complete: true,
-    message_id: messageId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    agent_metadata: {},
-    server_metadata: {},
-  };
-}
-
-/**
- * Utility function to create an agent message with text content
- */
-export function createAgentMessage(text: string, messageId?: string): ThreadMessage {
-  return {
-    role: 'agent',
-    content: [
-      {
-        text,
-        citations: [],
-        kind: 'text',
-      },
-    ],
-    complete: true,
-    message_id: messageId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    message_id: messageId || crypto.randomUUID(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     agent_metadata: {},
@@ -326,33 +337,7 @@ export function createUserMessageWithCitations(
       },
     ],
     complete: true,
-    message_id: messageId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    agent_metadata: {},
-    server_metadata: {},
-  };
-}
-
-/**
- * Utility function to create an agent message with text content and citations
- */
-export function createAgentMessageWithCitations(
-  text: string,
-  citations: Citation[] = [],
-  messageId?: string,
-): ThreadMessage {
-  return {
-    role: 'agent',
-    content: [
-      {
-        text,
-        citations,
-        kind: 'text',
-      },
-    ],
-    complete: true,
-    message_id: messageId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    message_id: messageId || crypto.randomUUID(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     agent_metadata: {},
@@ -362,7 +347,6 @@ export function createAgentMessageWithCitations(
 
 // Legacy aliases for backward compatibility
 export const createHumanMessage = createUserMessage;
-export const createSystemMessage = createAgentMessage;
 
 /**
  * Utility function to check if an error is an EphemeralAgentStreamError

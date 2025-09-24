@@ -16,6 +16,8 @@ jobs:
   smoke-tests:
     name: Sai SDK Smoke Tests
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     defaults:
       run:
         working-directory: packages/typescript-sai-sdk

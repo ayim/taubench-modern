@@ -3,6 +3,8 @@
  * Based on agent-platform WebSocket streaming API
  */
 
+import { PlatformConfig } from '../platform-config';
+
 /**
  * Agent architecture configuration
  */
@@ -11,20 +13,6 @@ export interface AgentArchitecture {
   name: string;
   /** Architecture version */
   version: string;
-}
-
-/**
- * Platform configuration for model providers
- */
-export interface PlatformConfig {
-  /** Platform kind (e.g., 'openai', 'anthropic') */
-  kind: string;
-  /** OpenAI API key */
-  openai_api_key?: string;
-  /** Anthropic API key */
-  anthropic_api_key?: string;
-  /** Additional configuration options */
-  [key: string]: any;
 }
 
 /**
@@ -37,14 +25,14 @@ export interface ActionPackage {
   organization: string;
   /** Package version */
   version: string;
+  /** Package actions */
+  actions?: { name: string; description: string }[];
   /** Package URL */
-  url: string;
+  url?: string;
   /** API key for the package */
-  api_key: string;
-  /** Allowed actions */
-  allowed_actions: string[];
+  api_key?: string;
   /** Whitelist configuration */
-  whitelist: string;
+  whitelist?: string;
 }
 
 /**
@@ -53,14 +41,24 @@ export interface ActionPackage {
 export interface McpServer {
   /** Server configuration */
   [key: string]: any;
+
+  tools?: { name: string; description: string }[];
 }
 
 /**
  * Question group configuration
  */
 export interface QuestionGroup {
-  /** Question group configuration */
-  [key: string]: any;
+  /**
+   * Title
+   * @description The title of the question group.
+   */
+  title: string;
+  /**
+   * Questions
+   * @description The questions in the question group.
+   */
+  questions?: string[];
 }
 
 /**
@@ -124,7 +122,7 @@ export interface AgentMessage {
 /**
  * Tool category type
  */
-export type ToolCategory = 'action' | 'data' | 'web' | 'file' | 'communication' | 'analysis' | 'automation' | 'unknown';
+export type ToolCategory = 'internal-tool' | 'action-tool' | 'mcp-tool' | 'client-exec-tool' | 'client-info-tool';
 
 /**
  * Tool definition for client-side tools
@@ -138,6 +136,8 @@ export interface ToolDefinitionPayload {
   input_schema: Record<string, any>;
   /** The category of the tool */
   category?: ToolCategory;
+  /** The callback function for the tool */
+  callback?: (input: any) => any;
 }
 
 /**
@@ -318,7 +318,7 @@ export interface UpsertAgentPayload {
   /** The id of the user that created the agent */
   user_id?: string | null;
   /** The platform configs this agent can use */
-  platform_configs?: Record<string, any>[];
+  platform_configs?: PlatformConfig[];
   /** The architecture details for the agent */
   agent_architecture?: AgentArchitecture | null;
   /** The raw text of the runbook */
@@ -372,7 +372,14 @@ export interface EphemeralStreamRequest {
 /**
  * Event types from ephemeral agent stream
  */
-export type EphemeralEventType = 'agent_ready' | 'agent_finished' | 'agent_error' | 'message' | 'data';
+export type EphemeralMessageEventType = 'message_content' | 'message_metadata' | 'message_begin' | 'message_end';
+export type EphemeralEventType =
+  | 'agent_ready'
+  | 'agent_finished'
+  | 'agent_error'
+  | 'data'
+  | 'request_tool_execution'
+  | EphemeralMessageEventType;
 
 /**
  * Base event structure
@@ -421,17 +428,39 @@ export interface AgentErrorEvent extends BaseEphemeralEvent {
   details?: Record<string, any>;
 }
 
+export interface Delta {
+  op: string;
+  path: string;
+  value: any;
+}
+
 /**
  * Message event - sent for streaming messages
  */
 export interface MessageEvent extends BaseEphemeralEvent {
-  event_type: 'message';
+  event_type: EphemeralMessageEventType;
   /** Message content */
-  content: string;
+  content: AnyThreadMessageContent[];
   /** Message role */
   role?: string;
   /** Message metadata */
   metadata?: Record<string, any>;
+  /** Message ID */
+  message_id?: string;
+  /** Thread ID */
+  thread_id?: string;
+  /** Agent ID */
+  agent_id?: string;
+  /** Delta */
+  delta: Delta;
+  /** Complete */
+  complete?: boolean;
+  /** Committed */
+  committed?: boolean;
+  /** Parent run ID */
+  parent_run_id?: string;
+  /** Data */
+  data?: Record<string, any>;
 }
 
 /**
@@ -443,10 +472,24 @@ export interface DataEvent extends BaseEphemeralEvent {
   data: any;
 }
 
+export interface RequestToolExecutionEvent extends BaseEphemeralEvent {
+  event_type: 'request_tool_execution';
+  input_raw: string;
+  timestamp: string;
+  tool_call_id: string;
+  tool_name: string;
+}
+
 /**
  * Union type for all ephemeral events
  */
-export type EphemeralEvent = AgentReadyEvent | AgentFinishedEvent | AgentErrorEvent | MessageEvent | DataEvent;
+export type EphemeralEvent =
+  | AgentReadyEvent
+  | AgentFinishedEvent
+  | AgentErrorEvent
+  | MessageEvent
+  | DataEvent
+  | RequestToolExecutionEvent;
 
 /**
  * Event handlers for ephemeral agent streaming
@@ -460,6 +503,12 @@ export interface EphemeralEventHandlers {
   onAgentError?: (event: AgentErrorEvent) => void;
   /** Called for streaming messages */
   onMessage?: (event: MessageEvent) => void;
+  /** Called for streaming where message is started */
+  onMessageBegin?: (event: MessageEvent) => void;
+  /** Called for streaming where message is content */
+  onMessageContent?: (event: MessageEvent) => void;
+  /** Called for streaming where message is finished */
+  onMessageEnd?: (event: MessageEvent) => void;
   /** Called for streaming data */
   onData?: (event: DataEvent) => void;
   /** Called for any event */
@@ -482,6 +531,8 @@ export interface EphemeralAgentClientConfig {
   timeout?: number;
   /** Additional headers to include in WebSocket connection */
   headers?: Record<string, string>;
+  /** Verbose */
+  verbose?: boolean;
 }
 
 /**

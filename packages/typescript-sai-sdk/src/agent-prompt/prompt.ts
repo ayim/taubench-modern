@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { MessageContentSchema } from './content';
 import { ToolSchema } from './tools';
-import { PlatformConfigSchema } from './platform-config';
+import { PlatformConfigSchema } from '../platform-config';
 
 // Message roles - extended to support special messages
 export const MessageRoleSchema = z.enum(['user', 'agent']);

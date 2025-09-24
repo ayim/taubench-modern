@@ -1,6 +1,3 @@
-// Platform configuration exports
-export * from './platform-config';
-
 // Content type exports
 export * from './content';
 
@@ -15,6 +12,3 @@ export * from './response';
 
 // Client export
 export * from './client';
-
-// Utility functions export
-export * from './utils';

@@ -1,6 +1,8 @@
 import { logger } from '../logger';
 import { PromptEndpointClient, PromptEndpointClientConfig } from '../agent-prompt/client';
-import { PlatformConfig } from '../agent-prompt/platform-config';
+import { PlatformConfig } from '../platform-config';
+import { ActionPackage, EphemeralAgentClient, McpServer, UpsertAgentPayload } from '../agent-ephemeral';
+import { createSaiAgentSetupConfig } from '../agent-ephemeral/agents/agent-setup';
 
 /**
  * Configuration interface for the SAI SDK
@@ -10,6 +12,13 @@ export interface SaiSDKConfig {
   promptClient: PromptEndpointClientConfig;
   /** Platform configuration (API keys, etc.) for PromptRequest */
   platformConfig: PlatformConfig;
+  /** Available resources for the SAI SDK */
+  availableResources?: {
+    actionPackages?: ActionPackage[];
+    mcpServers?: McpServer[];
+  };
+  /** Agent ID */
+  agentId?: string;
   /** Default model to use for scenario execution */
   defaultModel?: string;
   /** Additional configuration options */
@@ -26,6 +35,10 @@ export interface SaiSDKConfig {
   };
 }
 
+type EphemeralAgents = {
+  agentSetup: UpsertAgentPayload;
+};
+
 /**
  * Singleton class to manage global SDK configuration
  * This class ensures that all scenarios have access to the same configuration
@@ -35,6 +48,9 @@ export class SaiSDKConfiguration {
   private static instance: SaiSDKConfiguration | null = null;
   private config: SaiSDKConfig | null = null;
   private promptClient: PromptEndpointClient | null = null;
+
+  private ephemeralAgentClient: EphemeralAgentClient | null = null;
+  private ephemeralAgents: EphemeralAgents | null = null;
 
   /**
    * Private constructor to enforce singleton pattern
@@ -55,17 +71,40 @@ export class SaiSDKConfiguration {
    * Initialize the SDK configuration
    * This must be called before any scenario execution
    */
-  public initialize(config: SaiSDKConfig): void {
+  public initialize(config: SaiSDKConfig): SaiSDKConfiguration {
+    // Initialize the configuration
     this.config = config;
+
+    // Initialize the prompt client
     this.promptClient = new PromptEndpointClient(config.promptClient);
 
+    // Initialize the ephemeral agent client
+    this.ephemeralAgentClient = new EphemeralAgentClient({
+      baseUrl: config.promptClient.baseUrl,
+      timeout: 30000,
+    });
+    // Initialize the ephemeral agents
+    this.ephemeralAgents = {
+      agentSetup: createSaiAgentSetupConfig(
+        [config.platformConfig],
+        config.agentId,
+        config.availableResources?.actionPackages,
+        config.availableResources?.mcpServers,
+      ),
+    };
+
+    // Log the configuration
     if (config.options?.debug) {
       logger.info('SAI SDK Configuration initialized:', {
         baseUrl: config.promptClient.baseUrl,
+        ephemeralAgentClient: this.ephemeralAgentClient,
+        ephemeralAgents: this.ephemeralAgents,
         defaultModel: config.defaultModel,
         options: config.options,
       });
     }
+
+    return this;
   }
 
   /**
@@ -99,6 +138,23 @@ export class SaiSDKConfiguration {
   }
 
   /**
+   * Get the ephemeral agent client
+   */
+  public getEphemeralAgentClient(): EphemeralAgentClient {
+    if (!this.ephemeralAgentClient) {
+      throw new Error('SDK not initialized. Call initialize() first.');
+    }
+    return this.ephemeralAgentClient;
+  }
+
+  public getEphemeralAgents(): EphemeralAgents {
+    if (!this.ephemeralAgents) {
+      throw new Error('SDK not initialized. Call initialize() first.');
+    }
+    return this.ephemeralAgents;
+  }
+
+  /**
    * Get the default model
    */
   public getDefaultModel(): string | undefined {
@@ -118,6 +174,8 @@ export class SaiSDKConfiguration {
   public reset(): void {
     this.config = null;
     this.promptClient = null;
+    this.ephemeralAgentClient = null;
+    this.ephemeralAgents = null;
   }
 
   /**
@@ -167,6 +225,6 @@ export function getSDKConfig(): SaiSDKConfiguration {
 /**
  * Convenience function to initialize the SDK
  */
-export function initializeSDK(config: SaiSDKConfig): void {
-  SaiSDKConfiguration.getInstance().initialize(config);
+export function initializeSDK(config: SaiSDKConfig): SaiSDKConfiguration {
+  return SaiSDKConfiguration.getInstance().initialize(config);
 }

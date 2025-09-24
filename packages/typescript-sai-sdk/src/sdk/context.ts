@@ -72,15 +72,15 @@ export function createDefaultContext(): ContextDefinitionBuilder {
 }
 
 export function createConservativeContext(): ContextDefinitionBuilder {
-  return createContext().setTemperature(0.2).setTopP(0.8).setMaxOutputTokens(1024);
+  return createContext().setTemperature(0.2).setTopP(0.7).setMaxOutputTokens(1024);
 }
 
 export function createBalancedContext(): ContextDefinitionBuilder {
-  return createContext().setTemperature(0.7).setTopP(0.9).setMaxOutputTokens(2048);
+  return createContext().setTemperature(0.6).setTopP(0.8).setMaxOutputTokens(2048);
 }
 
 export function createCreativeContext(): ContextDefinitionBuilder {
-  return createContext().setTemperature(0.9).setTopP(0.95).setMaxOutputTokens(3072).setSeed(42);
+  return createContext().setTemperature(0.8).setTopP(0.9).setMaxOutputTokens(3072).setSeed(42);
 }
 
 export type { ContextDefinitionBuilder };

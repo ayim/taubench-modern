@@ -6,14 +6,16 @@ import {
   createTool,
   createPromptRequest,
   createImageContent,
-  createUserMessage,
   createTextContent,
   createConversationHistoryMessage,
   createDocumentsMessage,
   createMemoriesMessage,
   type JsonPatchOperation,
   createAgentMessage,
-} from '../src/agent-prompt/index';
+  createToolResultContent,
+  AllMessage,
+} from '../src';
+import { createUserMessage } from '../src/utils';
 
 /**
  * Evaluates a mathematical expression given as a string and returns the result as a number.
@@ -91,19 +93,17 @@ describe('PromptEndpointClient', () => {
     });
   });
 
-  describe.only('Tool usage', () => {
+  describe('Tool usage', () => {
     it.skipIf(!hasValidApiKey())('should handle tool usage flow correctly', async () => {
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
 
+      console.log('config:', config);
       // Use a simpler tool that's more likely to be supported
-      const calculatorTool = createTool(
-        'calculator',
-        'Perform basic arithmetic calculations',
-        {
-          expression: { type: 'string', description: 'The mathematical expression to evaluate' },
-        },
-        ['expression'],
-      );
+      const calculatorTool = createTool('calculator', 'Perform basic arithmetic calculations')
+        .addStringProperty('expression', 'The mathematical expression to evaluate')
+        .setRequired(['expression'])
+        .build();
+      console.log('calculatorTool:', calculatorTool);
 
       const messages = [createTextUserMessage('What is 2 + 2? Please help me with this simple math.')];
       const request = createPromptRequest(config, messages, [calculatorTool], {
@@ -136,20 +136,11 @@ describe('PromptEndpointClient', () => {
         const toolResult = evaluateExpression(toolInput.expression);
 
         // Feed back the toolResult after evaluation to the agent and prompt the agent to return explanation
-        const followupMessages = [
+        const followupMessages: AllMessage[] = [
           ...messages,
           createAgentMessage([toolUseContent]),
           createUserMessage([
-            {
-              kind: 'tool_result',
-              tool_name: toolUseContent.tool_name,
-              tool_call_id: toolUseContent.tool_call_id,
-              content: [
-                {
-                  text: toolResult.toString(),
-                },
-              ],
-            },
+            createToolResultContent(toolUseContent.tool_name, toolUseContent.tool_call_id, toolResult.toString()),
           ]),
           createTextUserMessage('Can you explain how you got the answer?'),
         ];
@@ -216,7 +207,7 @@ describe('PromptEndpointClient', () => {
         expect(response.content).toBeDefined();
         expect(Array.isArray(response.content)).toBe(true);
 
-        if (response.content[0].kind === 'text') expect(response.content[0].text).toContain('LangSmith.');
+        if (response.content[0].kind === 'text') expect(response.content[0].text).toContain('LangSmith');
         else {
           throw new Error('Text was expected as explanation for the sent image');
         }
@@ -237,7 +228,7 @@ describe('PromptEndpointClient', () => {
   describe('Streaming', () => {
     it.skipIf(!hasValidApiKey())('should handle streaming responses correctly', async () => {
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
-      const messages = [createTextUserMessage('Write me a short story about a robot learning to paint.')];
+      const messages = [createTextUserMessage('Write me a 10 word story about a robot learning to paint.')];
       const request = createPromptRequest(config, messages, [], {
         temperature: 0.7,
         maxOutputTokens: 1024,
@@ -351,7 +342,7 @@ describe('PromptEndpointClient', () => {
         const messages = [createTextUserMessage('Explain quantum computing in simple terms.')];
         const request = createPromptRequest(config, messages);
 
-        const response = await client.generate(request, 'o3-mini-high');
+        const response = await client.generate(request, 'gpt-4o');
 
         expect(response).toBeDefined();
         expect(response.role).toBe('agent');
@@ -405,6 +396,7 @@ describe('PromptEndpointClient', () => {
           },
           required: ['param1', 'param2'], // param2 not defined in properties
         },
+        category: 'client-info-tool' as const,
       };
 
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
@@ -437,7 +429,7 @@ describe('PromptEndpointClient', () => {
     it.skipIf(!hasValidApiKey())('should handle tool choice options', async () => {
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
       const messages = [createTextUserMessage('Use the calculator')];
-      const tool = createTool('calculator', 'Calculate numbers', { expression: { type: 'string' } });
+      const tool = createTool('calculator', 'Calculate numbers').build();
 
       const request = createPromptRequest(config, messages, [tool], {
         toolChoice: 'calculator',
@@ -529,8 +521,8 @@ describe('PromptEndpointClient', () => {
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
       const messages = [createTextUserMessage('Test')];
       const tools = [
-        createTool('calculator', 'Calculate numbers', { expression: { type: 'string' } }),
-        createTool('weather', 'Get weather info', { location: { type: 'string' } }),
+        createTool('calculator', 'Calculate numbers').build(),
+        createTool('weather', 'Get weather info').build(),
       ];
 
       // Valid tool choices should work

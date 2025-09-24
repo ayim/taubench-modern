@@ -1,3 +1,9 @@
+// Platform config module exports
+export * from './platform-config';
+
+// Utils module exports
+export * from './utils';
+
 // Agent prompt module exports
 export * from './agent-prompt';
 
@@ -5,13 +11,13 @@ export * from './agent-prompt';
 export {
   // Types
   AgentArchitecture as EphemeralAgentArchitecture,
-  PlatformConfig as EphemeralPlatformConfig,
   ActionPackage as EphemeralActionPackage,
   McpServer as EphemeralMcpServer,
   QuestionGroup as EphemeralQuestionGroup,
   ObservabilityConfig as EphemeralObservabilityConfig,
   EphemeralAgentConfig,
   AgentMessage,
+  ThreadMessage,
   EphemeralStreamRequest,
   EphemeralEventType,
   BaseEphemeralEvent,
@@ -27,14 +33,21 @@ export {
   EphemeralStreamResult,
   EphemeralAgentValidationError,
   EphemeralAgentStreamError,
+  ActionPackage,
+  McpServer,
+  QuestionGroup,
+  ObservabilityConfig,
+  // Utils
   createUserMessage,
+  // Agents
+  createSaiAgentSetupConfig,
+  configureSaiAgentSetupTools,
 
   // Client and utilities
   EphemeralAgentClient,
   createEphemeralAgentClient,
   createBasicAgentConfig,
   createHumanMessage,
-  createSystemMessage,
   isEphemeralAgentStreamError,
   getEphemeralAgentErrorMessage,
 } from './agent-ephemeral';

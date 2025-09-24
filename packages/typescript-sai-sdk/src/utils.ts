@@ -1,3 +1,4 @@
+import { PlatformConfig } from './platform-config';
 import {
   Message,
   AllMessage,
@@ -8,14 +9,13 @@ import {
   ToolResultContent,
   Tool,
   ToolChoice,
-  PlatformConfig,
   PromptRequest,
   PromptSchema,
   ConversationHistorySpecialMessage,
   DocumentsSpecialMessage,
   MemoriesSpecialMessage,
   ToolCategory,
-} from './index';
+} from './agent-prompt/index';
 
 /**
  * Create a text content object
@@ -131,7 +131,7 @@ export function createTool(
 export function createOpenAIConfig(apiKey: string): PlatformConfig {
   return {
     kind: 'openai',
-    openai_api_key: apiKey, // TODO: Add support for other OpenAI models
+    openai_api_key: apiKey,
   };
 }
 
