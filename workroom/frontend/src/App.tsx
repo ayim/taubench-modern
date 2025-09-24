@@ -8,13 +8,13 @@ import { QueryClientProvider } from './components/providers/QueryClient';
 import { AuthProvider } from './components/providers/AuthProvider';
 import { UIStateContext } from './components/providers/Theme';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { ACE_WORKROOM_VERSION } from './version';
+import { SPAR_VERSION } from './version';
 import { resolveWorkroomURL } from './lib/utils';
 import errorIllustration from '~/assets/error.svg';
 
 export const App = () => {
   useEffect(() => {
-    console.log(`ACE workroom ${ACE_WORKROOM_VERSION}`);
+    console.log(`Version ${SPAR_VERSION}`);
   }, []);
 
   const { storageValue: currentTheme, setStorageValue: setTheme } = useLocalStorage<'dark' | 'light'>({

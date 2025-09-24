@@ -30,7 +30,7 @@ x-service-spar: &template-service-spar
         secrets:
             - npmrc
         args:
-            ACE_SERVICE_VERSION: v2-dev-build
+            SPAR_VERSION: local-dev-build
             NODE_ENV: production
     environment:
         <<: *template-env-spar
