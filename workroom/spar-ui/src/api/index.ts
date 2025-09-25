@@ -31,7 +31,13 @@ export interface SparAPIClient {
   /**
    * Get the HTML for the action log
    */
-  openActionLogs?: (props: { agentId: string; threadId: string; toolCallId: string }) => Promise<boolean>;
+  openActionLogs: (props: {
+    agentId: string;
+    threadId: string;
+    toolCallId: string;
+    // Only surfaced by agent-server >= 2.1.6
+    actionServerRunId: string | null;
+  }) => Promise<{success: true} | {success: false, error: { message: string}}>;
 
   /**
    * Download a file

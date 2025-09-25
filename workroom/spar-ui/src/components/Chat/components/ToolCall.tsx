@@ -7,11 +7,22 @@ import { snakeCaseToTitleCase } from '../../../common/helpers';
 import { Code } from '../../../common/code';
 import { SparUIFeatureFlag } from '../../../api';
 import { useFeatureFlag, useParams } from '../../../hooks';
-import { useSparUIContext } from '../../../api/context';
 import { DataFrameClientTools } from '../../DataFrame/tools/Definitions';
+import { useShowActionLogsMutation } from '../../../queries';
 
 type Props = {
   content: ThreadToolUsageContent;
+};
+
+const isActionServerToolCall = (content: ThreadToolUsageContent) => {
+  // All existing tool calls made by action server have an action-external sub_type
+  // With agent-server >= 2.1.6, action_server_run_id is also surfaced for action-servers (and in the future, by action-server as MCP)
+
+  return (
+    content.sub_type === 'action-external' ||
+    content.sub_type === 'unknown' || // old action calls had unknown prior to the MCP introduction
+    (content.action_server_run_id !== null && content.action_server_run_id !== undefined)
+  );
 };
 
 export const ToolCall: FC<Props> = ({ content }) => {
@@ -19,8 +30,8 @@ export const ToolCall: FC<Props> = ({ content }) => {
   const showActionLogs = useFeatureFlag(SparUIFeatureFlag.showActionLogs);
   const { onCopyToClipboard: onCopyInput, copiedToClipboard: inputCopied } = useClipboard();
   const { onCopyToClipboard: onCopyOutput, copiedToClipboard: outputCopied } = useClipboard();
-  const { sparAPIClient } = useSparUIContext();
   const { addSnackbar } = useSnackbar();
+  const { mutateAsync, isPending } = useShowActionLogsMutation({});
 
   const toolbar = useMemo(() => {
     return (
@@ -59,22 +70,39 @@ export const ToolCall: FC<Props> = ({ content }) => {
   }, [content]);
 
   const onShowLogs = async () => {
-    const success = await sparAPIClient.openActionLogs?.({ agentId, threadId, toolCallId: content.tool_call_id });
-    if (!success) {
-      addSnackbar({
-        message: 'Unable to open Action Logs',
-        variant: 'danger',
-      });
-    }
+    await mutateAsync(
+      {
+        agentId,
+        threadId,
+        actionServerRunId: content.action_server_run_id ?? null,
+        toolCallId: content.tool_call_id,
+      },
+      {
+        onError: (error) =>
+          addSnackbar({
+            message: error.message,
+            variant: 'danger',
+          }),
+      },
+    );
   };
 
   return (
     <Fragment key={content.content_id}>
-      <Chat.Action actionName={snakeCaseToTitleCase(content.name)} running={['streaming', 'pending', 'running'].includes(content.status)}>
+      <Chat.Action
+        actionName={snakeCaseToTitleCase(content.name)}
+        running={['streaming', 'pending', 'running'].includes(content.status)}
+      >
         <Code value={result} toolbar={toolbar} lang="json" />
         <Box display="flex" gap="$8">
-          {showActionLogs && (
-            <Button onClick={onShowLogs} variant="ghost-subtle" icon={IconCode}>
+          {showActionLogs && isActionServerToolCall(content) && (
+            <Button
+              onClick={onShowLogs}
+              variant="ghost-subtle"
+              icon={IconCode}
+              loading={isPending}
+              disabled={isPending}
+            >
               Show Logs
             </Button>
           )}

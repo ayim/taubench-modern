@@ -53,18 +53,27 @@ export const createSparAPIClient = (
   },
 
   openActionLogs: async (params) => {
-    const html = await agentAPIClient.getActionLogHtml({ tenantId, ...params });
+    const response = await agentAPIClient.getActionLogHtml({ tenantId, ...params });
+
+    if (!response.success) {
+      return response;
+    }
 
     const actionLogsWindow = window.open();
 
     if (!actionLogsWindow) {
-      return false;
+      return {
+        success: false,
+        error: {
+          message: 'Unable to open the action logs',
+        },
+      };
     }
 
-    actionLogsWindow.document.write(html);
+    actionLogsWindow.document.write(response.data.html);
     actionLogsWindow.document.close();
 
-    return true;
+    return { success: true };
   },
 
   downloadFile: async ({ threadId, name }) => {

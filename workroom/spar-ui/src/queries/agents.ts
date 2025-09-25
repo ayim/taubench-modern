@@ -105,3 +105,23 @@ export const useDeleteAgentMutation = createSparMutation<object, { agentId: stri
     },
   }),
 );
+
+export const useShowActionLogsMutation = createSparMutation<
+  object,
+  { agentId: string; threadId: string; actionServerRunId: string | null; toolCallId: string }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async ({ agentId, threadId, actionServerRunId, toolCallId }) => {
+    const response = await sparAPIClient.openActionLogs({
+      agentId,
+      threadId,
+      toolCallId,
+      actionServerRunId,
+    });
+
+    if (!response.success) {
+      throw new Error(response.error.message);
+    }
+
+    return response.success;
+  },
+}));

@@ -630,7 +630,7 @@ export class AgentAPIClient {
     agentId: string;
     threadId: string;
     toolCallId: string;
-  }) {
+  }): Promise<{ success: true; data: { html: string } } | { success: false; error: { message: string } }> {
     const { workroomToken } = await this.prepareForRequest(tenantId);
 
     const workroomClient = createWorkroomClient({
@@ -654,9 +654,12 @@ export class AgentAPIClient {
     );
 
     if (![200, 304].includes(getActionLogs.response.status) || !getActionLogs.data) {
-      // TODO-V2: Should return a failed response and the snackbar should be triggered from the UI
-      // errorToast('Unable to fetch Action Log Html');
-      throw new RequestError(getActionLogs.response.status, '');
+      return {
+        success: false,
+        error: {
+          message: getActionLogs.error?.error.message ?? 'Failed to retrieve the action logs',
+        },
+      };
     }
 
     const reader = getActionLogs.data.getReader();
@@ -675,7 +678,7 @@ export class AgentAPIClient {
       }
     }
 
-    return chunks.join('');
+    return { success: true, data: { html: chunks.join('') } };
   }
 
   /**
