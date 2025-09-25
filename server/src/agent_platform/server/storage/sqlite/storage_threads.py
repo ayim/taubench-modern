@@ -188,13 +188,20 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         self._validate_uuid(user_id)
         self._validate_uuid(thread_id)
 
-        # Check existence
-        if not await self._thread_exists(user_id, thread_id):
-            raise ThreadNotFoundError(f"Thread {thread_id} not found")
-
-        # Check access
-        if not await self._user_can_access_thread(user_id, thread_id):
-            raise UserAccessDeniedError(f"Access denied to thread {thread_id}")
+        async with self._cursor() as cur:
+            await cur.execute(
+                """
+                SELECT v2_check_user_access(t.user_id, :user_id) AS has_access
+                FROM v2_thread t
+                WHERE t.thread_id = :thread_id
+                """,
+                {"thread_id": thread_id, "user_id": user_id},
+            )
+            row = await cur.fetchone()
+            if not row:
+                raise ThreadNotFoundError(f"Thread {thread_id} not found")
+            if not row["has_access"]:
+                raise UserAccessDeniedError(f"Access denied to thread {thread_id}")
 
         async with self._cursor() as cur:
             await cur.execute(

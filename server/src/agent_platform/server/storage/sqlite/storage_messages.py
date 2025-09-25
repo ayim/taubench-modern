@@ -9,6 +9,7 @@ from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
     ThreadNotFoundError,
+    UserAccessDeniedError,
     UserPermissionError,
 )
 from agent_platform.server.storage.sqlite.cursor import CursorMixin
@@ -101,12 +102,22 @@ class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
         self._validate_uuid(user_id)
         self._validate_uuid(thread_id)
 
-        # Check existence and access at the thread level if desired
-        if not await self._thread_exists(user_id, thread_id):
-            raise ThreadNotFoundError(f"Thread {thread_id} not found")
-
         try:
             async with self._cursor() as cur:
+                await cur.execute(
+                    """
+                SELECT v2_check_user_access(t.user_id, :user_id) AS has_access
+                FROM v2_thread t
+                WHERE t.thread_id = :thread_id
+                """,
+                    {"thread_id": thread_id, "user_id": user_id},
+                )
+                row = await cur.fetchone()
+                if not row:
+                    raise ThreadNotFoundError(f"Thread {thread_id} not found")
+                if not row["has_access"]:
+                    raise UserAccessDeniedError(f"Access denied to thread {thread_id}")
+
                 message_dict = message.model_dump()
 
                 # Check if message already exists
@@ -179,6 +190,8 @@ class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
                             "parent_run_id": message_dict["parent_run_id"],
                         },
                     )
+        except (UserAccessDeniedError, ThreadNotFoundError):
+            raise
         except IntegrityError as e:
             raise ReferenceIntegrityError(
                 "Invalid foreign key reference updating message",
@@ -302,24 +315,3 @@ class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
             messages.append(ThreadMessage.model_validate(row_dict))
 
         return messages
-
-    # -------------------------------------------------------------------------
-    # Helpers
-    # -------------------------------------------------------------------------
-    async def _thread_exists(self, user_id: str, thread_id: str) -> bool:
-        """Helper to check if a thread with the given ID actually
-        exists and the user has access to it."""
-        async with self._cursor() as cur:
-            await cur.execute(
-                """
-                SELECT 1 FROM v2_thread AS t
-                WHERE t.thread_id = :thread_id
-                AND v2_check_user_access(
-                    t.user_id, :user_id
-                )
-                LIMIT 1
-                """,
-                {"thread_id": thread_id, "user_id": user_id},
-            )
-            row = await cur.fetchone()
-            return row is not None

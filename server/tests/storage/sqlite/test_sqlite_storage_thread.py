@@ -670,3 +670,21 @@ async def test_thread_messages_commited_complete_flags(
         assert dumped["commited"] is True
         assert "complete" in dumped, "model_dump should include complete field"
         assert dumped["complete"] is True
+
+
+@pytest.mark.asyncio
+async def test_delete_thread_other_user(
+    storage: SQLiteStorage,
+    sample_agent: Agent,
+    sample_thread: Thread,
+) -> None:
+    """Test that a thread cannot be deleted by a non-owner user."""
+    owner, _ = await storage.get_or_create_user(sub="tenant:testing:user:owner")
+    agent = Agent.model_validate(sample_agent.model_dump() | {"user_id": owner.user_id})
+    thread = Thread.model_validate(sample_thread.model_dump() | {"user_id": owner.user_id})
+    await storage.upsert_agent(owner.user_id, agent)
+    await storage.upsert_thread(owner.user_id, thread)
+
+    other_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:other")
+    with pytest.raises(UserAccessDeniedError):
+        await storage.delete_thread(other_user.user_id, thread.thread_id)
