@@ -141,7 +141,7 @@ async def mock_storage() -> AsyncGenerator[None, Any]:
                 name="Test Thread 2",
                 messages=[
                     ThreadMessage(
-                        content=[ThreadTextContent("agent_2_message_1")],
+                        content=[ThreadTextContent("agent_1_thread_2_message_1")],
                         commited=True,
                         role="agent",
                     ),
@@ -425,9 +425,11 @@ async def test_agent_as_mcp_endpoints(mock_mcp_proxy):
             threads = json.loads(cast(TextContent, list_thread_response.content[0]).text)["threads"]
             assert {t["thread_identifier"] for t in threads} == {"Test Thread 1", "Test Thread 2"}
 
+            test_thread_1 = next(t for t in threads if t["thread_identifier"] == "Test Thread 1")
+
             list_messages_response = await session.call_tool(
                 "get_test_agent_1_agent_thread_messages",
-                arguments={"thread_id": threads[0]["thread_id"]},
+                arguments={"thread_id": test_thread_1["thread_id"]},
             )
 
             messages = json.loads(cast(TextContent, list_messages_response.content[0]).text)[

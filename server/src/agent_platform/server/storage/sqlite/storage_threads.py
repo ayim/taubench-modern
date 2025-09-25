@@ -42,6 +42,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     t.work_item_id
                 FROM v2_thread t
                 WHERE v2_check_user_access(t.user_id, :user_id) = 1
+                ORDER BY t.created_at DESC
                 """,
                 {"user_id": user_id},
             )
@@ -74,6 +75,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                 FROM v2_thread t
                 WHERE t.agent_id = :agent_id
                   AND v2_check_user_access(t.user_id, :user_id) = 1
+                ORDER BY t.created_at DESC
                 """,
                 {"agent_id": agent_id, "user_id": user_id},
             )

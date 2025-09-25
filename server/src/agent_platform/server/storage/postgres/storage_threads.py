@@ -35,7 +35,8 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     t.metadata,
                     t.work_item_id
                    FROM v2.thread t
-                   WHERE v2.check_user_access(t.user_id, %(user_id)s::uuid)""",
+                   WHERE v2.check_user_access(t.user_id, %(user_id)s::uuid)
+                   ORDER BY t.created_at DESC""",
                 {"user_id": user_id},
             )
 
@@ -72,6 +73,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                 FROM v2.thread t
                 WHERE t.agent_id = %(agent_id)s::uuid
                 AND v2.check_user_access(t.user_id, %(user_id)s::uuid)
+                ORDER BY t.created_at DESC
                 """,
                 {"agent_id": agent_id, "user_id": user_id},
             )
