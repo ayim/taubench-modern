@@ -68,8 +68,11 @@ class MockStorage:
         if thread_id in self.threads:
             self.threads[thread_id].messages.append(message)
 
-    async def get_agent(self, user_id: str, agent_id: str) -> dict[str, str]:
+    async def get_agent(self, user_id: str, agent_id: str) -> dict[str, str] | None:
         self.call_count["get_agent"] += 1
+        # For testing purposes, return None for specific agent IDs to simulate not found
+        if agent_id == "non-existent-agent-id":
+            return None
         return {"agent_id": agent_id}
 
     async def delete_threads_for_agent(
@@ -98,6 +101,27 @@ class MockStorage:
         user = User(user_id=f"user_{len(self.users)}", sub=sub)
         self.users[sub] = user
         return user, True
+
+
+def create_test_threads(agent_id: str, count: int = 3) -> list[Thread]:
+    """Create test threads for an agent."""
+    threads = []
+    for i in range(count):
+        thread = Thread(
+            thread_id=str(uuid.uuid4()),
+            name=f"Thread {i + 1}",
+            agent_id=agent_id,
+            user_id="test_user",
+            messages=[],
+        )
+        threads.append(thread)
+    return threads
+
+
+def add_threads_to_storage(mock_storage: MockStorage, threads: list[Thread]) -> None:
+    """Add threads to mock storage."""
+    for thread in threads:
+        mock_storage.threads[thread.thread_id] = thread
 
 
 @pytest.fixture
@@ -514,6 +538,78 @@ def test_delete_thread(client: TestClient, mock_storage: MockStorage):
 
     # Verify that delete_thread was called
     assert mock_storage.call_count["delete_thread"] == 1
+
+
+def test_delete_threads_for_agent_all(client: TestClient, mock_storage: MockStorage):
+    """Test deleting all threads for an agent."""
+    agent_id = str(uuid.uuid4())
+
+    # Create multiple threads for the agent
+    threads = create_test_threads(agent_id)
+    add_threads_to_storage(mock_storage, threads)
+
+    # Delete all threads for the agent
+    response = client.delete(f"/threads/?agent_id={agent_id}")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Verify that delete_threads_for_agent was called
+    assert mock_storage.call_count["delete_threads_for_agent"] == 1
+
+
+def test_delete_threads_for_agent_specific(client: TestClient, mock_storage: MockStorage):
+    """Test deleting specific threads for an agent."""
+    agent_id = str(uuid.uuid4())
+
+    # Create multiple threads for the agent
+    threads = create_test_threads(agent_id)
+    add_threads_to_storage(mock_storage, threads)
+
+    # Delete specific threads (thread1 and thread3)
+    thread_ids_to_delete = [threads[0].thread_id, threads[2].thread_id]
+    thread_ids_param = ",".join(thread_ids_to_delete)
+    response = client.delete(f"/threads/?agent_id={agent_id}&thread_ids={thread_ids_param}")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Verify that delete_threads_for_agent was called
+    assert mock_storage.call_count["delete_threads_for_agent"] == 1
+
+
+def test_delete_threads_for_agent_not_found(client: TestClient, mock_storage: MockStorage):
+    """Test deleting threads for a non-existent agent."""
+    agent_id = "non-existent-agent-id"
+
+    # Try to delete threads for non-existent agent
+    response = client.delete(f"/threads/?agent_id={agent_id}")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == "Agent not found"
+
+    # Verify that get_agent was called but delete_threads_for_agent was not
+    assert mock_storage.call_count["get_agent"] == 1
+    assert mock_storage.call_count["delete_threads_for_agent"] == 0
+
+
+def test_delete_threads_for_agent_invalid_thread_ids(client: TestClient, mock_storage: MockStorage):
+    """Test deleting threads with invalid thread IDs."""
+    agent_id = str(uuid.uuid4())
+
+    # Create one thread for the agent
+    threads = create_test_threads(agent_id, count=1)
+    add_threads_to_storage(mock_storage, threads)
+
+    # Try to delete with invalid thread IDs (non-existent thread IDs)
+    invalid_thread_ids = ["invalid-id-1", "invalid-id-2"]
+    thread_ids_param = ",".join(invalid_thread_ids)
+    response = client.delete(f"/threads/?agent_id={agent_id}&thread_ids={thread_ids_param}")
+
+    # Should still return 204 since the endpoint doesn't validate individual thread existence
+    # The storage layer handles this gracefully
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Verify that delete_threads_for_agent was called
+    assert mock_storage.call_count["delete_threads_for_agent"] == 1
 
 
 def test_add_message_to_thread(client: TestClient, mock_storage: MockStorage):
