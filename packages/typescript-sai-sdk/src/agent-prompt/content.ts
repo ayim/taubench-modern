@@ -6,6 +6,18 @@ export const TextContentSchema = z.object({
 });
 
 // Text content with explicit kind
+export const ResoningContentSchema = z.object({
+  kind: z.literal('reasoning'),
+  reasoning: z.string().nullable(),
+  signature: z.string().nullable(),
+  redacted_content: z.string().nullable(),
+  encrypted_content: z.string().nullable(),
+  response_id: z.string().nullable(),
+  summary: z.array(z.string()).nullable(),
+  content: z.array(z.string()).nullable(),
+});
+
+// Text content with explicit kind
 export const TextContentWithKindSchema = z.object({
   kind: z.literal('text'),
   text: z.string(),
@@ -38,6 +50,7 @@ export const ToolResultContentSchema = z.object({
 
 // Union of all content types
 export const ContentSchema = z.discriminatedUnion('kind', [
+  ResoningContentSchema,
   TextContentWithKindSchema,
   ImageContentSchema,
   ToolUseContentSchema,
@@ -49,6 +62,7 @@ export const MessageContentSchema = z.union([TextContentSchema, ContentSchema]);
 
 // Type exports
 export type TextContent = z.infer<typeof TextContentSchema>;
+export type ResoningContent = z.infer<typeof ResoningContentSchema>;
 export type TextContentWithKind = z.infer<typeof TextContentWithKindSchema>;
 export type ImageContent = z.infer<typeof ImageContentSchema>;
 export type ToolUseContent = z.infer<typeof ToolUseContentSchema>;

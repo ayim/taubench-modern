@@ -12,7 +12,7 @@ export default defineConfig({
     globals: true,
 
     // Timeout for tests that might involve network calls
-    testTimeout: 10000,
+    testTimeout: 55000,
 
     // Setup files (if needed)
     setupFiles: ['./tests/setup.ts'],

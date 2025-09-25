@@ -9,6 +9,7 @@ export const BasePlatformConfigSchema = z.object({
 export const OpenAIPlatformConfigSchema = z.object({
   kind: z.literal('openai'),
   openai_api_key: z.string().optional(),
+  models: z.record(z.string(), z.array(z.string())).optional(), // { 'openai': ['gpt-4-1', 'o3-high'] }
 });
 
 // Azure platform config
@@ -23,18 +24,21 @@ export const AzurePlatformConfigSchema = z.object({
   azure_generated_endpoint_url_embeddings: z.string().optional(),
   azure_model_backing_deployment_name: z.string().optional(),
   azure_model_backing_deployment_name_embeddings: z.string().optional(),
+  models: z.record(z.string(), z.array(z.string())).optional(), // { 'openai': ['gpt-4-1', 'o3-high'] }
 });
 
 // OLLama platform config
 export const OLLamaPlatformConfigSchema = z.object({
   kind: z.literal('ollama'),
   ollama_base_url: z.string().optional(),
+  models: z.record(z.string(), z.array(z.string())).optional(), // { 'ollama': ['gpt-4-1', 'o3-high'] }
 });
 
 // Anthropic platform config
 export const AnthropicPlatformConfigSchema = z.object({
   kind: z.literal('anthropic'),
   anthropic_api_key: z.string().optional(),
+  models: z.record(z.string(), z.array(z.string())).optional(), // { 'anthropic': ["claude-3-5-sonnet"] }
 });
 
 // Snowflake platform config
@@ -48,6 +52,7 @@ export const SnowflakePlatformConfigSchema = z.object({
   snowflake_host: z.string().optional(),
   snowflake_password: z.string().optional(),
   snowflake_username: z.string().optional(),
+  models: z.record(z.string(), z.array(z.string())).optional(), // { 'cortex': ["claude-3-5-sonnet"] }
 });
 
 // Bedrock platform config
@@ -62,6 +67,7 @@ export const BedrockPlatformConfigSchema = z.object({
   aws_secret_access_key: z.string().optional(),
   aws_session_token: z.string().optional(),
   config_params: z.record(z.string(), z.any()).optional(),
+  models: z.record(z.string(), z.array(z.string())).optional(), // { 'bedrock': ["claude-4-opus"] }
 });
 
 // Union of all platform configs

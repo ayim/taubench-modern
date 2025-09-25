@@ -48,7 +48,7 @@ export const AdditionalResponseFieldsSchema = z
   .catchall(z.any());
 
 // Stop reason
-export const StopReasonSchema = z.enum(['STOP', 'end_turn']).nullable();
+export const StopReasonSchema = z.string().nullable();
 
 // Main prompt response
 export const PromptResponseSchema = z.object({

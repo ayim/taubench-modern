@@ -71,11 +71,13 @@ describe('PromptEndpointClient', () => {
       expect(response.role).toBe('agent');
       expect(response.content).toBeDefined();
       expect(Array.isArray(response.content)).toBe(true);
-      expect(response.content.length).toBe(1);
+      expect(response.content.length).toBe(2);
 
-      expect(response.content[0].kind).toBe('text');
-      if (response.content[0].kind === 'text') {
-        expect(response.content[0].text).toContain('Madison');
+      expect(response.content[0].kind).toBe('reasoning');
+
+      expect(response.content[1].kind).toBe('text');
+      if (response.content[1].kind === 'text') {
+        expect(response.content[1].text).toContain('Madison');
       }
     });
 
@@ -97,7 +99,6 @@ describe('PromptEndpointClient', () => {
     it.skipIf(!hasValidApiKey())('should handle tool usage flow correctly', async () => {
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
 
-      console.log('config:', config);
       // Use a simpler tool that's more likely to be supported
       const calculatorTool = createTool('calculator', 'Perform basic arithmetic calculations')
         .addStringProperty('expression', 'The mathematical expression to evaluate')
@@ -105,10 +106,14 @@ describe('PromptEndpointClient', () => {
         .build();
       console.log('calculatorTool:', calculatorTool);
 
-      const messages = [createTextUserMessage('What is 2 + 2? Please help me with this simple math.')];
+      const messages = [
+        createTextUserMessage(
+          'What is 2 + 2? Please help me with this simple math. Call the calculator tool with the created expression',
+        ),
+      ];
       const request = createPromptRequest(config, messages, [calculatorTool], {
         temperature: 0.0,
-        maxOutputTokens: 512,
+        maxOutputTokens: 2024,
       });
 
       try {
@@ -122,7 +127,10 @@ describe('PromptEndpointClient', () => {
         console.log('response:', response);
         // Check if the response contains the tool call
         const raw_input = '{"expression": "2 + 2"}';
-        const toolUseContent = response.content[0];
+        const reasoningContent = response.content[0];
+        expect(reasoningContent.kind).toEqual('reasoning');
+
+        const toolUseContent = response.content[1];
         expect(toolUseContent.kind).toEqual('tool_use');
         if (toolUseContent.kind === 'tool_use') {
           expect(toolUseContent.tool_name).toEqual('calculator');
@@ -207,7 +215,7 @@ describe('PromptEndpointClient', () => {
         expect(response.content).toBeDefined();
         expect(Array.isArray(response.content)).toBe(true);
 
-        if (response.content[0].kind === 'text') expect(response.content[0].text).toContain('LangSmith');
+        if (response.content[1].kind === 'text') expect(response.content[1].text).toContain('LangSmith');
         else {
           throw new Error('Text was expected as explanation for the sent image');
         }
@@ -267,20 +275,22 @@ describe('PromptEndpointClient', () => {
     });
   });
 
-  describe('Conversation with multiple turns', () => {
-    it.skipIf(!hasValidApiKey())(
-      'should handle multi-turn conversations',
-      async () => {
+  describe(
+    'Conversation with multiple turns',
+    () => {
+      it.skipIf(!hasValidApiKey())('should handle multi-turn conversations', async () => {
         const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
 
         // 1st turn: user initiates conversation
         let messages = [createTextUserMessage('Hello! Can you help me plan a birthday party?')];
         let request = createPromptRequest(config, messages, [], {
           temperature: 0.3,
-          maxOutputTokens: 512,
+          maxOutputTokens: 2024,
         });
 
         let response = await client.generate(request);
+
+        console.warn('>>>> response:', response);
 
         expect(response).toBeDefined();
         expect(response.role).toBe('agent');
@@ -296,17 +306,17 @@ describe('PromptEndpointClient', () => {
         ];
         request = createPromptRequest(config, messages, [], {
           temperature: 0.3,
-          maxOutputTokens: 512,
+          maxOutputTokens: 2024,
         });
 
         response = await client.generate(request);
+
+        console.warn('>>>> response:', response);
 
         expect(response).toBeDefined();
         expect(response.role).toBe('agent');
         expect(response.content).toBeDefined();
         expect(Array.isArray(response.content)).toBe(true);
-
-        // INSERT_YOUR_CODE
 
         // Check that the agent's response contains at least one text message
         const agentContent = response.content;
@@ -329,28 +339,24 @@ describe('PromptEndpointClient', () => {
               text.includes('party') || text.includes('birthday') || text.includes('kids') || text.includes('daughter'),
           ),
         ).toBe(true);
-      },
-      30000, // 30 second timeout
-    );
-  });
+      });
+    },
+    { timeout: 90000 },
+  );
 
   describe('Model selection', () => {
-    it.skipIf(!hasValidApiKey())(
-      'should include model parameter in URL when specified',
-      async () => {
-        const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
-        const messages = [createTextUserMessage('Explain quantum computing in simple terms.')];
-        const request = createPromptRequest(config, messages);
+    it.skipIf(!hasValidApiKey())('should include model parameter in URL when specified', async () => {
+      const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
+      const messages = [createTextUserMessage('Explain quantum computing in simple terms.')];
+      const request = createPromptRequest(config, messages);
 
-        const response = await client.generate(request, 'gpt-4o');
+      const response = await client.generate(request, 'gpt-4o');
 
-        expect(response).toBeDefined();
-        expect(response.role).toBe('agent');
-        expect(response.content).toBeDefined();
-        expect(Array.isArray(response.content)).toBe(true);
-      },
-      20000,
-    ); // 20 second timeout
+      expect(response).toBeDefined();
+      expect(response.role).toBe('agent');
+      expect(response.content).toBeDefined();
+      expect(Array.isArray(response.content)).toBe(true);
+    });
   });
 
   describe('Request validation', () => {

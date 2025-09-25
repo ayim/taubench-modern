@@ -20,6 +20,7 @@ import {
   ThreadMessage,
   UpsertAgentPayload,
   Citation,
+  AgentArchitecture,
 } from './types';
 import { parse, Allow } from 'partial-json';
 
@@ -254,15 +255,16 @@ export function createBasicAgentConfig(options: {
   runbook: string;
   platform_configs: PlatformConfig[];
   agent_id?: string;
+  agent_architecture?: AgentArchitecture;
 }): UpsertAgentPayload {
-  const { name, description, runbook, platform_configs, agent_id } = options;
+  const { name, description, runbook, platform_configs, agent_id, agent_architecture } = options;
   return {
     agent_id: agent_id,
     name,
     description,
     version: '1.0.0',
     runbook,
-    agent_architecture: {
+    agent_architecture: agent_architecture || {
       name: 'agent_platform.architectures.default',
       version: '1.0.0',
     },
@@ -273,7 +275,7 @@ export function createBasicAgentConfig(options: {
     mode: 'conversational' as const,
     extra: {},
     advanced_config: {
-      architecture: 'agent' as const,
+      architecture: agent_architecture?.name || ('agent_platform.architectures.default' as const),
       reasoning: 'enabled' as const,
       recursion_limit: 10,
       langsmith: null,

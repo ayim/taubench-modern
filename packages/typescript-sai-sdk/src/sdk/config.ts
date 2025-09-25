@@ -1,7 +1,13 @@
 import { logger } from '../logger';
 import { PromptEndpointClient, PromptEndpointClientConfig } from '../agent-prompt/client';
 import { PlatformConfig } from '../platform-config';
-import { ActionPackage, EphemeralAgentClient, McpServer, UpsertAgentPayload } from '../agent-ephemeral';
+import {
+  ActionPackage,
+  AgentArchitecture,
+  EphemeralAgentClient,
+  McpServer,
+  UpsertAgentPayload,
+} from '../agent-ephemeral';
 import { createSaiAgentSetupConfig } from '../agent-ephemeral/agents/agent-setup';
 
 /**
@@ -19,6 +25,8 @@ export interface SaiSDKConfig {
   };
   /** Agent ID */
   agentId?: string;
+  /** Agent architecture */
+  agentArchitecture?: AgentArchitecture;
   /** Default model to use for scenario execution */
   defaultModel?: string;
   /** Additional configuration options */
@@ -87,9 +95,10 @@ export class SaiSDKConfiguration {
     this.ephemeralAgents = {
       agentSetup: createSaiAgentSetupConfig(
         [config.platformConfig],
-        config.agentId,
         config.availableResources?.actionPackages,
         config.availableResources?.mcpServers,
+        config.agentId,
+        config.agentArchitecture,
       ),
     };
 

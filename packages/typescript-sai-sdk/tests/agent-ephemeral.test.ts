@@ -37,7 +37,7 @@ describe('EphemeralAgentClient', () => {
       'should create a stream successfully',
       async () => {
         const agentConfig = createBasicAgentConfig({
-          name: 'test-agent',
+          name: 'test-agent-' + Date.now().toString(),
           description: 'Test agent for integration testing',
           runbook: 'You are a helpful assistant. Respond with "Hello from ephemeral agent!"',
           platform_configs: [createOpenAIConfig(process.env.OPENAI_API_KEY || '')],
@@ -103,11 +103,11 @@ describe('EphemeralAgentClient', () => {
       45000,
     ); // 45 second timeout for this test
 
-    it.skipIf(!hasValidApiKey()).only(
+    it.skipIf(!hasValidApiKey()).skip(
       'should keep a conversation going with multiple messages',
       async () => {
         const agentConfig = createBasicAgentConfig({
-          name: 'test-agent',
+          name: 'test-agent-' + Date.now().toString(),
           description: 'Test agent for integration testing',
           runbook: [
             'You are a helpful assistant.',

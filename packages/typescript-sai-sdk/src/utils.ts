@@ -128,10 +128,13 @@ export function createTool(
 /**
  * Create an OpenAI platform config
  */
-export function createOpenAIConfig(apiKey: string): PlatformConfig {
+export function createOpenAIConfig(apiKey: string, availableModels?: string[]): PlatformConfig {
   return {
     kind: 'openai',
     openai_api_key: apiKey,
+    models: {
+      openai: availableModels || [],
+    },
   };
 }
 
@@ -148,6 +151,7 @@ export function createBedrockConfig(
   endpointUrl?: string,
   awsSessionToken?: string,
   configParams?: Record<string, any>,
+  availableModels?: string[],
 ): PlatformConfig {
   return {
     kind: 'bedrock',
@@ -160,6 +164,9 @@ export function createBedrockConfig(
     endpoint_url: endpointUrl,
     aws_session_token: awsSessionToken,
     config_params: configParams,
+    models: {
+      bedrock: availableModels || [],
+    },
   };
 }
 
@@ -176,6 +183,7 @@ export function createAzureConfig(
   generatedEndpointUrlEmbeddings?: string,
   modelBackingDeploymentName?: string,
   modelBackingDeploymentNameEmbeddings?: string,
+  availableModels?: string[],
 ): PlatformConfig {
   return {
     kind: 'azure',
@@ -188,26 +196,35 @@ export function createAzureConfig(
     azure_generated_endpoint_url_embeddings: generatedEndpointUrlEmbeddings,
     azure_model_backing_deployment_name: modelBackingDeploymentName,
     azure_model_backing_deployment_name_embeddings: modelBackingDeploymentNameEmbeddings,
+    models: {
+      openai: availableModels || [],
+    },
   };
 }
 
 /**
  * Create a OLLama platform config
  */
-export function createOLLamaConfig(baseUrl: string): PlatformConfig {
+export function createOLLamaConfig(baseUrl: string, availableModels?: string[]): PlatformConfig {
   return {
     kind: 'ollama',
     ollama_base_url: baseUrl,
+    models: {
+      ollama: availableModels || [],
+    },
   };
 }
 
 /**
  * Create a Anthropic platform config
  */
-export function createAnthropicConfig(apiKey: string): PlatformConfig {
+export function createAnthropicConfig(apiKey: string, availableModels?: string[]): PlatformConfig {
   return {
     kind: 'anthropic',
     anthropic_api_key: apiKey,
+    models: {
+      anthropic: availableModels || [],
+    },
   };
 }
 
@@ -223,6 +240,7 @@ export function createSnowflakeConfig(
   host: string,
   password: string,
   username: string,
+  availableModels?: string[],
 ): PlatformConfig {
   return {
     kind: 'cortex',
@@ -234,6 +252,9 @@ export function createSnowflakeConfig(
     snowflake_host: host,
     snowflake_password: password,
     snowflake_username: username,
+    models: {
+      anthropic: availableModels || [],
+    },
   };
 }
 
