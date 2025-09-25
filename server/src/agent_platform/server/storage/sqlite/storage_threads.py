@@ -140,6 +140,8 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         try:
             async with self._cursor() as cur:
                 # Insert or update the thread
+                # Use a separate parameter for the requesting user so access checks are correct
+                params = thread_dict | {"requester_user_id": user_id}
                 await cur.execute(
                     """
                     INSERT INTO v2_thread (
@@ -156,25 +158,17 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                         updated_at = excluded.updated_at,
                         metadata = excluded.metadata,
                         work_item_id = excluded.work_item_id
-                    WHERE v2_check_user_access(v2_thread.user_id, :user_id) = 1
+                    WHERE v2_check_user_access(v2_thread.user_id, :requester_user_id) = 1
+                    RETURNING thread_id
                     """,
-                    thread_dict,
+                    params,
                 )
-
-                # If rowcount is 0 but the thread does exist,
-                # it might be an access issue
-                if cur.rowcount == 0 and await self._thread_exists(
-                    user_id,
-                    thread.thread_id,
-                ):
-                    # We can do another check to see if user lacks access
-                    if not await self._user_can_access_thread(
-                        user_id,
-                        thread.thread_id,
-                    ):
-                        raise UserAccessDeniedError(
-                            f"Access denied to thread {thread.thread_id}",
-                        )
+                row = await cur.fetchone()
+                if not row:
+                    # No row returned from RETURNING indicates access denied
+                    raise UserAccessDeniedError(
+                        f"Access denied to thread {thread.thread_id}",
+                    )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_thread.thread_id" in str(e):
                 raise RecordAlreadyExistsError(

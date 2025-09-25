@@ -10,6 +10,7 @@ from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
 from agent_platform.server.storage.errors import (
     InvalidUUIDError,
     ThreadNotFoundError,
+    UserAccessDeniedError,
     UserPermissionError,
 )
 from agent_platform.server.storage.sqlite import SQLiteStorage
@@ -312,6 +313,64 @@ async def test_thread_deletion_nonexistent(
     non_existent_thread_id = str(uuid4())
     with pytest.raises(ThreadNotFoundError):
         await storage.delete_thread(sample_user_id, non_existent_thread_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("owner_sub", "caller_sub", "expect_error"),
+    [
+        ("tenant:testing:user:owner", "tenant:testing:user:other", True),
+        ("tenant:testing:system:system_user", "tenant:testing:user:other", False),
+        ("tenant:testing:user:owner", "tenant:testing:system:system_user", False),
+        # TODO: update this test to False when UDF is loosened
+        ("tenant:testing:user:owner", "tenant:testing:user:system_user", True),
+    ],
+)
+async def test_thread_access_control_users(
+    storage: SQLiteStorage,
+    sample_agent: Agent,
+    owner_sub: str,
+    caller_sub: str,
+    expect_error: bool,
+) -> None:
+    """
+    Validate access rules for threads where the owner may be a regular user or a system user.
+    When the owner is a system user, other users have access.
+    """
+    owner_user, _ = await storage.get_or_create_user(sub=owner_sub)
+    caller_user, _ = await storage.get_or_create_user(sub=caller_sub)
+
+    # Owner creates agent and thread
+    await storage.upsert_agent(owner_user.user_id, sample_agent)
+    owner_thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=owner_user.user_id,
+        agent_id=sample_agent.agent_id,
+        name="Owner Thread",
+        messages=[],
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        metadata={},
+    )
+    await storage.upsert_thread(owner_user.user_id, owner_thread)
+
+    if expect_error:
+        # Caller cannot read or update
+        with pytest.raises(UserAccessDeniedError):
+            await storage.get_thread(caller_user.user_id, owner_thread.thread_id)
+        updated = Thread.model_validate(owner_thread.model_dump() | {"name": "Hacked Name"})
+        with pytest.raises(UserAccessDeniedError):
+            await storage.upsert_thread(caller_user.user_id, updated)
+    else:
+        # Caller can read and update
+        read = await storage.get_thread(caller_user.user_id, owner_thread.thread_id)
+        assert read is not None
+        updated = Thread.model_validate(owner_thread.model_dump() | {"name": "Caller Update"})
+        await storage.upsert_thread(caller_user.user_id, updated)
+
+    # Owner can still read
+    read_back = await storage.get_thread(owner_user.user_id, owner_thread.thread_id)
+    assert read_back is not None
 
 
 @pytest.mark.asyncio
