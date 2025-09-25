@@ -224,6 +224,68 @@ class _BedrockPatcher:
                 debug(f"[VCR][bedrock] Failed to save stream record: {e}")
 
 
+# ------------------------------------------------------------------#
+# Bedrock cache control during recording
+# ------------------------------------------------------------------#
+def _get_bedrock_client_class() -> object | None:
+    try:
+        from agent_platform.core.platforms.bedrock.client import (
+            BedrockClient as _BedrockClient,
+        )
+
+        return _BedrockClient
+    except Exception:
+        return None
+
+
+def _install_recording_wrappers_on_bedrock(bedrock_cls: object) -> Callable[[], None]:
+    from vcr.record_mode import RecordMode  # local import to avoid toplevel bloat
+
+    original_get_available_models = bedrock_cls.get_available_models  # type: ignore[attr-defined]
+    original_get_model_arn = bedrock_cls._get_model_arn_from_local_model_id  # type: ignore[attr-defined]
+
+    async def _wrapped_get_available_models(self):
+        if get_vcr_record_mode() != RecordMode.NONE and not getattr(
+            self, "_vcr_bedrock_forced_models", False
+        ):
+            self._available_models_cache = {}
+            bedrock_cls._GLOBAL_AVAILABLE_MODELS_CACHE = {}  # type: ignore[attr-defined]
+            self._vcr_bedrock_forced_models = True
+        return await original_get_available_models(self)
+
+    async def _wrapped_get_model_arn(self, model_id: str):
+        if get_vcr_record_mode() != RecordMode.NONE and not getattr(
+            self, "_vcr_bedrock_forced_profiles", False
+        ):
+            self._profile_arn_cache = {}
+            self._model_arn_cache = {}
+            bedrock_cls._GLOBAL_PROFILE_ARN_CACHE = {}  # type: ignore[attr-defined]
+            bedrock_cls._GLOBAL_MODEL_ARN_CACHE = {}  # type: ignore[attr-defined]
+            self._vcr_bedrock_forced_profiles = True
+        return await original_get_model_arn(self, model_id)
+
+    # Apply wrappers
+    bedrock_cls.get_available_models = _wrapped_get_available_models  # type: ignore[assignment]
+    bedrock_cls._get_model_arn_from_local_model_id = _wrapped_get_model_arn  # type: ignore[assignment]
+
+    def _restore():
+        bedrock_cls.get_available_models = original_get_available_models  # type: ignore[assignment]
+        bedrock_cls._get_model_arn_from_local_model_id = (  # type: ignore[assignment]
+            original_get_model_arn
+        )
+
+    return _restore
+
+
+def _wrap_bedrock_client_for_recording() -> tuple[object | None, Callable[[], None]]:
+    """Install temporary BedrockClient wrappers to force control-plane calls."""
+    bedrock_cls = _get_bedrock_client_class()
+    if bedrock_cls is None:
+        return None, (lambda: None)
+    restore = _install_recording_wrappers_on_bedrock(bedrock_cls)
+    return bedrock_cls, restore
+
+
 @contextlib.contextmanager
 def _suppress_vcr_aiohttp_patchers():
     """Temporarily disables VCR's built-in aiohttp patcher."""
@@ -255,6 +317,8 @@ def patch_bedrock(cassette_path: str, cassette: Any):
         yield
         return
 
+    _bedrock_cls, _restore_bedrock = _wrap_bedrock_client_for_recording()
+
     patcher = _BedrockPatcher(cassette)
     original_send = AIOHTTPSession.send
     if original_send is None:
@@ -272,6 +336,11 @@ def patch_bedrock(cassette_path: str, cassette: Any):
         try:
             yield
         finally:
+            # Restore BedrockClient methods
+            try:
+                _restore_bedrock()
+            except Exception:
+                pass
             if patcher.original_send:
                 AIOHTTPSession.send = patcher.original_send
             patcher.save_recorded_streams()
