@@ -7,11 +7,11 @@ from structlog import get_logger
 
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
-from agent_platform.core.evals.types import Scenario, ScenarioRun, Trial
+from agent_platform.core.evals.types import Scenario, ScenarioRun, Trial, TrialStatus
 from agent_platform.core.thread.thread import Thread
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth.handlers import AuthedUser
-from agent_platform.server.constants import SystemConfig
+from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB, SystemConfig
 from agent_platform.server.evals.advisor import (
     ScenarioSuggestion,
 )
@@ -223,3 +223,26 @@ async def list_scenario_runs(
         raise HTTPException(status_code=404, detail="Scenario not found")
 
     return await storage.list_scenario_runs(scenario_id=scenario_id, limit=limit)
+
+
+@router.delete("/scenarios/{scenario_id}/runs/{scenario_run_id}")
+async def cancel_run(
+    scenario_id: str,
+    scenario_run_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    run = await storage.get_scenario_run(scenario_run_id)
+    if not run:
+        raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Scenarion Run not found")
+
+    system_user, _ = await storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
+    for trial in run.trials:
+        await storage.update_trial_status(
+            trial.trial_id,
+            system_user.user_id,
+            TrialStatus.CANCELED,
+        )
+        logger.info(f"Run trial {trial.index_in_run} has been canceled.")
+
+    return {"status": "ok"}

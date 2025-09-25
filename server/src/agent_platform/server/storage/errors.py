@@ -228,3 +228,19 @@ class DataConnectionNotFoundError(PlatformHTTPError):
         super().__init__(
             error_code=ErrorCode.NOT_FOUND, message=message, data={"id": connection_id}
         )
+
+
+class TrialAlreadyCanceledError(PlatformHTTPError):
+    def __init__(self, connection_id: str, message: str = "Trial was already canceled"):
+        super().__init__(
+            error_code=ErrorCode.PRECONDITION_FAILED, message=message, data={"id": connection_id}
+        )
+
+
+class TrialNotFoundError(PlatformHTTPError):
+    def __init__(
+        self, connection_id: str, message: str = "A trial with the given ID was not found"
+    ):
+        super().__init__(
+            error_code=ErrorCode.NOT_FOUND, message=message, data={"id": connection_id}
+        )

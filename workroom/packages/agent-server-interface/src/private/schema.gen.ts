@@ -2220,7 +2220,8 @@ export interface paths {
     get: operations['get_scenario_run_evals_scenarios__scenario_id__runs__scenario_run_id__get'];
     put?: never;
     post?: never;
-    delete?: never;
+    /** Cancel Run */
+    delete: operations['cancel_run_evals_scenarios__scenario_id__runs__scenario_run_id__delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -12093,6 +12094,38 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ScenarioRun'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  cancel_run_evals_scenarios__scenario_id__runs__scenario_run_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scenario_id: string;
+        scenario_run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
       /** @description Validation Error */

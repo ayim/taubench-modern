@@ -514,14 +514,14 @@ async def _evaluate_response_accuracy(
     return ResponseAccuracyResult.model_validate(evaluation_data)
 
 
-async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[TrialStatus, str | None]:
+async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str | None]:
     storage = StorageService.get_instance()
 
     if (
         task.execution_state.status == "ERROR"
         and task.execution_state.termination != "REPLAY_DRIFT_ERROR"
     ):
-        return TrialStatus.ERROR, task.execution_state.error_message
+        return TrialStatus.ERROR.value, task.execution_state.error_message
 
     action_calling = ActionCallingResult(
         issues=[event.message for event in task.execution_state.drift_events],
@@ -532,7 +532,7 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[TrialSta
     # no need to run LLM judges: return error
     if task.execution_state.termination == "REPLAY_DRIFT_ERROR":
         await storage.update_trial_evaluation_results(task.trial_id, [action_calling])
-        return TrialStatus.ERROR, None
+        return TrialStatus.ERROR.value, None
 
     system_user, _ = await storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
 
@@ -554,6 +554,10 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[TrialSta
 
     await storage.update_trial_evaluation_results(task.trial_id, evaluations)
 
-    status = TrialStatus.COMPLETED if all(e.passed for e in evaluations) else TrialStatus.ERROR
+    status = (
+        TrialStatus.COMPLETED.value
+        if all(e.passed for e in evaluations)
+        else TrialStatus.ERROR.value
+    )
 
     return status, None

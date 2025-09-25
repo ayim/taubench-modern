@@ -58,6 +58,11 @@ function getRouteMap(): {
     'post /api/v2/evals/scenarios': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'post /api/v2/evals/scenarios/{scenario_id}/runs': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'post /api/v2/evals/scenarios/suggest': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'delete /api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}': [
+      ALLOWED,
+      SIGN_WITH_TENANT,
+      agentReadPermissions,
+    ],
     'post /api/v2/package/deploy/agent': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
 
     // Allowed routes with user-level signing

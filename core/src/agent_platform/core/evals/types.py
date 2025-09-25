@@ -233,7 +233,7 @@ class Trial:
         return str(self.trial_id)
 
     def get_status(self):
-        return str(self.status)
+        return str(self.status.value)
 
     @classmethod
     def model_validate(cls, data: dict) -> "Trial":  # noqa: C901

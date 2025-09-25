@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Generic, Protocol, TypeVar, runtime_checkable
 
 from agent_platform.server.shutdown_manager import ShutdownManager
+from agent_platform.server.storage.errors import TrialAlreadyCanceledError
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,11 @@ class TaskRepository(Protocol[T]):
         """
         ...
 
-    async def set_status(self, task: T, status: str, error: str | None) -> None: ...
+    async def set_status_if_not_canceled(self, task: T, status: str, error: str | None) -> None:
+        """
+        Set the status if the task has not been cancelled yet
+        """
+        ...
 
 
 class TaskRunner(Protocol[T]):  # type: ignore
@@ -128,7 +133,7 @@ class WorkQueue(Generic[T]):
         results = await self._run_batch(task_ids, self.settings.batch_timeout)
         logger.info("Completed %d tasks concurrently", len(results))
 
-    async def _run_batch(
+    async def _run_batch(  # noqa: C901, PLR0912
         self,
         task_ids: Sequence[str],
         batch_timeout: float,
@@ -138,13 +143,32 @@ class WorkQueue(Generic[T]):
             return []
 
         task_map: dict[str, asyncio.Task[bool]] = {}
+
         for t in tasks:
+            status = t.get_status()
+            if status in {"CANCELED"}:
+                logger.info("Task %s was cancelled during scheduling. Skipping.", t)
+                continue
             logger.info("Dispatching task (batch run) %s", t)
             task_id = t.get_unique_identifier()
             task_map[task_id] = asyncio.create_task(self._execute_task(t))
 
-        done, pending = await asyncio.wait(
-            task_map.values(), timeout=batch_timeout, return_when=asyncio.ALL_COMPLETED
+        stop_event = asyncio.Event()
+        canceled_by_db: set[str] = set()
+        watcher = asyncio.create_task(
+            self._batch_cancel_watcher(
+                task_map=task_map,
+                stop_event=stop_event,
+                poll_interval=30,  # 30 seconds
+                canceled_by_db=canceled_by_db,
+            ),
+            name="batch:cancel-watcher",
+        )
+
+        done, pending = await asyncio.shield(
+            asyncio.wait(
+                task_map.values(), timeout=batch_timeout, return_when=asyncio.ALL_COMPLETED
+            )
         )
 
         results: list[bool | BaseException] = []
@@ -160,15 +184,27 @@ class WorkQueue(Generic[T]):
             for task in pending:
                 task.cancel()
 
+        stop_event.set()
+        watcher.cancel()
+        await asyncio.gather(watcher, return_exceptions=True)
+
         # Preserve order alongside underlying tasks sequence
         for t_obj, async_task in zip(tasks, task_map.values(), strict=True):
             task_id = t_obj.get_unique_identifier()
-            if async_task in done:
+            if async_task in done or async_task.done():
                 try:
-                    res = async_task.result()
+                    res = await asyncio.shield(async_task)
                     results.append(res)
                     logger.info("Task %s completed normally", task_id)
-                except Exception as e:  # pragma: no cover - defensive
+                except asyncio.CancelledError:
+                    if task_id in canceled_by_db:
+                        results.append(asyncio.CancelledError())
+                        logger.info("Task %s canceled via DB status", task_id)
+                    else:
+                        incomplete_ids.append(task_id)
+                        results.append(TimeoutError("Task timeout exceeded"))
+                        logger.error("Task %s timed out, marking as ERROR", task_id)
+                except Exception as e:
                     results.append(e)
                     logger.warning("Task %s failed with error: %s", task_id, e, exc_info=e)
             else:
@@ -183,7 +219,6 @@ class WorkQueue(Generic[T]):
 
     async def _execute_task(self, task_obj: T) -> bool:
         """Run the task, compute final status, persist, and trigger callbacks."""
-        # Run primary work
         ran_ok = False
         try:
             logger.info("Starting execution on task")
@@ -201,11 +236,12 @@ class WorkQueue(Generic[T]):
             return False
 
         current_status = refreshed_task.get_status()
+        logger.info(f"after a run, the task status is {current_status}")
         # If user/system moved it to a terminal state, don't overwrite
-        if current_status in {"CANCELLED"}:
-            logger.info("Task was cancelled during execution: leaving status as CANCELLED")
+        if current_status in {"CANCELED"}:
+            logger.info("Task was cancelled during execution: leaving status as CANCELED")
             if self.callbacks:
-                await _safe_call(self.callbacks.on_complete, refreshed_task, "CANCELLED")
+                await _safe_call(self.callbacks.on_complete, refreshed_task, "CANCELED")
             return ran_ok
 
         # Determine final status
@@ -222,17 +258,62 @@ class WorkQueue(Generic[T]):
 
         # Persist final status
         try:
-            await self.repo.set_status(refreshed_task, final_status, final_error_message)
+            await self.repo.set_status_if_not_canceled(
+                refreshed_task, final_status, final_error_message
+            )
+
+            logger.info("Finalized task with status: %s", final_status)
+
+            # Callbacks
+            if self.callbacks:
+                await _safe_call(self.callbacks.on_complete, refreshed_task, final_status)
+        except TrialAlreadyCanceledError:  # pragma: no cover - defensive
+            logger.info("Task was cancelled during validation: validation result is ignored.")
         except Exception as e:  # pragma: no cover - defensive
             logger.error("Failed to persist status '%s': %s", final_status, e, exc_info=e)
 
-        logger.info("Finalized task with status: %s", final_status)
-
-        # Callbacks
-        if self.callbacks:
-            await _safe_call(self.callbacks.on_complete, refreshed_task, final_status)
-
         return ran_ok
+
+    async def _batch_cancel_watcher(
+        self,
+        *,
+        task_map: dict[str, asyncio.Task],
+        stop_event: asyncio.Event,
+        poll_interval: float,
+        canceled_by_db: set[str],
+    ) -> None:
+        """Single watcher that polls DB for statuses of all still-pending tasks."""
+        try:
+            while not stop_event.is_set():
+                logger.info("Checking statuses of still-pending tasks.")
+                pending_ids = [tid for tid, at in task_map.items() if not at.done()]
+                if not pending_ids:
+                    break
+
+                try:
+                    pending_tasks = await self.repo.get_tasks_by_ids(pending_ids)
+                except Exception as e:
+                    logger.warning("Batch watcher: status poll failed: %s", e, exc_info=e)
+                    pending_tasks = []
+
+                for task in pending_tasks:
+                    status = task.get_status()
+                    if status == "CANCELED":
+                        task_id = task.get_unique_identifier()
+                        at = task_map.get(task_id)
+                        if at is not None and not at.done():
+                            logger.info("DB status CANCELED -> canceling task %s", task_id)
+                            canceled_by_db.add(task_id)
+                            at.cancel()
+
+                try:
+                    await asyncio.wait_for(stop_event.wait(), timeout=poll_interval)
+                except TimeoutError:
+                    # normal: wake up to poll again
+                    pass
+        except asyncio.CancelledError:
+            # shutting down watcher
+            pass
 
 
 async def _safe_call(fn: Callable[[T, str], Awaitable[None]] | None, task: T, status: str) -> None:

@@ -28,6 +28,8 @@ from agent_platform.server.storage.errors import (
     DataConnectionNotFoundError,
     DIDSConnectionDetailsNotFoundError,
     DocumentIntelligenceIntegrationNotFoundError,
+    TrialAlreadyCanceledError,
+    TrialNotFoundError,
 )
 from agent_platform.server.storage.types import StaleThreadsResult
 
@@ -1105,7 +1107,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         return row["trial_id"] if row is not None else None
 
     async def update_trial_status(
-        self, trial_id: str, user_id: str, status: TrialStatus, error: str | None
+        self, trial_id: str, user_id: str, status: TrialStatus, error: str | None = None
     ):
         trials = self._get_table("trials")
         now = datetime.now(UTC)
@@ -1129,6 +1131,45 @@ class BaseStorage(AbstractStorage, CommonMixin):
             row = result.mappings().fetchone()
 
         return row["trial_id"] if row is not None else None
+
+    async def update_trial_status_if_not_canceled(
+        self, trial_id: str, user_id: str, status: TrialStatus, error: str | None = None
+    ):
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+
+        update_trials_stmt = (
+            sa.update(trials)
+            .where(trials.c.trial_id == trial_id, trials.c.status != TrialStatus.CANCELED)
+            .values(
+                status=status,
+                error_message=error,
+                updated_at=now,
+                status_updated_at=now,
+            )
+            .returning(
+                trials.c.trial_id,
+            )
+        )
+
+        async with self.engine.begin() as conn:
+            result = await conn.execute(update_trials_stmt)
+            row = result.mappings().fetchone()
+
+            if row is not None:
+                return row["trial_id"]
+
+            # No row updated: figure out if it's because it's canceled, or missing.
+            status_row = await conn.execute(
+                sa.select(trials.c.status).where(trials.c.trial_id == trial_id)
+            )
+            status_value = status_row.scalar_one_or_none()
+
+            if status_value is None:
+                raise TrialNotFoundError(f"Trial {trial_id!r} not found")
+
+            if status_value == TrialStatus.CANCELED:
+                raise TrialAlreadyCanceledError(f"Trial {trial_id!r} is already canceled")
 
     async def update_trial_evaluation_results(
         self, trial_id: str, evaluations: list[EvaluationResult]

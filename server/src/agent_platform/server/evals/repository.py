@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from agent_platform.core.evals.types import Trial
+from agent_platform.core.evals.types import Trial, TrialStatus
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
 from agent_platform.server.evals.background_worker import TaskRepository
 from agent_platform.server.storage.option import StorageService
@@ -26,20 +26,13 @@ class ScenarioRunTrialRepository(TaskRepository[Trial]):
         except Exception:
             return None
 
-    async def set_status(self, task: Trial, status: str, error: str | None) -> None:
-        # Map generic status to domain enums if needed
-        if status == "COMPLETED":
-            # domain-specific "complete" call also triggers timestamps, etc.
-            try:
-                system_user_id = await self.storage.get_system_user_id()
-            except Exception:
-                system_user, _ = await self.storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
-                system_user_id = system_user.user_id
-            await self.storage.complete_trial(task.trial_id, system_user_id)
-        else:
-            try:
-                system_user_id = await self.storage.get_system_user_id()
-            except Exception:
-                system_user, _ = await self.storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
-                system_user_id = system_user.user_id
-            await self.storage.update_trial_status(task.trial_id, system_user_id, status, error)  # type: ignore
+    async def set_status_if_not_canceled(self, task: Trial, status: str, error: str | None) -> None:
+        try:
+            system_user_id = await self.storage.get_system_user_id()
+        except Exception:
+            system_user, _ = await self.storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
+            system_user_id = system_user.user_id
+
+        await self.storage.update_trial_status_if_not_canceled(
+            task.trial_id, system_user_id, TrialStatus(status), error
+        )
