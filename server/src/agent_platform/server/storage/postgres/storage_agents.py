@@ -276,6 +276,39 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                         "user_id": user_id,
                     },
                 )
+
+                # If nothing was updated, determine why and raise a specific error
+                if cur.rowcount == 0:
+                    await cur.execute(
+                        """
+                        SELECT v2.check_user_access(a.user_id, %(user_id)s::uuid) AS has_access
+                        FROM v2.agent a
+                        WHERE a.agent_id = %(agent_id)s::uuid
+                        """,
+                        {"agent_id": agent_id, "user_id": user_id},
+                    )
+                    row = await cur.fetchone()
+                    if not row:
+                        raise AgentNotFoundError(f"Agent {agent_id} not found")
+                    if not row["has_access"]:
+                        raise UserAccessDeniedError(
+                            f"User {user_id} does not have access to agent {agent_id}",
+                        )
+
+                    # 3) Name collision for this user?
+                    await cur.execute(
+                        """
+                        SELECT 1 FROM v2.agent
+                        WHERE LOWER(name) = LOWER(%(name)s)
+                          AND user_id = %(user_id)s::uuid
+                          AND agent_id != %(agent_id)s::uuid
+                        """,
+                        {"name": name, "user_id": user_id, "agent_id": agent_id},
+                    )
+                    if await cur.fetchone():
+                        raise AgentWithNameAlreadyExistsError(
+                            f"Agent name {name!r} is not unique for user {user_id}"
+                        )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2.agent.name" in str(e):
                 raise RecordAlreadyExistsError(

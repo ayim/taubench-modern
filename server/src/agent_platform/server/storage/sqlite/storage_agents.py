@@ -344,6 +344,39 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                         "user_id": user_id,
                     },
                 )
+
+                # If no rows updated, determine cause and raise specific error
+                if cur.rowcount == 0:
+                    await cur.execute(
+                        """
+                        SELECT v2_check_user_access(a.user_id, :user_id) AS has_access
+                        FROM v2_agent a
+                        WHERE a.agent_id = :agent_id
+                        """,
+                        {"agent_id": agent_id, "user_id": user_id},
+                    )
+                    row = await cur.fetchone()
+                    if not row:
+                        raise AgentNotFoundError(f"Agent {agent_id} not found")
+                    if not row["has_access"]:
+                        raise UserAccessDeniedError(
+                            f"User {user_id} does not have access to agent {agent_id}",
+                        )
+
+                    # 3) Name collision for this user?
+                    await cur.execute(
+                        """
+                        SELECT 1 FROM v2_agent
+                        WHERE LOWER(name) = LOWER(:name)
+                          AND user_id = :user_id
+                          AND agent_id != :agent_id
+                        """,
+                        {"name": name, "user_id": user_id, "agent_id": agent_id},
+                    )
+                    if await cur.fetchone():
+                        raise AgentWithNameAlreadyExistsError(
+                            f"Agent name '{name}' is not unique for user {user_id}"
+                        )
         except aiosqlite.IntegrityError as e:
             if "UNIQUE constraint failed" in str(e) and (
                 "idx_agent_name_per_user_v2" in str(e) or ".name" in str(e)
@@ -358,9 +391,17 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
             else:
                 self._logger.error("Unexpected database integrity error", error=str(e))
                 raise StorageError(f"Database integrity error: {e}") from e
+        except (
+            UserAccessDeniedError,
+            AgentWithNameAlreadyExistsError,
+            AgentNotFoundError,
+            ReferenceIntegrityError,
+        ) as e:
+            # Re-raise specific errors
+            raise e
         except Exception as e:
             self._logger.error(
-                "Unexpected error during agent upsert",
+                "Unexpected error during agent patch",
                 error=str(e),
                 exc_info=e,
             )

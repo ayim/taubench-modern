@@ -545,3 +545,39 @@ async def test_agent_platform_params_association(
     # Verify no associations exist
     final_associated_ids = await storage.get_agent_platform_params_ids(agent.agent_id)
     assert len(final_associated_ids) == 0
+
+
+@pytest.mark.asyncio
+async def test_patch_agent(
+    storage: SQLiteStorage,
+    sample_agent: Agent,
+) -> None:
+    owner, _ = await storage.get_or_create_user(sub="tenant:testing:user:owner")
+    agent = Agent.model_validate(sample_agent.model_dump() | {"user_id": owner.user_id})
+    await storage.upsert_agent(owner.user_id, agent)
+
+    # Test that a non-existent agent cannot be patched
+    with pytest.raises(AgentNotFoundError):
+        await storage.patch_agent(owner.user_id, str(uuid4()), "Some Name", "Some Description")
+
+    # Test that other users cannot patch the agent
+    other_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:other")
+    with pytest.raises(UserAccessDeniedError):
+        await storage.patch_agent(
+            other_user.user_id, agent.agent_id, "Hacked Name", "Hacked Description"
+        )
+
+    # Test that a patch cannot occur if the name is the same
+    dup_agent = Agent.model_validate(
+        agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Unrelated Agent",
+            "description": "Unrelated Description",
+        }
+    )
+    await storage.upsert_agent(owner.user_id, dup_agent)
+    with pytest.raises(AgentWithNameAlreadyExistsError):
+        await storage.patch_agent(
+            owner.user_id, agent.agent_id, dup_agent.name, dup_agent.description
+        )
