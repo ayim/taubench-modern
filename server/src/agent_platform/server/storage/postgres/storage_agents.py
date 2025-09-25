@@ -325,14 +325,15 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
         async with self._cursor() as cur:
             # 2. Check if the user has access
             await cur.execute(
-                """SELECT v2.check_user_access(a.user_id, %(user_id)s::uuid)
+                """SELECT v2.check_user_access(a.user_id, %(user_id)s::uuid) AS has_access
                    FROM v2.agent a
                    WHERE agent_id = %(agent_id)s::uuid""",
                 {"agent_id": agent_id, "user_id": user_id},
             )
 
             # 3. User does not have access?
-            if not (await cur.fetchone()):
+            row = await cur.fetchone()
+            if not row or not row["has_access"]:
                 raise UserAccessDeniedError(
                     f"User {user_id} does not have access to agent {agent_id}",
                 )

@@ -548,6 +548,20 @@ async def test_agent_platform_params_association(
 
 
 @pytest.mark.asyncio
+async def test_delete_agent_other_user(
+    storage: SQLiteStorage,
+    sample_agent: Agent,
+) -> None:
+    owner, _ = await storage.get_or_create_user(sub="tenant:testing:user:owner")
+    agent = Agent.model_validate(sample_agent.model_dump() | {"user_id": owner.user_id})
+    await storage.upsert_agent(owner.user_id, agent)
+
+    other_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:other")
+    with pytest.raises(UserAccessDeniedError):
+        await storage.delete_agent(other_user.user_id, agent.agent_id)
+
+
+@pytest.mark.asyncio
 async def test_patch_agent(
     storage: SQLiteStorage,
     sample_agent: Agent,
