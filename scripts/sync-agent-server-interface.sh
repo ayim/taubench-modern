@@ -2,19 +2,18 @@
 
 set -eou pipefail
 
-SCRIPT_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
-ROOT_DIR="${SCRIPT_DIR}/.."
-WORKROOM_DIR="${ROOT_DIR}/workroom"
-PRIVATE_OPENAPI_JSON="${WORKROOM_DIR}/packages/agent-server-interface/private.openapi.json"
-PUBLIC_OPENAPI_JSON="${WORKROOM_DIR}/packages/agent-server-interface/public.openapi.json"
+script_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+root_dir="${script_dir}/.."
+workroom_dir="${root_dir}/workroom"
 
-cd "${ROOT_DIR}"
+export PRIVATE_OPENAPI_FILE="${workroom_dir}/packages/agent-server-interface/private.openapi.json"
+export PUBLIC_OPENAPI_FILE="${workroom_dir}/packages/agent-server-interface/public.openapi.json"
 
-make sync
-PRIVATE_OPENAPI_FILE="${PRIVATE_OPENAPI_JSON}" PUBLIC_OPENAPI_FILE="${PUBLIC_OPENAPI_JSON}" make run-openapi-spec &> /dev/null
+cd "${root_dir}"
 
 # [Generate Interface] #############################################################################
-
+make sync
+make run-openapi-spec
 echo "Generating TS types for the interface..."
-cd "${ROOT_DIR}/workroom/packages/agent-server-interface" && \
+cd "${root_dir}/workroom/packages/agent-server-interface" && \
   npm run build:all

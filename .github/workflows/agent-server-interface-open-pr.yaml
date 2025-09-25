@@ -61,58 +61,12 @@ jobs:
 
       - name: Update OpenAPI Specs, Generate Types
         id: update-openapi-specs
+        working-directory: workroom
         env:
-          PORT: '8888'
           NPM_TOKEN: ${{ secrets.NPMJS_READ_ONLY_TOKEN }}
         run: |
-          private_openapi_json="$(realpath "${PRIVATE_OPENAPI_JSON}")"
-          public_openapi_json="$(realpath "${PUBLIC_OPENAPI_JSON}")"
-
-          # Run Agent Server to retrieve the dynamically generated OpenAPI specs ########
-          echo "Installing dependencies..."
-          make sync &> /dev/null
-          echo "Running Agent Server..."
-          make run-server &> /dev/null &
-          server_pid="${!}"
-
-          # Wait for the server to be responsive ########################################
-          for i in {1..50}; do
-            sleep 1
-
-            if curl -sf "http://localhost:${PORT}/api/v2/ok" > /dev/null; then
-              break
-            fi
-
-            if [ "${i}" -eq 50 ]; then
-              echo "Agent Server failed to respond after 50 attempts"
-              exit 1
-            fi
-          done
-
-          echo "Retrieving OpenAPI Specs..."
-          # Download *Private* OpenAPI Spec #############################################
-          curl \
-            --silent \
-            --fail-with-body \
-            --show-error \
-            "http://localhost:${PORT}/api/v2/openapi.json" > "${private_openapi_json}"
-
-          # Download *Public* OpenAPI Spec ##############################################
-          curl \
-            --silent \
-            --fail-with-body \
-            --show-error \
-            "http://localhost:${PORT}/api/public/v1/openapi.json" > "${public_openapi_json}"
-
-          # Kill the backgrounded server process ########################################
-          kill "${server_pid}"
-
-          # Generate TS types for the interface #########################################
-          echo "Generating TS types for the interface..."
-          cd ./workroom/packages/agent-server-interface
-          npm ci &> /dev/null
-          npm run build
-          echo
+          npm ci
+          npm run sync:agent-server-interface
 
       - name: Bump Package Version
         id: bump-package-version
