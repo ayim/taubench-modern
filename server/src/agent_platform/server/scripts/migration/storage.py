@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
-from aiosqlite import connect
+from aiosqlite import Connection, connect
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
@@ -16,62 +16,50 @@ class StorageInterface(ABC):
     @abstractmethod
     async def connect(self) -> None:
         """Establish connection to the database"""
-        pass
 
     @abstractmethod
     async def close(self) -> None:
         """Close the database connection"""
-        pass
 
     @abstractmethod
     async def get_all_agents(self) -> list[dict[str, Any]]:
         """Retrieve all agents from the database"""
-        pass
 
     @abstractmethod
     async def insert_agent(self, agent_data: dict[str, Any]) -> None:
         """Insert agent data into the database"""
-        pass
 
     @abstractmethod
     async def get_all_threads(self) -> list[dict[str, Any]]:
         """Retrieve all threads from the database"""
-        pass
 
     @abstractmethod
     async def insert_thread(self, thread_data: dict[str, Any]) -> None:
         """Insert thread data into the database"""
-        pass
 
     @abstractmethod
     async def get_latest_checkpoint(self, thread_id: str) -> dict[str, Any]:
         """Retrieve the latest checkpoint for a thread"""
-        pass
 
     @abstractmethod
     async def insert_v2_thread_message(self, thread_message_data: dict[str, Any]) -> None:
         """Insert v2 thread message data into the database"""
-        pass
 
     @abstractmethod
     async def count_v1_agents(self) -> int:
         """Count the number of v1 agents in the database"""
-        pass
 
     @abstractmethod
     async def count_v2_agents(self) -> int:
         """Count the number of v2 agents in the database"""
-        pass
 
     @abstractmethod
     async def get_all_users(self) -> list[dict[str, Any]]:
         """Retrieve all users from the database"""
-        pass
 
     @abstractmethod
     async def insert_user(self, user_data: dict[str, Any]) -> None:
         """Insert user data into the database"""
-        pass
 
 
 class SQLiteStorage(StorageInterface):
@@ -79,22 +67,24 @@ class SQLiteStorage(StorageInterface):
 
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self.write_db_path = "agentserver.db"
-        self.connection = None
+        self._connection = None
 
     async def connect(self) -> None:
         """Connect to the SQLite database"""
-        self.connection = await connect(self.db_path)
-        self.write_connection = await connect(self.write_db_path)
+        self._connection = await connect(self.db_path)
+
+    @property
+    def connection(self) -> Connection:
+        """Get the SQLite connection"""
+        if not self._connection:
+            raise RuntimeError("Not connected to database")
+        return self._connection
 
     async def close(self) -> None:
         """Close the SQLite connection"""
-        if self.connection:
-            await self.connection.close()
-            self.connection = None
-        if self.write_connection:
-            await self.write_connection.close()
-            self.write_connection = None
+        if self._connection:
+            await self._connection.close()
+            self._connection = None
 
     async def get_all_agents(self) -> list[dict[str, Any]]:
         """Get all agents from the SQLite database"""
@@ -109,11 +99,8 @@ class SQLiteStorage(StorageInterface):
 
     async def insert_agent(self, agent_data: dict[str, Any]) -> None:
         """Insert agent into the SQLite database"""
-        if not self.write_connection:
-            raise RuntimeError("Not connected to database")
-
         try:
-            await self.write_connection.execute(
+            await self.connection.execute(
                 """
                 INSERT INTO v2_agent (
                     agent_id, name, description, user_id, runbook_structured,
@@ -131,7 +118,7 @@ class SQLiteStorage(StorageInterface):
                 """,
                 agent_data,
             )
-            await self.write_connection.commit()
+            await self.connection.commit()
         except Exception as e:
             logger.error(f"Error inserting agent: {e}")
             raise
@@ -149,11 +136,8 @@ class SQLiteStorage(StorageInterface):
 
     async def insert_thread(self, thread_data: dict[str, Any]) -> None:
         """Insert thread into the SQLite database"""
-        if not self.write_connection:
-            raise RuntimeError("Not connected to database")
-
         try:
-            await self.write_connection.execute(
+            await self.connection.execute(
                 """
                 INSERT INTO v2_thread (
                     thread_id, agent_id, user_id, name, created_at, updated_at, metadata
@@ -165,7 +149,7 @@ class SQLiteStorage(StorageInterface):
                 """,
                 thread_data,
             )
-            await self.write_connection.commit()
+            await self.connection.commit()
         except Exception as e:
             logger.error(f"Error inserting thread {thread_data.get('name', 'unknown')}: {e}")
             raise
@@ -205,11 +189,8 @@ class SQLiteStorage(StorageInterface):
 
     async def insert_v2_thread_message(self, thread_message_data: dict[str, Any]) -> None:
         """Insert v2 thread message data into the SQLite database"""
-        if not self.write_connection:
-            raise RuntimeError("Not connected to database")
-
         try:
-            await self.write_connection.execute(
+            await self.connection.execute(
                 """
                 INSERT INTO v2_thread_message (
                     message_id, sequence_number, thread_id, parent_run_id,
@@ -223,7 +204,7 @@ class SQLiteStorage(StorageInterface):
                 """,
                 thread_message_data,
             )
-            await self.write_connection.commit()
+            await self.connection.commit()
         except Exception as e:
             logger.error(f"Error inserting thread message: {e}")
             raise
@@ -243,11 +224,8 @@ class SQLiteStorage(StorageInterface):
 
     async def count_v2_agents(self) -> int:
         """Count the number of v2 agents in the database"""
-        if not self.write_connection:
-            raise RuntimeError("Not connected to database")
-
         try:
-            cursor = await self.write_connection.execute("SELECT COUNT(*) FROM v2_agent")
+            cursor = await self.connection.execute("SELECT COUNT(*) FROM v2_agent")
             row = await cursor.fetchone()
             return row[0] if row else 0
         except Exception as e:
@@ -267,11 +245,8 @@ class SQLiteStorage(StorageInterface):
 
     async def insert_user(self, user_data: dict[str, Any]) -> None:
         """Insert user into the SQLite database"""
-        if not self.write_connection:
-            raise RuntimeError("Not connected to database")
-
         try:
-            await self.write_connection.execute(
+            await self.connection.execute(
                 """
                 INSERT INTO v2_user (
                     user_id, sub, created_at
@@ -283,7 +258,7 @@ class SQLiteStorage(StorageInterface):
                 """,
                 user_data,
             )
-            await self.write_connection.commit()
+            await self.connection.commit()
         except Exception as e:
             logger.error(f"Error inserting user: {e}")
             raise

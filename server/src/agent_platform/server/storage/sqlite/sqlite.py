@@ -83,6 +83,22 @@ class SQLiteConfig(Configuration):
             object.__setattr__(self, "db_path", SystemPaths.data_dir / self.db_path)
 
 
+# Note by fabioz: this was done because the __post_init__ method above was called before
+# the SystemPaths configuration was fully done (it was called in `_load_registered_configurations`
+# whereas the command line overrides were applied in `_apply_overrides` done after that)
+# Debugged a bit and found the config system is way to complex to try to fix (and we should
+# at some point stop using it altogether as it requires a bunch of classes to be preloaded)
+# So, this is a hack to make the sqlite config have the proper path for me (note: I can't reproduce
+# this reliably, but at some point when running
+#  `test_generate_semantic_data_model_generation_integration`
+# it was using the wrong path consistently).
+def get_sqlite_db_path() -> Path:
+    db_path = SQLiteConfig.db_path
+    if not db_path.is_absolute():
+        return SystemPaths.data_dir / db_path
+    return db_path
+
+
 def _register_sqlite_adapters():
     """
     Register adapters and converters for the SQLite database.
@@ -245,11 +261,11 @@ class SQLiteStorage(
     def _get_db_path(self) -> str:
         """Get the SQLite database path."""
 
-        db_path = SQLiteConfig.db_path
+        db_path = get_sqlite_db_path()
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self._logger.info("Using SQLite database path", path=str(db_path.absolute()))
-        return str(db_path.absolute())
+        self._logger.info("Using SQLite database path: %s", db_path)
+        return str(db_path)
 
     async def _run_migrations(self):
         await self._migrations.run_migrations()
