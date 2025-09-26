@@ -118,3 +118,37 @@ export const useDeleteDataConnectionMutation = createSparMutation<
     });
   },
 }));
+
+/**
+ * Inspect a Data Connection data model
+ */
+
+export const dataConnectionInspectQueryKey = (id: string) => ['dataConnectionInspect', id];
+
+export const dataConnectionInspectQueryOptions = createSparQueryOptions<{ dataConnectionId: string }>()(
+  ({ sparAPIClient, dataConnectionId }) => ({
+    queryKey: dataConnectionInspectQueryKey(dataConnectionId),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer(
+        'post',
+        '/api/v2/data-connections/{connection_id}/inspect',
+        {
+          params: { path: { connection_id: dataConnectionId } },
+          body: {
+            tables_to_inspect: [],
+            inspect_columns: true,
+            n_sample_rows: 10,
+          },
+        },
+      );
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to inspect data connection');
+      }
+
+      return response.data.tables;
+    },
+  }),
+);
+
+export const useDataConnectionInspectQuery = createSparQuery(dataConnectionInspectQueryOptions);

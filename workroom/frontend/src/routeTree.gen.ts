@@ -31,6 +31,7 @@ import { Route as TenantsTenantIdDataAccessDataConnectionsRouteImport } from './
 import { Route as TenantsTenantIdConversationalAgentIdRouteImport } from './routes/tenants/$tenantId/conversational/$agentId'
 import { Route as TenantsTenantIdAgentsDeployRouteImport } from './routes/tenants/$tenantId/agents/deploy'
 import { Route as TenantsTenantIdWorkerAgentIdIndexRouteImport } from './routes/tenants/$tenantId/worker/$agentId/index'
+import { Route as TenantsTenantIdDataAccessSemanticDataIndexRouteImport } from './routes/tenants/$tenantId/data-access/semantic-data/index'
 import { Route as TenantsTenantIdConversationalAgentIdIndexRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/index'
 import { Route as TenantsTenantIdConfigurationSettingsIndexRouteImport } from './routes/tenants/$tenantId/configuration/settings/index'
 import { Route as TenantsTenantIdConfigurationLlmIndexRouteImport } from './routes/tenants/$tenantId/configuration/llm/index'
@@ -180,6 +181,12 @@ const TenantsTenantIdWorkerAgentIdIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => TenantsTenantIdWorkerAgentIdRoute,
+  } as any)
+const TenantsTenantIdDataAccessSemanticDataIndexRoute =
+  TenantsTenantIdDataAccessSemanticDataIndexRouteImport.update({
+    id: '/data-access/semantic-data/',
+    path: '/data-access/semantic-data/',
+    getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdConversationalAgentIdIndexRoute =
   TenantsTenantIdConversationalAgentIdIndexRouteImport.update({
@@ -351,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
   '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
+  '/tenants/$tenantId/data-access/semantic-data': typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
   '/tenants/$tenantId/worker/$agentId/': typeof TenantsTenantIdWorkerAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRouteWithChildren
@@ -391,6 +399,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
   '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdIndexRoute
+  '/tenants/$tenantId/data-access/semantic-data': typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRouteWithChildren
@@ -437,6 +446,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/configuration/llm/': typeof TenantsTenantIdConfigurationLlmIndexRoute
   '/tenants/$tenantId/configuration/settings/': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
+  '/tenants/$tenantId/data-access/semantic-data/': typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
   '/tenants/$tenantId/worker/$agentId/': typeof TenantsTenantIdWorkerAgentIdIndexRoute
   '/tenants/$tenantId/agents/deploy/llms/new': typeof TenantsTenantIdAgentsDeployLlmsNewRoute
   '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRouteWithChildren
@@ -484,6 +494,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/llm'
     | '/tenants/$tenantId/configuration/settings'
     | '/tenants/$tenantId/conversational/$agentId/'
+    | '/tenants/$tenantId/data-access/semantic-data'
     | '/tenants/$tenantId/worker/$agentId/'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId'
@@ -524,6 +535,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/llm'
     | '/tenants/$tenantId/configuration/settings'
     | '/tenants/$tenantId/conversational/$agentId'
+    | '/tenants/$tenantId/data-access/semantic-data'
     | '/tenants/$tenantId/worker/$agentId'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId'
@@ -569,6 +581,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/llm/'
     | '/tenants/$tenantId/configuration/settings/'
     | '/tenants/$tenantId/conversational/$agentId/'
+    | '/tenants/$tenantId/data-access/semantic-data/'
     | '/tenants/$tenantId/worker/$agentId/'
     | '/tenants/$tenantId/agents/deploy/llms/new'
     | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId'
@@ -742,6 +755,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tenants/$tenantId/worker/$agentId/'
       preLoaderRoute: typeof TenantsTenantIdWorkerAgentIdIndexRouteImport
       parentRoute: typeof TenantsTenantIdWorkerAgentIdRoute
+    }
+    '/tenants/$tenantId/data-access/semantic-data/': {
+      id: '/tenants/$tenantId/data-access/semantic-data/'
+      path: '/data-access/semantic-data'
+      fullPath: '/tenants/$tenantId/data-access/semantic-data'
+      preLoaderRoute: typeof TenantsTenantIdDataAccessSemanticDataIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/conversational/$agentId/': {
       id: '/tenants/$tenantId/conversational/$agentId/'
@@ -1077,6 +1097,7 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute
   TenantsTenantIdMcpServersIndexRoute: typeof TenantsTenantIdMcpServersIndexRoute
   TenantsTenantIdWorkItemsIndexRoute: typeof TenantsTenantIdWorkItemsIndexRoute
+  TenantsTenantIdDataAccessSemanticDataIndexRoute: typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
 }
 
 const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
@@ -1104,6 +1125,8 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdHomeIndexRoute: TenantsTenantIdHomeIndexRoute,
   TenantsTenantIdMcpServersIndexRoute: TenantsTenantIdMcpServersIndexRoute,
   TenantsTenantIdWorkItemsIndexRoute: TenantsTenantIdWorkItemsIndexRoute,
+  TenantsTenantIdDataAccessSemanticDataIndexRoute:
+    TenantsTenantIdDataAccessSemanticDataIndexRoute,
 }
 
 const TenantsTenantIdRouteWithChildren = TenantsTenantIdRoute._addFileChildren(

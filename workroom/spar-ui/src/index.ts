@@ -18,6 +18,8 @@ export * from './components/DataFrame';
 export * from './components/DataConnection/DataConnectionsTable';
 export * from './components/DataConnection/DataConnectionConfiguration';
 
+export * from './components/SemanticData/SemanticDataConfiguration';
+
 export * from './components/Eval';
 export { CreateWorkItemDialog } from './components/CreateWorkItemDialog';
 export * from './components/ChatDetails';
