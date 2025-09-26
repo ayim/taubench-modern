@@ -1,5 +1,7 @@
 """Integration tests for semantic data model API endpoints."""
 
+from typing import Any
+
 import pytest
 
 
@@ -287,9 +289,15 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
     base_url_agent_server, resources_dir, data_regression
 ):
     """Test generate semantic data model API endpoint integration."""
+    import copy
+
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
+        assert not agent_client.list_semantic_data_models(), (
+            "No semantic data models should be present"
+        )
+
         # Create an agent and thread
         agent_id = agent_client.create_agent_and_return_agent_id(
             action_packages=[],
@@ -421,6 +429,7 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
 
         # Generate the semantic data model
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
+        original_generated_model = copy.deepcopy(generated_model)
 
         semantic_model = generated_model["semantic_model"]
 
@@ -435,7 +444,7 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
 
         data_regression.check(generated_model, basename="generated_semantic_model")
 
-        semantic_data_model_id = agent_client.create_semantic_data_model(generated_model)[
+        semantic_data_model_id = agent_client.create_semantic_data_model(original_generated_model)[
             "semantic_data_model_id"
         ]
 
@@ -443,9 +452,71 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
         agent_client.set_thread_semantic_data_models(thread_id, [semantic_data_model_id])
 
         assert agent_client.get_thread_semantic_data_models(thread_id) == [
-            {semantic_data_model_id: generated_model["semantic_model"]}
+            {semantic_data_model_id: original_generated_model["semantic_model"]}
         ]
 
         assert agent_client.get_agent_semantic_data_models(agent_id) == [
-            {semantic_data_model_id: generated_model["semantic_model"]}
+            {semantic_data_model_id: original_generated_model["semantic_model"]}
         ]
+
+        # Test the new list semantic data models API
+        # List all semantic data models
+        all_models = agent_client.list_semantic_data_models()
+        # Now, we have to do some replacements to make the data_regression work
+        replacements = {
+            agent_id: "agent-id1",
+            thread_id: "thread-id1",
+            semantic_data_model_id: "semantic-data-model-id1",
+            file_id: "file_id1",
+            data_connection_1["id"]: "data_connection_1",
+        }
+        all_models = update_models_for_data_regression(all_models, replacements)
+        data_regression.check(all_models, basename="list_semantic_data_models")
+
+
+def update_models_for_data_regression(obj: Any, replacements: dict[str, Any]) -> Any:
+    if isinstance(obj, list):
+        return [update_models_for_data_regression(item, replacements) for item in obj]
+    elif isinstance(obj, dict):
+        ret = {}
+        for k, v in obj.items():
+            try:
+                k = update_models_for_data_regression(k, replacements)  # noqa: PLW2901
+            except UUIDNotFoundError as e:
+                e.push_context(f"key: {k}")
+                raise
+            try:
+                v = update_models_for_data_regression(v, replacements)  # noqa: PLW2901
+            except UUIDNotFoundError as e:
+                e.push_context(f"key: {k} (in value)")
+                raise
+            ret[k] = v
+        return ret
+
+    ret = replacements.get(obj, obj)
+    if is_uuid(ret):
+        raise UUIDNotFoundError(ret, f"UUID not replaced in the data: {ret}")
+    return ret
+
+
+class UUIDNotFoundError(Exception):
+    def __init__(self, obj: Any, message: str):
+        self.obj = obj
+        self.message = message
+        self.context = []
+        super().__init__(message)
+
+    def push_context(self, context: str):
+        self.context.insert(0, context)
+
+
+def is_uuid(obj: Any) -> bool:
+    import uuid
+
+    try:
+        if not isinstance(obj, str):
+            return False
+        uuid.UUID(obj)
+        return True
+    except ValueError:
+        return False

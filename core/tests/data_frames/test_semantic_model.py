@@ -123,3 +123,12 @@ semantic_model_example: SemanticDataModel = {
     "description": "This semantic model can be used for asking questions over the sales data.",
     "tables": tables_example,
 }
+
+
+def test_semantic_model_validation(data_regression):
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model_example)
+    data_regression.check(references.errors)

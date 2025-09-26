@@ -19,9 +19,12 @@ from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.payloads.mcp_server_response import MCPServerResponse
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     DeleteSemanticDataModelPayload,
+    FileReference,
     GenerateSemanticDataModelPayload,
     GenerateSemanticDataModelResponse,
     GetSemanticDataModelPayload,
+    GetSemanticDataModelsPayload,
+    SemanticDataModelWithAssociations,
     SetSemanticDataModelPayload,
 )
 from agent_platform.core.payloads.thread_semantic_data_models import (
@@ -47,16 +50,19 @@ __all__ = [
     "DocumentIntelligenceConfigPayload",
     "DocumentLayoutPayload",
     "EphemeralStreamPayload",
+    "FileReference",
     "ForkThreadPayload",
     "GenerateSemanticDataModelPayload",
     "GenerateSemanticDataModelResponse",
     "GetAgentDataConnectionsPayload",
     "GetSemanticDataModelPayload",
+    "GetSemanticDataModelsPayload",
     "InitiateStreamPayload",
     "MCPServerResponse",
     "PatchAgentPayload",
     "SelectedToolConfig",
     "SelectedTools",
+    "SemanticDataModelWithAssociations",
     "SetAgentDataConnectionsPayload",
     "SetAgentSemanticDataModelsPayload",
     "SetSemanticDataModelPayload",

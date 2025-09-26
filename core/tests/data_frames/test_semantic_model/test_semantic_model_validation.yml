@@ -1,0 +1,4 @@
+- 'Either ''data_connection_id'' or ''file_reference'' must be specified in a semantic
+  data model base table (table: sales_data).'
+- "In the semantic data model passed, no data connections or file references were\
+  \ found\n            (so, base_tables may not be properly specified)."

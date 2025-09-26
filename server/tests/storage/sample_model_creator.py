@@ -86,7 +86,7 @@ class SampleModelCreator:
     async def get_user_id(self) -> str:
         return await self.storage.get_system_user_id()
 
-    async def obtain_sample_agent(self) -> "Agent":
+    async def obtain_sample_agent(self, agent_name: str = "Test Agent") -> "Agent":
         from datetime import UTC, datetime
         from uuid import uuid4
 
@@ -103,7 +103,7 @@ class SampleModelCreator:
         self.sample_agent = Agent(
             user_id=sample_user_id,
             agent_id=str(uuid4()),
-            name="Test Agent",
+            name=agent_name,
             description="Test Description",
             runbook_structured=Runbook(
                 raw_text="# Objective\nYou are a helpful assistant.",

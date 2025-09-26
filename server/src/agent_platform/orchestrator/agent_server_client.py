@@ -1226,3 +1226,23 @@ class AgentServerClient:
                 f"Error getting agent semantic data models: {response.status_code} {response.text}",
             ) from e
         return response.json()
+
+    def list_semantic_data_models(
+        self, agent_id: str | None = None, thread_id: str | None = None
+    ) -> list[dict]:
+        """List semantic data models with optional filtering by agent_id or thread_id."""
+        url = urljoin(self.base_url + "/", "semantic-data-models/")
+        params = {}
+        if agent_id is not None:
+            params["agent_id"] = agent_id
+        if thread_id is not None:
+            params["thread_id"] = thread_id
+
+        response = requests.get(url, params=params)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error listing semantic data models: {response.status_code} {response.text}",
+            ) from e
+        return response.json()

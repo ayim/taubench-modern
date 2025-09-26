@@ -7095,6 +7095,7 @@ export const spec = {
           'Create a new semantic data model.\nReturns the ID of the created semantic data model as well as the\ndata connection IDs and file references that were used to create the semantic data model.',
         operationId: 'create_semantic_data_model_semantic_data_models__post',
         requestBody: {
+          required: true,
           content: {
             'application/json': {
               schema: {
@@ -7102,7 +7103,6 @@ export const spec = {
               },
             },
           },
-          required: true,
         },
         responses: {
           '200': {
@@ -7111,6 +7111,74 @@ export const spec = {
               'application/json': {
                 schema: {
                   $ref: '#/components/schemas/_SetSemanticDataModelResult',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ['semantic-data-models'],
+        summary: 'List Semantic Data Models',
+        description:
+          'List semantic data models with optional filtering by agent_id or thread_id.',
+        operationId: 'list_semantic_data_models_semantic_data_models__get',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Agent Id',
+            },
+          },
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Thread Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/SemanticDataModelWithAssociations',
+                  },
+                  title:
+                    'Response List Semantic Data Models Semantic Data Models  Get',
                 },
               },
             },
@@ -8187,6 +8255,68 @@ export const spec = {
         required: ['model_name', 'api_key', 'base_url', 'api_version'],
         title: 'AzureOpenAIRerankingModel',
       },
+      BaseTable: {
+        properties: {
+          database: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Database',
+          },
+          schema: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Schema',
+          },
+          table: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Table',
+          },
+          data_connection_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Data Connection Id',
+          },
+          file_reference: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/agent_platform__core__data_frames__semantic_data_model_types__FileReference',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        title: 'BaseTable',
+        description:
+          'A base table represents fully qualified table names.\n\nNote that as an extension to the default snowflake model we provide a way\nto reference either a data connection or a file reference in the following way:\n\nFor a database, the `data_connection_id` must be specified with the id of the data connection.\n    In this case the database/schema/table must be specified as usual\n\nFor a file, the `file_reference` must be specified with the thread_id and file_ref of the file.',
+      },
       BedrockPlatformParameters: {
         properties: {
           kind: {
@@ -9149,6 +9279,50 @@ export const spec = {
         title: 'CortexPlatformParameters',
         required: ['platform_id'],
       },
+      CortexSearchService: {
+        properties: {
+          service: {
+            type: 'string',
+            title: 'Service',
+          },
+          literal_column: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Literal Column',
+          },
+          database: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Database',
+          },
+          schema: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Schema',
+          },
+        },
+        type: 'object',
+        title: 'CortexSearchService',
+        description: 'Configuration for Cortex Search Service integration.',
+      },
       CreateDataModelRequest: {
         properties: {
           data_model: {
@@ -9562,6 +9736,113 @@ export const spec = {
         type: 'object',
         required: ['data_server', 'data_sources'],
         title: 'DataSources',
+      },
+      Dimension: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          expr: {
+            type: 'string',
+            title: 'Expr',
+          },
+          data_type: {
+            type: 'string',
+            title: 'Data Type',
+          },
+          synonyms: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Synonyms',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          unique: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Unique',
+          },
+          sample_values: {
+            anyOf: [
+              {
+                items: {
+                  anyOf: [
+                    {
+                      type: 'string',
+                    },
+                    {
+                      type: 'integer',
+                    },
+                    {
+                      type: 'number',
+                    },
+                    {
+                      type: 'boolean',
+                    },
+                    {
+                      type: 'null',
+                    },
+                  ],
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sample Values',
+          },
+          cortex_search_service: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/CortexSearchService',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+          is_enum: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Is Enum',
+          },
+        },
+        type: 'object',
+        title: 'Dimension',
+        description:
+          "A dimension describes categorical values such as state, user_type, platform, etc.\n\nUse when it's categorical/descriptive context you'll group or filter by\n(e.g., product_name, customer_id, region).\nDimensions answer who/what/where/how and provide labels for facts.",
       },
       DocumentIntelligenceConfigPayload: {
         properties: {
@@ -10100,6 +10381,92 @@ export const spec = {
         required: ['result'],
         title: 'ExtractJobResult',
       },
+      Fact: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          expr: {
+            type: 'string',
+            title: 'Expr',
+          },
+          data_type: {
+            type: 'string',
+            title: 'Data Type',
+          },
+          synonyms: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Synonyms',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          unique: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Unique',
+          },
+          sample_values: {
+            anyOf: [
+              {
+                items: {
+                  anyOf: [
+                    {
+                      type: 'string',
+                    },
+                    {
+                      type: 'integer',
+                    },
+                    {
+                      type: 'number',
+                    },
+                    {
+                      type: 'boolean',
+                    },
+                    {
+                      type: 'null',
+                    },
+                  ],
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sample Values',
+          },
+        },
+        type: 'object',
+        title: 'Fact',
+        description:
+          "A fact describes numerical values, such as revenue, impressions, and salary.\n\nUse when it's a row-level numeric value observed for each event/entity\n(e.g., quantity, unit_price, net_revenue = price * (1-discount)).\nFacts are unaggregated measures stored/calculated.\n(In newer docs, “facts” are what some tools call “measures”.)",
+      },
       FileInfo: {
         properties: {
           thread_id: {
@@ -10132,6 +10499,47 @@ export const spec = {
         type: 'object',
         required: ['thread_id', 'file_ref', 'tables_info'],
         title: 'FileInfo',
+      },
+      Filter: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          expr: {
+            type: 'string',
+            title: 'Expr',
+          },
+          synonyms: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Synonyms',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+        },
+        type: 'object',
+        title: 'Filter',
+        description:
+          "A filter represents a SQL expression that's used for filtering.",
       },
       FlowAdherenceResult: {
         properties: {
@@ -10320,8 +10728,15 @@ export const spec = {
       GenerateSemanticDataModelResponse: {
         properties: {
           semantic_model: {
-            additionalProperties: true,
-            type: 'object',
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SemanticDataModel',
+              },
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+            ],
             title: 'Semantic Model',
           },
         },
@@ -10725,6 +11140,126 @@ export const spec = {
         type: 'object',
         required: ['mcp_servers'],
         title: 'ListMCPToolsRequest',
+      },
+      LogicalTable: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          base_table: {
+            $ref: '#/components/schemas/BaseTable',
+          },
+          synonyms: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Synonyms',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          primary_key: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/PrimaryKey',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+          dimensions: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/Dimension',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Dimensions',
+          },
+          time_dimensions: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/TimeDimension',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Time Dimensions',
+          },
+          facts: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/Fact',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Facts',
+          },
+          metrics: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/Metric',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Metrics',
+          },
+          filters: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/Filter',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Filters',
+          },
+        },
+        type: 'object',
+        title: 'LogicalTable',
+        description:
+          'A logical table represents a view over a physical database table or view.',
       },
       MCPServer: {
         properties: {
@@ -11542,6 +12077,81 @@ export const spec = {
         type: 'object',
         required: ['role'],
         title: 'MemoriesSpecialMessage',
+      },
+      Metric: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          expr: {
+            type: 'string',
+            title: 'Expr',
+          },
+          data_type: {
+            type: 'string',
+            title: 'Data Type',
+          },
+          synonyms: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Synonyms',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          sample_values: {
+            anyOf: [
+              {
+                items: {
+                  anyOf: [
+                    {
+                      type: 'string',
+                    },
+                    {
+                      type: 'integer',
+                    },
+                    {
+                      type: 'number',
+                    },
+                    {
+                      type: 'boolean',
+                    },
+                    {
+                      type: 'null',
+                    },
+                  ],
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sample Values',
+          },
+        },
+        type: 'object',
+        title: 'Metric',
+        description:
+          "A metric describes quantifiable measures of business performance.\n\nUse when it's a business KPI that aggregates (often over facts) across rows\ne.g., total_revenue = SUM(net_revenue), avg_order_value = AVG(order_total),\nor a composite like margin %. Define metrics at the most granular level so\nthey can roll up by any dimension.",
       },
       MySQLDataConnection: {
         properties: {
@@ -12525,6 +13135,22 @@ export const spec = {
         required: ['host', 'port', 'database', 'user', 'password'],
         title: 'PostgresDataConnectionConfiguration',
       },
+      PrimaryKey: {
+        properties: {
+          columns: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Columns',
+          },
+        },
+        type: 'object',
+        required: ['columns'],
+        title: 'PrimaryKey',
+        description:
+          'A primary key represents the columns that uniquely represent each row of the table.',
+      },
       PromptAgentMessage: {
         properties: {
           content: {
@@ -13245,6 +13871,64 @@ export const spec = {
         type: 'object',
         title: 'ReductoPlatformParameters',
         required: ['platform_id'],
+      },
+      Relationship: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          left_table: {
+            type: 'string',
+            title: 'Left Table',
+          },
+          right_table: {
+            type: 'string',
+            title: 'Right Table',
+          },
+          relationship_columns: {
+            items: {
+              $ref: '#/components/schemas/RelationshipColumn',
+            },
+            type: 'array',
+            title: 'Relationship Columns',
+          },
+          join_type: {
+            type: 'string',
+            title: 'Join Type',
+          },
+          relationship_type: {
+            type: 'string',
+            title: 'Relationship Type',
+          },
+        },
+        type: 'object',
+        required: [
+          'name',
+          'left_table',
+          'right_table',
+          'relationship_columns',
+          'join_type',
+          'relationship_type',
+        ],
+        title: 'Relationship',
+        description: 'Defines join relationships between logical tables.',
+      },
+      RelationshipColumn: {
+        properties: {
+          left_column: {
+            type: 'string',
+            title: 'Left Column',
+          },
+          right_column: {
+            type: 'string',
+            title: 'Right Column',
+          },
+        },
+        type: 'object',
+        required: ['left_column', 'right_column'],
+        title: 'RelationshipColumn',
+        description: 'A column mapping for relationships between tables.',
       },
       RequestRemoteFileUploadPayload: {
         properties: {
@@ -14686,6 +15370,123 @@ export const spec = {
         required: ['embedding_model', 'storage'],
         title: 'SemaknowledgebaseDataConnectionConfiguration',
       },
+      SemanticDataModel: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          tables: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/LogicalTable',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Tables',
+          },
+          relationships: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/Relationship',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Relationships',
+          },
+        },
+        type: 'object',
+        title: 'SemanticDataModel',
+        description:
+          'A semantic model represents a collection of tables with their relationships.',
+      },
+      SemanticDataModelWithAssociations: {
+        properties: {
+          semantic_data_model_id: {
+            type: 'string',
+            title: 'Semantic Data Model Id',
+          },
+          semantic_data_model: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SemanticDataModel',
+              },
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+            ],
+            title: 'Semantic Data Model',
+          },
+          agent_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Agent Ids',
+          },
+          thread_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Thread Ids',
+          },
+          data_connection_ids: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Data Connection Ids',
+          },
+          file_references: {
+            items: {
+              $ref: '#/components/schemas/agent_platform__core__payloads__semantic_data_model_payloads__FileReference',
+            },
+            type: 'array',
+            title: 'File References',
+          },
+          errors_in_semantic_data_model: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Errors In Semantic Data Model',
+          },
+        },
+        type: 'object',
+        required: [
+          'semantic_data_model_id',
+          'semantic_data_model',
+          'agent_ids',
+          'thread_ids',
+          'data_connection_ids',
+          'file_references',
+          'errors_in_semantic_data_model',
+        ],
+        title: 'SemanticDataModelWithAssociations',
+      },
       SetAgentDataConnectionsPayload: {
         properties: {
           data_connection_ids: {
@@ -14719,8 +15520,15 @@ export const spec = {
       SetSemanticDataModelPayload: {
         properties: {
           semantic_model: {
-            additionalProperties: true,
-            type: 'object',
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SemanticDataModel',
+              },
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+            ],
             title: 'Semantic Model',
             description: 'The semantic data model as a dictionary.',
           },
@@ -15902,6 +16710,92 @@ export const spec = {
         type: 'object',
         required: ['chart_spec_raw'],
         title: 'ThreadVegaChartContent',
+      },
+      TimeDimension: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          expr: {
+            type: 'string',
+            title: 'Expr',
+          },
+          data_type: {
+            type: 'string',
+            title: 'Data Type',
+          },
+          synonyms: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Synonyms',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          unique: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Unique',
+          },
+          sample_values: {
+            anyOf: [
+              {
+                items: {
+                  anyOf: [
+                    {
+                      type: 'string',
+                    },
+                    {
+                      type: 'integer',
+                    },
+                    {
+                      type: 'number',
+                    },
+                    {
+                      type: 'boolean',
+                    },
+                    {
+                      type: 'null',
+                    },
+                  ],
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sample Values',
+          },
+        },
+        type: 'object',
+        title: 'TimeDimension',
+        description:
+          "A time dimension describes time values, such as sale_date, created_at, and year.\n\nUse when it's temporal context you'll use to slice trends (e.g., order_date, ship_month,\nor even a computed duration like DATEDIFF(...)). Time dimensions enable period aggregations\nand time based analyses (day/week/month/year, etc.).",
       },
       TimescaleDBDataConnection: {
         properties: {
@@ -17694,6 +18588,33 @@ export const spec = {
           required: ['id', 'name', 'description', 'engine', 'configuration'],
           title: 'DataConnection',
         },
+      agent_platform__core__data_frames__semantic_data_model_types__FileReference:
+        {
+          properties: {
+            thread_id: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+            file_ref: {
+              type: 'string',
+              title: 'File Ref',
+            },
+            sheet_name: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Sheet Name',
+            },
+          },
+          type: 'object',
+          title: 'FileReference',
+          description: 'A file reference represents a file reference.',
+        },
       agent_platform__core__data_server__data_connection__DataConnection: {
         properties: {
           name: {
@@ -17929,6 +18850,33 @@ export const spec = {
           type: 'object',
           required: ['name'],
           title: 'ColumnInfo',
+        },
+      agent_platform__core__payloads__semantic_data_model_payloads__FileReference:
+        {
+          properties: {
+            thread_id: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+            file_ref: {
+              type: 'string',
+              title: 'File Ref',
+            },
+            sheet_name: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Sheet Name',
+            },
+          },
+          type: 'object',
+          required: ['thread_id', 'file_ref'],
+          title: 'FileReference',
         },
       agent_platform__core__payloads__semantic_data_model_payloads__TableInfo: {
         properties: {

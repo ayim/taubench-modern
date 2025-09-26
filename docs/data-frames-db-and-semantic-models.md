@@ -206,7 +206,7 @@ The idea is that the client (UI) should:
 
 - Store the semantic data model using the APIs from step 2.
 
-# Step 5:
+# Step 5 (done):
 
 `Feature`: associate a list of semantic data models to an agent or a thread (conversation).
 
@@ -234,6 +234,33 @@ v2_thread_semantic_data_models -- junction table (references thread id and seman
   - `get_thread_semantic_data_models`, which needs to accept a `thread_id` and return a list of `SemanticDataModel`s (REST API: `GET /api/v2/threads/{thread_id}/semantic-data-models`).
 
 # Step 6:
+
+Create a new REST API to list all semantic data models (agent_id and thread_id can be used as filters).
+
+- `GET /api/v2/semantic-data-models` which receives a `GetSemanticDataModelsPayload` with the following fields:
+  - `agent_id`: str | None
+  - `thread_id`: str | None
+
+It should return a list of `SemanticDataModel`s along with information on which agent(s) or thread(s) each semantic data model is associated with, besides the semantic data model itself and the data connections and file references.
+
+i.e.:
+
+```python
+
+class FileReference:
+  thread_id: str
+  file_ref: str
+  sheet_name: str | None
+
+class SemanticDataModelWithAssociations:
+  semantic_data_model: SemanticDataModel
+  agent_ids: list[str]
+  thread_ids: list[str]
+  data_connection_ids: list[str]
+  file_references: list[FileReference]
+```
+
+# Step 7:
 
 `Feature`: Enable the user to create data frames from a data source.
 

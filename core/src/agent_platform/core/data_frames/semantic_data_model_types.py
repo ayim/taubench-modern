@@ -4,6 +4,7 @@ This module defines typed dictionaries for representing semantic models,
 which describe collections of tables with their relationships and metadata.
 """
 
+from types import NoneType
 from typing import Annotated, TypedDict
 
 
@@ -65,7 +66,7 @@ class Dimension(TypedDict, total=False):
         bool | None, "A boolean value that indicates this dimension has unique values"
     ]
     sample_values: Annotated[
-        list[str] | None,
+        list[str | int | float | bool | NoneType] | None,
         """Sample values of this column, if any. Add any value that is likely to be
         referenced in the user questions""",
     ]
@@ -121,7 +122,7 @@ class TimeDimension(TypedDict, total=False):
     ]
     unique: Annotated[bool | None, "A boolean value that indicates this column has unique values"]
     sample_values: Annotated[
-        list[str] | None,
+        list[str | int | float | bool | NoneType] | None,
         """Sample values of this column, if any. Add any values that are likely to be
         referenced in the user questions. This field is optional""",
     ]
@@ -167,7 +168,7 @@ class Fact(TypedDict, total=False):
     ]
     unique: Annotated[bool | None, "A boolean value that indicates this column has unique values"]
     sample_values: Annotated[
-        list[str] | None,
+        list[str | int | float | bool | NoneType] | None,
         """Sample values of this column, if any. Add any values that are likely to be
         referenced in the user questions. This field is optional""",
     ]
@@ -232,7 +233,7 @@ class Metric(TypedDict, total=False):
         str | None, "A brief description of this metric, including what data this column has"
     ]
     sample_values: Annotated[
-        list[str] | None,
+        list[str | int | float | bool | NoneType] | None,
         "Sample values of this column, if any. Add any values that are likely to be "
         "referenced in the user questions",
     ]

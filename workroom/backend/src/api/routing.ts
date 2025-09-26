@@ -181,6 +181,7 @@ function getRouteMap(): {
     'put /api/v2/agents/{aid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/threads/{tid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/threads/{tid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/semantic-data-models/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
 
     // #region Disallowed Routes
     'get /api/v2/health': [DISALLOWED],

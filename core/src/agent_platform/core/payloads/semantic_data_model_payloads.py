@@ -3,12 +3,14 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
 
 @dataclass(frozen=True)
 class SetSemanticDataModelPayload:
     """Payload for setting a semantic data model."""
 
-    semantic_model: dict = field(
+    semantic_model: SemanticDataModel | dict = field(
         metadata={"description": "The semantic data model as a dictionary."},
     )
     """The semantic data model as a dictionary."""
@@ -109,4 +111,42 @@ class GenerateSemanticDataModelPayload:
 class GenerateSemanticDataModelResponse:
     """Response for generating a semantic data model."""
 
-    semantic_model: dict[str, Any]
+    semantic_model: SemanticDataModel | dict
+
+
+@dataclass(frozen=True)
+class GetSemanticDataModelsPayload:
+    """Payload for getting semantic data models with optional filtering."""
+
+    agent_id: str | None = None
+    thread_id: str | None = None
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "GetSemanticDataModelsPayload":
+        """Validate and create payload from dict data."""
+        return GetSemanticDataModelsPayload(
+            agent_id=data.get("agent_id"),
+            thread_id=data.get("thread_id"),
+        )
+
+
+@dataclass(frozen=True)
+class FileReference:
+    """File reference information."""
+
+    thread_id: str
+    file_ref: str
+    sheet_name: str | None = None
+
+
+@dataclass(frozen=True)
+class SemanticDataModelWithAssociations:
+    """Semantic data model with its associations."""
+
+    semantic_data_model_id: str
+    semantic_data_model: SemanticDataModel | dict
+    agent_ids: list[str]
+    thread_ids: list[str]
+    data_connection_ids: list[str]
+    file_references: list[FileReference]
+    errors_in_semantic_data_model: list[str]

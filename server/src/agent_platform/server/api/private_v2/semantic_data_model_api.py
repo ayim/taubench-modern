@@ -1,15 +1,17 @@
 """API endpoints for semantic data models."""
 
 import typing
-from dataclasses import dataclass
 from typing import TypedDict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from structlog import get_logger
 
+from agent_platform.core.errors.base import PlatformHTTPError
+from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads import (
     GenerateSemanticDataModelPayload,
     GenerateSemanticDataModelResponse,
+    SemanticDataModelWithAssociations,
     SetSemanticDataModelPayload,
 )
 from agent_platform.server.api.dependencies import StorageDependency
@@ -17,88 +19,6 @@ from agent_platform.server.auth import AuthedUser
 
 router = APIRouter()
 logger = get_logger(__name__)
-
-
-_ThreadId = str
-_FileRef = str
-
-
-@dataclass(frozen=True, slots=True, unsafe_hash=True)
-class _FileReference:
-    thread_id: _ThreadId
-    file_ref: _FileRef
-
-
-@dataclass(slots=True)
-class References:
-    data_connection_ids: set[str]
-    file_references: set[_FileReference]
-
-
-def _validate_semantic_model_payload(payload: SetSemanticDataModelPayload) -> References:
-    """Validate the semantic model payload."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
-
-    semantic_data_model = typing.cast(SemanticDataModel, payload.semantic_model)
-    assert semantic_data_model.get("name"), "'name' must be specified in the semantic data model."
-
-    assert semantic_data_model.get("tables"), (
-        "'tables' must be specified in the semantic data model."
-    )
-
-    references = References(data_connection_ids=set(), file_references=set())
-    semantic_data_model_tables = semantic_data_model.get("tables", [])
-    assert semantic_data_model_tables, (
-        "'tables' must be specified (and not empty) in the semantic data model."
-    )
-
-    for index, table in enumerate(semantic_data_model_tables):
-        table_name = table.get("name")
-        assert table_name, (
-            f"'name' must be specified in a semantic data model table. Index: {index}"
-        )
-        base_table = table.get("base_table")
-        assert base_table, (
-            f"'base_table' must be specified in a semantic data model table (table: {table_name})."
-        )
-
-        base_table_data_connection_id = base_table.get("data_connection_id")
-        if not base_table_data_connection_id:
-            # We're dealing with a file reference
-            base_table_file_reference = base_table.get("file_reference")
-            assert base_table_file_reference, (
-                f"Either 'data_connection_id' or 'file_reference' must be specified in a semantic "
-                f"data model base table (table: {table_name})."
-            )
-            thread_id = base_table_file_reference.get("thread_id")
-            file_ref = base_table_file_reference.get("file_ref")
-            _sheet_name = base_table_file_reference.get("sheet_name")
-
-            assert thread_id, (
-                f"'thread_id' must be specified in a semantic data model base table file reference"
-                f" (table: {table_name})."
-            )
-            assert file_ref, (
-                f"'file_ref' must be specified in a semantic data model base table file reference"
-                f"(table: {table_name})."
-            )
-            references.file_references.add(_FileReference(thread_id=thread_id, file_ref=file_ref))
-        else:
-            # We're dealing with a data connection (fields as "usual").
-            references.data_connection_ids.add(base_table_data_connection_id)
-
-        # table is required for all use cases (for data connections and file references)
-        base_table_table = base_table.get("table")
-        assert base_table_table, (
-            f"'table' must be specified in a semantic data model base table (table: {table_name})."
-        )
-
-    assert (
-        references.data_connection_ids or references.file_references
-    ), """In the semantic data model passed, no data connections or file references were found
-        (so, base_tables may not be properly specified)."""
-
-    return references
 
 
 class _SetSemanticDataModeFileReference(TypedDict):
@@ -122,8 +42,22 @@ async def set_semantic_data_model(
     """Set a semantic data mode.
     Returns the ID of the semantic data model (the same one passed in) as well as the
     data connection IDs and file references that were used to set the semantic data model."""
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    # Convert file_references from list of dicts to list of tuples
+    semantic_data_model = typing.cast(SemanticDataModel, payload.semantic_model)
+
     try:
-        references = _validate_semantic_model_payload(payload)
+        references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
+        if references.errors:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="The semantic data model is invalid: \n" + "\n".join(references.errors),
+            )
+
         # Convert file_references from list of dicts to list of tuples
         file_references = [(ref.thread_id, ref.file_ref) for ref in references.file_references]
 
@@ -145,11 +79,15 @@ async def set_semantic_data_model(
                 for ref in references.file_references
             ),
         )
+    except PlatformHTTPError as e:
+        raise e
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=str(e)) from e
     except Exception as e:
         logger.error("Error setting semantic data model", error=str(e))
-        raise HTTPException(status_code=500, detail="Internal server error") from e
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED, message="Error setting semantic data model"
+        ) from e
 
 
 @router.post("/")
@@ -161,16 +99,29 @@ async def create_semantic_data_model(
     """Create a new semantic data model.
     Returns the ID of the created semantic data model as well as the
     data connection IDs and file references that were used to create the semantic data model."""
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    # Convert file_references from list of dicts to list of tuples
+    semantic_data_model = typing.cast(SemanticDataModel, payload.semantic_model)
+
     try:
-        # Convert file_references from list of dicts to list of tuples
-        references = _validate_semantic_model_payload(payload)
+        references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
+        if references.errors:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="The semantic data model is invalid: \n" + "\n".join(references.errors),
+            )
+
         # Convert file_references from list of dicts to list of tuples
         file_references = [(ref.thread_id, ref.file_ref) for ref in references.file_references]
 
         # Create the semantic data model (ID will be generated)
         model_id = await storage.set_semantic_data_model(
             semantic_data_model_id=None,
-            semantic_model=payload.semantic_model,
+            semantic_model=semantic_data_model,
             data_connection_ids=list(references.data_connection_ids),
             file_references=file_references,
         )
@@ -184,9 +135,13 @@ async def create_semantic_data_model(
                 for ref in references.file_references
             ),
         )
+    except PlatformHTTPError as e:
+        raise e
     except Exception as e:
         logger.error("Error creating semantic data model", error=str(e))
-        raise HTTPException(status_code=500, detail="Internal server error") from e
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED, message="Error creating semantic data model"
+        ) from e
 
 
 @router.get("/{semantic_data_model_id}")
@@ -199,10 +154,12 @@ async def get_semantic_data_model(
     try:
         return await storage.get_semantic_data_model(semantic_data_model_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=str(e)) from e
     except Exception as e:
         logger.error("Error getting semantic data model", error=str(e))
-        raise HTTPException(status_code=500, detail="Internal server error") from e
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED, message="Error getting semantic data model"
+        ) from e
 
 
 @router.delete("/{semantic_data_model_id}")
@@ -215,10 +172,12 @@ async def delete_semantic_data_model(
     try:
         await storage.delete_semantic_data_model(semantic_data_model_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=str(e)) from e
     except Exception as e:
         logger.error("Error deleting semantic data model", error=str(e))
-        raise HTTPException(status_code=500, detail="Internal server error") from e
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED, message="Error deleting semantic data model"
+        ) from e
 
 
 @router.post("/generate")
@@ -228,6 +187,7 @@ async def generate_semantic_data_model(
     storage: StorageDependency,
 ) -> GenerateSemanticDataModelResponse:
     """Generate a semantic data model from data connections and files."""
+
     try:
         from agent_platform.server.kernel.semantic_data_model_generator import (
             SemanticDataModelGenerator,
@@ -250,4 +210,76 @@ async def generate_semantic_data_model(
         return GenerateSemanticDataModelResponse(semantic_model=semantic_model)
     except Exception as e:
         logger.error("Error generating semantic data model", error=str(e))
-        raise HTTPException(status_code=500, detail="Internal server error") from e
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED, message="Error generating semantic data model"
+        ) from e
+
+
+@router.get("/", response_model=list[SemanticDataModelWithAssociations])
+async def list_semantic_data_models(
+    user: AuthedUser,
+    storage: StorageDependency,
+    agent_id: str | None = None,
+    thread_id: str | None = None,
+) -> list[SemanticDataModelWithAssociations]:
+    """List semantic data models with optional filtering by agent_id or thread_id."""
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+    from agent_platform.server.storage.base import BaseStorage
+
+    try:
+        semantic_data_models_info = await storage.list_semantic_data_models(
+            agent_id=agent_id, thread_id=thread_id
+        )
+
+        # Convert the results to SemanticDataModelWithAssociations objects
+        semantic_data_models_with_associations = []
+        semantic_data_model_info: BaseStorage.SemanticDataModelInfo
+        for semantic_data_model_info in semantic_data_models_info:
+            # Convert file references to FileReference objects
+            from agent_platform.core.payloads import FileReference
+
+            # Note: lots of 'str' to convert UUIDs to strings
+
+            semantic_data_model_id = str(semantic_data_model_info["semantic_data_model_id"])
+            semantic_data_model = typing.cast(
+                SemanticDataModel, semantic_data_model_info["semantic_data_model"]
+            )
+
+            references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
+            file_references = [
+                FileReference(
+                    thread_id=str(ref.thread_id),
+                    file_ref=ref.file_ref,
+                    sheet_name=ref.sheet_name,
+                )
+                for ref in references.file_references
+            ]
+
+            semantic_data_models_with_associations.append(
+                SemanticDataModelWithAssociations(
+                    semantic_data_model_id=semantic_data_model_id,
+                    semantic_data_model=semantic_data_model,
+                    agent_ids=list(
+                        str(agent_id) for agent_id in semantic_data_model_info["agent_ids"]
+                    ),
+                    thread_ids=list(
+                        str(thread_id) for thread_id in semantic_data_model_info["thread_ids"]
+                    ),
+                    data_connection_ids=list(
+                        str(data_connection_id)
+                        for data_connection_id in references.data_connection_ids
+                    ),
+                    file_references=file_references,
+                    errors_in_semantic_data_model=references.errors,
+                )
+            )
+
+        return semantic_data_models_with_associations
+    except Exception as e:
+        logger.error("Error listing semantic data models", error=str(e))
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED, message="Error listing semantic data models"
+        ) from e

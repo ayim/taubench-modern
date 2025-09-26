@@ -309,3 +309,161 @@ async def test_agent_semantic_data_model_storage_crud_postgres(
 
     model_creator = SampleModelCreator(postgres_storage, tmpdir)
     await check_agent_semantic_data_model_storage_crud(model_creator)
+
+
+async def check_list_semantic_data_models(
+    model_creator: "SampleModelCreator",
+) -> None:
+    """Test listing semantic data models with associations."""
+    await model_creator.setup()
+
+    # Create sample data connections and files
+    data_connection_1 = await model_creator.obtain_sample_data_connection("connection_1")
+    data_connection_2 = await model_creator.obtain_sample_data_connection("connection_2")
+    sample_file = await model_creator.obtain_sample_file()
+    sample_thread = await model_creator.obtain_sample_thread()
+    sample_agent = await model_creator.obtain_sample_agent()
+
+    # Create some spurious models which should not affect the results
+    model_creator.sample_thread = None
+    model_creator.sample_agent = None
+    await model_creator.obtain_sample_agent(agent_name="Spurious Agent")
+    await model_creator.obtain_sample_thread()
+
+    # Create first semantic data model
+    semantic_model_1 = {
+        "name": "test_semantic_model_1",
+        "description": "First test semantic model",
+        "tables": [
+            {
+                "name": "users",
+                "base_table": {"database": "test_db", "schema": "public", "table": "users"},
+                "dimensions": [
+                    {"name": "user_id", "expr": "id", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+    }
+
+    model_id_1 = await model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model_1,
+        data_connection_ids=[data_connection_1.id],
+        file_references=[(sample_thread.thread_id, sample_file.file_ref)],
+    )
+
+    # Create second semantic data model
+    semantic_model_2 = {
+        "name": "test_semantic_model_2",
+        "description": "Second test semantic model",
+        "tables": [
+            {
+                "name": "products",
+                "base_table": {"database": "test_db", "schema": "public", "table": "products"},
+                "dimensions": [
+                    {"name": "product_id", "expr": "id", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+    }
+
+    model_id_2 = await model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model_2,
+        data_connection_ids=[data_connection_2.id],
+        file_references=[],
+    )
+    # Create second semantic data model
+    semantic_model_3 = {
+        "name": "test_semantic_model_3",
+        "description": "Second test semantic model",
+        "tables": [
+            {
+                "name": "products",
+                "base_table": {"database": "test_db", "schema": "public", "table": "products"},
+                "dimensions": [
+                    {"name": "product_id", "expr": "id", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+    }
+
+    model_id_3 = await model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model_3,
+        data_connection_ids=[data_connection_2.id],
+        file_references=[],
+    )
+
+    # Associate models with agent and thread
+    await model_creator.storage.set_agent_semantic_data_models(
+        sample_agent.agent_id, [model_id_1, model_id_2]
+    )
+    await model_creator.storage.set_thread_semantic_data_models(
+        sample_thread.thread_id, [model_id_1]
+    )
+
+    # Test listing all semantic data models
+    all_models = await model_creator.storage.list_semantic_data_models()
+
+    def check_models(all_models):
+        for model in all_models:
+            model_id = model["semantic_data_model_id"]
+            if model_id == model_id_1:
+                assert model["agent_ids"] == {sample_agent.agent_id}
+                assert model["thread_ids"] == {sample_thread.thread_id}
+            elif model_id == model_id_2:
+                assert model["agent_ids"] == {sample_agent.agent_id}
+                assert model["thread_ids"] == set()
+            elif model_id == model_id_3:
+                assert model["agent_ids"] == set()
+                assert model["thread_ids"] == set()
+            else:
+                raise ValueError(f"Model {model} not found")
+
+    check_models(all_models)
+
+    # Test listing semantic data models with agent_id
+    agent_models = await model_creator.storage.list_semantic_data_models(
+        agent_id=sample_agent.agent_id
+    )
+    assert len(agent_models) == 2
+    check_models(agent_models)
+
+    # Test listing semantic data models with thread_id
+    thread_models = await model_creator.storage.list_semantic_data_models(
+        thread_id=sample_thread.thread_id
+    )
+    assert len(thread_models) == 1
+    check_models(thread_models)
+
+    # Test listing semantic data models with agent_id and thread_id
+    agent_thread_models = await model_creator.storage.list_semantic_data_models(
+        agent_id=sample_agent.agent_id, thread_id=sample_thread.thread_id
+    )
+    assert len(agent_thread_models) == 2
+    check_models(agent_thread_models)
+
+
+@pytest.mark.asyncio
+async def test_list_semantic_data_models_sqlite(
+    sqlite_storage: "SQLiteStorage",
+    tmpdir: Path,
+) -> None:
+    """Test listing semantic data models with SQLite."""
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await check_list_semantic_data_models(model_creator)
+
+
+@pytest.mark.asyncio
+async def test_list_semantic_data_models_postgres(
+    postgres_storage: "PostgresStorage",
+    tmpdir: Path,
+) -> None:
+    """Test listing semantic data models with PostgreSQL."""
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(postgres_storage, tmpdir)
+    await check_list_semantic_data_models(model_creator)

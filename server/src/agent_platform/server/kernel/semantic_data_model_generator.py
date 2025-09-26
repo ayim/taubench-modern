@@ -169,7 +169,7 @@ class SemanticDataModelGenerator:
         if column.synonyms:
             dimension["synonyms"] = column.synonyms
         if column.sample_values:
-            dimension["sample_values"] = column.sample_values
+            dimension["sample_values"] = self._get_sample_values(column.sample_values)
 
         return dimension
 
@@ -186,7 +186,7 @@ class SemanticDataModelGenerator:
         if column.synonyms:
             fact["synonyms"] = column.synonyms
         if column.sample_values:
-            fact["sample_values"] = column.sample_values
+            fact["sample_values"] = self._get_sample_values(column.sample_values)
 
         return fact
 
@@ -203,6 +203,22 @@ class SemanticDataModelGenerator:
         if column.synonyms:
             time_dimension["synonyms"] = column.synonyms
         if column.sample_values:
-            time_dimension["sample_values"] = column.sample_values
+            time_dimension["sample_values"] = self._get_sample_values(column.sample_values)
 
         return time_dimension
+
+    def _get_sample_values(
+        self, sample_values: list[Any] | None
+    ) -> list[str | int | float | bool | None] | None:
+        """Get sample values as strings."""
+        from types import NoneType
+
+        if sample_values is None:
+            return None
+        ret = []
+        for value in sample_values:
+            if isinstance(value, str | int | float | bool | NoneType):
+                ret.append(value)
+            else:
+                ret.append(str(value))
+        return ret

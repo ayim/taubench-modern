@@ -1,7 +1,7 @@
 import json
 from abc import abstractmethod
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import TypedDict, cast
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -11,6 +11,7 @@ from sqlalchemy.types import JSON
 from agent_platform.core.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_frames import PlatformDataFrame
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.data_server.data_connection import DataConnection as DIDataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
@@ -1391,7 +1392,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def set_semantic_data_model(
         self,
         semantic_data_model_id: str | None,
-        semantic_model: dict,
+        semantic_model: SemanticDataModel | dict,
         data_connection_ids: list[str],
         file_references: list[tuple[str, str]],  # (thread_id, file_ref)
     ) -> str:
@@ -1630,3 +1631,85 @@ class BaseStorage(AbstractStorage, CommonMixin):
             rows = result.mappings().fetchall()
 
         return [str(row["semantic_data_model_id"]) for row in rows]
+
+    # -------------------------------------------------------------------------
+    # Methods for listing semantic data models with associations
+    # -------------------------------------------------------------------------
+    class SemanticDataModelInfo(TypedDict):
+        semantic_data_model: dict
+        semantic_data_model_id: str
+        agent_ids: set[str]
+        thread_ids: set[str]
+
+    async def list_semantic_data_models(
+        self, agent_id: str | None = None, thread_id: str | None = None
+    ) -> list[SemanticDataModelInfo]:
+        """List semantic data models."""
+
+        semantic_data_models = self._get_table("semantic_data_model")
+        agent_semantic_data_models = self._get_table("agent_semantic_data_models")
+        thread_semantic_data_models = self._get_table("thread_semantic_data_models")
+
+        async with self.engine.begin() as conn:
+            # Build the base query with OUTER JOINs to get all associations
+            query = sa.select(
+                semantic_data_models,
+                agent_semantic_data_models.c.agent_id,
+                thread_semantic_data_models.c.thread_id,
+            ).select_from(
+                semantic_data_models.outerjoin(
+                    agent_semantic_data_models,
+                    semantic_data_models.c.id
+                    == agent_semantic_data_models.c.semantic_data_model_id,
+                ).outerjoin(
+                    thread_semantic_data_models,
+                    semantic_data_models.c.id
+                    == thread_semantic_data_models.c.semantic_data_model_id,
+                )
+            )
+
+            # Apply filters based on agent_id and/or thread_id
+            if agent_id is not None and thread_id is not None:
+                # Both agent_id and thread_id specified - find models associated with either
+                query = query.where(
+                    sa.or_(
+                        agent_semantic_data_models.c.agent_id == agent_id,
+                        thread_semantic_data_models.c.thread_id == thread_id,
+                    )
+                )
+            elif agent_id is not None:
+                # Filter by agent_id
+                query = query.where(agent_semantic_data_models.c.agent_id == agent_id)
+            elif thread_id is not None:
+                # Filter by thread_id
+                query = query.where(thread_semantic_data_models.c.thread_id == thread_id)
+
+            result = await conn.execute(query)
+            rows = result.mappings().fetchall()
+
+            # Group results by semantic data model ID and collect associations
+            models_by_id = {}
+
+            for row in rows:
+                model_id = row["id"]
+
+                if model_id not in models_by_id:
+                    semantic_model = json.loads(row["semantic_model"])
+                    models_by_id[model_id] = {
+                        "semantic_data_model": semantic_model,
+                        "semantic_data_model_id": model_id,
+                        "agent_ids": set(),
+                        "thread_ids": set(),
+                    }
+
+                # Collect agent_id if present
+                if row["agent_id"] is not None:
+                    models_by_id[model_id]["agent_ids"].add(row["agent_id"])
+
+                # Collect thread_id if present
+                if row["thread_id"] is not None:
+                    models_by_id[model_id]["thread_ids"].add(row["thread_id"])
+
+            # Convert to list and return
+            results = list(models_by_id.values())
+            return results

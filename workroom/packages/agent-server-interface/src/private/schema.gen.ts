@@ -2264,7 +2264,11 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * List Semantic Data Models
+     * @description List semantic data models with optional filtering by agent_id or thread_id.
+     */
+    get: operations['list_semantic_data_models_semantic_data_models__get'];
     put?: never;
     /**
      * Create Semantic Data Model
@@ -2904,6 +2908,31 @@ export interface components {
        */
       provider: 'azure_openai';
     };
+    /**
+     * BaseTable
+     * @description A base table represents fully qualified table names.
+     *
+     *     Note that as an extension to the default snowflake model we provide a way
+     *     to reference either a data connection or a file reference in the following way:
+     *
+     *     For a database, the `data_connection_id` must be specified with the id of the data connection.
+     *         In this case the database/schema/table must be specified as usual
+     *
+     *     For a file, the `file_reference` must be specified with the thread_id and file_ref of the file.
+     */
+    BaseTable: {
+      /** Database */
+      database?: string | null;
+      /** Schema */
+      schema?: string | null;
+      /** Table */
+      table?: string | null;
+      /** Data Connection Id */
+      data_connection_id?: string | null;
+      file_reference?:
+        | components['schemas']['agent_platform__core__data_frames__semantic_data_model_types__FileReference']
+        | null;
+    };
     /** BedrockPlatformParameters */
     BedrockPlatformParameters: {
       /**
@@ -3321,6 +3350,20 @@ export interface components {
        */
       snowflake_role?: string | null;
     };
+    /**
+     * CortexSearchService
+     * @description Configuration for Cortex Search Service integration.
+     */
+    CortexSearchService: {
+      /** Service */
+      service?: string;
+      /** Literal Column */
+      literal_column?: string | null;
+      /** Database */
+      database?: string | null;
+      /** Schema */
+      schema?: string | null;
+    };
     /** CreateDataModelRequest */
     CreateDataModelRequest: {
       data_model: components['schemas']['DataModelPayload'];
@@ -3514,6 +3557,35 @@ export interface components {
           key: string
         ]: components['schemas']['agent_platform__core__data_server__data_connection__DataConnection'];
       };
+    };
+    /**
+     * Dimension
+     * @description A dimension describes categorical values such as state, user_type, platform, etc.
+     *
+     *     Use when it's categorical/descriptive context you'll group or filter by
+     *     (e.g., product_name, customer_id, region).
+     *     Dimensions answer who/what/where/how and provide labels for facts.
+     */
+    Dimension: {
+      /** Name */
+      name?: string;
+      /** Expr */
+      expr?: string;
+      /** Data Type */
+      data_type?: string;
+      /** Synonyms */
+      synonyms?: string[] | null;
+      /** Description */
+      description?: string | null;
+      /** Unique */
+      unique?: boolean | null;
+      /** Sample Values */
+      sample_values?: (string | number | boolean | null)[] | null;
+      cortex_search_service?:
+        | components['schemas']['CortexSearchService']
+        | null;
+      /** Is Enum */
+      is_enum?: boolean | null;
     };
     /** DocumentIntelligenceConfigPayload */
     DocumentIntelligenceConfigPayload: {
@@ -3716,6 +3788,31 @@ export interface components {
        */
       job_type: 'extract';
     };
+    /**
+     * Fact
+     * @description A fact describes numerical values, such as revenue, impressions, and salary.
+     *
+     *     Use when it's a row-level numeric value observed for each event/entity
+     *     (e.g., quantity, unit_price, net_revenue = price * (1-discount)).
+     *     Facts are unaggregated measures stored/calculated.
+     *     (In newer docs, “facts” are what some tools call “measures”.)
+     */
+    Fact: {
+      /** Name */
+      name?: string;
+      /** Expr */
+      expr?: string;
+      /** Data Type */
+      data_type?: string;
+      /** Synonyms */
+      synonyms?: string[] | null;
+      /** Description */
+      description?: string | null;
+      /** Unique */
+      unique?: boolean | null;
+      /** Sample Values */
+      sample_values?: (string | number | boolean | null)[] | null;
+    };
     /** FileInfo */
     FileInfo: {
       /** Thread Id */
@@ -3726,6 +3823,20 @@ export interface components {
       tables_info: components['schemas']['agent_platform__core__payloads__semantic_data_model_payloads__TableInfo'][];
       /** Sheet Name */
       sheet_name?: string | null;
+    };
+    /**
+     * Filter
+     * @description A filter represents a SQL expression that's used for filtering.
+     */
+    Filter: {
+      /** Name */
+      name?: string;
+      /** Expr */
+      expr?: string;
+      /** Synonyms */
+      synonyms?: string[] | null;
+      /** Description */
+      description?: string | null;
     };
     /** FlowAdherenceResult */
     FlowAdherenceResult: {
@@ -3804,9 +3915,11 @@ export interface components {
     /** GenerateSemanticDataModelResponse */
     GenerateSemanticDataModelResponse: {
       /** Semantic Model */
-      semantic_model: {
-        [key: string]: unknown;
-      };
+      semantic_model:
+        | components['schemas']['SemanticDataModel']
+        | {
+            [key: string]: unknown;
+          };
     };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
@@ -4006,6 +4119,30 @@ export interface components {
        * @description The MCP servers to query for tools.
        */
       mcp_servers: components['schemas']['MCPServer'][];
+    };
+    /**
+     * LogicalTable
+     * @description A logical table represents a view over a physical database table or view.
+     */
+    LogicalTable: {
+      /** Name */
+      name?: string;
+      base_table?: components['schemas']['BaseTable'];
+      /** Synonyms */
+      synonyms?: string[] | null;
+      /** Description */
+      description?: string | null;
+      primary_key?: components['schemas']['PrimaryKey'] | null;
+      /** Dimensions */
+      dimensions?: components['schemas']['Dimension'][] | null;
+      /** Time Dimensions */
+      time_dimensions?: components['schemas']['TimeDimension'][] | null;
+      /** Facts */
+      facts?: components['schemas']['Fact'][] | null;
+      /** Metrics */
+      metrics?: components['schemas']['Metric'][] | null;
+      /** Filters */
+      filters?: components['schemas']['Filter'][] | null;
     };
     /** MCPServer */
     MCPServer: {
@@ -4331,6 +4468,29 @@ export interface components {
        */
       include: boolean;
       params?: components['schemas']['MemoriesParams'];
+    };
+    /**
+     * Metric
+     * @description A metric describes quantifiable measures of business performance.
+     *
+     *     Use when it's a business KPI that aggregates (often over facts) across rows
+     *     e.g., total_revenue = SUM(net_revenue), avg_order_value = AVG(order_total),
+     *     or a composite like margin %. Define metrics at the most granular level so
+     *     they can roll up by any dimension.
+     */
+    Metric: {
+      /** Name */
+      name?: string;
+      /** Expr */
+      expr?: string;
+      /** Data Type */
+      data_type?: string;
+      /** Synonyms */
+      synonyms?: string[] | null;
+      /** Description */
+      description?: string | null;
+      /** Sample Values */
+      sample_values?: (string | number | boolean | null)[] | null;
     };
     /** MySQLDataConnection */
     MySQLDataConnection: {
@@ -4735,6 +4895,14 @@ export interface components {
       schema: string;
       sslmode?: components['schemas']['Sslmode'] | null;
     };
+    /**
+     * PrimaryKey
+     * @description A primary key represents the columns that uniquely represent each row of the table.
+     */
+    PrimaryKey: {
+      /** Columns */
+      columns: string[];
+    };
     /** PromptAgentMessage */
     PromptAgentMessage: {
       /**
@@ -5137,6 +5305,34 @@ export interface components {
       delegate_kind?: string | null;
       /** @description The API key for the delegate platform client. If not provided, it will be attempted to be inferred from the environment. */
       delegate_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /**
+     * Relationship
+     * @description Defines join relationships between logical tables.
+     */
+    Relationship: {
+      /** Name */
+      name: string;
+      /** Left Table */
+      left_table: string;
+      /** Right Table */
+      right_table: string;
+      /** Relationship Columns */
+      relationship_columns: components['schemas']['RelationshipColumn'][];
+      /** Join Type */
+      join_type: string;
+      /** Relationship Type */
+      relationship_type: string;
+    };
+    /**
+     * RelationshipColumn
+     * @description A column mapping for relationships between tables.
+     */
+    RelationshipColumn: {
+      /** Left Column */
+      left_column: string;
+      /** Right Column */
+      right_column: string;
     };
     /** RequestRemoteFileUploadPayload */
     RequestRemoteFileUploadPayload: {
@@ -5904,6 +6100,41 @@ export interface components {
       /** Id Column */
       id_column?: string | null;
     };
+    /**
+     * SemanticDataModel
+     * @description A semantic model represents a collection of tables with their relationships.
+     */
+    SemanticDataModel: {
+      /** Name */
+      name?: string;
+      /** Description */
+      description?: string | null;
+      /** Tables */
+      tables?: components['schemas']['LogicalTable'][] | null;
+      /** Relationships */
+      relationships?: components['schemas']['Relationship'][] | null;
+    };
+    /** SemanticDataModelWithAssociations */
+    SemanticDataModelWithAssociations: {
+      /** Semantic Data Model Id */
+      semantic_data_model_id: string;
+      /** Semantic Data Model */
+      semantic_data_model:
+        | components['schemas']['SemanticDataModel']
+        | {
+            [key: string]: unknown;
+          };
+      /** Agent Ids */
+      agent_ids: string[];
+      /** Thread Ids */
+      thread_ids: string[];
+      /** Data Connection Ids */
+      data_connection_ids: string[];
+      /** File References */
+      file_references: components['schemas']['agent_platform__core__payloads__semantic_data_model_payloads__FileReference'][];
+      /** Errors In Semantic Data Model */
+      errors_in_semantic_data_model: string[];
+    };
     /** SetAgentDataConnectionsPayload */
     SetAgentDataConnectionsPayload: {
       /**
@@ -5926,9 +6157,11 @@ export interface components {
        * Semantic Model
        * @description The semantic data model as a dictionary.
        */
-      semantic_model: {
-        [key: string]: unknown;
-      };
+      semantic_model:
+        | components['schemas']['SemanticDataModel']
+        | {
+            [key: string]: unknown;
+          };
     };
     /** SetThreadSemanticDataModelsPayload */
     SetThreadSemanticDataModelsPayload: {
@@ -6618,6 +6851,30 @@ export interface components {
       _chart_spec?: {
         [key: string]: unknown;
       } | null;
+    };
+    /**
+     * TimeDimension
+     * @description A time dimension describes time values, such as sale_date, created_at, and year.
+     *
+     *     Use when it's temporal context you'll use to slice trends (e.g., order_date, ship_month,
+     *     or even a computed duration like DATEDIFF(...)). Time dimensions enable period aggregations
+     *     and time based analyses (day/week/month/year, etc.).
+     */
+    TimeDimension: {
+      /** Name */
+      name?: string;
+      /** Expr */
+      expr?: string;
+      /** Data Type */
+      data_type?: string;
+      /** Synonyms */
+      synonyms?: string[] | null;
+      /** Description */
+      description?: string | null;
+      /** Unique */
+      unique?: boolean | null;
+      /** Sample Values */
+      sample_values?: (string | number | boolean | null)[] | null;
     };
     /** TimescaleDBDataConnection */
     TimescaleDBDataConnection: {
@@ -7493,6 +7750,18 @@ export interface components {
        */
       updated_at?: string | null;
     };
+    /**
+     * FileReference
+     * @description A file reference represents a file reference.
+     */
+    agent_platform__core__data_frames__semantic_data_model_types__FileReference: {
+      /** Thread Id */
+      thread_id?: string;
+      /** File Ref */
+      file_ref?: string;
+      /** Sheet Name */
+      sheet_name?: string | null;
+    };
     /** DataConnection */
     agent_platform__core__data_server__data_connection__DataConnection: {
       /**
@@ -7569,6 +7838,15 @@ export interface components {
       description?: string | null;
       /** Synonyms */
       synonyms?: string[] | null;
+    };
+    /** FileReference */
+    agent_platform__core__payloads__semantic_data_model_payloads__FileReference: {
+      /** Thread Id */
+      thread_id: string;
+      /** File Ref */
+      file_ref: string;
+      /** Sheet Name */
+      sheet_name?: string | null;
     };
     /** TableInfo */
     agent_platform__core__payloads__semantic_data_model_payloads__TableInfo: {
@@ -12225,6 +12503,38 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_semantic_data_models_semantic_data_models__get: {
+    parameters: {
+      query?: {
+        agent_id?: string | null;
+        thread_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SemanticDataModelWithAssociations'][];
         };
       };
       /** @description Validation Error */
