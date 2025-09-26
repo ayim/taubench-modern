@@ -101,10 +101,30 @@ export const getIconColor = (status: Trial['status']): Color => {
     }
   };
 
-  export const getTrialOverallStatus = (trial: Trial): 'passed' | 'failed' | 'pending' => {
+  export const getTrialOverallStatus = (trial: Trial): 'passed' | 'failed' | 'pending' | 'canceled' => {
+    if (trial.status === 'CANCELED') return 'canceled';
+    
     if (trial.status !== 'COMPLETED' && trial.status !== 'ERROR') return 'pending';
     
-    if (trial.evaluationResults.length === 0) return 'failed'; // If no evaluation results but terminal status, consider failed
+    if (trial.status === 'ERROR') {
+      return 'failed';
+    }
     
-    return trial.evaluationResults.every(result => result.passed) ? 'passed' : 'failed';
+    if (trial.status === 'COMPLETED') {
+      if (!trial.evaluation_results || trial.evaluation_results.length === 0) {
+        return 'failed';
+      }
+      
+      return trial.evaluation_results.every(result => result.passed) ? 'passed' : 'failed';
+    }
+
+    return 'failed';
+  };
+
+  export const isTrialTerminal = (trial: Trial): boolean => {
+    return trial.status === 'COMPLETED' || trial.status === 'ERROR' || trial.status === 'CANCELED';
+  };
+
+  export const hasTerminalTrials = (trials: Trial[]): boolean => {
+    return trials.some(isTrialTerminal);
   };

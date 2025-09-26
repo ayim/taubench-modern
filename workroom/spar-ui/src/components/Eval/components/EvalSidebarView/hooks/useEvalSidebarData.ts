@@ -1,0 +1,264 @@
+import { useMemo, useEffect } from 'react';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useSnackbar } from '@sema4ai/components';
+import { 
+  latestScenarioRunQueryOptions, 
+  scenarioRunsQueryOptions, 
+  scenarioRunQueryOptions, 
+  useCreateScenarioMutation, 
+  useCreateScenarioRunMutation, 
+  useDeleteScenarioMutation, 
+  useListScenariosQuery, 
+  usePollScenarioRun, 
+  useSuggestScenarioMutation,
+  useCancelScenarioRunMutation 
+} from '../../../../../queries/evals';
+import { useSparUIContext } from '../../../../../api/context';
+import type { CreateEvalFormData } from '../components/CreateEvalDialog';
+import type { EvaluationItem, ScenarioRun, Scenario } from '../types';
+
+export interface UseEvalSidebarDataProps {
+  agentId: string;
+  threadId: string;
+  selectedRunIndices: Map<string, number>;
+  setSelectedRunIndices: (value: Map<string, number> | ((prev: Map<string, number>) => Map<string, number>)) => void;
+}
+
+export const useEvalSidebarData = ({ 
+  agentId, 
+  threadId, 
+  selectedRunIndices, 
+  setSelectedRunIndices 
+}: UseEvalSidebarDataProps) => {
+  const { sparAPIClient } = useSparUIContext();
+  const queryClient = useQueryClient();
+  const { addSnackbar } = useSnackbar();
+
+  const deleteScenarioMutation = useDeleteScenarioMutation({});
+  const createScenarioRunMutation = useCreateScenarioRunMutation({});
+  const createScenarioMutation = useCreateScenarioMutation({});
+  const suggestScenarioMutation = useSuggestScenarioMutation({});
+  const cancelScenarioRunMutation = useCancelScenarioRunMutation({});
+  const { pollForCompletion } = usePollScenarioRun();
+
+  const { data: scenarios = [], isLoading: scenariosLoading } = useListScenariosQuery({
+    agentId,
+  });
+
+  const latestRunQueries = useQueries({
+    queries: scenarios.map((scenario) =>
+      latestScenarioRunQueryOptions({
+        scenarioId: scenario.scenario_id,
+        sparAPIClient,
+      }),
+    ),
+  });
+
+  const allRunsQueries = useQueries({
+    queries: scenarios.map((scenario) =>
+      scenarioRunsQueryOptions({
+        scenarioId: scenario.scenario_id,
+        sparAPIClient,
+      }),
+    ),
+  });
+
+  const latestRunsData = latestRunQueries.map((query) => query.data ?? null);
+  const allRunsData = allRunsQueries.map((query) => query.data ?? null);
+  const latestRunsLoading = latestRunQueries.some((query) => query.isLoading);
+  const allRunsLoading = allRunsQueries.some((query) => query.isLoading);
+  const loading = scenariosLoading || latestRunsLoading || allRunsLoading;
+
+  // Effect to update selected run indices when data changes
+  useEffect(() => {
+    scenarios.forEach((scenario) => {
+      const allRuns = allRunsData[scenarios.indexOf(scenario)] || [];
+      if (allRuns.length > 0) {
+        const currentIndex = selectedRunIndices.get(scenario.scenario_id);
+        if (currentIndex === undefined) {
+          setSelectedRunIndices(prev => new Map(prev).set(scenario.scenario_id, 0));
+        } else if (currentIndex >= allRuns.length) {
+          setSelectedRunIndices(prev => new Map(prev).set(scenario.scenario_id, 0));
+        }
+      }
+    });
+  }, [scenarios, allRunsData, selectedRunIndices, setSelectedRunIndices]);
+
+  // Query for individual historical runs - preload current, previous, and next runs
+  const historicalRunQueries = useQueries({
+    queries: scenarios.flatMap((scenario, scenarioIndex) => {
+      const currentIndex = selectedRunIndices.get(scenario.scenario_id) ?? 0;
+      const allRuns = allRunsData[scenarioIndex] || [];
+      
+      // Preload adjacent runs to eliminate loading delays
+      const indicesToPreload = [
+        currentIndex - 1,
+        currentIndex,
+        currentIndex + 1
+      ].filter(index => 
+        index > 0 && // Don't preload latest run (index 0) as we already have it
+        index < allRuns.length &&
+        allRuns[index]
+      );
+      
+      return indicesToPreload.map(index => 
+        scenarioRunQueryOptions({
+          scenarioId: scenario.scenario_id,
+          scenarioRunId: allRuns[index]?.scenario_run_id,
+          sparAPIClient,
+        })
+      ).filter(query => query.queryKey[2]); // Filter out any queries without valid scenario_run_id
+    }),
+  });
+
+  // Map data into evaluations format (no transformations needed)
+  const evaluations: EvaluationItem[] = useMemo(() => {
+    return scenarios.map((scenario, index) => {
+      const latestRun = latestRunsData[index];
+      const allRuns = allRunsData[index] ?? [];
+      const currentRunIndex = selectedRunIndices.get(scenario.scenario_id) ?? 0;
+
+      const isRunning = latestRun?.trials?.some(
+        (trial) => trial.status === 'PENDING' || trial.status === 'EXECUTING'
+      ) ?? false;
+
+      // Sort runs by creation date (newest first)
+      const sortedRuns = [...allRuns].sort((a, b) => 
+        new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+      );
+
+      const getCurrentRun = (): ScenarioRun | null => {
+        if (currentRunIndex === 0 && latestRun) {
+          return latestRun;
+        }
+        
+        const targetRun = sortedRuns[currentRunIndex];
+        if (!targetRun) {
+          return null;
+        }
+        
+        // For historical runs, try to find the corresponding individual query result
+        const individualRunQuery = historicalRunQueries.find(q => 
+          q.data?.scenario_run_id === targetRun.scenario_run_id
+        );
+        
+        // Prefer detailed data from individual query if available
+        // If individual query exists and has data, use it; otherwise fallback to basic run data
+        return individualRunQuery?.data ?? targetRun;
+      };
+
+      return {
+        scenario,
+        latestRun,
+        allRuns: sortedRuns,
+        currentRunIndex,
+        currentRun: getCurrentRun(),
+        isRunning,
+      };
+    });
+  }, [scenarios, latestRunsData, allRunsData, selectedRunIndices, historicalRunQueries]);
+
+  const isAnyTestRunning = evaluations.some(evaluation => evaluation.isRunning);
+
+  const handleCreateEvaluation = async (data: CreateEvalFormData) => {
+    await createScenarioMutation.mutateAsync({
+      body: {
+        name: data.name,
+        description: data.description,
+        thread_id: threadId,
+      },
+    });
+  };
+
+  const handleSuggestEvaluation = async (): Promise<Partial<CreateEvalFormData> | null> => {
+    try {
+      const suggestion = await suggestScenarioMutation.mutateAsync({
+        body: {
+          thread_id: threadId,
+          max_options: 1,
+        },
+      });
+
+      return {
+        name: suggestion.name,
+        description: suggestion.description,
+      };
+    } catch (_error) {
+      addSnackbar({
+        message: 'Could not generate suggestion, but you can still create an evaluation manually',
+        variant: 'danger',
+      });
+      return null;
+    }
+  };
+
+  const handleRunTest = async (
+    scenario: Scenario,
+    numTrials: number = 1,
+  ) => {
+    try {
+      await createScenarioRunMutation.mutateAsync({
+        scenarioId: scenario.scenario_id,
+        body: { num_trials: numTrials },
+      });
+
+      // Set the selected run index to 0 (latest run) when starting a new test
+      setSelectedRunIndices(prev => new Map(prev).set(scenario.scenario_id, 0));
+
+      await pollForCompletion(scenario.scenario_id);
+
+      await queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
+    } catch {
+      addSnackbar({
+        message: `Failed to run test for "${scenario.name}"`,
+        variant: 'danger',
+      });
+    }
+  };
+
+  const handleDeleteScenario = async (scenarioId: string) => {
+    await deleteScenarioMutation.mutateAsync({
+      scenarioId,
+    });
+  };
+
+  const handleCancelScenarioRun = async (scenarioId: string, scenarioRunId: string) => {
+    try {
+      await cancelScenarioRunMutation.mutateAsync({
+        scenarioId,
+        scenarioRunId,
+      });
+
+      addSnackbar({
+        message: 'Test run cancelled successfully',
+        variant: 'success',
+      });
+    } catch (error) {
+      addSnackbar({
+        message: 'Failed to cancel test run',
+        variant: 'danger',
+      });
+    }
+  };
+
+  return {
+    // Data
+    evaluations,
+    scenarios,
+    loading,
+    isAnyTestRunning,
+
+    // Mutations
+    createScenarioMutation,
+    deleteScenarioMutation,
+    suggestScenarioMutation,
+    cancelScenarioRunMutation,
+
+    // Business logic functions
+    handleCreateEvaluation,
+    handleSuggestEvaluation,
+    handleRunTest,
+    handleDeleteScenario,
+    handleCancelScenarioRun,
+  };
+};

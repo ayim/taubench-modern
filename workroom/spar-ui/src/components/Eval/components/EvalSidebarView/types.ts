@@ -1,34 +1,21 @@
-export interface Scenario {
-    scenarioId: string;
-    name: string;
-    description: string;
-    threadId: string | null;
-  }
+import type { components } from '@sema4ai/agent-server-interface';
 
-  export interface EvaluationResult {
-    kind: 'response_accuracy' | 'flow_adherence' | 'action_calling';
-    passed: boolean;
-    score?: number;
-    explanation?: string;
-    issues?: string[];
-  }
-  
-  export interface Trial {
-    trialId: string;
-    status: "PENDING" | "EXECUTING" | "COMPLETED" | "ERROR" | "CANCELED"
-    errorMessage: string | null;
-    threadId: string | null;
-    statusUpdatedAt: string | null;
-    evaluationResults: EvaluationResult[];
-  }
-  
-  export interface ScenarioRun {
-    scenarioRunId: string;
-    trials: Trial[];
-  }
-  
-  export interface EvaluationItem {
-    scenario: Scenario;
-    latestRun: ScenarioRun | null;
-    isRunning: boolean;
-  }
+// Use raw API types directly
+export type Scenario = components['schemas']['Scenario'];
+export type ScenarioRun = components['schemas']['ScenarioRun'];
+export type Trial = components['schemas']['Trial'];
+// EvaluationResult is a union type in the API schemas, not a single type
+export type EvaluationResult = 
+  | components['schemas']['ResponseAccuracyResult'] 
+  | components['schemas']['FlowAdherenceResult'] 
+  | components['schemas']['ActionCallingResult'];
+
+// Simple interface for the evaluation item that combines API data with UI state
+export interface EvaluationItem {
+  scenario: Scenario;
+  latestRun: ScenarioRun | null;
+  allRuns: ScenarioRun[];
+  currentRunIndex: number;
+  currentRun: ScenarioRun | null;
+  isRunning: boolean;
+}

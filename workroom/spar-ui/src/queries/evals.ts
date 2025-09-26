@@ -27,6 +27,16 @@ const getLatestScenarioRunQueryKey = ({ scenarioId }: { scenarioId: string }) =>
   'scenario-run-latest',
   scenarioId,
 ];
+const getScenarioRunsQueryKey = ({ scenarioId, limit }: { scenarioId: string; limit?: number }) => [
+  'scenario-runs',
+  scenarioId,
+  limit ?? 0,
+];
+const getScenarioRunQueryKey = ({ scenarioId, scenarioRunId }: { scenarioId: string; scenarioRunId: string }) => [
+  'scenario-run',
+  scenarioId,
+  scenarioRunId,
+];
 
 export const listScenariosQueryOptions = createSparQueryOptions<{
   agentId: string;
@@ -83,9 +93,59 @@ export const latestScenarioRunQueryOptions = createSparQueryOptions<{
   },
 }));
 
+export const scenarioRunsQueryOptions = createSparQueryOptions<{
+  scenarioId: string;
+  limit?: number;
+}>()(({ sparAPIClient, scenarioId, limit }) => ({
+  queryKey: getScenarioRunsQueryKey({ scenarioId, limit }),
+  queryFn: async (): Promise<ScenarioRun[]> => {
+    const response = await sparAPIClient.queryAgentServer(
+      'get',
+      '/api/v2/evals/scenarios/{scenario_id}/runs',
+      {
+        params: { 
+          path: { scenario_id: scenarioId },
+          ...(limit && { query: { limit } }),
+        },
+      },
+    );
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    return response.data;
+  },
+}));
+
+export const scenarioRunQueryOptions = createSparQueryOptions<{
+  scenarioId: string;
+  scenarioRunId: string;
+}>()(({ sparAPIClient, scenarioId, scenarioRunId }) => ({
+  queryKey: getScenarioRunQueryKey({ scenarioId, scenarioRunId }),
+  queryFn: async (): Promise<ScenarioRun> => {
+    const response = await sparAPIClient.queryAgentServer(
+      'get',
+      '/api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}',
+      {
+        params: { 
+          path: { 
+            scenario_id: scenarioId,
+            scenario_run_id: scenarioRunId 
+          } 
+        },
+      },
+    );
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    return response.data;
+  },
+}));
+
 export const useListScenariosQuery = createSparQuery(listScenariosQueryOptions);
 export const useScenarioQuery = createSparQuery(scenarioQueryOptions);
 export const useLatestScenarioRunQuery = createSparQuery(latestScenarioRunQueryOptions);
+export const useScenarioRunsQuery = createSparQuery(scenarioRunsQueryOptions);
+export const useScenarioRunQuery = createSparQuery(scenarioRunQueryOptions);
 
 export const useCreateScenarioMutation = createSparMutation<Record<string, never>, { body: CreateScenarioPayload }>()(
   ({ sparAPIClient, queryClient }) => ({
@@ -138,6 +198,7 @@ export const useCreateScenarioRunMutation = createSparMutation<
   },
   onSuccess: async (_data, { scenarioId }) => {
     await queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', scenarioId] });
+    await queryClient.invalidateQueries({ queryKey: ['scenario-runs', scenarioId] });
   },
 }));
 
@@ -154,6 +215,34 @@ export const useSuggestScenarioMutation = createSparMutation<Record<string, neve
     },
   }),
 );
+
+export const useCancelScenarioRunMutation = createSparMutation<
+  Record<string, never>,
+  { scenarioId: string; scenarioRunId: string }
+>()(({ sparAPIClient, queryClient }) => ({
+  mutationFn: async ({ scenarioId, scenarioRunId }): Promise<null> => {
+    const response = await sparAPIClient.queryAgentServer(
+      'delete',
+      '/api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}',
+      {
+        params: { 
+          path: { 
+            scenario_id: scenarioId,
+            scenario_run_id: scenarioRunId 
+          } 
+        },
+      },
+    );
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    return null;
+  },
+  onSuccess: async (_data, { scenarioId, scenarioRunId }) => {
+    await queryClient.invalidateQueries({ queryKey: ['scenario-run', scenarioId, scenarioRunId] });
+    await queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', scenarioId] });
+  },
+}));
 
 export const usePollScenarioRun = () => {
   const { sparAPIClient } = useSparUIContext();
@@ -194,6 +283,7 @@ export const usePollScenarioRun = () => {
 
             if (allTrialsComplete && completedTrialsHaveResults) {
               await queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', scenarioId] });
+              await queryClient.invalidateQueries({ queryKey: ['scenario-runs', scenarioId] });
               return;
             }
           }
