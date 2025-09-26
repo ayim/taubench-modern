@@ -23,6 +23,7 @@ type RowProps = {};
 
 export const workitemsTableColumns: Column[] = [
   { id: 'work_item_id', title: 'Work Item ID', resizable: true },
+  { id: 'work_item_name', title: 'Work Item Name', resizable: true },
   { id: 'agent_name', title: 'Agent Name', resizable: true },
   { id: 'status', title: 'Status', resizable: false, width: 170 },
   { id: 'updated_at', title: 'Last Updated', resizable: false, width: 130, minWidth: 130 },

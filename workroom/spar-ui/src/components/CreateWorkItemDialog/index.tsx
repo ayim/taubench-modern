@@ -16,6 +16,7 @@ interface CreateWorkItemDialogProps {
 }
 
 type WorkerItemFormValues = {
+  workItemName: string;
   message: string;
   payload?: string;
   files?: File[];
@@ -27,6 +28,7 @@ export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ agentId, i
   const { mutateAsync: createWorkItemAsync, isPending: isCreatingWorkItem } = useCreateWorkItemMutation({ agentId });
 
   const createWorkItemFormSchema = z.object({
+    workItemName: z.string().trim().optional(),
     message: z.string().trim().min(1, 'Message is required'),
     payload: z
       .string()
@@ -50,6 +52,7 @@ export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ agentId, i
   const form = useForm<WorkerItemFormValues>({
     resolver: zodResolver(createWorkItemFormSchema),
     defaultValues: {
+      workItemName: '',
       message: '',
       payload: '',
       files: [],
@@ -132,6 +135,14 @@ export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ agentId, i
         </Dialog.Header>
         <Dialog.Content>
           <Box display="flex" flexDirection="column" gap={16} paddingTop={12} px={4} pb={2}>
+            <Input
+              label="Work Item Name"
+              description="Provide a name for the work item."
+              {...form.register('workItemName')}
+              name="workItemName"
+              error={form.formState.errors.workItemName?.message}
+              labelOptional="(Optional)"
+            />
             <Input
               rows={4}
               label="Message"

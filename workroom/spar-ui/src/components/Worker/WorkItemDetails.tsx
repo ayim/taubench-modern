@@ -131,6 +131,17 @@ const PayloadSection: FC<{ workItem: WorkItem }> = memo(({ workItem }) => {
   );
 });
 
+const IdSection: FC<Pick<WorkItem, 'work_item_id'>> = ({ work_item_id: workItemId }) => {
+  return (
+    <Box as="section">
+      <Typography variant="body-medium" fontWeight="bold" marginBottom="$4">
+        Work Item ID
+      </Typography>
+      <Box as="span">{workItemId}</Box>
+    </Box>
+  );
+};
+
 export const WorkItemDetails = ({ workItemId }: { workItemId: string }) => {
   const { data: workItem, isLoading } = useWorkItemQuery({ workItemId });
   if (isLoading) {
@@ -152,6 +163,7 @@ export const WorkItemDetails = ({ workItemId }: { workItemId: string }) => {
   return (
     <Box height="100%" display="flex" flexDirection="column" justifyContent="space-between" px={20} py={16}>
       <Box paddingY="$4" paddingX="$5" display="flex" flexDirection="column" gap="$20">
+        <IdSection work_item_id={workItem.work_item_id} />
         <MessagesSection workItem={workItem} />
         <PayloadSection workItem={workItem} />
         <StatusSection workItem={workItem} />

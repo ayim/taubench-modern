@@ -24,7 +24,11 @@ export const WorkerList: FC = () => {
       </Box>
       <Box display="flex" flexDirection="column">
         {workItems?.map((workItem) => (
-          <WorkerItem key={workItem.work_item_id} name={workItem.work_item_id} workItemId={workItem.work_item_id} />
+          <WorkerItem
+            key={workItem.work_item_id}
+            name={workItem.work_item_name || workItem.work_item_id}
+            workItemId={workItem.work_item_id}
+          />
         ))}
       </Box>
     </SidebarMenu>

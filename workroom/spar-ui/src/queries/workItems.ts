@@ -79,12 +79,13 @@ const uploadWorkItemFile = async (sparAPIClient: SparAPIClient, file: File, work
 export const useCreateWorkItemMutation = createSparMutation<
   { agentId: string },
   {
+    workItemName?: string;
     message: string;
     payload?: string;
     files?: File[];
   }
 >()(({ agentId, sparAPIClient, queryClient }) => ({
-  mutationFn: async ({ files, message, payload }) => {
+  mutationFn: async ({ files, message, payload, workItemName }) => {
     // Upload files
     if (files && files?.length > 0) {
       const firstFileResponse = await uploadWorkItemFile(sparAPIClient, files[0]);
@@ -108,6 +109,7 @@ export const useCreateWorkItemMutation = createSparMutation<
     }
 
     const body: CreateWorkItemPayload = {
+      work_item_name: workItemName,
       agent_id: agentId,
       messages: [
         {
