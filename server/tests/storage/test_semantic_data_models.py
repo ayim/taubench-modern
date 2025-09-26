@@ -419,7 +419,10 @@ async def check_list_semantic_data_models(
                 assert model["agent_ids"] == set()
                 assert model["thread_ids"] == set()
             else:
-                raise ValueError(f"Model {model} not found")
+                raise ValueError(
+                    f"Model {model} not found. Checked ids: {model_id_1}, "
+                    f"{model_id_2}, {model_id_3}, Model id: {model_id}"
+                )
 
     check_models(all_models)
 

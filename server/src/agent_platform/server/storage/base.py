@@ -1691,7 +1691,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             models_by_id = {}
 
             for row in rows:
-                model_id = row["id"]
+                model_id = str(row["id"])
 
                 if model_id not in models_by_id:
                     semantic_model = json.loads(row["semantic_model"])
@@ -1704,11 +1704,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
                 # Collect agent_id if present
                 if row["agent_id"] is not None:
-                    models_by_id[model_id]["agent_ids"].add(row["agent_id"])
+                    models_by_id[model_id]["agent_ids"].add(str(row["agent_id"]))
 
                 # Collect thread_id if present
                 if row["thread_id"] is not None:
-                    models_by_id[model_id]["thread_ids"].add(row["thread_id"])
+                    models_by_id[model_id]["thread_ids"].add(str(row["thread_id"]))
 
             # Convert to list and return
             results = list(models_by_id.values())
