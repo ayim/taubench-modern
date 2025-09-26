@@ -125,6 +125,10 @@ export const createSparAPIClient = (
     window.location.href = uri;
   },
 
+  deleteAgentOAuth: async ({ agentId, connectionId }) => {
+    await agentAPIClient.deleteOAuthConnection({ agentId, tenantId, connectionId });
+  },
+
   useParamsFn: <T extends keyof SparUIRoutes>() => {
     const params = useParams({ strict: false });
     return params as SparUIRoutes[T];

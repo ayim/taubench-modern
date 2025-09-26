@@ -85,6 +85,18 @@ export const agentOauthStateQueryOptions = createSparQueryOptions<{ agentId: str
 export const useAgentOAuthStateQuery = createSparQuery(agentOauthStateQueryOptions);
 
 /**
+ * Delete Agent OAuth provider connection
+ */
+export const useDeleteAgentOAuthMutation = createSparMutation<{ agentId: string }, { connectionId: string }>()(
+  ({ agentId, queryClient, sparAPIClient }) => ({
+    mutationFn: async ({ connectionId }) => sparAPIClient.deleteAgentOAuth({ agentId, connectionId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: agentOAuthStateQueryKey(agentId) });
+    },
+  }),
+);
+
+/**
  * Delete Agent mutation
  */
 export const useDeleteAgentMutation = createSparMutation<object, { agentId: string }>()(

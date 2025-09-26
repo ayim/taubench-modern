@@ -37,7 +37,7 @@ export interface SparAPIClient {
     toolCallId: string;
     // Only surfaced by agent-server >= 2.1.6
     actionServerRunId: string | null;
-  }) => Promise<{success: true} | {success: false, error: { message: string}}>;
+  }) => Promise<{ success: true } | { success: false; error: { message: string } }>;
 
   /**
    * Download a file
@@ -59,6 +59,10 @@ export interface SparAPIClient {
    */
   authorizeAgentOAuth: (props: { uri: string }) => Promise<void>;
 
+  /**
+   * Delete active OAuth provider connection
+   */
+  deleteAgentOAuth: (props: { agentId: string; connectionId: string }) => Promise<void>;
   /**
    * Returns required params for a given route
    */
