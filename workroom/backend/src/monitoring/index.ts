@@ -16,6 +16,7 @@ export interface LogAttributes {
   fileName: string;
   oidcIssuer: string;
   oidcRedirectUrl: string;
+  sessionId: string;
   status: number;
   statusText: string;
   port: number;

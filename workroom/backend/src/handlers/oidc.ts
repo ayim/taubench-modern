@@ -42,7 +42,7 @@ export const createOIDCCallbackHandler =
         .json({ error: { code: 'invalid_request', message: 'Bad Request' } } satisfies ErrorResponse);
     }
 
-    const sessionData = sessionManager.extractSessionFromRequest(req);
+    const sessionData = await sessionManager.extractSessionFromRequest(req);
     if (!sessionData.success) {
       monitoring.logger.error('Bad OIDC callback: No session data found', {
         errorName: sessionData.error.code,

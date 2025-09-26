@@ -7,7 +7,10 @@ import { formatZodError } from '../utils/error.js';
 import { caseless, parseCookies } from '../utils/parse.js';
 import type { Result } from '../utils/result.js';
 
-export type ExtractSessionResult = Result<Session, { code: 'invalid_session' | 'no_session'; message: string }>;
+export type ExtractSessionResult = Result<
+  Session,
+  { code: 'invalid_session' | 'no_session' | 'session_empty'; message: string }
+>;
 
 export type Session = z.infer<typeof Session>;
 const Session = z.object({
@@ -38,6 +41,10 @@ export class SessionManager {
   }
 
   async clearSessionForRequest(req: ExpressRequest): Promise<void> {
+    this.monitoring.logger.info('Clear session', {
+      sessionId: req.session?.id,
+    });
+
     return new Promise<void>((resolve) => {
       if (req.session?.destroy) {
         req.session.destroy(() => resolve());
@@ -117,14 +124,34 @@ export class SessionManager {
     return sessionResult;
   }
 
-  extractSessionFromRequest(req: ExpressRequest): ExtractSessionResult {
+  async extractSessionFromRequest(req: ExpressRequest): Promise<ExtractSessionResult> {
+    await new Promise<void>((resolve, reject) => {
+      req.session.reload((err) => {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve();
+      });
+    });
+
     const session = req.session as unknown as Session;
-    if (!session || (!session.auth?.type && !session.codeVerifier)) {
+    if (!session) {
       return {
         success: false,
         error: {
           code: 'no_session',
           message: 'No session found',
+        },
+      };
+    }
+
+    if (!session.auth?.type && !session.codeVerifier) {
+      return {
+        success: false,
+        error: {
+          code: 'session_empty',
+          message: 'Session present but empty',
         },
       };
     }
@@ -149,7 +176,19 @@ export class SessionManager {
       reqSession.auth = session.auth;
       reqSession.codeVerifier = session.codeVerifier;
 
-      req.session.save();
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            return reject(err);
+          }
+
+          resolve();
+        });
+      });
+
+      this.monitoring.logger.info('Session saved', {
+        sessionId: req.session.id,
+      });
 
       return {
         success: true,

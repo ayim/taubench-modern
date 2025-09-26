@@ -33,7 +33,7 @@ export const createLogoutHandler =
       requestUrl: req.originalUrl,
     });
 
-    const sessionResult = sessionManager.extractSessionFromRequest(req);
+    const sessionResult = await sessionManager.extractSessionFromRequest(req);
     if (!sessionResult.success) {
       monitoring.logger.error('Logout attempted but no session present', {
         requestUrl: req.originalUrl,

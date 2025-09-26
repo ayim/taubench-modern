@@ -30,17 +30,18 @@ The following variables are required in all scenarios below, and are primarily f
 
 The following environment variables should be configured for this setup:
 
-| Variable                               | Example               | Definition                                             |
-| -------------------------------------- | --------------------- | ------------------------------------------------------ |
-| `SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64` | `LS0tLS1CRUdJTi...`   | Agent server token signing private key, base64 encoded |
-| `SEMA4AI_WORKROOM_AGENT_SERVER_URL`    | `http://agent-server` | URL to the agent server, non-public.                   |
-| `SEMA4AI_WORKROOM_AUTH_MODE`           | `oidc`                | The authentication mode to use.                        |
-| `SEMA4AI_WORKROOM_OIDC_CLIENT_ID`      | `sema4ai-oidc-prod`   | OAuth 2.0 client identifier.                           |
-| `SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET`  | `secret-value...`     | OAuth 2.0 client secret.                               |
-| `SEMA4AI_WORKROOM_OIDC_SERVER`         | `http://dev.okta.com` | The OIDC compatible server URL. See **foot notes**.    |
-| `SEMA4AI_WORKROOM_SESSION_SECRET`      | `secret-value`        | Session secret for encoding session data.              |
-| `SEMA4AI_WORKROOM_PORT`                | `8001`                | Workroom / gateway HTTP listen port.                   |
-| `SEMA4AI_WORKROOM_TENANT_ID`           | `spar`                | Tenant identifier.                                     |
+| Variable                                   | Example               | Definition                                             |
+| ------------------------------------------ | --------------------- | ------------------------------------------------------ |
+| `SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64`     | `LS0tLS1CRUdJTi...`   | Agent server token signing private key, base64 encoded |
+| `SEMA4AI_WORKROOM_AGENT_SERVER_URL`        | `http://agent-server` | URL to the agent server, non-public.                   |
+| `SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS` | `true`                | Allow non-HTTPS requests (session/cookie handling).    |
+| `SEMA4AI_WORKROOM_AUTH_MODE`               | `oidc`                | The authentication mode to use.                        |
+| `SEMA4AI_WORKROOM_OIDC_CLIENT_ID`          | `sema4ai-oidc-prod`   | OAuth 2.0 client identifier.                           |
+| `SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET`      | `secret-value...`     | OAuth 2.0 client secret.                               |
+| `SEMA4AI_WORKROOM_OIDC_SERVER`             | `http://dev.okta.com` | The OIDC compatible server URL. See **foot notes**.    |
+| `SEMA4AI_WORKROOM_SESSION_SECRET`          | `secret-value`        | Session secret for encoding session data.              |
+| `SEMA4AI_WORKROOM_PORT`                    | `8001`                | Workroom / gateway HTTP listen port.                   |
+| `SEMA4AI_WORKROOM_TENANT_ID`               | `spar`                | Tenant identifier.                                     |
 
 > [!IMPORTANT]
 > This setup implies the use of the **Base Environment Variables** listed earlier in this document.

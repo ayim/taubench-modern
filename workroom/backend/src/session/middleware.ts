@@ -35,8 +35,10 @@ export const createSessionMiddleware = ({
     store: sessionManager.store,
     genid: () => randomUUID(),
     cookie: {
+      httpOnly: true,
       maxAge: configuration.session.cookieMaxAgeMs,
       secure: configuration.allowInsecureRequests ? false : true,
+      sameSite: 'lax',
     },
   });
 };

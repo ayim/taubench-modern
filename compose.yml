@@ -16,6 +16,7 @@ x-env-spar: &template-env-spar
     SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
     SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
     # Workroom
+    SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS: true
     SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
     SEMA4AI_WORKROOM_AUTH_MODE: none
     SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH: /app/data-server-config.json

@@ -130,8 +130,12 @@ export const extractOIDCUserIdentity = async ({
             message: 'Session validation failed',
           },
         };
+      case 'session_empty':
       case 'no_session':
-        monitoring.logger.error('OIDC authentication attempted but no session was found');
+        monitoring.logger.error('OIDC authentication attempted but no session was found', {
+          errorName: sessionResult.error.code,
+          errorMessage: sessionResult.error.message,
+        });
 
         return {
           success: false,
@@ -205,7 +209,7 @@ export const refreshOIDCToken = async ({
   req: ExpressRequest;
   sessionManager: SessionManager;
 }): Promise<Result<{ userId: string }>> => {
-  const sessionResult = sessionManager.extractSessionFromRequest(req);
+  const sessionResult = await sessionManager.extractSessionFromRequest(req);
   if (!sessionResult.success) {
     monitoring.logger.error('Unable to handle expired tokens: Invalid session', {
       errorName: sessionResult.error.code,

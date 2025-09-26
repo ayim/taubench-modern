@@ -1,4 +1,9 @@
-import { exhaustiveCheck, parseEnvVariable, parseEnvVariableInteger } from '@sema4ai/robocloud-shared-utils';
+import {
+  exhaustiveCheck,
+  parseEnvVariable,
+  parseEnvVariableBoolean,
+  parseEnvVariableInteger,
+} from '@sema4ai/robocloud-shared-utils';
 import type { operations } from '@sema4ai/workroom-interface';
 
 export type WorkroomMeta = operations['getWorkroomMeta']['responses']['200']['content']['application/json'];
@@ -74,29 +79,9 @@ export const getConfiguration = (): Configuration => {
 
   const agentServerInternalUrl = parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_URL');
 
-  const dataServer = ((): Configuration['dataServer'] => {
-    const dataServerConfigurationPath: string | null = process.env.SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH
-      ? parseEnvVariable('SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH')
-      : null;
-
-    if (dataServerConfigurationPath) {
-      return {
-        mode: 'local',
-        configurationFilePath: dataServerConfigurationPath,
-      };
-    }
-
-    if (process.env.SEMA4AI_WORKROOM_CONTROL_PLANE_URL) {
-      return {
-        controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
-        mode: 'cloud',
-      };
-    }
-
-    return {
-      mode: 'disabled',
-    };
-  })();
+  const allowInsecureRequests = process.env.SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS
+    ? parseEnvVariableBoolean('SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS')
+    : false;
 
   const auth = ((): Configuration['auth'] => {
     const mode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
@@ -147,6 +132,30 @@ export const getConfiguration = (): Configuration => {
       default:
         exhaustiveCheck(mode);
     }
+  })();
+
+  const dataServer = ((): Configuration['dataServer'] => {
+    const dataServerConfigurationPath: string | null = process.env.SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH
+      ? parseEnvVariable('SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH')
+      : null;
+
+    if (dataServerConfigurationPath) {
+      return {
+        mode: 'local',
+        configurationFilePath: dataServerConfigurationPath,
+      };
+    }
+
+    if (process.env.SEMA4AI_WORKROOM_CONTROL_PLANE_URL) {
+      return {
+        controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
+        mode: 'cloud',
+      };
+    }
+
+    return {
+      mode: 'disabled',
+    };
   })();
 
   const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
@@ -219,7 +228,7 @@ export const getConfiguration = (): Configuration => {
 
   return {
     agentServerInternalUrl,
-    allowInsecureRequests: nodeEnv === 'development',
+    allowInsecureRequests,
     auth,
     dataServer,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
