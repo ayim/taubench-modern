@@ -348,6 +348,16 @@ In order to use the DIv2 endpoints, you will need to configure the data connecti
 - **Reducto API key**: this is available within the Sema4.ai 1Password vault (as of writing this README, we have been primarily using the vault item labled `PROD DocIntel v2: Sema4 API Key - Internal testing (Reducto)`)
 - **Bring your own Database**: for the data server brought up as part of the SPAR stack, use the connection string: `postgresql://agents:agents@postgres:5432/data`
 
+### Developing with Document Intelligence v2
+
+To develop with Document Intelligence v2, you will need to install it in editable mode. This can be done by running `make dev-docint-up`. To remove it, run `make dev-docint-down`. The target uses a default document-intelligence repository path of `../document-intelligence` so if you have it in a different location, you can override it by setting the `DOCINT_PATH` variable.
+
+Example:
+
+```sh
+make dev-docint-up DOCINT_PATH=../document-intelligence-worktree-1
+```
+
 ### Breaking Interface Changes: build failing
 
 The SPAR UI and Backend rely on the `agent-server-interface` strictly. Changes to the interface may break the build: CI/CD checks will be `red` until the build is fixed.

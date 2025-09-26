@@ -307,7 +307,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", extras = ["memory"], path = "server/wheels/sema4ai_docint-0.8.1-py3-none-any.whl" },
+    { name = "sema4ai-docint", extras = ["memory"], specifier = ">=0.8.5,<0.10.0" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -3529,8 +3529,8 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.8.1"
-source = { path = "server/wheels/sema4ai_docint-0.8.1-py3-none-any.whl" }
+version = "0.8.5"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp" },
@@ -3551,8 +3551,9 @@ dependencies = [
     { name = "sema4ai-data" },
     { name = "sema4ai-http-helper" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/02/14/cde485332035d06054b1d0008f7741f8f4aae086db786c5271a46e4fe770/sema4ai_docint-0.8.5.tar.gz", hash = "sha256:6e0475bc9a4c9a69faec8b11d608c19c486e08ebfef283575b9b56631c72e191", size = 24293198, upload-time = "2025-09-24T21:24:19.677Z" }
 wheels = [
-    { filename = "sema4ai_docint-0.8.1-py3-none-any.whl", hash = "sha256:adb20103f9138907103a8e0158a3edc0cbf5452b2443a37a9e762f81dddc4367" },
+    { url = "https://files.pythonhosted.org/packages/31/a3/a12903b6a33c2229fae4cef3b19cb3620034664c152c65f0431b19d01715/sema4ai_docint-0.8.5-py3-none-any.whl", hash = "sha256:26f32e9afe3cb55e1c492a75845b4741b4fa9d24170b86a474ec19df2c2a43fe", size = 146851, upload-time = "2025-09-24T21:24:17.345Z" },
 ]
 
 [package.optional-dependencies]
@@ -3560,31 +3561,6 @@ memory = [
     { name = "fastapi" },
     { name = "uvicorn" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiofiles", specifier = ">=24.1.0" },
-    { name = "aiohttp", specifier = ">=3.10.0" },
-    { name = "fastapi", marker = "extra == 'memory'", specifier = ">=0.115.6,<0.116.0" },
-    { name = "jinja2", specifier = ">=3.1.6" },
-    { name = "jsonschema", specifier = ">=4.0.0" },
-    { name = "mindsdb-sql", specifier = "==0.21.0" },
-    { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "pandas", specifier = ">=2.2.3" },
-    { name = "pillow", specifier = ">=10.0.0" },
-    { name = "pydantic", specifier = ">=2.11,<3" },
-    { name = "pymupdf", specifier = ">=1.24.10" },
-    { name = "python-docx", specifier = "==0.8.11" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "reductoai", specifier = "==0.9.0" },
-    { name = "requests", specifier = ">=2.32.3" },
-    { name = "scikit-learn", specifier = ">=1.7.0" },
-    { name = "sema4ai-actions", specifier = "==1.4.1" },
-    { name = "sema4ai-data", specifier = "==1.0.10" },
-    { name = "sema4ai-http-helper", specifier = "==2.1.0" },
-    { name = "uvicorn", marker = "extra == 'memory'", specifier = ">=0.34.0,<0.35.0" },
-]
-provides-extras = ["memory"]
 
 [[package]]
 name = "sema4ai-http-helper"
