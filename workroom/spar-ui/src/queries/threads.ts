@@ -112,7 +112,7 @@ export const useCreateThreadMutation = createSparMutation<
   },
   onSuccess: (newThreadData) => {
     queryClient.setQueryData(threadsQueryKey(agentId), (threads: Thread[]) => {
-      return [...(threads || []), newThreadData];
+      return [newThreadData, ...(threads || [])];
     });
   },
 }));
