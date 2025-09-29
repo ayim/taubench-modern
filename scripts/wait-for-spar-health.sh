@@ -50,7 +50,7 @@ wait_for_healthy "data-server" || exit 1
 wait_for_healthy "otel-collector" || exit 1
 
 # Wait for the SPAR service
-wait_for_healthy "spar-no-auth" || exit 1
+wait_for_healthy "spar" || exit 1
 
 # Final status check
 echo "All services are ready!"

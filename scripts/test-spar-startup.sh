@@ -9,7 +9,7 @@ echo "=== Testing SPAR Stack Startup ==="
 
 # Start SPAR stack
 echo "Starting SPAR stack..."
-COMPOSE_PROFILES=spar-no-auth docker compose up --build -d
+COMPOSE_PROFILES=spar docker compose up --build -d
 
 # Wait for services to be healthy
 echo "Waiting for services to be healthy..."
