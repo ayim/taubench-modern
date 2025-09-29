@@ -6,6 +6,7 @@ export * from './components/Thread';
 export * from './components/Worker';
 export * from './components/ThreadSearch';
 export * from './components/ThreadHeader';
+export * from './components/Illustration';
 
 export * from './components/FilesView';
 export * from './components/Chat';

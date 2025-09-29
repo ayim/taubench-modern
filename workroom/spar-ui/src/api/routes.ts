@@ -18,6 +18,7 @@ export type SparUIRoutes = {
   '/data-connections/$dataConnectionId': {
     dataConnectionId: string;
   };
+  '/home': {};
 };
 
 type UnionToIntersection<U> = (U extends unknown ? (x: U) => 0 : never) extends (x: infer I) => 0 ? I : never;
