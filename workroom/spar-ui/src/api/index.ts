@@ -81,4 +81,9 @@ export interface SparAPIClient {
     href: string;
     current: boolean;
   };
+
+  /**
+   * Send feedback
+   */
+  sendFeedback?: (props: { agentId: string; threadId: string; feedback: string; comment: string }) => Promise<boolean>;
 }

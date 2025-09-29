@@ -147,4 +147,8 @@ export const createSparAPIClient = (
       current,
     };
   },
+
+  sendFeedback: async (props) => {
+    return agentAPIClient.sendFeedback(tenantId, props);
+  },
 });
