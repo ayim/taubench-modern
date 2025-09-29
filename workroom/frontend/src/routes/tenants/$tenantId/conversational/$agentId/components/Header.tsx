@@ -5,7 +5,6 @@ import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 import {
   IconChemicalBottle,
   IconDotsHorizontal,
-  IconDoubleChatBubble,
   IconMap,
   IconInformation,
   IconPaperclip,
@@ -15,12 +14,19 @@ import {
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
 import { NEW_CHAT_STARTING_MSG } from '~/config/constants';
 import { useTenantContext } from '~/lib/tenantContext';
+import { useToggleRoutePath } from '~/hooks/useToggleRoutePath';
 
 export const Header = () => {
   const { agentId, tenantId, threadId } = useParams({ from: '/tenants/$tenantId/conversational/$agentId/$threadId' });
   const location = useLocation();
   const isMobile = useScreenSize('m');
   const { features } = useTenantContext();
+  const defaultLink = {
+    to: '/tenants/$tenantId/conversational/$agentId/$threadId',
+    params: { tenantId, agentId, threadId },
+  };
+
+  const resolveLink = useToggleRoutePath(defaultLink);
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
@@ -36,49 +42,51 @@ export const Header = () => {
     <ThreadHeader newThreadStartingMesssage={initialThreadMessage ?? conversationStarter ?? NEW_CHAT_STARTING_MSG}>
       {!isMobile && (
         <>
-          <Tooltip text="Chat" placement="bottom">
-            <RouterSideNavigationLink
-              to="/tenants/$tenantId/conversational/$agentId/$threadId"
-              icon={<IconDoubleChatBubble />}
-              round
-              params={{ tenantId, agentId, threadId }}
-              activeOptions={{ exact: true }}
-            />
-          </Tooltip>
-
           <Tooltip text="Files" placement="bottom">
             <RouterSideNavigationLink
-              to="/tenants/$tenantId/conversational/$agentId/$threadId/files"
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/files', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
               icon={<IconPaperclip />}
               round
-              params={{ tenantId, agentId, threadId }}
             />
           </Tooltip>
           <Tooltip text="Details" placement="bottom">
             <RouterSideNavigationLink
-              to="/tenants/$tenantId/conversational/$agentId/$threadId/chat-details"
               icon={<IconInformation />}
               round
-              params={{ tenantId, agentId, threadId }}
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/chat-details', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
             />
           </Tooltip>
 
           <Tooltip text="Data Frames" placement="bottom">
             <RouterSideNavigationLink
-              to="/tenants/$tenantId/conversational/$agentId/$threadId/data-frames"
               icon={<IconSpreadsheet />}
               round
-              params={{ tenantId, agentId, threadId }}
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/data-frames', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
             />
           </Tooltip>
 
           {agent.question_groups && agent.question_groups.length > 0 && (
             <Tooltip text="Conversation Guides" placement="bottom">
               <RouterSideNavigationLink
-                to="/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides"
                 icon={<IconMap />}
                 round
-                params={{ tenantId, agentId, threadId }}
+                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides', {
+                  tenantId,
+                  agentId,
+                  threadId,
+                })}
               />
             </Tooltip>
           )}
@@ -86,10 +94,13 @@ export const Header = () => {
           {features.agentEvals.enabled && (
             <Tooltip text="Evaluations" placement="bottom">
               <RouterSideNavigationLink
-                to="/tenants/$tenantId/conversational/$agentId/$threadId/evaluations"
                 icon={IconChemicalBottle}
                 round
-                params={{ tenantId, agentId, threadId }}
+                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/evaluations', {
+                  tenantId,
+                  agentId,
+                  threadId,
+                })}
               />
             </Tooltip>
           )}
@@ -99,30 +110,47 @@ export const Header = () => {
         <>
           <Menu trigger={<Button icon={IconDotsHorizontal} variant="ghost" aria-label="Chat Actions" />}>
             <RouterMenuLink
-              to="/tenants/$tenantId/conversational/$agentId/$threadId"
-              icon={IconDoubleChatBubble}
-              params={{ tenantId, agentId, threadId }}
-            >
-              Chat
-            </RouterMenuLink>
-            <RouterMenuLink
-              to="/tenants/$tenantId/conversational/$agentId/$threadId/files"
               icon={IconPaperclip}
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/files', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
               params={{ tenantId, agentId, threadId }}
             >
               Files
             </RouterMenuLink>
             <RouterMenuLink
-              to="/tenants/$tenantId/conversational/$agentId/$threadId/data-frames"
+              icon={IconPaperclip}
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/chat-details', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
+              params={{ tenantId, agentId, threadId }}
+            >
+              Chat Details
+            </RouterMenuLink>
+
+            <RouterMenuLink
               icon={IconSpreadsheet}
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/data-frames', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
               params={{ tenantId, agentId, threadId }}
             >
               Data Frames
             </RouterMenuLink>
             {features.agentEvals.enabled && (
               <RouterMenuLink
-                to="/tenants/$tenantId/conversational/$agentId/$threadId/evaluations"
                 icon={IconChemicalBottle}
+                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/evaluations', {
+                  tenantId,
+                  agentId,
+                  threadId,
+                })}
                 params={{ tenantId, agentId, threadId }}
               >
                 Evaluations

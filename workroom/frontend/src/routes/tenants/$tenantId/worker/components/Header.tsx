@@ -1,12 +1,5 @@
 import { Box, Button, Menu, Tooltip, Typography, useScreenSize } from '@sema4ai/components';
-import {
-  IconDotsHorizontal,
-  IconInformation,
-  IconLayoutRight,
-  IconPaperclip,
-  IconPlus,
-  IconPoll,
-} from '@sema4ai/icons';
+import { IconDotsHorizontal, IconInformation, IconLayoutRight, IconPaperclip, IconPlus } from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 import { styled } from '@sema4ai/theme';
@@ -14,6 +7,7 @@ import { useParams } from '@tanstack/react-router';
 
 import { Header as HeaderBase } from '~/components/layout/Header';
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
+import { useToggleRoutePath } from '~/hooks/useToggleRoutePath';
 
 const WorkItemsToggle = styled(Button)<{ $expanded?: boolean }>`
   display: ${({ $expanded }) => ($expanded ? 'none' : 'block')};
@@ -30,6 +24,13 @@ export const Header = () => {
   const isMobile = useScreenSize('m');
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
+
+  const defaultLink = {
+    to: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId',
+    params: { tenantId, agentId, workItemId, threadId },
+  };
+
+  const resolveLink = useToggleRoutePath(defaultLink);
 
   if (isLoading || !agent) {
     return null;
@@ -67,32 +68,29 @@ export const Header = () => {
           <>
             {workItemId && threadId && (
               <>
-                <Tooltip text="Work Items" placement="bottom">
-                  <RouterSideNavigationLink
-                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId"
-                    icon={<IconPoll />}
-                    round
-                    params={{ tenantId, agentId, workItemId, threadId }}
-                    activeOptions={{ exact: true }}
-                  />
-                </Tooltip>
-
                 <Tooltip text="Work Item Details" placement="bottom">
                   <RouterSideNavigationLink
-                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details"
                     icon={<IconInformation />}
                     round
-                    params={{ tenantId, agentId, workItemId, threadId }}
-                    activeOptions={{ exact: true }}
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
                   />
                 </Tooltip>
 
                 <Tooltip text="Files" placement="bottom">
                   <RouterSideNavigationLink
-                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files"
                     icon={<IconPaperclip />}
                     round
-                    params={{ tenantId, agentId, workItemId, threadId }}
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
                   />
                 </Tooltip>
               </>
@@ -114,23 +112,24 @@ export const Header = () => {
               {workItemId && threadId && (
                 <>
                   <RouterMenuLink
-                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId"
-                    icon={IconPoll}
-                    params={{ tenantId, agentId, workItemId, threadId }}
-                  >
-                    Work Items
-                  </RouterMenuLink>
-                  <RouterMenuLink
-                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details"
                     icon={IconInformation}
-                    params={{ tenantId, agentId, workItemId, threadId }}
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
                   >
                     Work Item Details
                   </RouterMenuLink>
                   <RouterMenuLink
-                    to="/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files"
                     icon={IconPaperclip}
-                    params={{ tenantId, agentId, workItemId, threadId }}
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
                   >
                     Files
                   </RouterMenuLink>
