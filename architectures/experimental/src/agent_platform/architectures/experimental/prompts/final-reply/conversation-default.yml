@@ -151,6 +151,8 @@ messages:
           frames to discuss them or to better contextualize your response, you will find them here:
           {{ kernel.data_frames.data_frames_summary }}
 
+          {{ kernel.work_item.work_item_summary_no_tools }}
+
           ## Guidance for this iteration
           • The current UTC date/time is {{ kernel.current_datetime_str }}.  
           • You started processing at {{ state.processing_start_time }} (elapsed:

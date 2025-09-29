@@ -190,3 +190,11 @@ class MinimalKernelStub(Kernel):
                 return False
 
         return _DF()
+
+    @property
+    def work_item(self) -> Any:
+        class _WI:
+            def is_enabled(self) -> bool:
+                return False
+
+        return _WI()

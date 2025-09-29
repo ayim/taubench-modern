@@ -127,6 +127,10 @@ class _MinimalKernel(Kernel):
     def data_frames(self):  # type: ignore[override]
         raise NotImplementedError
 
+    @property
+    def work_item(self):  # type: ignore[override]
+        raise NotImplementedError
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio

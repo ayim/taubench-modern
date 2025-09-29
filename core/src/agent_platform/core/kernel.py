@@ -28,6 +28,7 @@ from agent_platform.core.kernel_interfaces import (
     ThreadStateInterface,
     ToolsInterface,
     UserInteractionsInterface,
+    WorkItemInterface,
 )
 from agent_platform.core.model_selector import (
     DefaultModelSelector,
@@ -303,6 +304,12 @@ class Kernel(ABC):
 
         The data frames API is used to interact with the agent-server's data frames.
         """
+
+    @property
+    @abstractmethod
+    def work_item(self) -> WorkItemInterface:
+        """Interface for interacting with the thread's work item."""
+        pass
 
     async def get_platform_and_model(
         self,

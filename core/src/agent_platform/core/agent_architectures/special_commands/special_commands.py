@@ -19,6 +19,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Final, Literal, cast
 
+from agent_platform.architectures.default.state import ArchState
 from agent_platform.core import Kernel
 from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
 from agent_platform.core.tools.tool_definition import ToolDefinition
@@ -150,7 +151,7 @@ async def handle_special_command(
     command: SpecialCommand,
     kernel: Kernel,
     *,
-    state: DataFrameArchState | None = None,
+    state: ArchState | None = None,
     internal_tools_provider: Callable[[], Sequence[ToolDefinition]] | None = None,
 ) -> bool:
     """
@@ -184,7 +185,7 @@ async def handle_special_command(
 
 async def _handle_debug(  # noqa: C901, PLR0912, PLR0915  (complex by design but structured)
     kernel: Kernel,
-    state: DataFrameArchState | None,
+    state: ArchState | None,
     internal_tools_provider: Callable[[], Sequence[ToolDefinition]] | None,
 ) -> None:
     """
@@ -266,18 +267,32 @@ async def _handle_debug(  # noqa: C901, PLR0912, PLR0915  (complex by design but
     all_tools_dump: list[dict[str, Any]] = []
     issues: list[str] = []
 
-    # Data frames (optional)
     if state is not None:
+        # Data frames (optional)
         try:
             await kernel.data_frames.step_initialize(state=state)
             df_tools = list(kernel.data_frames.get_data_frame_tools())
-            names = [f"`{t.name}`" for t in df_tools]
-            _append_tool_group(message, "data_frames", names, len(df_tools))
-            await message.stream_delta()
+            df_names = [f"`{t.name}`" for t in df_tools]
+            _append_tool_group(message, "data_frames", df_names, len(df_tools))
+
             all_tools_dump.extend([t.model_dump() for t in df_tools])
         except Exception as e:
             logger.exception("/debug: data frames tools failed")
             _append_tool_group(message, "data_frames", [], 0)
+            await _append(message, f"  - <error: {e}>\n")
+
+        # Work item (optional)
+        try:
+            await kernel.work_item.step_initialize(state=state)
+            wi_tools = list(kernel.work_item.get_work_item_tools())
+            wi_names = [f"`{t.name}`" for t in wi_tools]
+            _append_tool_group(message, "work_item", wi_names, len(wi_tools))
+            await message.stream_delta()
+
+            all_tools_dump.extend([t.model_dump() for t in wi_tools])
+        except Exception as e:
+            logger.exception("/debug: work item tools failed")
+            _append_tool_group(message, "work_item", [], 0)
             await _append(message, f"  - <error: {e}>\n")
 
     # Action tool defs
@@ -312,8 +327,8 @@ async def _handle_debug(  # noqa: C901, PLR0912, PLR0915  (complex by design but
     if internal_tools_provider is not None:
         try:
             internal_tools = list(internal_tools_provider())
-            names = [f"`{t.name}`" for t in internal_tools]
-            _append_tool_group(message, "internal", names, len(internal_tools))
+            df_names = [f"`{t.name}`" for t in internal_tools]
+            _append_tool_group(message, "internal", df_names, len(internal_tools))
             await message.stream_delta()
             all_tools_dump.extend([t.model_dump() for t in internal_tools])
         except Exception as e:

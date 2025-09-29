@@ -17,6 +17,7 @@ from agent_platform.core.kernel_interfaces import (
     ThreadStateInterface,
     ToolsInterface,
     UserInteractionsInterface,
+    WorkItemInterface,
 )
 from agent_platform.core.model_selector import (
     DefaultModelSelector,
@@ -43,6 +44,7 @@ from agent_platform.server.kernel.tools import AgentServerToolsInterface
 from agent_platform.server.kernel.user_interactions import (
     AgentServerUserInteractionsInterface,
 )
+from agent_platform.server.kernel.work_item import AgentServerWorkItemInterface
 
 
 class AgentServerKernel(Kernel):
@@ -118,6 +120,8 @@ class AgentServerKernel(Kernel):
             span.add_event("initialized converters")
             self._data_frames = AgentServerDataFramesInterface()
             span.add_event("initialized data frames")
+            self._work_item = AgentServerWorkItemInterface()
+            span.add_event("initialized work item")
             self._model_platforms = []
 
             # TODO: if kernel is used in init for some interfaces,
@@ -146,6 +150,8 @@ class AgentServerKernel(Kernel):
             span.add_event("attached user interactions")
             self._data_frames.attach_kernel(self)
             span.add_event("attached data frames")
+            self._work_item.attach_kernel(self)
+            span.add_event("attached work items")
 
             # Go through agent.platform_configs and create a platform interface for each
             span.add_event("initializing model platforms")
@@ -193,6 +199,10 @@ class AgentServerKernel(Kernel):
     @property
     def data_frames(self) -> DataFramesInterface:
         return self._data_frames
+
+    @property
+    def work_item(self) -> WorkItemInterface:
+        return self._work_item
 
     @property
     def outgoing_events(self) -> EventsInterface[StreamingDelta]:

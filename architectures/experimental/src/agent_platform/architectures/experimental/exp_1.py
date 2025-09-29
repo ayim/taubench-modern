@@ -82,6 +82,7 @@ class Exp1State(aa.StateBase):
     mcp_tools: list[ToolDefinition]
     mcp_issues: list[str]
     data_frames_tools_state: Literal["enabled", ""] = ""
+    work_item_tools_state: Literal["enabled", ""] = ""
     selected_platform: str
     selected_model: str
     selected_model_provider: str
@@ -105,6 +106,7 @@ class ToolsBundle:
     client_tools: Sequence[ToolDefinition]
     internal_tools: Sequence[ToolDefinition]
     data_frames_tools: Sequence[ToolDefinition]
+    work_item_tools: Sequence[ToolDefinition]
 
     @property
     def all(self) -> tuple[ToolDefinition, ...]:
@@ -115,6 +117,7 @@ class ToolsBundle:
             *self.client_tools,
             *self.internal_tools,
             *self.data_frames_tools,
+            *self.work_item_tools,
         )
 
     def __iter__(self) -> Iterator["ToolDefinition"]:
@@ -143,7 +146,7 @@ async def entrypoint_exp_1(kernel: Kernel, state: Exp1State) -> Exp1State:
             handled = await handle_special_command(
                 cmd,
                 kernel,
-                state=state,
+                state=state,  # type: ignore[arg-type]
                 internal_tools_provider=lambda: get_internal_tools(kernel, state),
             )
             if handled:
@@ -313,6 +316,7 @@ def _initialize_state_for_run(state: Exp1State) -> None:
     state.processing_elapsed_time = "0.00 seconds"
     state.recently_called_tools = []
     state.tool_loop_detected = False
+    state.work_item_tools_state = ""
     state.memories = []
     state.action_tools = []
     state.action_issues = []
@@ -330,12 +334,16 @@ async def _gather_tools(
     force_refresh: bool = False,
 ) -> tuple[ToolsBundle, list[str]]:
     """
-    Gather tools from action packages, MCP servers, client, internal, and data-frame tools.
+    Gather tools from action packages, MCP servers, client, internal, data-frame tools,
+    and work-item tools.
     Returns:
         (ToolsBundle, configuration_issues)
     """
     await kernel.data_frames.step_initialize(state=state)
     data_frames_tools = kernel.data_frames.get_data_frame_tools()
+
+    await kernel.work_item.step_initialize(state=state)
+    work_item_tools = kernel.work_item.get_work_item_tools()
 
     if not state.action_tools or force_refresh:
         logger.info("Gathering action tools from remote servers")
@@ -361,7 +369,8 @@ async def _gather_tools(
         f"mcp={len(state.mcp_tools)}, "
         f"client={len(client)}, "
         f"internal={len(internal)}, "
-        f"data_frames={len(data_frames_tools)}",
+        f"data_frames={len(data_frames_tools)}, "
+        f"work_item={len(work_item_tools)}",
     )
     if issues:
         logger.info(f"Tool issues: {', '.join(issues)}")
@@ -372,6 +381,7 @@ async def _gather_tools(
         client_tools=client,
         internal_tools=internal,
         data_frames_tools=data_frames_tools,
+        work_item_tools=work_item_tools,
     )
 
     message.agent_metadata["tools"] = [tool.model_dump() for tool in tools_bundle.all]

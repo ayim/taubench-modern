@@ -41,6 +41,8 @@ messages:
 
           {{ kernel.data_frames.data_frames_system_prompt }}
 
+          {{ kernel.work_item.work_item_summary_with_tools }}
+
           ## Output Contract (MANDATORY)
           1. **Wrap the entire reply** in a single, top-level `<formatting>...</formatting>` block.
           2. Inside that block include, **in this order**:

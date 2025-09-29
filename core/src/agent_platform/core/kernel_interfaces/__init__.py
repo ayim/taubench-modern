@@ -21,6 +21,7 @@ from agent_platform.core.kernel_interfaces.tools import ToolsInterface
 from agent_platform.core.kernel_interfaces.user_interactions import (
     UserInteractionsInterface,
 )
+from agent_platform.core.kernel_interfaces.work_item import WorkItemInterface
 
 __all__ = [
     "ConvertersInterface",
@@ -36,4 +37,5 @@ __all__ = [
     "ThreadStateInterface",
     "ToolsInterface",
     "UserInteractionsInterface",
+    "WorkItemInterface",
 ]

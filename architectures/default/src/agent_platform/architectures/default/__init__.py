@@ -229,6 +229,12 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         await kernel.data_frames.step_initialize(state=state)
         data_frames_tools = kernel.data_frames.get_data_frame_tools()
 
+    enable_work_item = kernel.work_item.is_enabled()
+    work_item_tools: tuple[ToolDefinition, ...] = ()
+    if enable_work_item:
+        await kernel.work_item.step_initialize(state=state)
+        work_item_tools = kernel.work_item.get_work_item_tools()
+
     # Save any issues to state for introspection
     state.configuration_issues = [*action_issues, *mcp_issues]
 
@@ -260,6 +266,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
 
     tools: list[ToolDefinition] = action_tools + mcp_tools + kernel.client_tools
     tools.extend(data_frames_tools)
+    tools.extend(work_item_tools)
 
     # And let's add the tools to the prompt
     conversation_prompt = conversation_prompt.with_tools(*tools)
@@ -342,7 +349,13 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
                 kernel,
                 state,
                 message,
-                [*action_tools, *mcp_tools, *kernel.client_tools, *data_frames_tools],
+                [
+                    *action_tools,
+                    *mcp_tools,
+                    *kernel.client_tools,
+                    *data_frames_tools,
+                    *work_item_tools,
+                ],
             )
 
     # If somehow we got here with no message content, add "Processing..."

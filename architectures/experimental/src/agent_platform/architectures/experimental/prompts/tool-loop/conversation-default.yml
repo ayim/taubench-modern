@@ -168,6 +168,8 @@ messages:
           Below is the **current** summary of data frames in scope for this turn:
           {{ kernel.data_frames.data_frames_summary }}
 
+          {{ kernel.work_item.work_item_summary_with_tools }}
+
           ## System Feedback
           {%- if state.controller_feedback %}
           • Controller feedback:
