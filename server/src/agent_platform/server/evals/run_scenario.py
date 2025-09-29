@@ -150,9 +150,9 @@ async def _gather_agent_tools(
 
 
 async def _terminate_and_return_not_ok(
-    storage: StorageDependency, task_id: str, state: ExecutionState, issues: list[str]
+    storage: StorageDependency, task_id: str, state: ExecutionState, reason: str, issues: list[str]
 ) -> bool:
-    state.termination = "INVALID_AGENT_CONFIGURATION"
+    state.termination = reason
     state.status = "ERROR"
     state.error_message = "; ".join(issues)
     state.finished_at = datetime.now()
@@ -200,7 +200,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
         # this is a very edge case
         # it can happen only if an agent is updated between a run and its execution
         return await _terminate_and_return_not_ok(
-            storage, task.trial_id, state, configuration_issues
+            storage, task.trial_id, state, "INVALID_AGENT_CONFIGURATION", configuration_issues
         )
 
     server_context = AgentServerContext.from_request(
@@ -210,7 +210,13 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
         agent_id=agent.agent_id,
     )
 
-    agent_tools, _ = await _gather_agent_tools(agent, server_context)
+    agent_tools, issues = await _gather_agent_tools(agent, server_context)
+
+    if len(issues) > 0:
+        logger.info(f"Cannot upload some agent tools: {issues}")
+        return await _terminate_and_return_not_ok(
+            storage, task.trial_id, state, "TOOL_GATHERING_ISSUES", issues
+        )
 
     agent_tool_names = [tool.name for tool in agent_tools.all]
     logger.info(f"agent has the following tools available: {', '.join(agent_tool_names)}")
