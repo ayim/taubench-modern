@@ -8,6 +8,10 @@ from typing import TYPE_CHECKING
 from agent_platform.architectures.default.thread_conversion import (
     thread_messages_to_prompt_messages,
 )
+from agent_platform.core.agent_architectures.special_commands import (
+    handle_special_command,
+    parse_special_command,
+)
 from agent_platform.core.mcp.mcp_server import MCPServer
 
 if TYPE_CHECKING:
@@ -187,6 +191,15 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     kernel.converters.set_thread_message_conversion_function(
         thread_messages_to_prompt_messages,
     )
+
+    # Special commands hook (e.g., /debug, /help, /toggle, /set, /unset)
+    latest_text = kernel.thread.latest_user_message_as_text
+    cmd = parse_special_command(latest_text)
+    if cmd is not None:
+        handled = await handle_special_command(cmd, kernel, state=state)
+        if handled:
+            state.step = "done"
+            return state
 
     # Update the elapsed time
     elapsed_seconds = (

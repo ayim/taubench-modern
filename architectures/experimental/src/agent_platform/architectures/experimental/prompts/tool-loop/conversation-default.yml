@@ -94,6 +94,10 @@ messages:
             • A required tool, prerequisite, or external dependency cannot be satisfied.  
             Include a brief Runbook-referenced rationale (step IDs/names) in `reason`.
 
+          If you ever find yourself in a situation where you cannot make progress: whether it be
+          missing tools, or repeating yourself, or missing critical information, you should use a
+          terminal tool and return control to the user.
+
           ## Control Loop Contract (MUST follow all)
           1) **No assistant prose.** Do not emit natural-language text in this turn. The runtime
              ignores it.
@@ -124,14 +128,17 @@ messages:
     content:
       - kind: text
         text: |-
-          Hey, STOP! You keep calling the same tools and not making any progress.
+          [System] Hey, STOP! You keep calling the same tools and not making any progress.
+          You probably need to wrap things up, unless you're certain you can satisfy the
+          user's request in the next few turns.
   - role: agent
     include_expr: '{{ "true" if state.tool_loop_detected else "false" }}'
     content:
       - kind: text
         text: |-
-          You're right, let's get back on track. I'll call consider_runbook_adherence
-          with an assessment and next steps.
+          You're right, let's get back on track. I'll consider if it's time to use a terminal tool
+          and return control to the user. If I can't make progress, I should always communicate
+          _why_ to the user via a terminal tool.
 
   - role: user
     content:
@@ -171,7 +178,7 @@ messages:
           • No controller feedback.
           {%- endif %}
 
-          ## Configuration
+          ## Configuration Notes
           {%- if state.configuration_issues %}
           • Potential configuration issues detected:
             <configuration_issues>
@@ -180,6 +187,12 @@ messages:
           {%- else %}
           • No configuration issues reported.
           {%- endif %}
+
+          ## Environment Metadata
+          You are being driven by a Large Language Model from with the following details:
+          - Platform: {{ state.selected_platform }}
+          - Model Provider: {{ state.selected_model_provider }}
+          - Model: {{ state.selected_model }}
 
           ## Guidance for this iteration
           • The current UTC date/time is {{ kernel.current_datetime_str }}.
@@ -199,12 +212,6 @@ messages:
             information you gathered calling tools. Similarly, if you want to render buttons, you'll
             need to call the `ready_to_reply_to_user` tool.
 
-          ## Callable Tools
-          Below is a list of the tools you have access to:
-          <callable_tools_summary>
-          {{ state.callable_tools_summary }}
-          </callable_tools_summary>
-
           ## Important Reminders
           You must NEVER just reply. You need to call some tool, either a tool you have access to or
           one of the system tools: **consider_runbook_adherence / quick_reply / ready_to_reply_to_user /
@@ -218,4 +225,7 @@ messages:
           your tools. Do not give up too easily, and do _not_ miss-apply your Runbook.
 
           You must be persistent in achieving the user's request by following your Runbook. Do not
-          give up too easily.
+          give up too easily. If you're stuck (perhaps you keep doing the same thing), or if there
+          is some reason you can't make progress (some impedement or issue), don't hesistate to use
+          a terminal tool like `unable_to_satisfy_request`. Users prefer you work through issues when
+          possible, but if you're stuck, return control to the user via a terminal tool!

@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from agent_platform.core.data_server.data_connection import DataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.files.files import UploadedFile
@@ -7,6 +9,9 @@ from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import ThreadMessage
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 from agent_platform.server.storage import StorageService
+
+if TYPE_CHECKING:
+    from agent_platform.core.agent.agent import Agent
 
 
 class AgentServerStorageInterface(StorageInterface, UsesKernelMixin):
@@ -58,3 +63,7 @@ class AgentServerStorageInterface(StorageInterface, UsesKernelMixin):
     async def get_dids_data_connections(self) -> list[DataConnection]:
         """Get the DIDS data connections from storage."""
         return await self._internal_storage.get_dids_data_connections()
+
+    async def upsert_agent(self, user_id: str, agent: "Agent") -> None:
+        """Create or update an agent definition for a user."""
+        await self._internal_storage.upsert_agent(user_id, agent)

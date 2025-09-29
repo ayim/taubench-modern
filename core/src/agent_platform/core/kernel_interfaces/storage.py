@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from agent_platform.core.data_server.data_connection import DataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
@@ -6,6 +7,10 @@ from agent_platform.core.files import UploadedFile
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import ThreadMessage
+
+if TYPE_CHECKING:
+    # Import for type checking only to avoid circular imports at runtime
+    from agent_platform.core.agent import Agent
 
 
 class StorageInterface(ABC):
@@ -59,4 +64,9 @@ class StorageInterface(ABC):
     @abstractmethod
     async def get_dids_data_connections(self) -> list[DataConnection]:
         """Get the DIDS data connections from storage."""
+        pass
+
+    @abstractmethod
+    async def upsert_agent(self, user_id: str, agent: "Agent") -> None:
+        """Create or update an agent definition for a user."""
         pass

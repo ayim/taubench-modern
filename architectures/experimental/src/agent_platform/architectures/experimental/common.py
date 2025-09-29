@@ -152,21 +152,9 @@ async def consider_runbook_adherence(
         (
             "A crisp check that you are following the Runbook exactly. "
             "State which Runbook steps are complete, "
-            "which are in progress, and the next step.\n"
+            "which are in progress, and the next step."
         ),
     ],
-    next_steps: Annotated[
-        str | None,
-        (
-            "A brief summary of the next steps you will take to make progress "
-            "towards the user's request. This is optional, but if you feel the need "
-            "to plan out your next steps, you can do so here. "
-        ),
-    ] = None,
-    next_tools_to_use: Annotated[
-        ToolsToUse | None,
-        ("A list of tools to use to make progress. These need to be CALLABLE tools!!"),
-    ] = None,
 ) -> dict[str, str]:
     """Primary discipline tool for documenting adherence
     and keeping progress aligned to the Runbook. If you are
@@ -174,32 +162,11 @@ async def consider_runbook_adherence(
     this tool to reflect on what the Runbook says. NEVER call this
     tool consecutively without making progress towards the user's via
     other tools."""
-    if isinstance(next_tools_to_use, dict):
-        next_tools_to_use = ToolsToUse(
-            tools=[
-                ToolToUse(
-                    tool=tool["tool"],
-                    reason=tool["reason"],
-                    index_of_callable_tool=tool["index_of_callable_tool"],
-                    problems=tool["problems"],
-                )
-                for tool in next_tools_to_use.get("tools", [])
-            ],
-        )
-
-    notes = []
-    if next_tools_to_use:
-        for tool in next_tools_to_use.tools:
-            if tool.problems:
-                notes.append(f"Important: {tool.problems}")
-            if tool.index_of_callable_tool < 0:
-                notes.append(f"Important: {tool.tool} is NOT a callable tool!")
     return {
         "result": (
             "Runbook adherence considered. "
             "Next, I should use other tools to make progress towards the user's request. "
         )
-        + (f"Notes: {', '.join(notes)}" if notes else ""),
     }
 
 
@@ -227,7 +194,7 @@ def get_internal_tools(kernel: Kernel, state: StateWithMemories) -> list[ToolDef
         }
 
     if memory_enabled:
-        tools.append(ToolDefinition.from_callable(_remember))
+        tools.append(ToolDefinition.from_callable(_remember, name="remember"))
 
     tools.append(ToolDefinition.from_callable(quick_reply))
     tools.append(ToolDefinition.from_callable(consider_runbook_adherence))

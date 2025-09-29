@@ -17,6 +17,10 @@ from agent_platform.architectures.experimental.thread_conversion import (
 )
 from agent_platform.core import Kernel
 from agent_platform.core import agent_architectures as aa
+from agent_platform.core.agent_architectures.special_commands import (
+    handle_special_command,
+    parse_special_command,
+)
 from agent_platform.core.agent_architectures.state import PendingToolCall
 from agent_platform.core.kernel_interfaces.model_platform import PlatformInterface
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
@@ -73,8 +77,14 @@ class Exp1State(aa.StateBase):
     processing_elapsed_time: str
     recently_called_tools: list[ToolExecutionResult]
     tool_loop_detected: bool = False
-    callable_tools_summary: str = ""
+    action_tools: list[ToolDefinition]
+    action_issues: list[str]
+    mcp_tools: list[ToolDefinition]
+    mcp_issues: list[str]
     data_frames_tools_state: Literal["enabled", ""] = ""
+    selected_platform: str
+    selected_model: str
+    selected_model_provider: str
     memories: list[str] = field(default_factory=list, metadata=aa.fields.thread_scoped())
 
     @property
@@ -122,6 +132,24 @@ async def entrypoint_exp_1(kernel: Kernel, state: Exp1State) -> Exp1State:
     try:
         logger.info("Experimental architecture 1 starting")
         _initialize_state_for_run(state)
+        # Check for exact-match special commands on the latest user message
+        try:
+            latest_user_text = kernel.thread.latest_user_message_as_text
+        except Exception:
+            latest_user_text = ""
+        cmd = parse_special_command(latest_user_text)
+        if cmd is not None:
+            logger.info(f"Special command detected: {cmd}; bypassing normal loop.")
+            handled = await handle_special_command(
+                cmd,
+                kernel,
+                state=state,
+                internal_tools_provider=lambda: get_internal_tools(kernel, state),
+            )
+            if handled:
+                state.step = "done"
+                return state
+            # If not handled for some reason, continue to normal flow
         return await _process_conversation_step(kernel, state)
     except Exception:
         logger.error("Experimental architecture 1 failed", exc_info=True)
@@ -151,12 +179,8 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
     # Convert thread messages to prompt messages for this architecture
     kernel.converters.set_thread_message_conversion_function(thread_messages_to_prompt_messages)
 
-    # Tools and configuration checks
-    tools, issues = await _gather_tools(kernel, state)
-    state.configuration_issues = issues
-
     # Platform/model & family
-    platform, model, model_family = await _resolve_platform_and_model(kernel)
+    platform, model, model_family = await _resolve_platform_and_model(kernel, state)
 
     # Create the output message we stream into
     message = await kernel.thread_state.new_agent_message(
@@ -166,13 +190,18 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
     message.agent_metadata["models"] = []
     message.agent_metadata["platform"] = platform.name
     message.agent_metadata["model"] = model  # Keep for backward compatibility
-    message.agent_metadata["tools"] = [tool.model_dump() for tool in tools]
+
+    # Tools and configuration checks
+    tools, issues = await _gather_tools(kernel, state, message, force_refresh=True)
+    state.configuration_issues = issues
 
     # -------------------- Tool Loop --------------------
     while state.step != "done" and state.current_iteration < MAX_ITERATIONS:
-        # Make sure we do this _per inner tool loop_ so if we create a frame
-        # those conditional tools are readied
-        tools.data_frames_tools = await _update_dataframes_state(kernel, state, message)
+        # Outside the loop we did the expensive "get action and MCP tools"
+        # inside the loop, force_refresh defaults False and we just re-gather
+        # internal tools/client tools/data frames tools (all very low cost)
+        tools, issues = await _gather_tools(kernel, state, message)
+        state.configuration_issues = issues
 
         state.current_iteration += 1
         _update_elapsed_time(state)
@@ -284,54 +313,52 @@ def _initialize_state_for_run(state: Exp1State) -> None:
     state.processing_elapsed_time = "0.00 seconds"
     state.recently_called_tools = []
     state.tool_loop_detected = False
-    state.callable_tools_summary = ""
     state.memories = []
+    state.action_tools = []
+    state.action_issues = []
+    state.mcp_tools = []
+    state.mcp_issues = []
+    state.selected_platform = ""
+    state.selected_model = ""
+    state.selected_model_provider = ""
 
 
-async def _update_dataframes_state(
+async def _gather_tools(
     kernel: Kernel,
     state: Exp1State,
     message: ThreadMessageWithThreadState,
-) -> tuple[ToolDefinition, ...]:
-    """Helper to update dataframes state in our tool loop."""
-    await kernel.data_frames.step_initialize(state=state)
-    data_frames_tools = kernel.data_frames.get_data_frame_tools()
-
-    # If we aren't tracking tools in metadata, we can return early
-    if "tools" not in message.agent_metadata:
-        return data_frames_tools
-
-    # Reconcile tool records in metadata
-    for tool in data_frames_tools:
-        already_in_metadata = any(
-            tool.name == metadata.get("name") for metadata in message.agent_metadata["tools"]
-        )
-        if not already_in_metadata:
-            message.agent_metadata["tools"].append(tool.model_dump())
-
-    return data_frames_tools
-
-
-async def _gather_tools(kernel: Kernel, state: Exp1State) -> tuple[ToolsBundle, list[str]]:
+    force_refresh: bool = False,
+) -> tuple[ToolsBundle, list[str]]:
     """
     Gather tools from action packages, MCP servers, client, internal, and data-frame tools.
     Returns:
         (ToolsBundle, configuration_issues)
     """
+    await kernel.data_frames.step_initialize(state=state)
     data_frames_tools = kernel.data_frames.get_data_frame_tools()
 
-    action_tools, action_issues = await kernel.tools.from_action_packages(
-        kernel.agent.action_packages
-    )
-    mcp_tools, mcp_issues = await kernel.tools.from_mcp_servers(kernel.agent.mcp_servers)
+    if not state.action_tools or force_refresh:
+        logger.info("Gathering action tools from remote servers")
+        action_tools, action_issues = await kernel.tools.from_action_packages(
+            kernel.agent.action_packages
+        )
+        state.action_tools = action_tools
+        state.action_issues = action_issues
+
+    if not state.mcp_tools or force_refresh:
+        logger.info("Gathering MCP tools from remote servers")
+        mcp_tools, mcp_issues = await kernel.tools.from_mcp_servers(kernel.agent.mcp_servers)
+        state.mcp_tools = mcp_tools
+        state.mcp_issues = mcp_issues
+
     internal = get_internal_tools(kernel, state)
     client = kernel.client_tools
 
-    issues = [*action_issues, *mcp_issues]
+    issues = [*state.action_issues, *state.mcp_issues]
 
     logger.info(
-        f"Tools gathered: action={len(action_tools)}, "
-        f"mcp={len(mcp_tools)}, "
+        f"Tools gathered: action={len(state.action_tools)}, "
+        f"mcp={len(state.mcp_tools)}, "
         f"client={len(client)}, "
         f"internal={len(internal)}, "
         f"data_frames={len(data_frames_tools)}",
@@ -339,33 +366,35 @@ async def _gather_tools(kernel: Kernel, state: Exp1State) -> tuple[ToolsBundle, 
     if issues:
         logger.info(f"Tool issues: {', '.join(issues)}")
 
-    state.callable_tools_summary = ""
-    source_tool_zip = zip(
-        ("sema4ai-actions", "mcp-server", "client-tool", "internal-tool", "data-frame-tool"),
-        (action_tools, mcp_tools, client, internal, data_frames_tools),
-        strict=True,
-    )
-    for tool_idx, (source, tools) in enumerate(source_tool_zip):
-        for tool in tools:
-            state.callable_tools_summary += (
-                f"<tool index='{tool_idx + 1}' source='{source}'>{tool.name}</tool>\n"
-            )
-    state.callable_tools_summary = state.callable_tools_summary.strip()
-
-    return ToolsBundle(
-        action_tools=action_tools,
-        mcp_tools=mcp_tools,
+    tools_bundle = ToolsBundle(
+        action_tools=state.action_tools,
+        mcp_tools=state.mcp_tools,
         client_tools=client,
         internal_tools=internal,
         data_frames_tools=data_frames_tools,
-    ), issues
+    )
+
+    message.agent_metadata["tools"] = [tool.model_dump() for tool in tools_bundle.all]
+    return tools_bundle, issues
 
 
-async def _resolve_platform_and_model(kernel: Kernel):
+async def _resolve_platform_and_model(kernel: Kernel, state: Exp1State):
     """
     Resolve platform and default LLM model, plus the optional model family.
     """
     platform, model = await kernel.get_platform_and_model(model_type="llm")
+
+    # Bookkeep some of this on state so we can interpolate it into the prompt
+    if model.count("/") == 2:  # noqa: PLR2004 (platform/provider/model)
+        selected_platform, selected_model_provider, selected_model = model.split("/")
+        state.selected_platform = selected_platform
+        state.selected_model_provider = selected_model_provider
+        state.selected_model = selected_model
+    else:
+        # This shouldn't really be possible
+        state.selected_platform = platform.name
+        state.selected_model_provider = "unknown"
+        state.selected_model = model
 
     try:
         model_family = platform.client.model_map.model_families.get(model)
