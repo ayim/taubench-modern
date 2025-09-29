@@ -1,4 +1,5 @@
 from contextlib import AsyncExitStack, asynccontextmanager
+from os import getenv
 
 import structlog
 from fastapi import FastAPI
@@ -52,9 +53,9 @@ def _start_evals_background_worker() -> None:
         runner=run_scenario,
         validator=run_evaluations,
         settings=QueueSettings(
-            worker_interval=30,
-            batch_timeout=14400,
-            max_parallel_in_process=10,
+            worker_interval=int(getenv("EVALS_WORKER_INTERVAL", "5")),
+            batch_timeout=float(getenv("EVALS_BATCH_TIMEOUT", "600")),  # 10 minutes
+            max_parallel_in_process=int(getenv("EVALS_MAX_PARALLEL_IN_PROCESS", "10")),
         ),
     )
 
