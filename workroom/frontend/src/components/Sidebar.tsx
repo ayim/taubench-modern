@@ -11,7 +11,7 @@ const Container = styled.div`
   position: relative;
   user-select: none;
   padding: ${({ theme }) => theme.space.$8};
-  overflow: hidden;
+  overflow-x: hidden;
   width: var(--width);
   height: calc(100vh - ${({ theme }) => theme.sizes.$64});
   display: flex;

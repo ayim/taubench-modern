@@ -1,10 +1,20 @@
 import { FC, useEffect } from 'react';
 import { Box, Typography } from '@sema4ai/components';
+import { styled } from '@sema4ai/theme';
 import { SidebarMenu } from '@sema4ai/layouts';
 
 import { useParams } from '../../../hooks';
 import { useThreadsQuery } from '../../../queries/threads';
 import { ThreadItem } from './ThreadItem';
+
+const ScrollContainer = styled.div`
+  overflow: auto;
+  padding: 0 ${({ theme }) => theme.space.$12};
+  margin: 0 -${({ theme }) => theme.space.$12};
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+`;
 
 export const ThreadsList: FC = () => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
@@ -35,11 +45,11 @@ export const ThreadsList: FC = () => {
           History
         </Typography>
       </Box>
-      <Box display="flex" flexDirection="column">
+      <ScrollContainer>
         {threads?.map((thread) => (
           <ThreadItem key={thread.thread_id} threadId={thread.thread_id || ''} name={thread.name} scenarioId={thread.metadata?.scenario_id as string ?? null} />
         ))}
-      </Box>
+      </ScrollContainer>
     </SidebarMenu>
   );
 };

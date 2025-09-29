@@ -5,5 +5,5 @@ export const Content = styled.section`
   flex-direction: column;
   width: 100%;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
 `;

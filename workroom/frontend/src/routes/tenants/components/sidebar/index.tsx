@@ -34,6 +34,13 @@ const MenuOuterToggle = styled(Button)<{ $expanded?: boolean }>`
   }
 `;
 
+const ScrollContainer = styled.div`
+  overflow: auto;
+  padding: 0 ${({ theme }) => theme.space.$12};
+  margin: 0 -${({ theme }) => theme.space.$12};
+  flex: 1;
+`;
+
 export const Sidebar: FC = () => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { features } = useTenantContext();
@@ -67,47 +74,53 @@ export const Sidebar: FC = () => {
       <SidebarMenu name="main-menu" title="Main menu" minWidth={240} primary>
         <TenantMenu />
 
-        <Box as="nav">
-          <RouterSideNavigationLink icon={<IconAgents />} to="/tenants/$tenantId/home" params={{ tenantId }}>
-            Agents
-          </RouterSideNavigationLink>
+        <ScrollContainer>
+          <Box as="nav">
+            <RouterSideNavigationLink icon={<IconAgents />} to="/tenants/$tenantId/home" params={{ tenantId }}>
+              Agents
+            </RouterSideNavigationLink>
 
-          {features.deploymentWizard.enabled && (
+            {features.deploymentWizard.enabled && (
+              <RouterSideNavigationLink
+                icon={<IconAgents />}
+                to="/tenants/$tenantId/data-access/data-connections"
+                params={{ tenantId }}
+              >
+                Data Access
+              </RouterSideNavigationLink>
+            )}
+
+            {features.mcpServersManagement.enabled && (
+              <RouterSideNavigationLink icon={<IconMcp />} to="/tenants/$tenantId/mcp-servers" params={{ tenantId }}>
+                MCP Servers
+              </RouterSideNavigationLink>
+            )}
+
+            {false && features.agentEvals.enabled && (
+              <RouterSideNavigationLink
+                icon={<IconSettings2 />}
+                to="/tenants/$tenantId/agentEvals"
+                params={{ tenantId }}
+              >
+                Evals
+              </RouterSideNavigationLink>
+            )}
+
+            <RouterSideNavigationLink icon={<IconFileText />} to="/tenants/$tenantId/workItems" params={{ tenantId }}>
+              Work Items
+            </RouterSideNavigationLink>
+
             <RouterSideNavigationLink
-              icon={<IconAgents />}
-              to="/tenants/$tenantId/data-access/data-connections"
+              icon={<IconSettings2 />}
+              to="/tenants/$tenantId/configuration"
               params={{ tenantId }}
             >
-              Data Access
+              Configuration
             </RouterSideNavigationLink>
-          )}
+          </Box>
 
-          {features.mcpServersManagement.enabled && (
-            <RouterSideNavigationLink icon={<IconMcp />} to="/tenants/$tenantId/mcp-servers" params={{ tenantId }}>
-              MCP Servers
-            </RouterSideNavigationLink>
-          )}
-
-          {false && features.agentEvals.enabled && (
-            <RouterSideNavigationLink icon={<IconSettings2 />} to="/tenants/$tenantId/agentEvals" params={{ tenantId }}>
-              Evals
-            </RouterSideNavigationLink>
-          )}
-
-          <RouterSideNavigationLink icon={<IconFileText />} to="/tenants/$tenantId/workItems" params={{ tenantId }}>
-            Work Items
-          </RouterSideNavigationLink>
-
-          <RouterSideNavigationLink
-            icon={<IconSettings2 />}
-            to="/tenants/$tenantId/configuration"
-            params={{ tenantId }}
-          >
-            Configuration
-          </RouterSideNavigationLink>
-        </Box>
-
-        <AgentsMenu />
+          <AgentsMenu />
+        </ScrollContainer>
 
         <Box display="flex" justifyContent="space-between" mt="auto">
           <UserMenu />

@@ -12,6 +12,11 @@ export const Layout = styled.section`
 
   > aside {
     grid-area: threads;
+    overflow-x: hidden;
+
+    > div {
+      overflow-x: hidden;
+    }
   }
 
   > section {
