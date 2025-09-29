@@ -17,10 +17,16 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
     tokenIssuer: 'spar',
     type: 'none',
   },
+  files: {
+    mode: 'disabled',
+  },
   frontendMode: 'disk',
   legacyRoutingUrl: null,
   metaUrl: null,
-  port: 'NOT_USED_IN_TESTS' as unknown as number,
+  ports: {
+    internal: 'NOT_USED_IN_TESTS' as unknown as number,
+    public: 'NOT_USED_IN_TESTS' as unknown as number,
+  },
   session: null,
   tenant: {
     tenantId: 'spar-test',
@@ -122,18 +128,18 @@ describe('application', () => {
     });
 
     it('returns expected meta', async () => {
-      await request(service.app).get('/tenants/spar-test/meta').expect(200).expect({
+      await request(service.appPublic).get('/tenants/spar-test/meta').expect(200).expect({
         deploymentType: 'spar',
         workroomTenantListUrl: '/tenants/spar-test/tenants-list',
       });
     });
 
     it('returns expected proxied threads', async () => {
-      await request(service.app).get('/tenants/spar-test/agents/api/v2/threads').expect(200).expect(THREADS);
+      await request(service.appPublic).get('/tenants/spar-test/agents/api/v2/threads').expect(200).expect(THREADS);
     });
 
     it('redirects / to tenant-prefixed URL', async () => {
-      await request(service.app).get('/').expect(302).expect('location', '/tenants/spar-test/home');
+      await request(service.appPublic).get('/').expect(302).expect('location', '/tenants/spar-test/home');
     });
   });
 
@@ -158,11 +164,11 @@ describe('application', () => {
     });
 
     it('fails for missing authentication', async () => {
-      await request(service.app).get('/tenants/spar-test/tenants-list').expect(401);
+      await request(service.appPublic).get('/tenants/spar-test/tenants-list').expect(401);
     });
 
     it('succeeds for valid authentication', async () => {
-      const response = await request(service.app)
+      const response = await request(service.appPublic)
         .get('/tenants/spar-test/tenants-list')
         .set('sf-context-current-user', 'test@sema4.ai')
         .expect(200);
@@ -220,11 +226,11 @@ describe('application', () => {
     });
 
     it('returns 404 for old meta', async () => {
-      await request(service.app).get('/meta').expect(404);
+      await request(service.appPublic).get('/meta').expect(404);
     });
 
     it('returns expected meta via proxy', async () => {
-      await request(service.app)
+      await request(service.appPublic)
         .get('/tenants/ace-test/meta')
         .set('x-sema4ai-test-header', 'test value')
         .expect(200)
@@ -235,11 +241,11 @@ describe('application', () => {
     });
 
     it('fails for missing authentication', async () => {
-      await request(service.app).get('/tenants/ace-test/tenants-list').expect(401);
+      await request(service.appPublic).get('/tenants/ace-test/tenants-list').expect(401);
     });
 
     it('fails for invalid authentication', async () => {
-      await request(service.app)
+      await request(service.appPublic)
         .get('/tenants/ace-test/tenants-list')
         .set('Authorization', 'Bearer abc123')
         .expect(403);

@@ -6,6 +6,7 @@ type LogSeverity = 'INFO' | 'ERROR';
 export interface LogAttributes {
   authMode: Configuration['auth']['type'];
   authSkip: boolean;
+  contentDispositionType: string;
   count: number;
   deploymentType: 'spar';
   error?: Error;
@@ -13,9 +14,14 @@ export interface LogAttributes {
   errorMessage: string;
   errorName: string;
   errorStack: string;
+  expiresInMin: number;
+  fileId: string;
   fileName: string;
+  fileSize: number;
+  fileType: string;
   oidcIssuer: string;
   oidcRedirectUrl: string;
+  s3BucketName: string;
   sessionId: string;
   status: number;
   statusText: string;

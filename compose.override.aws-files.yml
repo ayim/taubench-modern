@@ -1,0 +1,5 @@
+services:
+    agent-server:
+        environment:
+            FILE_MANAGEMENT_API_URL: http://host.docker.internal:8002/files
+            SEMA4AI_AGENT_SERVER_FILE_MANAGER_TYPE: cloud

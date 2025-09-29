@@ -83,6 +83,8 @@
         { "name": "JWT_ISS", "value": "spar" },
         { "name": "LOG_LEVEL", "value": "DEBUG" },
         { "name": "POSTGRES_DB", "value": "${DB_NAME}" },
+        { "name": "FILE_MANAGEMENT_API_URL", "value": "http://localhost:8002/files" },
+        { "name": "SEMA4AI_AGENT_SERVER_FILE_MANAGER_TYPE", "value": "cloud" },
         { "name": "SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_SOURCE", "value": "aws" },
         {
           "name": "SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_AWS_KMS_ARN",
@@ -90,11 +92,16 @@
         },
         { "name": "SEMA4AI_AGENT_SERVER_DB_TYPE", "value": "postgres" },
         { "name": "SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "value": "true" },
+        { "name": "SEMA4AI_WORKROOM_FILES_MODE", "value": "aws" },
+        { "name": "SEMA4AI_WORKROOM_FILES_AWS_REGION", "value": "${AGENT_FILES_REGION}" },
+        { "name": "SEMA4AI_WORKROOM_FILES_AWS_ROLE_ARN", "value": "${AGENT_FILES_ROLE_ARN}" },
+        { "name": "SEMA4AI_WORKROOM_FILES_S3_BUCKET", "value": "${AGENT_FILES_BUCKET_NAME}" },
         { "name": "SEMA4AI_WORKROOM_TENANT_ID", "value": "${RELEASE_NAME}" },
         { "name": "SEMA4AI_WORKROOM_AGENT_SERVER_URL", "value": "http://localhost:8000" },
         { "name": "SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH", "value": "/app/data-server-config.json" },
         { "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES", "value": "true" },
         { "name": "SEMA4AI_WORKROOM_PORT", "value": "8001" },
+        { "name": "SEMA4AI_WORKROOM_PORT_INTERNAL", "value": "8002" },
         { "name": "SEMA4AI_WORKROOM_AUTH_MODE", "value": "oidc" }
       ],
       "healthCheck": {

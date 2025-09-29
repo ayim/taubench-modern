@@ -4,7 +4,11 @@ SPAR can be configured in a variety of manners to suit the enviroment that's hos
 
 ## Base Environment Variables
 
-The following variables are required in all scenarios below, and are primarily for use within the **agent-server** component:
+The following variables are required in all following scenarios.
+
+### Agent Server
+
+These variables are agent-server related, and can be applied to the general SPAR docker image.
 
 | Variable                                            | Example                      | Definition                         | Required  |
 | --------------------------------------------------- | ---------------------------- | ---------------------------------- | --------- |
@@ -26,22 +30,45 @@ The following variables are required in all scenarios below, and are primarily f
 > [!CAUTION]
 > You should be running SPAR with a Postgres database in all production scenarios. Use of the built-in SQLite DB is not supported outside of brief demonstration scenarios.
 
+The following variables can be added to enable authentication between the workroom and agent-server.
+
+| Variable             | Example              | Definition                          | Required |
+| -------------------- | -------------------- | ----------------------------------- | -------- |
+| `AUTH_TYPE`          | `jwt_local`          | Authentication mode.                | Yes      |
+| `JWT_ALG`            | `ES256`              | JWT algorithm.                      | Yes      |
+| `JWT_AUD`            | `agent_server`       | The JWT audience.                   | Yes      |
+| `JWT_DECODE_KEY_B64` | `LS0tLS1CRUdJTiB...` | The JWT public key, base64 encoded. | Yes      |
+| `JWT_ISS`            | `spar`               | Token issuer.                       | Yes      |
+
+### Workroom Backend
+
+These variables are workroom related, and can be applied to the general SPAR docker image.
+
+| Variable                                   | Example               | Definition                                          | Required |
+| ------------------------------------------ | --------------------- | --------------------------------------------------- | -------- |
+| `SEMA4AI_WORKROOM_AGENT_SERVER_URL`        | `http://agent-server` | URL to the agent server, non-public.                | Yes      |
+| `SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS` | `true`                | Allow non-HTTPS requests (session/cookie handling). | No       |
+| `SEMA4AI_WORKROOM_PORT`                    | `8001`                | Workroom / gateway HTTP listen port.                | Yes      |
+| `SEMA4AI_WORKROOM_PORT_INTERNAL`           | `8002`                | Internal (private) HTTP listen port.                | Yes      |
+| `SEMA4AI_WORKROOM_TENANT_ID`               | `spar`                | Tenant identifier.                                  | Yes      |
+
+The following variables can be added to enable authentication between the workroom and agent-server.
+
+| Variable                               | Example             | Definition                                             | Required |
+| -------------------------------------- | ------------------- | ------------------------------------------------------ | -------- |
+| `SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64` | `LS0tLS1CRUdJTi...` | Agent server token signing private key, base64 encoded | No       |
+
 ## Stand-alone installation w/ OIDC Authentication
 
 The following environment variables should be configured for this setup:
 
-| Variable                                   | Example               | Definition                                             |
-| ------------------------------------------ | --------------------- | ------------------------------------------------------ |
-| `SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64`     | `LS0tLS1CRUdJTi...`   | Agent server token signing private key, base64 encoded |
-| `SEMA4AI_WORKROOM_AGENT_SERVER_URL`        | `http://agent-server` | URL to the agent server, non-public.                   |
-| `SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS` | `true`                | Allow non-HTTPS requests (session/cookie handling).    |
-| `SEMA4AI_WORKROOM_AUTH_MODE`               | `oidc`                | The authentication mode to use.                        |
-| `SEMA4AI_WORKROOM_OIDC_CLIENT_ID`          | `sema4ai-oidc-prod`   | OAuth 2.0 client identifier.                           |
-| `SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET`      | `secret-value...`     | OAuth 2.0 client secret.                               |
-| `SEMA4AI_WORKROOM_OIDC_SERVER`             | `http://dev.okta.com` | The OIDC compatible server URL. See **foot notes**.    |
-| `SEMA4AI_WORKROOM_SESSION_SECRET`          | `secret-value`        | Session secret for encoding session data.              |
-| `SEMA4AI_WORKROOM_PORT`                    | `8001`                | Workroom / gateway HTTP listen port.                   |
-| `SEMA4AI_WORKROOM_TENANT_ID`               | `spar`                | Tenant identifier.                                     |
+| Variable                              | Example               | Definition                                          |
+| ------------------------------------- | --------------------- | --------------------------------------------------- |
+| `SEMA4AI_WORKROOM_AUTH_MODE`          | `oidc`                | The authentication mode to use.                     |
+| `SEMA4AI_WORKROOM_OIDC_CLIENT_ID`     | `sema4ai-oidc-prod`   | OAuth 2.0 client identifier.                        |
+| `SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET` | `secret-value...`     | OAuth 2.0 client secret.                            |
+| `SEMA4AI_WORKROOM_OIDC_SERVER`        | `http://dev.okta.com` | The OIDC compatible server URL. See **foot notes**. |
+| `SEMA4AI_WORKROOM_SESSION_SECRET`     | `secret-value`        | Session secret for encoding session data.           |
 
 > [!IMPORTANT]
 > This setup implies the use of the **Base Environment Variables** listed earlier in this document.

@@ -62,6 +62,24 @@ resource "aws_codebuild_project" "deployer" {
     }
 
     environment_variable {
+      name  = "AGENT_FILES_BUCKET_NAME"
+      value = var.agent_files_bucket_name
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "AGENT_FILES_REGION"
+      value = var.agent_files_region
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "AGENT_FILES_ROLE_ARN"
+      value = var.agent_files_role_arn
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
       name  = "AGENT_SERVER_ENCRYPTION_KMS_KEY_ARN"
       value = var.cluster_master_key_arn
       type  = "PLAINTEXT"

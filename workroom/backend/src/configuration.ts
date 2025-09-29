@@ -43,10 +43,21 @@ export interface Configuration {
     | { mode: 'disabled' }
     | { mode: 'cloud'; controlPlaneUrl: string }
     | { mode: 'local'; configurationFilePath: string };
+  files:
+    | { mode: 'disabled' }
+    | {
+        awsRegion: string;
+        awsRoleArn: string;
+        s3BucketName: string;
+        mode: 'aws';
+      };
   frontendMode: 'disk' | 'middleware';
   legacyRoutingUrl: string | null;
   metaUrl: string | null;
-  port: number;
+  ports: {
+    internal: number;
+    public: number;
+  };
   session: {
     cookieMaxAgeMs: number;
     secret: string;
@@ -62,7 +73,8 @@ export interface Configuration {
 }
 
 export const getConfiguration = (): Configuration => {
-  const port = parseEnvVariableInteger('SEMA4AI_WORKROOM_PORT');
+  const portPublic = parseEnvVariableInteger('SEMA4AI_WORKROOM_PORT');
+  const portInternal = parseEnvVariableInteger('SEMA4AI_WORKROOM_PORT_INTERNAL');
 
   const nodeEnv = (() => {
     const env = parseEnvVariable('NODE_ENV');
@@ -158,6 +170,28 @@ export const getConfiguration = (): Configuration => {
     };
   })();
 
+  const files = ((): Configuration['files'] => {
+    const mode: Configuration['files']['mode'] = process.env.SEMA4AI_WORKROOM_FILES_MODE
+      ? (parseEnvVariable('SEMA4AI_WORKROOM_FILES_MODE') as Configuration['files']['mode'])
+      : 'disabled';
+
+    switch (mode) {
+      case 'aws':
+        return {
+          awsRegion: parseEnvVariable('SEMA4AI_WORKROOM_FILES_AWS_REGION'),
+          awsRoleArn: parseEnvVariable('SEMA4AI_WORKROOM_FILES_AWS_ROLE_ARN'),
+          s3BucketName: parseEnvVariable('SEMA4AI_WORKROOM_FILES_S3_BUCKET'),
+          mode: 'aws',
+        };
+
+      case 'disabled':
+        return { mode: 'disabled' };
+
+      default:
+        exhaustiveCheck(mode);
+    }
+  })();
+
   const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
 
   const session = ((): Configuration['session'] => {
@@ -221,20 +255,26 @@ export const getConfiguration = (): Configuration => {
     ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_ROUTER_URL')
     : null;
 
-  const sparOnlyFeature =
-    process.env.SEMA4AI_ENABLE_SPAR_ONLY_FEATURES === 'true'
-      ? { enabled: true, reason: null }
-      : { enabled: false, reason: 'This feature is not available for this deployment' };
+  const enableSparOnlyFeatures = process.env.SEMA4AI_ENABLE_SPAR_ONLY_FEATURES
+    ? parseEnvVariableBoolean('SEMA4AI_ENABLE_SPAR_ONLY_FEATURES')
+    : false;
+  const sparOnlyFeature = enableSparOnlyFeatures
+    ? { enabled: true, reason: null }
+    : { enabled: false, reason: 'This feature is not available for this deployment' };
 
   return {
     agentServerInternalUrl,
     allowInsecureRequests,
     auth,
     dataServer,
+    files,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
     legacyRoutingUrl,
     metaUrl,
-    port,
+    ports: {
+      internal: portInternal,
+      public: portPublic,
+    },
     session,
     tenant,
     userIdentity: {

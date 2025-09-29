@@ -105,6 +105,13 @@ module "app-auth" {
   infra_id           = var.infra_id
 }
 
+module "agent-files-storage" {
+  source = "../modules/agent-files-storage"
+
+  ecs_runtime_role_arn = module.ecs-cluster.ecs_task_role_arn
+  infra_id             = var.infra_id
+}
+
 module "codebuild" {
   source = "../modules/codebuild"
 
@@ -116,6 +123,9 @@ module "codebuild" {
   allowed_github_subjects_write = ["repo:Sema4AI/agent-platform:*"]
   github_oidc_provider_arn      = aws_iam_openid_connect_provider.github.arn
 
+  agent_files_region            = var.aws_region
+  agent_files_role_arn          = module.agent-files-storage.storage_role_arn
+  agent_files_bucket_name       = module.agent-files-storage.bucket_name
   cluster_master_key_arn        = module.cluster-encryption.cluster_master_key_arn
   ecs_task_execution_role_arn   = module.ecs-cluster.ecs_task_execution_role_arn
   ecs_task_runtime_role_arn     = module.ecs-cluster.ecs_task_role_arn

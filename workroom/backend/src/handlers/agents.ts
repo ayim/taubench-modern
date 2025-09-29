@@ -198,6 +198,7 @@ export const createProxyHandler =
                 res.write(Buffer.from(value));
               }
             }
+
             if (isError) {
               const snippetForLog = errorSnippet.length > 0 ? ` bodySnippet="${errorSnippet}"` : '';
               monitoring.logger.error(
@@ -208,6 +209,7 @@ export const createProxyHandler =
                 },
               );
             }
+
             res.end();
           } catch (error) {
             monitoring.logger.error('Error during response stream proxying', {

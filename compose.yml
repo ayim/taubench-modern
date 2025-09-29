@@ -16,12 +16,13 @@ x-env-spar: &template-env-spar
     SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
     SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
     # Workroom
-    SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS: true
     SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
+    SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS: true
     SEMA4AI_WORKROOM_AUTH_MODE: none
     SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH: /app/data-server-config.json
     SEMA4AI_ENABLE_SPAR_ONLY_FEATURES: true
     SEMA4AI_WORKROOM_PORT: 8001
+    SEMA4AI_WORKROOM_PORT_INTERNAL: 8002
     SEMA4AI_WORKROOM_TENANT_ID: spar
 
 x-service-spar: &template-service-spar
@@ -38,9 +39,11 @@ x-service-spar: &template-service-spar
     ports:
         - "8000:8000"
         - "8001:8001"
+        - "8002:8002"
     expose:
         - "8000"
         - "8001"
+        - "8002"
     restart: unless-stopped
     networks:
         default:
@@ -143,12 +146,13 @@ services:
 #endregion
 
 #region SPAR
-    spar-no-auth:
+    spar:
         <<: *template-service-spar
         profiles:
-            - spar-no-auth
+            - spar
+            - spar-no-auth # Deprecated: Will be removed in the futrue
 
-    agent-server-no-auth:
+    agent-server:
         <<: *template-service-spar
         environment:
             <<: *template-env-spar
@@ -159,24 +163,8 @@ services:
         expose:
             - "8000"
         profiles:
-            - agent-server-no-auth
-
-    agent-server-auth:
-        <<: *template-service-spar
-        environment:
-            <<: *template-env-spar
-            AUTH_TYPE: jwt_local
-            JWT_ALG: ES256
-            JWT_AUD: agent_server
-            JWT_DECODE_KEY_B64: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFZGpZdnZIcFpnY2FQUy9TOHdJanVjYzlYcUJIYgpyUVNpOGhxSngySGhybzlDZzg3cHdnSGNpWDkwT20xUDFTTEpHaVFVL1lUeG4wbllEQllaU1AwMU9RPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
-            JWT_ISS: spar
-            DISABLED_SERVICE: workroom
-        ports:
-            - "8000:8000"
-        expose:
-            - "8000"
-        profiles:
-            - agent-server-auth
+            - agent-server
+            - agent-server-no-auth # Deprecated: Will be removed in the futrue
 #endregion
 
 volumes:

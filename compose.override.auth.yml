@@ -1,0 +1,21 @@
+x-env-agent-server-auth: &template-agent-server-auth
+  AUTH_TYPE: jwt_local
+  JWT_ALG: ES256
+  JWT_AUD: agent_server
+  JWT_DECODE_KEY_B64: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFZGpZdnZIcFpnY2FQUy9TOHdJanVjYzlYcUJIYgpyUVNpOGhxSngySGhybzlDZzg3cHdnSGNpWDkwT20xUDFTTEpHaVFVL1lUeG4wbllEQllaU1AwMU9RPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
+  JWT_ISS: spar
+
+services:
+    spar:
+        environment:
+            <<: *template-agent-server-auth
+            SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64: ${SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64}
+            SEMA4AI_WORKROOM_AUTH_MODE: ${SEMA4AI_WORKROOM_AUTH_MODE}
+            SEMA4AI_WORKROOM_OIDC_CLIENT_ID: ${SEMA4AI_WORKROOM_OIDC_CLIENT_ID}
+            SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET: ${SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET}
+            SEMA4AI_WORKROOM_OIDC_SERVER: ${SEMA4AI_WORKROOM_OIDC_SERVER}
+            SEMA4AI_WORKROOM_SESSION_SECRET: ${SEMA4AI_WORKROOM_SESSION_SECRET}
+
+    agent-server:
+        environment:
+            <<: *template-agent-server-auth

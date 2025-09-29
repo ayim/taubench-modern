@@ -16,6 +16,10 @@
     "test:types": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.896.0",
+    "@aws-sdk/client-sts": "3.896.0",
+    "@aws-sdk/s3-presigned-post": "3.896.0",
+    "@aws-sdk/s3-request-presigner": "3.896.0",
     "@isaacs/ttlcache": "^1.4.1",
     "@sema4ai/agent-server-interface": "*",
     "@sema4ai/robocloud-auth-utils": "^4.0.9",

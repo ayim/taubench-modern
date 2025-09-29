@@ -6,9 +6,11 @@ import express, { type Application, type NextFunction, type Request, type Respon
 import createRouter from 'express-promise-router';
 import { AuthManager } from './auth/AuthManager.js';
 import type { Configuration } from './configuration.js';
+import { createFilesManager } from './files/filesManagement.js';
 import { createGetAgentMeta, createProxyHandler } from './handlers/agents.js';
 import { createLogoutHandler } from './handlers/auth.js';
 import { createConfigureDocumentIntelligence } from './handlers/document-intelligence.js';
+import { createFilesRouter } from './handlers/files.js';
 import { createHealthCheck } from './handlers/health.js';
 import { createGetMeta, createGetSparTenantsList } from './handlers/meta.js';
 import { createOIDCCallbackHandler } from './handlers/oidc.js';
@@ -34,7 +36,8 @@ export const createApplication = async ({
   configuration: Configuration;
   monitoring: MonitoringContext;
 }): Promise<{
-  app: Application;
+  appPublic: Application;
+  appInternal: Application;
   start: () => Promise<void>;
   stop: () => Promise<void>;
 }> => {
@@ -53,21 +56,26 @@ export const createApplication = async ({
     throw new Error(`Unexpected - failed initializing auth system: ${initAuthResult.error.message}`);
   }
 
+  const filesManager =
+    configuration.files.mode !== 'disabled' ? await createFilesManager({ configuration, monitoring }) : null;
+
   const sessionManager = new SessionManager({
     monitoring,
     secret: configuration.session?.secret ?? '__SESSION_MANAGER_NOT_ACTIVE__',
     store: createSessionMemoryStore(),
   });
 
-  const app = express();
-  const server = http.createServer(app);
+  const appPublic = express();
+  const serverPublic = http.createServer(appPublic);
 
-  app.set('trust proxy', 1);
-  app.disable('x-powered-by');
-  app.use(poweredByHeaders);
-  // @TODO: Lock down CORS to public domain / explicit headers
-  app.use(cors());
-  app.use(
+  const appInternal = express();
+  const serverInternal = http.createServer(appInternal);
+
+  appPublic.set('trust proxy', 1);
+  appPublic.disable('x-powered-by');
+  appPublic.use(poweredByHeaders);
+  appPublic.use(cors());
+  appPublic.use(
     createSessionMiddleware({
       configuration,
       monitoring,
@@ -75,10 +83,14 @@ export const createApplication = async ({
     }),
   );
 
-  app.get('/healthz', createHealthCheck());
-  app.get('/ready', createHealthCheck());
+  appInternal.disable('x-powered-by');
+  appInternal.use(poweredByHeaders);
 
-  app.use(createRequestLogger({ monitoring }));
+  appInternal.get('/healthz', createHealthCheck());
+  appInternal.get('/ready', createHealthCheck());
+
+  appPublic.use(createRequestLogger({ monitoring }));
+  appInternal.use(createRequestLogger({ monitoring }));
 
   const { handleWebsocketUpgrade } = initializeWebSocketProxying({
     authManager,
@@ -88,7 +100,7 @@ export const createApplication = async ({
     sessionManager,
     targetBaseUrl: configuration.agentServerInternalUrl,
   });
-  server.on('upgrade', (...eventArgs) =>
+  serverPublic.on('upgrade', (...eventArgs) =>
     handleWebsocketUpgrade(...eventArgs).catch((err) => {
       monitoring.logger.error('Websocket upgrade failed', {
         error: err as Error,
@@ -97,7 +109,7 @@ export const createApplication = async ({
   );
 
   const tenantRouter = createRouter({ mergeParams: true });
-  app.use('/tenants/:tenantId', tenantRouter);
+  appPublic.use('/tenants/:tenantId', tenantRouter);
 
   tenantRouter.use(
     createTenantExtractionMiddleware({
@@ -305,16 +317,18 @@ export const createApplication = async ({
   );
 
   // Index bounce
-  app.get('/', (_req, res) => {
+  appPublic.get('/', (_req, res) => {
     res
       .set('x-sema4ai-redirect-source', 'spar-gateway')
       .redirect(302, `/tenants/${configuration.tenant.tenantId}/home`);
   });
 
-  app.get('/oauth', (req, res) => {
+  appPublic.get('/oauth', (req, res) => {
     const tenantPrefix = `/tenants/${configuration.tenant.tenantId}`;
     res.set('x-sema4ai-redirect-source', 'spar-gateway').redirect(302, tenantPrefix + req.originalUrl);
   });
+
+  appInternal.use('/files', createFilesRouter({ configuration, filesManager, monitoring }));
 
   // Static routes / Frontend handling
   if (configuration.frontendMode === 'disk') {
@@ -341,12 +355,12 @@ export const createApplication = async ({
         },
       }),
     );
-    app.use(viteDevServer.middlewares);
+    appPublic.use(viteDevServer.middlewares);
   } else {
     exhaustiveCheck(configuration.frontendMode);
   }
 
-  app.use((error: Error, req: Request, res: Response, _next: NextFunction) => {
+  appPublic.use((error: Error, req: Request, res: Response, _next: NextFunction) => {
     monitoring.logger.error('Request failed due to an internal error', {
       error,
       requestMethod: req.method,
@@ -359,17 +373,32 @@ export const createApplication = async ({
   });
 
   return {
-    app,
+    appPublic,
+    appInternal,
 
     start: async () => {
-      monitoring.logger.info('Starting server', {
-        port: configuration.port,
+      monitoring.logger.info('Starting public server', {
+        port: configuration.ports.public,
       });
 
       await new Promise<void>((resolve) => {
-        server.listen(configuration.port, () => {
-          monitoring.logger.info('Server listening', {
-            port: configuration.port,
+        serverPublic.listen(configuration.ports.public, () => {
+          monitoring.logger.info('Public server listening', {
+            port: configuration.ports.public,
+          });
+
+          resolve();
+        });
+      });
+
+      monitoring.logger.info('Starting internal server', {
+        port: configuration.ports.internal,
+      });
+
+      await new Promise<void>((resolve) => {
+        serverInternal.listen(configuration.ports.internal, () => {
+          monitoring.logger.info('Internal server listening', {
+            port: configuration.ports.internal,
           });
 
           resolve();
@@ -379,16 +408,32 @@ export const createApplication = async ({
 
     stop: async () => {
       await new Promise<void>((resolve, reject) => {
-        server.close((err?: Error) => {
+        serverPublic.close((err?: Error) => {
           if (err) {
-            monitoring.logger.error('Server shutdown failed', {
+            monitoring.logger.error('Public server shutdown failed', {
               error: err,
             });
 
             return reject(err);
           }
 
-          monitoring.logger.info('Server shutdown complete');
+          monitoring.logger.info('Public server shutdown complete');
+
+          resolve();
+        });
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        serverInternal.close((err?: Error) => {
+          if (err) {
+            monitoring.logger.error('Internal server shutdown failed', {
+              error: err,
+            });
+
+            return reject(err);
+          }
+
+          monitoring.logger.info('Internal server shutdown complete');
 
           resolve();
         });

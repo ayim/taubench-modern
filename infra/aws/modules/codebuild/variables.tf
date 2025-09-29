@@ -49,3 +49,15 @@ variable "vpc_subnet_ids" {
 variable "alb_targets_security_group_id" {
   type = string
 }
+
+variable "agent_files_region" {
+  type = string
+}
+
+variable "agent_files_role_arn" {
+  type = string
+}
+
+variable "agent_files_bucket_name" {
+  type = string
+}
