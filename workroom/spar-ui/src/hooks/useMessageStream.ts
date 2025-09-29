@@ -296,6 +296,10 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
   const [streamingMessages, setStreamingMessages] = useState<ThreadMessage[] | undefined>(undefined);
   const [streamError, setStreamError] = useState<AgentErrorStreamPayload | undefined>(undefined);
 
+  const isStreaming = streamingMessages?.some(message => 
+    message.role === 'agent' && !message.complete
+  ) ?? false;
+
   const sendMessage = async (text: string, files: File[]) => {
     const uploadedAttachments = files.length ? await uploadFiles({ files }) : [];
     if (files.length) {
@@ -350,5 +354,6 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     uploadingFiles,
     streamError,
     sendClientToolMessage,
+    isStreaming,
   };
 };

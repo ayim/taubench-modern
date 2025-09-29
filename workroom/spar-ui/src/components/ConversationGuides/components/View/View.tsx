@@ -33,7 +33,7 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
     agentId,
   });
   const { mutate: updateAgentQuestionGroups, isPending: isUpdating } = useUpdateAgentQuestionGroupsMutation({});
-  const { sendMessage } = useMessageStream({ agentId, threadId });
+  const { sendMessage, isStreaming } = useMessageStream({ agentId, threadId });
 
   const handleOpenUpsertSectionDialog = () => {
     setEditingIndex(null);
@@ -256,6 +256,7 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
                 <ConversationGuideCard 
                   title={question} 
                   onClick={() => sendMessage(question, [])} 
+                  disabled={isStreaming}
                 />
               ))}
               </Box>
