@@ -1,12 +1,13 @@
-import { FC, useEffect, useRef, useState } from 'react';
-import { styled } from '@sema4ai/theme';
-import { Box, Button, Input, Menu, Progress, useSnackbar } from '@sema4ai/components';
+import { Box, Button, Input, Menu, Progress, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
 import { IconChemicalBottle, IconDotsHorizontal } from '@sema4ai/icons';
 import { useConfirmAction } from '@sema4ai/layouts';
+import { styled } from '@sema4ai/theme';
+import { FC, useEffect, useRef, useState } from 'react';
 
+import { formatDateTime } from '../../../common/helpers';
+import { SidebarLink } from '../../../common/link';
 import { useNavigate, useParams } from '../../../hooks';
 import { useDeleteThreadMutation, useThreadsQuery, useUpdateThreadMutation } from '../../../queries/threads';
-import { SidebarLink } from '../../../common/link';
 
 type ThreadItemProps = {
   threadId: string;
@@ -33,6 +34,37 @@ const Container = styled(Box)<{ $hovered: boolean }>`
     }
   }
 `;
+
+const ToolTipContent: FC<{ name: string; createdAt?: string }> = ({ name, createdAt }) => {
+  return (
+    <>
+      <Typography fontWeight="medium" mb="$4">
+        {name}
+      </Typography>
+      {createdAt && (
+        <Box display="flex">
+          Created:
+          <Typography ml="$8" fontWeight="medium">
+            {formatDateTime(createdAt)}
+          </Typography>
+        </Box>
+      )}
+      {/* 
+      TODO: add last message time when info is available
+      right now we don't have information on last message time
+      https://linear.app/sema4ai/issue/CLOUD-5343/feat-last-message-sent 
+       */}
+      {/* {updatedAt && (
+        <Box display="flex">
+          Last message:
+          <Typography ml="$8" as="span" fontWeight="medium">
+            {formatDateTime(updatedAt)}
+          </Typography>
+        </Box>
+      )} */}
+    </>
+  );
+};
 
 export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) => {
   const { agentId, threadId: activeThreadId } = useParams('/thread/$agentId/$threadId');
@@ -125,25 +157,29 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
     );
   }
 
+  const thread = threads?.find((curr) => curr.thread_id === threadId);
+
   return (
-    <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center" $hovered={menuVisible}>
-      {isDeleting && <Progress variant="page" />}
+    <Tooltip text={<ToolTipContent name={name} createdAt={thread?.created_at} />} placement="bottom-end" $nowrap>
+      <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center" $hovered={menuVisible}>
+        {isDeleting && <Progress variant="page" />}
 
-      <SidebarLink to="/thread/$agentId/$threadId" params={{ threadId, agentId }}>
-        <Box display="flex" alignItems="center" gap="$8">
-        {scenarioId && <IconChemicalBottle size={20} />}
-        {name}
-        </Box>
-      </SidebarLink>
+        <SidebarLink to="/thread/$agentId/$threadId" params={{ threadId, agentId }}>
+          <Box display="flex" alignItems="center" gap="$8">
+            {scenarioId && <IconChemicalBottle size={20} />}
+            {name}
+          </Box>
+        </SidebarLink>
 
-      <Menu
-        visible={menuVisible}
-        setVisible={setMenuVisible}
-        trigger={<Button variant="ghost-subtle" size="small" icon={IconDotsHorizontal} aria-label="Thread actions" />}
-      >
-        <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
-        <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
-      </Menu>
-    </Container>
+        <Menu
+          visible={menuVisible}
+          setVisible={setMenuVisible}
+          trigger={<Button variant="ghost-subtle" size="small" icon={IconDotsHorizontal} aria-label="Thread actions" />}
+        >
+          <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
+          <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
+        </Menu>
+      </Container>
+    </Tooltip>
   );
 };

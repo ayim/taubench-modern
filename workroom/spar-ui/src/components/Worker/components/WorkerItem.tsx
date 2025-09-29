@@ -1,12 +1,16 @@
-import { Box, Typography } from '@sema4ai/components';
+import { components } from '@sema4ai/agent-server-interface';
+import { Box, Tooltip, Typography } from '@sema4ai/components';
 import { IconLoading } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { FC, useEffect } from 'react';
 
 import { useSparUIContext } from '../../../api/context';
+import { formatDateTime } from '../../../common/helpers';
 import { SidebarLink } from '../../../common/link';
 import { useParams } from '../../../hooks';
 import { useWorkItemQuery } from '../../../queries/workItems';
+
+type WorkItem = components['schemas']['WorkItem'];
 
 type WorkItemProps = {
   workItemId: string;
@@ -23,6 +27,43 @@ const Container = styled(Box)`
     white-space: nowrap;
   }
 `;
+
+const ToolTipContent: FC<Pick<WorkItem, 'created_at' | 'updated_at' | 'status'> & { name: string }> = ({
+  name,
+  created_at: createdAt,
+  updated_at: updatedAt,
+  status,
+}) => {
+  return (
+    <>
+      <Typography fontWeight="medium" mb="$4">
+        {name}
+      </Typography>
+      <Box display="flex">
+        Status:
+        <Typography ml="$8" as="span" fontWeight="medium">
+          {status}
+        </Typography>
+      </Box>
+      {createdAt && (
+        <Box display="flex">
+          Created:
+          <Typography ml="$8" as="span" fontWeight="medium">
+            {formatDateTime(createdAt)}
+          </Typography>
+        </Box>
+      )}
+      {updatedAt && (
+        <Box display="flex">
+          Last updated:
+          <Typography ml="$8" as="span" fontWeight="medium">
+            {formatDateTime(updatedAt)}
+          </Typography>
+        </Box>
+      )}
+    </>
+  );
+};
 
 export const WorkerItem: FC<WorkItemProps> = ({ workItemId, name }) => {
   const {
@@ -71,10 +112,23 @@ export const WorkerItem: FC<WorkItemProps> = ({ workItemId, name }) => {
   }
 
   return (
-    <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center">
-      <SidebarLink to="/workItem/$agentId/$workItemId/$threadId" params={{ agentId, workItemId, threadId }}>
-        {name}
-      </SidebarLink>
-    </Container>
+    <Tooltip
+      text={
+        <ToolTipContent
+          name={name}
+          created_at={workItem?.created_at}
+          updated_at={workItem?.updated_at}
+          status={workItem?.status}
+        />
+      }
+      placement="bottom-end"
+      $nowrap
+    >
+      <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center">
+        <SidebarLink to="/workItem/$agentId/$workItemId/$threadId" params={{ agentId, workItemId, threadId }}>
+          {name}
+        </SidebarLink>
+      </Container>
+    </Tooltip>
   );
 };
