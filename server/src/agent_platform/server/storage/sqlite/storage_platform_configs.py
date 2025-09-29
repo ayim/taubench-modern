@@ -34,7 +34,7 @@ class SQLiteStoragePlatformConfigsMixin(CursorMixin, CommonMixin):
 
         # 3. Insert the platform params
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2_platform_params (
@@ -123,7 +123,7 @@ class SQLiteStoragePlatformConfigsMixin(CursorMixin, CommonMixin):
 
         # 3. Update the platform params with user access check
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     UPDATE v2_platform_params
@@ -157,7 +157,7 @@ class SQLiteStoragePlatformConfigsMixin(CursorMixin, CommonMixin):
         # 1. Validate the uuids
         self._validate_uuid(platform_params_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # 2. Delete the platform params with user access check
             await cur.execute(
                 """

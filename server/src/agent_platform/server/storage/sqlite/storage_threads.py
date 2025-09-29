@@ -140,7 +140,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         thread_dict["metadata"] = json.dumps(thread_dict["metadata"])
 
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 # Insert or update the thread
                 # Use a separate parameter for the requesting user so access checks are correct
                 params = thread_dict | {"requester_user_id": user_id}
@@ -165,6 +165,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     """,
                     params,
                 )
+
                 row = await cur.fetchone()
                 if not row:
                     # No row returned from RETURNING indicates access denied
@@ -188,7 +189,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         self._validate_uuid(user_id)
         self._validate_uuid(thread_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 SELECT v2_check_user_access(t.user_id, :user_id) AS has_access
@@ -203,7 +204,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
             if not row["has_access"]:
                 raise UserAccessDeniedError(f"Access denied to thread {thread_id}")
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2_thread
@@ -239,7 +240,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         if thread_ids:
             for tid in thread_ids:
                 self._validate_uuid(tid)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             if thread_ids:
                 await cur.execute(
                     """

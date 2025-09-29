@@ -36,7 +36,7 @@ class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
         self._validate_uuid(thread_id)
 
         try:
-            async with self._cursor(cursor) as cur:
+            async with self._transaction() as cur:
                 # 1) Delete existing messages
                 await cur.execute(
                     "DELETE FROM v2_thread_message WHERE thread_id = :thread_id",
@@ -103,7 +103,7 @@ class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
         self._validate_uuid(thread_id)
 
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                 SELECT v2_check_user_access(t.user_id, :user_id) AS has_access
@@ -249,7 +249,7 @@ class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
         self._validate_uuid(thread_id)
         self._validate_uuid(message_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """SELECT sequence_number, role FROM v2_thread_message
                 WHERE thread_id = :thread_id

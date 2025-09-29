@@ -65,7 +65,7 @@ class SQLiteStorageUsersMixin(CursorMixin, CommonMixin):
         user_id = str(uuid4())
         created_at = datetime.now(UTC)
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2_user (user_id, sub, created_at)
@@ -104,7 +104,7 @@ class SQLiteStorageUsersMixin(CursorMixin, CommonMixin):
         Delete a user by ID.
         """
         self._validate_uuid(user_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 "DELETE FROM v2_user WHERE user_id = :user_id",
                 {"user_id": user_id},

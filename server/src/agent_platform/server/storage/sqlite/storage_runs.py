@@ -33,7 +33,7 @@ class SQLiteStorageRunsMixin(CursorMixin, CommonMixin):
         # Convert the metadata dict to a JSON string
         run_dict["metadata"] = json.dumps(run_dict["metadata"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2_agent_runs (
@@ -119,7 +119,7 @@ class SQLiteStorageRunsMixin(CursorMixin, CommonMixin):
         run_dict = run.model_dump()
         run_dict["metadata"] = json.dumps(run_dict["metadata"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2_agent_runs (
@@ -156,7 +156,7 @@ class SQLiteStorageRunsMixin(CursorMixin, CommonMixin):
     async def delete_run(self, run_id: str) -> None:
         """Delete a run record. Raises RunNotFoundError if the run does not exist."""
         self._validate_uuid(run_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2_agent_runs
@@ -186,7 +186,7 @@ class SQLiteStorageRunsMixin(CursorMixin, CommonMixin):
         run_step_dict["output_state"] = json.dumps(run_step_dict["output_state"])
         run_step_dict["metadata"] = json.dumps(run_step_dict["metadata"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2_agent_run_steps (

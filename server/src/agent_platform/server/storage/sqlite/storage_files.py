@@ -312,7 +312,7 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
 
         self._logger.debug("Deleting file by ID", file_id=file_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             row = await self._get_file_for_deletion(cur, file_id, user_id, thread_id, work_item_id)
 
             if SystemConfig.file_manager_type == "local":
@@ -411,7 +411,7 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
         )
         self._logger.debug(f"File dict: {file_dict}")
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             try:
                 # Try to insert/update the file
                 # We want files to be unique per name (file_ref), agent and thread.
@@ -510,7 +510,7 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
             thread_id=thread_id,
         )
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             result = await cur.execute(
                 """
                 UPDATE v2_file_owner SET
@@ -547,7 +547,7 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
             file_path=file_path,
         )
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # First check access
             await cur.execute(
                 """

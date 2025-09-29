@@ -31,7 +31,7 @@ class SQLiteStorageMemoriesMixin(CursorMixin, CommonMixin):
         memory_dict["refs"] = json.dumps(memory_dict["refs"])
 
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2_memory (
@@ -110,7 +110,7 @@ class SQLiteStorageMemoriesMixin(CursorMixin, CommonMixin):
         memory_dict["tags"] = json.dumps(memory_dict["tags"])
         memory_dict["refs"] = json.dumps(memory_dict["refs"])
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 INSERT INTO v2_memory (
@@ -150,7 +150,7 @@ class SQLiteStorageMemoriesMixin(CursorMixin, CommonMixin):
     async def delete_memory(self, memory_id: str) -> None:
         """Delete a memory record. Raises MemoryNotFoundError if not found."""
         self._validate_uuid(memory_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2_memory

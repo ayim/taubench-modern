@@ -143,7 +143,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
             agent_dict[field] = json.dumps(agent_dict.get(field))
 
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 # First attempt an INSERT with DO NOTHING to avoid errors
                 await cur.execute(
                     """
@@ -314,7 +314,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
     async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     UPDATE v2_agent
@@ -423,7 +423,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                 f"User {user_id} does not have access to agent {agent_id}",
             )
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2_agent
@@ -573,7 +573,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         """
         self._validate_uuid(agent_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # First, remove existing associations
             await cur.execute(
                 """DELETE FROM v2_agent_platform_params

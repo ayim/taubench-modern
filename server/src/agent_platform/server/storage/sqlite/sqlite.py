@@ -1,3 +1,4 @@
+import asyncio
 import re
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -7,7 +8,7 @@ from pathlib import Path
 from typing import ClassVar
 
 import sqlalchemy as sa
-from aiosqlite import Cursor, Row, connect
+from aiosqlite import Connection, Cursor, Row, connect
 from sqlalchemy.ext.asyncio import create_async_engine
 from structlog import get_logger
 
@@ -150,6 +151,9 @@ class SQLiteStorage(
 
     V2_PREFIX = "v2_"
 
+    _read_conn: Connection | None = None
+    _write_conn: Connection | None = None
+
     def __init__(self, db_path: str | None = None):
         # Initialize all parent mixins (including CommonMixin for secret manager)
         super().__init__()
@@ -158,6 +162,7 @@ class SQLiteStorage(
         self._db_path = db_path or self._get_db_path()
         self._migrations = SQLiteMigrations(self._db_path)
         self._is_setup = False
+        self._write_lock = asyncio.Lock()
         _register_sqlite_adapters()
 
     async def setup(self) -> None:
@@ -166,9 +171,11 @@ class SQLiteStorage(
         if self._is_setup:
             return  # Already setup
 
-        self._db = await connect(self._db_path)
-        await self._db.execute("PRAGMA foreign_keys = ON")
-        self._db.row_factory = Row
+        # Initialize dedicated read and write connections
+        # Some imprecise benchmarking shows a 2-3x slowdown creating a new connection
+        # for every read operation.
+        self._write_conn = await self._conn_factory()
+        self._read_conn = await self._conn_factory()
 
         # Initialize SQLAlchemy engine
         sqlite_url = f"sqlite+aiosqlite:///{self._db_path}"
@@ -177,6 +184,29 @@ class SQLiteStorage(
             echo=False,
             connect_args={"check_same_thread": False},
         )
+
+        # Run migrations in setup
+        await self._run_migrations()
+
+        # Run database reflection for SQLAlchemy
+        await self._reflect_database()
+
+        self._is_setup = True
+
+    async def _conn_factory(self) -> Connection:
+        """
+        Create and configure a new SQLite connection.
+        """
+        # Increase timeout to 10 seconds (from 5seconds) to avoid "Database is locked" errors
+        # TODO allow this value to be configurable.
+        conn = await connect(self._db_path, timeout=10)
+
+        await conn.execute("PRAGMA foreign_keys = ON")
+        # Keep turn on WAL mode, avoids reads and writes from blocking each other
+        await conn.execute("PRAGMA journal_mode = WAL")
+        # Fsync less often, but still "enough".
+        await conn.execute("PRAGMA synchronous = NORMAL")
+        conn.row_factory = Row
 
         # ---------------------------------------------------------------------
         # Register the check_user_access function in SQLite
@@ -190,29 +220,36 @@ class SQLiteStorage(
             - Else no access
             Because SQLite UDFs must be synchronous, we use the synchronous connection.
             """
-            if self._db is None:
-                raise RuntimeError("Database not initialized; call setup_v2() first.")
+            if not self._is_setup:
+                raise RuntimeError("Database not initialized; call setup() first.")
 
-            cursor = self._db._conn.execute(
-                """
-                SELECT sub
-                FROM v2_user
-                WHERE user_id = ?
-                """,
-                (record_user_id,),
-            )
-            record_user = cursor.fetchone()
+            try:
+                cursor0 = conn._conn.execute(
+                    """
+                    SELECT sub
+                    FROM v2_user
+                    WHERE user_id = ?
+                    """,
+                    (record_user_id,),
+                )
+                record_user = cursor0.fetchone()
+            finally:
+                if cursor0 is not None:
+                    cursor0.close()
 
-            cursor = self._db._conn.execute(
-                """
-                SELECT sub
-                FROM v2_user
-                WHERE user_id = ?
-                """,
-                (requesting_user_id,),
-            )
-            requesting_user = cursor.fetchone()
-            cursor.close()
+            try:
+                cursor1 = conn._conn.execute(
+                    """
+                    SELECT sub
+                    FROM v2_user
+                    WHERE user_id = ?
+                    """,
+                    (requesting_user_id,),
+                )
+                requesting_user = cursor1.fetchone()
+            finally:
+                if cursor1 is not None:
+                    cursor1.close()
 
             if record_user is None or requesting_user is None:
                 return 0
@@ -236,27 +273,26 @@ class SQLiteStorage(
             return 0
 
         # Create the function in the current DB connection
-        await self._db.create_function("v2_check_user_access", 2, check_user_access)
+        await conn.create_function("v2_check_user_access", 2, check_user_access)
 
-        # Run migrations
-        await self._run_migrations()
-
-        # Run database reflection for SQLAlchemy
-        await self._reflect_database()
-
-        self._is_setup = True
+        return conn
 
     async def teardown(self) -> None:
         """Close the SQLite database connection."""
         # Close SQLAlchemy engine
         if hasattr(self, "_engine") and self._engine is not None:
             await self._engine.dispose()
-            self._engine = None
+            self._engine = None  # type: ignore
 
-        if self._is_setup and self._db is not None:
-            await self._db.close()
-            self._db = None
-        self._is_setup = False
+        if self._is_setup:
+            if self._write_conn is not None:
+                await self._write_conn.close()
+                self._write_conn = None
+            if self._read_conn is not None:
+                await self._read_conn.close()
+                self._read_conn = None
+
+            self._is_setup = False
 
     def _get_db_path(self) -> str:
         """Get the SQLite database path."""
@@ -273,15 +309,36 @@ class SQLiteStorage(
     @asynccontextmanager
     async def _cursor(
         self,
-        cursor: Cursor | None = None,
+    ) -> AsyncGenerator[Cursor, None]:
+        """Yield an async SQLite cursor"""
+        if not self._read_conn:
+            raise RuntimeError("Database not initialized; call setup() first.")
+        yield await self._read_conn.cursor()
+
+    @asynccontextmanager
+    async def _transaction(
+        self,
     ) -> AsyncGenerator[Cursor, None]:
         """Yield an async SQLite cursor and then commit on exit."""
-        if not self._db:
-            raise RuntimeError("Database not initialized; call setup_v2() first.")
-        if cursor is None:
-            cursor = await self._db.cursor()
-        yield cursor
-        await self._db.commit()
+        # TODO handle reeentrant transactions
+        if not self._write_conn:
+            raise RuntimeError("Database not initialized; call setup() first.")
+
+        # Because we have all callers sharing the same write connection, we need
+        # to explicitly lock it to avoid concurrent commits on this one connection.
+        # Like read connection latency, we don't want to open a new connection every
+        # time. We need to figure come back and rework how we inject database connections.
+        await self._write_lock.acquire()
+
+        try:
+            yield await self._write_conn.cursor()
+
+            await self._write_conn.commit()
+        except Exception as e:
+            await self._write_conn.rollback()
+            raise e
+        finally:
+            self._write_lock.release()
 
     def _clean_up_stale_threads__get_threshold(
         self,

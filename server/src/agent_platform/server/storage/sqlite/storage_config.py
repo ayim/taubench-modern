@@ -57,7 +57,7 @@ class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
         record_id = str(uuid.uuid4())
         updated_at = datetime.now(UTC).isoformat()
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 INSERT INTO v2_agent_config (id, config_type, namespace, config_value, updated_at)

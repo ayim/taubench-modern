@@ -51,7 +51,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
         user, _ = await self.get_or_create_user(work_item.user_id)
         work_item_dict["user_subject"] = user.sub
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 INSERT INTO v2_work_items (
@@ -158,7 +158,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
         self._validate_uuid(user_id)
         self._validate_uuid(work_item_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 UPDATE v2_work_items
@@ -208,7 +208,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
             "status_updated_by": completed_by.as_status_updated_by().value,
         }
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(query, params)
 
     # ------------------------------------------------------------------
@@ -217,7 +217,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
     async def get_pending_work_item_ids(self, limit: int = 10) -> list[str]:
         """Atomically move the next PENDING work-items to EXECUTING and return their IDs."""
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # 1. Select candidate IDs in a CTE ordered by created_at, limited by *limit*
             # 2. Update their status to EXECUTING and return the IDs in one statement
             await cur.execute(
@@ -261,7 +261,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
         params = {f"id{i}": wid for i, wid in enumerate(work_item_ids)}
         params["error"] = WorkItemStatus.ERROR.value
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 f"""
                 UPDATE v2_work_items
@@ -289,7 +289,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
 
         thread_messages = await self.get_thread_messages(thread_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 UPDATE v2_work_items
@@ -330,7 +330,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
             else "[]"
         )
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 UPDATE v2_work_items

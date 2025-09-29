@@ -40,7 +40,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
         # This is important for syncing the MCP servers list from a file, such as when
         # adding or removing MCP servers to match the list defined in a configuration file.
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                 INSERT INTO v2_mcp_server (
@@ -293,7 +293,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
 
         # 3. Update the MCP server
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     UPDATE v2_mcp_server
@@ -331,7 +331,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
         for server_id in mcp_server_ids:
             self._validate_uuid(server_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # 2. Delete the MCP servers
             # Multiple delete - use IN clause with dynamic parameters
             placeholders = ",".join("?" * len(mcp_server_ids))

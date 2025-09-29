@@ -35,7 +35,7 @@ class SQLiteStorageScopedStorageMixin(CursorMixin, CommonMixin):
         # Convert the storage field (which is a dict) to a JSON string.
         storage_dict["storage"] = json.dumps(storage_dict["storage"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2_scoped_storage (
@@ -129,7 +129,7 @@ class SQLiteStorageScopedStorageMixin(CursorMixin, CommonMixin):
         storage_dict = storage.model_dump()
         storage_dict["storage"] = json.dumps(storage_dict["storage"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2_scoped_storage (
@@ -171,7 +171,7 @@ class SQLiteStorageScopedStorageMixin(CursorMixin, CommonMixin):
         """Delete a scoped storage record.
         Raises ScopedStorageNotFoundError if not found."""
         self._validate_uuid(storage_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2_scoped_storage

@@ -291,7 +291,7 @@ async def test_user_data_integrity_after_tampering(storage: SQLiteStorage) -> No
     original_user_id = user.user_id
 
     # Manually update the user record to simulate tampering.
-    async with storage._cursor() as cur:
+    async with storage._transaction() as cur:
         # Adjust the table and column names as per your actual schema.
         await cur.execute(
             "UPDATE v2_user SET sub = ? WHERE user_id = ?",

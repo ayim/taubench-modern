@@ -23,7 +23,7 @@ class SQLiteStorageArtifactsMixin(CursorMixin, CommonMixin):
     async def create_otel_artifact(self, artifact: OTelArtifact) -> None:
         """Create a new artifact."""
         self._validate_uuid(artifact.artifact_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             try:
                 await cur.execute(
                     """
@@ -141,7 +141,7 @@ class SQLiteStorageArtifactsMixin(CursorMixin, CommonMixin):
 
     async def cleanup_otel_artifacts(self) -> int:
         """Cleanup expired artifacts."""
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2_otel_artifact WHERE to_be_deleted_at < :current_date
@@ -152,6 +152,6 @@ class SQLiteStorageArtifactsMixin(CursorMixin, CommonMixin):
 
     async def delete_all_otel_artifacts(self) -> int:
         """Delete all otel artifacts."""
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute("DELETE FROM v2_otel_artifact")
             return cur.rowcount
