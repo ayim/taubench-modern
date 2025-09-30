@@ -307,7 +307,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", extras = ["memory"], specifier = ">=0.8.5,<0.10.0" },
+    { name = "sema4ai-docint", extras = ["memory"], specifier = ">=0.10.1,<0.11.0" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -3529,7 +3529,7 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.8.5"
+version = "0.10.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -3551,9 +3551,9 @@ dependencies = [
     { name = "sema4ai-data" },
     { name = "sema4ai-http-helper" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/02/14/cde485332035d06054b1d0008f7741f8f4aae086db786c5271a46e4fe770/sema4ai_docint-0.8.5.tar.gz", hash = "sha256:6e0475bc9a4c9a69faec8b11d608c19c486e08ebfef283575b9b56631c72e191", size = 24293198, upload-time = "2025-09-24T21:24:19.677Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/da/b11b1ccee900f75115b573f41cfd9f328574cd8dddcaaf6a20856b963536/sema4ai_docint-0.10.1.tar.gz", hash = "sha256:10665b09b7e773cd4634b22b4936ccd374bcbaae7ec34cf634966c3294c7c8fe", size = 24297803, upload-time = "2025-09-30T14:43:35.336Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/31/a3/a12903b6a33c2229fae4cef3b19cb3620034664c152c65f0431b19d01715/sema4ai_docint-0.8.5-py3-none-any.whl", hash = "sha256:26f32e9afe3cb55e1c492a75845b4741b4fa9d24170b86a474ec19df2c2a43fe", size = 146851, upload-time = "2025-09-24T21:24:17.345Z" },
+    { url = "https://files.pythonhosted.org/packages/52/75/a7c9d4d7ca8309e0e72b6cef7c8d3d1b78176fc0e56efdcfcef3315e1824/sema4ai_docint-0.10.1-py3-none-any.whl", hash = "sha256:d1fdbe7387dd6c1be5fcb4ea93a2753d8761ef78ce6d3d36dcc1ee60a6f31a2f", size = 148216, upload-time = "2025-09-30T14:43:33.05Z" },
 ]
 
 [package.optional-dependencies]
