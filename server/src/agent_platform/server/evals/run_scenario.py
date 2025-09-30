@@ -184,11 +184,13 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
 
     runbook = scenario_run.configuration.get("runbook", None)
     architecture_version = scenario_run.configuration.get("architecture_version", None)
+    architecture_name = scenario_run.configuration.get("architecture_name", None)
     models = scenario_run.configuration.get("models", None)
 
     configuration_issues = []
     for label, expected, found in [
         ("architecture version", architecture_version, agent.agent_architecture.version),
+        ("architecture name", architecture_name, agent.agent_architecture.name),
         ("runbook", runbook, agent.runbook_structured.raw_text),
         ("models", models, agent.get_agent_models()),
     ]:

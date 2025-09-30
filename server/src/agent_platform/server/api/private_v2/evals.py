@@ -167,7 +167,9 @@ async def create_scenario_run(
     configuration = {
         "models": agent.get_agent_models(),
         "architecture_version": agent.agent_architecture.version,
+        "architecture_name": agent.agent_architecture.name,
         "runbook": agent.runbook_structured.raw_text,
+        "agent_updated_at": agent.updated_at.isoformat(),
     }
 
     scenario_run = CreateScenarioRunPayload.to_scenario_run(
