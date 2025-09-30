@@ -323,8 +323,8 @@ async def test_thread_deletion_nonexistent(
         ("tenant:testing:user:owner", "tenant:testing:user:other", True),
         ("tenant:testing:system:system_user", "tenant:testing:user:other", False),
         ("tenant:testing:user:owner", "tenant:testing:system:system_user", False),
-        # TODO: update this test to False when UDF is loosened
-        ("tenant:testing:user:owner", "tenant:testing:user:system_user", True),
+        ("tenant:testing:user:owner", "tenant:testing:user:system_user", False),
+        ("tenant:testing:user:system_user", "tenant:testing:user:other", False),
     ],
 )
 async def test_thread_access_control_users(

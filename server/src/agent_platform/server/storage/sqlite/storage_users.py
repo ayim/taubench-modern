@@ -32,7 +32,7 @@ class SQLiteStorageUsersMixin(CursorMixin, CommonMixin):
 
     async def get_system_user_id(self) -> str:
         """
-        Get the system user ID (sub like 'tenant:%:system:system_user'),
+        Get the system user ID (sub like 'tenant:%:%:system_user'),
         or raise NoSystemUserError if none found.
         """
         async with self._cursor() as cur:
@@ -40,7 +40,7 @@ class SQLiteStorageUsersMixin(CursorMixin, CommonMixin):
                 """
                 SELECT user_id
                 FROM v2_user
-                WHERE sub LIKE 'tenant:%:system:system_user'
+                WHERE sub LIKE 'tenant:%:%:system_user'
                 LIMIT 1
                 """,
             )

@@ -295,7 +295,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                             f"User {user_id} does not have access to agent {agent_id}",
                         )
 
-                    # 3) Name collision for this user?
+                    # Name collision for this user?
                     await cur.execute(
                         """
                         SELECT 1 FROM v2.agent

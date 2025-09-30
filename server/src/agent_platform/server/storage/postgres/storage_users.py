@@ -28,7 +28,8 @@ class PostgresStorageUsersMixin(CursorMixin, CommonMixin):
         async with self._cursor() as cur:
             await cur.execute("""
                 SELECT user_id FROM v2.user
-                WHERE sub LIKE 'tenant:%%:system:system_user'
+                WHERE sub LIKE 'tenant:%%:%%:system_user'
+                LIMIT 1
             """)
             if row := await cur.fetchone():
                 # Str because we're getting back a UUID instance from psycopg

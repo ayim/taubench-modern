@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -10,6 +11,7 @@ from agent_platform.core.thread import (
     Thread,
     ThreadMessage,
 )
+from agent_platform.server.storage.errors import UserPermissionError
 from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
@@ -120,6 +122,108 @@ async def test_user_access_function(
         # Other tenant user cannot access tenant resource -> expect 0
         assert result4 is not None
         assert result4["check_user_access"] == 0
+
+
+@pytest.mark.asyncio
+async def test_user_access_function_accepts_any_middle_segments_for_system_user(
+    storage: SQLiteStorage,
+) -> None:
+    """
+    The SQLite UDF should grant access when the record or requesting subject ends with
+    ':system_user' regardless of the two middle segments (tenant:%:%:system_user).
+    """
+    # Create a user that should be treated as a global system user
+    broadened_system_user, _ = await storage.get_or_create_user(
+        sub="tenant:testing:user:system_user",
+    )
+
+    # Create a normal user in the same tenant
+    normal_user, _ = await storage.get_or_create_user(
+        sub="tenant:testing:user:normal_user",
+    )
+
+    async with storage._cursor() as cur:
+        # Any user can access resources owned by a subject matching tenant:%:%:system_user
+        await cur.execute(
+            "SELECT v2_check_user_access(?, ?) AS check_user_access",
+            (broadened_system_user.user_id, normal_user.user_id),
+        )
+        result = await cur.fetchone()
+        assert result is not None
+        assert result["check_user_access"] == 1
+
+        # And the broadened system user can access a regular user's resources
+        await cur.execute(
+            "SELECT v2_check_user_access(?, ?) AS check_user_access",
+            (normal_user.user_id, broadened_system_user.user_id),
+        )
+        result = await cur.fetchone()
+        assert result is not None
+        assert result["check_user_access"] == 1
+
+
+@pytest.mark.asyncio
+async def test_file_access_control_users(
+    storage: SQLiteStorage,
+    sample_agent: Agent,
+) -> None:
+    """
+    Another regular user should not be able to access file metadata/path for files
+    owned by a non-system user on a thread.
+    """
+    original_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:owner")
+    other_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:other")
+
+    # Original user creates agent and thread
+    await storage.upsert_agent(original_user.user_id, sample_agent)
+    thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=original_user.user_id,
+        agent_id=sample_agent.agent_id,
+        name="Thread with file",
+        messages=[],
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        metadata={},
+    )
+    await storage.upsert_thread(original_user.user_id, thread)
+
+    # Put a file owned by the original user
+    file_id = str(uuid4())
+    await storage.put_file_owner(
+        file_id=file_id,
+        file_path=None,
+        file_ref="test.txt",
+        file_hash="abc",
+        file_size_raw=1,
+        mime_type="text/plain",
+        user_id=original_user.user_id,
+        embedded=False,
+        embedding_status=None,
+        owner=thread,
+        file_path_expiration=datetime.now(UTC),
+    )
+
+    # Other user should not be able to fetch by id
+    with pytest.raises(UserPermissionError):
+        await storage.get_file_by_id(file_id, other_user.user_id)
+
+    # Other user should not be able to fetch by ref
+    with pytest.raises(UserPermissionError):
+        await storage.get_file_by_ref(thread, "test.txt", other_user.user_id)
+
+    # System user should be able to access (thread-owned file access)
+    sys_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:system_user")
+    sys_file_read_id = await storage.get_file_by_id(file_id, sys_user.user_id)
+    assert sys_file_read_id is not None
+    assert sys_file_read_id.file_id == file_id
+    assert sys_file_read_id.user_id == original_user.user_id
+    assert sys_file_read_id.thread_id == thread.thread_id
+    assert sys_file_read_id.file_ref == "test.txt"
+
+    # Other user should not be able to delete the file
+    with pytest.raises(UserPermissionError):
+        await storage.delete_file(thread, file_id, other_user.user_id)
 
 
 @pytest.mark.asyncio

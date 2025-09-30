@@ -206,6 +206,49 @@ async def test_update_work_item_status(
 
 
 @pytest.mark.asyncio
+async def test_work_item_access_control_users(
+    storage: PostgresStorage,
+    sample_agent,
+):
+    """
+    Work items owned by the system user are global: any user can read/update/complete them.
+    """
+    # Create distinct users and the system user
+    creator_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:owner")
+    other_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:other")
+    system_user, _ = await storage.get_or_create_user("tenant:testing:system:system_user")
+
+    # Agent belongs to the creator, but the work item owner is system_user
+    await storage.upsert_agent(creator_user.user_id, sample_agent)
+
+    wi = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=system_user.user_id,  # system-owned
+        created_by=creator_user.user_id,  # created by a real user
+        agent_id=sample_agent.agent_id,
+        thread_id=None,
+        status=WorkItemStatus.PENDING,
+        messages=[],
+        initial_messages=[],
+        payload={},
+    )
+    await storage.create_work_item(wi)
+
+    # Other regular user can update status (global visibility for system-owned items)
+    await storage.update_work_item_status(
+        other_user.user_id, wi.work_item_id, WorkItemStatus.COMPLETED
+    )
+    updated = await storage.get_work_item(wi.work_item_id)
+    assert updated.status == WorkItemStatus.COMPLETED
+
+    # Other regular user can complete and set completed_by
+    await storage.complete_work_item(other_user.user_id, wi.work_item_id, WorkItemCompletedBy.HUMAN)
+    updated = await storage.get_work_item(wi.work_item_id)
+    assert updated.status == WorkItemStatus.COMPLETED
+    assert updated.completed_by == WorkItemCompletedBy.HUMAN
+
+
+@pytest.mark.asyncio
 async def test_complete_work_item(
     storage: PostgresStorage,
     sample_user_id: str,

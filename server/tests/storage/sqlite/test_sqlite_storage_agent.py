@@ -595,3 +595,88 @@ async def test_patch_agent(
         await storage.patch_agent(
             owner.user_id, agent.agent_id, dup_agent.name, dup_agent.description
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("owner_sub", "caller_sub", "expect_error"),
+    [
+        ("tenant:testing:user:owner", "tenant:testing:user:other", True),
+        ("tenant:testing:system:system_user", "tenant:testing:user:other", False),
+        ("tenant:testing:user:owner", "tenant:testing:system:system_user", False),
+        ("tenant:testing:user:owner", "tenant:testing:user:system_user", False),
+        ("tenant:testing:user:system_user", "tenant:testing:user:other", False),
+    ],
+)
+async def test_agent_access_control_users(
+    storage: SQLiteStorage,
+    sample_agent: Agent,
+    owner_sub: str,
+    caller_sub: str,
+    expect_error: bool,
+) -> None:
+    """Test CRUD operations for agents with access control."""
+    # Create explicit owner user and other user
+    owner_user, _ = await storage.get_or_create_user(sub=owner_sub)
+    other_user, _ = await storage.get_or_create_user(sub=caller_sub)
+    agent_owned = Agent.model_validate(sample_agent.model_dump() | {"user_id": owner_user.user_id})
+
+    # Create (via upsert)
+    await storage.upsert_agent(owner_user.user_id, agent_owned)
+
+    # Read
+    if expect_error:
+        with pytest.raises(UserAccessDeniedError):
+            await storage.get_agent(other_user.user_id, agent_owned.agent_id)
+    else:
+        retrieved_agent = await storage.get_agent(other_user.user_id, agent_owned.agent_id)
+        assert retrieved_agent is not None
+        assert retrieved_agent.agent_id == agent_owned.agent_id
+        assert retrieved_agent.name == agent_owned.name
+
+    # Update
+    updated_agent = Agent.model_validate(
+        agent_owned.model_dump() | {"name": "Updated Agent Name"},
+    )
+    if expect_error:
+        with pytest.raises(UserAccessDeniedError):
+            await storage.upsert_agent(other_user.user_id, updated_agent)
+    else:
+        await storage.upsert_agent(other_user.user_id, updated_agent)
+        retrieved_updated = await storage.get_agent(
+            other_user.user_id,
+            agent_owned.agent_id,
+        )
+        assert retrieved_updated.name == "Updated Agent Name"
+
+    # Patch
+    if expect_error:
+        with pytest.raises(UserAccessDeniedError):
+            await storage.patch_agent(
+                other_user.user_id,
+                agent_owned.agent_id,
+                "Updated Agent Name (Patch)",
+                "Updated Agent Description (Patch)",
+            )
+    else:
+        await storage.patch_agent(
+            other_user.user_id,
+            agent_owned.agent_id,
+            "Updated Agent Name (Patch)",
+            "Updated Agent Description (Patch)",
+        )
+        retrieved_updated = await storage.get_agent(
+            other_user.user_id,
+            agent_owned.agent_id,
+        )
+        assert retrieved_updated.name == "Updated Agent Name (Patch)"
+        assert retrieved_updated.description == "Updated Agent Description (Patch)"
+
+    # Delete by other user should be denied
+    if expect_error:
+        with pytest.raises(UserAccessDeniedError):
+            await storage.delete_agent(other_user.user_id, agent_owned.agent_id)
+    else:
+        await storage.delete_agent(other_user.user_id, agent_owned.agent_id)
+        with pytest.raises(AgentNotFoundError):
+            await storage.get_agent(owner_user.user_id, agent_owned.agent_id)

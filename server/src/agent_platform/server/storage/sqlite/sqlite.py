@@ -324,7 +324,7 @@ class SQLiteStorage(
             # record user is a system user (worker agents)
             # any resources created by this user are accessible to all users of Workroom
             record_sub_value = record_user["sub"]
-            sys_user_pattern = r"^tenant:.*:system:system_user$"
+            sys_user_pattern = r"^tenant:.*:.*:system_user$"
             if record_sub_value and bool(re.match(sys_user_pattern, record_sub_value)):
                 return 1
 
@@ -333,8 +333,8 @@ class SQLiteStorage(
             if req_sub_value and bool(re.match(sys_user_pattern, req_sub_value)):
                 return 1
 
-            # an user can access resources whose owner's sub is a prefix of their sub
-            if record_sub_value in req_sub_value:
+            # a user can access resources whose owner's sub is a prefix of their sub
+            if req_sub_value.startswith(record_sub_value):
                 return 1
 
             return 0

@@ -268,20 +268,6 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
-    async def _user_can_access_thread(self, user_id: str, thread_id: str) -> bool:
-        """Helper to check if user has access to a thread."""
-        async with self._cursor() as cur:
-            await cur.execute(
-                """
-                SELECT v2_check_user_access(t.user_id, :user_id) AS has_access
-                FROM v2_thread t
-                WHERE t.thread_id = :thread_id
-                """,
-                {"thread_id": thread_id, "user_id": user_id},
-            )
-            row = await cur.fetchone()
-        return bool(row and row["has_access"])
-
     def _convert_thread_json_fields(self, thread_dict: dict) -> dict:
         """Convert JSON string fields in thread dict to Python objects."""
         for field in ["metadata"]:
