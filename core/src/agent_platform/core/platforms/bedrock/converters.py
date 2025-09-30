@@ -3,6 +3,8 @@ import re
 from io import BytesIO
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+from structlog import get_logger
+
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
 from agent_platform.core.platforms.bedrock.configs import (
@@ -32,6 +34,8 @@ if TYPE_CHECKING:
         ToolChoiceTypeDef,
         ToolTypeDef,
     )
+
+logger = get_logger(__name__)
 
 
 class BedrockConverters(PlatformConverters, UsesKernelMixin):
@@ -526,6 +530,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         max_output_tokens: int | None,
         stop_sequences: list[str] | None,
         top_p: float | None,
+        model_id: str | None,
     ) -> "InferenceConfigurationTypeDef | None":
         """Build Bedrock inference configuration from prompt parameters.
 
@@ -549,6 +554,16 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             config["stopSequences"] = stop_sequences
         if top_p is not None:
             config["topP"] = top_p
+
+        # NOTE: NEW for Claude 4.5, we must not provide BOTH temperature and top_p
+        has_both_temperature_and_top_p = "topP" in config and "temperature" in config
+        is_claude_4_5_sonnet = model_id and "claude-4-5-sonnet" in model_id
+        if has_both_temperature_and_top_p and is_claude_4_5_sonnet:
+            # We'll prefer temperature over top_p
+            config.pop("topP")
+            logger.warning(
+                "Both temperature and top_p were provided for Claude 4.5 Sonnet, ignoring top_p",
+            )
 
         return None if not config else config
 
@@ -633,6 +648,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             prompt.max_output_tokens,
             prompt.stop_sequences,
             prompt.top_p if not is_thinking_model else None,
+            model_id,
         )
 
         # Convert tools if present

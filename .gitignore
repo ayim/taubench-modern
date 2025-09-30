@@ -13,6 +13,8 @@ agent-server-config.json
 agent-server-config.yaml
 agent-server.log.*
 agentserver.db
+agentserver.db-shm
+agentserver.db-wal
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
