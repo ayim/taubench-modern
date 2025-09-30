@@ -5,7 +5,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from agent_platform.core.kernel_interfaces.work_item import WorkItemArchState
-from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
+from agent_platform.core.work_items.work_item import (
+    WorkItem,
+    WorkItemStatus,
+    WorkItemStatusUpdatedBy,
+)
 from agent_platform.server.kernel.work_item import AgentServerWorkItemInterface, WorkItemTools
 
 
@@ -25,6 +29,7 @@ def mock_storage():
     storage = MagicMock()
     storage.get_work_item = AsyncMock()
     storage.update_work_item = AsyncMock()
+    storage.update_work_item_status = AsyncMock()
     return storage
 
 
@@ -71,8 +76,10 @@ class TestAgentServerWorkItemInterface:
             await work_item_interface.step_initialize(state)
 
         assert work_item_interface._work_item == mock_work_item
-        assert len(work_item_interface._work_item_tools) == 1
-        assert work_item_interface._work_item_tools[0].name == "work_item_rename"
+        assert len(work_item_interface._work_item_tools) == 2
+        tool_names = [tool.name for tool in work_item_interface._work_item_tools]
+        assert "work_item_rename" in tool_names
+        assert "work_item_update_status" in tool_names
         assert state.work_item_tools_state == "enabled"
 
     @pytest.mark.asyncio
@@ -187,3 +194,56 @@ class TestWorkItemTools:
             "error_code": "empty_work_item_name",
             "error": "Work item name cannot be empty",
         }
+
+    @pytest.mark.asyncio
+    async def test_work_item_update_status_success(
+        self, work_item_tools, mock_work_item, mock_storage
+    ):
+        """Test successful work item status update."""
+        result = await work_item_tools.work_item_update_status(WorkItemStatus.COMPLETED)
+
+        assert result == {"result": "Work item status updated to 'COMPLETED'"}
+        assert mock_work_item.status.value == "COMPLETED"
+        mock_storage.update_work_item_status.assert_called_once_with(
+            work_item_tools._user.user_id,
+            mock_work_item.work_item_id,
+            WorkItemStatus.COMPLETED,
+            WorkItemStatusUpdatedBy.AGENT,
+        )
+
+    @pytest.mark.asyncio
+    async def test_work_item_update_status_no_work_item(self, mock_storage):
+        """Test status update when no work item exists."""
+        tools_no_item = WorkItemTools(
+            user=MagicMock(),
+            tid="test-thread-id",
+            work_item=None,
+            storage=mock_storage,
+        )
+        result = await tools_no_item.work_item_update_status(WorkItemStatus.COMPLETED)
+        assert result == {
+            "error_code": "no_work_item",
+            "error": "No work item associated with this thread",
+        }
+
+    @pytest.mark.asyncio
+    async def test_work_item_update_status_all_enum_values(self, mock_work_item, mock_storage):
+        """Test that all WorkItemStatus enum values work correctly."""
+        tools = WorkItemTools(
+            user=MagicMock(),
+            tid="test-thread-id",
+            work_item=mock_work_item,
+            storage=mock_storage,
+        )
+
+        # Test all valid enum values
+        for status in WorkItemStatus:
+            result = await tools.work_item_update_status(status)
+            assert result == {"result": f"Work item status updated to '{status.value}'"}
+            assert mock_work_item.status == status
+            mock_storage.update_work_item_status.assert_called_with(
+                tools._user.user_id,
+                mock_work_item.work_item_id,
+                status,
+                WorkItemStatusUpdatedBy.AGENT,
+            )

@@ -5,7 +5,7 @@ from structlog import get_logger
 
 from agent_platform.core.kernel_interfaces.work_item import WorkItemArchState, WorkItemInterface
 from agent_platform.core.tools.tool_definition import ToolDefinition
-from agent_platform.core.work_items import WorkItem
+from agent_platform.core.work_items import WorkItem, WorkItemStatus, WorkItemStatusUpdatedBy
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 from agent_platform.server.storage.option import StorageService
 
@@ -54,6 +54,10 @@ class AgentServerWorkItemInterface(WorkItemInterface, UsesKernelMixin):
                     work_item_tools.work_item_rename,
                     name="work_item_rename",
                 ),
+                ToolDefinition.from_callable(
+                    work_item_tools.work_item_update_status,
+                    name="work_item_update_status",
+                ),
             )
             # Update state to indicate work item tools are enabled
             state.work_item_tools_state = "enabled"
@@ -69,9 +73,16 @@ class AgentServerWorkItemInterface(WorkItemInterface, UsesKernelMixin):
         summary = f"## Work Item Summary:\n{self._current_work_item_summary}\n\n"
         # Add available tools information
         summary += "### Available Work Item Tools\n"
-        summary += "• **work_item_rename**: You can rename the current work item"
-        " using this tool when the user specifically requests a rename of the work item"
-        " or the Runbook includes a step to rename the work item.\n"
+        summary += (
+            "• **work_item_rename**: You can rename the current work item"
+            " using this tool when the user specifically requests a rename of the work item"
+            " or the Runbook includes a step to rename the work item.\n"
+        )
+        summary += (
+            "• **work_item_update_status**: You can update the status of the current work item"
+            " using this tool when the user requests a status change or the Runbook includes"
+            " a step to update the work item status.\n"
+        )
         return summary
 
     @property
@@ -93,8 +104,8 @@ class AgentServerWorkItemInterface(WorkItemInterface, UsesKernelMixin):
         if not self._work_item:
             return ""
 
-        summary = f"Current work item name: {self._work_item.work_item_name or 'Unnamed'}"
-        # TODO: add other work item fields here
+        summary = f"Current work item name: {self._work_item.work_item_name or 'Unnamed'}\n"
+        summary += f"Current work item status: {self._work_item.status.value}"
         return summary
 
     def get_work_item_tools(self) -> tuple[ToolDefinition, ...]:
@@ -148,4 +159,44 @@ class WorkItemTools:
             return {
                 "error_code": "rename_failed",
                 "error": f"Failed to rename work item: {e!r}",
+            }
+
+    async def work_item_update_status(
+        self,
+        status: Annotated[
+            WorkItemStatus,
+            "The new status for the work item.",
+        ],
+    ) -> dict[str, Any]:
+        """Update the status of the current work item."""
+        if not self._work_item:
+            return {
+                "error_code": "no_work_item",
+                "error": "No work item associated with this thread",
+            }
+
+        # Status is already validated by the type system
+        work_item_status = status
+
+        try:
+            # Update the work item status
+            await self._storage.update_work_item_status(
+                self._user.user_id,
+                self._work_item.work_item_id,
+                work_item_status,
+                WorkItemStatusUpdatedBy.AGENT,
+            )
+
+            # Update the local work item object
+            self._work_item.status = work_item_status
+
+            return {"result": f"Work item status updated to '{work_item_status.value}'"}
+        except Exception as e:
+            logger.exception(
+                f"Error updating work item {self._work_item.work_item_id} status to "
+                f"{work_item_status.value}"
+            )
+            return {
+                "error_code": "status_update_failed",
+                "error": f"Failed to update work item status: {e!r}",
             }
