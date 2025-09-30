@@ -1,0 +1,317 @@
+{
+  "tags": null,
+  "location": "East US",
+  "extendedLocation": null,
+  "identity": {
+    "type": "UserAssigned",
+    "userAssignedIdentities": {
+      "${APP_UAI_ID}": {}
+    }
+  },
+  "managedBy": null,
+  "properties": {
+    "environmentId": "${APP_ENVIRONMENT_ID}",
+    "configuration": {
+      "secrets": [
+        {
+          "name": "db-host",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/db-host"
+        },
+        {
+          "name": "db-port",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/db-port"
+        },
+        {
+          "name": "db-username",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/db-username"
+        },
+        {
+          "name": "db-password",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/db-password"
+        },
+
+        {
+          "name": "jwt-private-key-b64",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/jwt-private-key-b64"
+        },
+        {
+          "name": "jwt-public-key-b64",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/jwt-public-key-b64"
+        },
+        {
+          "name": "session-secret",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/session-secret"
+        },
+        {
+          "name": "oidc-client-id",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/oidc-client-id"
+        },
+        {
+          "name": "oidc-client-secret",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/oidc-client-secret"
+        },
+        {
+          "name": "oidc-server",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/oidc-server"
+        }
+      ],
+      "activeRevisionsMode": null,
+      "ingress": {
+        "fqdn": null,
+        "external": true,
+        "targetPort": 8001,
+        "exposedPort": null,
+        "transport": null,
+        "traffic": null,
+        "customDomains": null,
+        "allowInsecure": true,
+        "ipSecurityRestrictions": null,
+        "stickySessions": null,
+        "clientCertificateMode": null,
+        "corsPolicy": null,
+        "additionalPortMappings": null
+      },
+      "registries": [
+        {
+          "server": "s4teamedition1registry.azurecr.io",
+          "identity": "${APP_UAI_ID}"
+        }
+      ],
+      "dapr": null,
+      "runtime": null,
+      "maxInactiveRevisions": null,
+      "service": null,
+      "identitySettings": null
+    },
+    "template": {
+      "revisionSuffix": null,
+      "terminationGracePeriodSeconds": null,
+      "initContainers": [
+        {
+          "image": "${PSQL_IMAGE_REF}",
+          "name": "psql-init",
+          "command": [
+            "sh",
+            "-c",
+            "psql -d postgres -tc \"SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'\" | grep -q 1 || psql -d postgres -c \"CREATE DATABASE ${DB_NAME}\""
+          ],
+          "args": null,
+          "env": [
+            {
+              "name": "PGHOST",
+              "secretRef": "db-host"
+            },
+            {
+              "name": "PGPORT",
+              "secretRef": "db-port"
+            },
+            {
+              "name": "PGUSER",
+              "secretRef": "db-username"
+            },
+            {
+              "name": "PGPASSWORD",
+              "secretRef": "db-password"
+            }
+          ],
+          "resources": {
+            "cpu": 0.25,
+            "memory": "0.25Gi",
+            "ephemeralStorage": null
+          },
+          "volumeMounts": null
+        }
+      ],
+      "containers": [
+        {
+          "image": "${SPAR_IMAGE_REF}",
+          "name": "spar",
+          "command": null,
+          "args": null,
+          "env": [
+            {
+              "name": "POSTGRES_HOST",
+              "secretRef": "db-host"
+            },
+            {
+              "name": "POSTGRES_PORT",
+              "secretRef": "db-port"
+            },
+            {
+              "name": "POSTGRES_USER",
+              "secretRef": "db-username"
+            },
+            {
+              "name": "POSTGRES_PASSWORD",
+              "secretRef": "db-password"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64",
+              "secretRef": "jwt-private-key-b64"
+            },
+            {
+              "name": "JWT_DECODE_KEY_B64",
+              "secretRef": "jwt-public-key-b64"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_SESSION_SECRET",
+              "secretRef": "session-secret"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_OIDC_CLIENT_ID",
+              "secretRef": "oidc-client-id"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET",
+              "secretRef": "oidc-client-secret"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_OIDC_SERVER",
+              "secretRef": "oidc-server"
+            },
+            {
+              "name": "AGENT_SERVER_PORT",
+              "value": "8000"
+            },
+            {
+              "name": "LOG_LEVEL",
+              "value": "DEBUG"
+            },
+            {
+              "name": "POSTGRES_DB",
+              "value": "${DB_NAME}"
+            },
+            {
+              "name": "SEMA4AI_AGENT_SERVER_DB_TYPE",
+              "value": "postgres"
+            },
+            {
+              "name": "SEMA4AI_AGENT_SERVER_OTEL_ENABLED",
+              "value": "true"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_TENANT_ID",
+              "value": "${RELEASE_NAME}"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_AGENT_SERVER_URL",
+              "value": "http://localhost:8000"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH",
+              "value": "/app/data-server-config.json"
+            },
+            {
+              "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES",
+              "value": "true"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_PORT",
+              "value": "8001"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_AUTH_MODE",
+              "value": "oidc"
+            },
+            {
+              "name": "AUTH_TYPE",
+              "value": "jwt_local"
+            },
+            {
+              "name": "JWT_ALG",
+              "value": "ES256"
+            },
+            {
+              "name": "JWT_AUD",
+              "value": "agent_server"
+            },
+            {
+              "name": "JWT_ISS",
+              "value": "spar"
+            }
+          ],
+          "resources": {
+            "cpu": 1.0,
+            "memory": "2.0Gi",
+            "ephemeralStorage": null
+          },
+          "volumeMounts": null,
+          "probes": [
+            {
+              "type": "liveness",
+              "httpGet": {
+                "path": "/ready",
+                "port": 8001
+              },
+              "initialDelaySeconds": 60,
+              "periodSeconds": 30,
+              "timeoutSeconds": 5,
+              "failureThreshold": 3,
+              "successThreshold": 1
+            }
+          ]
+        },
+        {
+          "image": "${DATA_SERVER_IMAGE_REF}",
+          "name": "data-server",
+          "command": null,
+          "args": null,
+          "env": [
+            {
+              "name": "SKIP_CONFIGURATION",
+              "value": "true",
+              "secretRef": null
+            }
+          ],
+          "resources": {
+            "cpu": 1.0,
+            "memory": "2.0Gi",
+            "ephemeralStorage": null
+          },
+          "volumeMounts": null,
+          "probes": [
+            {
+              "failureThreshold": 3,
+              "httpGet": {
+                "host": null,
+                "httpHeaders": null,
+                "path": "/health",
+                "port": 8080,
+                "scheme": null
+              },
+              "initialDelaySeconds": 60,
+              "periodSeconds": 30,
+              "successThreshold": null,
+              "tcpSocket": null,
+              "terminationGracePeriodSeconds": null,
+              "timeoutSeconds": 5,
+              "type": "liveness"
+            }
+          ]
+        }
+      ],
+      "scale": {
+        "minReplicas": 1,
+        "maxReplicas": 1,
+        "cooldownPeriod": null,
+        "pollingInterval": null,
+        "rules": null
+      },
+      "volumes": null,
+      "serviceBinds": null
+    },
+    "workloadProfileName": null,
+    "latestReadyRevisionName": null,
+    "eventStreamEndpoint": null
+  }
+}

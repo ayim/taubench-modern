@@ -1,0 +1,14 @@
+# https://developer.hashicorp.com/terraform/language/backend/azurerm#configuration-variables
+
+# Set to true to use Azure Active Directory authentication to the storage account data plane.
+use_azuread_auth = true
+
+# The name of the storage account to write the state file blob to.
+# Storage account names must be between 3 and 24 characters in length and may contain numbers and lowercase letters only
+storage_account_name = "sema4aiteameditiontf"
+
+# The name of the storage account container to write the state file blob to
+container_name       = "tfstate"
+
+# The name of the blob within the storage account container to write the state file to
+key                  = "s4-team-edition/terraform.tfstate"

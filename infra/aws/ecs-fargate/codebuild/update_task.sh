@@ -4,7 +4,6 @@ set -euo pipefail
 
 script_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 task_definition_template="${script_dir}/template.ecs-task-def.json"
-repo_root="$(git rev-parse --show-toplevel)"
 
 # These (required) variables are injected by CodeBuild
 # The variables are either carried from Terraform, or supplied when starting the build
@@ -38,8 +37,6 @@ data_server_tag=$(cat compose.yml | sed -n '/x-data-server-image:/s/.*data-serve
 export DB_NAME="agents_${RELEASE_NAME//-/_}" # PostgreSQL database names should use underscores for separating words
 export DATA_SERVER_IMAGE_REF="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:${data_server_tag}"
 export PSQL_IMAGE_REF="024848458362.dkr.ecr.us-east-1.amazonaws.com/docker-hub/library/postgres:13-alpine"
-
-envsubst < "${task_definition_template}"
 
 # Update Task Definition
 task_definition_revision=$(
