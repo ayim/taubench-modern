@@ -1,7 +1,6 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { NextFunction, Request, Response } from 'express';
 import { pathToRegexp } from 'path-to-regexp';
-import { extractGoogleUserIdentity, handleGoogleAuthCheck } from './google.js';
 import { extractOIDCUserIdentity, handleOIDCAuthCheck, refreshOIDCToken } from './oidc.js';
 import { extractSema4OIDCUserIdentity, handleSema4OIDCAuthCheck } from './sema4OIDC.js';
 import { extractSnowflakeUserIdentity, handleSnowflakeAuthCheck } from './snowflake.js';
@@ -32,8 +31,6 @@ export const createAuthMiddleware =
     switch (configuration.auth.type) {
       case 'none':
         return next();
-      case 'google':
-        return handleGoogleAuthCheck({ monitoring, next, req, res });
       case 'snowflake':
         return handleSnowflakeAuthCheck({ monitoring, next, req, res });
       case 'sema4-oidc-sso':
@@ -224,8 +221,6 @@ export const extractAuthenticatedUserIdentity = async ({
           userId: null,
         },
       };
-    case 'google':
-      return extractGoogleUserIdentity({ headers, monitoring });
     case 'snowflake':
       return extractSnowflakeUserIdentity({ headers, monitoring });
     case 'sema4-oidc-sso':

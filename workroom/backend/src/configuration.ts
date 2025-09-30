@@ -19,10 +19,6 @@ export interface Configuration {
       }
     | {
         jwtPrivateKeyB64: string;
-        type: 'google';
-      }
-    | {
-        jwtPrivateKeyB64: string;
         type: 'snowflake';
       }
     | {
@@ -109,13 +105,6 @@ export const getConfiguration = (): Configuration => {
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
           tokenIssuer,
           type: 'snowflake',
-        };
-      }
-      case 'google': {
-        return {
-          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
-          tokenIssuer,
-          type: 'google',
         };
       }
       case 'sema4-oidc-sso':
@@ -205,7 +194,6 @@ export const getConfiguration = (): Configuration => {
         };
 
       case 'none':
-      case 'google':
       case 'snowflake':
       case 'sema4-oidc-sso':
         return null;
@@ -230,7 +218,6 @@ export const getConfiguration = (): Configuration => {
       }
 
       case 'oidc':
-      case 'google':
       case 'none':
         return {
           tenantId: parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID'),

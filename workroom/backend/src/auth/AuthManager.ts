@@ -54,7 +54,6 @@ export class AuthManager {
     });
 
     switch (this.configuration.auth.type) {
-      case 'google':
       case 'none':
       case 'sema4-oidc-sso':
       case 'snowflake':
@@ -135,7 +134,6 @@ export class AuthManager {
     state: string;
   }): Promise<Result<Tokens>> {
     switch (this.configuration.auth.type) {
-      case 'google':
       case 'none':
       case 'sema4-oidc-sso':
       case 'snowflake':
@@ -202,7 +200,6 @@ export class AuthManager {
     }>
   > {
     switch (this.configuration.auth.type) {
-      case 'google':
       case 'none':
       case 'sema4-oidc-sso':
       case 'snowflake':
@@ -278,7 +275,6 @@ export class AuthManager {
   async initialize(): Promise<Result<void>> {
     switch (this.configuration.auth.type) {
       case 'none':
-      case 'google':
       case 'snowflake':
         return { success: true, data: undefined };
 
@@ -383,7 +379,6 @@ export class AuthManager {
         };
       }
       case 'sema4-oidc-sso':
-      case 'google':
       case 'none':
       case 'snowflake':
         this.monitoring.logger.error(
@@ -429,7 +424,6 @@ export class AuthManager {
         };
       }
 
-      case 'google':
       case 'none':
       case 'snowflake':
       case 'oidc':
