@@ -29,7 +29,7 @@ const Footer = styled.footer`
   width: 100%;
   max-width: 780px;
   margin: 0 auto;
-  padding: 0 ${({ theme }) => theme.space.$16} ${({ theme }) => theme.space.$20};
+  padding: 0 ${({ theme }) => theme.space.$20} ${({ theme }) => theme.space.$20};
 `;
 
 export const Chat: FC<Props> = ({ agentId, threadId }) => {

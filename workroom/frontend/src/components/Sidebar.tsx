@@ -26,7 +26,7 @@ const Container = styled.div`
 export const Sidebar: FC<Props> = ({ children, name }) => {
   const { storageValue: initialWidth, setStorageValue: setInitialWidth } = useLocalStorage<number>({
     key: `sidebar-${name}-width`,
-    defaultValue: 240,
+    defaultValue: 248,
   });
 
   const containerRef = useRef<HTMLDivElement>(null);

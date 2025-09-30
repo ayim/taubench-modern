@@ -10,7 +10,7 @@ function RouteComponent() {
   const { agentId } = Route.useParams();
 
   return (
-    <Sidebar name="Conversation Guides">
+    <Sidebar name="thread-sidebar">
       <ConversationGuidesView agentId={agentId} editMode="readOnly" />
     </Sidebar>
   );

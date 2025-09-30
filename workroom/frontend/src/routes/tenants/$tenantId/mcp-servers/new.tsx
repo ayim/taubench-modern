@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { NewMcpServerDialog } from '~/components/platforms/mcpServers/components/NewMcpServerDialog';
+
+import { NewMcpServerDialog } from './components/NewMcpServerDialog';
 
 export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/new')({
   component: RouteComponent,

@@ -39,7 +39,7 @@ export const ThreadsList: FC = () => {
   }
 
   return (
-    <SidebarMenu name="threads-list" title="Threads list">
+    <SidebarMenu name="threads-list" title="Threads list" initialWidth={248} minWidth={248}>
       <Box display="flex" alignItems="center" justifyContent="space-between" p="$8" gap="$8">
         <Typography variant="body-medium" fontWeight="medium">
           History
@@ -47,7 +47,12 @@ export const ThreadsList: FC = () => {
       </Box>
       <ScrollContainer>
         {threads?.map((thread) => (
-          <ThreadItem key={thread.thread_id} threadId={thread.thread_id || ''} name={thread.name} scenarioId={thread.metadata?.scenario_id as string ?? null} />
+          <ThreadItem
+            key={thread.thread_id}
+            threadId={thread.thread_id || ''}
+            name={thread.name}
+            scenarioId={(thread.metadata?.scenario_id as string) ?? null}
+          />
         ))}
       </ScrollContainer>
     </SidebarMenu>

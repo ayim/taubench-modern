@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components, paths } from '@sema4ai/agent-server-interface';
 import { QueryProps } from './shared';
 import { useRouteContext } from '@tanstack/react-router';
@@ -15,7 +15,7 @@ export type ListMCPServersResponse =
 export const getListMcpServersQueryOptions = ({ tenantId, agentAPIClient }: QueryProps<{ tenantId: string }>) =>
   queryOptions({
     queryKey: ['mcp-servers', tenantId],
-    queryFn: async (): Promise<ListMCPServersResponse> => {
+    queryFn: async () => {
       const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/', {
         silent: true,
       });
@@ -24,9 +24,14 @@ export const getListMcpServersQueryOptions = ({ tenantId, agentAPIClient }: Quer
         throw new Error(response.message);
       }
 
-      return response.data;
+      return Object.values(response.data);
     },
   });
+
+export const useListMcpServersQuery = ({ tenantId }: { tenantId: string }) => {
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  return useQuery(getListMcpServersQueryOptions({ tenantId, agentAPIClient }));
+};
 
 export const useDeleteMcpServerMutation = () => {
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });

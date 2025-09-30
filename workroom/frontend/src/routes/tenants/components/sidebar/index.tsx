@@ -44,8 +44,7 @@ const ScrollContainer = styled.div`
 export const Sidebar: FC = () => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { features } = useTenantContext();
-  const { triggerProps, triggerRef } = useSidebarMenu('main-menu');
-  const { width, expanded } = useSidebarMenu('main-menu');
+  const { width, expanded, triggerProps, triggerRef } = useSidebarMenu('main-menu');
   const isMobile = useScreenSize('m');
 
   const menuStyle = useMemo(() => {
@@ -71,7 +70,7 @@ export const Sidebar: FC = () => {
         $expanded={expanded}
       />
 
-      <SidebarMenu name="main-menu" title="Main menu" minWidth={240} primary>
+      <SidebarMenu name="main-menu" title="Main menu" initialWidth={248} minWidth={248} primary>
         <TenantMenu />
 
         <ScrollContainer>

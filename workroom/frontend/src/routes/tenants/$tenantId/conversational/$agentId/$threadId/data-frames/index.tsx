@@ -11,7 +11,7 @@ function RouteComponent() {
   const { threadId, agentId } = Route.useParams();
 
   return (
-    <Sidebar name="thread-details">
+    <Sidebar name="thread-sidebar">
       <DataFrameView agentId={agentId} threadId={threadId} />
     </Sidebar>
   );

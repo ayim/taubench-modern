@@ -10,7 +10,7 @@ function RouteComponent() {
   const { agentId } = Route.useParams();
 
   return (
-    <Sidebar name="chat-details">
+    <Sidebar name="thread-sidebar">
       <ChatDetails agentId={agentId} />
     </Sidebar>
   );

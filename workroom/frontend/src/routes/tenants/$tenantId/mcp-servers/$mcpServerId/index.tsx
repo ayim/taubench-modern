@@ -1,8 +1,9 @@
-import { createFileRoute, useLoaderData, useNavigate } from '@tanstack/react-router';
-import { EditMcpServerDialog } from '~/components/platforms/mcpServers/components/EditMcpServerDialog';
-import { getMcpServerQueryOptions } from '~/queries/mcpServers';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/$mcpServerId')({
+import { getMcpServerQueryOptions } from '~/queries/mcpServers';
+import { EditMcpServerDialog } from '../components/EditMcpServerDialog';
+
+export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/$mcpServerId/')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId, mcpServerId } }) => {
     const data = await queryClient.ensureQueryData(getMcpServerQueryOptions({ agentAPIClient, tenantId, mcpServerId }));
     return data;
@@ -13,7 +14,7 @@ export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/$mcpServerI
 function RouteComponent() {
   const navigate = useNavigate();
   const { tenantId } = Route.useParams();
-  const initial = useLoaderData({ from: '/tenants/$tenantId/mcp-servers/$mcpServerId' });
+  const initial = Route.useLoaderData();
 
   return (
     <EditMcpServerDialog

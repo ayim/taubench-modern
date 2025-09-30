@@ -100,7 +100,7 @@ function HomePage() {
         moreLabel="Filter"
       />
 
-      <Grid columns={[1, 2, 3, 4]} gap="$16" mt="$20" mb="$32">
+      <Grid columns={[1, 2, 2, 3, 4]} gap="$16" mt="$20" mb="$32">
         {filteredAgents.map((agent) => {
           return (
             agent.id && (

@@ -11,7 +11,7 @@ function RouteComponent() {
   const { agentId } = Route.useParams();
 
   return (
-    <Sidebar name="Evaluations">
+    <Sidebar name="thread-sidebar">
       <EvalSidebarView agentId={agentId} onDownloadJSON={downloadJSON} />
     </Sidebar>
   );
