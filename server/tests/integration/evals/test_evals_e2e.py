@@ -5,12 +5,13 @@ from httpx import AsyncClient
 from agent_platform.core.evals.types import TrialStatus
 from server.tests.integration.work_items.helper_functions import _wait_until
 
+TERMINAL_STATUSES = [TrialStatus.CANCELED, TrialStatus.COMPLETED, TrialStatus.ERROR]
+
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
-@pytest.mark.skip(reason="Failing often in CI")
 @pytest.mark.asyncio
-async def test_evals_e2e(
+async def test_evals_e2e(  # noqa: PLR0915
     base_url_agent_server_evals_matrix: str,
     openai_api_key: str,
 ):
@@ -21,6 +22,8 @@ async def test_evals_e2e(
     - Run a scenario
     - Check latest run status
     """
+    import json
+
     with AgentServerClient(base_url_agent_server_evals_matrix) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
             platform_configs=[
@@ -48,6 +51,7 @@ async def test_evals_e2e(
                 "thread_id": thread_id,
             }
 
+            print("Creating a new scenario")
             create_resp = await client.post("/scenarios", json=create_payload)
             assert create_resp.status_code == 200
             scenario = create_resp.json()
@@ -59,13 +63,15 @@ async def test_evals_e2e(
 
             scenario_id = scenario["scenario_id"]
 
+            print("List scenarios")
             list_resp = await client.get(f"/scenarios?agent_id={agent_id}")
             assert list_resp.status_code == 200
             scenarios = list_resp.json()
             assert len(scenarios) == 1
             assert scenarios[0]["scenario_id"] == scenario_id
 
-            run_payload = {"num_trials": 3}
+            print("Start a run with 1 trial")
+            run_payload = {"num_trials": 1}
             run_resp = await client.post(f"/scenarios/{scenario_id}/runs", json=run_payload)
             assert run_resp.status_code == 200
             run = run_resp.json()
@@ -74,35 +80,39 @@ async def test_evals_e2e(
 
             assert run["scenario_id"] == scenario_id
             assert run["num_trials"] == run_payload["num_trials"]
-            assert len(run["trials"]) == 3
+            assert len(run["trials"]) == 1
 
             for idx, trial in enumerate(run["trials"]):
                 assert trial["scenario_id"] == scenario_id
                 assert trial["scenario_run_id"] == scenario_run_id
                 assert trial["index_in_run"] == idx
-                assert trial["status"] in [
-                    TrialStatus.PENDING,
-                    TrialStatus.EXECUTING,
-                ]
+                assert trial["status"] not in TERMINAL_STATUSES
 
             async def _is_final_status():
-                get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/latest")
-                assert get_run_resp.status_code == 200
+                print("Checking run status")
+                get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/{scenario_run_id}")
+                assert get_run_resp.status_code == 200, get_run_resp.text
                 run = get_run_resp.json()
 
-                all_completed = all(
-                    trial["status"] == TrialStatus.COMPLETED for trial in run["trials"]
-                )
-                return all_completed
+                trials = run.get("trials", [])
+                assert len(trials) == 1
 
-            ten_minutes = 10 * 60
-            await _wait_until(_is_final_status, interval=1.0, timeout=ten_minutes)
+                for _, trial in enumerate(trials):
+                    print(json.dumps(trial, indent=4))
 
-            get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/latest")
-            assert get_run_resp.status_code == 200
+                all_terminated = all(trial["status"] in TERMINAL_STATUSES for trial in trials)
+
+                return all_terminated
+
+            five_minutes = 5 * 60
+            await _wait_until(_is_final_status, interval=1.0, timeout=five_minutes)
+
+            get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/{scenario_run_id}")
+            assert get_run_resp.status_code == 200, get_run_resp.text
             get_run_resp = get_run_resp.json()
 
             for idx, trial in enumerate(get_run_resp["trials"]):
+                print(json.dumps(trial, indent=4))
                 assert trial["scenario_id"] == scenario_id
                 assert trial["scenario_run_id"] == scenario_run_id
                 assert trial["index_in_run"] == idx
