@@ -1,5 +1,5 @@
 import { ThreadTextContent, components } from '@sema4ai/agent-server-interface';
-import { Box, Code, Progress, Typography } from '@sema4ai/components';
+import { Box, Code, Progress, Typography, useClipboard, useSnackbar } from '@sema4ai/components';
 import {
   IconStatusCompleted,
   IconStatusError,
@@ -8,7 +8,8 @@ import {
   IconStatusProcessing,
   IconStatusTerminated,
 } from '@sema4ai/icons';
-import { FC, memo } from 'react';
+import { styled } from '@sema4ai/theme';
+import { FC, memo, useEffect } from 'react';
 import { formatDateTime, formatWorkItemStatus } from '../../common/helpers';
 import { useWorkItemQuery } from '../../queries/workItems';
 
@@ -142,7 +143,42 @@ const IdSection: FC<Pick<WorkItem, 'work_item_id'>> = ({ work_item_id: workItemI
   );
 };
 
-export const WorkItemDetails = ({ workItemId }: { workItemId: string }) => {
+const WorkItemURLConntainer = styled(Box)`
+  cursor: pointer;
+`;
+
+const WorkItemAPIUrlSection: FC<{ workItemUrl: string }> = ({ workItemUrl }) => {
+  const { onCopyToClipboard, copiedToClipboard } = useClipboard();
+  const { addSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    if (copiedToClipboard) {
+      addSnackbar({
+        message: 'Copied to clipboard',
+        variant: 'success',
+      });
+    }
+  }, [copiedToClipboard]);
+
+  return (
+    <Box as="section">
+      <Typography variant="body-medium" fontWeight="bold" marginBottom="$4">
+        Work Item API URL
+      </Typography>
+      <WorkItemURLConntainer as="span" onClick={onCopyToClipboard(workItemUrl)}>
+        {workItemUrl}
+      </WorkItemURLConntainer>
+    </Box>
+  );
+};
+
+export const WorkItemDetails = ({
+  workItemId,
+  showWorkItemApiUrl,
+}: {
+  workItemId: string;
+  showWorkItemApiUrl: boolean;
+}) => {
   const { data: workItem, isLoading } = useWorkItemQuery({ workItemId });
   if (isLoading) {
     return (
@@ -167,6 +203,7 @@ export const WorkItemDetails = ({ workItemId }: { workItemId: string }) => {
         <MessagesSection workItem={workItem} />
         <PayloadSection workItem={workItem} />
         <StatusSection workItem={workItem} />
+        {workItem.work_item_url && showWorkItemApiUrl && <WorkItemAPIUrlSection workItemUrl={workItem.work_item_url} />}
         <TimestampsSection workItem={workItem} />
       </Box>
       <Box height="$16" flexShrink={0} boxShadow="0 -2px 4px 0 rgba(0,0,0,0.05)" />
