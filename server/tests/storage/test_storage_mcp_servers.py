@@ -1,3 +1,4 @@
+import typing
 from unittest.mock import patch
 
 import pytest
@@ -9,12 +10,28 @@ from agent_platform.server.storage.errors import (
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
 )
-from agent_platform.server.storage.postgres import PostgresStorage
+
+if typing.TYPE_CHECKING:
+    from agent_platform.server.storage.postgres import PostgresStorage
+    from agent_platform.server.storage.sqlite import SQLiteStorage
+
+
+@pytest.fixture
+async def sample_user_id(storage: "SQLiteStorage | PostgresStorage") -> str:
+    from agent_platform.server.storage.sqlite.sqlite import SQLiteStorage
+
+    if isinstance(storage, SQLiteStorage):
+        user, _ = await storage.get_or_create_user(
+            sub="tenant:testing:user:12345678",
+        )
+        return user.user_id
+    else:
+        return await storage.get_system_user_id()
 
 
 @pytest.mark.asyncio
 async def test_mcp_server_crud_operations(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
 ) -> None:
@@ -69,7 +86,7 @@ async def test_mcp_server_crud_operations(
 
 @pytest.mark.asyncio
 async def test_mcp_server_list_operations(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
     sample_mcp_server_stdio: MCPServer,
@@ -104,7 +121,7 @@ async def test_mcp_server_list_operations(
 
 @pytest.mark.asyncio
 async def test_mcp_server_duplicate_name_error(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
 ) -> None:
@@ -126,7 +143,7 @@ async def test_mcp_server_duplicate_name_error(
 
 @pytest.mark.asyncio
 async def test_mcp_server_not_found_error(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
 ) -> None:
     """Test that getting non-existent MCP server raises an error."""
@@ -139,7 +156,7 @@ async def test_mcp_server_not_found_error(
 
 @pytest.mark.asyncio
 async def test_mcp_server_invalid_uuid_error(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
 ) -> None:
     """Test that invalid UUIDs raise an error."""
@@ -152,7 +169,7 @@ async def test_mcp_server_invalid_uuid_error(
 
 @pytest.mark.asyncio
 async def test_mcp_server_empty_list(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
 ) -> None:
     """Test that listing MCP servers returns empty dict when no servers exist."""
@@ -164,7 +181,7 @@ async def test_mcp_server_empty_list(
 
 @pytest.mark.asyncio
 async def test_mcp_server_different_transports(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
     sample_mcp_server_stdio: MCPServer,
@@ -202,7 +219,7 @@ async def test_mcp_server_different_transports(
 
 @pytest.mark.asyncio
 async def test_get_mcp_server_by_name(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
     sample_mcp_server_stdio: MCPServer,
@@ -236,7 +253,7 @@ async def test_get_mcp_server_by_name(
 
 @pytest.mark.asyncio
 async def test_list_mcp_servers_with_decryption_error(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
     sample_mcp_server_stdio: MCPServer,
@@ -260,7 +277,7 @@ async def test_list_mcp_servers_with_decryption_error(
                 raise Exception("Decryption failed - invalid tag")
             else:
                 # Call the real method for the second server
-                return storage.__class__._decrypt_config(storage, encrypted_config)
+                return storage.__class__._decrypt_config(storage, encrypted_config)  # pyright: ignore [reportArgumentType]
 
         mock_decrypt.side_effect = side_effect
 
@@ -275,7 +292,7 @@ async def test_list_mcp_servers_with_decryption_error(
 
 @pytest.mark.asyncio
 async def test_list_mcp_servers_with_metadata_decryption_error(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
     sample_mcp_server_stdio: MCPServer,
@@ -301,7 +318,7 @@ async def test_list_mcp_servers_with_metadata_decryption_error(
 
 @pytest.mark.asyncio
 async def test_get_mcp_server_with_decryption_error(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
 ) -> None:
@@ -328,7 +345,7 @@ async def test_get_mcp_server_with_decryption_error(
 
 @pytest.mark.asyncio
 async def test_get_mcp_server_with_metadata_decryption_error(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
 ) -> None:
@@ -356,7 +373,7 @@ async def test_get_mcp_server_with_metadata_decryption_error(
 
 @pytest.mark.asyncio
 async def test_list_mcp_servers_by_source(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_user_id: str,
     sample_mcp_server_http: MCPServer,
     sample_mcp_server_stdio: MCPServer,
@@ -387,7 +404,7 @@ async def test_list_mcp_servers_by_source(
 
 @pytest.mark.asyncio
 async def test_get_mcp_server_by_name_with_invalid_name(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
 ) -> None:
     """Test get_mcp_server_by_name with invalid server name."""
     # Since user_id is removed, test with non-existent server name
@@ -397,7 +414,7 @@ async def test_get_mcp_server_by_name_with_invalid_name(
 
 @pytest.mark.asyncio
 async def test_list_mcp_servers_by_source_empty(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
 ) -> None:
     """Test list_mcp_servers_by_source when no servers exist for source."""
     # Since user_id is removed, test empty result for a source
@@ -407,7 +424,7 @@ async def test_list_mcp_servers_by_source_empty(
 
 
 async def test_list_mcp_servers_with_metadata(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_mcp_server_http: MCPServer,
     sample_mcp_server_stdio: MCPServer,
 ):
@@ -438,7 +455,7 @@ async def test_list_mcp_servers_with_metadata(
 
 
 async def test_get_mcp_server_with_metadata(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
     sample_mcp_server_http: MCPServer,
 ):
     """Test getting an MCP server with metadata (server data + source)."""
@@ -459,7 +476,7 @@ async def test_get_mcp_server_with_metadata(
 
 
 async def test_get_mcp_server_with_metadata_not_found(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
 ):
     """Test get_mcp_server_with_metadata with non-existent server."""
     from uuid import uuid4
@@ -471,7 +488,7 @@ async def test_get_mcp_server_with_metadata_not_found(
 
 
 async def test_list_mcp_servers_with_metadata_empty(
-    storage: PostgresStorage,
+    storage: "PostgresStorage|SQLiteStorage",
 ):
     """Test list_mcp_servers_with_metadata when no servers exist."""
     result = await storage.list_mcp_servers_with_metadata()

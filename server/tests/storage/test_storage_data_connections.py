@@ -1,10 +1,15 @@
+import typing
+
 import pytest
 
 from agent_platform.core.data_server.data_connection import (
     DataConnection,
     DataConnectionEngine,
 )
-from agent_platform.server.storage import PostgresStorage, SQLiteStorage
+
+if typing.TYPE_CHECKING:
+    from agent_platform.server.storage.postgres import PostgresStorage
+    from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
 @pytest.fixture

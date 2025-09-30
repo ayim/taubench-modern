@@ -4,12 +4,8 @@ from pathlib import Path
 import pytest
 from agent_platform.orchestrator.bootstrap_agent_server import AgentServerProcess
 
-# Import shared storage fixtures from storage conftest
-from server.tests.storage.conftest import (  # noqa: F401
-    postgres_test_db,
-    postgres_testing,
-    storage,
-)
+# Get storage fixtures.
+from server.tests.storage_fixtures import *  # noqa: F403
 
 
 @pytest.fixture(scope="session", autouse=True)

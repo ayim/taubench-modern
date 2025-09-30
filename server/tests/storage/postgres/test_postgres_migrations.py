@@ -15,6 +15,8 @@ from agent_platform.server.storage.postgres.migrations import PostgresMigrations
 
 CursorProvider = Callable[[], AbstractAsyncContextManager[AsyncCursor[DictRow]]]
 
+pytestmark = pytest.mark.postgresql
+
 
 @pytest.fixture(autouse=True)
 async def _reset_schema(postgres_test_db: AsyncConnectionPool):

@@ -7,12 +7,16 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.storage.postgres import PostgresStorage
     from agent_platform.server.storage.sqlite import SQLiteStorage
 
-    from .sample_model_creator import SampleModelCreator
 
-
-async def check_data_frame_storage_crud(
-    model_creator: "SampleModelCreator",
+@pytest.mark.asyncio
+async def test_data_frame_storage_crud(
+    storage: "SQLiteStorage|PostgresStorage",
+    tmpdir: Path,
 ) -> None:
+    """Test saving a new data frame."""
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(storage, tmpdir)
     from uuid import uuid4
 
     from sqlalchemy.exc import IntegrityError
@@ -89,27 +93,3 @@ async def check_data_frame_storage_crud(
     )
     data_frames = await model_creator.storage.list_data_frames(sample_data_frame.thread_id)
     assert len(data_frames) == 0
-
-
-@pytest.mark.asyncio
-async def test_data_frame_storage_crud_sqlite(
-    sqlite_storage: "SQLiteStorage",
-    tmpdir: Path,
-) -> None:
-    """Test saving a new data frame."""
-    from tests.storage.sample_model_creator import SampleModelCreator
-
-    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
-    await check_data_frame_storage_crud(model_creator)
-
-
-@pytest.mark.asyncio
-async def test_data_frame_storage_crud_postgres(
-    postgres_storage: "PostgresStorage",
-    tmpdir: Path,
-) -> None:
-    """Test saving a new data frame."""
-    from tests.storage.sample_model_creator import SampleModelCreator
-
-    model_creator = SampleModelCreator(postgres_storage, tmpdir)
-    await check_data_frame_storage_crud(model_creator)

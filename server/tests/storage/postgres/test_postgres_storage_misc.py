@@ -9,6 +9,8 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.server.storage.postgres import PostgresStorage
 
+pytestmark = pytest.mark.postgresql
+
 
 @pytest.mark.asyncio
 async def test_count_operations(

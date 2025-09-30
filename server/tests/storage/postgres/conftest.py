@@ -6,7 +6,11 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.storage.postgres import PostgresStorage
 
 
-@pytest.fixture
+@pytest.fixture(
+    params=[
+        pytest.param("postgres", marks=[pytest.mark.postgresql]),
+    ]
+)
 async def storage(
     postgres_storage: "PostgresStorage",
 ):

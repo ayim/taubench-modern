@@ -1,14 +1,8 @@
 # server/tests/endpoints/conftest.py
-from collections.abc import AsyncGenerator
-from pathlib import Path
-from typing import Any, cast
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from psycopg import AsyncConnection
-from psycopg.rows import TupleRow
-from psycopg_pool import AsyncConnectionPool
 
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.agent_architecture import AgentArchitecture
@@ -21,63 +15,14 @@ from agent_platform.server.api.private_v2 import (
 )
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.error_handlers import add_exception_handlers
-from agent_platform.server.storage import PostgresStorage, SQLiteStorage
 from agent_platform.server.storage.option import StorageService
 
-
-# ──────────────────────────────────────────────────────────────
-# 1.  spin-up Postgres once per session (copied from file manager)
-# ──────────────────────────────────────────────────────────────
-@pytest.fixture(scope="session", params=[pytest.param("", marks=[pytest.mark.postgresql])])
-async def postgres_test_db_info() -> AsyncGenerator[
-    dict[str, AsyncConnectionPool[AsyncConnection[tuple[Any, ...]]] | str], None
-]:
-    import testing.postgresql
-
-    with testing.postgresql.Postgresql() as pg:
-        pool = AsyncConnectionPool(pg.url(), min_size=2, max_size=50, open=False)
-        await pool.open()
-        yield {"pool": cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool), "dns": pg.url()}
-        await pool.close()
+# Get storage fixtures.
+from server.tests.storage_fixtures import *  # noqa: F403
 
 
 # ──────────────────────────────────────────────────────────────
-# 2.  “storage” fixture that switches between back-ends
-# ──────────────────────────────────────────────────────────────
-@pytest.fixture(
-    params=[
-        pytest.param("sqlite", marks=[]),
-        pytest.param("postgres", marks=[pytest.mark.postgresql]),
-    ]
-)
-async def storage(request, tmp_path: Path, postgres_test_db_info):
-    if request.param == "postgres":
-        # reset the schema and use the pool created above
-        match postgres_test_db_info:
-            case {"pool": pool, "dns": dns}:
-                async with pool.connection() as conn:
-                    async with conn.cursor() as cur:
-                        await cur.execute("DROP SCHEMA IF EXISTS v2 CASCADE;")
-                        await cur.execute("CREATE SCHEMA v2;")
-
-                store = PostgresStorage(pool, dns)
-            case _:
-                raise Exception("postgres_test_db not set")
-
-    else:
-        db_file = tmp_path / "test.db"
-        if db_file.exists():
-            db_file.unlink()
-        store = SQLiteStorage(db_path=str(db_file))
-
-    await store.setup()
-    await store.get_or_create_user(sub="tenant:testing:system:system_user")
-    yield store
-    await store.teardown()
-
-
-# ──────────────────────────────────────────────────────────────
-# 3.  user + agent seeders so FK constraints pass
+# user + agent seeders so FK constraints pass
 # ──────────────────────────────────────────────────────────────
 @pytest.fixture
 async def stub_user(storage):
@@ -121,7 +66,7 @@ async def seed_agents(storage, stub_user):
 
 
 # ──────────────────────────────────────────────────────────────
-# 4.  FastAPI + client fixtures wired to whichever storage we got
+# FastAPI + client fixtures wired to whichever storage we got
 # ──────────────────────────────────────────────────────────────
 @pytest.fixture
 def fastapi_app(storage, stub_user) -> FastAPI:

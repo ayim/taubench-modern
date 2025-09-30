@@ -84,24 +84,12 @@ async def check_agent_data_connection_storage_crud(
 
 
 @pytest.mark.asyncio
-async def test_agent_data_connection_storage_crud_sqlite(
-    sqlite_storage: "SQLiteStorage",
+async def test_agent_data_connection_storage_crud(
+    storage: "SQLiteStorage|PostgresStorage",
     tmpdir: Path,
 ) -> None:
     """Test agent data connection storage CRUD operations with SQLite."""
     from tests.storage.sample_model_creator import SampleModelCreator
 
-    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
-    await check_agent_data_connection_storage_crud(model_creator)
-
-
-@pytest.mark.asyncio
-async def test_agent_data_connection_storage_crud_postgres(
-    postgres_storage: "PostgresStorage",
-    tmpdir: Path,
-) -> None:
-    """Test agent data connection storage CRUD operations with Postgres."""
-    from tests.storage.sample_model_creator import SampleModelCreator
-
-    model_creator = SampleModelCreator(postgres_storage, tmpdir)
+    model_creator = SampleModelCreator(storage, tmpdir)
     await check_agent_data_connection_storage_crud(model_creator)

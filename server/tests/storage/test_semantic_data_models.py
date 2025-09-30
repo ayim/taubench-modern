@@ -124,26 +124,14 @@ async def check_semantic_data_model_storage_crud(
 
 
 @pytest.mark.asyncio
-async def test_semantic_data_model_storage_crud_sqlite(
-    sqlite_storage: "SQLiteStorage",
+async def test_semantic_data_model_storage_crud(
+    storage: "SQLiteStorage|PostgresStorage",
     tmpdir: Path,
 ) -> None:
     """Test semantic data model storage CRUD operations with SQLite."""
     from tests.storage.sample_model_creator import SampleModelCreator
 
-    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
-    await check_semantic_data_model_storage_crud(model_creator)
-
-
-@pytest.mark.asyncio
-async def test_semantic_data_model_storage_crud_postgres(
-    postgres_storage: "PostgresStorage",
-    tmpdir: Path,
-) -> None:
-    """Test semantic data model storage CRUD operations with PostgreSQL."""
-    from tests.storage.sample_model_creator import SampleModelCreator
-
-    model_creator = SampleModelCreator(postgres_storage, tmpdir)
+    model_creator = SampleModelCreator(storage, tmpdir)
     await check_semantic_data_model_storage_crud(model_creator)
 
 
@@ -211,26 +199,14 @@ async def check_thread_semantic_data_model_storage_crud(
 
 
 @pytest.mark.asyncio
-async def test_thread_semantic_data_model_storage_crud_sqlite(
-    sqlite_storage: "SQLiteStorage",
+async def test_thread_semantic_data_model_storage_crud(
+    storage: "SQLiteStorage|PostgresStorage",
     tmpdir: Path,
 ) -> None:
     """Test thread semantic data model storage CRUD operations with SQLite."""
     from tests.storage.sample_model_creator import SampleModelCreator
 
-    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
-    await check_thread_semantic_data_model_storage_crud(model_creator)
-
-
-@pytest.mark.asyncio
-async def test_thread_semantic_data_model_storage_crud_postgres(
-    postgres_storage: "PostgresStorage",
-    tmpdir: Path,
-) -> None:
-    """Test thread semantic data model storage CRUD operations with Postgres."""
-    from tests.storage.sample_model_creator import SampleModelCreator
-
-    model_creator = SampleModelCreator(postgres_storage, tmpdir)
+    model_creator = SampleModelCreator(storage, tmpdir)
     await check_thread_semantic_data_model_storage_crud(model_creator)
 
 
@@ -288,26 +264,14 @@ async def check_agent_semantic_data_model_storage_crud(
 
 
 @pytest.mark.asyncio
-async def test_agent_semantic_data_model_storage_crud_sqlite(
-    sqlite_storage: "SQLiteStorage",
+async def test_agent_semantic_data_model_storage_crud(
+    storage: "SQLiteStorage|PostgresStorage",
     tmpdir: Path,
 ) -> None:
     """Test agent semantic data model storage CRUD operations with SQLite."""
     from tests.storage.sample_model_creator import SampleModelCreator
 
-    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
-    await check_agent_semantic_data_model_storage_crud(model_creator)
-
-
-@pytest.mark.asyncio
-async def test_agent_semantic_data_model_storage_crud_postgres(
-    postgres_storage: "PostgresStorage",
-    tmpdir: Path,
-) -> None:
-    """Test agent semantic data model storage CRUD operations with Postgres."""
-    from tests.storage.sample_model_creator import SampleModelCreator
-
-    model_creator = SampleModelCreator(postgres_storage, tmpdir)
+    model_creator = SampleModelCreator(storage, tmpdir)
     await check_agent_semantic_data_model_storage_crud(model_creator)
 
 
@@ -449,24 +413,12 @@ async def check_list_semantic_data_models(
 
 
 @pytest.mark.asyncio
-async def test_list_semantic_data_models_sqlite(
-    sqlite_storage: "SQLiteStorage",
+async def test_list_semantic_data_models(
+    storage: "SQLiteStorage|PostgresStorage",
     tmpdir: Path,
 ) -> None:
     """Test listing semantic data models with SQLite."""
     from tests.storage.sample_model_creator import SampleModelCreator
 
-    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
-    await check_list_semantic_data_models(model_creator)
-
-
-@pytest.mark.asyncio
-async def test_list_semantic_data_models_postgres(
-    postgres_storage: "PostgresStorage",
-    tmpdir: Path,
-) -> None:
-    """Test listing semantic data models with PostgreSQL."""
-    from tests.storage.sample_model_creator import SampleModelCreator
-
-    model_creator = SampleModelCreator(postgres_storage, tmpdir)
+    model_creator = SampleModelCreator(storage, tmpdir)
     await check_list_semantic_data_models(model_creator)
