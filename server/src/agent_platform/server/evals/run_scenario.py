@@ -51,6 +51,16 @@ from agent_platform.server.storage.option import StorageService
 logger = logging.getLogger(__name__)
 
 
+def _extract_evaluation_from_model_response(text: str) -> dict | None:
+    import json
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        logger.debug(f"Cannot parse JSON: {e}")
+        return None
+
+
 def _list_scenario_next_user_messages(
     scenario: Scenario, start_index: int
 ) -> tuple[list[ThreadMessage], int | None]:
@@ -378,7 +388,8 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
 
 async def _evaluate_flow_adherence(
     thread: Thread, scenario: Scenario, user: User, storage: StorageDependency
-) -> EvaluationResult:
+) -> EvaluationResult | None:
+    logger.info("evaluating flow adherence")
     system_message = dedent("""
         You are an expert evaluator of LLM conversations. \
         Your role is to analyse the conversation history between the agent and user. \
@@ -398,7 +409,8 @@ async def _evaluate_flow_adherence(
         - "explanation": a brief explanation of your thoughts/evaluation \
         - "score": a number from 0-10 indicating quality (10 = perfect match) \
         - "passed": true/false indicating if the response meets the criteria (score >= 6) \
-        Only respond with the JSON object, no other text.
+        Output RAW JSON only. Do not use code fences, markdown, or language tags. \
+        The first character must be "{{" and the last must be "}}".
     """)
 
     mock_request = Request(scope={"type": "http", "method": "POST"})
@@ -438,22 +450,42 @@ async def _evaluate_flow_adherence(
         agent_id=scenario.agent_id,
     )
 
-    import json
+    if content := response.content:
+        if text_content := [c.text for c in content if isinstance(c, ResponseTextContent)]:
+            response_text = text_content[-1]
+            logger.debug(f"Flow Adherence response: {response_text}")
 
-    content = next(
-        (item for item in response.content if isinstance(item, ResponseTextContent)), None
+            parsed_result = _extract_evaluation_from_model_response(response_text)
+            if parsed_result is None:
+                logger.error("Flow adherence cannot be parsed from agent response")
+                return FlowAdherenceResult(
+                    passed=False,
+                    explanation="Unexpected error: cannot evaluate flow adherence",
+                    score=0,
+                )
+
+            try:
+                return FlowAdherenceResult(**parsed_result)
+            except Exception as e:
+                if isinstance(e, TypeError):
+                    logger.error("Parsed JSON is not Flow Adherence")
+                    return FlowAdherenceResult(
+                        passed=False,
+                        explanation="Unexpected error: cannot evaluate flow adherence",
+                        score=0,
+                    )
+
+                raise
+
+    logger.error("Flow Adherence is not in agent response")
+    return FlowAdherenceResult(
+        passed=False, explanation="Unexpected error: cannot evaluate flow adherence", score=0
     )
-    if content is None:
-        raise RuntimeError("expected ResponseTextContent")
-
-    evaluation_json = content.text
-    evaluation_data = json.loads(evaluation_json)
-    return FlowAdherenceResult.model_validate(evaluation_data)
 
 
 async def _evaluate_response_accuracy(
     thread: Thread, scenario: Scenario, user: User, storage: StorageDependency
-) -> EvaluationResult:
+) -> EvaluationResult | None:
     system_message = dedent("""
         You are an expert evaluator of LLM conversations. \
         Your role is to analyse the conversation history between the agent and user. \
@@ -470,7 +502,8 @@ async def _evaluate_response_accuracy(
         - "explanation": a brief explanation of your thoughts/evaluation \
         - "score": a number from 0-10 indicating quality (10 = perfect match) \
         - "passed": true/false indicating if the response meets the criteria (score >= 6) \
-        Only respond with the JSON object, no other text.
+        Output RAW JSON only. Do not use code fences, markdown, or language tags. \
+        The first character must be "{{" and the last must be "}}".
     """)
 
     mock_request = Request(scope={"type": "http", "method": "POST"})
@@ -509,17 +542,35 @@ async def _evaluate_response_accuracy(
         agent_id=scenario.agent_id,
     )
 
-    import json
+    if content := response.content:
+        if text_content := [c.text for c in content if isinstance(c, ResponseTextContent)]:
+            response_text = text_content[-1]
+            logger.debug(f"Response accuracy response: {response_text}")
 
-    content = next(
-        (item for item in response.content if isinstance(item, ResponseTextContent)), None
+            parsed_result = _extract_evaluation_from_model_response(response_text)
+            if parsed_result is None:
+                logger.error("Response accuracy cannot be parsed from agent response")
+                return ResponseAccuracyResult(
+                    passed=False, explanation="Unexpected error: cannot evaluate accuracy", score=0
+                )
+
+            try:
+                return ResponseAccuracyResult(**parsed_result)
+            except Exception as e:
+                if isinstance(e, TypeError):
+                    logger.error("Parsed JSON is not Response accuracy")
+                    return ResponseAccuracyResult(
+                        passed=False,
+                        explanation="Unexpected error: cannot evaluate accuracy",
+                        score=0,
+                    )
+
+                raise
+
+    logger.error("Response accuracy is not in agent response")
+    return ResponseAccuracyResult(
+        passed=False, explanation="Unexpected error: cannot evaluate accuracy", score=0
     )
-    if content is None:
-        raise RuntimeError("expected ResponseTextContent")
-
-    evaluation_json = content.text
-    evaluation_data = json.loads(evaluation_json)
-    return ResponseAccuracyResult.model_validate(evaluation_data)
 
 
 async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str | None]:

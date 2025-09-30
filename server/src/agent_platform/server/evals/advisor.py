@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from textwrap import dedent
 from typing import cast
@@ -19,12 +20,24 @@ from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class ScenarioSuggestion:
     name: str
     description: str
     rationale: str
+
+
+def _extract_suggestion_from_model_response(text: str) -> dict | None:
+    import json
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        logger.debug(f"Cannot parse JSON: {e}")
+        return None
 
 
 async def suggest_scenario_from_thread(user: User, thread: Thread, storage: StorageDependency):
@@ -51,8 +64,8 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
         \n \
         {exemplar_thread} \
         \n \
-        Output ONLY valid JSON. Do not include extra commentary, markdown, \
-        or formatting outside of the JSON.
+        Output RAW JSON only. Do not use code fences, markdown, or language tags. \
+        The first character must be "{{" and the last must be "}}".
     """)
 
     mock_request = Request(scope={"type": "http", "method": "POST"})
@@ -102,14 +115,17 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
         agent_id=thread.agent_id,
     )
 
-    import json
+    if content := response.content:
+        if text_content := [c.text for c in content if isinstance(c, ResponseTextContent)]:
+            response_text = text_content[-1]
+            logger.debug(f"Suggest scenario response: {response_text}")
 
-    content = next(
-        (item for item in response.content if isinstance(item, ResponseTextContent)), None
-    )
-    if content is None:
-        raise RuntimeError("expected ResponseTextContent")
+            parsed_result = _extract_suggestion_from_model_response(response_text)
+            if parsed_result is None:
+                logger.error("Scenario suggestion cannot be parsed from agent response")
+                return None
 
-    suggestion_data = content.text
-    suggestion_json = json.loads(suggestion_data)
-    return ScenarioSuggestion(**suggestion_json)
+            return ScenarioSuggestion(**parsed_result)
+
+    logger.error("Scenario suggestion is not in agent response")
+    return None

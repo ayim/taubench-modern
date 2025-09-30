@@ -91,7 +91,12 @@ async def suggest_scenario_from_thread(
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    return await _suggest_scenario_from_thread(user, thread, storage)
+    suggestion = await _suggest_scenario_from_thread(user, thread, storage)
+
+    if suggestion is None:
+        raise HTTPException(status_code=500, detail="Unexpected error")
+
+    return suggestion
 
 
 @router.get("/scenarios", response_model=list[Scenario])
