@@ -130,7 +130,6 @@ export const extractOIDCUserIdentity = async ({
             message: 'Session validation failed',
           },
         };
-      case 'session_empty':
       case 'no_session':
         monitoring.logger.error('OIDC authentication attempted but no session was found', {
           errorName: sessionResult.error.code,
@@ -150,36 +149,50 @@ export const extractOIDCUserIdentity = async ({
     }
   }
 
-  if (!sessionResult.data.auth) {
-    if (sessionResult.data.codeVerifier) {
-      monitoring.logger.error(
-        'OIDC authentication attempted but an incomplete session was provided: Waiting for resolution',
-      );
+  if (!sessionResult.data) {
+    monitoring.logger.error('OIDC authentication attempted but an empty session was provided');
 
-      return {
-        success: false,
-        error: {
-          code: 'pending',
-          message: 'Session validation failed due to a pending login',
-        },
-      };
-    } else {
-      monitoring.logger.error('OIDC authentication attempted but an empty session was provided');
-
-      return {
-        success: false,
-        error: {
-          code: 'forbidden',
-          message: 'Session validation failed due to incomplete login',
-        },
-      };
-    }
+    return {
+      success: false,
+      error: {
+        code: 'forbidden',
+        message: 'Session validation failed due to incomplete login',
+      },
+    };
   }
 
-  const authPayload = sessionResult.data.auth;
+  if (sessionResult.data.authType !== 'oidc') {
+    monitoring.logger.error('OIDC authentication attempted but session authentication was not in OIDC mode', {
+      errorMessage: `Bad auth type for session: ${sessionResult.data.authType}`,
+    });
+
+    return {
+      success: false,
+      error: {
+        code: 'forbidden',
+        message: 'Session validation failed due to an invalid session',
+      },
+    };
+  }
+
+  if (sessionResult.data.auth.stage !== 'authenticated') {
+    monitoring.logger.error(
+      'OIDC authentication attempted but an incomplete session was provided: Waiting for resolution',
+    );
+
+    return {
+      success: false,
+      error: {
+        code: 'pending',
+        message: 'Session validation failed due to a pending login',
+      },
+    };
+  }
+
+  const { tokens } = sessionResult.data.auth;
 
   // Validate token validity
-  const validityResult = await authManager.validateTokens({ tokens: authPayload.tokens });
+  const validityResult = await authManager.validateTokens({ tokens });
   if (!validityResult.success) {
     return {
       success: false,
@@ -210,6 +223,7 @@ export const refreshOIDCToken = async ({
   sessionManager: SessionManager;
 }): Promise<Result<{ userId: string }>> => {
   const sessionResult = await sessionManager.extractSessionFromRequest(req);
+
   if (!sessionResult.success) {
     monitoring.logger.error('Unable to handle expired tokens: Invalid session', {
       errorName: sessionResult.error.code,
@@ -225,16 +239,44 @@ export const refreshOIDCToken = async ({
         message: `Invalid session: ${sessionResult.error.message}`,
       },
     };
-  } else if (!sessionResult.data.auth) {
-    monitoring.logger.error('Unable to handle expired tokens: No tokens currently present in session');
+  }
 
-    await sessionManager.clearSessionForRequest(req);
+  if (!sessionResult.data) {
+    monitoring.logger.error('Unable to handle expired tokens: No session data');
+
+    const clearSessionResult = await sessionManager.clearSessionForRequest(req);
+    if (!clearSessionResult.success) {
+      monitoring.logger.error('Failed clearing session for expired tokens', {
+        errorName: clearSessionResult.error.code,
+        errorMessage: clearSessionResult.error.message,
+      });
+    }
 
     return {
       success: false,
       error: {
         code: 'invalid_session',
         message: 'Invalid session: No tokens found in session',
+      },
+    };
+  }
+
+  if (sessionResult.data.authType !== 'oidc' || sessionResult.data.auth.stage !== 'authenticated') {
+    monitoring.logger.error('Unable to handle expired tokens: Session is in incorrect state for refreshing');
+
+    const clearSessionResult = await sessionManager.clearSessionForRequest(req);
+    if (!clearSessionResult.success) {
+      monitoring.logger.error('Failed clearing session for invalid state', {
+        errorName: clearSessionResult.error.code,
+        errorMessage: clearSessionResult.error.message,
+      });
+    }
+
+    return {
+      success: false,
+      error: {
+        code: 'invalid_session',
+        message: 'Invalid session',
       },
     };
   }
@@ -250,7 +292,13 @@ export const refreshOIDCToken = async ({
         errorMessage: refreshResult.error.message,
       });
 
-      await sessionManager.clearSessionForRequest(req);
+      const clearSessionResult = await sessionManager.clearSessionForRequest(req);
+      if (!clearSessionResult.success) {
+        monitoring.logger.error('Failed clearing session for failed refresh', {
+          errorName: clearSessionResult.error.code,
+          errorMessage: clearSessionResult.error.message,
+        });
+      }
 
       return {
         success: false,
@@ -263,9 +311,10 @@ export const refreshOIDCToken = async ({
 
     await sessionManager.setSessionOnRequest(req, {
       auth: {
+        stage: 'authenticated',
         tokens: refreshResult.data,
-        type: 'oidc',
       },
+      authType: 'oidc',
     });
 
     return {

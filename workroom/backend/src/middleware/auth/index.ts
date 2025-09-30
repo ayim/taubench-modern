@@ -69,7 +69,7 @@ export const createAuthRedirectMiddleware =
       return next();
     }
 
-    if (bypassedPages.some((pagePattern) => pathToRegexp(pagePattern).regexp.test(req.url))) {
+    if (bypassedPages.some((pagePattern) => pathToRegexp(pagePattern).regexp.test(req.originalUrl))) {
       monitoring.logger.info('Page bypasses authentication checks', {
         requestMethod: req.method,
         requestUrl: req.originalUrl,
@@ -90,9 +90,21 @@ export const createAuthRedirectMiddleware =
     }
 
     switch (authResult.error.code) {
-      case 'forbidden':
-        await sessionManager.clearSessionForRequest(req);
+      case 'forbidden': {
+        const clearResult = await sessionManager.clearSessionForRequest(req);
+        if (!clearResult.success) {
+          monitoring.logger.error('Failed handling forbidden authentication scenario: Failed to clear session', {
+            errorName: clearResult.error.code,
+            errorMessage: clearResult.error.message,
+          });
+
+          return res
+            .status(500)
+            .json({ error: { code: 'internal_error', message: 'Failed to handle session' } } satisfies ErrorResponse);
+        }
+
         return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
+      }
       case 'unauthorized': {
         const origin = `${req.protocol}://${req.get('host')}`;
         monitoring.logger.info('Generating redirect for origin', {
@@ -112,17 +124,31 @@ export const createAuthRedirectMiddleware =
         }
 
         await sessionManager.setSessionOnRequest(req, {
-          codeVerifier: loginUrlResult.data.codeVerifier,
+          auth: {
+            codeVerifier: loginUrlResult.data.codeVerifier,
+            stage: 'auth-callback',
+          },
+          authType: 'oidc',
         });
 
         return res.redirect(loginUrlResult.data.loginUrl);
       }
       case 'pending': {
-        monitoring.logger.error('Login is pending');
+        monitoring.logger.error('Invalid session state: Clearing session');
 
-        return res
-          .status(500)
-          .json({ error: { code: 'internal_error', message: 'Internal server error' } } satisfies ErrorResponse);
+        const clearResult = await sessionManager.clearSessionForRequest(req);
+        if (!clearResult.success) {
+          monitoring.logger.error('Failed handling pending login: Failed clearing session', {
+            errorName: clearResult.error.code,
+            errorMessage: clearResult.error.message,
+          });
+
+          return res
+            .status(500)
+            .json({ error: { code: 'internal_error', message: 'Failed to handle session' } } satisfies ErrorResponse);
+        }
+
+        return res.redirect(307, req.originalUrl);
       }
       case 'expired': {
         monitoring.logger.info('OIDC access token expired');

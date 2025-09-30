@@ -35,6 +35,8 @@ export const createOIDCCallbackHandler =
         error: queryResult.error,
       });
 
+      // Try to clear the session as we're in an error state - don't check
+      // the result as it most likely doesn't matter
       await sessionManager.clearSessionForRequest(req);
 
       return res
@@ -43,23 +45,42 @@ export const createOIDCCallbackHandler =
     }
 
     const sessionData = await sessionManager.extractSessionFromRequest(req);
+
     if (!sessionData.success) {
-      monitoring.logger.error('Bad OIDC callback: No session data found', {
+      monitoring.logger.error('OIDC callback failed: session extraction failed', {
         errorName: sessionData.error.code,
         errorMessage: sessionData.error.message,
       });
 
+      return res.status(500).json({
+        error: { code: 'internal_error', message: 'Callback failed due to session handling failure' },
+      } satisfies ErrorResponse);
+    }
+
+    if (!sessionData.data) {
+      monitoring.logger.error('Bad OIDC callback: No session data found');
+
       return res.status(401).json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
     }
-    if (!sessionData.data.codeVerifier) {
-      monitoring.logger.error('Bad OIDC callback: No code verifier found');
 
-      return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
+    if (sessionData.data.authType !== 'oidc') {
+      monitoring.logger.error('Bad OIDC callback: Session authentication not currently in OIDC mode');
+
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'Invalid request for this configuration' },
+      } satisfies ErrorResponse);
+    }
+    if (sessionData.data.auth.stage !== 'auth-callback') {
+      monitoring.logger.error('Bad OIDC callback: Session not ready for callback or already authenticated');
+
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'Invalid request for this session' },
+      } satisfies ErrorResponse);
     }
 
-    const { codeVerifier } = sessionData.data;
-    // Clear session state
-    await sessionManager.setSessionOnRequest(req, {});
+    const { codeVerifier } = sessionData.data.auth;
+    // Clear session state - soft delete
+    await sessionManager.setSessionOnRequest(req, null);
 
     const { code, state } = queryResult.data;
     const origin = `${req.protocol}://${req.get('host')}`;
@@ -89,9 +110,10 @@ export const createOIDCCallbackHandler =
 
     await sessionManager.setSessionOnRequest(req, {
       auth: {
+        stage: 'authenticated',
         tokens: tokensResult.data,
-        type: 'oidc',
       },
+      authType: 'oidc',
     });
 
     monitoring.logger.info('User logged in successfully');

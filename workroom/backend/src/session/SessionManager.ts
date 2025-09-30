@@ -1,27 +1,13 @@
 import cookieSigning from 'cookie-signature';
 import type { Store } from 'express-session';
-import z from 'zod';
-import { Tokens, type ExpressRequest } from '../interfaces.js';
+import { type ExpressRequest } from '../interfaces.js';
+import { Session, sessionsEqual } from './payload.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { formatZodError } from '../utils/error.js';
 import { caseless, parseCookies } from '../utils/parse.js';
-import type { Result } from '../utils/result.js';
+import { asResult, type Result } from '../utils/result.js';
 
-export type ExtractSessionResult = Result<
-  Session,
-  { code: 'invalid_session' | 'no_session' | 'session_empty'; message: string }
->;
-
-export type Session = z.infer<typeof Session>;
-const Session = z.object({
-  auth: z
-    .object({
-      tokens: Tokens,
-      type: z.literal('oidc'),
-    })
-    .optional(),
-  codeVerifier: z.string().optional(),
-});
+export type ExtractSessionResult = Result<Session, { code: 'invalid_session' | 'no_session'; message: string }>;
 
 const COOKIE_NAME = 's4spar';
 
@@ -40,18 +26,21 @@ export class SessionManager {
     return COOKIE_NAME;
   }
 
-  async clearSessionForRequest(req: ExpressRequest): Promise<void> {
+  async clearSessionForRequest(req: ExpressRequest): Promise<Result<void>> {
     this.monitoring.logger.info('Clear session', {
       sessionId: req.session?.id,
     });
 
-    return new Promise<void>((resolve) => {
-      if (req.session?.destroy) {
-        req.session.destroy(() => resolve());
-      } else {
-        resolve();
-      }
-    });
+    return asResult(
+      () =>
+        new Promise<void>((resolve) => {
+          if (req.session?.destroy) {
+            req.session.destroy(() => resolve());
+          } else {
+            resolve();
+          }
+        }),
+    );
   }
 
   async extractSessionFromHeaders(headers: Headers | Record<string, string>): Promise<ExtractSessionResult> {
@@ -108,11 +97,15 @@ export class SessionManager {
 
         const output = Session.safeParse(sess);
         if (!output.success) {
+          this.monitoring.logger.error('Failed extracting session from headers', {
+            errorMessage: formatZodError(output.error),
+          });
+
           return resolve({
             success: false,
             error: {
               code: 'invalid_session',
-              message: `Failed parsing session data: ${formatZodError(output.error)}`,
+              message: 'Invalid session data',
             },
           });
         }
@@ -135,34 +128,18 @@ export class SessionManager {
       });
     });
 
-    const session = req.session as unknown as Session;
-    if (!session) {
-      return {
-        success: false,
-        error: {
-          code: 'no_session',
-          message: 'No session found',
-        },
-      };
-    }
-
-    if (!session.auth?.type && !session.codeVerifier) {
-      return {
-        success: false,
-        error: {
-          code: 'session_empty',
-          message: 'Session present but empty',
-        },
-      };
-    }
-
     const sessionResult = Session.safeParse(req.session);
+
     if (!sessionResult.success) {
+      this.monitoring.logger.error('Failed extracting session from request', {
+        errorMessage: formatZodError(sessionResult.error),
+      });
+
       return {
         success: false,
         error: {
           code: 'invalid_session',
-          message: `Failed extracting session from request: Session data invalid: ${formatZodError(sessionResult.error)}`,
+          message: 'Invalid session data',
         },
       };
     }
@@ -172,9 +149,19 @@ export class SessionManager {
 
   async setSessionOnRequest(req: ExpressRequest, session: Session): Promise<Result<void>> {
     try {
-      const reqSession = req.session as unknown as Session;
-      reqSession.auth = session.auth;
-      reqSession.codeVerifier = session.codeVerifier;
+      if (session === null) {
+        // Iterate and drop keys from session - soft clear
+        Object.keys(req.session).forEach((key) => {
+          if (key !== 'id' && key !== 'cookie') {
+            delete (req.session as unknown as Record<string, unknown>)[key];
+          }
+        });
+      } else {
+        Object.assign(req.session, {
+          auth: session.auth,
+          authType: session.authType,
+        } satisfies Session);
+      }
 
       await new Promise<void>((resolve, reject) => {
         req.session.save((err) => {
@@ -188,6 +175,26 @@ export class SessionManager {
 
       this.monitoring.logger.info('Session saved', {
         sessionId: req.session.id,
+      });
+
+      // Perform verification
+      await new Promise<void>((resolve, reject) => {
+        this.store.get(req.session.id, (err, retrieved) => {
+          if (err) {
+            return reject(err);
+          }
+
+          if (!retrieved) {
+            return reject(new Error('Failed verifying saved session: Session data empty'));
+          }
+
+          const checkSession = retrieved as unknown as Session;
+          if (!sessionsEqual(checkSession, session)) {
+            return reject(new Error('Failed verifying saved session: Retrieved session did not match save target'));
+          }
+
+          resolve();
+        });
       });
 
       return {

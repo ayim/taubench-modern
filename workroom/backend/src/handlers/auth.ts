@@ -34,41 +34,76 @@ export const createLogoutHandler =
     });
 
     const sessionResult = await sessionManager.extractSessionFromRequest(req);
+
     if (!sessionResult.success) {
+      monitoring.logger.error('Logout attempted but session extraction failed', {
+        errorName: sessionResult.error.code,
+        errorMessage: sessionResult.error.message,
+      });
+
+      // TODO: replace with better error page:
+      // https://linear.app/sema4ai/issue/CLOUD-5394/spar-backend-error-pages
+      return res.status(500).json({
+        error: {
+          code: 'logout_failed',
+          message: 'Failed logging out of session',
+        },
+      });
+    }
+
+    if (!sessionResult.data) {
       monitoring.logger.error('Logout attempted but no session present', {
+        requestMethod: req.method,
         requestUrl: req.originalUrl,
       });
 
       // Already logged out, so redirect to the target page
       return res.redirect(loggedOutUrl);
     }
-    if (!sessionResult.data.auth) {
-      monitoring.logger.error('Logout attempted but incomplete session found', {
+
+    // Session is present and we have the data, so clear it first
+    const clearSessionResult = await sessionManager.clearSessionForRequest(req);
+    if (!clearSessionResult.success) {
+      monitoring.logger.error('Logout attempted but failed to clear session', {
+        errorName: clearSessionResult.error.code,
+        errorMessage: clearSessionResult.error.message,
+        requestMethod: req.method,
         requestUrl: req.originalUrl,
       });
 
-      await sessionManager.clearSessionForRequest(req);
-
-      return res.redirect(loggedOutUrl);
+      return res.status(500).json({
+        error: {
+          code: 'logout_failed',
+          message: 'Failed logging out of session',
+        },
+      });
     }
-
-    // Session is present and we have the data, so clear it first
-    await sessionManager.clearSessionForRequest(req);
 
     // Now kill the OIDC side
-    const endResult = await authManager.endSession({
-      postLogoutRedirectUri: loggedOutUrl,
-      tokens: sessionResult.data.auth.tokens,
-    });
-    if (!endResult.success) {
-      monitoring.logger.error('Logout attempted but OIDC session end call failed', {
-        errorName: endResult.error.code,
-        errorMessage: endResult.error.message,
+    if (sessionResult.data.authType === 'oidc' && sessionResult.data.auth.stage === 'authenticated') {
+      monitoring.logger.info('Ending OIDC session', {
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
       });
 
-      return res.redirect(loggedOutUrl);
+      const endResult = await authManager.endSession({
+        postLogoutRedirectUri: loggedOutUrl,
+        tokens: sessionResult.data.auth.tokens,
+      });
+      if (!endResult.success) {
+        monitoring.logger.error('Logout attempted but OIDC session end call failed', {
+          errorName: endResult.error.code,
+          errorMessage: endResult.error.message,
+          requestMethod: req.method,
+          requestUrl: req.originalUrl,
+        });
+
+        return res.redirect(loggedOutUrl);
+      }
+
+      // Nothing else left to do apart from redirect
+      return res.redirect(endResult.data.logoutUri);
     }
 
-    // Nothing else left to do apart from redirect
-    return res.redirect(endResult.data.logoutUri);
+    return res.redirect(loggedOutUrl);
   };

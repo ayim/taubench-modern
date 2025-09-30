@@ -83,7 +83,6 @@ export class OIDCClient {
       // 'offline_access' scope, and instead need to use non-standard parameters:
       authParams.scope = 'openid email';
       authParams.access_type = 'offline';
-      authParams.prompt = 'consent';
     } else {
       // Required scopes:
       //  email           => Email address sub
