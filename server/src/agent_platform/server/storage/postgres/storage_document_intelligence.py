@@ -11,7 +11,7 @@ class PostgresStorageDocumentIntelligenceMixin(BaseStorage):
         """Set the Document Intelligence Data Server connection details."""
         dids_connection_details = self._get_table("dids_connection_details")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # Since we only store one row, clear the table first
             delete_stmt = delete(dids_connection_details)
             await conn.execute(delete_stmt)

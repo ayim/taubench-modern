@@ -1,10 +1,14 @@
+import asyncio
 import json
 from abc import abstractmethod
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
-from typing import TypedDict, cast
+from types import TracebackType
+from typing import Protocol, TypedDict, cast, runtime_checkable
 
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import JSON
 
@@ -35,6 +39,19 @@ from agent_platform.server.storage.errors import (
 from agent_platform.server.storage.types import StaleThreadsResult
 
 
+@runtime_checkable
+class AsyncLockLike(Protocol):
+    """API for an async-io lock which can only be used as a context manager."""
+
+    async def __aenter__(self) -> "AsyncLockLike": ...
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool | None: ...
+
+
 @compiles(JSON, "postgresql")
 def compile_json_as_jsonb(_type_, _compiler, **kw):
     return "JSONB"
@@ -50,10 +67,12 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     V2_PREFIX = ""  # Either v2. (postgres) or v2_ (sqlite)
 
+    _write_lock: AsyncLockLike  # Subclasses must set this
+
     def __init__(self):
         """Initialize the storage with SQLAlchemy engine."""
         super().__init__()
-        self._engine: AsyncEngine | None = None
+        self.__sa_engine: AsyncEngine | None = None
         assert self.V2_PREFIX, "V2_PREFIX must be set"
         self._metadata = sa.MetaData()
 
@@ -62,7 +81,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         Current DB reflection doesn't (currently) work with AsyncEngines,
         so we need to do it manually
         """
-        if not self._engine:
+        if not self.__sa_engine:
             raise ValueError("Engine not initialized; call setup() first.")
 
         def _reflect_tables(sync_conn):
@@ -72,7 +91,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 # This adds the table to the metadata object
                 sa.Table(table_name, self._metadata, autoload_with=sync_conn, schema=schema)
 
-        async with self._engine.connect() as conn:
+        async with self.__sa_engine.connect() as conn:
             await conn.run_sync(_reflect_tables)
 
     @staticmethod
@@ -81,15 +100,41 @@ class BaseStorage(AbstractStorage, CommonMixin):
         return [sa.column(name, JSON()) for name in column_name]
 
     @property
-    def engine(self) -> AsyncEngine:
+    def _sa_engine(self) -> AsyncEngine:
         """Get the SQLAlchemy engine."""
-        if self._engine is None:
+        if self.__sa_engine is None:
             raise RuntimeError("Engine not initialized; call setup() first.")
 
-        if not isinstance(self._engine, AsyncEngine):
-            raise RuntimeError("Expected AsyncEngine. Found: %s", type(self._engine))
+        if not isinstance(self.__sa_engine, AsyncEngine):
+            raise RuntimeError("Expected AsyncEngine. Found: %s", type(self.__sa_engine))
 
-        return self._engine
+        return self.__sa_engine
+
+    @_sa_engine.setter
+    def _sa_engine(self, value: AsyncEngine):
+        # Subclasses must set it on 'setup'
+        self.__sa_engine = value
+
+    # Note: engine and _engine are deprecated. Use _sa_engine instead.
+    # Not declaring it here at all so that typecheck can get it.
+
+    @asynccontextmanager
+    async def _write_connection(self) -> AsyncIterator[AsyncConnection]:
+        """
+        Acquire the write lock and open a transactional connection.
+        Commits on success, rolls back on exception.
+        """
+        async with self._write_lock:
+            async with self._sa_engine.begin() as conn:
+                yield conn
+
+    @asynccontextmanager
+    async def _read_connection(self) -> AsyncIterator[AsyncConnection]:
+        """
+        Open a read-only connection.
+        """
+        async with self._sa_engine.connect() as conn:
+            yield conn
 
     def _get_table(self, name: str) -> sa.Table:
         return self._metadata.tables[f"{self.V2_PREFIX}{name}"]
@@ -98,9 +143,16 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def setup(self) -> None:
         """Run the migrations and any necessary setup."""
 
-    @abstractmethod
     async def teardown(self) -> None:
-        """Teardown logic, if needed."""
+        """Disposes of the SQLAlchemy engine."""
+        try:
+            sa_engine = self.__sa_engine
+        except AttributeError:
+            pass
+        else:
+            if sa_engine is not None:
+                await sa_engine.dispose()
+            self.__sa_engine = None
 
     @abstractmethod
     async def _run_migrations(self) -> None:
@@ -119,7 +171,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # Use JSON column for computation_input_sources to handle JSON serialization
         stmt = sa.insert(data_frames).values(data_frame_dict)
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             await conn.execute(stmt)
 
     async def get_data_frame(self, data_frame_id: str) -> "PlatformDataFrame":
@@ -150,7 +202,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .where(data_frames.c.data_frame_id == data_frame_id)
         )
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             row = result.mappings().fetchone()
 
@@ -199,7 +251,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .where(data_frames.c.thread_id == thread_id)
         )
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -216,7 +268,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         stmt = data_frames.delete().where(data_frames.c.data_frame_id == data_frame_id)
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(stmt)
             if result.rowcount == 0:
                 raise ValueError(f"Data frame {data_frame_id} not found")
@@ -231,7 +283,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .where(data_frames.c.name == data_frame_name)
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(stmt)
             if result.rowcount == 0:
                 raise ValueError(f"Data frame {data_frame_name} not found in thread {thread_id}")
@@ -253,7 +305,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .values(data_frame_dict)
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(stmt)
             if result.rowcount == 0:
                 raise ValueError(f"Data frame {data_frame.data_frame_id} not found")
@@ -288,7 +340,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             ),
         ).select_from(agent)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -305,11 +357,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .where(agent_mcp_server.c.agent_id == agent_id)
         )
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
-        return [str(row["mcp_server_id"]) for row in rows]
+            return [str(row["mcp_server_id"]) for row in rows]
 
     async def get_agent_platform_params_ids(self, agent_id: str) -> list[str]:
         """Get platform params IDs associated with an agent."""
@@ -321,7 +373,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .where(agent_platform_params.c.agent_id == agent_id)
         )
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -333,7 +385,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Associate MCP servers with an agent."""
         agent_mcp_server = self._get_table("agent_mcp_server")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # First, remove existing associations
             delete_stmt = sa.delete(agent_mcp_server).where(agent_mcp_server.c.agent_id == agent_id)
             await conn.execute(delete_stmt)
@@ -360,7 +412,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .where(agent_data_connections.c.agent_id == agent_id)
         )
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -372,7 +424,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Set data connections for an agent (replace all existing associations)."""
         agent_data_connections = self._get_table("agent_data_connections")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # First, remove existing associations
             delete_stmt = sa.delete(agent_data_connections).where(
                 agent_data_connections.c.agent_id == agent_id
@@ -400,7 +452,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         data_connections = self._get_table("data_connection")
         stmt = sa.select(data_connections).where(data_connections.c.id.in_(data_connection_ids))
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -421,7 +473,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         stmt = sa.select(dids_connection_details)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             # We only ever store one row, so we can just fetch it
             row = result.mappings().fetchone()
@@ -462,7 +514,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Set the Document Intelligence Data Server connection details."""
         dids_connection_details = self._get_table("dids_connection_details")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # Since we only store one row, clear the table first
             delete_stmt = sa.delete(dids_connection_details)
             await conn.execute(delete_stmt)
@@ -490,7 +542,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Delete the Document Intelligence Data Server connection details."""
         dids_connection_details = self._get_table("dids_connection_details")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # Check if connection details exist
             select_stmt = sa.select(dids_connection_details)
             result = await conn.execute(select_stmt)
@@ -520,7 +572,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         stmt = sa.select(integrations_table).where(integrations_table.c.kind == kind)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             row = result.mappings().fetchone()
 
@@ -537,7 +589,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         stmt = sa.select(integrations_table)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -553,7 +605,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Create or update a document intelligence integration."""
         integrations_table = self._get_table("document_intelligence_integrations")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # Check if integration already exists
             select_stmt = sa.select(integrations_table).where(
                 integrations_table.c.kind == integration.kind
@@ -589,7 +641,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Delete a document intelligence integration by kind."""
         integrations_table = self._get_table("document_intelligence_integrations")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # Check if integration exists
             select_stmt = sa.select(integrations_table).where(integrations_table.c.kind == kind)
             result = await conn.execute(select_stmt)
@@ -642,7 +694,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(stale_threads_stmt)
             stale_threads = [StaleThreadsResult(**item) for item in result.mappings().fetchall()]
 
@@ -658,7 +710,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Create a new scenario."""
         scenarios = self._get_table("scenarios")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             scenario_dict = scenario.model_dump()
 
             insert_stmt = (
@@ -706,7 +758,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         if limit is not None:
             stmt = stmt.limit(limit)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -728,7 +780,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             scenarios.c.messages,
         ).where(scenarios.c.scenario_id == scenario_id)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             row = result.mappings().fetchone()
 
@@ -754,7 +806,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(stmt)
             row = result.mappings().fetchone()
 
@@ -764,7 +816,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         scenario_runs = self._get_table("scenario_runs")
         trials = self._get_table("trials")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             run_dict = scenario_run.model_dump()
             trials_dicts = [trial.model_dump() for trial in scenario_run.trials]
 
@@ -844,7 +896,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.execution_state,
         ).where(trials.c.scenario_run_id == scenario_run_id)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(get_run_stmt)
             run_row = result.mappings().fetchone()
 
@@ -880,7 +932,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .limit(limit)
         )
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -906,7 +958,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.execution_state,
         ).where(trials.c.scenario_run_id == scenario_run_id)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -936,7 +988,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             row = result.mappings().fetchone()
 
@@ -953,7 +1005,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             await conn.execute(insert_stmt)
 
     async def get_pending_trial_ids(self, limit: int = 10) -> list[str]:
@@ -967,7 +1019,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .limit(limit)
             .subquery()
         )
-        # TODO I am not sure if the update is atomic
+
         claim_stmt = (
             sa.update(trials)
             .where(
@@ -986,7 +1038,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(claim_stmt)
             rows = result.mappings().fetchall()
 
@@ -1006,7 +1058,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.error_message,
         ).where(trials.c.trial_id.in_(trials_ids))
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(get_trials_by_ids)
             rows = result.mappings().fetchall()
 
@@ -1028,7 +1080,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.execution_state,
         ).where(trials.c.trial_id == trial_id)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(get_trials_by_ids)
             row = result.mappings().fetchone()
 
@@ -1054,58 +1106,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(update_trials_stmt)
             rows = result.mappings().fetchall()
 
         return [row["trial_id"] for row in rows]
-
-    async def mark_trial_as_failed(self, trial_id: str, error: str):
-        trials = self._get_table("trials")
-        now = datetime.now(UTC)
-
-        update_trials_stmt = (
-            sa.update(trials)
-            .where(trials.c.trial_id == trial_id)
-            .values(
-                status=TrialStatus.ERROR,
-                error_message=error,
-                updated_at=now,
-                status_updated_at=now,
-            )
-            .returning(
-                trials.c.trial_id,
-            )
-        )
-
-        async with self.engine.begin() as conn:
-            result = await conn.execute(update_trials_stmt)
-            row = result.mappings().fetchone()
-
-        return row["trial_id"] if row is not None else None
-
-    async def complete_trial(self, trial_id: str, user_id: str):
-        trials = self._get_table("trials")
-        now = datetime.now(UTC)
-
-        update_trials_stmt = (
-            sa.update(trials)
-            .where(trials.c.trial_id == trial_id)
-            .values(
-                status=TrialStatus.COMPLETED.value,
-                updated_at=now,
-                status_updated_at=now,
-            )
-            .returning(
-                trials.c.trial_id,
-            )
-        )
-
-        async with self.engine.begin() as conn:
-            result = await conn.execute(update_trials_stmt)
-            row = result.mappings().fetchone()
-
-        return row["trial_id"] if row is not None else None
 
     async def update_trial_status(
         self, trial_id: str, user_id: str, status: TrialStatus, error: str | None = None
@@ -1127,7 +1132,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(update_trials_stmt)
             row = result.mappings().fetchone()
 
@@ -1153,7 +1158,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(update_trials_stmt)
             row = result.mappings().fetchone()
 
@@ -1191,7 +1196,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(update_trials_stmt)
             row = result.mappings().fetchone()
 
@@ -1213,7 +1218,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
         )
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(update_trials_stmt)
             row = result.mappings().fetchone()
 
@@ -1228,7 +1233,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         stmt = sa.select(dids_data_connections)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -1272,7 +1277,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Set Document Intelligence Data Server data connections (replace all)."""
         dids_data_connections = self._get_table("dids_data_connections")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # Clear existing connections (PUT semantics)
             delete_stmt = sa.delete(dids_data_connections)
             await conn.execute(delete_stmt)
@@ -1322,7 +1327,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         stmt = sa.select(data_connections)
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -1337,7 +1342,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def get_data_connection(self, connection_id: str) -> DataConnection:
         """Get data connection by ID."""
         data_connections = self._get_table("data_connection")
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(
                 sa.select(data_connections).where(data_connections.c.id == connection_id)
             )
@@ -1357,13 +1362,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
             data_connection_dict["configuration"]
         )
         data_connection_dict.pop("configuration")
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             await conn.execute(sa.insert(data_connections).values(data_connection_dict))
 
     async def delete_data_connection(self, connection_id: str) -> None:
         """Delete data connection."""
         data_connections = self._get_table("data_connection")
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(
                 sa.delete(data_connections).where(data_connections.c.id == connection_id)
             )
@@ -1379,7 +1384,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         )
         data_connection_dict.pop("configuration")
         data_connection_dict["updated_at"] = datetime.now(UTC)
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             await conn.execute(
                 sa.update(data_connections)
                 .where(data_connections.c.id == data_connection.id)
@@ -1398,7 +1403,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
     ) -> str:
         """Set a semantic data model with its input data connections and file references
         and return the ID of the semantic data model."""
-        import asyncio
         import uuid
 
         semantic_data_models = self._get_table("semantic_data_model")
@@ -1408,7 +1412,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # Note: there's currently no validation at all here!
         semantic_model_as_json = json.dumps(semantic_model)
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             if semantic_data_model_id is None:
                 semantic_data_model_id = str(uuid.uuid4())
 
@@ -1436,7 +1440,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
                 # The upsert is database-specific (so, we need to use the proper dialect
                 # in order to do the on_conflict_update, even though it's the same thing).
-                if self.engine.dialect.name == "sqlite":
+                if self._sa_engine.dialect.name == "sqlite":
                     from sqlalchemy.dialects.sqlite import insert
                 else:
                     from sqlalchemy.dialects.postgresql import insert
@@ -1489,7 +1493,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Get a semantic data model by ID."""
         semantic_data_models = self._get_table("semantic_data_model")
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(
                 sa.select(semantic_data_models).where(
                     semantic_data_models.c.id == semantic_data_model_id
@@ -1507,7 +1511,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Delete a semantic data model by ID."""
         semantic_data_models = self._get_table("semantic_data_model")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             result = await conn.execute(
                 sa.delete(semantic_data_models).where(
                     semantic_data_models.c.id == semantic_data_model_id
@@ -1525,7 +1529,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Set semantic data models for an agent (replace all existing associations)."""
         agent_semantic_data_models = self._get_table("agent_semantic_data_models")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # First, remove existing associations
             delete_stmt = sa.delete(agent_semantic_data_models).where(
                 agent_semantic_data_models.c.agent_id == agent_id
@@ -1565,7 +1569,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Get semantic data model IDs associated with an agent."""
         agent_semantic_data_models = self._get_table("agent_semantic_data_models")
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             stmt = sa.select(agent_semantic_data_models.c.semantic_data_model_id).where(
                 agent_semantic_data_models.c.agent_id == agent_id
             )
@@ -1583,7 +1587,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Set semantic data models for a thread (replace all existing associations)."""
         thread_semantic_data_models = self._get_table("thread_semantic_data_models")
 
-        async with self.engine.begin() as conn:
+        async with self._write_connection() as conn:
             # First, remove existing associations
             delete_stmt = sa.delete(thread_semantic_data_models).where(
                 thread_semantic_data_models.c.thread_id == thread_id
@@ -1623,7 +1627,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Get semantic data model IDs associated with a thread."""
         thread_semantic_data_models = self._get_table("thread_semantic_data_models")
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             stmt = sa.select(thread_semantic_data_models.c.semantic_data_model_id).where(
                 thread_semantic_data_models.c.thread_id == thread_id
             )
@@ -1650,7 +1654,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         agent_semantic_data_models = self._get_table("agent_semantic_data_models")
         thread_semantic_data_models = self._get_table("thread_semantic_data_models")
 
-        async with self.engine.begin() as conn:
+        async with self._read_connection() as conn:
             # Build the base query with OUTER JOINs to get all associations
             query = sa.select(
                 semantic_data_models,

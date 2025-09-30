@@ -5,7 +5,8 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar
+from types import TracebackType
+from typing import ClassVar, Self
 
 import sqlalchemy as sa
 from aiosqlite import Connection, Cursor, Row, connect
@@ -126,6 +127,64 @@ def _register_sqlite_adapters():
     register_converter("timestamp", _convert_timestamp)
 
 
+class ReentryError(RuntimeError):
+    """
+    Raised when the current task tries to re-enter a
+    NonReentrantAsyncLock it already holds.
+    """
+
+
+class NonReentrantAsyncLock:
+    """
+    An asyncio-compatible lock that **raises** on re-entry by the same task,
+    instead of deadlocking.
+    """
+
+    def __init__(self) -> None:
+        self._lock = asyncio.Lock()
+        self._owner: asyncio.Task | None = None
+
+    async def _acquire(self) -> bool:
+        current = asyncio.current_task()
+        if current is None:
+            raise RuntimeError("NonReentrantAsyncLock must be used within an asyncio task")
+
+        if self._lock.locked() and self._owner is current:
+            raise ReentryError("Lock re-entry by the same task")
+
+        await self._lock.acquire()
+        self._owner = current
+        return True
+
+    def _release(self) -> None:
+        current = asyncio.current_task()
+        if current is None:
+            raise RuntimeError(
+                "NonReentrantAsyncLock.release() must be called within an asyncio task"
+            )
+
+        if not self._lock.locked():
+            raise RuntimeError("Release called on an unlocked NonReentrantAsyncLock")
+
+        if self._owner is not current:
+            raise RuntimeError("Only the owning task can release this lock")
+
+        self._owner = None
+        self._lock.release()
+
+    async def __aenter__(self) -> Self:
+        await self._acquire()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool | None:
+        self._release()
+
+
 class SQLiteStorage(
     # Careful: order matters!
     SQLiteStorageArtifactsMixin,
@@ -162,7 +221,7 @@ class SQLiteStorage(
         self._db_path = db_path or self._get_db_path()
         self._migrations = SQLiteMigrations(self._db_path)
         self._is_setup = False
-        self._write_lock = asyncio.Lock()
+        self._write_lock = NonReentrantAsyncLock()
         _register_sqlite_adapters()
 
     async def setup(self) -> None:
@@ -179,7 +238,7 @@ class SQLiteStorage(
 
         # Initialize SQLAlchemy engine
         sqlite_url = f"sqlite+aiosqlite:///{self._db_path}"
-        self._engine = create_async_engine(
+        self._sa_engine = create_async_engine(
             sqlite_url,
             echo=False,
             connect_args={"check_same_thread": False},
@@ -193,7 +252,7 @@ class SQLiteStorage(
 
         self._is_setup = True
 
-    async def _conn_factory(self) -> Connection:
+    async def _conn_factory(self) -> Connection:  # noqa: C901
         """
         Create and configure a new SQLite connection.
         """
@@ -211,7 +270,7 @@ class SQLiteStorage(
         # ---------------------------------------------------------------------
         # Register the check_user_access function in SQLite
         # ---------------------------------------------------------------------
-        def check_user_access(record_user_id: str, requesting_user_id: str) -> int:
+        def check_user_access(record_user_id: str, requesting_user_id: str) -> int:  # noqa: PLR0911
             """
             Return 1 if requesting_user_id can access record_user_id's resource, else 0.
             - If record_user_id is 'system user', OK
@@ -223,6 +282,8 @@ class SQLiteStorage(
             if not self._is_setup:
                 raise RuntimeError("Database not initialized; call setup() first.")
 
+            cursor0 = None
+            cursor1 = None
             try:
                 cursor0 = conn._conn.execute(
                     """
@@ -233,6 +294,9 @@ class SQLiteStorage(
                     (record_user_id,),
                 )
                 record_user = cursor0.fetchone()
+            except Exception:
+                self._logger.exception("Error fetching record user")
+                return 0  # We cannot access it: return 0
             finally:
                 if cursor0 is not None:
                     cursor0.close()
@@ -247,6 +311,9 @@ class SQLiteStorage(
                     (requesting_user_id,),
                 )
                 requesting_user = cursor1.fetchone()
+            except Exception:
+                self._logger.exception("Error fetching requesting user")
+                return 0  # We cannot access it: return 0
             finally:
                 if cursor1 is not None:
                     cursor1.close()
@@ -280,9 +347,7 @@ class SQLiteStorage(
     async def teardown(self) -> None:
         """Close the SQLite database connection."""
         # Close SQLAlchemy engine
-        if hasattr(self, "_engine") and self._engine is not None:
-            await self._engine.dispose()
-            self._engine = None  # type: ignore
+        await super().teardown()
 
         if self._is_setup:
             if self._write_conn is not None:
@@ -319,26 +384,27 @@ class SQLiteStorage(
     async def _transaction(
         self,
     ) -> AsyncGenerator[Cursor, None]:
-        """Yield an async SQLite cursor and then commit on exit."""
-        # TODO handle reeentrant transactions
+        """Yield an async SQLite cursor and then commit on exit or rollback on error."""
+        # Do not allow for re-entrant use of one thread by one caller. The caller should
+        # use the existing connection rather than trying to open a new connection.
         if not self._write_conn:
             raise RuntimeError("Database not initialized; call setup() first.")
 
-        # Because we have all callers sharing the same write connection, we need
-        # to explicitly lock it to avoid concurrent commits on this one connection.
-        # Like read connection latency, we don't want to open a new connection every
-        # time. We need to figure come back and rework how we inject database connections.
-        await self._write_lock.acquire()
+        # Use a lock to avoid concurrent commits as sqlite can give errors
+        # if writes are used concurrently, such as `database is locked`
+        # -- see: https://sema4ai.slack.com/archives/C08HF1FADTQ/p1758794225716359
+        # Also, we need to commit/rollback correctly and fetch results accordingly
+        # to avoid issues such as:
+        # sqlite3.OperationalError: cannot commit transaction - SQL statements in progress
+        # -- see: https://sema4ai.slack.com/archives/C08HF1FADTQ/p1758838417062669
+        async with self._write_lock:
+            try:
+                yield await self._write_conn.cursor()
 
-        try:
-            yield await self._write_conn.cursor()
-
-            await self._write_conn.commit()
-        except Exception as e:
-            await self._write_conn.rollback()
-            raise e
-        finally:
-            self._write_lock.release()
+                await self._write_conn.commit()
+            except Exception as e:
+                await self._write_conn.rollback()
+                raise e
 
     def _clean_up_stale_threads__get_threshold(
         self,

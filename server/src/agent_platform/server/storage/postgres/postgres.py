@@ -2,6 +2,8 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
+from types import TracebackType
+from typing import Self
 
 import sqlalchemy as sa
 from psycopg import AsyncConnection, AsyncCursor
@@ -55,6 +57,21 @@ from agent_platform.server.storage.postgres.storage_users import (
 from agent_platform.server.storage.postgres.storage_work_items import (
     PostgresStorageWorkItemsMixin,
 )
+
+
+class NullAsyncLock:
+    """A no-op asyncio-like lock."""
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool:
+        return False  # don't suppress exceptions
 
 
 @dataclass(frozen=True)
@@ -142,6 +159,7 @@ class PostgresStorage(
         self._migrations = PostgresMigrations(self._cursor)
         self._is_setup = False
         self._dns = dsn
+        self._write_lock = NullAsyncLock()
 
     async def setup(self) -> None:
         """Create and open the async connection pool."""
@@ -165,7 +183,8 @@ class PostgresStorage(
         assert dsn.startswith("postgresql://"), (
             "DSN must start with postgresql:// (if this fails the logic below needs to be updated)"
         )
-        self._engine = create_async_engine(
+
+        self._sa_engine = create_async_engine(
             dsn.replace("postgresql://", "postgresql+psycopg://"),
             echo=False,
             pool_pre_ping=True,
@@ -180,9 +199,7 @@ class PostgresStorage(
     async def teardown(self) -> None:
         """Close the async connection pool."""
         # Close SQLAlchemy engine
-        if hasattr(self, "_engine") and self._engine is not None:
-            await self._engine.dispose()
-            self._engine = None
+        await super().teardown()
 
         # Only close the pool if we created/own it. A caller-provided pool may
         # be shared across test cases or even the entire application, so we
