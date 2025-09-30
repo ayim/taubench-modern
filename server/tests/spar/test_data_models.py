@@ -126,3 +126,84 @@ class TestDataModels:
                 # Make sure to compare UTC timestamps
                 assert row["created_at"].replace(tzinfo=pytz.UTC) == created_at
                 assert row["updated_at"].replace(tzinfo=pytz.UTC) == updated_at
+
+    def test_modify_incomplete_invoice_schema(
+        self,
+        spar_agent_server_base_url: str,
+        agent_server_client_with_doc_int: AgentServerClient,
+        agent_factory: Callable[[], str],
+    ):
+        agent_id = agent_factory()
+        thread_id = agent_server_client_with_doc_int.create_thread_and_return_thread_id(agent_id)
+
+        # Define an incomplete invoice schema that's missing several key fields
+        incomplete_schema = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Dental Supply Invoice",
+            "description": (
+                "Schema representing an invoice for dental supplies, "
+                "including customer details, items, and totals."
+            ),
+            "type": "object",
+            "properties": {
+                "invoice_number": {
+                    "type": "string",
+                    "description": (
+                        "Unique identifier for the invoice, typically found "
+                        "near the top right (e.g., 'Invoice #5465')."
+                    ),
+                },
+                "invoice_date": {
+                    "type": "string",
+                    "description": (
+                        "The date the invoice was issued, located near the "
+                        "invoice number (e.g., '8/28/2025')."
+                    ),
+                },
+            },
+            "required": [
+                "invoice_number",
+                "invoice_date",
+            ],
+        }
+
+        # Upload the invoice PDF to provide context for the modification
+        pdf_path = Path(__file__).parent / "resources" / "sample_invoice_2.pdf"
+        with open(pdf_path, "rb") as f:
+            pdf_content = f.read()
+
+        files = {
+            "files": (
+                "sample_invoice_2.pdf",
+                pdf_content,
+                "application/pdf",
+            )
+        }
+
+        # Upload file to thread
+        upload_response = httpx.post(
+            f"{spar_agent_server_base_url}/threads/{thread_id}/files",
+            files=files,
+        )
+        upload_response.raise_for_status()
+
+        # Modify the incomplete schema to add missing fields using the PDF context
+        params = {
+            "thread_id": thread_id,
+            "agent_id": agent_id,
+        }
+        modify_resp = httpx.post(
+            f"{spar_agent_server_base_url}/document-intelligence/data-models/modify",
+            json={
+                "schema": incomplete_schema,
+                "instructions": "Add the missing items table to the schema.",
+                "file_name": "sample_invoice_2.pdf",
+            },
+            params=params,
+            timeout=120,
+        )
+        modify_resp.raise_for_status()
+
+        # Verify that we got a valid jsonschema, all other fields are generative
+        modify_body = modify_resp.json()
+        jsonschema.Draft7Validator.check_schema(modify_body)

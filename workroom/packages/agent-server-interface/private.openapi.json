@@ -3894,6 +3894,66 @@
         }
       }
     },
+    "/document-intelligence/data-models/modify": {
+      "post": {
+        "tags": ["document-intelligence"],
+        "summary": "Generate Schema Modifications",
+        "description": "Modify a schema based on provided instructions.\n\nReturns the modified schema.",
+        "operationId": "generate_schema_modifications_document_intelligence_data_models_modify_post",
+        "parameters": [
+          {
+            "name": "thread_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Thread Id"
+            }
+          },
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifySchemaRequestPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModifySchemaResponsePayload"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/document-intelligence/quality-checks/generate": {
       "post": {
         "tags": ["document-intelligence"],
@@ -12135,6 +12195,45 @@
         "type": "object",
         "title": "Metric",
         "description": "A metric describes quantifiable measures of business performance.\n\nUse when it's a business KPI that aggregates (often over facts) across rows\ne.g., total_revenue = SUM(net_revenue), avg_order_value = AVG(order_total),\nor a composite like margin %. Define metrics at the most granular level so\nthey can roll up by any dimension."
+      },
+      "ModifySchemaRequestPayload": {
+        "properties": {
+          "schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Schema"
+          },
+          "instructions": {
+            "type": "string",
+            "title": "Instructions"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          }
+        },
+        "type": "object",
+        "required": ["schema", "instructions"],
+        "title": "ModifySchemaRequestPayload"
+      },
+      "ModifySchemaResponsePayload": {
+        "properties": {
+          "schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Schema"
+          }
+        },
+        "type": "object",
+        "required": ["schema"],
+        "title": "ModifySchemaResponsePayload"
       },
       "MySQLDataConnection": {
         "properties": {

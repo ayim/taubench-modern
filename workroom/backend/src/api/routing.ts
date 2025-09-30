@@ -1,6 +1,6 @@
-import type { AgentAPIRoute } from './parsers.js';
 import type { Permission } from '../auth/sema4OIDC.js';
 import type { Configuration } from '../configuration.js';
+import type { AgentAPIRoute } from './parsers.js';
 import type { Result } from '../utils/result.js';
 import { signAgentToken, type SignAgentTokenErrorOutcome } from '../utils/signing.js';
 
@@ -161,6 +161,7 @@ function getRouteMap(): {
       SIGN_WITH_USER,
       agentReadPermissions,
     ],
+    'post /api/v2/document-intelligence/data-models/modify': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/threads/{tid}/data-frames/{data_frame_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/data-connections/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/data-connections/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],

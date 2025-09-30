@@ -1172,6 +1172,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/data-models/modify': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Schema Modifications
+     * @description Modify a schema based on provided instructions.
+     *
+     *     Returns the modified schema.
+     */
+    post: operations['generate_schema_modifications_document_intelligence_data_models_modify_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/quality-checks/generate': {
     parameters: {
       query?: never;
@@ -4491,6 +4513,24 @@ export interface components {
       description?: string | null;
       /** Sample Values */
       sample_values?: (string | number | boolean | null)[] | null;
+    };
+    /** ModifySchemaRequestPayload */
+    ModifySchemaRequestPayload: {
+      /** Schema */
+      schema: {
+        [key: string]: unknown;
+      };
+      /** Instructions */
+      instructions: string;
+      /** File Name */
+      file_name?: string | null;
+    };
+    /** ModifySchemaResponsePayload */
+    ModifySchemaResponsePayload: {
+      /** Schema */
+      schema: {
+        [key: string]: unknown;
+      };
     };
     /** MySQLDataConnection */
     MySQLDataConnection: {
@@ -10416,6 +10456,42 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['GenerateDescriptionResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  generate_schema_modifications_document_intelligence_data_models_modify_post: {
+    parameters: {
+      query: {
+        thread_id: string;
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ModifySchemaRequestPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ModifySchemaResponsePayload'];
         };
       };
       /** @description Validation Error */

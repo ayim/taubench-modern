@@ -13,8 +13,12 @@ from agent_platform.core.document_intelligence.data_models import (
     model_to_spec_dict,
     summary_from_model,
 )
-from agent_platform.core.errors.base import PlatformHTTPError
-from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
+from agent_platform.core.files import UploadedFile
+from agent_platform.core.payloads.document_intelligence import (
+    ModifySchemaRequestPayload,
+    ModifySchemaResponsePayload,
+)
 from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
@@ -22,6 +26,10 @@ from agent_platform.server.api.dependencies import (
     DocIntDatasourceDependency,
     FileManagerDependency,
     StorageDependency,
+)
+from agent_platform.server.api.private_v2.document_intelligence.services import (
+    _get_or_upload_file,
+    _get_thread_or_404,
 )
 from agent_platform.server.auth import AuthedUser
 
@@ -213,4 +221,44 @@ async def generate_data_model_description(
     except ValueError as e:
         raise PlatformHTTPError(
             ErrorCode.UNEXPECTED, f"Failed to generate data model description: {e!s}"
+        ) from e
+
+
+@router.post("/data-models/modify")
+async def generate_schema_modifications(  # noqa: PLR0913
+    payload: ModifySchemaRequestPayload,
+    thread_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    di_service: DIDependency,
+) -> ModifySchemaResponsePayload:
+    """Modify a schema based on provided instructions.
+
+    Returns the modified schema.
+    """
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
+
+    file: UploadedFile | None = None
+    if payload.file_name:
+        file, _ = await _get_or_upload_file(
+            payload.file_name,
+            thread=thread,
+            user_id=user.user_id,
+            storage=storage,
+            file_manager=file_manager,
+        )
+
+    try:
+        updated_schema = await run_in_threadpool(
+            di_service.data_model.modify_schema,
+            payload.schema,
+            payload.instructions,
+            file.file_ref if file else None,
+        )
+        return ModifySchemaResponsePayload(schema=updated_schema)
+    except Exception as e:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED,
+            message=f"Failed to modify schema: {e!s}",
         ) from e

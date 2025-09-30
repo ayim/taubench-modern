@@ -26,6 +26,18 @@ class GenerateSchemaResponsePayload:
 
 
 @dataclass(frozen=True)
+class ModifySchemaRequestPayload:
+    schema: dict[str, Any]
+    instructions: str
+    file_name: str | None = None
+
+
+@dataclass(frozen=True)
+class ModifySchemaResponsePayload:
+    schema: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class ExtractDocumentPayload:
     """Payload for extracting a document."""
 
