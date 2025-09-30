@@ -1,6 +1,7 @@
 import { FC } from 'react';
 import { Box, Button, Typography } from '@sema4ai/components';
 import { oAuthProviderIcons } from '@sema4ai/oauth-client/icons';
+import { OAuthProvider } from '@sema4ai/oauth-client';
 
 import { useAgentOAuthStateQuery } from '../../../queries/agents';
 import { useParams } from '../../../hooks/useParams';
@@ -11,8 +12,8 @@ export const OAuth: FC = () => {
   const { data: oAuthState = [] } = useAgentOAuthStateQuery({ agentId });
   const { sparAPIClient } = useSparUIContext();
 
-  const onConnect = (uri: string) => {
-    sparAPIClient.authorizeAgentOAuth({ uri });
+  const onConnect = (provider: OAuthProvider, uri: string) => {
+    sparAPIClient.authorizeAgentOAuth({ agentId, provider, uri });
   };
 
   return (
@@ -48,7 +49,7 @@ export const OAuth: FC = () => {
               </Box>
             </Box>
             <Box ml="auto" alignSelf="center">
-              <Button type="button" round onClick={() => onConnect(uri)}>
+              <Button type="button" round onClick={() => onConnect(providerType, uri)}>
                 Connect
               </Button>
             </Box>

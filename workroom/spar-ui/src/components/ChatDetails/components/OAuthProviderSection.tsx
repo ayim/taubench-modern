@@ -4,9 +4,8 @@ import { IconGoogle, IconMicrosoft, IconSalesforce, IconSlack, IconZendesk } fro
 import { OAuthProvider } from '@sema4ai/oauth-client';
 import { snakeCaseToTitleCase } from '../../../common/helpers';
 import { AgentOAuthProviderState } from '../../../lib/OAuth';
-import { useDeleteAgentOAuthMutation } from '../../../queries/agents';
+import { useAuthorizeAgentOAuthMutation, useDeleteAgentOAuthMutation } from '../../../queries/agents';
 import { useParams } from '../../../hooks/useParams';
-import { useSparUIContext } from '../../../api/context';
 
 const getOAuthProviderIcon = (provider: OAuthProvider): React.ReactNode | null => {
   switch (provider) {
@@ -28,17 +27,33 @@ const getOAuthProviderIcon = (provider: OAuthProvider): React.ReactNode | null =
 export const OAuthProviderSection = ({ agentOAuthState }: { agentOAuthState: AgentOAuthProviderState[] }) => {
   const { agentId } = useParams('/thread/$agentId');
   const { addSnackbar } = useSnackbar();
-  const { sparAPIClient } = useSparUIContext();
 
+  const { mutate: authorizeAgentOAuth } = useAuthorizeAgentOAuthMutation({ agentId });
   const { mutate: deleteAgentOAuth } = useDeleteAgentOAuthMutation({ agentId });
 
-  const onConnect = (uri: string) => {
-    sparAPIClient.authorizeAgentOAuth({ uri });
+  const onConnect = (provider: OAuthProvider, uri: string) => {
+    authorizeAgentOAuth(
+      { provider, uri },
+      {
+        onSuccess: () => {
+          addSnackbar({
+            message: 'OAuth connection deleted successfully',
+            variant: 'success',
+          });
+        },
+        onError: () => {
+          addSnackbar({
+            message: 'Failed to delete OAuth connection',
+            variant: 'danger',
+          });
+        },
+      },
+    );
   };
 
-  const onDelete = (connectionId: string) => {
+  const onDelete = (provider: OAuthProvider, connectionId: string) => {
     deleteAgentOAuth(
-      { connectionId },
+      { provider, connectionId },
       {
         onSuccess: () => {
           addSnackbar({
@@ -82,9 +97,9 @@ export const OAuthProviderSection = ({ agentOAuthState }: { agentOAuthState: Age
                   }
                 >
                   {!provider.isAuthorized ? (
-                    <Menu.Item onClick={() => onConnect(provider.uri)}>Connect</Menu.Item>
+                    <Menu.Item onClick={() => onConnect(provider.providerType, provider.uri)}>Connect</Menu.Item>
                   ) : (
-                    <Menu.Item onClick={() => onDelete(provider.id)}>Delete</Menu.Item>
+                    <Menu.Item onClick={() => onDelete(provider.providerType, provider.id)}>Delete</Menu.Item>
                   )}
                 </Menu>
               </Box>

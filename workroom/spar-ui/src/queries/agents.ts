@@ -1,4 +1,6 @@
 import { Agent } from '@sema4ai/agent-server-interface';
+import { OAuthProvider } from '@sema4ai/oauth-client';
+
 import { createSparQueryOptions, createSparQuery, createSparMutation } from './shared';
 
 /**
@@ -87,14 +89,28 @@ export const useAgentOAuthStateQuery = createSparQuery(agentOauthStateQueryOptio
 /**
  * Delete Agent OAuth provider connection
  */
-export const useDeleteAgentOAuthMutation = createSparMutation<{ agentId: string }, { connectionId: string }>()(
-  ({ agentId, queryClient, sparAPIClient }) => ({
-    mutationFn: async ({ connectionId }) => sparAPIClient.deleteAgentOAuth({ agentId, connectionId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentOAuthStateQueryKey(agentId) });
-    },
-  }),
-);
+export const useAuthorizeAgentOAuthMutation = createSparMutation<
+  { agentId: string },
+  { provider: OAuthProvider; uri: string }
+>()(({ agentId, queryClient, sparAPIClient }) => ({
+  mutationFn: async ({ provider, uri }) => sparAPIClient.authorizeAgentOAuth({ agentId, provider, uri }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: agentOAuthStateQueryKey(agentId) });
+  },
+}));
+
+/**
+ * Delete Agent OAuth provider connection
+ */
+export const useDeleteAgentOAuthMutation = createSparMutation<
+  { agentId: string },
+  { provider: OAuthProvider; connectionId: string }
+>()(({ agentId, queryClient, sparAPIClient }) => ({
+  mutationFn: async ({ provider, connectionId }) => sparAPIClient.deleteAgentOAuth({ agentId, provider, connectionId }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: agentOAuthStateQueryKey(agentId) });
+  },
+}));
 
 /**
  * Delete Agent mutation

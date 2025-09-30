@@ -1,4 +1,5 @@
 import { paths as AgentServerPaths } from '@sema4ai/agent-server-interface';
+import { OAuthProvider } from '@sema4ai/oauth-client';
 
 import type { OpenAPIClient } from './OpenAPIClient';
 import type { SparUIRoutes, LooseRouteParams } from './routes';
@@ -57,12 +58,12 @@ export interface SparAPIClient {
   /**
    * Initiate OAuth authorization flow
    */
-  authorizeAgentOAuth: (props: { uri: string }) => Promise<void>;
+  authorizeAgentOAuth: (props: { agentId: string; provider: OAuthProvider; uri: string }) => Promise<void>;
 
   /**
    * Delete active OAuth provider connection
    */
-  deleteAgentOAuth: (props: { agentId: string; connectionId: string }) => Promise<void>;
+  deleteAgentOAuth: (props: { agentId: string; provider: OAuthProvider; connectionId: string }) => Promise<void>;
   /**
    * Returns required params for a given route
    */
