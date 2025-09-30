@@ -1,7 +1,7 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { Box, Button, DataFrame, Menu, Typography } from '@sema4ai/components';
 import { styled } from '@sema4ai/theme';
-import { IconChevronDown, IconMenu, IconTableRows } from '@sema4ai/icons';
+import { IconMenu, IconTableRows } from '@sema4ai/icons';
 
 import { useMessageStream } from '../../hooks';
 import { ListDataFrames, useDataFrameSliceInfiniteQuery, useDataFramesQuery } from '../../queries/dataFrames';
@@ -30,18 +30,12 @@ const StyledDataFrame = styled(DataFrame)`
   }
 `;
 
-const CustomDivider = styled.span`
-  width: 1px;
-  height: 100%;
-  background-color: ${({ theme }) => theme.color('border.subtle')};
-`;
-
-type DataFrame = { 
-  column_headers: string[]; 
-  thread_id: string; 
-  data_frame_id: string; 
-  num_rows: number; 
-  name: string; 
+type DataFrame = {
+  column_headers: string[];
+  thread_id: string;
+  data_frame_id: string;
+  num_rows: number;
+  name: string;
   description?: string | null;
   parent_data_frame_ids: string[] | null;
 };
@@ -128,49 +122,6 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
 }) => {
   const dataFrameCount = dataFrames.length;
 
-  /**
-   * This is simplified version tree that only groups related data frames under single dropdown.
-   */
-  const versionTreeData = useMemo(() => {
-    return dataFrames.reduce(
-      (acc, frame, index) => {
-        const frameWithIndex = { ...frame, index };
-        if ((frame.parent_data_frame_ids ?? []).length === 0) {
-          acc.push({ keys: [frame.name], entries: [frameWithIndex] });
-          return acc;
-        }
-
-        (frame.parent_data_frame_ids ?? []).forEach((parentId) => {
-          const parentFrameIndex = acc.findIndex((f) => f.keys.includes(parentId));
-          if (parentFrameIndex !== -1) {
-            acc[parentFrameIndex].entries.push(frameWithIndex);
-            acc[parentFrameIndex].keys.push(frame.name);
-          } else {
-            acc.push({ keys: [parentId], entries: [frameWithIndex] });
-          }
-        });
-
-        return acc;
-      },
-      [] as { keys: string[]; entries: (DataFrame & { index: number })[] }[],
-    );
-  }, [dataFrames]);
-
-  const { activeGroup, activeGroupVersionNumber } = useMemo(() => {
-    return versionTreeData.reduce(
-      (acc, group) => {
-        const indexMatch = group.entries.findIndex((entry) => entry.index === activeDataFrameIndex);
-        if (indexMatch !== -1) {
-          acc.activeGroup = group.entries;
-          acc.activeGroupVersionNumber = indexMatch + 1;
-        }
-
-        return acc;
-      },
-      {} as { activeGroup: (DataFrame & { index: number })[]; activeGroupVersionNumber: number },
-    );
-  }, [versionTreeData, activeDataFrameIndex]);
-
   useEffect(() => {
     setActiveDataFrameIndex(dataFrameCount - 1);
   }, [dataFrameCount, setActiveDataFrameIndex]);
@@ -191,31 +142,6 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
 
             {dataFrames.length > 1 && (
               <Box display="flex" alignItems="center" gap="$12">
-                {activeGroup && (
-                  <Box display="flex" alignItems="center" gap="$8">
-                    <Menu
-                      trigger={
-                        <Button variant="outline" iconAfter={IconChevronDown} round>
-                          Version {activeGroupVersionNumber}
-                        </Button>
-                      }
-                    >
-                      {activeGroup.map((entry) => (
-                        <Menu.Item
-                          key={entry.name}
-                          onClick={() => setActiveDataFrameIndex(entry.index)}
-                          aria-selected={entry.index === activeDataFrameIndex}
-                          description={entry.description}
-                        >
-                          {entry.name}
-                        </Menu.Item>
-                      ))}
-                    </Menu>
-                  </Box>
-                )}
-
-                <CustomDivider />
-
                 <Menu trigger={<Button icon={IconMenu} variant="outline" aria-label="choose data frame" round />}>
                   {dataFrames.map((frame, index) => (
                     <Menu.Item
