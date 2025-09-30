@@ -235,6 +235,14 @@ def base_url_agent_server_evals_matrix(request, tmpdir, logs_dir, cloud_server):
     yield from _get_evals_server_url(tmpdir, logs_dir, server_config, cloud_server)
 
 
+@pytest.fixture
+def base_url_agent_server_evals_sqlite(tmpdir, logs_dir):
+    """Fixture providing evals server URL backed by sqlite storage."""
+
+    server_config = WorkItemsServerConfig("sqlite", "local")
+    yield from _get_evals_server_url(tmpdir, logs_dir, server_config)
+
+
 @pytest.fixture(params=all_databases_cloud)
 def base_url_agent_server_workitems_cloud_matrix(request, tmpdir, logs_dir, cloud_server):  # noqa: F811
     """Parameterized fixture for testing across storage types (sqlite vs postgres)
