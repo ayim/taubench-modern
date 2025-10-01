@@ -10,6 +10,7 @@ import { ThreadsUIContext } from './components/ThreadsUIContext';
 import { Layout } from './components/Layout';
 import { Header } from './components/Header';
 import { Thread } from '@sema4ai/spar-ui';
+import { AgentMetaContext } from '~/lib/agentMetaContext';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId } }) => {
@@ -61,12 +62,14 @@ function View() {
   }
 
   return (
-    <ThreadsUIContext.Provider value={threadsUIContextValue}>
-      <Layout>
-        <Header />
-        <Thread />
-        <Outlet />
-      </Layout>
-    </ThreadsUIContext.Provider>
+    <AgentMetaContext.Provider value={agentMeta}>
+      <ThreadsUIContext.Provider value={threadsUIContextValue}>
+        <Layout>
+          <Header />
+          <Thread />
+          <Outlet />
+        </Layout>
+      </ThreadsUIContext.Provider>
+    </AgentMetaContext.Provider>
   );
 }

@@ -1,22 +1,43 @@
-import { FC, useEffect, useRef } from 'react';
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 import { Banner, Box, Button, Chat, useClipboard } from '@sema4ai/components';
 import { IconAlert, IconCheck2, IconCopy, IconThumbsDown } from '@sema4ai/icons';
 import MarkJS from 'mark.js';
+import { FC, useEffect, useRef } from 'react';
 
-import { markdownRules } from './markdown';
-import { Attachment } from './Attachment';
-import { ToolCall } from './ToolCall';
+import { styled } from '@sema4ai/theme';
+import { useSparUIContext } from '../../../api/context';
+import { useToggle } from '../../../hooks/useToggle';
 import { AgentErrorStreamPayload } from '../../../lib/AgentServerTypes';
 import { useThreadSearchStore } from '../../../state/useThreadSearchStore';
-import { useToggle } from '../../../hooks/useToggle';
+import { Attachment } from './Attachment';
 import { FeedbackDialog } from './FeedbackDialog';
-import { useSparUIContext } from '../../../api/context';
+import { markdownRules } from './markdown';
+import { ToolCall } from './ToolCall';
+import { useFeatureFlag } from '../../../hooks/useFeatureFlag';
+import { SparUIFeatureFlag } from '../../../api';
 
 type Props = {
   message: ThreadMessage | AgentErrorStreamPayload;
   streaming: boolean;
 };
+
+const MessageContainer = styled(Box)`
+  &:hover .message-actions {
+    opacity: 1;
+    visibility: visible;
+  }
+`;
+
+const MessageActions = styled(Box)`
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease-in-out,
+    visibility 0.2s ease-in-out;
+  display: flex;
+  justify-content: flex-end;
+  gap: $4;
+`;
 
 export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
   const { query } = useThreadSearchStore();
@@ -24,7 +45,7 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
   const { onCopyToClipboard, copiedToClipboard } = useClipboard();
   const { val: isFeedbackDialogOpen, setTrue: openFeedbackDialog, setFalse: closeFeedbackDialog } = useToggle();
   const { sparAPIClient } = useSparUIContext();
-
+  const feedbackEnabled = useFeatureFlag(SparUIFeatureFlag.showFeedback);
   useEffect(() => {
     if (!containerRef.current) {
       return;
@@ -67,8 +88,9 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
             </Chat.UserMessage>
           );
         }
+
         return (
-          <>
+          <MessageContainer>
             <Chat.Markdown
               ref={containerRef}
               messageId={message.message_id}
@@ -78,7 +100,7 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
             >
               {content.text}
             </Chat.Markdown>
-            <Box display="flex" justifyContent="flex-end" gap="$4">
+            <MessageActions className="message-actions">
               <Button
                 icon={copiedToClipboard ? IconCheck2 : IconCopy}
                 onClick={onCopyToClipboard(content.text)}
@@ -86,7 +108,7 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
                 variant="ghost-subtle"
                 size="small"
               />
-              {sparAPIClient.sendFeedback && (
+              {feedbackEnabled && sparAPIClient.sendFeedback && (
                 <Button
                   icon={IconThumbsDown}
                   onClick={() => openFeedbackDialog()}
@@ -95,14 +117,11 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
                   size="small"
                 />
               )}
-            </Box>
-            {isFeedbackDialogOpen && sparAPIClient.sendFeedback && (
-              <FeedbackDialog
-                open={isFeedbackDialogOpen}
-                onClose={closeFeedbackDialog}
-              />
+            </MessageActions>
+            {isFeedbackDialogOpen && feedbackEnabled && sparAPIClient.sendFeedback && (
+              <FeedbackDialog open={isFeedbackDialogOpen} onClose={closeFeedbackDialog} />
             )}
-          </>
+          </MessageContainer>
         );
       case 'tool_call':
         return <ToolCall key={content.content_id} content={content} />;

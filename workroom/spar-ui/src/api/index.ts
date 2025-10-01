@@ -7,6 +7,7 @@ import { AgentOAuthProviderState } from '../lib/OAuth';
 
 export enum SparUIFeatureFlag {
   showActionLogs = 'showActionLogs',
+  showFeedback = 'showFeedback',
 }
 
 export type NavigationArgs = {

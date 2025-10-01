@@ -5,7 +5,7 @@ import { FileRouteTypes } from '~/routeTree.gen';
 import { router } from '~/components/providers/Router';
 import { AgentAPIClient } from './AgentAPIClient';
 import { TenantMeta } from './tenantContext';
-
+import { useAgentMetaContext } from './agentMetaContext';
 const routesMapping = {
   '/thread/$agentId/$threadId': '/tenants/$tenantId/conversational/$agentId/$threadId',
   '/thread/$agentId': '/tenants/$tenantId/conversational/$agentId',
@@ -23,9 +23,16 @@ export const createSparAPIClient = (
   routerInstance: typeof router,
 ): SparAPIClient => ({
   getFeatureFlag: (feature: SparUIFeatureFlag) => {
+    const agentMeta = useAgentMetaContext();
+
     switch (feature) {
       case SparUIFeatureFlag.showActionLogs:
         return tenantMeta.features.developerMode.enabled;
+      case SparUIFeatureFlag.showFeedback:
+        if (!agentMeta) {
+          return false;
+        }
+        return agentMeta.workroomUi?.feedback?.enabled ?? false;
       default:
         return false;
     }

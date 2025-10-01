@@ -1,5 +1,12 @@
 import { Box, Button, Menu, Tooltip, Typography, useScreenSize } from '@sema4ai/components';
-import { IconDotsHorizontal, IconInformation, IconLayoutRight, IconPaperclip, IconPlus } from '@sema4ai/icons';
+import {
+  IconDotsHorizontal,
+  IconInformation,
+  IconLayoutRight,
+  IconPaperclip,
+  IconPlus,
+  IconPoll,
+} from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 import { styled } from '@sema4ai/theme';
@@ -68,9 +75,21 @@ export const Header = () => {
           <>
             {workItemId && threadId && (
               <>
-                <Tooltip text="Work Item Details" placement="bottom">
+                <Tooltip text="Details" placement="bottom">
                   <RouterSideNavigationLink
                     icon={<IconInformation />}
+                    round
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
+                  />
+                </Tooltip>
+                <Tooltip text="Work Item Details" placement="bottom">
+                  <RouterSideNavigationLink
+                    icon={<IconPoll />}
                     round
                     {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
                       tenantId,
@@ -113,6 +132,17 @@ export const Header = () => {
                 <>
                   <RouterMenuLink
                     icon={IconInformation}
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
+                  >
+                    Details
+                  </RouterMenuLink>
+                  <RouterMenuLink
+                    icon={IconPoll}
                     {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
                       tenantId,
                       agentId,
