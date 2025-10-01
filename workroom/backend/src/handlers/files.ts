@@ -144,6 +144,7 @@ const createGetPostSignedUrl =
     monitoring.logger.info('Request received for POST signed file upload URL', {
       fileSize,
       fileType,
+      fileId,
     });
 
     const presignedUrlResult = await filesManager.getPostSignedUrl({

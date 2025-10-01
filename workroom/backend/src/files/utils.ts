@@ -3,5 +3,5 @@ export const getContentType = ({ fileName }: { fileName: string }): string => {
     return 'text/html';
   }
 
-  return 'application/octet-stream';
+  return 'text/plain';
 };
