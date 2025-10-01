@@ -7,6 +7,7 @@ from httpx import Request, Response
 from snowflake.snowpark import Session
 
 from agent_platform.core.delta import GenericDelta
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.cortex.client import CortexClient
 from agent_platform.core.platforms.cortex.converters import CortexConverters
@@ -224,8 +225,8 @@ async def test_generate_response_http_failure(
         from httpx import HTTPStatusError
 
         request = Request("POST", "http://test-url")
-        response = Response(status_code=400, request=request)
-        raise HTTPStatusError("Bad Request", request=request, response=response)
+        response = Response(status_code=500, request=request)
+        raise HTTPStatusError("Internal Server Error", request=request, response=response)
 
     # Only patch the _generate_response method
     with patch.object(
@@ -233,7 +234,38 @@ async def test_generate_response_http_failure(
         "_generate_response",
         side_effect=mock_generate_response_failure,
     ):
-        with pytest.raises(Exception, match="Bad Request"):
+        with pytest.raises(Exception, match="Internal Server Error"):
+            await cortex_client.generate_response(cortex_prompt, test_model)
+
+
+@pytest.mark.asyncio
+async def test_generate_response_bad_request(
+    cortex_client: CortexClient,
+    cortex_prompt: CortexPrompt,
+) -> None:
+    """
+    Test generate_response scenario where the HTTP status is not 200 (e.g. 400).
+    We expect an HTTPError or some exception from httpx.
+    """
+    test_model = "claude-3-5-sonnet"  # Use a model that already exists in the model map
+
+    # We create a mock that raises a PlatformHTTPError
+    async def mock_generate_response_failure(*args, **kwargs):
+        request = Request("POST", "http://test-url")
+        response = Response(status_code=400, request=request)
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="Bad Request",
+            data={"status_code": response.status_code},
+        )
+
+    # Only patch the _generate_response method
+    with patch.object(
+        cortex_client,
+        "_generate_response",
+        side_effect=mock_generate_response_failure,
+    ):
+        with pytest.raises(PlatformHTTPError, match="Bad Request"):
             await cortex_client.generate_response(cortex_prompt, test_model)
 
 
@@ -353,6 +385,45 @@ async def test_generate_stream_response_http_failure(
         side_effect=mock_stream_failure,
     ):
         with pytest.raises(Exception, match="Internal Server Error"):
+            await _async_iter(
+                cortex_client.generate_stream_response(cortex_prompt, test_model),
+            )
+
+
+@pytest.mark.asyncio
+async def test_generate_stream_response_bad_request(
+    cortex_client: CortexClient,
+    cortex_prompt: CortexPrompt,
+) -> None:
+    """
+    Test generate_stream_response scenario where we get a non-200 from streaming API.
+    Should raise an HTTPError from httpx.
+    """
+    test_model = "claude-3-5-sonnet"
+
+    async def mock_stream_failure(*args, **kwargs) -> AsyncGenerator[str, None]:
+        request = Request("POST", "http://test-url")
+        response = Response(status_code=400, request=request)
+        # Simulate the internal code raising after reading the status code
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="Bad Request",
+            data={"status_code": response.status_code},
+        )
+        yield  # Unreachable, but needed for function signature
+
+    async def _async_iter(
+        generator: AsyncGenerator[GenericDelta, None],
+    ) -> None:
+        async for _ in generator:
+            pass
+
+    with patch.object(
+        cortex_client,
+        "_generate_stream_response",
+        side_effect=mock_stream_failure,
+    ):
+        with pytest.raises(PlatformHTTPError, match="Bad Request"):
             await _async_iter(
                 cortex_client.generate_stream_response(cortex_prompt, test_model),
             )

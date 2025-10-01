@@ -1,3 +1,4 @@
+import json
 from collections.abc import AsyncGenerator
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -11,6 +12,7 @@ from agent_platform.core.configurations import Configuration
 from agent_platform.core.configurations.base import FieldMetadata
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.platforms.base import (
     PlatformClient,
     PlatformConfigs,
@@ -223,6 +225,7 @@ class CortexClient(
                 try:
                     error_text = await response.aread()
                     error_detail = error_text.decode()
+                    error_detail = json.loads(error_detail)
                 except Exception as e:
                     error_detail = f"(Failed to read error response body: {e})"
                 logger.error(
@@ -231,6 +234,14 @@ class CortexClient(
                     f"response_headers={response.headers} "
                     f"body='{error_detail}'",
                 )
+                if response.status_code == codes.BAD_REQUEST:
+                    error_dict = error_detail if isinstance(error_detail, dict) else {}
+                    message = error_dict.get("message", str(error_detail))
+                    raise PlatformHTTPError(
+                        error_code=ErrorCode.BAD_REQUEST,
+                        message=message,
+                        data={"status_code": response.status_code},
+                    )
                 response.raise_for_status()  # Re-raise after logging
             return response.json()
 
@@ -259,6 +270,7 @@ class CortexClient(
                     try:
                         error_text = await response.aread()
                         error_detail = error_text.decode()
+                        error_detail = json.loads(error_detail)
                     except Exception as e:
                         error_detail = f"(Failed to read error response body: {e})"
 
@@ -267,6 +279,14 @@ class CortexClient(
                         f"response_headers={response.headers} body='{error_detail}' "
                         f"request_headers_sent={headers}",
                     )
+                    if response.status_code == codes.BAD_REQUEST:
+                        error_dict = error_detail if isinstance(error_detail, dict) else {}
+                        message = error_dict.get("message", str(error_detail))
+                        raise PlatformHTTPError(
+                            error_code=ErrorCode.BAD_REQUEST,
+                            message=message,
+                            data={"status_code": response.status_code},
+                        )
                     response.raise_for_status()  # Re-raise after logging
 
                 # Stream processing
