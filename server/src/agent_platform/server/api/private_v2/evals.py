@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Self
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from structlog import get_logger
 
 from agent_platform.core.errors.base import PlatformHTTPError
@@ -11,7 +11,7 @@ from agent_platform.core.evals.types import Scenario, ScenarioRun, Trial, TrialS
 from agent_platform.core.thread.thread import Thread
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth.handlers import AuthedUser
-from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB, SystemConfig
+from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
 from agent_platform.server.evals.advisor import (
     ScenarioSuggestion,
 )
@@ -19,14 +19,7 @@ from agent_platform.server.evals.advisor import (
     suggest_scenario_from_thread as _suggest_scenario_from_thread,
 )
 
-
-def _require_evals_enabled():
-    """Raise an error if evals are disabled in configuration."""
-    if not SystemConfig.enable_evals:
-        raise PlatformHTTPError(ErrorCode.FORBIDDEN, "Evals feature is disabled")
-
-
-router = APIRouter(dependencies=[Depends(_require_evals_enabled)])
+router = APIRouter()
 logger = get_logger(__name__)
 
 

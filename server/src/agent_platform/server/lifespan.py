@@ -109,10 +109,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("Work-items feature disabled; background worker will not start")
 
-    if SystemConfig.enable_evals:
-        _start_evals_background_worker()
-    else:
-        logger.info("Evals feature disabled; background worker will not start")
+    _start_evals_background_worker()
 
     data_retention_task = start_data_retention_worker()
 

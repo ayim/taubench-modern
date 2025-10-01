@@ -184,7 +184,7 @@ def _get_evals_server_url(
     start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
     if start_server == "true":
         # Build environment variables based on configuration
-        env_vars = {"SEMA4AI_AGENT_SERVER_ENABLE_EVALS": "true"}
+        env_vars = {}
 
         if server_config.storage_type == "sqlite":
             env_vars["S4_AGENT_SERVER_DB_TYPE"] = "sqlite"
