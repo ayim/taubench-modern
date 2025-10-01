@@ -210,8 +210,7 @@ class SQLiteStorage(
 
     V2_PREFIX = "v2_"
 
-    _read_conn: Connection | None = None
-    _write_conn: Connection | None = None
+    _raw_connection: Connection | None = None
 
     def __init__(self, db_path: str | None = None):
         # Initialize all parent mixins (including CommonMixin for secret manager)
@@ -233,8 +232,7 @@ class SQLiteStorage(
         # Initialize dedicated read and write connections
         # Some imprecise benchmarking shows a 2-3x slowdown creating a new connection
         # for every read operation.
-        self._write_conn = await self._conn_factory()
-        self._read_conn = await self._conn_factory()
+        self._raw_connection = await self._conn_factory()
 
         # Initialize SQLAlchemy engine
         sqlite_url = f"sqlite+aiosqlite:///{self._db_path}"
@@ -265,6 +263,7 @@ class SQLiteStorage(
         await conn.execute("PRAGMA journal_mode = WAL")
         # Fsync less often, but still "enough".
         await conn.execute("PRAGMA synchronous = NORMAL")
+
         conn.row_factory = Row
 
         # ---------------------------------------------------------------------
@@ -350,12 +349,9 @@ class SQLiteStorage(
         await super().teardown()
 
         if self._is_setup:
-            if self._write_conn is not None:
-                await self._write_conn.close()
-                self._write_conn = None
-            if self._read_conn is not None:
-                await self._read_conn.close()
-                self._read_conn = None
+            if self._raw_connection is not None:
+                await self._raw_connection.close()
+                self._raw_connection = None
 
             self._is_setup = False
 
@@ -376,9 +372,9 @@ class SQLiteStorage(
         self,
     ) -> AsyncGenerator[Cursor, None]:
         """Yield an async SQLite cursor"""
-        if not self._read_conn:
+        if not self._raw_connection:
             raise RuntimeError("Database not initialized; call setup() first.")
-        yield await self._read_conn.cursor()
+        yield await self._raw_connection.cursor()
 
     @asynccontextmanager
     async def _transaction(
@@ -387,7 +383,7 @@ class SQLiteStorage(
         """Yield an async SQLite cursor and then commit on exit or rollback on error."""
         # Do not allow for re-entrant use of one thread by one caller. The caller should
         # use the existing connection rather than trying to open a new connection.
-        if not self._write_conn:
+        if not self._raw_connection:
             raise RuntimeError("Database not initialized; call setup() first.")
 
         # Use a lock to avoid concurrent commits as sqlite can give errors
@@ -399,11 +395,12 @@ class SQLiteStorage(
         # -- see: https://sema4ai.slack.com/archives/C08HF1FADTQ/p1758838417062669
         async with self._write_lock:
             try:
-                yield await self._write_conn.cursor()
+                yield await self._raw_connection.cursor()
 
-                await self._write_conn.commit()
+                await self._raw_connection.commit()
             except Exception as e:
-                await self._write_conn.rollback()
+                self._logger.exception("Error in transaction")
+                await self._raw_connection.rollback()
                 raise e
 
     def _clean_up_stale_threads__get_threshold(
