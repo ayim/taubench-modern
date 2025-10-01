@@ -53,10 +53,15 @@ class TestDataModels:
             "thread_id": thread_id,
             "agent_id": agent_id,
         }
+        data = {
+            "instructions": "The results of each safety check should be included and be "
+            "a pass/fail enumeration.",
+        }
         gen_resp = httpx.post(
             f"{spar_agent_server_base_url}/document-intelligence/data-models/generate",
             params=params,
             files=files,
+            data=data,
             timeout=120,
         )
         gen_resp.raise_for_status()

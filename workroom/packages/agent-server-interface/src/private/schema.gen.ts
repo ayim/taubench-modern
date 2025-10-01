@@ -3091,16 +3091,22 @@ export interface components {
     Body_generate_data_model_from_document_document_intelligence_data_models_generate_post: {
       /** File */
       file: string;
+      /** Instructions */
+      instructions?: string | null;
     };
     /** Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post */
     Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post: {
       /** File */
       file: string;
+      /** Instructions */
+      instructions?: string | null;
     };
     /** Body_generate_layout_from_file_document_intelligence_layouts_generate_post */
     Body_generate_layout_from_file_document_intelligence_layouts_generate_post: {
       /** File */
       file: string;
+      /** Instructions */
+      instructions?: string | null;
     };
     /** Body_ingest_document_document_intelligence_documents_ingest_post */
     Body_ingest_document_document_intelligence_documents_ingest_post: {

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, UploadFile
+from typing import Annotated
+
+from fastapi import APIRouter, Form, UploadFile
 from reducto.types.shared.parse_response import ResultFullResult as ParseResult
 from sema4ai_docint.extraction.reducto.async_ import JobType
-from sema4ai_docint.utils import validate_extraction_schema
 from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
 
@@ -144,6 +145,7 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     agent_server_client: AgentServerClientDependency,
+    instructions: Annotated[str | None, Form(...)] = None,
 ) -> GenerateSchemaResponsePayload:
     """Generate an extraction schema from a document."""
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
@@ -160,10 +162,11 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
         schema = await run_in_threadpool(
             agent_server_client.generate_schema,
             uploaded_file.file_ref,
+            user_prompt=instructions,
         )
 
         return GenerateSchemaResponsePayload(
-            schema=validate_extraction_schema(schema),
+            schema=schema,
             file=uploaded_file if new_file else None,
         )
     except Exception as e:

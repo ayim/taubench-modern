@@ -1,10 +1,10 @@
 import json
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, Form, UploadFile
 from sema4ai_docint.models import DocumentLayout, Mapping, MappingRow
 from sema4ai_docint.models.data_model import DataModel
-from sema4ai_docint.utils import normalize_name, validate_extraction_schema
+from sema4ai_docint.utils import normalize_name
 from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
 
@@ -293,6 +293,7 @@ async def generate_layout_from_file(  # noqa: PLR0913
     file_manager: FileManagerDependency,
     docint_ds: DocIntDatasourceDependency,
     agent_server_client: AgentServerClientDependency,
+    instructions: Annotated[str | None, Form(...)] = None,
 ) -> GenerateLayoutResponsePayload:
     """Generate a layout from a document."""
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
@@ -315,13 +316,13 @@ async def generate_layout_from_file(  # noqa: PLR0913
     model_schema_json = json.dumps(data_model.model_schema, indent=2)
 
     # generate extraction schema
-    candidate_extraction_schema = await run_in_threadpool(
-        agent_server_client.generate_schema,
-        uploaded_file.file_ref,
-        model_schema_json,
-    )
     try:
-        extraction_schema = validate_extraction_schema(candidate_extraction_schema)
+        extraction_schema = await run_in_threadpool(
+            agent_server_client.generate_schema,
+            uploaded_file.file_ref,
+            model_schema_json,
+            user_prompt=instructions,
+        )
     except Exception as e:
         raise PlatformHTTPError(
             error_code=ErrorCode.UNEXPECTED,

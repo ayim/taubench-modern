@@ -2297,10 +2297,6 @@ class TestGenerateLayoutFromFile:
                 "agent_platform.server.api.private_v2.document_intelligence.data_models.DataModel.find_by_name",
                 return_value=SimpleNamespace(name="invoice", model_schema={"title": "Invoice"}),
             ) as mock_find_model,
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.layouts.validate_extraction_schema",
-                return_value={"type": "object", "properties": {}},
-            ),
         ):
             self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
 
@@ -2533,7 +2529,7 @@ class TestGenerateExtractionSchemaFromDocument:
         fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])
 
         fake_client = Mock()
-        fake_client.generate_schema = Mock(return_value='{"type": "object", "properties": {}}')
+        fake_client.generate_schema = Mock(return_value={"type": "object", "properties": {}})
 
         with patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)):
             self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
@@ -2581,7 +2577,7 @@ class TestGenerateExtractionSchemaFromDocument:
 
         fake_client = Mock()
         fake_client.generate_schema = Mock(
-            return_value='{"type": "object", "properties": {"field": {"type": "string"}}}'
+            return_value={"type": "object", "properties": {"field": {"type": "string"}}}
         )
 
         with (

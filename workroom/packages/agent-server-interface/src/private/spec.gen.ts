@@ -8683,6 +8683,17 @@ export const spec = {
               ],
               title: 'File',
             },
+            instructions: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Instructions',
+            },
           },
           type: 'object',
           required: ['file'],
@@ -8704,6 +8715,17 @@ export const spec = {
               ],
               title: 'File',
             },
+            instructions: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Instructions',
+            },
           },
           type: 'object',
           required: ['file'],
@@ -8724,6 +8746,17 @@ export const spec = {
                 },
               ],
               title: 'File',
+            },
+            instructions: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Instructions',
             },
           },
           type: 'object',

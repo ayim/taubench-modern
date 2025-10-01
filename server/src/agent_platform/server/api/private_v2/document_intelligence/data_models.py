@@ -1,7 +1,7 @@
 import json
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, Form, UploadFile
 from sema4ai_docint.models.data_model import DataModel
 from sema4ai_docint.utils import normalize_name
 from starlette.concurrency import run_in_threadpool
@@ -19,7 +19,6 @@ from agent_platform.core.payloads.document_intelligence import (
     ModifySchemaRequestPayload,
     ModifySchemaResponsePayload,
 )
-from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
     DIDependency,
@@ -145,43 +144,29 @@ async def generate_data_model_from_document(  # noqa: PLR0913
     user: AuthedUser,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
-    docint_ds: DocIntDatasourceDependency,
     agent_server_client: AgentServerClientDependency,
+    instructions: Annotated[str | None, Form(...)] = None,
 ):
     """Generate a data model from a document."""
 
-    thread = await storage.get_thread(user.user_id, thread_id)
-    if not thread:
-        raise PlatformHTTPError(
-            error_code=ErrorCode.NOT_FOUND,
-            message=f"Thread {thread_id} not found",
-        )
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
-    new_file = False
-    if isinstance(file, str):
-        stored_file = await storage.get_file_by_ref(thread, file, user.user_id)
-        if not stored_file:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.NOT_FOUND,
-                message=f"File {file} not found (storage)",
-            )
-        updated_file = await file_manager.refresh_file_paths([stored_file])
-        if not updated_file:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.NOT_FOUND,
-                message=f"File {file} not found (refresh)",
-            )
-        uploaded_file = updated_file[0]
-    else:
-        upload_request = UploadFilePayload(file=file)
-        stored_files = await file_manager.upload([upload_request], thread, user.user_id)
-        uploaded_file = stored_files[0]
-        new_file = True
-
-    schema = await run_in_threadpool(
-        agent_server_client.generate_schema,
-        uploaded_file.file_ref,
+    uploaded_file, new_file = await _get_or_upload_file(
+        file,
+        thread=thread,
+        user_id=user.user_id,
+        storage=storage,
+        file_manager=file_manager,
     )
+
+    try:
+        schema = await run_in_threadpool(
+            agent_server_client.generate_schema,
+            uploaded_file.file_ref,
+            user_prompt=instructions,
+        )
+    except Exception as e:
+        raise PlatformHTTPError(ErrorCode.UNEXPECTED, "Failed to generate data model") from e
 
     if new_file:
         return {
