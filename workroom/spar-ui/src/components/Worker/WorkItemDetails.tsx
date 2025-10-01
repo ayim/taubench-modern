@@ -174,10 +174,10 @@ const WorkItemAPIUrlSection: FC<{ workItemUrl: string }> = ({ workItemUrl }) => 
 
 export const WorkItemDetails = ({
   workItemId,
-  showWorkItemApiUrl,
+  workItemApiUrl,
 }: {
   workItemId: string;
-  showWorkItemApiUrl: boolean;
+  workItemApiUrl: string | null;
 }) => {
   const { data: workItem, isLoading } = useWorkItemQuery({ workItemId });
   if (isLoading) {
@@ -203,7 +203,7 @@ export const WorkItemDetails = ({
         <MessagesSection workItem={workItem} />
         <PayloadSection workItem={workItem} />
         <StatusSection workItem={workItem} />
-        {workItem.work_item_url && showWorkItemApiUrl && <WorkItemAPIUrlSection workItemUrl={workItem.work_item_url} />}
+        {workItemApiUrl && <WorkItemAPIUrlSection workItemUrl={workItemApiUrl} />}
         <TimestampsSection workItem={workItem} />
       </Box>
       <Box height="$16" flexShrink={0} boxShadow="0 -2px 4px 0 rgba(0,0,0,0.05)" />
