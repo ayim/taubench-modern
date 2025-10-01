@@ -8,6 +8,12 @@ export type SparUIRoutes = {
   '/thread/$agentId': {
     agentId: string;
   };
+  '/workItem/$agentId': {
+    agentId: string;
+  };
+  '/workItem/$agentId/create': {
+    agentId: string;
+  };
   '/workItem/$agentId/$workItemId/$threadId': {
     agentId: string;
     workItemId: string;

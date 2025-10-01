@@ -9,6 +9,8 @@ import { useAgentMetaContext } from './agentMetaContext';
 const routesMapping = {
   '/thread/$agentId/$threadId': '/tenants/$tenantId/conversational/$agentId/$threadId',
   '/thread/$agentId': '/tenants/$tenantId/conversational/$agentId',
+  '/workItem/$agentId': '/tenants/$tenantId/worker/$agentId',
+  '/workItem/$agentId/create': '/tenants/$tenantId/worker/$agentId/create',
   '/workItem/$agentId/$workItemId/$threadId': '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId',
   '/data-connections': '/tenants/$tenantId/data-access/data-connections',
   '/data-connections/create': '/tenants/$tenantId/data-access/data-connections/create',

@@ -20,7 +20,7 @@ const ThreadsToggle = styled(Button)<{ $expanded?: boolean }>`
   position: relative;
 `;
 
-const Container = styled.header<{ $sidebarExpanded: boolean }>`
+export const Container = styled.header<{ $sidebarExpanded: boolean }>`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.space.$16};
@@ -95,17 +95,15 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
         <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
       </Box>
       <Box display="flex" alignItems="center" gap="$8" ml="auto">
-        {agent.metadata?.mode === 'conversational' && (
-          <Tooltip text="New Thread" placement="bottom">
-            <SideNavigation.Item
-              icon={IconWriteNote}
-              disabled={isCreatingThread}
-              round
-              aria-label="New Thread"
-              onClick={onNewThread}
-            />
-          </Tooltip>
-        )}
+        <Tooltip text="New Thread" placement="bottom">
+          <SideNavigation.Item
+            icon={IconWriteNote}
+            disabled={isCreatingThread}
+            round
+            aria-label="New Thread"
+            onClick={onNewThread}
+          />
+        </Tooltip>
         {children}
         <ThreadSearch />
       </Box>
