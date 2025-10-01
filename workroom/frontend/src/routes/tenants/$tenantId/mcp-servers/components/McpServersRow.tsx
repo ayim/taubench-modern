@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { Button, Menu, Table, TableRowProps, useSnackbar } from '@sema4ai/components';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { IconDotsHorizontal } from '@sema4ai/icons';
-import { useConfirmAction } from '@sema4ai/layouts';
+import { useDeleteConfirm } from '@sema4ai/layouts';
 
 import { MCPServer, useDeleteMcpServerMutation } from '~/queries/mcpServers';
 
@@ -20,11 +20,10 @@ export const Row: FC<TableRowProps<MCPServer>> = ({ rowData }) => {
     });
   };
 
-  const onDeleteConfirm = useConfirmAction(
+  const onDeleteConfirm = useDeleteConfirm(
     {
-      title: `Delete MCP Server`,
-      text: `Are you sure you want to delete "${rowData.name}"? This action cannot be undone.`,
-      confirmActionText: 'Delete',
+      entityName: rowData.name,
+      entityType: 'mcp-server',
     },
     [],
   );

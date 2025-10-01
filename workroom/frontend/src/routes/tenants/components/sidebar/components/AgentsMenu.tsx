@@ -2,6 +2,7 @@ import { Box, Typography } from '@sema4ai/components';
 import { AgentIcon } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { useParams } from '@tanstack/react-router';
+import { AgentContextMenu } from '@sema4ai/spar-ui';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 
 import { RouterSideNavigationLink } from '~/components/RouterLink';
@@ -46,6 +47,7 @@ export const AgentsMenu = () => {
               key={agent.id}
               to="/tenants/$tenantId/conversational/$agentId"
               params={{ tenantId, agentId: agent.id }}
+              action={<AgentContextMenu agent={agent} />}
             >
               {agent.name}
             </RouterSideNavigationLink>
@@ -69,6 +71,7 @@ export const AgentsMenu = () => {
               key={agent.id}
               to="/tenants/$tenantId/worker/$agentId"
               params={{ tenantId, agentId: agent.id }}
+              action={<AgentContextMenu agent={agent} />}
             >
               {agent.name}
             </RouterSideNavigationLink>

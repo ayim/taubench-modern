@@ -1,6 +1,6 @@
 import { Box, Button, Input, Menu, Progress, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
 import { IconChemicalBottle, IconDotsHorizontal } from '@sema4ai/icons';
-import { useConfirmAction } from '@sema4ai/layouts';
+import { useDeleteConfirm } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, useEffect, useRef, useState } from 'react';
 
@@ -78,11 +78,10 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
   const [threadName, setThreadName] = useState(name);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const onDeleteConfirm = useConfirmAction(
+  const onDeleteConfirm = useDeleteConfirm(
     {
-      title: 'Delete thread',
-      text: 'Are you sure you want to delete this thread?',
-      confirmActionText: 'Delete',
+      entityName: name,
+      entityType: 'thread',
     },
     [],
   );

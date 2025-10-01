@@ -2,7 +2,7 @@ import { FC } from 'react';
 import type { TableRowProps } from '@sema4ai/components';
 import { Box, Button, Menu, Table, useSnackbar } from '@sema4ai/components';
 import { IconDotsHorizontal } from '@sema4ai/icons';
-import { useConfirmAction } from '@sema4ai/layouts';
+import { useDeleteConfirm } from '@sema4ai/layouts';
 
 import { MenuLink } from '../../../../common/link';
 import { useNavigate } from '../../../../hooks';
@@ -16,11 +16,10 @@ export const DataConnectionRow: FC<DataAccessRowProps> = ({ rowData }) => {
   const { mutate: deleteDataConnection } = useDeleteDataConnectionMutation({ dataConnectionId: rowData.id });
   const { addSnackbar } = useSnackbar();
 
-  const onDeleteConfirm = useConfirmAction(
+  const onDeleteConfirm = useDeleteConfirm(
     {
-      title: `Delete Data Connection`,
-      text: `Are you sure you want to delete "${rowData.name}"? This action cannot be undone.`,
-      confirmActionText: 'Delete',
+      entityName: rowData.name,
+      entityType: 'data-connection',
     },
     [],
   );

@@ -7,8 +7,15 @@ import { useParams } from '../../hooks';
 import { useThreadMessagesQuery } from '../../queries/threads';
 import { useThreadSearchStore } from '../../state/useThreadSearchStore';
 
-const Container = styled.div`
+const Container = styled.div<{ $open: boolean }>`
   position: relative;
+
+  ${({ theme }) => theme.screen.s} {
+    position: ${({ $open }) => ($open ? 'absolute' : 'relative')};
+    right: ${({ $open, theme }) => ($open ? theme.space.$16 : '0')};
+    width: ${({ $open }) => ($open ? 'calc(100% - 32px)' : 'auto')};
+    z-index: ${({ theme }) => theme.zIndex.dropdown};
+  }
 `;
 
 const ResultControls = styled.div`
@@ -25,6 +32,10 @@ const ResultControls = styled.div`
 const SearchInput = styled(Input)`
   padding-right: 128px;
   width: 240px;
+
+  ${({ theme }) => theme.screen.s} {
+    width: 100%;
+  }
 `;
 
 export const ThreadSearch = () => {
@@ -132,7 +143,7 @@ export const ThreadSearch = () => {
   }, []);
 
   return (
-    <Container>
+    <Container $open={isSearchOpen}>
       {!isSearchOpen && (
         <Tooltip text="Search" placement="bottom">
           <SideNavigation.Item icon={IconSearch} round aria-label="Search" onClick={onToggleSearch} />

@@ -7,6 +7,8 @@ import { IconLayoutRight, IconWriteNote } from '@sema4ai/icons';
 import { useNavigate, useParams } from '../../hooks';
 import { useAgentQuery } from '../../queries/agents';
 import { useCreateThreadMutation, useThreadsQuery } from '../../queries/threads';
+import { ThreadSearch } from '../ThreadSearch';
+import { AgentContextMenu } from '../Agents';
 
 type Props = {
   newThreadStartingMesssage: string;
@@ -68,6 +70,10 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
     );
   };
 
+  const onAgentDelete = () => {
+    navigate({ to: '/home', params: {} });
+  };
+
   if (isLoading || !agent) {
     return null;
   }
@@ -86,6 +92,7 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
         <Typography variant="body-large" fontWeight="medium">
           {agent.name}
         </Typography>
+        <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
       </Box>
       <Box display="flex" alignItems="center" gap="$8" ml="auto">
         {agent.metadata?.mode === 'conversational' && (
@@ -100,6 +107,7 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
           </Tooltip>
         )}
         {children}
+        <ThreadSearch />
       </Box>
     </Container>
   );

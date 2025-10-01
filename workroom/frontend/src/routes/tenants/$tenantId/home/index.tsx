@@ -1,16 +1,17 @@
 import { useState, useMemo, useCallback } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Box, Button, Filter, FilterGroup, Grid, Menu, ToggleInputButton, Typography } from '@sema4ai/components';
+import { Box, Button, Filter, FilterGroup, Grid as GridBase, ToggleInputButton, Typography } from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
-import { IconDotsHorizontal, IconSearch } from '@sema4ai/icons';
+import { IconArrowRight, IconSearch } from '@sema4ai/icons';
+import { AgentContextMenu } from '@sema4ai/spar-ui';
 import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 import { components } from '@sema4ai/agent-server-interface';
+import { styled } from '@sema4ai/theme';
 
 import { Page } from '~/components/layout/Page';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
-import { DeleteAgentMenuItem } from './components/DeleteAgentMenuItem';
 import { AgentUploadForm } from './components/AgentUploadForm';
 import { InlineLoader } from '~/components/Loaders';
 
@@ -19,6 +20,10 @@ export const Route = createFileRoute('/tenants/$tenantId/home/')({
 });
 
 const agentSearchRules: SearchRules<components['schemas']['AgentCompat']> = { name: { value: (item) => item.name } };
+
+const Grid = styled(GridBase)`
+  grid-auto-rows: 1fr;
+`;
 
 function HomePage() {
   const { tenantId } = Route.useParams();
@@ -124,13 +129,8 @@ function HomePage() {
                 >
                   <AgentCard.Footer>
                     <Box display="flex" justifyContent="flex-end" gap="$4">
-                      <Menu
-                        trigger={
-                          <Button size="small" icon={IconDotsHorizontal} aria-label="More" round variant="ghost" />
-                        }
-                      >
-                        <DeleteAgentMenuItem agent={agent} tenantId={tenantId} />
-                      </Menu>
+                      <AgentContextMenu agent={agent} />
+                      <Button size="small" icon={IconArrowRight} aria-label="publish" round />
                     </Box>
                   </AgentCard.Footer>
                 </AgentCard>

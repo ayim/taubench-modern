@@ -2,6 +2,8 @@ export { SparUIFeatureFlag, SparAPIClient } from './api';
 export { SparUIContext } from './api/context';
 export { SparUIRoutes } from './api/routes';
 
+export * from './components/Agents';
+
 export * from './components/Thread';
 export * from './components/Worker';
 export * from './components/ThreadSearch';
