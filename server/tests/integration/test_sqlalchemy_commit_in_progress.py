@@ -139,6 +139,7 @@ def _collect_log_hits(log_dir: Path, signature: str) -> int:
     ("create_count", "list_count", "update_count"),
     [(200, 400, 200)],
 )
+@pytest.mark.integration
 def test_sqlalchemy_commit_in_progress(  # noqa: PLR0913
     base_url_agent_server_evals_sqlite: str,
     agent_factory,

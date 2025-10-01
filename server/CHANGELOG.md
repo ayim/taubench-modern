@@ -1,3 +1,17 @@
+# Sema4.ai Agent Server 2.1.9 (2025-09-30)
+
+- Implement endpoint to modify a provided JSON schema (#920)
+- [GPT-1263] Loosen UDF checking to allow all subjects ending in system_user (#939)
+- Always require read or write connection for sqlalchemy, add more tests for sqlite (#1080)
+- [GPT-1346] Tiny fix for Claude 4.5 (#1140)
+- Improve error management and parsing for LM judges in evals (#1135)
+- GTP-1340 add arch name and updated at to run metadata (#1129)
+- [GPT-1349] Create integration test to test aiosqlite concurrency via sqlalchemy endpoints (#1120)
+- GPT-1336 Add an integration test for aiosqlite concurrency (#1122)
+- Improve storage fixtures so that they can be reused and `storage` actually runs sqlite with `-m not postgres` (#1109)
+- [DIN-618] Ensure generated schemas avoid SQL keywords as props (#1090)
+- Evals Integration Tests improvements (#1021)
+
 # Sema4.ai Agent Server 2.1.8 (2025-09-29)
 
 - [tiny] Makefile fix for observability (#1116)
