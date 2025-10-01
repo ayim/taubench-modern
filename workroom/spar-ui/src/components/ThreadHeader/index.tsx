@@ -1,17 +1,16 @@
-import { FC, ReactNode } from 'react';
-import { styled } from '@sema4ai/theme';
-import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
-import { Box, Button, SideNavigation, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
+import { Box, Button, SideNavigation, Tooltip, Typography } from '@sema4ai/components';
 import { IconLayoutRight, IconWriteNote } from '@sema4ai/icons';
+import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
+import { styled } from '@sema4ai/theme';
+import { FC, ReactNode } from 'react';
 
-import { useNavigate, useParams } from '../../hooks';
+import { useNavigate, useParams, useThreadStartingMessage } from '../../hooks';
+import { useCreateThread } from '../../hooks/useCreateThread';
 import { useAgentQuery } from '../../queries/agents';
-import { useCreateThreadMutation, useThreadsQuery } from '../../queries/threads';
 import { ThreadSearch } from '../ThreadSearch';
 import { AgentContextMenu } from '../Agents';
 
 type Props = {
-  newThreadStartingMesssage: string;
   children: ReactNode;
 };
 
@@ -35,40 +34,16 @@ export const Container = styled.header<{ $sidebarExpanded: boolean }>`
   }
 `;
 
-export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage }) => {
+export const ThreadHeader: FC<Props> = ({ children }) => {
   const navigate = useNavigate();
   const { agentId } = useParams('/thread/$agentId/$threadId');
   const { triggerProps, triggerRef } = useSidebarMenu('threads-list');
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
-  const { addSnackbar } = useSnackbar();
-
-  const { mutate: createThread, isPending: isCreatingThread } = useCreateThreadMutation({ agentId });
-  const { data: threads } = useThreadsQuery({ agentId });
+  const { onNewThread, isCreatingThread } = useCreateThread();
+  const startingMessage = useThreadStartingMessage({ agentId });
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
-  const onNewThread = async () => {
-    const name = threads ? `Chat ${(threads?.length || 0) + 1}` : 'New chat';
-    createThread(
-      { name, startingMessage: newThreadStartingMesssage },
-      {
-        onSuccess: (data) => {
-          if (data?.thread_id) {
-            navigate({
-              to: '/thread/$agentId/$threadId',
-              params: { threadId: data.thread_id, agentId },
-            });
-          }
-        },
-        onError: () => {
-          addSnackbar({
-            message: 'Failed to create thread',
-            variant: 'danger',
-          });
-        },
-      },
-    );
-  };
 
   const onAgentDelete = () => {
     navigate({ to: '/home', params: {} });
@@ -101,7 +76,7 @@ export const ThreadHeader: FC<Props> = ({ children, newThreadStartingMesssage })
             disabled={isCreatingThread}
             round
             aria-label="New Thread"
-            onClick={onNewThread}
+            onClick={() => onNewThread({ startingMessage })}
           />
         </Tooltip>
         {children}

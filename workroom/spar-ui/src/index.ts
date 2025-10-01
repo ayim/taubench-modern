@@ -16,6 +16,7 @@ export * from './components/Chat';
 export * from './components/ConversationGuides';
 
 export * from './lib/OAuth';
+export * from './lib/constants';
 
 export * from './components/DataFrame';
 
@@ -28,3 +29,5 @@ export * from './components/Eval';
 export { CreateWorkItemDialog } from './components/CreateWorkItemDialog';
 export * from './components/ChatDetails';
 export * from './components/Worker/WorkItemDetails';
+
+export { streamManager } from './hooks';

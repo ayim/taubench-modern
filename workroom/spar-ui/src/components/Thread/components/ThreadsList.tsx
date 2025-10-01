@@ -1,10 +1,11 @@
-import { FC, useEffect } from 'react';
 import { Box, Typography } from '@sema4ai/components';
-import { styled } from '@sema4ai/theme';
 import { SidebarMenu } from '@sema4ai/layouts';
+import { styled } from '@sema4ai/theme';
+import { FC, useEffect } from 'react';
 
 import { useParams } from '../../../hooks';
 import { useThreadsQuery } from '../../../queries/threads';
+import { NewThreadItem } from './NewThreadItem';
 import { ThreadItem } from './ThreadItem';
 
 const ScrollContainer = styled.div`
@@ -19,7 +20,6 @@ const ScrollContainer = styled.div`
 export const ThreadsList: FC = () => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const { data: threads, isLoading, refetch: refetchThreads } = useThreadsQuery({ agentId });
-
   /**
    * Sometimes it may happen that we are on some valid $threadId,
    * but react-query client does not have it's information in its cache
@@ -40,10 +40,13 @@ export const ThreadsList: FC = () => {
 
   return (
     <SidebarMenu name="threads-list" title="Threads list" initialWidth={248} minWidth={248}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" p="$8" gap="$8">
-        <Typography variant="body-medium" fontWeight="medium">
-          History
-        </Typography>
+      <Box>
+        <Box display="flex" alignItems="center" justifyContent="space-between" p="$8" gap="$8">
+          <Typography variant="body-medium" fontWeight="medium">
+            History
+          </Typography>
+        </Box>
+        <NewThreadItem />
       </Box>
       <ScrollContainer>
         {threads?.map((thread) => (

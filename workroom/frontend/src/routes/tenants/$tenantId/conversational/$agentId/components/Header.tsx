@@ -1,4 +1,4 @@
-import { useParams, useLocation } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
 import { ThreadHeader } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
@@ -12,13 +12,11 @@ import {
 } from '@sema4ai/icons';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
-import { NEW_CHAT_STARTING_MSG } from '~/config/constants';
 import { useTenantContext } from '~/lib/tenantContext';
 import { useToggleRoutePath } from '~/hooks/useToggleRoutePath';
 
 export const Header = () => {
   const { agentId, tenantId, threadId } = useParams({ from: '/tenants/$tenantId/conversational/$agentId/$threadId' });
-  const location = useLocation();
   const isMobile = useScreenSize('m');
   const { features } = useTenantContext();
   const defaultLink = {
@@ -34,12 +32,8 @@ export const Header = () => {
     return null;
   }
 
-  const searchParams = new URLSearchParams(location.search);
-  const initialThreadMessage = searchParams.get('initial_thread_message')?.trim();
-  const conversationStarter = agent.extra?.conversation_starter as string | undefined;
-
   return (
-    <ThreadHeader newThreadStartingMesssage={initialThreadMessage ?? conversationStarter ?? NEW_CHAT_STARTING_MSG}>
+    <ThreadHeader>
       {!isMobile && (
         <>
           <Tooltip text="Files" placement="bottom">

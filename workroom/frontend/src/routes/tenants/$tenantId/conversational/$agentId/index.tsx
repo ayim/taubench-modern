@@ -1,12 +1,15 @@
+import { NEW_CHAT_STARTING_MSG, streamManager } from '@sema4ai/spar-ui';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { AgentNotFound } from '~/components/AgentNotFound';
 import { TransitionLoader } from '~/components/Loaders';
-import { NEW_CHAT_STARTING_MSG } from '~/config/constants';
+import { router } from '~/components/providers/Router';
+import { createSparAPIClient } from '~/lib/SparAPIClient';
+import { TenantMeta } from '~/lib/tenantContext';
 import { getPreferenceKey, getUserPreferenceId, isWorkerAgent, removeUserPreferenceId } from '~/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/')({
-  loader: async ({ context: { agentAPIClient }, params: { agentId, tenantId }, location }) => {
+  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId }, location }) => {
     const agentResult = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/agents/{aid}', {
       params: { path: { aid: agentId } },
     });
@@ -52,24 +55,32 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
         body: {
           name: 'New Chat',
           agent_id: agentId,
-          starting_message: initialThreadMessage ?? conversationStarter ?? NEW_CHAT_STARTING_MSG,
         },
         errorMsg: 'Failed to create thread',
       });
 
-      if (!newThread.success) {
+      if (!newThread.success || !newThread.data.thread_id) {
         throw redirect({
           to: '/tenants/$tenantId/conversational/$agentId',
           params: { tenantId, agentId },
         });
       }
 
+      // Starting message stream
+      streamManager.initiateStream({
+        content: [{ kind: 'text', text: initialThreadMessage, complete: true }],
+        agentId,
+        queryClient,
+        threadId: newThread.data.thread_id,
+        sparAPIClient: createSparAPIClient(tenantId, undefined as unknown as TenantMeta, agentAPIClient, router),
+      });
+
       throw redirect({
         to: '/tenants/$tenantId/conversational/$agentId/$threadId',
         params: {
           tenantId,
           agentId,
-          threadId: newThread.data.thread_id ?? '', // TODO-V2: integration, remove this nullish coalescing
+          threadId: newThread.data.thread_id,
         },
         search: {
           initial_thread_message: initialThreadMessage,
@@ -126,7 +137,14 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       body: {
         name: 'Chat 1',
         agent_id: agentId,
-        starting_message: initialThreadMessage ?? conversationStarter ?? NEW_CHAT_STARTING_MSG,
+        messages: [
+          {
+            role: 'agent',
+            content: [{ kind: 'text', text: conversationStarter ?? NEW_CHAT_STARTING_MSG, complete: true }],
+            complete: true,
+            commited: false,
+          },
+        ],
       },
       errorMsg: 'Failed to create thread',
     });

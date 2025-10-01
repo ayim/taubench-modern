@@ -5,6 +5,7 @@ import { FC } from 'react';
 import { useParams } from '../../../hooks';
 import { useWorkItemsQuery } from '../../../queries/workItems';
 import { WorkerItem } from './WorkerItem';
+import { NewWorkItem } from './NewWorkItem';
 
 export const WorkerList: FC = () => {
   const { agentId } = useParams('/workItem/$agentId/$workItemId/$threadId');
@@ -17,10 +18,13 @@ export const WorkerList: FC = () => {
 
   return (
     <SidebarMenu name="work-items-list" title="Work Items">
-      <Box display="flex" alignItems="center" justifyContent="space-between" p="$8" gap="$8">
-        <Typography variant="body-medium" fontWeight="medium">
-          Work Items
-        </Typography>
+      <Box>
+        <Box display="flex" alignItems="center" justifyContent="space-between" p="$8" gap="$8">
+          <Typography variant="body-medium" fontWeight="medium">
+            Work Items
+          </Typography>
+        </Box>
+        <NewWorkItem />
       </Box>
       <Box display="flex" flexDirection="column">
         {workItems?.map((workItem) => (
