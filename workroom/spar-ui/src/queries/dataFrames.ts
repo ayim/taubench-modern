@@ -74,6 +74,7 @@ export const useDataFrameSliceInfiniteQuery = ({
   dataFrameId,
   options,
   totalRows,
+  queryOptions,
 }: {
   threadId: string;
   dataFrameId: string;
@@ -85,6 +86,9 @@ export const useDataFrameSliceInfiniteQuery = ({
     output_format?: 'json' | 'parquet';
   };
   totalRows: number;
+  queryOptions?: {
+    enabled?: boolean;
+  };
 }) => {
   const { sparAPIClient } = useSparUIContext();
 
@@ -123,6 +127,7 @@ export const useDataFrameSliceInfiniteQuery = ({
       return nextPageOffset;
     },
     select: (data) => data?.pages.flat() ?? [],
+    ...queryOptions,
   });
 
   return result;

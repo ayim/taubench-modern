@@ -1,16 +1,19 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, DataFrame, Menu, Typography } from '@sema4ai/components';
 import { styled } from '@sema4ai/theme';
-import { IconMenu, IconTableRows } from '@sema4ai/icons';
+import { IconChevronDown, IconChevronUp, IconDotsVertical, IconTableRows } from '@sema4ai/icons';
 
 import { useMessageStream } from '../../hooks';
 import { ListDataFrames, useDataFrameSliceInfiniteQuery, useDataFramesQuery } from '../../queries/dataFrames';
+import { useDownloadCSV } from '../../hooks/useDownloadCSV';
+
+const MAX_DOWNLOAD_SIZE_MB = 10;
+const MAX_DOWNLOAD_SIZE = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024;
 
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
-  height: 100%;
   width: 100%;
   position: relative;
   min-height: 200px;
@@ -120,15 +123,47 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
   activeDataFrameIndex,
   setActiveDataFrameIndex,
 }) => {
+  const [isMenuListOpen, setIsMenuListOpen] = useState(false);
   const dataFrameCount = dataFrames.length;
+
+  const { fetchNextPage } = useDataFrameSliceInfiniteQuery({
+    threadId: activeDataFrame.thread_id,
+    dataFrameId: activeDataFrame.data_frame_id,
+    totalRows: activeDataFrame.num_rows,
+    queryOptions: { enabled: false },
+  });
 
   useEffect(() => {
     setActiveDataFrameIndex(dataFrameCount - 1);
   }, [dataFrameCount, setActiveDataFrameIndex]);
 
+  const flatChunkCount = useRef(0);
+  const { startDownload, isDownloading } = useDownloadCSV({
+    headers: activeDataFrame.column_headers,
+    filename: `${activeDataFrame.name}.csv`,
+    maxSize: MAX_DOWNLOAD_SIZE,
+    fetchChunk: async () => {
+      const result = await fetchNextPage();
+      const pageData = (result.data ?? []) as Record<string, unknown>[];
+      const chunkData = pageData.slice(flatChunkCount.current, pageData.length);
+
+      /**
+       * Query flattens page data in single array, so we need to keep track of the current chunk index.
+       */
+      flatChunkCount.current = pageData.length;
+      if (!result.hasNextPage) {
+        flatChunkCount.current = 0;
+      }
+
+      return { hasNextChunk: result.hasNextPage, data: chunkData };
+    },
+  });
+
+  const onDownload = () => startDownload();
+
   return (
     <Box display="flex" flexDirection="column" height="100%">
-      <div>
+      <Box display="flex" flexDirection="column" flex={1}>
         <Box display="flex" flexDirection="column" gap="$8" pb="$4" px="$4">
           <Box display="flex" gap="$12">
             <Box display="flex" alignItems="center" gap="$8">
@@ -139,10 +174,39 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
             </Box>
 
             <Box flex={1} />
-
-            {dataFrames.length > 1 && (
-              <Box display="flex" alignItems="center" gap="$12">
-                <Menu trigger={<Button icon={IconMenu} variant="outline" aria-label="choose data frame" round />}>
+            <Box display="flex" alignItems="center" gap="$12">
+              <Menu
+                trigger={
+                  <Button
+                    icon={IconDotsVertical}
+                    variant="outline"
+                    aria-label="data frame actions"
+                    loading={isDownloading}
+                    round
+                  />
+                }
+              >
+                <Menu.Item
+                  onClick={onDownload}
+                  disabled={isDownloading}
+                  description={`Up to ${MAX_DOWNLOAD_SIZE_MB}MB`}
+                >
+                  Download CSV
+                </Menu.Item>
+              </Menu>
+              {dataFrameCount > 1 && (
+                <Menu
+                  visible={isMenuListOpen}
+                  setVisible={setIsMenuListOpen}
+                  trigger={
+                    <Button
+                      icon={isMenuListOpen ? IconChevronDown : IconChevronUp}
+                      variant="outline"
+                      aria-label="choose data frame"
+                      round
+                    />
+                  }
+                >
                   {dataFrames.map((frame, index) => (
                     <Menu.Item
                       key={frame.name ?? index}
@@ -154,13 +218,11 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
                     </Menu.Item>
                   ))}
                 </Menu>
-              </Box>
-            )}
+              )}
+            </Box>
           </Box>
 
-          {activeDataFrame.description && (
-            <Typography variant="body-medium">{activeDataFrame.description}</Typography>
-          )}
+          {activeDataFrame.description && <Typography variant="body-medium">{activeDataFrame.description}</Typography>}
         </Box>
 
         {activeDataFrame !== undefined && (
@@ -168,7 +230,7 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
             <DataFrameEntry key={activeDataFrameIndex} dataFrame={activeDataFrame} agentId={agentId} />
           </Container>
         )}
-      </div>
+      </Box>
     </Box>
   );
 };
