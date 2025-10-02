@@ -160,13 +160,7 @@ messages:
             </memories>
           {%- endif %}
 
-          ## Working with Data Frames
-          Data frames may be available for this task. You often don't need to use data-frame tools
-          **unless** there are frames in scope and accessible.
-
-          ### Currently Available Data Frames
-          Below is the **current** summary of data frames in scope for this turn:
-          {{ kernel.data_frames.data_frames_summary }}
+          {{ kernel.data_frames.data_frames_system_prompt }}
 
           {{ kernel.work_item.work_item_summary_with_tools }}
 

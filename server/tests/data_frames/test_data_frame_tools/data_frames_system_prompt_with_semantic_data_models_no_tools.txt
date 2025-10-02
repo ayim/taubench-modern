@@ -1,0 +1,37 @@
+
+Data frames were made available in the prior conversation. You
+must not use any tools this turn, but should you need to reference the available data
+frames to discuss them or to better contextualize your response, you will find them
+here:
+You have 1 data frames to work with. Details:
+
+### Data Frame: test_data_frame
+Number of rows: 3
+Number of columns: 2
+Column names:
+- col1
+- col2
+Sample data:
+- [1, 4]
+- [2, 5]
+- [3, 6]
+Semantic data models were made available in the prior conversation. You
+must not use any tools this turn, but should you need to reference the available
+semantic data models to discuss them or to better contextualize your response,
+you will find them here:
+### Model: test_semantic_model
+Description: A test semantic model for data frame testing
+Table: test_table
+ Description: Test table for semantic model
+ Dimensions:
+ - name: col1
+   expr: col1
+   data_type: INTEGER
+   description: First column dimension
+
+ Facts:
+ - name: col2
+   expr: col2
+   data_type: INTEGER
+   description: Second column fact
+

@@ -1640,7 +1640,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # Methods for listing semantic data models with associations
     # -------------------------------------------------------------------------
     class SemanticDataModelInfo(TypedDict):
-        semantic_data_model: dict
+        semantic_data_model: SemanticDataModel
         semantic_data_model_id: str
         agent_ids: set[str]
         thread_ids: set[str]

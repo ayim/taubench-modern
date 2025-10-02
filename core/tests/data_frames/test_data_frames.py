@@ -147,7 +147,8 @@ def test_data_frame_error_handling():
         DataFrameSource.model_validate({})
 
     with pytest.raises(KeyError):
-        DataFrameSource.model_validate({"source_type": "data_frame"})  # missing source_id
+        # missing source_id / base_table / logical_table_name
+        DataFrameSource.model_validate({"source_type": "data_frame"})
 
     with pytest.raises(KeyError):
         DataFrameSource.model_validate({"source_id": "test"})  # missing source_type

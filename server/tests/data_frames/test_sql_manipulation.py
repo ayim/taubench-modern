@@ -28,6 +28,41 @@ def test_make_cte_query(file_regression):
     file_regression.check(main_sql.sql(dialect="duckdb", pretty=True), basename="update_with_cte")
 
 
+def test_extract_variable_names_required_from_sql_computation():
+    from agent_platform.server.data_frames.sql_manipulation import (
+        extract_variable_names_required_from_sql_computation,
+        validate_sql_query,
+    )
+
+    sql_ast = validate_sql_query("SELECT * FROM users", "duckdb")
+    var_names = extract_variable_names_required_from_sql_computation(sql_ast)
+    assert var_names == {"users"}
+
+
+def test_update_table_names():
+    from sqlglot import parse_one
+
+    from agent_platform.server.data_frames.sql_manipulation import update_table_names
+
+    updated_sql = update_table_names(
+        parse_one("SELECT * FROM users", read="duckdb"),
+        {"users": "users_new", "customers": "customers_new"},
+    )
+    assert updated_sql.sql(dialect="duckdb") == "SELECT * FROM users_new"
+
+
+def test_update_table_names_with_schema():
+    from sqlglot import parse_one
+
+    from agent_platform.server.data_frames.sql_manipulation import update_table_names
+
+    updated_sql = update_table_names(
+        parse_one("SELECT * FROM users", read="duckdb"),
+        {"users": "schema.users_new"},
+    )
+    assert updated_sql.sql(dialect="postgres") == "SELECT * FROM schema.users_new"
+
+
 def test_get_destructive_reasons_readonly_statements():
     """Test that read-only statements return empty reasons list."""
     from sqlglot import parse_one

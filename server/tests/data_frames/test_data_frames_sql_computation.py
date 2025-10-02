@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from agent_platform.core.errors.base import PlatformError
+from server.tests.storage_fixtures import *  # noqa: F403
 
 if typing.TYPE_CHECKING:
     from sqlglot.dialects.dialect import DialectType
@@ -462,6 +463,138 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
     sliced_table = typing.cast(Table, result.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(
         json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte-2"
+    )
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
+    file_regression, sqlite_storage, tmpdir, resources_dir
+):
+    from sema4ai.actions import Table
+
+    from agent_platform.core.payloads.data_connection import DataConnectionsInspectRequest
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        ColumnInfo,
+        DataConnectionInfo,
+        GenerateSemanticDataModelPayload,
+        TableInfo,
+    )
+    from agent_platform.server.api.private_v2.data_connections import inspect_data_connection
+    from agent_platform.server.api.private_v2.semantic_data_model_api import (
+        generate_semantic_data_model,
+    )
+    from agent_platform.server.auth.handlers import AuthedUser, User
+    from agent_platform.server.data_frames.data_frames_from_computation import (
+        create_data_frame_from_sql_computation_api,
+    )
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await model_creator.setup()
+
+    # Setup user and thread
+    user_id = await model_creator.get_user_id()
+    user = typing.cast(AuthedUser, User(user_id=user_id, sub=""))
+    agent = await model_creator.obtain_sample_agent()
+    thread = await model_creator.obtain_sample_thread()
+    tid = thread.thread_id
+
+    # Create a data connection and a semantic data model
+    db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
+    data_connection = await model_creator.obtain_sample_data_connection(db_file_path=db_file_path)
+    assert data_connection
+
+    inspect_response = await inspect_data_connection(
+        connection_id=data_connection.id,
+        request=DataConnectionsInspectRequest(
+            tables_to_inspect=None,
+            inspect_columns=True,
+            n_sample_rows=5,
+        ),
+        user=user,
+        storage=model_creator.storage,
+    )
+
+    tables_info: list[TableInfo] = []
+    for table in inspect_response.tables:
+        columns: list[ColumnInfo] = []
+        for column in table.columns:
+            columns.append(
+                ColumnInfo(
+                    name=column.name,
+                    data_type=column.data_type,
+                    sample_values=column.sample_values,
+                )
+            )
+        tables_info.append(
+            TableInfo(
+                name=table.name,
+                columns=columns,
+                database=table.database,
+                schema=table.schema,
+                description=table.description,
+            )
+        )
+
+    # Generate the semantic data model
+    generated_model = await generate_semantic_data_model(
+        payload=GenerateSemanticDataModelPayload(
+            name="generated_semantic_model",
+            description="A generated semantic model for testing",
+            data_connections_info=[
+                DataConnectionInfo(
+                    data_connection_id=data_connection.id,
+                    tables_info=tables_info,
+                )
+            ],
+            files_info=[],
+        ),
+        user=user,
+        storage=model_creator.storage,
+    )
+
+    # Ok, a basic model was created, let's change the logical name of the table
+    tables = generated_model.semantic_model.get("tables", [])
+    if not tables:
+        raise Exception("No tables found in the semantic data model")
+    for table in tables:
+        name = table.get("name")
+        if not name:
+            raise Exception("No name found in the table")
+
+        if name == "artificial_intelligence_number_training_datapoints":
+            table["name"] = "ai_training_datapoints"
+
+    semantic_data_model_id = await model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=generated_model.semantic_model,
+        data_connection_ids=[data_connection.id],
+        file_references=[],
+    )
+
+    # Assign the semantic data model to the agent
+    await model_creator.storage.set_agent_semantic_data_models(
+        agent_id=agent.agent_id,
+        semantic_data_model_ids=[semantic_data_model_id],
+    )
+
+    new_data_frame_name = "test_data_frame"
+    sql_query = """SELECT * FROM ai_training_datapoints"""
+    description = "Test data frame"
+
+    result, _sliced_data = await create_data_frame_from_sql_computation_api(
+        DataFramesKernel(sqlite_storage, user, tid),
+        sqlite_storage,
+        new_data_frame_name,
+        sql_query,
+        dialect="duckdb",
+        description=description,
+    )
+
+    sliced_table = typing.cast(Table, result.slice(offset=0, limit=10, output_format="table"))
+    file_regression.check(
+        json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-semantic-data-model"
     )
 
 

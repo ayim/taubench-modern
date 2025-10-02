@@ -1,30 +1,18 @@
-## Data Frames Summary:
+## Data Frames Summary (available to be used in the `data_frames_<tool>` tools):
 You have 1 data frames to work with. Details:
 
-[
- {
-  "name": "test_data_frame",
-  "nrows": 3,
-  "ncols": 2,
-  "column_names": [
-   "col1",
-   "col2"
-  ],
-  "sample_data": [
-   [
-    1,
-    4
-   ],
-   [
-    2,
-    5
-   ],
-   [
-    3,
-    6
-   ]
-  ]
- }
-]
+### Data Frame: test_data_frame
+Number of rows: 3
+Number of columns: 2
+Column names:
+- col1
+- col2
+Sample data:
+- [1, 4]
+- [2, 5]
+- [3, 6]
+
+
 
 Note: It's possible to use an url such as 'data-frame://<data_frame_name>' to get the data frame in json format to use in vega-lite charts.
+

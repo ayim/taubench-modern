@@ -15,7 +15,7 @@ if typing.TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-async def create_data_frame_from_sql_computation_api(  # noqa: PLR0913
+async def create_data_frame_from_sql_computation_api(  # noqa: PLR0912, PLR0913, C901
     data_frames_kernel: "DataFramesKernel",
     storage: "BaseStorage",
     new_data_frame_name: str,
@@ -44,7 +44,6 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0913
     Raises:
         PlatformError: If the computation fails or data frames are not found.
     """
-    import sqlglot
     from sema4ai.actions import Table
 
     from agent_platform.core.data_frames.data_frames import (
@@ -53,37 +52,19 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0913
         PlatformDataFrame,
     )
     from agent_platform.core.errors.base import PlatformError
-    from agent_platform.server.data_frames.data_frames_kernel import (
-        extract_variable_names_required_from_sql_computation,
-    )
     from agent_platform.server.data_frames.data_node import DataNodeResult
-    from agent_platform.server.data_frames.sql_manipulation import get_destructive_reasons
+    from agent_platform.server.data_frames.sql_manipulation import (
+        extract_variable_names_required_from_sql_computation,
+        validate_sql_query,
+    )
 
-    expressions = sqlglot.parse(sql_query, dialect=dialect)
-    if len(expressions) != 1:
-        raise PlatformError(
-            message=f"SQL query must be a single expression. Found: {len(expressions)} "
-            f"SQL query: {sql_query!r}"
-        )
+    sql_ast = validate_sql_query(sql_query, dialect)
 
-    expr = expressions[0]
-    if expr is None or not hasattr(expr, "key"):
-        raise PlatformError(message=f"SQL query is not a valid expression: {sql_query!r}")
-
-    reasons = get_destructive_reasons(expr)
-    if reasons:
-        raise PlatformError(
-            message=f"Unable to create data frame from SQL query: {sql_query} (Errors: {reasons})"
-        )
-
-    required_table_names = extract_variable_names_required_from_sql_computation(sql_query, dialect)
+    required_table_names: set[str] = extract_variable_names_required_from_sql_computation(sql_ast)
 
     computation_input_sources: dict[str, DataFrameSource] = {}
 
-    # Get the thread to find the agent_id
     thread = await data_frames_kernel.get_thread()
-    if not thread:
-        raise PlatformError(message="Thread not found")
 
     all_data_frames = await data_frames_kernel.list_data_frames()
 
@@ -97,6 +78,33 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0913
             )
             if not required_table_names:
                 break
+
+    if required_table_names:
+        # If we don't find the data frames in the thread, we look for them in the semantic data
+        # models (which would allow us to get data directly from a file or database).
+        semantic_data_models_infos = await data_frames_kernel.get_semantic_data_models()
+        table_name_to_table_info = {}
+        for semantic_data_model_info in semantic_data_models_infos:
+            semantic_data_model = semantic_data_model_info["semantic_data_model"]
+            tables = semantic_data_model.get("tables", [])
+            if not tables:
+                continue
+            for table in tables:
+                name = table.get("name")
+                if not name:
+                    continue
+                table_name_to_table_info[name] = table
+
+        for name in tuple(required_table_names):
+            table_info = table_name_to_table_info.get(name)
+            if table_info:
+                # Ok, name found in a semantic data model
+                computation_input_sources[name] = DataFrameSource(
+                    source_type="semantic_data_model",
+                    base_table=table_info["base_table"],
+                    logical_table_name=table_info["name"],
+                )
+                required_table_names.remove(name)
 
     if required_table_names:
         raise PlatformError(

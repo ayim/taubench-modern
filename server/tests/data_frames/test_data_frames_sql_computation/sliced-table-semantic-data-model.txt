@@ -1,0 +1,92 @@
+{
+  "columns": [
+    "id",
+    "Entity",
+    "Code",
+    "Day",
+    "Training_dataset_size",
+    "Domain"
+  ],
+  "rows": [
+    [
+      1,
+      "(ensemble): AWD-LSTM-DOC (fin) \u00d7 5 (WT2)",
+      null,
+      "2018-08-30",
+      2000000,
+      "Language"
+    ],
+    [
+      2,
+      "3DDFA",
+      null,
+      "2015-11-23",
+      97967,
+      "Vision"
+    ],
+    [
+      3,
+      "3DMM-CNN",
+      null,
+      "2016-12-15",
+      500000,
+      "Vision"
+    ],
+    [
+      4,
+      "4 layer QRNN (h=2500)",
+      null,
+      "2018-03-22",
+      103000000,
+      "Language"
+    ],
+    [
+      5,
+      "6-Act Tether",
+      null,
+      "2021-08-03",
+      null,
+      "Robotics"
+    ],
+    [
+      6,
+      "A3C FF hs",
+      null,
+      "2016-02-04",
+      null,
+      "Games"
+    ],
+    [
+      7,
+      "ACF-WIDER",
+      null,
+      "2014-07-15",
+      144448,
+      "Vision"
+    ],
+    [
+      8,
+      "ADALINE",
+      null,
+      "1960-06-30",
+      100,
+      "Vision"
+    ],
+    [
+      9,
+      "ADAM (CIFAR-10)",
+      null,
+      "2014-12-22",
+      50000,
+      "Vision"
+    ],
+    [
+      10,
+      "ADM",
+      null,
+      "2021-05-11",
+      1281167,
+      "Image generation"
+    ]
+  ]
+}

@@ -145,11 +145,7 @@ messages:
           {{ kernel.thread.latest_user_message_as_text }}
           </users_current_request>
 
-          ## Currently Available Data Frames
-          Data frames may have been available and/or created/used in the prior conversation. You
-          must not use any tools this turn, but should you need to reference the available data
-          frames to discuss them or to better contextualize your response, you will find them here:
-          {{ kernel.data_frames.data_frames_summary }}
+          {{ kernel.data_frames.data_frames_system_prompt_no_tools }}
 
           {{ kernel.work_item.work_item_summary_no_tools }}
 

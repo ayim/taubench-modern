@@ -3,6 +3,8 @@ import typing
 from dataclasses import dataclass
 from typing import Literal, TypedDict
 
+from agent_platform.core.data_frames.semantic_data_model_types import BaseTable
+
 if typing.TYPE_CHECKING:
     from sema4ai.actions._table import Row
 
@@ -11,10 +13,22 @@ if typing.TYPE_CHECKING:
 class DataFrameSource:
     """Represents the source of a data frame."""
 
-    source_type: Literal["data_frame"]
-    """The type of the source. Currently only "data_frame" is supported."""
+    source_type: Literal["data_frame", "semantic_data_model"]
+    """The type of the source.
+    - "data_frame": the source is a data frame.
+    - "semantic_data_model": the source is a semantic data model.
+    """
 
-    source_id: str
+    # Only available if source_type is "data_frame".
+    source_id: str | None = None
+    """The ID of the data frame (UUID)."""
+
+    # Only available if source_type is "semantic_data_model".
+    base_table: BaseTable | None = None
+    """The base table information of the semantic data model."""
+
+    logical_table_name: str | None = None
+    """The name of the logical table (when a semantic data model is used)."""
 
     def __post_init__(self) -> None:
         from agent_platform.core.utils.asserts import assert_literal_value_valid
@@ -22,16 +36,47 @@ class DataFrameSource:
         assert_literal_value_valid(self, "source_type")
 
     def model_dump(self) -> dict:
-        return {
-            "source_type": self.source_type,
-            "source_id": self.source_id,
-        }
+        ret: dict = {"source_type": self.source_type}
+
+        if self.source_id is not None:
+            ret["source_id"] = self.source_id
+
+        if self.base_table is not None:
+            ret["base_table"] = self.base_table
+
+        if self.logical_table_name is not None:
+            ret["logical_table_name"] = self.logical_table_name
+
+        return ret
 
     @classmethod
     def model_validate(cls, data: dict) -> "DataFrameSource":
+        source_id = data.get("source_id")
+        base_table = data.get("base_table")
+        logical_table_name = data.get("logical_table_name")
+        source_type = data["source_type"]
+
+        if source_type == "data_frame":
+            if not source_id:
+                raise KeyError("source_id must be set when source_type is data_frame")
+
+        elif source_type == "semantic_data_model":
+            if not base_table or not logical_table_name:
+                raise KeyError(
+                    "base_table and logical_table_name must be set when source_type is "
+                    "semantic_data_model"
+                )
+        else:
+            raise ValueError(
+                f"Invalid value for 'source_type': {source_type!r}. "
+                f"Must be one of: 'data_frame', 'semantic_data_model'",
+            )
+
         return cls(
-            source_type=data["source_type"],
-            source_id=data["source_id"],
+            source_type=source_type,
+            source_id=source_id,
+            base_table=base_table,
+            logical_table_name=logical_table_name,
         )
 
 

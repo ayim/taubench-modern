@@ -1,0 +1,37 @@
+## Data Frames Summary (available to be used in the `data_frames_<tool>` tools):
+You have 1 data frames to work with. Details:
+
+### Data Frame: test_data_frame
+Number of rows: 3
+Number of columns: 2
+Column names:
+- col1
+- col2
+Sample data:
+- [1, 4]
+- [2, 5]
+- [3, 6]
+
+
+
+Note: It's possible to use an url such as 'data-frame://<data_frame_name>' to get the data frame in json format to use in vega-lite charts.
+
+## Semantic Data Models (tables available to be used in the `data_frames_create_from_sql` tool):
+### Model: test_semantic_model
+Description: A test semantic model for data frame testing
+Table: test_table
+ Description: Test table for semantic model
+ Dimensions:
+ - name: col1
+   expr: col1
+   data_type: INTEGER
+   description: First column dimension
+
+ Facts:
+ - name: col2
+   expr: col2
+   data_type: INTEGER
+   description: Second column fact
+
+
+

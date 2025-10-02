@@ -261,6 +261,103 @@ def test_semantic_data_models_integration(base_url_agent_server, datadir, resour
             agent_client.get_semantic_data_model("non-existent")
 
 
+@pytest.mark.integration
+def test_semantic_data_model_query_with_llm_integration(
+    base_url_agent_server, resources_dir, openai_api_key
+):
+    """Test semantic data model query with LLM integration."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        # Create an agent and thread
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-5-low"]},
+                },
+            ],
+            runbook="""You are an agent which should make create data
+            frames using the data_frames_create_from_sql tool,
+            referencing the semantic data model that the user provides
+            to answer user's questions.""",
+            description="Agent which can query the semantic data model",
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        # Setup data connection based on resources_dir / "data_frames" / "combined_data.sqlite"
+        db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
+
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-combined-data",
+            description="Test connection for combined data",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file_path),
+            },
+        )
+
+        # Inspect the connection
+        inspect_response = agent_client.inspect_data_connection(
+            connection_id=data_connection["id"],
+        )
+
+        # Verify inspection response has expected structure
+        assert "tables" in inspect_response
+        assert len(inspect_response["tables"]) > 0
+
+        # Generate semantic data model from the connection
+        generate_payload = {
+            "name": "generated_semantic_model_integration",
+            "description": "A generated semantic model for integration testing",
+            "data_connections_info": [
+                {
+                    "data_connection_id": data_connection["id"],
+                    "tables_info": inspect_response["tables"],
+                }
+            ],
+            "files_info": [],
+        }
+
+        # Generate the semantic data model
+        generated_model = agent_client.generate_semantic_data_model(generate_payload)
+        assert "semantic_model" in generated_model
+
+        # Create the semantic data model
+        created_model = agent_client.create_semantic_data_model(generated_model)
+        semantic_data_model_id = created_model["semantic_data_model_id"]
+
+        # Set the generated data model for the agent
+        agent_client.set_agent_semantic_data_models(agent_id, [semantic_data_model_id])
+
+        # Verify the model was assigned to the agent
+        agent_models = agent_client.get_agent_semantic_data_models(agent_id)
+        assert len(agent_models) == 1
+        assert semantic_data_model_id in agent_models[0]
+
+        # Verify the model was created correctly
+        retrieved_model = agent_client.get_semantic_data_model(semantic_data_model_id)
+        assert retrieved_model == generated_model["semantic_model"]
+        result, tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            (
+                "Can you provide me with the list of notable AI systems which were "
+                "sampled in the year 2023?"
+            ),
+        )
+        for tool_call in tool_calls:
+            if tool_call.tool_name == "data_frames_create_from_sql":
+                break
+        else:
+            raise Exception("data_frames_create_from_sql tool call not found")
+
+        result_found = str(result)
+        assert "Claude 2" in result_found, "Claude 2 should be in the result"
+
+
 def check_upload_response(thread_response) -> str:
     from starlette.status import HTTP_200_OK
 

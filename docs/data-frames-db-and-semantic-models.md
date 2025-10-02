@@ -233,7 +233,7 @@ v2_thread_semantic_data_models -- junction table (references thread id and seman
   - `set_thread_semantic_data_models`, which receives a `SetThreadSemanticDataModelsPayload` needs to accept a `thread_id` and a list of `semantic_data_model_id`s (REST API: `PUT /api/v2/threads/{thread_id}/semantic-data-models`).
   - `get_thread_semantic_data_models`, which needs to accept a `thread_id` and return a list of `SemanticDataModel`s (REST API: `GET /api/v2/threads/{thread_id}/semantic-data-models`).
 
-# Step 6:
+# Step 6 (done):
 
 Create a new REST API to list all semantic data models (agent_id and thread_id can be used as filters).
 
@@ -262,7 +262,8 @@ class SemanticDataModelWithAssociations:
 
 # Step 7:
 
-`Feature`: Enable the user to create data frames from a data source.
+`Feature`: Enable the user to create data frames from a data source (note: at this moment "federated" queries
+are not supported, so, only SQL referencing a single data connection is supported).
 
 Right now we have a tool to create a "data frame from a file" which receives a file reference in the thread + sheet name if needed
 and another tool to create a data frame from a sql which may reference existing data frames. For this feature, we don't need
@@ -275,13 +276,55 @@ files as well as sql targetting a data source to extract table information from 
 i.e.: the DataFramesKernel should be able to target tables in data connections (based on the semantic data models that
 are accessible both in the thread as well as in the agent).
 
-# Step 7:
+Structure:
+
+A `DataFrameSource` should be extended to support `semantic_data_model` as a source type.
+
+- When a `semantic_data_model` is used, information on the `base_table` and `logical_table_name` must be provided.
+- The `base_table` information can contain info either on a data connection or a file reference (which can be
+  specified in the semantic data model).
+
+When resolving the sources for the SQL computation, if the names required are not found in the data frames, it should be
+possible to resolve them using the semantic data models. In this case, the `PlatformDataFrame` will contain
+a `computation_input_sources` field which will contain the `DataFrameSource`s that are needed to resolve the data frame
+(which in turn can be resolved using the semantic data model).
+
+Note: there should be a "translation" step because the LLM will reference the "logical table name" but then
+the SQL must later on reference the actual table (using the `base_table` information).
+
+Note: up to now, a file would need to be directly converted to a data frame (so a `PlatformDataFrame` with
+`input_id_type` set to `file`), but in the semantic data model use case, this is not the case, a `PlatformDataFrame`
+will just define the `input_id_type` as `sql_computation` and the `computation_input_sources` will contain the
+information on the semantic data model that must be queried.
+
+In this step, all the `computation_input_sources` must reference the same connection id (if more than
+one connection is used we'll fail).
+
+In the code we must:
+
+- Create a dependency graph to determine the endpoints (data connections, files, dependent sql computations) that need to be queried.
+- After the dependency graph is created, actually "resolve" it to create the data frame.
+
+# Step 7.1:
+
+Add more logging related to what's happening when resolving the data frames/semantic data models.
+
+# Step 8:
+
+Actually do tests with postgres, redshift and snowflake.
+Do more tests on exceptional use cases (slow queries, bad network, etc.).
+
+# Step 9:
 
 Create a "Full semantic data model" which includes metrics, facts, dimensions, etc.
 
 Extract primary keys/uniqueness from the database directly when available.
 
-# Step 8:
+# Step 10:
+
+Support "federated" queries (i.e.: SQL referencing multiple data connections or referencing a data connection and a file or in-memory data).
+
+# Step 11:
 
 When a semantic data model is later needed just for a subset (say a semantic data model was created from 2 databases and a file), if
 later on a file is required, it should be possible to extract a subset of the semantic data model to be used just for that file.

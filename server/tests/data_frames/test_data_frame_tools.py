@@ -69,6 +69,58 @@ async def test_data_frames_interface(file_regression):
     assert collected_data == {"columns": ["col1", "col2"], "rows": [[1, 4], [2, 5], [3, 6]]}
     json.dumps(collected_data)  # just check it works
 
+    semantic_data_models: list[BaseStorage.SemanticDataModelInfo] = [
+        {
+            "semantic_data_model": {
+                "name": "test_semantic_model",
+                "description": "A test semantic model for data frame testing",
+                "tables": [
+                    {
+                        "name": "test_table",
+                        "base_table": {
+                            "table": "test_data_frame",
+                            "data_connection_id": "data-connection-id1",
+                            "database": "test_db",
+                            "schema": "public",
+                        },
+                        "description": "Test table for semantic model",
+                        "dimensions": [
+                            {
+                                "name": "col1",
+                                "expr": "col1",
+                                "data_type": "INTEGER",
+                                "description": "First column dimension",
+                            }
+                        ],
+                        "facts": [
+                            {
+                                "name": "col2",
+                                "expr": "col2",
+                                "data_type": "INTEGER",
+                                "description": "Second column fact",
+                            }
+                        ],
+                    }
+                ],
+                "relationships": [],
+            },
+            "semantic_data_model_id": "test_semantic_model_id",
+            "agent_ids": {storage_stub.thread.agent_id},
+            "thread_ids": {storage_stub.thread.tid},
+        }
+    ]
+
+    assert hasattr(interface, "_semantic_data_models")
+    interface._semantic_data_models = semantic_data_models
+    file_regression.check(
+        interface.data_frames_system_prompt,
+        basename="data_frames_system_prompt_with_semantic_data_models",
+    )
+    file_regression.check(
+        interface.data_frames_system_prompt_no_tools,
+        basename="data_frames_system_prompt_with_semantic_data_models_no_tools",
+    )
+
 
 @pytest.mark.asyncio
 async def test_data_frames_interface_state(file_regression):

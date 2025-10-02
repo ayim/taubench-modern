@@ -1,6 +1,8 @@
 import datetime
 import typing
 from abc import abstractmethod
+from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, Literal, Protocol
 
 if typing.TYPE_CHECKING:
@@ -10,7 +12,50 @@ if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_reader import DataReaderSheet
 
-SupportedIbisBackends = Literal["duckdb", "any"]
+
+@dataclass(
+    frozen=True,
+    repr=True,
+    eq=True,
+    unsafe_hash=True,
+    slots=True,
+)
+class SupportedIbisBackends:
+    """
+    We need to be able to make a "unique" object that represents the backend used
+    to access the data.
+
+    "duckdb" is meant for:
+    - in memory data frames (as they're manterialized in duckdb)
+    - files (also materialized in duckdb)
+
+    "data-connection" is meant for data connections (i.e.: a database connection).
+    Here, we also need to store the data_connection_id and database (we should be
+    able to query a different schema from the same database, but for multiple
+    databases we need to materialize those contents and do some federation).
+    """
+
+    backend: Literal["duckdb", "data-connection"]
+
+    # The data_connection_id of the data connection
+    data_connection_id: str | None = None
+
+    # The database of the data connection
+    database: str | None = None
+
+
+# Simple backends
+DUCK_DB_BACKEND = SupportedIbisBackends(backend="duckdb")
+
+
+# Backend based on the data connection
+@lru_cache(maxsize=100)
+def make_data_connection_backend(data_connection_id: str, database: str) -> SupportedIbisBackends:
+    return SupportedIbisBackends(
+        backend="data-connection", data_connection_id=data_connection_id, database=database
+    )
+
+
 SliceOutputFormat = Literal["json", "parquet", "table"]
 
 
@@ -214,8 +259,6 @@ class DataNodeResult(Protocol):
     A protocol for data node results.
     """
 
-    required_backend: SupportedIbisBackends
-
     @abstractmethod
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
         pass
@@ -272,8 +315,6 @@ class DataNodeResult(Protocol):
 
 
 class DataNodeFromDataReaderSheet(DataNodeResult):
-    required_backend: SupportedIbisBackends = "duckdb"
-
     def __init__(self, platform_data_frame: "PlatformDataFrame", reader_sheet: "DataReaderSheet"):
         self._platform_data_frame = platform_data_frame
         self._reader_sheet = reader_sheet
@@ -317,8 +358,6 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
 
 
 class DataNodeFromInMemoryDataFrame(DataNodeResult):
-    required_backend: SupportedIbisBackends = "duckdb"
-
     def __init__(self, platform_data_frame: "PlatformDataFrame"):
         self._platform_data_frame = platform_data_frame
         self.__loaded_table: Any | None = None
@@ -381,8 +420,6 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
 
 
 class DataNodeFromIbisResult(DataNodeResult):
-    required_backend: SupportedIbisBackends = "any"
-
     def __init__(self, platform_data_frame: "PlatformDataFrame", ibis_result: Any):
         self._platform_data_frame = platform_data_frame
         self._ibis_result = ibis_result

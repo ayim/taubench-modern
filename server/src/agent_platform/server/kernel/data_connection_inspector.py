@@ -41,7 +41,7 @@ class DataConnectionInspector:
         )
 
         # Create ibis connection based on engine type
-        connection = await self._create_ibis_connection(self.data_connection)
+        connection = await self.create_ibis_connection(self.data_connection)
 
         # Get all tables if none specified
         if not self.request.tables_to_inspect:
@@ -57,7 +57,8 @@ class DataConnectionInspector:
 
         return DataConnectionsInspectResponse(tables=table_infos)
 
-    async def _create_ibis_connection(self, data_connection: "DataConnection") -> Any:
+    @classmethod
+    async def create_ibis_connection(cls, data_connection: "DataConnection") -> Any:
         """Create an ibis connection based on the data connection configuration."""
         from agent_platform.core.payloads.data_connection import (
             PostgresDataConnectionConfiguration,
@@ -70,32 +71,34 @@ class DataConnectionInspector:
         config = data_connection.configuration
 
         if engine == "sqlite":
-            return await self._create_sqlite_connection(
+            return await cls._create_sqlite_connection(
                 typing.cast(SQLiteDataConnectionConfiguration, config)
             )
         elif engine == "postgres":
-            return await self._create_postgres_connection(
+            return await cls._create_postgres_connection(
                 typing.cast(PostgresDataConnectionConfiguration, config)
             )
         elif engine == "redshift":
-            return await self._create_redshift_connection(
+            return await cls._create_redshift_connection(
                 typing.cast(RedshiftDataConnectionConfiguration, config)
             )
         elif engine == "snowflake":
-            return await self._create_snowflake_connection(
+            return await cls._create_snowflake_connection(
                 typing.cast(SnowflakeDataConnectionConfiguration, config)
             )
         else:
             raise ValueError(f"Unsupported engine for inspection: {engine}")
 
-    async def _create_sqlite_connection(self, config: "SQLiteDataConnectionConfiguration") -> Any:
+    @classmethod
+    async def _create_sqlite_connection(cls, config: "SQLiteDataConnectionConfiguration") -> Any:
         """Create SQLite ibis connection."""
         import ibis
 
         return ibis.sqlite.connect(config.db_file)
 
+    @classmethod
     async def _create_postgres_connection(
-        self, config: "PostgresDataConnectionConfiguration"
+        cls, config: "PostgresDataConnectionConfiguration"
     ) -> Any:
         """Create PostgreSQL ibis connection."""
         import ibis
@@ -109,8 +112,9 @@ class DataConnectionInspector:
             schema=config.schema,
         )
 
+    @classmethod
     async def _create_redshift_connection(
-        self, config: "RedshiftDataConnectionConfiguration"
+        cls, config: "RedshiftDataConnectionConfiguration"
     ) -> Any:
         """Create Redshift ibis connection."""
         import ibis
@@ -124,8 +128,9 @@ class DataConnectionInspector:
             schema=config.schema,
         )
 
+    @classmethod
     async def _create_snowflake_connection(
-        self, config: "SnowflakeDataConnectionConfiguration"
+        cls, config: "SnowflakeDataConnectionConfiguration"
     ) -> Any:
         """Create Snowflake ibis connection."""
         import ibis
@@ -158,7 +163,8 @@ class DataConnectionInspector:
             role=config.role,
         )
 
-    async def _get_all_tables(self, connection: Any) -> "list[TableToInspect]":
+    @classmethod
+    async def _get_all_tables(cls, connection: Any) -> "list[TableToInspect]":
         """Get all tables from the connection."""
         from agent_platform.core.payloads.data_connection import TableToInspect
 

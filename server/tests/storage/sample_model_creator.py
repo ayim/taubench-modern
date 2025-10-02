@@ -222,7 +222,7 @@ class SampleModelCreator:
         return self.sample_data_frame
 
     async def obtain_sample_data_connection(
-        self, name: str = "test_connection"
+        self, name: str = "test_connection", db_file_path: Path | None = None
     ) -> "DataConnection":
         """Create a sample DataConnection for testing."""
         from uuid import uuid4
@@ -230,9 +230,10 @@ class SampleModelCreator:
         from agent_platform.core.data_connections.data_connections import DataConnection
         from agent_platform.core.payloads.data_connection import SQLiteDataConnectionConfiguration
 
-        db_file_dir = Path(self.tmpdir)
-        # create a temp file for the db file (name must be unique)
-        db_file_path = db_file_dir / f"sqlite_test_{uuid4()}.db"
+        if db_file_path is None:
+            db_file_dir = Path(self.tmpdir)
+            # create a temp file for the db file (name must be unique)
+            db_file_path = db_file_dir / f"sqlite_test_{uuid4()}.db"
 
         data_connection = DataConnection(
             id=str(uuid4()),

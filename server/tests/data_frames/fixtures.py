@@ -3,6 +3,7 @@ import typing
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.core.files.files import UploadedFile
+    from agent_platform.server.storage.base import BaseStorage
 
 
 class UserStub:
@@ -28,6 +29,11 @@ class StorageStub:
         self.thread = ThreadStub()
         self.data_frames: list[PlatformDataFrame] = []
         self._files: dict[str, UploadedFile] = {}
+
+    async def list_semantic_data_models(
+        self, agent_id: str | None = None, thread_id: str | None = None
+    ) -> list["BaseStorage.SemanticDataModelInfo"]:
+        return []
 
     async def get_file_by_ref(
         self,

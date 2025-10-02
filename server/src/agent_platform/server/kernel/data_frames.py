@@ -9,12 +9,83 @@ from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
 
 logger = get_logger(__name__)
+
+
+def _handle_some_table_field(k: str, v: Any) -> str:
+    k = k.replace("_", " ").title()
+
+    import yaml
+
+    return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
+
+
+def _convert_semantic_data_model_to_context_string(data: "list[SemanticDataModel]") -> str:  # noqa: C901 PLR0912
+    """
+    Convert data to a string that can be used in an LLM context.
+
+    We try to format the data in a way that is easy to read and understand,
+    but still trying to keep it concise so that we don't use few tokens
+    (right now we use yaml.safe_dump to convert the data to a string).
+    """
+    from textwrap import indent
+
+    if not data:
+        return "No semantic data models available."
+
+    result = []
+
+    for model in data:
+        if not isinstance(model, dict):
+            continue
+
+        model = model.copy()  # noqa: PLW2901
+
+        # Model header
+        name = model.pop("name", "Unnamed")
+        description = model.pop("description", "")
+
+        model_header = f"### Model: {name}"
+        if description:
+            model_header += f"\nDescription: {description}"
+        result.append(model_header)
+
+        # Tables
+        tables = model.pop("tables", [])
+        if tables:
+            for table in tables:
+                if not isinstance(table, dict):
+                    continue
+
+                table = table.copy()  # noqa: PLW2901
+                table_name = table.pop("name")
+                if not table_name:
+                    continue
+                table_desc = table.pop("description", "")
+
+                table_line = f"Table: {table_name}"
+                if table_desc:
+                    table_line += f"\n Description: {table_desc}"
+                result.append(table_line)
+
+                for k, v in table.items():
+                    if v:
+                        result.append(indent(_handle_some_table_field(k, v), " "))
+
+        # Handle what we haven't added yet (relationships, etc.)
+        for k, v in model.items():
+            if v:
+                result.append(_handle_some_table_field(k, v))
+
+        result.append("")  # Empty line between models
+
+    return "\n".join(result)
 
 
 class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
@@ -24,6 +95,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         super().__init__()
         self._name_to_data_frame: dict[str, PlatformDataFrame] = {}
         self._data_frame_tools: tuple[ToolDefinition, ...] = ()
+        self._semantic_data_models: list[BaseStorage.SemanticDataModelInfo] = []
 
     def is_enabled(self) -> bool:
         """Returns True if data frames are enabled (and False otherwise).
@@ -62,9 +134,15 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             logger.exception("Error getting data frames")
             data_frames = ()
 
+        assert storage is not None, "Storage is required to create data frame tools"
+
         self._name_to_data_frame = {data_frame.name: data_frame for data_frame in data_frames}
 
-        assert storage is not None, "Storage is required to create data frame tools"
+        semantic_data_models = await storage.list_semantic_data_models(
+            agent_id=self.kernel.thread.agent_id, thread_id=self.kernel.thread.thread_id
+        )
+        self._semantic_data_models = semantic_data_models
+
         data_frame_tools = _DataFrameTools(
             self.kernel.user, self.kernel.thread.thread_id, self._name_to_data_frame, storage
         )
@@ -97,47 +175,143 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 ),
             )
 
+            if self._semantic_data_models:
+                self._data_frame_tools += (
+                    ToolDefinition.from_callable(
+                        data_frame_tools.create_data_frame_from_sql,
+                        name="data_frames_create_from_sql",
+                    ),
+                )
+
+    @property
+    def data_frames_system_prompt_no_tools(self) -> str:
+        from textwrap import dedent
+
+        if not self.thread_has_data_frames and not self._semantic_data_models:
+            return ""
+
+        prompt = ""
+
+        if self.thread_has_data_frames:
+            prompt += dedent("""
+            Data frames were made available in the prior conversation. You
+            must not use any tools this turn, but should you need to reference the available data
+            frames to discuss them or to better contextualize your response, you will find them
+            here:
+            """)
+            prompt += self.data_frames_summary
+
+        if self._semantic_data_models:
+            prompt += dedent("""
+            Semantic data models were made available in the prior conversation. You
+            must not use any tools this turn, but should you need to reference the available
+            semantic data models to discuss them or to better contextualize your response,
+            you will find them here:
+            """)
+            prompt += self.semantic_data_models_summary
+
+        return prompt
+
     @property
     def data_frames_system_prompt(self) -> str:
-        if not self.thread_has_data_frames:
+        if not self.thread_has_data_frames and not self._semantic_data_models:
             # i.e.: For now return empty (so that we don't change anything in the system prompt
             # if the user hasn't created a data frame).
             return ""
 
-        return f"## Data Frames Summary:\n{self.data_frames_summary}"
+        ret = ""
+
+        if self.thread_has_data_frames or self._semantic_data_models:
+            if self.thread_has_data_frames:
+                try:
+                    ret += (
+                        f"## Data Frames Summary (available to be used in the "
+                        f"`data_frames_<tool>` tools):\n{self.data_frames_summary}\n\n"
+                    )
+                    ret += (
+                        "\n\nNote: It's possible to use an url such as "
+                        "'data-frame://<data_frame_name>' "
+                        "to get the data frame in json format to use in vega-lite charts.\n\n"
+                    )
+                except Exception:
+                    logger.exception("Error creating data frames summary")
+
+            if self._semantic_data_models:
+                try:
+                    ret += (
+                        f"## Semantic Data Models (tables available to be used in the "
+                        f"`data_frames_create_from_sql` tool):\n"
+                        f"{self.semantic_data_models_summary}\n\n"
+                    )
+                except Exception:
+                    logger.exception("Error creating semantic data models summary")
+        return ret
+
+    @property
+    def semantic_data_models_summary(self) -> str:
+        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
+        if not self._semantic_data_models:
+            return "You have no semantic data models to work with."
+
+        models: list[SemanticDataModel] = []
+        # We want to remove the base_table data from the semantic data models summary
+        # and format it for the LLM to use.
+        for semantic_data_model_info in self._semantic_data_models:
+            try:
+                model: SemanticDataModel = semantic_data_model_info["semantic_data_model"]
+                new_model: SemanticDataModel = typing.cast(
+                    SemanticDataModel, {x: y for x, y in model.items() if y}
+                )
+
+                tables = new_model.get("tables", [])
+                if not tables:
+                    continue  # No tables, so skip
+                tables = [c.copy() for c in tables]
+                for table in tables:
+                    table.pop("base_table", None)
+                    # Don't show empty fields
+                    for k, v in list(table.items()):
+                        if not v:
+                            table.pop(k)
+                new_model["tables"] = tables
+                models.append(new_model)
+            except Exception:
+                logger.exception(
+                    "Error creating semantic data model summary from semantic data model info",
+                    semantic_data_model_info=semantic_data_model_info,
+                )
+                continue
+
+        return _convert_semantic_data_model_to_context_string(models)
 
     @property
     def data_frames_summary(self) -> str:
-        import json
-
         if not self._name_to_data_frame:
             return "You have no data frames to work with."
 
         summary = [f"You have {len(self._name_to_data_frame)} data frames to work with. Details:\n"]
-        data_frames_info = []
         for data_frame in self._name_to_data_frame.values():
-            data_frames_info.append(self._data_frame_summary(data_frame))
-        summary.append(json.dumps(data_frames_info, indent=1))
+            summary.append(self._data_frame_summary(data_frame))
         ret = "\n".join(summary)
-        ret += (
-            "\n\nNote: It's possible to use an url such as 'data-frame://<data_frame_name>' "
-            "to get the data frame in json format to use in vega-lite charts."
-        )
+
         return ret
 
-    def _data_frame_summary(self, data_frame: "PlatformDataFrame") -> dict[str, Any]:
-        info: dict[str, Any] = {"name": data_frame.name}
+    def _data_frame_summary(self, data_frame: "PlatformDataFrame") -> str:
+        result = [f"### Data Frame: {data_frame.name}"]
         if data_frame.description:
-            info["description"] = data_frame.description
+            result.append(f"Description: {data_frame.description}")
         if data_frame.num_rows:
-            info["nrows"] = data_frame.num_rows
+            result.append(f"Number of rows: {data_frame.num_rows}")
         if data_frame.num_columns:
-            info["ncols"] = data_frame.num_columns
+            result.append(f"Number of columns: {data_frame.num_columns}")
         if data_frame.column_headers:
-            info["column_names"] = data_frame.column_headers
+            column_names_str = "\n- ".join([str(col) for col in data_frame.column_headers])
+            result.append(f"Column names:\n- {column_names_str}")
         if data_frame.sample_rows:
-            info["sample_data"] = data_frame.sample_rows
-        return info
+            rows_as_list_str = "\n- ".join([str(row) for row in data_frame.sample_rows])
+            result.append(f"Sample data:\n- {rows_as_list_str}")
+        return "\n".join(result)
 
     @property
     def thread_has_data_frames(self) -> bool:
@@ -236,8 +410,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                         )
                         data_frame_summary = self._data_frame_summary(data_frame)
                         msg = f"Data frame {name} created from {tool_def.name}.\nDetails: "
-                        for key, value in data_frame_summary.items():
-                            msg += f"{key}: {value}\n"
+                        msg += data_frame_summary
 
                         new_result = result_output.copy()
                         if found_in_result:
@@ -409,8 +582,9 @@ class _DataFrameTools:
         sql_query: Annotated[
             str,
             """
-            A SQL query (using duckdb syntax) to execute against existing data frames.
-            Any data frame can be referenced by its name in the SQL query.
+            A SQL query (using duckdb syntax) to execute against existing data frames
+            or "logical" tables in semantic data models.
+            Any data frame or "logical" table can be referenced by its name in the SQL query.
             Some common SQL features:
                 • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
                 • Aggregate functions like COUNT, SUM, AVG, MIN, MAX
@@ -445,12 +619,13 @@ class _DataFrameTools:
             """,
         ] = 10,
     ) -> dict[str, Any]:
-        """Run a SQL query against the existing data frames and use its data to create a
-        new data frame.
+        """Run a SQL query against the existing data frames or "logical" tables in semantic
+        data models and use its data to create a new data frame.
 
         A sample of the newly created data frame is returned (specified by num_samples).
 
-        Use SQL using duckdb syntax. Existing data frames are available by their name in your query.
+        Use SQL using duckdb syntax. Existing data frames and "logical" tables in semantic data
+        models are available by their name in your query.
         DuckDB supports most common SQL operations including SELECT, WHERE, GROUP BY,
         ORDER BY, aggregate functions, and more.
         """
@@ -471,7 +646,7 @@ class _DataFrameTools:
             if not new_data_frame_name.isidentifier() or keyword.iskeyword(new_data_frame_name):
                 new_data_frame_name = slugify(new_data_frame_name).replace("-", "_")
 
-            resolved_df, samples_table = await create_data_frame_from_sql_computation_api(
+            resolved_df, _samples_table = await create_data_frame_from_sql_computation_api(
                 data_frames_kernel=data_frames_kernel,
                 storage=self._storage,
                 new_data_frame_name=new_data_frame_name,

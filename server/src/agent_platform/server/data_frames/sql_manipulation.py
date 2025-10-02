@@ -99,3 +99,59 @@ def update_with_clause(main_sql_ast, ctes: list[Any]):
     else:
         main_sql_ast.set("with", exp.With(expressions=ctes, recursive=False))
     return main_sql_ast
+
+
+def update_table_names(main_sql_ast, logical_table_name_to_actual_table_name: dict[str, str]):
+    """
+    Update the table name of the main sql ast with the new table name.
+    """
+    from sqlglot import exp
+
+    if not logical_table_name_to_actual_table_name:
+        return main_sql_ast  # Nothing to change
+
+    for table in main_sql_ast.find_all(exp.Table):
+        if table.name in logical_table_name_to_actual_table_name:
+            table.set(
+                "this", exp.Identifier(this=logical_table_name_to_actual_table_name[table.name])
+            )
+    return main_sql_ast
+
+
+def extract_variable_names_required_from_sql_computation(sql_ast: Any) -> "set[str]":
+    import sqlglot.expressions
+
+    tables = sql_ast.find_all(sqlglot.expressions.Table)
+
+    required_variable_names = {t.name for t in tables if t.name}
+    cte_tables = sql_ast.find_all(sqlglot.expressions.CTE)
+    for cte in cte_tables:
+        required_variable_names.discard(cte.alias)
+    return required_variable_names
+
+
+def validate_sql_query(sql_query: str, dialect: str) -> Any:
+    """
+    Validate the SQL query and return the AST.
+    """
+    import sqlglot
+
+    from agent_platform.core.errors.base import PlatformError
+
+    expressions = sqlglot.parse(sql_query, dialect=dialect)
+    if len(expressions) != 1:
+        raise PlatformError(
+            message=f"SQL query must be a single expression. Found: {len(expressions)} "
+            f"SQL query: {sql_query!r}"
+        )
+
+    expr = expressions[0]
+    if expr is None or not hasattr(expr, "key"):
+        raise PlatformError(message=f"SQL query is not a valid expression: {sql_query!r}")
+
+    reasons = get_destructive_reasons(expr)
+    if reasons:
+        raise PlatformError(
+            message=f"Unable to create data frame from SQL query: {sql_query} (Errors: {reasons})"
+        )
+    return expr
