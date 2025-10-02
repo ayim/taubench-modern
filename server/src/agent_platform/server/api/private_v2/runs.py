@@ -49,6 +49,7 @@ from agent_platform.server.agent_architectures import AgentArchManager
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser, AuthedUserWebsocket
 from agent_platform.server.kernel import AgentServerKernel
+from agent_platform.server.services import maybe_auto_name_thread
 from agent_platform.server.storage import (
     AgentNotFoundError,
     RunNotFoundError,
@@ -455,6 +456,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
         with server_context.start_span(
             "stream_run",
         ) as span:
+            auto_name_task = None
             # Add string attributes that are safe for OTEL
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
             span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
@@ -580,6 +582,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
             )
             if initial_payload.override_model_id:
                 kernel.model_selector.override_model(initial_payload.override_model_id)
+            auto_name_task = create_task(maybe_auto_name_thread(kernel, storage))
             ca_invoke_task = create_task(runner.invoke(kernel))
 
             # 10. Task to forward CA events to client
@@ -622,7 +625,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
             # Group agent's core invocation and its event sending
             agent_processing_task = ensure_future(gather(ca_invoke_task, send_task))
 
-            # All top-level tasks managed by stream_run
+            # All top-level tasks managed by stream_run (exclude auto_namer so we can await it)
             all_managed_tasks = {
                 ca_invoke_task,
                 send_task,
@@ -656,6 +659,9 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                             agent_processing_task.cancel()
 
                     # If we are here, stream_run considers this a normal completion path
+                    # Ensure auto-name has a chance to finish and persist
+                    if auto_name_task is not None:
+                        await auto_name_task
                     await _update_run_status(storage, active_run, "completed", "normal_completion")
                     await _safe_close_websocket(websocket)
 
@@ -672,6 +678,10 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                 # Await all of them to settle (collecting any
                 # CancelledErrors or other exceptions)
                 await gather(*all_managed_tasks, return_exceptions=True)
+                # Clean up auto-name task if still pending (e.g., on error)
+                if auto_name_task is not None and not auto_name_task.done():
+                    auto_name_task.cancel()
+                    await gather(auto_name_task, return_exceptions=True)
                 await runner.stop()
 
             if exception_to_propagate:
@@ -874,9 +884,12 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
             )
 
             # 9. Schedule the runner's main entry function
+            auto_name_task = None
+
             kernel = AgentServerKernel(server_context, thread_state, agent, active_run)
             if initial_payload.override_model_id:
                 kernel.model_selector.override_model(initial_payload.override_model_id)
+            auto_name_task = create_task(maybe_auto_name_thread(kernel, storage))
             ca_invoke_task = create_task(runner.invoke(kernel))
 
             # 10. Task to collect CA events into the list
@@ -911,6 +924,8 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
 
             # 13. Stop the runner
             await runner.stop()
+            if auto_name_task is not None:
+                await auto_name_task
 
             # 14. If everything finished without error, mark run as completed
             await _update_run_status(
@@ -1090,6 +1105,7 @@ async def async_run(  # noqa: C901, PLR0915
             async def _background_agent_run():
                 """Background task to execute the agent run."""
                 try:
+                    auto_name_task = None
                     # Get the agent runner
                     runner = await agent_arch_manager.get_runner(
                         agent.agent_architecture.name,
@@ -1104,10 +1120,13 @@ async def async_run(  # noqa: C901, PLR0915
                     kernel = AgentServerKernel(server_context, thread_state, agent, active_run)
                     if initial_payload.override_model_id:
                         kernel.model_selector.override_model(initial_payload.override_model_id)
+                    auto_name_task = create_task(maybe_auto_name_thread(kernel, storage))
                     await runner.invoke(kernel)
 
                     # Stop the runner
                     await runner.stop()
+                    if auto_name_task is not None:
+                        await auto_name_task
 
                     # Mark run as completed
                     await _update_run_status(
@@ -1129,6 +1148,10 @@ async def async_run(  # noqa: C901, PLR0915
                         "background_error_async",
                         error=str(e),
                     )
+                finally:
+                    if auto_name_task is not None and not auto_name_task.done():
+                        auto_name_task.cancel()
+                        await gather(auto_name_task, return_exceptions=True)
 
             # Start the background task
             background_task = create_task(_background_agent_run())

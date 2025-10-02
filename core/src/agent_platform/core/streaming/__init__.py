@@ -11,6 +11,7 @@ from agent_platform.core.streaming.delta import (
     StreamingDeltaMessageEnd,
     StreamingDeltaRequestToolExecution,
     StreamingDeltaRequestUserInput,
+    StreamingDeltaThreadNameUpdated,
 )
 from agent_platform.core.streaming.error import StreamingError
 from agent_platform.core.streaming.incoming import (
@@ -34,6 +35,7 @@ __all__ = [
     "StreamingDeltaMessageEnd",
     "StreamingDeltaRequestToolExecution",
     "StreamingDeltaRequestUserInput",
+    "StreamingDeltaThreadNameUpdated",
     "StreamingError",
     "compute_message_delta",
 ]

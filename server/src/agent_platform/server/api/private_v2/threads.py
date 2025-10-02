@@ -99,6 +99,12 @@ async def update_thread(
     updated_thread = UpsertThreadPayload.to_thread(payload, user.user_id)
     # Preserve the original thread ID
     updated_thread.thread_id = tid
+    # We want to merge updated metadata into thread, and then take that into
+    # what we're about to insert
+    name_changed = updated_thread.name != thread.name
+    updated_thread.metadata = thread.update_metadata(updated_thread.metadata)
+    if name_changed:
+        updated_thread.set_user_named()
 
     await storage.upsert_thread(user.user_id, updated_thread)
     return updated_thread
@@ -118,12 +124,14 @@ async def patch_thread(
         raise HTTPException(status_code=404, detail="Thread not found")
 
     # Only update fields that were provided
+    original_name = thread.name
+    thread.update_metadata(payload.metadata or {})
     if payload.name is not None:
+        if payload.name != original_name:
+            thread.set_user_named()
         thread.name = payload.name
     if payload.agent_id is not None:
         thread.agent_id = payload.agent_id
-    if payload.metadata is not None:
-        thread.metadata = payload.metadata
     if payload.work_item_id is not None:
         thread.work_item_id = payload.work_item_id
     if payload.messages is not None:

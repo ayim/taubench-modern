@@ -453,6 +453,99 @@ def test_update_thread(client: TestClient, mock_storage: MockStorage):
     assert mock_storage.call_count["upsert_thread"] == 1
 
 
+def test_update_thread_marks_user_named_on_name_change(
+    client: TestClient, mock_storage: MockStorage
+):
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Original Thread Name",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[],
+        metadata={},
+    )
+    mock_storage.threads[thread_id] = existing_thread
+
+    resp = client.put(
+        f"/threads/{thread_id}", json={"name": "Renamed Thread", "agent_id": agent_id}
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.json()
+    assert data["name"] == "Renamed Thread"
+    assert data["metadata"]["thread_name"]["user_named"] is True
+
+
+def test_patch_thread_marks_user_named_on_name_change(
+    client: TestClient, mock_storage: MockStorage
+):
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Before",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[],
+        metadata={},
+    )
+    mock_storage.threads[thread_id] = existing_thread
+
+    resp = client.patch(f"/threads/{thread_id}", json={"name": "After"})
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.json()
+    assert data["name"] == "After"
+    assert data["metadata"]["thread_name"]["user_named"] is True
+
+
+def test_update_thread_metadata_only_preserves_user_named(
+    client: TestClient, mock_storage: MockStorage
+):
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Keeps Name",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[],
+        metadata={"thread_name": {"user_named": True}},
+    )
+    mock_storage.threads[thread_id] = existing_thread
+
+    resp = client.put(
+        f"/threads/{thread_id}",
+        json={"name": "Keeps Name", "agent_id": agent_id, "metadata": {"extra": "value"}},
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.json()
+    assert data["metadata"]["thread_name"]["user_named"] is True
+    assert data["metadata"]["extra"] == "value"
+
+
+def test_patch_thread_metadata_only_preserves_user_named(
+    client: TestClient, mock_storage: MockStorage
+):
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Keeps Name",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[],
+        metadata={"thread_name": {"user_named": True}},
+    )
+    mock_storage.threads[thread_id] = existing_thread
+
+    resp = client.patch(f"/threads/{thread_id}", json={"metadata": {"foo": "bar"}})
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.json()
+    assert data["metadata"]["thread_name"]["user_named"] is True
+    assert data["metadata"]["foo"] == "bar"
+
+
 def test_thread_with_work_item_id(client: TestClient, mock_storage: MockStorage):
     """Test creating and updating a thread with work_item_id."""
     thread_id = str(uuid.uuid4())

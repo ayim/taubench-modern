@@ -241,6 +241,12 @@ class Agent(TolerantDataclass):
             {m for cfg in self.platform_configs for m in PlatformParameters.build_model_slugs(cfg)}
         )
 
+    def is_worker_agent(self) -> bool:
+        return self.mode == "worker"
+
+    def is_conversational_agent(self) -> bool:
+        return self.mode == "conversational"
+
     @classmethod
     def model_validate(cls, data: dict) -> "Agent":
         """Create an agent from a dictionary."""

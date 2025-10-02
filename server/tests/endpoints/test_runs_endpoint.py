@@ -551,6 +551,55 @@ def test_ephemeral_stream_with_client_tools(client: TestClient, inject_runner):
     assert finished["event_type"] == "agent_finished"
 
 
+def test_ephemeral_stream_does_not_auto_name(
+    client: TestClient, inject_runner, stub_storage: StubStorage
+):
+    """Ephemeral threads should never be auto-named regardless of model output."""
+    inject_runner(StubRunner, run_id="r", thread_id="ephemeral", agent_id="ephemeral")
+
+    agent_payload = {
+        "name": "TestAgent",
+        "description": "A test agent",
+        "version": "1.0",
+        "runbook": "You are a helpful assistant.",
+        "agent_architecture": {
+            "name": "agent_platform.architectures.default",
+            "version": "1.0.0",
+        },
+        "platform_configs": [],
+        "action_packages": [],
+        "mcp_servers": [],
+        "question_groups": [],
+        "observability_configs": [],
+        "mode": "conversational",
+        "extra": {},
+        "advanced_config": {},
+        "metadata": {},
+        "public": True,
+    }
+
+    payload = {
+        "agent": agent_payload,
+        "name": "Custom Ephemeral",
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Hello"}]}],
+        "metadata": {},
+        "client_tools": [],
+    }
+
+    with _ephemeral_stream_open(client) as ws:
+        ws.send_json(payload)
+        ws.receive_json()  # ready
+        ws.receive_json()  # finished
+        with pytest.raises(WebSocketDisconnect):
+            ws.receive_json()
+
+    # One thread should exist with the provided name and without auto-namer metadata
+    assert len(stub_storage.threads) == 1
+    thread = next(iter(stub_storage.threads.values()))
+    assert thread.name == "Custom Ephemeral"
+    assert "thread_name" not in (thread.metadata or {})
+
+
 def test_stream_client_disconnect_marks_cancelled(
     client: TestClient,
     inject_runner,
@@ -709,6 +758,70 @@ def test_stream_client_messages_reach_runner(client: TestClient, inject_runner):
         assert_ws_closed(frame, status.WS_1000_NORMAL_CLOSURE)
 
     assert echo_messages == msgs
+
+
+def test_stream_run_applies_auto_thread_naming(
+    client: TestClient,
+    inject_runner,
+    stub_storage: StubStorage,
+    monkeypatch,
+):
+    """Verify the auto-namer completes before stream completion and persists name."""
+
+    class FakePlatform:
+        def __init__(self, text: str) -> None:
+            self._text = text
+
+        async def generate_response(self, prompt, model):
+            from agent_platform.core.responses.content import ResponseTextContent
+            from agent_platform.core.responses.response import ResponseMessage
+
+            return ResponseMessage(content=[ResponseTextContent(text=self._text)], role="agent")
+
+    async def fake_selector(self, **_kwargs):
+        return FakePlatform("Tokyo Weekend Outline!!! ✈️"), "test-model"
+
+    # Patch kernel platform/model selection and storage helpers used by auto-namer
+    from agent_platform.server.kernel import AgentServerKernel
+
+    monkeypatch.setattr(AgentServerKernel, "get_platform_and_model", fake_selector, raising=True)
+
+    async def list_runs_for_thread(thread_id: str):
+        # Return only runs for the thread; will include the active run
+        return [r for r in stub_storage.runs.values() if r.thread_id == thread_id]
+
+    async def list_threads_for_agent(user_id: str, agent_id: str):
+        return [t for t in stub_storage.threads.values() if t.agent_id == agent_id]
+
+    # Attach the missing methods to the stub storage
+    monkeypatch.setattr(stub_storage, "list_runs_for_thread", list_runs_for_thread, raising=False)
+    monkeypatch.setattr(
+        stub_storage, "list_threads_for_agent", list_threads_for_agent, raising=False
+    )
+
+    # Inject a runner that finishes immediately
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(StubRunner, run_id="r", thread_id=tid, agent_id=aid)
+
+    with _stream_open(client, aid) as ws:
+        payload = make_initial_payload(aid, tid)
+        payload["messages"] = [
+            {
+                "role": "user",
+                "content": [{"kind": "text", "text": "Help me plan a weekend trip to Tokyo."}],
+            }
+        ]
+        ws.send_json(payload)
+        ws.receive_json()  # agent_ready
+        ws.receive_json()  # agent_finished
+        frame = ws.receive()
+        assert_ws_closed(frame, status.WS_1000_NORMAL_CLOSURE)
+
+    # Ensure thread was auto-named (sanitized and persisted)
+    thread = stub_storage.threads[tid]
+    assert thread.name == "Tokyo Weekend Outline"
+    meta = thread.metadata.get("thread_name", {})
+    assert "auto_named_at" in meta
 
 
 # -----------------------------------------------------------------------------

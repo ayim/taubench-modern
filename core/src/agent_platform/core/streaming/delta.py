@@ -15,6 +15,7 @@ StreamingDeltaType = Literal[
     "message_end",
     "request_user_input",
     "request_tool_execution",
+    "thread_name_updated",
 ]
 
 
@@ -296,4 +297,39 @@ class StreamingDeltaRequestToolExecution(StreamingDelta):
             "tool_name": self.tool_name,
             "tool_call_id": self.tool_call_id,
             "input_raw": self.input_raw,
+        }
+
+
+@dataclass(frozen=True)
+class StreamingDeltaThreadNameUpdated(StreamingDelta):
+    """Notify clients that a thread has been updated (e.g., renamed).
+
+    This is emitted for non-message updates that should be reflected in the UI
+    without requiring a separate GET request.
+    """
+
+    thread_id: str = field(metadata={"description": "The ID of the thread."})
+    agent_id: str = field(metadata={"description": "The ID of the agent."})
+    new_name: str = field(metadata={"description": "The new name of the thread."})
+    old_name: str | None = field(
+        default=None, metadata={"description": "The previous name of the thread, if known."}
+    )
+    reason: Literal["auto", "manual"] = field(
+        default="manual", metadata={"description": "Reason for the update."}
+    )
+
+    event_type: Literal["thread_name_updated"] = field(
+        metadata={"description": "The type of streaming event."},
+        default="thread_name_updated",
+        init=False,
+    )
+
+    def model_dump(self) -> dict[str, Any]:
+        return {
+            **super().model_dump(),
+            "thread_id": self.thread_id,
+            "agent_id": self.agent_id,
+            "new_name": self.new_name,
+            "old_name": self.old_name,
+            "reason": self.reason,
         }

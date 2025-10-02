@@ -1,9 +1,26 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.utils.dataclass_meta import TolerantDataclass
+
+
+def _deep_merge_dicts(base: dict | None, incoming: dict | None) -> dict:
+    if base is None:
+        base = {}
+    if incoming is None:
+        return dict(base)
+
+    merged = dict(base)
+    for key, value in incoming.items():
+        existing = merged.get(key)
+        if isinstance(existing, dict) and isinstance(value, Mapping):
+            merged[key] = _deep_merge_dicts(existing, dict(value))
+        else:
+            merged[key] = value
+    return merged
 
 
 @dataclass
@@ -231,6 +248,34 @@ class Thread(TolerantDataclass):
                 as_text += getattr(content, "text", "")
 
         return as_text
+
+    def is_associated_with_workitem(self) -> bool:
+        return self.work_item_id is not None
+
+    def is_user_named(self) -> bool:
+        user_named = self.metadata.get("thread_name", {}).get("user_named")
+        if user_named is None:
+            return False
+        return user_named
+
+    def auto_naming_disabled(self) -> bool:
+        auto_naming_enabled = self.metadata.get("thread_name", {}).get("enable_auto_naming")
+        if auto_naming_enabled is None:
+            return False
+        return not auto_naming_enabled
+
+    def has_been_auto_named(self) -> bool:
+        auto_named_at = self.metadata.get("thread_name", {}).get("auto_named_at")
+        return auto_named_at is not None
+
+    def set_user_named(self, is_user_named: bool = True) -> None:
+        if "thread_name" not in self.metadata:
+            self.metadata["thread_name"] = {}
+        self.metadata["thread_name"]["user_named"] = is_user_named
+
+    def update_metadata(self, metadata_to_merge: dict) -> dict:
+        self.metadata = _deep_merge_dicts(self.metadata, metadata_to_merge)
+        return self.metadata
 
     @classmethod
     def model_validate(cls, data: dict) -> "Thread":
