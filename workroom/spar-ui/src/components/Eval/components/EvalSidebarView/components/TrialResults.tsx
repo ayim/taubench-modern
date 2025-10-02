@@ -9,7 +9,7 @@ import {
   IconInformation,
   IconStatusProcessing,
 } from '@sema4ai/icons';
-import { getTrialOverallStatus, getEvaluationResultColor, getEvaluationResultLabel, getEvaluationResultIcon, isTrialTerminal } from '../utils';
+import { getEvaluationResultColor, getEvaluationResultLabel, getEvaluationResultIcon, isTrialTerminal } from '../utils';
 import type { Trial } from '../types';
 
 export interface TrialResultsProps {
@@ -33,26 +33,37 @@ export const TrialResults: FC<TrialResultsProps> = ({
   onToggleEvaluationDetails,
   onViewResults,
 }) => {
-  const trialStatus = getTrialOverallStatus(trial);
   const trialKey = `${scenarioId}-${trial.trial_id}`;
   const isTrialExpanded = expandedTrials.has(trialKey);
   const isTrialCompleted = isTrialTerminal(trial);
   const hasEvaluationResults = isTrialCompleted && trial.evaluation_results && trial.evaluation_results.length > 0;
 
   const getTrialStatusBadges = () => {
-    if (trialStatus === 'pending') {
+    if (trial.status === 'PENDING') {
+      return (  
+        <Badge
+          icon={IconStatusProcessing}
+          iconColor="blue80"
+          variant="info"
+          size="small"
+          label="Pending"
+        />
+      );
+    }
+
+    if (trial.status === 'EXECUTING') {
       return (  
         <Badge
           icon={IconStatusProcessing}
           iconColor="yellow80"
           variant="yellow"
           size="small"
-          label=""
+          label="Running"
         />
       );
     }
 
-    if (trialStatus === 'canceled') {
+    if (trial.status === 'CANCELED') {
       return (
         <Badge
           icon={IconInformation}
@@ -64,50 +75,66 @@ export const TrialResults: FC<TrialResultsProps> = ({
       );
     }
 
-    const passedCount = trial.evaluation_results?.filter(result => result.passed).length || 0;
-    const failedCount = trial.evaluation_results?.filter(result => !result.passed).length || 0;
-
-    const badges = [];
-
-    if (passedCount > 0) {
-      badges.push(
-        <Badge
-          key="passed"
-          icon={IconStatusCompleted}
-          iconColor="green80"
-          variant="green"
-          size="small"
-          label={`${passedCount}`}
-        />
-      );
-    }
-
-    if (failedCount > 0) {
-      badges.push(
-        <Badge
-          key="failed"
-          icon={IconStatusError}
-          iconColor="red80"
-          variant="red"
-          size="small"
-          label={`${failedCount}`}
-        />
-      );
-    }
-
-    if (badges.length === 0) {
+    if (trial.status === 'ERROR') {
       return (
         <Badge
           icon={IconStatusError}
           iconColor="red80"
           variant="red"
           size="small"
-          label=""
+          label="Error"
         />
       );
     }
 
-    return badges;
+    if (trial.status === 'COMPLETED') {
+      const passedCount = trial.evaluation_results?.filter(result => result.passed).length || 0;
+      const failedCount = trial.evaluation_results?.filter(result => !result.passed).length || 0;
+
+      const badges = [];
+
+      if (passedCount > 0) {
+        badges.push(
+          <Badge
+            key="passed"
+            icon={IconStatusCompleted}
+            iconColor="green80"
+            variant="green"
+            size="small"
+            label={`${passedCount}`}
+          />
+        );
+      }
+
+      if (failedCount > 0) {
+        badges.push(
+          <Badge
+            key="failed"
+            icon={IconStatusError}
+            iconColor="red80"
+            variant="red"
+            size="small"
+            label={`${failedCount}`}
+          />
+        );
+      }
+
+      if (badges.length === 0) {
+        return (
+          <Badge
+            icon={IconStatusError}
+            iconColor="red80"
+            variant="red"
+            size="small"
+            label="No Results"
+          />
+        );
+      }
+
+      return badges;
+    }
+
+    return null;
   };
 
   const renderTrialTitle = () => {

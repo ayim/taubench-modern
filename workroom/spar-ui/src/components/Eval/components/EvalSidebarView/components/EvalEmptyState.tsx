@@ -14,7 +14,7 @@ export const EvalEmptyState: FC<EvalEmptyStateProps> = ({
   return (
     <EmptyState
       title="Evaluations"
-      description='All evaluations run will be shown here. Create an Evaluation by clicking "Add Evaluation"'
+      description='All evaluation runs will be shown here. Create an Evaluation by clicking "Add Evaluation"'
       action={
         <Button 
           variant="primary" 

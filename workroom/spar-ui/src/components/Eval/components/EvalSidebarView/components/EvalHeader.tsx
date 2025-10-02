@@ -21,7 +21,7 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
       </Box>
       
       <Typography variant="body-medium">
-        All evaluations run will be shown here.
+        All evaluation runs will be shown here.
       </Typography>
       
       <Box display="flex" justifyContent="flex-start" paddingTop="$8" mb="$8">

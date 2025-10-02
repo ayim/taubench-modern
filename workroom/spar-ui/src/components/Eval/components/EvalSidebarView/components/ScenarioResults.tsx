@@ -1,13 +1,17 @@
 import { FC } from 'react';
-import { Box, Button, Typography } from '@sema4ai/components';
+import { Box, Button, Typography, Menu, Badge } from '@sema4ai/components';
 import {
   IconChevronLeft,
   IconChevronRight,
+  IconMenu,
+  IconStatusCompleted,
+  IconStatusError,
+  IconStatusProcessing,
 } from '@sema4ai/icons';
 import type { components } from '@sema4ai/agent-server-interface';
 import { TrialResults } from './TrialResults';
-import type { Trial } from '../types';
-import { hasTerminalTrials } from '../utils';
+import type { Trial, ScenarioRun } from '../types';
+import { getPassFailCounts } from '../helpers/evalHelpers';
 
 export interface ScenarioResultsProps {
   scenarioId: string;
@@ -15,11 +19,13 @@ export interface ScenarioResultsProps {
   trials: Trial[];
   selectedRunIndex: number;
   totalRuns: number;
+  allRuns: ScenarioRun[];
   isRunning: boolean;
   expandedTrials: Set<string>;
   expandedEvaluations: Set<string>;
   onPreviousRun: () => void;
   onNextRun: () => void;
+  onSelectRun: (runIndex: number) => void;
   onToggleTrialDetails: (trialKey: string) => void;
   onToggleEvaluationDetails: (evaluationKey: string) => void;
   onViewResults: (trial: { threadId: string }) => void;
@@ -31,18 +37,18 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
   trials,
   selectedRunIndex,
   totalRuns,
+  allRuns,
   isRunning,
   expandedTrials,
   expandedEvaluations,
   onPreviousRun,
   onNextRun,
+  onSelectRun,
   onToggleTrialDetails,
   onToggleEvaluationDetails,
   onViewResults,
 }) => {
-  const hasCompletedTrials = hasTerminalTrials(trials);
-
-  if (!hasCompletedTrials) {
+  if (trials.length === 0) {
     return null;
   }
 
@@ -51,7 +57,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
       <Box display="flex" alignItems="center" justifyContent="space-between" mb="$8">
         <Box display="flex" flexDirection="column" gap="$4">
           <Typography variant="body-medium" fontWeight="medium">
-            Test Run {selectedRunIndex + 1}
+            Test run {totalRuns - selectedRunIndex}{selectedRunIndex === 0 ? ' (Latest)' : ''}
           </Typography>
           <Box display="flex" flexDirection="column" gap="$4" paddingLeft="$4" marginTop="$4">
             <Typography variant="body-small">
@@ -82,6 +88,84 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
               disabled={selectedRunIndex >= totalRuns - 1 || isRunning}
               aria-label="Next run"
             />
+            <Menu
+              maxHeight={200}
+              trigger={
+                <Button
+                  variant="outline"
+                  round
+                  size="small"
+                  icon={IconMenu}
+                  disabled={isRunning}
+                  aria-label="Jump to run"
+                />
+              }
+            >
+              {allRuns.map((run, index) => {
+                const runNumber = totalRuns - index;
+                const isSelected = index === selectedRunIndex;
+                const isLatest = index === 0;
+                
+                const runIsRunning = run.trials?.some(
+                  (trial) => trial.status === 'PENDING' || trial.status === 'EXECUTING'
+                ) ?? false;
+                
+                let statusBadge = null;
+                if (runIsRunning) {
+                  statusBadge = (
+                    <Badge
+                      icon={IconStatusProcessing}
+                      iconColor="blue80"
+                      variant="blue"
+                      size="small"
+                      label=""
+                    />
+                  );
+                } else if (run.trials && run.trials.length > 0) {
+                  const { passed, failed, canceled } = getPassFailCounts(run.trials);
+                  const hasResults = passed > 0 || failed > 0 || canceled > 0;
+                  
+                  if (hasResults) {
+                    if (failed > 0 || canceled > 0) {
+                      statusBadge = (
+                        <Badge
+                          icon={IconStatusError}
+                          iconColor="red80"
+                          variant="red"
+                          size="small"
+                          label=""
+                        />
+                      );
+                    } else if (passed > 0) {
+                      statusBadge = (
+                        <Badge
+                          icon={IconStatusCompleted}
+                          iconColor="green80"
+                          variant="green"
+                          size="small"
+                          label=""
+                        />
+                      );
+                    }
+                  }
+                }
+                
+                return (
+                  <Menu.Item
+                    key={run.scenario_run_id}
+                    onClick={() => onSelectRun(index)}
+                    aria-selected={isSelected}
+                  >
+                    <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
+                      <Typography>
+                        Test run {runNumber}{isLatest ? ' (Latest)' : ''}
+                      </Typography>
+                      {statusBadge}
+                    </Box>
+                  </Menu.Item>
+                );
+              })}
+            </Menu>
           </Box>
         )}
       </Box>

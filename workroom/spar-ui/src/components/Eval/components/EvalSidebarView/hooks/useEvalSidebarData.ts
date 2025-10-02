@@ -22,13 +22,17 @@ export interface UseEvalSidebarDataProps {
   threadId: string;
   selectedRunIndices: Map<string, number>;
   setSelectedRunIndices: (value: Map<string, number> | ((prev: Map<string, number>) => Map<string, number>)) => void;
+  expandResults: (scenarioId: string) => void;
+  expandedResults: Set<string>;
 }
 
 export const useEvalSidebarData = ({ 
   agentId, 
-  threadId, 
+  threadId,
   selectedRunIndices, 
-  setSelectedRunIndices 
+  setSelectedRunIndices,
+  expandResults,
+  expandedResults
 }: UseEvalSidebarDataProps) => {
   const { sparAPIClient } = useSparUIContext();
   const queryClient = useQueryClient();
@@ -59,6 +63,7 @@ export const useEvalSidebarData = ({
       scenarioRunsQueryOptions({
         scenarioId: scenario.scenario_id,
         sparAPIClient,
+        limit: 50 // Note: hardcoded limit for safety 
       }),
     ),
   });
@@ -84,22 +89,36 @@ export const useEvalSidebarData = ({
     });
   }, [scenarios, allRunsData, selectedRunIndices, setSelectedRunIndices]);
 
-  // Query for individual historical runs - preload current, previous, and next runs
+  // Query for individual historical runs - preload based on expansion state
   const historicalRunQueries = useQueries({
     queries: scenarios.flatMap((scenario, scenarioIndex) => {
       const currentIndex = selectedRunIndices.get(scenario.scenario_id) ?? 0;
       const allRuns = allRunsData[scenarioIndex] || [];
+      const isExpanded = expandedResults.has(scenario.scenario_id);
       
-      // Preload adjacent runs to eliminate loading delays
-      const indicesToPreload = [
-        currentIndex - 1,
-        currentIndex,
-        currentIndex + 1
-      ].filter(index => 
-        index > 0 && // Don't preload latest run (index 0) as we already have it
-        index < allRuns.length &&
-        allRuns[index]
-      );
+      let indicesToPreload: number[] = [];
+      
+      if (isExpanded) {
+        // When expanded (menu visible), preload ALL runs for smooth menu navigation
+        indicesToPreload = allRuns
+          .map((_, index) => index)
+          .filter(index => 
+            index > 0 && // Don't preload latest run (index 0) as we already have it
+            index < allRuns.length &&
+            allRuns[index]
+          );
+      } else {
+        // When collapsed, only preload adjacent runs for arrow navigation
+        indicesToPreload = [
+          currentIndex - 1,
+          currentIndex,
+          currentIndex + 1
+        ].filter(index => 
+          index > 0 && // Don't preload latest run (index 0) as we already have it
+          index < allRuns.length &&
+          allRuns[index]
+        );
+      }
       
       return indicesToPreload.map(index => 
         scenarioRunQueryOptions({
@@ -156,7 +175,7 @@ export const useEvalSidebarData = ({
         isRunning,
       };
     });
-  }, [scenarios, latestRunsData, allRunsData, selectedRunIndices, historicalRunQueries]);
+  }, [scenarios, latestRunsData, allRunsData, selectedRunIndices, historicalRunQueries, expandedResults]);
 
   const isAnyTestRunning = evaluations.some(evaluation => evaluation.isRunning);
 
@@ -197,17 +216,26 @@ export const useEvalSidebarData = ({
     numTrials: number = 1,
   ) => {
     try {
-      await createScenarioRunMutation.mutateAsync({
+      const newRun = await createScenarioRunMutation.mutateAsync({
         scenarioId: scenario.scenario_id,
         body: { num_trials: numTrials },
       });
 
+      // Immediately update query cache with the new run data
+      queryClient.setQueryData(
+        ['scenario-run-latest', scenario.scenario_id],
+        newRun
+      );
+
       // Set the selected run index to 0 (latest run) when starting a new test
       setSelectedRunIndices(prev => new Map(prev).set(scenario.scenario_id, 0));
 
-      await pollForCompletion(scenario.scenario_id);
+      expandResults(scenario.scenario_id);
 
-      await queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
+      pollForCompletion(scenario.scenario_id).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
+      });
+
     } catch {
       addSnackbar({
         message: `Failed to run test for "${scenario.name}"`,

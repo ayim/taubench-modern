@@ -271,6 +271,8 @@ export const usePollScenarioRun = () => {
           );
 
           if (response.success) {
+            queryClient.setQueryData(['scenario-run-latest', scenarioId], response.data);
+            
             const allTrialsComplete =
               response.data.trials?.every((trial) => trial.status === 'COMPLETED' || trial.status === 'ERROR') ??
               false;

@@ -1,5 +1,4 @@
 import type { Trial } from '../types';
-import { getTrialOverallStatus } from '../utils';
 
 export const getPassFailCounts = (trials: Trial[]): {
   passed: number;
@@ -16,14 +15,14 @@ export const getPassFailCounts = (trials: Trial[]): {
     } else if (trial.status === 'ERROR') {
       failed += 1;
     } else if (trial.status === 'COMPLETED') {
-      const trialStatus = getTrialOverallStatus(trial);
-      if (trialStatus === 'passed') {
+      const hasEvaluationResults = trial.evaluation_results && trial.evaluation_results.length > 0;
+      if (hasEvaluationResults && trial.evaluation_results?.every(result => result.passed)) {
         passed += 1;
-      } else if (trialStatus === 'failed') {
+      } else {
         failed += 1;
       }
     }
-    // Skip pending/executing trials as they don't count towards final results
+    // Skip PENDING/EXECUTING trials as they don't count towards final results
   });
   
   return { passed, failed, canceled };

@@ -16,6 +16,8 @@ export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSid
     threadId,
     selectedRunIndices: state.selectedRunIndices,
     setSelectedRunIndices: state.setSelectedRunIndices,
+    expandResults: state.expandResults,
+    expandedResults: state.expandedResults,
   });
 
   const actions = useEvalSidebarActions({
@@ -56,6 +58,7 @@ export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSid
     setSelectedTrialsForAll: state.setSelectedTrialsForAll,
     setSelectedRunIndices: state.setSelectedRunIndices,
     toggleResults: state.toggleResults,
+    expandResults: state.expandResults,
     toggleTrialDetails: state.toggleTrialDetails,
     toggleEvaluationDetails: state.toggleEvaluationDetails,
     getSelectedTrialsForScenario: state.getSelectedTrialsForScenario,
@@ -63,6 +66,7 @@ export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSid
     handlePreviousRun: state.handlePreviousRun,
     handleNextRun: state.handleNextRun,
     setRunIndexToLatest: state.setRunIndexToLatest,
+    handleSelectRun: state.handleSelectRun,
 
     // Data
     evaluations: data.evaluations,

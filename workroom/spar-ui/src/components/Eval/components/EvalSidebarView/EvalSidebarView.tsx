@@ -89,9 +89,6 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId, onDownloadJ
             const selectedTrials = sidebar.getSelectedTrialsForScenario(scenario.scenario_id);
             const expandedResults = sidebar.expandedResults.has(scenario.scenario_id);
 
-            // Always show results when expanded and not running (component handles internal states)
-            const shouldShowResults = expandedResults && !isRunning;
-
             return (
               <ScenarioCard
                 key={scenario.scenario_id}
@@ -115,18 +112,20 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId, onDownloadJ
                 }
                 onCancelTest={sidebar.handleCancelTest(scenario, currentRun)}
               >
-                {shouldShowResults && (
+                {expandedResults && (
                   <ScenarioResults
                     scenarioId={scenario.scenario_id}
                     configuration={currentRun?.configuration}
                     trials={currentRun?.trials || []}
                     selectedRunIndex={selectedRunIndex}
                     totalRuns={allRuns.length}
+                    allRuns={allRuns}
                     isRunning={isRunning}
                     expandedTrials={sidebar.expandedTrials}
                     expandedEvaluations={sidebar.expandedEvaluations}
                     onPreviousRun={() => sidebar.handlePreviousRun(scenario.scenario_id)}
                     onNextRun={() => sidebar.handleNextRun(scenario.scenario_id, allRuns.length)}
+                    onSelectRun={(runIndex) => sidebar.handleSelectRun(scenario.scenario_id, runIndex)}
                     onToggleTrialDetails={sidebar.toggleTrialDetails}
                     onToggleEvaluationDetails={sidebar.toggleEvaluationDetails}
                     onViewResults={sidebar.handleViewResults}

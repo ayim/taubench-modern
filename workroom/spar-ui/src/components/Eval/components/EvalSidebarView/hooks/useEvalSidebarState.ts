@@ -31,6 +31,10 @@ export const useEvalSidebarState = () => {
     });
   };
 
+  const expandResults = (scenarioId: string) => {
+    setExpandedResults((prev) => new Set([...prev, scenarioId]));
+  };
+
   const toggleTrialDetails = (trialKey: string) => {
     setExpandedTrials((prev) => {
       if (prev.has(trialKey)) {
@@ -82,6 +86,10 @@ export const useEvalSidebarState = () => {
     setSelectedRunIndices(prev => new Map(prev).set(scenarioId, 0));
   };
 
+  const handleSelectRun = (scenarioId: string, runIndex: number) => {
+    setSelectedRunIndices(prev => new Map(prev).set(scenarioId, runIndex));
+  };
+
   return {
     // State values
     deleteTarget,
@@ -106,6 +114,7 @@ export const useEvalSidebarState = () => {
 
     // Helper functions
     toggleResults,
+    expandResults,
     toggleTrialDetails,
     toggleEvaluationDetails,
     getSelectedTrialsForScenario,
@@ -113,5 +122,6 @@ export const useEvalSidebarState = () => {
     handlePreviousRun,
     handleNextRun,
     setRunIndexToLatest,
+    handleSelectRun,
   };
 };
