@@ -30,4 +30,5 @@ export { CreateWorkItemDialog } from './components/CreateWorkItemDialog';
 export * from './components/ChatDetails';
 export * from './components/Worker/WorkItemDetails';
 
+export * from './components/DocumentIntelligence';
 export { streamManager } from './hooks';

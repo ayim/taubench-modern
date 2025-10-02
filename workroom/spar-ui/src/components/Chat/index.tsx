@@ -1,5 +1,13 @@
 import { ClipboardEvent, FC, useEffect, useRef, useState } from 'react';
-import { Button, Chat as ChatComponent, ChatInput, ChatRef, DropzoneOverlay, FileItem } from '@sema4ai/components';
+import {
+  Button,
+  Chat as ChatComponent,
+  ChatInput,
+  ChatRef,
+  Dialog,
+  DropzoneOverlay,
+  FileItem,
+} from '@sema4ai/components';
 import { IconPaperclip } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useForm } from 'react-hook-form';
@@ -12,6 +20,7 @@ import { useMessageStream, useQueryDataGuard } from '../../hooks';
 import { useThreadSearchStore } from '../../state/useThreadSearchStore';
 import { MessageRenderer } from './components/Renderer';
 import { OAuth } from './components/OAuth';
+import { DocumentIntelligenceView } from '../DocumentIntelligence';
 
 type Props = {
   agentId: string;
@@ -33,12 +42,16 @@ const Footer = styled.footer`
 `;
 
 export const Chat: FC<Props> = ({ agentId, threadId }) => {
+  const [documentIntelligenceModalOpen, setDocumentIntelligenceModalOpen] = useState<boolean>(false);
   const chatRef = useRef<ChatRef>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const { currentMessageIndex } = useThreadSearchStore();
   const { data: messages = [], ...threadQueryState } = useThreadMessagesQuery({ threadId });
   const { data: oAuthState = [], ...oauthStateQueryState } = useAgentOAuthStateQuery({ agentId });
   const [attachements, setAttachements] = useState<File[]>([]);
+
+  // Check if any uploaded file has the div2_ prefix - (This is for the Document Intelligence v2 modal TEST)
+  const hasDiv2File = attachements.some(file => file.name.startsWith('div2_'));
 
   const onAddAttachements = (files: File[]) => {
     setAttachements((previousFiles) => {
@@ -120,6 +133,23 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
         renderer={MessageRenderer}
       />
       <Footer>
+        {hasDiv2File && (
+          <Dialog
+            trigger={<Button onClick={() => setDocumentIntelligenceModalOpen(true)}>Document Intelligence v2</Button>}
+            open={documentIntelligenceModalOpen}
+            onClose={() => setDocumentIntelligenceModalOpen(false)}
+            size="full-screen"
+          >
+            <Dialog.Content>
+              <DocumentIntelligenceView
+                agentId={agentId}
+                threadId={threadId}
+                flowType="parse"
+                fileRef={attachements[0]}
+              />
+            </Dialog.Content>
+          </Dialog>
+        )}
         {requiresOAuth && <OAuth />}
         <ChatInput streaming={isStreaming} busy={uploadingFiles} onSend={onSubmit}>
           {attachements.length > 0 && (

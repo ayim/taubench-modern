@@ -4,13 +4,7 @@ import { useThreadMessagesQuery } from '../../../../queries';
 import { useParams } from '../../../../hooks';
 import { CreateEvalDialog } from './components/CreateEvalDialog';
 import { useEvalSidebar } from './hooks/useEvalSidebar';
-import {
-  EvalHeader,
-  EvalFooter,
-  EvalEmptyState,
-  ScenarioCard,
-  ScenarioResults,
-} from './components';
+import { EvalHeader, EvalFooter, EvalEmptyState, ScenarioCard, ScenarioResults } from './components';
 
 export interface EvalSidebarViewProps {
   agentId: string;
@@ -23,10 +17,7 @@ export interface EvalSidebarViewProps {
   ) => void;
 }
 
-export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
-  agentId,
-  onDownloadJSON,
-}) => {
+export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId, onDownloadJSON }) => {
   const { threadId } = useParams('/thread/$agentId/$threadId');
   const { data: messages = [] } = useThreadMessagesQuery({ threadId });
 
@@ -51,11 +42,8 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
   if (sidebar.evaluations.length === 0) {
     return (
       <>
-        <EvalEmptyState
-          hasMessages={hasMessages}
-          onAddEvaluation={sidebar.handleAddEvaluation}
-        />
-        
+        <EvalEmptyState hasMessages={hasMessages} onAddEvaluation={sidebar.handleAddEvaluation} />
+
         {sidebar.deleteTarget && (
           <Dialog open onClose={() => sidebar.setDeleteTarget(null)}>
             <Dialog.Header>
@@ -65,8 +53,8 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
               Are you sure you want to delete &quot;{sidebar.deleteTarget.name}&quot;? This action cannot be undone.
             </Dialog.Content>
             <Dialog.Actions>
-              <Button 
-                loading={sidebar.deleteScenarioMutation.isPending} 
+              <Button
+                loading={sidebar.deleteScenarioMutation.isPending}
                 onClick={() => sidebar.handleDeleteConfirm(sidebar.deleteTarget)}
               >
                 Delete
@@ -77,7 +65,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
             </Dialog.Actions>
           </Dialog>
         )}
-        
+
         <CreateEvalDialog
           open={sidebar.createDialogOpen}
           onClose={sidebar.resetCreateDialogState}
@@ -93,10 +81,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
   return (
     <>
       <Box display="flex" flexDirection="column" gap="$16" padding="$16" height="100%" overflow="hidden">
-        <EvalHeader
-          hasMessages={hasMessages}
-          onAddEvaluation={sidebar.handleAddEvaluation}
-        />
+        <EvalHeader hasMessages={hasMessages} onAddEvaluation={sidebar.handleAddEvaluation} />
 
         <Box display="flex" flexDirection="column" gap="$12" flex="1" overflow="auto" minHeight="0">
           {sidebar.evaluations.map(({ scenario, allRuns, currentRun, isRunning }) => {
@@ -119,13 +104,15 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
                 onRunTest={(numTrials) => sidebar.handleRunTest(scenario, numTrials)}
                 onToggleResults={() => sidebar.toggleResults(scenario.scenario_id)}
                 onDownloadScenario={() => sidebar.handleDownloadScenario(scenario)}
-                onDeleteScenario={() => sidebar.setDeleteTarget({ 
-                  scenario_id: scenario.scenario_id, 
-                  name: scenario.name 
-                })}
-                onSetSelectedTrials={(numTrials) => sidebar.setSelectedTrials(
-                  prev => new Map(prev).set(scenario.scenario_id, numTrials)
-                )}
+                onDeleteScenario={() =>
+                  sidebar.setDeleteTarget({
+                    scenario_id: scenario.scenario_id,
+                    name: scenario.name,
+                  })
+                }
+                onSetSelectedTrials={(numTrials) =>
+                  sidebar.setSelectedTrials((prev) => new Map(prev).set(scenario.scenario_id, numTrials))
+                }
                 onCancelTest={sidebar.handleCancelTest(scenario, currentRun)}
               >
                 {shouldShowResults && (
@@ -138,16 +125,16 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
                     isRunning={isRunning}
                     expandedTrials={sidebar.expandedTrials}
                     expandedEvaluations={sidebar.expandedEvaluations}
-                      onPreviousRun={() => sidebar.handlePreviousRun(scenario.scenario_id)}
-                      onNextRun={() => sidebar.handleNextRun(scenario.scenario_id, allRuns.length)}
+                    onPreviousRun={() => sidebar.handlePreviousRun(scenario.scenario_id)}
+                    onNextRun={() => sidebar.handleNextRun(scenario.scenario_id, allRuns.length)}
                     onToggleTrialDetails={sidebar.toggleTrialDetails}
                     onToggleEvaluationDetails={sidebar.toggleEvaluationDetails}
                     onViewResults={sidebar.handleViewResults}
                   />
                 )}
               </ScenarioCard>
-                            );
-                          })}
+            );
+          })}
         </Box>
 
         <EvalFooter
@@ -168,8 +155,8 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
             Are you sure you want to delete &quot;{sidebar.deleteTarget.name}&quot;? This action cannot be undone.
           </Dialog.Content>
           <Dialog.Actions>
-            <Button 
-              loading={sidebar.deleteScenarioMutation.isPending} 
+            <Button
+              loading={sidebar.deleteScenarioMutation.isPending}
               onClick={() => sidebar.handleDeleteConfirm(sidebar.deleteTarget)}
             >
               Delete
@@ -180,7 +167,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({
           </Dialog.Actions>
         </Dialog>
       )}
-      
+
       <CreateEvalDialog
         open={sidebar.createDialogOpen}
         onClose={sidebar.resetCreateDialogState}
