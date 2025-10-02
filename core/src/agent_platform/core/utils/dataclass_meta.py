@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Any
 
 
@@ -12,8 +11,11 @@ class _FilterKwargsMeta(type):
 
     def __call__(cls, *args: Any, **kwargs: Any):  # type: ignore[override]
         if kwargs:
-            valid = {field.name for field in dataclasses.fields(cls)}  # pyright: ignore[reportArgumentType]
-            kwargs = {key: value for key, value in kwargs.items() if key in valid}
+            # Python dataclasses have a __dataclass_fields__ dict: field to attribute
+            # metadata. We expect this to fail if someone uses this metadata class _not_
+            # on a Python dataclass.
+            actual_fields = getattr(cls, "__dataclass_fields__")  # noqa: B009
+            kwargs = {key: value for key, value in kwargs.items() if key in actual_fields}
         return super().__call__(*args, **kwargs)
 
 
