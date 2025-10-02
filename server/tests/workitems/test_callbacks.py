@@ -23,6 +23,16 @@ from agent_platform.server.work_items.callbacks import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _set_workroom_url_env(monkeypatch):
+    """Ensure workroom URL is set for tests.
+    Tests in this module expect the base URL to be http://localhost:8000/.
+    We set the SEMA4AI_AGENT_SERVER_WORKROOM_URL env var,
+    so calls to _build_work_item_url() yield the expected URL.
+    """
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL", "http://localhost:8000")
+
+
 @pytest.mark.asyncio
 class TestWorkItemsCallbacks:
     @pytest.fixture(autouse=True)
@@ -61,7 +71,7 @@ class TestWorkItemsCallbacks:
         )
 
         url = _build_work_item_url(work_item)
-        # With default settings (WORKSPACE_ID="no-workspace-id", WORKROOM_URL="http://localhost:8000/")
+        # With default settings (WORKSPACE_ID="no-workspace-id", SEMA4AI_AGENT_SERVER_WORKROOM_URL="http://localhost:8000/")
         # The function includes workspace_id in the URL path
         expected_url = (
             f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
@@ -595,6 +605,64 @@ class TestWorkItemsCallbacks:
             # Verify no callbacks were received
             assert len(received_requests) == 0
 
+        finally:
+            server.shutdown()
+            server_thread.join(timeout=1)
+
+    async def test_callbacks_workroom_url_not_set(self, monkeypatch):
+        """When SEMA4AI_AGENT_SERVER_WORKROOM_URL env var is not set,
+        we should send work item URL as None in payload."""
+
+        # Unset the env var
+        monkeypatch.delenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL", raising=False)
+
+        # Track received requests
+        received_requests = []
+
+        class TestRequestHandler(BaseHTTPRequestHandler):
+            def do_POST(self):  # noqa: N802
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length).decode("utf-8")
+
+                received_requests.append(
+                    {"path": self.path, "headers": dict(self.headers), "body": json.loads(body)}
+                )
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"status": "ok"}')
+
+            def log_message(self, f, *args):
+                # Suppress log messages
+                pass
+
+        server = HTTPServer(("localhost", 0), TestRequestHandler)
+        server_port = server.server_address[1]
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.daemon = True
+        server_thread.start()
+
+        try:
+            work_item = WorkItem(
+                work_item_id="test_work_item_123",
+                user_id="system_user",
+                created_by="user_456",
+                agent_id="agent_789",
+                thread_id="thread_012",
+                status=WorkItemStatus.COMPLETED,
+                messages=[ThreadMessage(content=[ThreadTextContent(text="Hello")], role="user")],
+            )
+
+            callback = WorkItemCallback(
+                url=f"http://localhost:{server_port}/webhook", on_status=WorkItemStatus.COMPLETED
+            )
+
+            await _execute_callback(work_item, callback)
+
+            assert len(received_requests) == 1
+            body = received_requests[0]["body"]
+            assert body["work_item_url"] is None
         finally:
             server.shutdown()
             server_thread.join(timeout=1)

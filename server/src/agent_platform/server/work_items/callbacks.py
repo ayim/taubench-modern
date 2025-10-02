@@ -18,7 +18,7 @@ from agent_platform.core.work_items.work_item import (
 )
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
 from agent_platform.server.storage.option import StorageService
-from agent_platform.server.work_items.settings import WORKROOM_URL, WORKSPACE_ID
+from agent_platform.server.work_items.settings import WORKSPACE_ID, get_workroom_url
 
 logger = logging.getLogger(__name__)
 
@@ -74,21 +74,24 @@ async def execute_callbacks(work_item: WorkItem, status: WorkItemStatus, timeout
         )
 
 
-def _build_work_item_url(work_item: WorkItem) -> str:
+def _build_work_item_url(work_item: WorkItem) -> str | None:
     """Build the work item URL."""
     pieces = {
         "workspace_id": WORKSPACE_ID,
         "agent_id": work_item.agent_id,
         "thread_id": work_item.thread_id,
     }
+    # if the SEMA4AI_AGENT_SERVER_WORKROOM_URL env var is not set,
+    # we shouldn't error out, return None instead.
+    if workroom_url := get_workroom_url():
+        for k, v in pieces.items():
+            if v is None or not str(v).strip():
+                raise InvalidWorkItemError(f"{k} should not be None or empty")
 
-    for k, v in pieces.items():
-        if v is None or not str(v).strip():
-            raise InvalidWorkItemError(f"{k} should not be None or empty")
-
-    url_parts = [str(v).strip() for v in pieces.values()]
-    path = "/".join(url_parts)
-    return urljoin(WORKROOM_URL, path)
+        url_parts = [str(v).strip() for v in pieces.values()]
+        path = "/".join(url_parts)
+        return urljoin(workroom_url, path)
+    return None
 
 
 async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
@@ -119,6 +122,12 @@ async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
         agent = await storage.get_agent(user_id=system_user.user_id, agent_id=work_item.agent_id)
         agent_name = agent.name
 
+        work_item_url = _build_work_item_url(work_item)
+        if work_item_url is None:
+            logger.warning(
+                f"Work item URL is not set for work item {work_item.work_item_id} "
+                "at the time of callback"
+            )
         # Coerce into our Payload type for strong type checking
         webhook_payload = WorkItemCallbackPayload.model_validate(
             {
@@ -126,7 +135,7 @@ async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
                 "agent_id": work_item.agent_id,
                 "thread_id": work_item.thread_id,
                 "status": work_item.status.value,
-                "work_item_url": _build_work_item_url(work_item),
+                "work_item_url": work_item_url,
                 "agent_name": agent_name,
             }
         )

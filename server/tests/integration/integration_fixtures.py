@@ -138,7 +138,12 @@ def _get_work_items_server_url(
     start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
     if start_server == "true":
         # Build environment variables based on configuration
-        env_vars = {"SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true"}
+        env_vars = {
+            "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
+            # We need to set the Workroom URL,
+            # so that the tests related to building work item URL succeed.
+            "SEMA4AI_AGENT_SERVER_WORKROOM_URL": "http://localhost:8000",
+        }
 
         if server_config.storage_type == "sqlite":
             env_vars["S4_AGENT_SERVER_DB_TYPE"] = "sqlite"

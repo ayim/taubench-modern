@@ -166,7 +166,7 @@ class WorkItemCallbackPayload:
     )
     """The status of the work item."""
 
-    work_item_url: str = field(
+    work_item_url: str | None = field(
         metadata={"description": "The URL of the work item"},
     )
     """The URL of the work item."""
@@ -196,8 +196,6 @@ class WorkItemCallbackPayload:
             raise ValueError("agent_id is required")
         if not data.get("thread_id"):
             raise ValueError("thread_id is required")
-        if not data.get("work_item_url"):
-            raise ValueError("work_item_url is required")
         if not data.get("agent_name"):
             raise ValueError("agent_name is required")
 
