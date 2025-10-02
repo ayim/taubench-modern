@@ -15,7 +15,7 @@ const SidebarLinkBase = styled.a`
 
   &[aria-current='page'] {
     color: ${({ theme }) => theme.colors.content.subtle.light.hovered.color};
-    font-weight: ${({ theme }) => theme.fontWeights.bold};
+    font-weight: ${({ theme }) => theme.fontWeights.medium};
   }
 `;
 

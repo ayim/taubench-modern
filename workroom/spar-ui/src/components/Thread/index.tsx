@@ -2,7 +2,7 @@ import { FC } from 'react';
 
 import { useAgentQuery } from '../../queries/agents';
 import { useParams, useQueryDataGuard } from '../../hooks';
-import { ThreadsList } from './components/ThreadsList';
+import { ThreadsList } from './components/ThreadsList/ThreadsList';
 import { Chat } from '../Chat';
 
 export const Thread: FC = () => {
