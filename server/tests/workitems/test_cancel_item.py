@@ -11,7 +11,7 @@ from agent_platform.core.work_items.work_item import (
     WorkItem,
     WorkItemStatus,
 )
-from agent_platform.server.api.private_v2.work_items import cancel_item
+from agent_platform.server.api.public_v2.work_items import cancel_item
 
 from .mock_storage import MockStorage
 

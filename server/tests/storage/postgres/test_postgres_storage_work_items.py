@@ -1061,3 +1061,144 @@ async def test_list_all_work_items_with_system_user(
     test_item_values = {payload["test_item"] for payload in payloads}
     expected_values = set(range(num_work_items))
     assert test_item_values == expected_values
+
+
+@pytest.mark.asyncio
+async def test_get_work_items_summary(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test getting work items summary grouped by agent and status."""
+    # Ensure the agent exists (FK)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Create work items with different statuses
+    work_items = []
+
+    # Create 2 PENDING work items
+    for _i in range(2):
+        wi = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=sample_user_id,
+            created_by=sample_user_id,
+            agent_id=sample_agent.agent_id,
+            status=WorkItemStatus.PENDING,
+            messages=[],
+            payload={},
+        )
+        await storage.create_work_item(wi)
+        work_items.append(wi)
+
+    # Create 1 COMPLETED work item
+    wi = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        status=WorkItemStatus.COMPLETED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(wi)
+    work_items.append(wi)
+
+    # Get summary
+    summary = await storage.get_work_items_summary(sample_user_id)
+
+    # Should return one agent summary with status counts
+    assert len(summary) == 1  # One agent with multiple status counts
+
+    # Group by status to verify counts
+    status_counts = {}
+    for agent_summary in summary:
+        for status, count in agent_summary.work_items_status_counts.items():
+            status_counts[status.value] = count
+
+        # Verify row structure
+        assert str(agent_summary.agent_id) == sample_agent.agent_id
+        assert agent_summary.agent_name == sample_agent.name
+
+    # Verify counts
+    assert status_counts["PENDING"] == 2
+    assert status_counts["COMPLETED"] == 1
+
+
+@pytest.mark.asyncio
+async def test_get_work_items_summary_empty(
+    storage: PostgresStorage,
+    sample_user_id: str,
+):
+    """Test getting work items summary when user has no work items."""
+    summary = await storage.get_work_items_summary(sample_user_id)
+    assert summary == []
+
+
+@pytest.mark.asyncio
+async def test_get_work_items_summary_multiple_agents(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test getting work items summary with multiple agents."""
+    # Create first agent
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Create second agent
+    second_agent = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Second Agent",
+        },
+    )
+    await storage.upsert_agent(sample_user_id, second_agent)
+
+    # Create work items for first agent
+    for _i in range(2):
+        wi = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=sample_user_id,
+            created_by=sample_user_id,
+            agent_id=sample_agent.agent_id,
+            status=WorkItemStatus.PENDING,
+            messages=[],
+            payload={},
+        )
+        await storage.create_work_item(wi)
+
+    # Create work items for second agent
+    for _i in range(1):
+        wi = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=sample_user_id,
+            created_by=sample_user_id,
+            agent_id=second_agent.agent_id,
+            status=WorkItemStatus.EXECUTING,
+            messages=[],
+            payload={},
+        )
+        await storage.create_work_item(wi)
+
+    # Get summary
+    summary = await storage.get_work_items_summary(sample_user_id)
+
+    # Should have 2 agent summaries (one for each agent)
+    assert len(summary) == 2
+
+    # Group by agent to verify structure
+    agent_data = {}
+    for agent_summary in summary:
+        agent_id = str(agent_summary.agent_id)  # Convert UUID to string
+        if agent_id not in agent_data:
+            agent_data[agent_id] = {}
+        for status, count in agent_summary.work_items_status_counts.items():
+            agent_data[agent_id][status.value] = count
+
+    # Verify first agent has 2 PENDING work items
+    assert sample_agent.agent_id in agent_data
+    assert agent_data[sample_agent.agent_id]["PENDING"] == 2
+
+    # Verify second agent has 1 EXECUTING work item
+    assert second_agent.agent_id in agent_data
+    assert agent_data[second_agent.agent_id]["EXECUTING"] == 1

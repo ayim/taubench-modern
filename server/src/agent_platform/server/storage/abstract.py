@@ -27,6 +27,7 @@ from agent_platform.server.storage.types import JSONValue, StaleThreadsResult
 
 if TYPE_CHECKING:
     from agent_platform.core import MCPServer, MCPServerSource
+    from agent_platform.server.work_items.rest import AgentWorkItemsSummaryResponse
 
 
 class AbstractStorage(ABC):
@@ -474,6 +475,13 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def mark_incomplete_work_items_as_error(self, work_item_ids: list[str]) -> None:
         """Mark given work items as ERROR if they are still PENDING/EXECUTING."""
+
+    @abstractmethod
+    async def get_work_items_summary(self, user_id: str) -> list["AgentWorkItemsSummaryResponse"]:
+        """Get work items summary grouped by agent and status.
+
+        Returns a list of AgentWorkItemsSummaryResponse objects.
+        """
 
     # -------------------------
     # Methods for MCP servers

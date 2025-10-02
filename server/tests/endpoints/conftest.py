@@ -11,8 +11,9 @@ from agent_platform.server.api.private_v2 import (
     data_connections,
     mcp_servers,
     platforms,
-    work_items,
+    work_items_private,
 )
+from agent_platform.server.api.public_v2 import work_items
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.storage.option import StorageService
@@ -80,6 +81,7 @@ def fastapi_app(storage, stub_user) -> FastAPI:
 
     app = FastAPI()
     app.include_router(work_items.router, prefix="/public/v1/work-items")
+    app.include_router(work_items_private.router, prefix="/api/v2/work-items")
     app.include_router(mcp_servers.router, prefix="/api/v2/private/mcp-servers")
     app.include_router(platforms.router, prefix="/api/v2/private/platforms")
     app.include_router(data_connections.router, prefix="/api/v2/private/data-connections")

@@ -1153,3 +1153,93 @@ async def test_confirm_file_quota_validation_success(
         assert confirm_response.status_code == 200
         confirm_data = confirm_response.json()
         assert confirm_data["work_item_id"] == work_item_id
+
+
+@pytest.mark.asyncio
+async def test_get_work_items_summary(client: TestClient, seed_agents: list[Agent]):
+    """Test getting work items summary grouped by agent and status."""
+    # Create work items with different statuses for different agents
+    created_work_items = []
+
+    # Create work items for first agent
+    for i in range(2):
+        create_payload = {
+            "agent_id": seed_agents[0].agent_id,
+            "agent_name": seed_agents[0].name,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"kind": "text", "text": f"Summary test message {i}"}],
+                }
+            ],
+            "payload": {"summary_index": i},
+        }
+        create_response = client.post("/public/v1/work-items/", json=create_payload)
+        assert create_response.status_code == 200
+        created_work_items.append(create_response.json())
+
+    # Create work items for second agent
+    for i in range(2):
+        create_payload = {
+            "agent_id": seed_agents[1].agent_id,
+            "agent_name": seed_agents[1].name,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"kind": "text", "text": f"Summary test message {i}"}],
+                }
+            ],
+            "payload": {"summary_index": i},
+        }
+        create_response = client.post("/public/v1/work-items/", json=create_payload)
+        assert create_response.status_code == 200
+        created_work_items.append(create_response.json())
+
+    # Get summary
+    response = client.get("/api/v2/work-items/summary")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Should be a list of agent summaries
+    assert isinstance(data, list)
+    assert len(data) == 2  # Two agents with work items
+
+    # Check structure of each agent summary
+    for agent_summary in data:
+        assert "agent_id" in agent_summary
+        assert "agent_name" in agent_summary
+        assert "work_items_status_counts" in agent_summary
+
+        # Check that agent_id matches one of our seed agents
+        agent_ids = {agent.agent_id for agent in seed_agents}
+        assert agent_summary["agent_id"] in agent_ids
+
+        # Check that work_items_status_counts is a dict
+        assert isinstance(agent_summary["work_items_status_counts"], dict)
+
+        # Check that each status has a count (integer)
+        for _status, count in agent_summary["work_items_status_counts"].items():
+            assert isinstance(count, int)
+            assert count >= 0
+
+    # Verify that the total count matches the number of created work items
+    total_count = 0
+    for agent_summary in data:
+        for _status, count in agent_summary["work_items_status_counts"].items():
+            total_count += count
+
+    assert total_count == len(created_work_items)
+
+
+@pytest.mark.asyncio
+async def test_get_work_items_summary_empty(client: TestClient):
+    """Test getting work items summary when no work items exist."""
+    response = client.get("/api/v2/work-items/summary")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Should be an empty list
+    assert isinstance(data, list)
+    assert len(data) == 0

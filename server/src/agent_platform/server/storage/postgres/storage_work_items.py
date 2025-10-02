@@ -1,5 +1,6 @@
 import json
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from psycopg.types.json import Jsonb
@@ -17,6 +18,9 @@ from agent_platform.server.storage.errors import (
     WorkItemNotFoundError,
 )
 from agent_platform.server.storage.postgres.cursor import CursorMixin
+
+if TYPE_CHECKING:
+    from agent_platform.server.work_items.rest import AgentWorkItemsSummaryResponse
 
 
 class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
@@ -390,3 +394,31 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
                 """,
                 work_item_data,
             )
+
+    async def get_work_items_summary(self, user_id: str) -> list["AgentWorkItemsSummaryResponse"]:
+        """Get work items summary grouped by agent and status."""
+
+        self._validate_uuid(user_id)
+
+        async with self._cursor() as cur:
+            # Get work item counts for agents the user has access to, grouped by agent and status
+            await cur.execute(
+                """
+                SELECT
+                    w.agent_id,
+                    a.name as agent_name,
+                    w.status,
+                    COUNT(*) as count
+                FROM v2.work_items w
+                JOIN v2.agent a ON w.agent_id = a.agent_id
+                WHERE v2.check_user_access(a.user_id, %(user_id)s::uuid)
+                  AND w.agent_id IS NOT NULL
+                GROUP BY w.agent_id, a.name, w.status
+                """,
+                {"user_id": user_id},
+            )
+
+            rows = await cur.fetchall()
+
+        # Transform raw rows into response objects
+        return self._transform_work_items_summary_rows(rows)

@@ -5908,6 +5908,31 @@ export const spec = {
         },
       },
     },
+    '/api/v2/work-items/summary': {
+      get: {
+        tags: ['work-items'],
+        summary: 'Get Work Items Summary',
+        description: 'Get work items summary grouped by agent and status.',
+        operationId: 'get_work_items_summary_work_items_summary_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  items: {
+                    $ref: '#/components/schemas/AgentWorkItemsSummaryResponse',
+                  },
+                  type: 'array',
+                  title:
+                    'Response Get Work Items Summary Work Items Summary Get',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/data-sources/list': {
       post: {
         tags: ['data-sources'],
@@ -8084,6 +8109,31 @@ export const spec = {
         type: 'object',
         required: ['api_key', 'api_url', 'project_name'],
         title: 'AgentPackagePayloadLangsmith',
+      },
+      AgentWorkItemsSummaryResponse: {
+        properties: {
+          agent_id: {
+            type: 'string',
+            title: 'Agent Id',
+          },
+          agent_name: {
+            type: 'string',
+            title: 'Agent Name',
+          },
+          work_items_status_counts: {
+            additionalProperties: {
+              type: 'integer',
+            },
+            propertyNames: {
+              $ref: '#/components/schemas/WorkItemStatus',
+            },
+            type: 'object',
+            title: 'Work Items Status Counts',
+          },
+        },
+        type: 'object',
+        required: ['agent_id', 'agent_name', 'work_items_status_counts'],
+        title: 'AgentWorkItemsSummaryResponse',
       },
       AzureOpenAIEmbeddingModel: {
         properties: {

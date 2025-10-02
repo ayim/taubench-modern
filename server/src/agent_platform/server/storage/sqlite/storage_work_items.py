@@ -1,4 +1,5 @@
 import json
+from typing import TYPE_CHECKING
 
 from agent_platform.core.work_items import (
     WorkItem,
@@ -9,6 +10,9 @@ from agent_platform.core.work_items import (
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import WorkItemNotFoundError
 from agent_platform.server.storage.sqlite.cursor import CursorMixin
+
+if TYPE_CHECKING:
+    from agent_platform.server.work_items.rest import AgentWorkItemsSummaryResponse
 
 
 class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
@@ -369,3 +373,31 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
                     "user_id": work_item.user_id,
                 },
             )
+
+    async def get_work_items_summary(self, user_id: str) -> list["AgentWorkItemsSummaryResponse"]:
+        """Get work items summary grouped by agent and status."""
+
+        self._validate_uuid(user_id)
+
+        async with self._cursor() as cur:
+            # Get work item counts for agents the user has access to, grouped by agent and status
+            await cur.execute(
+                """
+                SELECT
+                    w.agent_id,
+                    a.name as agent_name,
+                    w.status,
+                    COUNT(*) as count
+                FROM v2_work_items w
+                JOIN v2_agent a ON w.agent_id = a.agent_id
+                WHERE v2_check_user_access(a.user_id, :user_id) = 1
+                  AND w.agent_id IS NOT NULL
+                GROUP BY w.agent_id, a.name, w.status
+                """,
+                {"user_id": user_id},
+            )
+
+            rows = await cur.fetchall()
+
+        # Transform raw rows into response objects
+        return self._transform_work_items_summary_rows(rows)

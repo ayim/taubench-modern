@@ -11,7 +11,7 @@ from agent_platform.core.work_items.work_item import (
     WorkItemStatus,
     WorkItemStatusUpdatedBy,
 )
-from agent_platform.server.api.private_v2.work_items import router as work_items_router
+from agent_platform.server.api.public_v2.work_items import router as work_items_router
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.error_handlers import platform_http_error_handler

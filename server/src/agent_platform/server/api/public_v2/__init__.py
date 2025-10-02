@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from agent_platform.server.api.private_v2.work_items import router as work_items_router
 from agent_platform.server.api.public_v2.agents import router as agents_router
+from agent_platform.server.api.public_v2.work_items import router as work_items_router
 
 PUBLIC_V2_PREFIX = "/api/public/v1"
 

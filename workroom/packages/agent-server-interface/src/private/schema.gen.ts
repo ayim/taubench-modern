@@ -2011,6 +2011,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/work-items/summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Work Items Summary
+     * @description Get work items summary grouped by agent and status.
+     */
+    get: operations['get_work_items_summary_work_items_summary_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/data-sources/list': {
     parameters: {
       query?: never;
@@ -2805,6 +2825,17 @@ export interface components {
        * @description The project name of the Langsmith.
        */
       project_name: string;
+    };
+    /** AgentWorkItemsSummaryResponse */
+    AgentWorkItemsSummaryResponse: {
+      /** Agent Id */
+      agent_id: string;
+      /** Agent Name */
+      agent_name: string;
+      /** Work Items Status Counts */
+      work_items_status_counts: {
+        [key: string]: number;
+      };
     };
     /** AzureOpenAIEmbeddingModel */
     AzureOpenAIEmbeddingModel: {
@@ -11803,6 +11834,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_work_items_summary_work_items_summary_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentWorkItemsSummaryResponse'][];
         };
       };
     };

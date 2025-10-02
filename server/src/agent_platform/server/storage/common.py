@@ -1,9 +1,14 @@
 import json
+from collections import defaultdict
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from agent_platform.core.utils.secret_str import SecretString
 from agent_platform.server.secret_manager.option import SecretService
 from agent_platform.server.storage.errors import InvalidUUIDError
+
+if TYPE_CHECKING:
+    from agent_platform.server.work_items.rest import AgentWorkItemsSummaryResponse
 
 
 class CommonMixin:
@@ -41,3 +46,35 @@ class CommonMixin:
         """Decrypt the input secret string using the secret manager."""
         decrypted_json = self._secret_manager.fetch(encrypted_secret_string)
         return SecretString(decrypted_json)
+
+    def _transform_work_items_summary_rows(self, rows) -> "list[AgentWorkItemsSummaryResponse]":
+        """Transform raw work items summary rows into AgentWorkItemsSummaryResponse objects.
+
+        Args:
+            rows: List of dictionaries with agent_id, agent_name, status, count
+
+        Returns:
+            List of AgentWorkItemsSummaryResponse objects grouped by agent
+        """
+        from agent_platform.core.work_items.work_item import WorkItemStatus
+        from agent_platform.server.work_items.rest import AgentWorkItemsSummaryResponse
+
+        agent_summaries = {}
+        for row in rows:
+            agent_id = row["agent_id"]
+            agent_name = row["agent_name"]
+            status = row["status"]
+            count = row["count"]
+
+            if agent_id not in agent_summaries:
+                agent_summaries[agent_id] = AgentWorkItemsSummaryResponse(
+                    agent_id=agent_id,
+                    agent_name=agent_name,
+                    work_items_status_counts=defaultdict(int),
+                )
+
+            # Convert status string to WorkItemStatus enum and store count
+            status_enum = WorkItemStatus(status)
+            agent_summaries[agent_id].work_items_status_counts[status_enum] = count
+
+        return list(agent_summaries.values())

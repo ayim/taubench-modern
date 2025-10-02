@@ -29,7 +29,9 @@ from agent_platform.server.api.private_v2.threads import (
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemConfig
 from agent_platform.server.work_items.callbacks import _build_work_item_url
-from agent_platform.server.work_items.rest import WorkItemsListResponse
+from agent_platform.server.work_items.rest import (
+    WorkItemsListResponse,
+)
 from agent_platform.server.work_items.state_machine import WorkItemStateMachine
 
 

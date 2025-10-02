@@ -14,7 +14,7 @@ from agent_platform.core.thread.content import ThreadTextContent
 from agent_platform.core.user import User
 from agent_platform.core.work_items.work_item import WorkItemStatus
 from agent_platform.server.api.dependencies import check_work_item_payload_size
-from agent_platform.server.api.private_v2.work_items import router as work_items_router
+from agent_platform.server.api.public_v2.work_items import router as work_items_router
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.error_handlers import platform_http_error_handler
