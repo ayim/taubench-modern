@@ -1,7 +1,5 @@
 import json
 
-import pytest
-
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 
 
@@ -41,15 +39,16 @@ class TestResponseToolUseContent:
         assert content.tool_input_raw == '{"param1": "value1"}'
         assert content.tool_input == {"param1": "value1"}
 
-    def test_init_invalid_json(self) -> None:
-        """Test that ResponseToolUseContent raises an error for invalid JSON."""
-        with pytest.raises(ValueError, match="tool_input_raw is not valid JSON"):
-            ResponseToolUseContent(
-                tool_call_id="123",
-                tool_name="test_tool",
-                tool_input_raw='{"param1": "value1", "param2": 42',
-                # ^ Missing closing brace
-            )
+    def test_init_invalid_json_tolerated(self) -> None:
+        """Invalid JSON is tolerated; tool_input remains empty and raw preserved."""
+        partial = '{"param1": "value1", "param2": 42'
+        content = ResponseToolUseContent(
+            tool_call_id="123",
+            tool_name="test_tool",
+            tool_input_raw=partial,
+        )
+        assert content.tool_input == {}
+        assert content.tool_input_raw == partial
 
     def test_tool_input_property(self) -> None:
         """Test that tool_input property returns the parsed tool input."""
@@ -104,3 +103,14 @@ class TestResponseToolUseContent:
         assert content.tool_name == "test_tool"
         assert content.tool_input_raw == '{"param1": "value1", "param2": 42}'
         assert content.tool_input == {"param1": "value1", "param2": 42}
+
+    def test_init_allows_partial_json(self) -> None:
+        """Partial JSON should not raise; tool_input empty and raw preserved."""
+        partial = '{"markdown":  "This is an encoded string possibly... and I want to get text'
+        content = ResponseToolUseContent(
+            tool_call_id="123",
+            tool_name="writer",
+            tool_input_raw=partial,
+        )
+        assert content.tool_input == {}
+        assert content.tool_input_raw == partial

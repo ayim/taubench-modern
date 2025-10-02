@@ -1,4 +1,3 @@
-import json
 from typing import TYPE_CHECKING
 
 from structlog import get_logger
@@ -15,44 +14,12 @@ from agent_platform.core.responses.streaming import (
     XmlTagResponseStreamSink,
 )
 from agent_platform.core.tools.tool_definition import ToolDefinition
+from agent_platform.core.utils.partial_json import clean_json_string
 
 if TYPE_CHECKING:
     from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 
 logger: BoundLogger = get_logger(__name__)
-
-
-def _strip_json_field_prefix(content: str, field_name: str) -> int:
-    """Strip the prefix of a JSON field from the content."""
-    start_index = content.find(f'"{field_name}":')
-    if start_index == -1:
-        return -1
-    return start_index + len(field_name) + 3
-
-
-def _find_matched_closing_brace(content: str) -> int:
-    """Find the index of the matching closing brace in a JSON content string."""
-    stack = []
-    for i, char in enumerate(content):
-        if char == "{":
-            stack.append(char)
-        elif char == "}":
-            if stack:
-                stack.pop()
-                if not stack:
-                    return i
-    return -1
-
-
-def _clean_json_string(content: str, field_name: str) -> str:
-    """Clean a JSON string by removing the prefix and suffix."""
-    start_index = _strip_json_field_prefix(content, field_name)
-    end_index = _find_matched_closing_brace(content)
-    sliced_content = content[start_index:end_index] if start_index != -1 else '""'
-    try:
-        return json.loads(sliced_content)
-    except json.JSONDecodeError:
-        return content
 
 
 class ThreadStateSinks:
@@ -169,7 +136,7 @@ class ThreadStateSinks:
             if tool_def and tool_def.name == forward_to_content:
                 forwarded_content = content.tool_input_raw
                 if content_from_key:
-                    forwarded_content = _clean_json_string(forwarded_content, content_from_key)
+                    forwarded_content = clean_json_string(forwarded_content, content_from_key)
                 self._message.append_content(forwarded_content, incremental=True)
 
             await self._message.stream_delta()

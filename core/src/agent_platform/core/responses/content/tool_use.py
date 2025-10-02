@@ -15,9 +15,9 @@ class ResponseToolUseContent(ResponseMessageContent):
     It provides validation and parsing of tool inputs while maintaining
     provider-specific compatibility.
 
-    Raises:
-        json.JSONDecodeError: If tool_input_raw is a string and cannot be parsed as
-        valid JSON.
+    Notes:
+        During streaming, tool_input_raw may be partial/invalid JSON. We tolerate
+        this by exposing tool_input as an empty dict until valid JSON arrives.
         AssertionError: If kind field doesn't match the literal "tool_use".
     """
 
@@ -64,8 +64,11 @@ class ResponseToolUseContent(ResponseMessageContent):
         # keys (e.g. {"":""}) This is somehow a scenario that can happen
         try:
             tool_input_parsed = json.loads(self.tool_input_raw)
-        except json.JSONDecodeError as exc:
-            raise ValueError("tool_input_raw is not valid JSON") from exc
+        except json.JSONDecodeError:
+            # In streaming contexts the JSON may be incomplete. Tolerate and
+            # expose an empty parsed view while keeping the raw text intact.
+            self._tool_input = {}
+            return
 
         # If for some reason tool_input_raw was null, then we would now
         # have a tool_input_parsed of None. We should handle this gracefully.
