@@ -62,9 +62,9 @@ def agent_server_client(spar_agent_server_base_url: str) -> Generator[AgentServe
 def agent_server_client_with_doc_int(
     agent_server_client: AgentServerClient, reducto_api_key: str, reducto_endpoint: str
 ) -> AgentServerClient:
-    # This config should work against SPAR's default database and is based on the
-    # connection string @bendersej provided in the #document-intelligence-team channel
-    # and the data-server/data-server-local-config.json file.
+    # The hardcoded port and username / password are default values
+    # Used when SKIP_CONFIGURATION is set to TRUE
+    # See https://github.com/Sema4AI/data/blob/master/docker/data-server/default_config.json
     doc_int_config = DocumentIntelligenceConfigPayload(
         data_server=DataServerConfig(
             credentials=_Credentials(username="sema4ai", password="sema4ai"),

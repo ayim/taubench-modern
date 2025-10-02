@@ -35,10 +35,22 @@ export interface Configuration {
         type: 'oidc';
       }
   );
-  dataServer:
-    | { mode: 'disabled' }
-    | { mode: 'cloud'; controlPlaneUrl: string }
-    | { mode: 'local'; configurationFilePath: string };
+  dataServerCredentials: {
+    credentials: {
+      username: string;
+      password: string;
+    };
+    api: {
+      http: {
+        url: string;
+        port: number;
+      };
+      mysql: {
+        host: string;
+        port: number;
+      };
+    };
+  };
   files:
     | { mode: 'disabled' }
     | {
@@ -135,30 +147,6 @@ export const getConfiguration = (): Configuration => {
     }
   })();
 
-  const dataServer = ((): Configuration['dataServer'] => {
-    const dataServerConfigurationPath: string | null = process.env.SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH
-      ? parseEnvVariable('SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH')
-      : null;
-
-    if (dataServerConfigurationPath) {
-      return {
-        mode: 'local',
-        configurationFilePath: dataServerConfigurationPath,
-      };
-    }
-
-    if (process.env.SEMA4AI_WORKROOM_CONTROL_PLANE_URL) {
-      return {
-        controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
-        mode: 'cloud',
-      };
-    }
-
-    return {
-      mode: 'disabled',
-    };
-  })();
-
   const files = ((): Configuration['files'] => {
     const mode: Configuration['files']['mode'] = process.env.SEMA4AI_WORKROOM_FILES_MODE
       ? (parseEnvVariable('SEMA4AI_WORKROOM_FILES_MODE') as Configuration['files']['mode'])
@@ -249,11 +237,30 @@ export const getConfiguration = (): Configuration => {
     ? { enabled: true, reason: null }
     : { enabled: false, reason: 'This feature is not available for this deployment' };
 
+  const dataServerHost = process.env.SEMA4AI_WORKROOM_DATA_SERVER_HOST_DEV_OVERRIDE ?? 'http://localhost';
+
   return {
     agentServerInternalUrl,
     allowInsecureRequests,
     auth,
-    dataServer,
+    dataServerCredentials: {
+      // Default credentials when using SKIP_CONFIGURATION
+      // https://github.com/Sema4AI/data/blob/master/docker/data-server/default_config.json
+      credentials: {
+        username: 'sema4ai',
+        password: 'sema4ai',
+      },
+      api: {
+        http: {
+          url: dataServerHost,
+          port: 47334,
+        },
+        mysql: {
+          host: dataServerHost,
+          port: 47335,
+        },
+      },
+    },
     files,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
     legacyRoutingUrl,
@@ -273,10 +280,7 @@ export const getConfiguration = (): Configuration => {
         deploymentWizard: sparOnlyFeature,
         settings: sparOnlyFeature,
         agentEvals: sparOnlyFeature,
-        documentIntelligence: {
-          enabled: dataServer.mode !== 'disabled',
-          reason: dataServer.mode === 'disabled' ? 'Doc Intel is disabled for this environment' : null,
-        },
+        documentIntelligence: sparOnlyFeature,
         developerMode: {
           enabled: true,
           reason: null,

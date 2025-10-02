@@ -98,7 +98,6 @@
         { "name": "SEMA4AI_WORKROOM_FILES_S3_BUCKET", "value": "${AGENT_FILES_BUCKET_NAME}" },
         { "name": "SEMA4AI_WORKROOM_TENANT_ID", "value": "${RELEASE_NAME}" },
         { "name": "SEMA4AI_WORKROOM_AGENT_SERVER_URL", "value": "http://localhost:8000" },
-        { "name": "SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH", "value": "/app/data-server-config.json" },
         { "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES", "value": "true" },
         { "name": "SEMA4AI_WORKROOM_PORT", "value": "8001" },
         { "name": "SEMA4AI_WORKROOM_PORT_INTERNAL", "value": "8002" },

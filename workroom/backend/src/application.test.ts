@@ -35,8 +35,21 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   userIdentity: {
     cacheTTL: 300,
   },
-  dataServer: {
-    mode: 'disabled',
+  dataServerCredentials: {
+    credentials: {
+      username: 'NOT_USED_IN_TESTS',
+      password: 'NOT_USED_IN_TESTS',
+    },
+    api: {
+      http: {
+        url: 'NOT_USED_IN_TESTS',
+        port: 'NOT_USED_IN_TESTS' as unknown as number,
+      },
+      mysql: {
+        host: 'NOT_USED_IN_TESTS',
+        port: 'NOT_USED_IN_TESTS' as unknown as number,
+      },
+    },
   },
   workroomMeta: {
     features: {

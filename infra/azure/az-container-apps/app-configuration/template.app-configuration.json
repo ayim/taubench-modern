@@ -208,10 +208,6 @@
               "value": "http://localhost:8000"
             },
             {
-              "name": "SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH",
-              "value": "/app/data-server-config.json"
-            },
-            {
               "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES",
               "value": "true"
             },

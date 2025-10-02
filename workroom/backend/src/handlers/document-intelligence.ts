@@ -1,7 +1,5 @@
 import { randomUUID } from 'crypto';
-import { readFile } from 'fs/promises';
 import { createAgentSDK } from '@sema4ai/agent-server-interface';
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import { z } from 'zod';
 import type { Configuration } from '../configuration.js';
 import { type ErrorResponse, type ExpressRequest, type ExpressResponse } from '../interfaces.js';
@@ -25,40 +23,6 @@ const ConfigureDocumentIntelligenceInput = z.object({
     .max(1),
 });
 
-type DataServerConnectionDetails = {
-  credentials: {
-    username: string;
-    password: string;
-  };
-  api: {
-    http: {
-      url: string;
-      port: number;
-    };
-    mysql: {
-      host: string;
-      port: number;
-    };
-  };
-};
-
-type DataServerConfigurationJson = z.infer<typeof DataServerConfigurationJson>;
-const DataServerConfigurationJson = z.object({
-  // This is just the subset of configuration we're interested in, i.e. the Data Server credentials + service ports
-  auth: z.object({
-    username: z.string(),
-    password: z.string(),
-  }),
-  api: z.object({
-    http: z.object({
-      port: z.coerce.number(),
-    }),
-    mysql: z.object({
-      port: z.coerce.number(),
-    }),
-  }),
-});
-
 type PostgresConfiguration = {
   host: string;
   port: string;
@@ -66,150 +30,6 @@ type PostgresConfiguration = {
   password: string;
   database: string;
   schema: string | null;
-};
-
-const retrieveDataServerConnectionDetails = async ({
-  configuration,
-  monitoring,
-}: {
-  configuration: Configuration;
-  monitoring: MonitoringContext;
-}): Promise<
-  Result<
-    DataServerConnectionDetails,
-    {
-      code:
-        | 'data_server_config_path_not_defined'
-        | 'data_server_config_not_found'
-        | 'data_server_config_failed_to_parse_as_json'
-        | 'data_server_config_failed_to_parse';
-      message: string;
-    }
-  >
-> => {
-  switch (configuration.dataServer.mode) {
-    case 'local': {
-      return retrieveDataServerConnectionDetailsFromFilesystem({
-        configuration: configuration.dataServer,
-        monitoring,
-      });
-    }
-    case 'cloud': {
-      return retrieveDataServerConnectionDetailsFromAce();
-    }
-    case 'disabled': {
-      throw new Error('Data Server is disabled');
-    }
-    default: {
-      exhaustiveCheck(configuration.dataServer);
-    }
-  }
-};
-
-const retrieveDataServerConnectionDetailsFromFilesystem = async ({
-  configuration,
-  monitoring,
-}: {
-  configuration: Extract<Configuration['dataServer'], { mode: 'local' }>;
-  monitoring: MonitoringContext;
-}): Promise<
-  Result<
-    DataServerConnectionDetails,
-    {
-      code:
-        | 'data_server_config_path_not_defined'
-        | 'data_server_config_not_found'
-        | 'data_server_config_failed_to_parse_as_json'
-        | 'data_server_config_failed_to_parse';
-      message: string;
-    }
-  >
-> => {
-  const dataServerConfigurationPath = configuration.configurationFilePath;
-  if (!dataServerConfigurationPath) {
-    return {
-      success: false,
-      error: {
-        code: 'data_server_config_path_not_defined',
-        message: 'Data Server configuration path not defined',
-      },
-    };
-  }
-
-  const dataServerConfigurationFileContents: string | null = await (async () => {
-    try {
-      return await readFile(dataServerConfigurationPath, {
-        encoding: 'utf-8',
-      });
-    } catch {
-      return null;
-    }
-  })();
-  if (dataServerConfigurationFileContents === null) {
-    return {
-      success: false,
-      error: {
-        code: 'data_server_config_not_found',
-        message: `Data Server configuration file (${dataServerConfigurationPath}) not found`,
-      },
-    };
-  }
-
-  const dataServerConfigurationJson: Record<string, unknown> | null = (() => {
-    try {
-      return JSON.parse(dataServerConfigurationFileContents);
-    } catch {
-      return null;
-    }
-  })();
-  if (dataServerConfigurationJson === null) {
-    return {
-      success: false,
-      error: {
-        code: 'data_server_config_failed_to_parse_as_json',
-        message: `Failed to parse Data Server configuration file (${dataServerConfigurationPath}) as JSON`,
-      },
-    };
-  }
-
-  const dataServerConfigurationParseResult = DataServerConfigurationJson.safeParse(dataServerConfigurationJson);
-  if (!dataServerConfigurationParseResult.success) {
-    monitoring.logger.error('Failed to parse Data Server configuration', {
-      errorMessage: dataServerConfigurationParseResult.error.message,
-    });
-    return {
-      success: false,
-      error: {
-        code: 'data_server_config_failed_to_parse',
-        message: `Failed to parse Data Server configuration file (${dataServerConfigurationPath})`,
-      },
-    };
-  }
-  const dataServerConfiguration = dataServerConfigurationParseResult.data;
-
-  return {
-    success: true,
-    data: {
-      credentials: {
-        username: dataServerConfiguration.auth.username,
-        password: dataServerConfiguration.auth.password,
-      },
-      api: {
-        http: {
-          url: 'http://data-server',
-          port: dataServerConfiguration.api.http.port,
-        },
-        mysql: {
-          host: 'data-server',
-          port: dataServerConfiguration.api.mysql.port,
-        },
-      },
-    },
-  };
-};
-
-const retrieveDataServerConnectionDetailsFromAce = () => {
-  throw new Error('"SEMA4AI_WORKROOM_DATA_SERVER_MODE=cloud" not implemented yet');
 };
 
 const parsePostgresConnectionUrl = (
@@ -318,20 +138,6 @@ export const createConfigureDocumentIntelligence =
     }
     const postgresConfiguration = postgresConnectionUrlParseResult.data;
 
-    const dataServerCredentials = await retrieveDataServerConnectionDetails({ configuration, monitoring });
-    if (!dataServerCredentials.success) {
-      monitoring.logger.error('Failed to get Data Server credentials', {
-        errorCause: dataServerCredentials.error.code,
-        errorMessage: dataServerCredentials.error.message,
-      });
-      return res.status(500).json({
-        error: {
-          code: 'unexpected_error',
-          message: 'Failed to get Data Server credentials',
-        },
-      });
-    }
-
     const agentSDK = createAgentSDK({
       baseUrl: configuration.agentServerInternalUrl,
       headers: {
@@ -341,7 +147,7 @@ export const createConfigureDocumentIntelligence =
 
     const agentServerResponse = await agentSDK.POST('/api/v2/document-intelligence', {
       body: {
-        data_server: dataServerCredentials.data,
+        data_server: configuration.dataServerCredentials,
         integrations, // todo update for external_id
         data_connections: [
           {

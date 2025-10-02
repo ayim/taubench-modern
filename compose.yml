@@ -19,7 +19,6 @@ x-env-spar: &template-env-spar
     SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
     SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS: true
     SEMA4AI_WORKROOM_AUTH_MODE: none
-    SEMA4AI_WORKROOM_DATA_SERVER_CONFIGURATION_PATH: /app/data-server-config.json
     SEMA4AI_ENABLE_SPAR_ONLY_FEATURES: true
     SEMA4AI_WORKROOM_PORT: 8001
     SEMA4AI_WORKROOM_PORT_INTERNAL: 8002
@@ -56,8 +55,6 @@ x-service-spar: &template-service-spar
             condition: service_healthy
         otel-collector:
             condition: service_started
-    volumes:
-        - ./data-server/data-server-local-config.json:/app/data-server-config.json
 
 services:
     postgres:
@@ -85,6 +82,7 @@ services:
         image: *data-server-image
         platform: linux/amd64
         environment:
+            # Uses the default config: https://github.com/Sema4AI/data/blob/master/docker/data-server/default_config.json
             SKIP_CONFIGURATION: 'true'
         ports:
             - "47334:47334"
@@ -92,8 +90,6 @@ services:
         expose:
             - "47334"
             - "47335"
-        volumes:
-            - ./data-server/data-server-local-config.json:/root/config.json
         healthcheck:
             test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
             interval: 5s
