@@ -313,6 +313,8 @@ async def get_thread_data_frames(
     Returns:
         A list of data frames created in the thread.
     """
+    import time
+
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
@@ -344,9 +346,14 @@ async def get_thread_data_frames(
         )
 
         if num_samples != 0:
+            initial_time = time.monotonic()
             data_frames_kernel = DataFramesKernel(base_storage, user, tid)
             resolved_df = await data_frames_kernel.resolve_data_frame(data_frame)
             data_frame_api.sample_rows = resolved_df.list_sample_rows(num_samples)
+            logger.info(
+                f"Listed {num_samples} samples for data frame {data_frame.name} in "
+                f"{time.monotonic() - initial_time:.2f} seconds"
+            )
         ret.append(data_frame_api)
     return ret
 
@@ -514,10 +521,18 @@ async def slice_data_frame(  # noqa: PLR0912,C901
     Returns:
         A streaming response with the sliced data in the specified format
     """
+    import time
+
     from agent_platform.core.errors.base import PlatformError
     from agent_platform.core.errors.responses import ErrorCode
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
+
+    initial_time = time.monotonic()
+    logger.info(
+        f"Starting slice_data_frame for {payload.data_frame_name or payload.data_frame_id} "
+        f"in thread {tid}"
+    )
 
     # Validate that exactly one of data_frame_id or data_frame_name is provided
     if payload.data_frame_id is None and payload.data_frame_name is None:
@@ -575,6 +590,10 @@ async def slice_data_frame(  # noqa: PLR0912,C901
             column_names=payload.column_names,
             output_format=payload.output_format,
             order_by=payload.order_by,
+        )
+
+        logger.info(
+            f"Sliced data frame {data_frame.name} in {time.monotonic() - initial_time:.2f} seconds"
         )
 
         # Return as streaming response

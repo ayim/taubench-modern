@@ -114,26 +114,24 @@ class Dependencies:
         if df_source.source_type == "semantic_data_model":
             base_table: BaseTable | None = typing.cast(BaseTable | None, df_source.base_table)
             if base_table is None:
-                logger.info(
-                    "Semantic data model base table is None in DataFrameSource",
-                    df_source=df_source,
+                logger.error(
+                    f"Semantic data model base table is None in DataFrameSource. "
+                    f"df_source: {df_source!r}",
                 )
                 return None
             # Ok, we have a base table, let's see if it's a database or a file
             base_table_data_connection_id = base_table.get("data_connection_id")
-            base_table_database = base_table.get("database")
-            if base_table_data_connection_id is not None and base_table_database is not None:
-                return make_data_connection_backend(
-                    base_table_data_connection_id, base_table_database
-                )
+            # Note that the database is actually usually part of the data connection
+            if base_table_data_connection_id is not None:
+                return make_data_connection_backend(base_table_data_connection_id)
             elif base_table.get("file_reference") is not None:
                 return DUCK_DB_BACKEND
             else:
-                logger.info(
-                    "It's not possible to find out the backend from the data frame source"
-                    " (semantic_data_model is expected to have a base_table with a "
-                    " data_connection_id and database or a file_reference)",
-                    df_source=df_source,
+                logger.error(
+                    f"It's not possible to find out the backend from the data frame source"
+                    f" (semantic_data_model is expected to have a base_table with a "
+                    f" data_connection_id and database or a file_reference). "
+                    f"df_source: {df_source!r}",
                 )
                 return None
 
@@ -180,9 +178,16 @@ class Dependencies:
         else:
             use_backend = required_backends.pop()
             if use_backend.backend == "duckdb":
+                import time
+
                 import ibis
 
+                initial_time = time.monotonic()
                 con = ibis.duckdb.connect()
+                logger.info(
+                    f"Created ibis.duckdb connection in "
+                    f"{time.monotonic() - initial_time:.2f} seconds"
+                )
                 return await self._resolve_sql_with_connection(kernel, data_frame, con)
 
             elif use_backend.backend == "data-connection":
@@ -218,8 +223,7 @@ class Dependencies:
         from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
 
         data_connection_id = use_backend.data_connection_id
-        database = use_backend.database
-        if data_connection_id is None or database is None:
+        if data_connection_id is None:
             raise PlatformError(
                 message=f"Data connection id or database is None for backend: {use_backend}"
             )
@@ -284,14 +288,15 @@ class Dependencies:
                         base_table = df_source.base_table
                         if not base_table:
                             logger.critical(
-                                "Base table is None for semantic data model", df_source=df_source
+                                f"Base table is None for semantic data model. "
+                                f"df_source: {df_source}"
                             )
                             continue
                         actual_table_name = base_table.get("table")
                         if not actual_table_name:
                             logger.critical(
-                                "Actual table name is None for semantic data model",
-                                df_source=df_source,
+                                f"Actual table name is None for semantic data model. "
+                                f"df_source: {df_source}"
                             )
                             continue
                         schema = base_table.get("schema")
@@ -354,14 +359,8 @@ class Dependencies:
 
             df = DataNodeFromIbisResult(data_frame, result)
             return df
-
         except Exception as e:
-            logger.error(
-                "Error executing SQL computation",
-                error=e,
-                sql_query=sql_query,
-                name_to_node_summary=str(name_to_node),
-            )
+            logger.error(f"Error executing SQL computation. Error: {e}, SQL query: {sql_query}")
             raise PlatformError(message=f"Error executing SQL query: {e!s}") from e
 
 

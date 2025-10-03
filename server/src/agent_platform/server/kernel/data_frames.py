@@ -372,7 +372,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         self._name_to_data_frame[name] = data_frame
         return data_frame
 
-    async def auto_create_data_frame(self, tool_def: ToolDefinition, result_output: Any) -> Any:
+    async def auto_create_data_frame(self, tool_def: ToolDefinition, result_output: Any) -> Any:  # noqa: C901
         """Auto create a data frame from the result output.
 
         Args:
@@ -382,6 +382,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         Returns:
             The new result that the LLM will see.
         """
+        import keyword
+
         if not self.is_enabled():
             return result_output
 
@@ -396,13 +398,22 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                     possible_table = result_output
 
                 if isinstance(possible_table, dict):
-                    if set(("columns", "rows")) == set(possible_table.keys()):
-                        slugified_name = slugify(tool_def.name)
-                        name = f"data_frame_{slugified_name}"
+                    name = possible_table.get("name")
+                    found_keys = set(possible_table.keys())
+                    found_keys.discard("name")
+
+                    if set(("columns", "rows")) == found_keys:
+                        if name:
+                            if not name.isidentifier() or keyword.iskeyword(name):
+                                name = slugify(name).replace("-", "_")
+
+                        if not name:
+                            name = slugify(tool_def.name).replace("-", "_")
 
                         i = 1
+                        base_name = name
                         while name in self._name_to_data_frame:
-                            name = f"data_frame_{slugified_name}_{i:02d}"
+                            name = f"{base_name}_{i:02d}"
                             i += 1
                         data_frame = await self._create_in_memory_data_frame(
                             name=name,

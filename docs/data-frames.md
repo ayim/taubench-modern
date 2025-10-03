@@ -249,26 +249,55 @@ Example:
 
 curl -X GET http://localhost:58885/api/v2/threads/116745a4-4150-4eb5-9740-da9022c05238/data-frames/top_countries_highest_mortality_last_5_years -H "accept: application/json"
 
-# Step 10 (current PR)
+# Step 10 (done)
 
 - Create semantic data model concept.
 - Assign data sources to an agent.
 - Inspect data sources for tables/columns/sample data.
 - Build semantic data model (simple, maybe just tables/columns/sample data).
 - Load data frames from a database.
+- Enabling/Disabling data frames should be opt-out, not opt-in.
 
 See [./data-frames-db-and-semantic-models.md](data-frames-db-and-semantic-models.md) for more details.
 
+# Step 11 (current PR)
+
+- https://sema4ai.slack.com/archives/C06CYLQ7S4R/p1758018826886949 (
+
+  - Remove `data_frame_` prefix from the data frame name, current logic is `data_frame_<slugified(action_name)>`, we can make it simply `<slugified(action_name)>`).
+  - We could also add name and description to the Table so that the user could have more control over it.)
+
+- Add more logging related to what's happening when resolving the data frames/semantic data models.
+
+# Step 12:
+
+Actually do tests with postgres, redshift and snowflake.
+Do more tests on exceptional use cases (slow queries, bad network, etc.).
+
+# Step 13:
+
+Create a "Full semantic data model" which includes metrics, facts, dimensions, etc.
+
+Extract primary keys/uniqueness from the database directly when available.
+
+# Step 14:
+
+Support "federated" queries (i.e.: SQL referencing multiple data connections or referencing a data connection and a file or in-memory data).
+
+# Step 15:
+
+When a semantic data model is later needed just for a subset (say a semantic data model was created from 2 databases and a file), if
+later on a file is required, it should be possible to extract a subset of the semantic data model to be used just for that file.
+i.e.: semantic models are "globally" available and it should be possible to reuse a semantic model (or a part of it) when needed
+when creating a new semantic data model for some other data (if the shape of one model is a subset or superset of another model).
+
 # Future work (not right now):
 
+- Consume data frames directly from actions/tools.
 - Investigate issue where creating a data frame from a csv with no values for one of the columns makes the data frame unusable afterwards.
 - https://sema4ai.slack.com/archives/C07LMU0AQFR/p1758257549592739
   - make is so that the agent understands an existing data frame cannot be overwritten.
-- https://sema4ai.slack.com/archives/C06CYLQ7S4R/p1758018826886949 (
-  - Remove `data_frame_` prefix from the data frame name, current logic is `data_frame_<slugified(action_name)>`, we can make it simply `<slugified(action_name)>`).
-  - We could also add name and description to the Table so that the user could have more control over it.)
 - Versioning of data frames (or provide more information to the UI so that it can know what's supposed to be a new version of an existing data frame and what's not).
-- Enabling/Disabling data frames should be opt-out, not opt-in.
 - It should be possible to add name and description to a `Table` to create the data frame accordingly.
 - Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)
 - Investigate shortcomings of the "just SQL" approach and see if an approach using "sanitized but possibly unsafe python code" can be better.

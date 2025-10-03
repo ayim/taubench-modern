@@ -5,12 +5,16 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Literal, Protocol
 
+import structlog
+
 if typing.TYPE_CHECKING:
     import pyarrow
     from sema4ai.actions import Row, Table
 
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_reader import DataReaderSheet
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 @dataclass(
@@ -40,9 +44,6 @@ class SupportedIbisBackends:
     # The data_connection_id of the data connection
     data_connection_id: str | None = None
 
-    # The database of the data connection
-    database: str | None = None
-
 
 # Simple backends
 DUCK_DB_BACKEND = SupportedIbisBackends(backend="duckdb")
@@ -50,10 +51,8 @@ DUCK_DB_BACKEND = SupportedIbisBackends(backend="duckdb")
 
 # Backend based on the data connection
 @lru_cache(maxsize=100)
-def make_data_connection_backend(data_connection_id: str, database: str) -> SupportedIbisBackends:
-    return SupportedIbisBackends(
-        backend="data-connection", data_connection_id=data_connection_id, database=database
-    )
+def make_data_connection_backend(data_connection_id: str) -> SupportedIbisBackends:
+    return SupportedIbisBackends(backend="data-connection", data_connection_id=data_connection_id)
 
 
 SliceOutputFormat = Literal["json", "parquet", "table"]
@@ -456,8 +455,21 @@ class DataNodeFromIbisResult(DataNodeResult):
         output_format: SliceOutputFormat = "json",
         order_by: str | None = None,
     ) -> "bytes | Table":
+        import time
+
         # Start with the ibis result
+        logger.info(
+            f"Slicing ibis result with offset: {offset}, limit: {limit}, "
+            f"column_names: {column_names}, output_format: {output_format}, "
+            f"order_by: {order_by}"
+        )
+        initial_time = time.monotonic()
+
         result = self._ibis_result
-        return _convert_ibis_slice_to_format(
+        ret = _convert_ibis_slice_to_format(
             result, offset, limit, column_names, output_format, order_by
         )
+
+        logger.info(f"Sliced ibis result in {time.monotonic() - initial_time:.2f} seconds")
+
+        return ret

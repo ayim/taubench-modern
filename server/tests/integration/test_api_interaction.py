@@ -275,11 +275,11 @@ def test_api_interaction_with_action_server(
         )
         found = False
         for tool_call in tool_calls:
-            if "Data frame data_frame_my_named_query created from my_named_query" in str(tool_call):
+            if "Data frame my_named_query created from my_named_query" in str(tool_call):
                 found = True
                 break
         assert found, (
-            f"'Data frame data_frame_my_named_query created from my_named_query' not found in "
+            f"'Data frame my_named_query created from my_named_query' not found in "
             f"tool calls. Tool calls found: {tool_calls}"
             "This means that a data frame was not automatically created when my_named_query"
             " was called (or it wasn't called at all)."
