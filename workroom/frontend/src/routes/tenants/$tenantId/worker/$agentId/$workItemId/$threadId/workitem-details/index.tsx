@@ -16,7 +16,7 @@ function RouteComponent() {
 
   return (
     <Sidebar name="work-item-details">
-      <WorkItemDetails workItemId={workItemId} workItemApiUrl={null} />
+      <WorkItemDetails workItemId={workItemId} />
     </Sidebar>
   );
 }

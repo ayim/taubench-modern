@@ -157,6 +157,10 @@ export const createSparAPIClient = (
     };
   },
 
+  getWorkItemAPIURL: async () => {
+    return null;
+  },
+
   sendFeedback: async (props) => {
     return agentAPIClient.sendFeedback(tenantId, props);
   },

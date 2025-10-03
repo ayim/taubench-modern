@@ -85,6 +85,11 @@ export interface SparAPIClient {
   };
 
   /**
+   * Retrieve the URL for the Work Item API
+   */
+  getWorkItemAPIURL: () => Promise<string | null>;
+
+  /**
    * Send feedback
    */
   sendFeedback?: (props: { agentId: string; threadId: string; feedback: string; comment: string }) => Promise<boolean>;
