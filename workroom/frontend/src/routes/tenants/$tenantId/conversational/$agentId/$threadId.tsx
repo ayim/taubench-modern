@@ -10,9 +10,10 @@ import { Layout } from './components/Layout';
 import { Header } from './components/Header';
 import { Thread } from '@sema4ai/spar-ui';
 import { AgentMetaContext } from '~/lib/agentMetaContext';
+import { getPreferenceKey, setUserPreferenceId } from '~/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId')({
-  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId } }) => {
+  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId, threadId } }) => {
     const agentMeta = await queryClient.ensureQueryData(
       getAgentMetaQueryOptions({
         agentId,
@@ -20,6 +21,8 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
         agentAPIClient,
       }),
     );
+
+    setUserPreferenceId(getPreferenceKey({ agentId }), threadId);
 
     return { agentMeta };
   },

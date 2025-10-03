@@ -14,12 +14,10 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/')({
       });
     }
 
-    const agent = agentResult.data;
-
     /**
      * 1. Redirect to user preferred workItem, if it exists
      */
-    const prefearedWorkItemId = getUserPreferenceId(getPreferenceKey(agent));
+    const prefearedWorkItemId = getUserPreferenceId(getPreferenceKey({ agentId }));
     if (prefearedWorkItemId) {
       let workItemExists = false;
 
@@ -32,7 +30,7 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/')({
         workItemExists = !!thread;
       } catch (e) {
         console.error('Failed redirecting to preferred workitem', e);
-        removeUserPreferenceId(getPreferenceKey(agent));
+        removeUserPreferenceId(getPreferenceKey({ agentId }));
       }
 
       if (workItemExists) {

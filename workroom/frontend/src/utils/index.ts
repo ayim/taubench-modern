@@ -18,7 +18,7 @@ export const isProviderConfigured = (
   return !!settings.clientId && !!settings.redirectUri;
 };
 
-export const getPreferenceKey = (agent: Agent) => `preffered-thread-or-work-item-${agent.id}`;
+export const getPreferenceKey = ({ agentId }: { agentId: string }) => `preffered-thread-or-work-item-${agentId}`;
 
 export const setUserPreferenceId = (key: string, id: string) => {
   localStorage.setItem(key, id);

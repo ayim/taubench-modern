@@ -91,7 +91,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     /*
      * 2. Redirect to user preferred thread, if it exists
      */
-    const preferedThreadId = getUserPreferenceId(getPreferenceKey(agent));
+    const preferedThreadId = getUserPreferenceId(getPreferenceKey({ agentId }));
 
     if (preferedThreadId) {
       let threadExists = false;
@@ -105,7 +105,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
         threadExists = !!thread;
       } catch (e) {
         console.error('Failed redirecting to preferred thread', e);
-        removeUserPreferenceId(getPreferenceKey(agent));
+        removeUserPreferenceId(getPreferenceKey({ agentId }));
       }
 
       if (threadExists) {
