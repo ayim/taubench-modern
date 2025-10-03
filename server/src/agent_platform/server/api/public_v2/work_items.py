@@ -305,7 +305,7 @@ async def list_work_items(  # noqa: PLR0913
     for work_item in work_items:
         work_item.messages = []
         work_item.work_item_url = (
-            _build_work_item_url(work_item) if work_item.thread_id and work_item.agent_id else ""
+            _build_work_item_url(work_item) if work_item.thread_id and work_item.agent_id else None
         )
 
     # if we have fewer than the limit, we have no more work items to fetch

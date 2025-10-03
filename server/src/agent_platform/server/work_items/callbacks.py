@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 
 import requests
 
+from agent_platform.core.errors import PlatformHTTPError
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.thread.content.text import ThreadTextContent
@@ -18,7 +19,6 @@ from agent_platform.core.work_items.work_item import (
 )
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
 from agent_platform.server.storage.option import StorageService
-from agent_platform.server.work_items.settings import WORKSPACE_ID, get_workroom_url
 
 logger = logging.getLogger(__name__)
 
@@ -74,23 +74,71 @@ async def execute_callbacks(work_item: WorkItem, status: WorkItemStatus, timeout
         )
 
 
+def _build_template_work_item_url(template, pieces: dict) -> str:
+    """Build the work item URL from a template."""
+    from string import Formatter
+
+    try:
+        # Pre-validate that required placeholders exist in the template
+        required_fields = {"agent_id", "thread_id", "work_item_id"}
+        present_fields = {
+            field_name for _, field_name, _, _ in Formatter().parse(template) if field_name
+        }
+        missing = required_fields - present_fields
+        if missing:
+            raise KeyError("Missing required placeholders in template: " + ", ".join(missing))
+        formatted_url = template.format(**pieces)
+        return formatted_url
+    except KeyError as e:
+        logger.exception(
+            f"Failed to format work item URL from template: '{template}'.",
+            extra={
+                "pieces": pieces,
+                "error": str(e),
+            },
+        )
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+            message="Failed to format work item URL from template.",
+            data={
+                "pieces": pieces,
+                "error": str(e),
+            },
+        ) from e
+
+
+def _build_legacy_work_item_url(url: str, pieces: dict) -> str:
+    """Build the work item URL from a legacy environment variable."""
+    if not url.endswith("/"):
+        url += "/"
+    url_parts = f"{pieces['workspace_id']}/{pieces['agent_id']}/{pieces['thread_id']}"
+    work_item_url = urljoin(url, url_parts)
+    return work_item_url
+
+
 def _build_work_item_url(work_item: WorkItem) -> str | None:
     """Build the work item URL."""
-    pieces = {
-        "workspace_id": WORKSPACE_ID,
-        "agent_id": work_item.agent_id,
-        "thread_id": work_item.thread_id,
-    }
-    # if the SEMA4AI_AGENT_SERVER_WORKROOM_URL env var is not set,
-    # we shouldn't error out, return None instead.
-    if workroom_url := get_workroom_url():
-        for k, v in pieces.items():
-            if v is None or not str(v).strip():
-                raise InvalidWorkItemError(f"{k} should not be None or empty")
+    from os import getenv
 
-        url_parts = [str(v).strip() for v in pieces.values()]
-        path = "/".join(url_parts)
-        return urljoin(workroom_url, path)
+    pieces = {
+        "agent_id": work_item.agent_id,
+        "work_item_id": work_item.work_item_id,
+        "thread_id": work_item.thread_id,
+        "workspace_id": getenv("SEMA4AI_AGENT_SERVER_WORKSPACE_ID", "no-workspace-id"),
+    }
+    for k, v in pieces.items():
+        if v is None or not str(v).strip():
+            raise InvalidWorkItemError(f"{k} should not be None or empty")
+
+    url = getenv("SEMA4AI_AGENT_SERVER_WORK_ITEM_URL")
+    if url:
+        return _build_template_work_item_url(url, pieces)
+    else:
+        # the new environment variable is not set, fallback to old environment variable
+        url = getenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL")
+        if url:
+            return _build_legacy_work_item_url(url, pieces)
+    logger.warning("No workroom URL found. Returning None.")
     return None
 
 

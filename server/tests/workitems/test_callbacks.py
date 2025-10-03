@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from agent_platform.core.errors import PlatformHTTPError
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.core.work_items.work_item import (
@@ -26,11 +27,15 @@ from agent_platform.server.work_items.callbacks import (
 @pytest.fixture(autouse=True)
 def _set_workroom_url_env(monkeypatch):
     """Ensure workroom URL is set for tests.
-    Tests in this module expect the base URL to be http://localhost:8000/.
-    We set the SEMA4AI_AGENT_SERVER_WORKROOM_URL env var,
+    Tests in this module expect the base URL to be a template URL like
+    http://localhost:9000/workspace-id/{agent_id}/{work_item_id}/{thread_id}.
+    We set the SEMA4AI_AGENT_SERVER_WORK_ITEM_URL env var,
     so calls to _build_work_item_url() yield the expected URL.
     """
-    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL", "http://localhost:8000")
+    monkeypatch.setenv(
+        "SEMA4AI_AGENT_SERVER_WORK_ITEM_URL",
+        "http://localhost:9000/workspace-id/{agent_id}/{work_item_id}/{thread_id}",
+    )
 
 
 @pytest.mark.asyncio
@@ -58,8 +63,11 @@ class TestWorkItemsCallbacks:
         ):
             yield mock_storage
 
-    async def test_build_work_item_url(self):
-        """Test the _build_work_item_url function with various scenarios."""
+    async def test_build_legacy_work_item_url(self, monkeypatch):
+        """Test the _build_work_item_url function with various scenarios,
+        while using the legacy environment variable."""
+        monkeypatch.delenv("SEMA4AI_AGENT_SERVER_WORK_ITEM_URL", raising=False)
+        monkeypatch.setenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL", "http://localhost:8000/")
         # Test with all fields populated
         work_item = WorkItem(
             work_item_id="test_work_item_123",
@@ -71,7 +79,8 @@ class TestWorkItemsCallbacks:
         )
 
         url = _build_work_item_url(work_item)
-        # With default settings (WORKSPACE_ID="no-workspace-id", SEMA4AI_AGENT_SERVER_WORKROOM_URL="http://localhost:8000/")
+        # With settings (WORKSPACE_ID="no-workspace-id",
+        # SEMA4AI_AGENT_SERVER_WORKROOM_URL="http://localhost:8000/")
         # The function includes workspace_id in the URL path
         expected_url = (
             f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
@@ -92,6 +101,143 @@ class TestWorkItemsCallbacks:
         work_item.agent_id = "   "
         with pytest.raises(InvalidWorkItemError, match="agent_id should not be None or empty"):
             _build_work_item_url(work_item)
+
+    async def test_build_work_item_url(self, monkeypatch):
+        """Test the _build_work_item_url function with various scenarios,
+        while using the new environment variable."""
+        # Test with all fields populated
+        work_item = WorkItem(
+            work_item_id="test_work_item_123",
+            user_id="system_user",
+            created_by="user_456",
+            agent_id="agent_789",
+            thread_id="thread_012",
+            status=WorkItemStatus.COMPLETED,
+        )
+
+        url = _build_work_item_url(work_item)
+        # With settings (SEMA4AI_AGENT_SERVER_WORK_ITEM_URL="http://localhost:9000/workspace-id/{agent_id}/{work_item_id}/{thread_id}")
+        # The function includes workspace_id in the URL path
+        expected_url = f"http://localhost:9000/workspace-id/{work_item.agent_id}/{work_item.work_item_id}/{work_item.thread_id}"
+        assert url == expected_url
+
+        # Test with None agent_id (should raise InvalidWorkItemError)
+        work_item.agent_id = None
+        with pytest.raises(InvalidWorkItemError, match="agent_id should not be None or empty"):
+            _build_work_item_url(work_item)
+
+        # Test with empty string agent_id (should raise InvalidWorkItemError)
+        work_item.agent_id = ""
+        with pytest.raises(InvalidWorkItemError, match="agent_id should not be None or empty"):
+            _build_work_item_url(work_item)
+
+        # Test with whitespace agent_id (should raise InvalidWorkItemError)
+        work_item.agent_id = "   "
+        with pytest.raises(InvalidWorkItemError, match="agent_id should not be None or empty"):
+            _build_work_item_url(work_item)
+
+    async def test_build_work_item_url_new_template_only(self, monkeypatch):
+        """When only the new templated env is set, we return a formatted URL."""
+        work_item = WorkItem(
+            work_item_id="wi_1",
+            user_id="system_user",
+            created_by="user_456",
+            agent_id="agent_789",
+            thread_id="thread_012",
+            status=WorkItemStatus.COMPLETED,
+        )
+
+        url = _build_work_item_url(work_item)
+        assert url == "http://localhost:9000/workspace-id/agent_789/wi_1/thread_012"
+
+    async def test_build_work_item_url_both_envs_set_prefers_new(self, monkeypatch):
+        """When both envs are set, prefer the new templated env."""
+        monkeypatch.setenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL", "http://localhost:8001")
+        work_item = WorkItem(
+            work_item_id="wi_2",
+            user_id="system_user",
+            created_by="user_456",
+            agent_id="agent_789",
+            thread_id="thread_012",
+            status=WorkItemStatus.COMPLETED,
+        )
+
+        url = _build_work_item_url(work_item)
+        assert url == "http://localhost:9000/workspace-id/agent_789/wi_2/thread_012"
+
+    async def test_build_work_item_url_misnamed_placeholder_raises_error(self, monkeypatch):
+        """Misnamed placeholder in the new env template raises a PlatformHTTPError."""
+        monkeypatch.setenv(
+            "SEMA4AI_AGENT_SERVER_WORK_ITEM_URL",
+            # we deliberately misname agent_id to agent
+            "http://localhost:9000/workspace-id/{agent}/{work_item_id}/{thread_id}",
+        )
+        work_item = WorkItem(
+            work_item_id="wi_3",
+            user_id="system_user",
+            created_by="user_456",
+            agent_id="agent_789",
+            thread_id="thread_012",
+            status=WorkItemStatus.COMPLETED,
+        )
+        with pytest.raises(
+            PlatformHTTPError, match="Failed to format work item URL from template."
+        ):
+            _build_work_item_url(work_item)
+
+    async def test_build_work_item_url_missing_placeholder_raises_error(self, monkeypatch):
+        """Missing placeholder in the new env template raises a PlatformHTTPError."""
+        monkeypatch.setenv(
+            "SEMA4AI_AGENT_SERVER_WORK_ITEM_URL",
+            "http://localhost:9000/workspace-id/{agent_id}",
+        )
+        work_item = WorkItem(
+            work_item_id="wi_4",
+            user_id="system_user",
+            created_by="user_456",
+            agent_id="agent_789",
+            thread_id="thread_012",
+            status=WorkItemStatus.COMPLETED,
+        )
+        with pytest.raises(
+            PlatformHTTPError, match="Failed to format work item URL from template."
+        ):
+            _build_work_item_url(work_item)
+
+    async def test_build_work_item_url_no_placeholder_raises_error(self, monkeypatch):
+        """No placeholders in the new env template raises a PlatformHTTPError."""
+        monkeypatch.setenv(
+            "SEMA4AI_AGENT_SERVER_WORK_ITEM_URL",
+            "http://localhost:9000/workspace-id",
+        )
+        work_item = WorkItem(
+            work_item_id="wi_5",
+            user_id="system_user",
+            created_by="user_456",
+            agent_id="agent_789",
+            thread_id="thread_012",
+            status=WorkItemStatus.COMPLETED,
+        )
+        with pytest.raises(
+            PlatformHTTPError, match="Failed to format work item URL from template."
+        ):
+            _build_work_item_url(work_item)
+
+    async def test_workroom_url_no_envs_set(self, monkeypatch):
+        """When neither env is set, we return None."""
+        monkeypatch.delenv("SEMA4AI_AGENT_SERVER_WORK_ITEM_URL", raising=False)
+
+        work_item = WorkItem(
+            work_item_id="wi_4",
+            user_id="system_user",
+            created_by="user_456",
+            agent_id="agent_789",
+            thread_id="thread_012",
+            status=WorkItemStatus.COMPLETED,
+        )
+
+        url = _build_work_item_url(work_item)
+        assert url is None
 
     async def test_compute_signature_consistency(self):
         """Test that the same object generates the same signature twice."""
@@ -264,10 +410,8 @@ class TestWorkItemsCallbacks:
             assert body["thread_id"] == "thread_012"
             assert body["status"] == "COMPLETED"
             assert body["agent_name"] == "Test Agent"  # Verify agent name from our mock
-            # With default settings, the URL should be "http://localhost:8000/no-workspace-id/agent_789/thread_012"
-            expected_url = (
-                f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
-            )
+            # With default settings, the URL should be "http://localhost:9000/workspace-id/agent_789/test_work_item_123/thread_012"
+            expected_url = f"http://localhost:9000/workspace-id/{work_item.agent_id}/{work_item.work_item_id}/{work_item.thread_id}"
             assert body["work_item_url"] == expected_url
 
         finally:
@@ -387,10 +531,8 @@ class TestWorkItemsCallbacks:
             assert body["status"] == "COMPLETED"
             assert body["agent_name"] == "Test Agent"  # Verify agent name from our mock
 
-            # With default settings, the URL should be "http://localhost:8000/no-workspace-id/agent_789/thread_012"
-            expected_url = (
-                f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
-            )
+            # With default settings, the URL should be "http://localhost:9000/workspace-id/agent_789/test_work_item_123/thread_012"
+            expected_url = f"http://localhost:9000/workspace-id/{work_item.agent_id}/{work_item.work_item_id}/{work_item.thread_id}"
             assert request["body"]["work_item_url"] == expected_url
 
         finally:
@@ -610,11 +752,11 @@ class TestWorkItemsCallbacks:
             server_thread.join(timeout=1)
 
     async def test_callbacks_workroom_url_not_set(self, monkeypatch):
-        """When SEMA4AI_AGENT_SERVER_WORKROOM_URL env var is not set,
-        we should send work item URL as None in payload."""
+        """When neither SEMA4AI_AGENT_SERVER_WORK_ITEM_URL nor SEMA4AI_AGENT_SERVER_WORKROOM_URL
+        env vars are set, we should send work item URL as None in payload."""
 
         # Unset the env var
-        monkeypatch.delenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL", raising=False)
+        monkeypatch.delenv("SEMA4AI_AGENT_SERVER_WORK_ITEM_URL", raising=False)
 
         # Track received requests
         received_requests = []
@@ -663,6 +805,72 @@ class TestWorkItemsCallbacks:
             assert len(received_requests) == 1
             body = received_requests[0]["body"]
             assert body["work_item_url"] is None
+        finally:
+            server.shutdown()
+            server_thread.join(timeout=1)
+
+    async def test_callbacks_new_workroom_url_set(self, monkeypatch):
+        """When SEMA4AI_AGENT_SERVER_WORK_ITEM_URL env var is set,
+        we should send work item URL as a formatted URL in payload."""
+
+        # Unset the old env var
+        monkeypatch.delenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL", raising=False)
+
+        monkeypatch.setenv(
+            "SEMA4AI_AGENT_SERVER_WORK_ITEM_URL",
+            "http://localhost:9000/workspace-id/{agent_id}/{work_item_id}/{thread_id}",
+        )
+
+        # Track received requests
+        received_requests = []
+
+        class TestRequestHandler(BaseHTTPRequestHandler):
+            def do_POST(self):  # noqa: N802
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length).decode("utf-8")
+
+                received_requests.append(
+                    {"path": self.path, "headers": dict(self.headers), "body": json.loads(body)}
+                )
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"status": "ok"}')
+
+            def log_message(self, f, *args):
+                # Suppress log messages
+                pass
+
+        server = HTTPServer(("localhost", 0), TestRequestHandler)
+        server_port = server.server_address[1]
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.daemon = True
+        server_thread.start()
+
+        try:
+            work_item = WorkItem(
+                work_item_id="test_work_item_123",
+                user_id="system_user",
+                created_by="user_456",
+                agent_id="agent_789",
+                thread_id="thread_012",
+                status=WorkItemStatus.COMPLETED,
+                messages=[ThreadMessage(content=[ThreadTextContent(text="Hello")], role="user")],
+            )
+
+            callback = WorkItemCallback(
+                url=f"http://localhost:{server_port}/webhook", on_status=WorkItemStatus.COMPLETED
+            )
+
+            await _execute_callback(work_item, callback)
+
+            assert len(received_requests) == 1
+            body = received_requests[0]["body"]
+            assert (
+                body["work_item_url"]
+                == "http://localhost:9000/workspace-id/agent_789/test_work_item_123/thread_012"
+            )
         finally:
             server.shutdown()
             server_thread.join(timeout=1)

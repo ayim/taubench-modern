@@ -140,9 +140,9 @@ def _get_work_items_server_url(
         # Build environment variables based on configuration
         env_vars = {
             "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
-            # We need to set the Workroom URL,
+            # We need to set the Work Item URL,
             # so that the tests related to building work item URL succeed.
-            "SEMA4AI_AGENT_SERVER_WORKROOM_URL": "http://localhost:8000",
+            "SEMA4AI_AGENT_SERVER_WORK_ITEM_URL": "https://localhost:8000/tenants/123/worker/{agent_id}/{work_item_id}/{thread_id}",
         }
 
         if server_config.storage_type == "sqlite":

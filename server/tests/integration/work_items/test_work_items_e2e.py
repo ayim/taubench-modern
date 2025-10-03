@@ -224,7 +224,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
             assert actual_signature == expected_signature
 
             # Verify work item URL
-            assert_work_item_url(body, agent_id, body["thread_id"])
+            assert_work_item_url(body, agent_id, body["work_item_id"], body["thread_id"])
 
             # 7. Final endpoint verification - ensure we can still query the completed work item
             final_list_resp = await client.get("/")
