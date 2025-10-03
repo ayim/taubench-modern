@@ -111,7 +111,7 @@ class WorkQueue(Generic[T]):
     async def worker_loop(self) -> None:
         """Continuously polls for work and processes it in batches."""
         while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
-            logger.info("searching for tasks to process")
+            logger.debug("searching for eval tasks to process")
             try:
                 await self._worker_iteration()
             except Exception as exc:
@@ -119,19 +119,18 @@ class WorkQueue(Generic[T]):
 
             await asyncio.sleep(self.settings.worker_interval)
 
-        logger.info("finished worker loop")
+        logger.debug("finished eval worker loop")
 
     async def _worker_iteration(self) -> None:
         max_batch_size = self.settings.max_parallel_in_process
         task_ids = await self.repo.get_pending_task_ids(max_batch_size)
-        logger.info("Found %d tasks to process. %r", len(task_ids), task_ids)
 
         if not task_ids:
             return
 
-        logger.info("Dispatching tasks %s", task_ids)
+        logger.info("Dispatching eval tasks %s", task_ids)
         results = await self._run_batch(task_ids, self.settings.batch_timeout)
-        logger.info("Completed %d tasks concurrently", len(results))
+        logger.info("Completed %d eval tasks concurrently", len(results))
 
     async def _run_batch(  # noqa: C901, PLR0912
         self,
