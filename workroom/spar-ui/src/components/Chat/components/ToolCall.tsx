@@ -92,8 +92,9 @@ export const ToolCall: FC<Props> = ({ content }) => {
       <Chat.Action
         actionName={snakeCaseToTitleCase(content.name)}
         running={['streaming', 'pending', 'running'].includes(content.status)}
+        error={content.status === 'failed'}
       >
-        <Code value={result} toolbar={toolbar} lang="json" />
+        <Code value={result} toolbar={toolbar} lang="json" maxRows={10} />
         <Box display="flex" gap="$8">
           {showActionLogs && isActionServerToolCall(content) && (
             <Button

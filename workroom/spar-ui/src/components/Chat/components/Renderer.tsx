@@ -39,6 +39,40 @@ const MessageActions = styled(Box)`
   gap: $4;
 `;
 
+const groupTitleMap = {
+  'done': 'Completed tasks',
+  'in_progress': 'Working on it',
+  'failed': 'Failed tasks',
+} as const;
+
+const getGroupeStatus = ({ message }: {message: ThreadMessage }): keyof typeof groupTitleMap => {
+  const messageStatus = message.complete ? 'done' : 'in_progress';
+  if (messageStatus === 'done') {
+    const failedIndex = message.content.findIndex(item => item.kind === 'tool_call' && item.status === 'failed');
+    if (failedIndex !== -1) {
+      return 'failed';
+    }
+  }
+  return messageStatus;
+}
+
+type ThreadMessageContent = ThreadMessage['content'];
+const getGroupedMessageContent = (messageContent: ThreadMessageContent) => messageContent.reduce<(ThreadMessageContent | ThreadMessageContent[number])[]>((acc, content) => {
+    if (['thought', 'tool_call'].includes(content.kind)) {
+      const previousContent = acc[acc.length - 1];
+      if (Array.isArray(previousContent)) {
+        previousContent.push(content);
+        return acc;
+      }
+
+      acc.push([content]);
+      return acc;
+    }
+
+    acc.push(content);
+    return acc;
+  }, []).map(content => Array.isArray(content) && content.length === 1 ? content[0] : content);
+
 export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
   const { query } = useThreadSearchStore();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,11 +106,12 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
     return <Banner message="An error occurred" description={message.message} icon={IconAlert} variant="error" />;
   }
 
-  return message.content?.map((content) => {
+  const messageContent = message.content ?? [];
+  const contentRenderer = (content: typeof messageContent[number]) => {
     switch (content.kind) {
       case 'thought':
         return (
-          <Chat.Thinking streaming={streaming} key={content.content_id}>
+          <Chat.Thinking streaming={streaming} key={content.content_id} title={!streaming && content.complete ? 'Thought' : undefined}>
             {content.thought}
           </Chat.Thinking>
         );
@@ -90,13 +125,12 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
         }
 
         return (
-          <MessageContainer>
+          <MessageContainer key={content.content_id}>
             <Chat.Markdown
               ref={containerRef}
               messageId={message.message_id}
               streaming={streaming}
               parserRules={markdownRules}
-              key={content.content_id}
             >
               {content.text}
             </Chat.Markdown>
@@ -130,5 +164,18 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
       default:
         return null;
     }
+  }
+
+  const groupedMessageContent = getGroupedMessageContent(messageContent);
+  return groupedMessageContent.map((content) => {
+    if (Array.isArray(content)) {
+      const messageStatus = getGroupeStatus({message});
+      return  (
+        <Chat.Action.Group title={groupTitleMap[messageStatus]} running={messageStatus === 'in_progress'} error={messageStatus === 'failed'} key={`group-${content[0].content_id}`}>
+          {content.map((itemContent) => contentRenderer(itemContent))}
+        </Chat.Action.Group>
+      );
+    }
+    return contentRenderer(content);
   });
 };
