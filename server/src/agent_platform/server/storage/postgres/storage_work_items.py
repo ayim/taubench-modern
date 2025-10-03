@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from psycopg.types.json import Jsonb
+from structlog import get_logger
 
 from agent_platform.core.work_items import (
     WorkItem,
@@ -25,6 +26,8 @@ if TYPE_CHECKING:
 
 class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
     """Mixin providing PostgreSQL-based work-item operations."""
+
+    logger = get_logger(__name__)
 
     # ------------------------------------------------------------------
     # Helpers
@@ -134,54 +137,75 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
             WorkItem.model_validate(self._convert_work_item_json_fields(dict(row))) for row in rows
         ]
 
-    async def list_work_items(
+    async def list_work_items(  # noqa: PLR0913
         self,
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
         created_by: str | None = None,
+        work_item_status: list[WorkItemStatus] | None = None,
+        name_search: str | None = None,
     ) -> list[WorkItem]:
         """List all work items. If *agent_id* is provided, the list is further filtered to that
         agent. If *created_by* is provided, the list is further filtered to work items created
-        by that user."""
+        by that user. If *work_item_status* is provided, the list is filtered by status.
+        If *name_search* is provided, the list is filtered by work item name."""
 
         if agent_id is not None:
             self._validate_uuid(agent_id)
         if created_by is not None:
             self._validate_uuid(created_by)
 
-        # Use a sentinel UUID when *agent_id* or *created_by* is None so that we can keep a
-        # single query without running into Postgres' "ambiguous parameter"
-        # issue for untyped NULLs. The all-zero UUID will never match a real
-        # agent_id or created_by (because agent_id and created_by are generated with uuid4()).
-        sentinel_agent_uuid = "00000000-0000-0000-0000-000000000000"
-        sentinel_created_by_uuid = "00000000-0000-0000-0000-000000000000"
+        # Prepare status values for IN clause
+        status_values = [status.value for status in work_item_status] if work_item_status else None
 
         params: dict[str, object] = {
-            # If agent_id is None we pass the sentinel value; the SQL logic
-            # treats that the same as "no filtering".
-            "agent_id": agent_id or sentinel_agent_uuid,
-            # Extra flag so the OR condition knows whether to apply the filter.
-            "agent_filter_on": agent_id is not None,
             # Limit to N rows
             "limit": limit,
             # ... starting from the Mth row
             "offset": offset,
-            "created_by": created_by or sentinel_created_by_uuid,
-            "created_by_filter_on": created_by is not None,
         }
 
         query = """
-            SELECT w.*
-              FROM v2.work_items w
-             WHERE (%(agent_filter_on)s = FALSE OR w.agent_id = %(agent_id)s::uuid)
-               AND (%(created_by_filter_on)s = FALSE OR w.created_by = %(created_by)s::uuid)
-             ORDER BY w.created_at DESC
-             LIMIT %(limit)s
+            SELECT
+                w.*
+            FROM v2.work_items w
+        """
+
+        filters = []
+
+        if agent_id is not None:
+            params["agent_id"] = agent_id
+            filters.append("w.agent_id = %(agent_id)s::uuid")
+
+        # Created by filtering
+        if created_by is not None:
+            params["created_by"] = created_by
+            filters.append("w.created_by = %(created_by)s::uuid")
+
+        # Status filtering (postgres can interpolate the list binding for IN clause)
+        if work_item_status is not None:
+            params["status"] = status_values
+            filters.append("w.status = ANY(%(status)s)")
+
+        # Name search filtering
+        if name_search is not None:
+            # Add in leading/trailing wildcards for case-insensitive search
+            params["name_search"] = f"%{name_search}%"
+            filters.append("w.work_item_name ILIKE %(name_search)s")
+
+        if filters:
+            query += "WHERE " + ("\nAND ".join(filters))
+
+        # Always add the order, limit/offset clauses
+        query += """
+            ORDER BY w.updated_at DESC
+            LIMIT %(limit)s
             OFFSET %(offset)s
         """
 
         async with self._cursor() as cur:
+            self.logger.debug(f"listing work items: {query} with params: {params}")
             await cur.execute(query, params)
             rows = await cur.fetchall()
 

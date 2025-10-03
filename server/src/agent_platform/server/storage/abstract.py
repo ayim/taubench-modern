@@ -440,12 +440,14 @@ class AbstractStorage(ABC):
         """Get work items by IDs."""
 
     @abstractmethod
-    async def list_work_items(
+    async def list_work_items(  # noqa: PLR0913
         self,
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
         created_by: str | None = None,
+        work_item_status: list[WorkItemStatus] | None = None,
+        name_search: str | None = None,
     ) -> list[WorkItem]:
         """List all work items for the given user and agent."""
 

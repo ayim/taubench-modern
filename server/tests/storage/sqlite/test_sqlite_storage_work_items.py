@@ -177,12 +177,273 @@ async def test_list_work_items_filtering(
         await storage.create_work_item(wi)
 
     all_items = await storage.list_work_items()
-    assert len(all_items) >= 3  # could be more if other tests created items
+    assert len(all_items) == 3  # could be more if other tests created items
 
     by_agent = await storage.list_work_items(agent_id=sample_agent.agent_id)
     # Exactly the two we inserted for first agent should be returned
     ids_first_agent = {items[0].work_item_id, items[1].work_item_id}
     assert ids_first_agent.issubset({wi.work_item_id for wi in by_agent})
+
+
+@pytest.mark.asyncio
+async def test_list_work_items_status_filtering(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test filtering work items by status."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Create work items with different statuses
+    pending_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        status=WorkItemStatus.PENDING,
+        messages=[],
+        payload={},
+    )
+    completed_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        status=WorkItemStatus.COMPLETED,
+        messages=[],
+        payload={},
+    )
+    error_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        status=WorkItemStatus.ERROR,
+        messages=[],
+        payload={},
+    )
+
+    for item in [pending_item, completed_item, error_item]:
+        await storage.create_work_item(item)
+
+    # Test filtering by status
+    pending_items = await storage.list_work_items(work_item_status=[WorkItemStatus.PENDING])
+    assert len(pending_items) == 1
+    assert all(wi.status == WorkItemStatus.PENDING for wi in pending_items)
+    assert pending_item.work_item_id in {wi.work_item_id for wi in pending_items}
+
+    completed_items = await storage.list_work_items(work_item_status=[WorkItemStatus.COMPLETED])
+    assert len(completed_items) == 1
+    assert all(wi.status == WorkItemStatus.COMPLETED for wi in completed_items)
+    assert completed_item.work_item_id in {wi.work_item_id for wi in completed_items}
+
+    error_items = await storage.list_work_items(work_item_status=[WorkItemStatus.ERROR])
+    assert len(error_items) == 1
+    assert all(wi.status == WorkItemStatus.ERROR for wi in error_items)
+    assert error_item.work_item_id in {wi.work_item_id for wi in error_items}
+
+    # Test filtering by multiple statuses
+    multiple_status_items = await storage.list_work_items(
+        work_item_status=[WorkItemStatus.PENDING, WorkItemStatus.COMPLETED]
+    )
+    assert len(multiple_status_items) == 2
+    assert all(
+        wi.status in [WorkItemStatus.PENDING, WorkItemStatus.COMPLETED]
+        for wi in multiple_status_items
+    )
+    assert pending_item.work_item_id in {wi.work_item_id for wi in multiple_status_items}
+    assert completed_item.work_item_id in {wi.work_item_id for wi in multiple_status_items}
+
+
+@pytest.mark.asyncio
+async def test_list_work_items_search_functionality(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test searching work items by agent name and work item name."""
+    # Create agents with different names
+    search_agent = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Search Test Agent",
+        },
+    )
+    other_agent = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Other Agent",
+        },
+    )
+
+    await storage.upsert_agent(sample_user_id, search_agent)
+    await storage.upsert_agent(sample_user_id, other_agent)
+
+    # Create work items with different names
+    search_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=search_agent.agent_id,
+        work_item_name="Search Test Work Item",
+        messages=[],
+        payload={},
+    )
+    other_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=other_agent.agent_id,
+        work_item_name="Other Work Item",
+        messages=[],
+        payload={},
+    )
+
+    for item in [search_item, other_item]:
+        await storage.create_work_item(item)
+
+    # Test searching by agent name
+    search_results = await storage.list_work_items(name_search="Search Test")
+    assert len(search_results) == 1
+    assert search_item.work_item_id in {wi.work_item_id for wi in search_results}
+
+    # Test searching by work item name
+    work_item_search = await storage.list_work_items(name_search="Work Item")
+    assert len(work_item_search) == 2  # Both items should match
+    assert search_item.work_item_id in {wi.work_item_id for wi in work_item_search}
+    assert other_item.work_item_id in {wi.work_item_id for wi in work_item_search}
+
+    # Test case-insensitive search
+    case_search = await storage.list_work_items(name_search="search test")
+    assert len(case_search) == 1
+    assert search_item.work_item_id in {wi.work_item_id for wi in case_search}
+
+    # Test partial search
+    partial_search = await storage.list_work_items(name_search="Test")
+    assert len(partial_search) == 1
+    assert search_item.work_item_id in {wi.work_item_id for wi in partial_search}
+
+
+@pytest.mark.asyncio
+async def test_list_work_items_combined_filtering(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test combining multiple filters (status + search)."""
+    search_agent = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Combined Test Agent",
+        },
+    )
+    await storage.upsert_agent(sample_user_id, search_agent)
+
+    # Create work items with different statuses and names
+    pending_search_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=search_agent.agent_id,
+        status=WorkItemStatus.PENDING,
+        work_item_name="Pending Search Item",
+        messages=[],
+        payload={},
+    )
+    completed_search_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=search_agent.agent_id,
+        status=WorkItemStatus.COMPLETED,
+        work_item_name="Completed Search Item",
+        messages=[],
+        payload={},
+    )
+
+    for item in [pending_search_item, completed_search_item]:
+        await storage.create_work_item(item)
+
+    # Test combined filtering
+    combined_results = await storage.list_work_items(
+        work_item_status=[WorkItemStatus.PENDING], name_search="Search"
+    )
+    assert len(combined_results) == 1
+    assert pending_search_item.work_item_id in {wi.work_item_id for wi in combined_results}
+    assert completed_search_item.work_item_id not in {wi.work_item_id for wi in combined_results}
+
+    # Test with different status
+    completed_combined = await storage.list_work_items(
+        work_item_status=[WorkItemStatus.COMPLETED], name_search="Search"
+    )
+    assert len(completed_combined) == 1
+    assert completed_search_item.work_item_id in {wi.work_item_id for wi in completed_combined}
+    assert pending_search_item.work_item_id not in {wi.work_item_id for wi in completed_combined}
+
+    # Test with multiple statuses
+    multiple_status_combined = await storage.list_work_items(
+        work_item_status=[WorkItemStatus.PENDING, WorkItemStatus.COMPLETED], name_search="Search"
+    )
+    assert len(multiple_status_combined) == 2
+    assert pending_search_item.work_item_id in {wi.work_item_id for wi in multiple_status_combined}
+    assert completed_search_item.work_item_id in {
+        wi.work_item_id for wi in multiple_status_combined
+    }
+
+
+@pytest.mark.asyncio
+async def test_list_work_items_ordering_by_updated_at(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test that work items are ordered by updated_at DESC."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Create work items with different timestamps
+    item1 = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        messages=[],
+        payload={},
+    )
+    item2 = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        messages=[],
+        payload={},
+    )
+
+    await storage.create_work_item(item1)
+    await storage.create_work_item(item2)
+
+    # Update item2 to have a more recent updated_at
+    await storage.update_work_item_status(
+        sample_user_id, item2.work_item_id, WorkItemStatus.COMPLETED
+    )
+
+    # Get items and verify ordering
+    items = await storage.list_work_items(limit=10)
+    assert len(items) == 2
+
+    # Find our items in the results
+    item1_result = next((wi for wi in items if wi.work_item_id == item1.work_item_id), None)
+    item2_result = next((wi for wi in items if wi.work_item_id == item2.work_item_id), None)
+
+    assert item1_result is not None
+    assert item2_result is not None
+
+    # item2 should come before item1 due to more recent updated_at
+    item2_index = items.index(item2_result)
+    item1_index = items.index(item1_result)
+    assert item2_index < item1_index
 
 
 async def test_update_work_item_status(

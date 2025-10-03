@@ -111,16 +111,20 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
 
         return [WorkItem.model_validate(self._convert_work_item_json_fields(dict(r))) for r in rows]
 
-    async def list_work_items(
+    async def list_work_items(  # noqa: PLR0913
         self,
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
         created_by: str | None = None,
+        work_item_status: list[WorkItemStatus] | None = None,
+        name_search: str | None = None,
     ) -> list[WorkItem]:
         """List all work items. If *agent_id* is
         provided, the list is further filtered to that agent. If *created_by* is
-        provided, the list is further filtered to work items created by that user."""
+        provided, the list is further filtered to work items created by that user.
+        If *work_item_status* is provided, the list is filtered by status.
+        If *name_search* is provided, the list is filtered by work item name."""
 
         if agent_id is not None:
             self._validate_uuid(agent_id)
@@ -131,16 +135,38 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
             "agent_id": agent_id,
             "limit": str(limit),
             "offset": str(offset),
-            "created_by": created_by,
         }
 
         query = """
             SELECT w.*
               FROM v2_work_items w
-             WHERE (:agent_id IS NULL OR w.agent_id = :agent_id)
-               AND (:created_by IS NULL OR w.created_by = :created_by)
-             ORDER BY w.created_at DESC
-             LIMIT :limit
+        """
+
+        filters = []
+        if agent_id:
+            params["agent_id"] = agent_id
+            filters.append("w.agent_id = :agent_id")
+
+        if created_by:
+            params["created_by"] = created_by
+            filters.append("w.created_by = :created_by")
+
+        if work_item_status:
+            status_values = [status.value for status in work_item_status]
+            status_in_clause = ", ".join(f"'{status}'" for status in status_values)
+            filters.append(f"w.status IN ({status_in_clause})")
+
+        if name_search:
+            # No ILIKE in sqlite, so we normalize and use LIKE.
+            params["name_search"] = f"%{name_search}%"
+            filters.append("LOWER(w.work_item_name) LIKE LOWER(:name_search)")
+
+        if filters:
+            query += "WHERE " + ("\nAND ".join(filters))
+
+        query += """
+            ORDER BY w.updated_at DESC
+            LIMIT :limit
             OFFSET :offset
         """
 

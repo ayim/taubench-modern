@@ -11471,6 +11471,10 @@ export interface operations {
         offset?: number;
         /** @description The ID of the user who created the work items */
         created_by?: string | null;
+        /** @description Filter by work item status (can specify multiple statuses) */
+        work_item_status?: components['schemas']['WorkItemStatus'][] | null;
+        /** @description Search in work item name */
+        name_search?: string | null;
       };
       header?: never;
       path?: never;
@@ -11542,6 +11546,10 @@ export interface operations {
         offset?: number;
         /** @description The ID of the user who created the work items */
         created_by?: string | null;
+        /** @description Filter by work item status (can specify multiple statuses) */
+        work_item_status?: components['schemas']['WorkItemStatus'][] | null;
+        /** @description Search in work item name */
+        name_search?: string | null;
       };
       header?: never;
       path?: never;

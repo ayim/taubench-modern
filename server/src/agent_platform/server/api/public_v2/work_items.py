@@ -278,22 +278,29 @@ async def upload_work_item_file(
     }
 
 
-@router.get("/", response_model=WorkItemsListResponse)
+# Query parameter defaults
+_AGENT_ID_QUERY = Query(None, description="The ID of the agent to filter by")
+_LIMIT_QUERY = Query(100, ge=1, description="The maximum number of work items to return")
+_OFFSET_QUERY = Query(0, ge=0, description="The offset to start from")
+_CREATED_BY_QUERY = Query(None, description="The ID of the user who created the work items")
+_WORK_ITEM_STATUS_QUERY = Query(
+    None, description="Filter by work item status (can specify multiple statuses)"
+)
+_NAME_SEARCH_QUERY = Query(None, description="Search in work item name")
+
+
 @router.get("", response_model=WorkItemsListResponse)
+@router.get("/", response_model=WorkItemsListResponse)
 async def list_work_items(  # noqa: PLR0913
     user: AuthedUser,
     storage: StorageDependency,
-    agent_id: str | None = Query(
-        None,
-        description="The ID of the agent to filter by",
-    ),
-    limit: int = Query(100, ge=1, description="The maximum number of work items to return"),
-    offset: int = Query(0, ge=0, description="The offset to start from"),
+    agent_id: str | None = _AGENT_ID_QUERY,
+    limit: int = _LIMIT_QUERY,
+    offset: int = _OFFSET_QUERY,
     # Allow filtering by the user who created the work items to maintain similar functionality
-    created_by: str | None = Query(
-        None,
-        description="The ID of the user who created the work items",
-    ),
+    created_by: str | None = _CREATED_BY_QUERY,
+    work_item_status: list[WorkItemStatus] | None = _WORK_ITEM_STATUS_QUERY,
+    name_search: str | None = _NAME_SEARCH_QUERY,
 ) -> WorkItemsListResponse:
     # User the system user for lookups to avoid permission issues.
     work_items = await storage.list_work_items(
@@ -301,6 +308,8 @@ async def list_work_items(  # noqa: PLR0913
         limit=limit,
         offset=offset,
         created_by=created_by,
+        work_item_status=work_item_status,
+        name_search=name_search,
     )
     for work_item in work_items:
         work_item.messages = []

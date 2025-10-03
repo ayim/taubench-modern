@@ -55,18 +55,33 @@ class MockStorage:
     async def get_work_items_by_ids(self, work_item_ids: list[str]) -> list[WorkItem]:
         return [await self.get_work_item(wid) for wid in work_item_ids]
 
-    async def list_work_items(
+    async def list_work_items(  # noqa: PLR0913
         self,
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
         created_by: str | None = None,
+        work_item_status: list[WorkItemStatus] | None = None,
+        name_search: str | None = None,
     ) -> list[WorkItem]:
         candidates = list(self.work_items.values())
         if agent_id:
             candidates = [item for item in candidates if item.agent_id == agent_id]
         if created_by:
             candidates = [item for item in candidates if item.created_by == created_by]
+        if work_item_status:
+            candidates = [item for item in candidates if item.status in work_item_status]
+        if name_search:
+            search_lower = name_search.lower()
+            filtered_candidates = []
+            for item in candidates:
+                # Check work item name
+                if item.work_item_name and search_lower in item.work_item_name.lower():
+                    filtered_candidates.append(item)
+            candidates = filtered_candidates
+
+        # Sort by updated_at DESC (most recent first)
+        candidates.sort(key=lambda x: x.updated_at, reverse=True)
 
         # Apply pagination
         return candidates[offset : offset + limit]

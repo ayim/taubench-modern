@@ -703,6 +703,47 @@ export const spec = {
             },
             description: 'The ID of the user who created the work items',
           },
+          {
+            name: 'work_item_status',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/WorkItemStatus',
+                  },
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description:
+                'Filter by work item status (can specify multiple statuses)',
+              title: 'Work Item Status',
+            },
+            description:
+              'Filter by work item status (can specify multiple statuses)',
+          },
+          {
+            name: 'name_search',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description: 'Search in work item name',
+              title: 'Name Search',
+            },
+            description: 'Search in work item name',
+          },
         ],
         responses: {
           '200': {
@@ -832,6 +873,47 @@ export const spec = {
               title: 'Created By',
             },
             description: 'The ID of the user who created the work items',
+          },
+          {
+            name: 'work_item_status',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/WorkItemStatus',
+                  },
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description:
+                'Filter by work item status (can specify multiple statuses)',
+              title: 'Work Item Status',
+            },
+            description:
+              'Filter by work item status (can specify multiple statuses)',
+          },
+          {
+            name: 'name_search',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description: 'Search in work item name',
+              title: 'Name Search',
+            },
+            description: 'Search in work item name',
           },
         ],
         responses: {
