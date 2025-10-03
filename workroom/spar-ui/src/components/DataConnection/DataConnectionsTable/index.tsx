@@ -1,4 +1,4 @@
-import { Box, EmptyState, Typography } from '@sema4ai/components';
+import { Box, EmptyState, Progress, Typography } from '@sema4ai/components';
 import { IconPlus } from '@sema4ai/icons';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 
@@ -7,7 +7,7 @@ import { ButtonLink } from '../../../common/link/ButtonLink';
 import { DataConnectionRow } from './components/DataConnectionRow';
 
 export const DataConnectionTable = () => {
-  const { data: dataSources = [] } = useDataConnectionsQuery({});
+  const { data: dataSources = [], isLoading } = useDataConnectionsQuery({});
 
   const filterConfiguration: TableWithFilterConfiguration<DataConnection> = {
     id: 'data-connections',
@@ -41,6 +41,10 @@ export const DataConnectionTable = () => {
       },
     },
   };
+
+  if (isLoading) {
+    return <Progress variant="page" />;
+  }
 
   if (dataSources.length === 0) {
     return (

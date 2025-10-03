@@ -1,8 +1,8 @@
+import { Progress } from '@sema4ai/components';
 import { NEW_CHAT_STARTING_MSG, streamManager } from '@sema4ai/spar-ui';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { AgentNotFound } from '~/components/AgentNotFound';
-import { TransitionLoader } from '~/components/Loaders';
 import { router } from '~/components/providers/Router';
 import { createSparAPIClient } from '~/lib/SparAPIClient';
 import { TenantMeta } from '~/lib/tenantContext';
@@ -170,6 +170,6 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       initial_thread_message: search.initial_thread_message ? String(search.initial_thread_message) : undefined,
     };
   },
-  pendingComponent: TransitionLoader,
+  pendingComponent: () => <Progress variant="page" />,
   errorComponent: AgentNotFound,
 });

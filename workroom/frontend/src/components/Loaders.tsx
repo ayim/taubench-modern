@@ -1,11 +1,10 @@
 import { Box, Progress } from '@sema4ai/components';
-import { styled } from '@sema4ai/theme';
 
 /**
- * Inline Loader
- * Use when a View container is displayed, but the content is not ready yet
+ * Full screen progress loading state indicator
+ * Used only when the whole page is in a loading state (i.e. initial application boot or auth callback endpoints)
  */
-export const InlineLoader = () => {
+export const FullScreenLoader = () => {
   return (
     <Box
       display="flex"
@@ -18,29 +17,5 @@ export const InlineLoader = () => {
     >
       <Progress />
     </Box>
-  );
-};
-
-const InlineContainer = styled.div`
-  position: fixed;
-  top: 0px;
-  left: 0px;
-  height: 200px;
-  width: 100%;
-  z-index: ${({ theme }) => theme.zIndex.focus};
-  > div {
-    height: 2px;
-  }
-`;
-
-/**
- * Transition Loader
- * Use when a View is not shown until the content is not ready
- */
-export const TransitionLoader = () => {
-  return (
-    <InlineContainer>
-      <Progress variant="page" />
-    </InlineContainer>
   );
 };

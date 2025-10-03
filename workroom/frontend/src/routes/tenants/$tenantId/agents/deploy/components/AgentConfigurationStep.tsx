@@ -59,7 +59,7 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
           Icon & Name
         </Typography>
         <Box display="flex" gap="$8">
-          {Icon ? <AgentIcon icon={Icon} /> : <AgentIcon icon={IconActions} />}
+          {Icon ? <AgentIcon icon={Icon} variant="brand" /> : <AgentIcon icon={IconActions} variant="brand" />}
           <Box width="100%">
             <Input label="" {...register('name')} error={errors.name?.message} />
           </Box>

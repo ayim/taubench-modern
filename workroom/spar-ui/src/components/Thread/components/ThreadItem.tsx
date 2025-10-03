@@ -15,7 +15,7 @@ type ThreadItemProps = {
   scenarioId: string | null;
 };
 
-const Container = styled(Box)<{ $hovered: boolean }>`
+const Container = styled(Box)`
   > a {
     overflow: hidden;
     display: block;
@@ -24,8 +24,17 @@ const Container = styled(Box)<{ $hovered: boolean }>`
     white-space: nowrap;
   }
 
-  > button {
-    display: ${({ $hovered }) => ($hovered ? 'block' : 'none')};
+  &:hover > a {
+    color: ${({ theme }) => theme.colors.content.primary.color};
+  }
+
+  &:has([aria-expanded='true']) {
+    > button {
+      display: block;
+    }
+    > a {
+      color: ${({ theme }) => theme.colors.content.primary.color};
+    }
   }
 
   &:hover {
@@ -68,7 +77,6 @@ const ToolTipContent: FC<{ name: string; createdAt?: string }> = ({ name, create
 
 export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) => {
   const { agentId, threadId: activeThreadId } = useParams('/thread/$agentId/$threadId');
-  const [menuVisible, setMenuVisible] = useState(false);
   const { mutate: deleteThread, isPending: isDeleting } = useDeleteThreadMutation({ agentId });
   const { mutate: updateThread } = useUpdateThreadMutation({ agentId });
   const { data: threads } = useThreadsQuery({ agentId });
@@ -147,6 +155,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
         value={threadName}
         onChange={(e) => setThreadName(e.target.value)}
         onBlur={onThreadRename}
+        variant="ghost"
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             onThreadRename();
@@ -160,7 +169,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
 
   return (
     <Tooltip text={<ToolTipContent name={name} createdAt={thread?.created_at} />} placement="bottom-end" $nowrap>
-      <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center" $hovered={menuVisible}>
+      <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center">
         {isDeleting && <Progress variant="page" />}
 
         <SidebarLink to="/thread/$agentId/$threadId" params={{ threadId, agentId }}>
@@ -171,12 +180,10 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
         </SidebarLink>
 
         <Menu
-          visible={menuVisible}
-          setVisible={setMenuVisible}
           trigger={<Button variant="ghost-subtle" size="small" icon={IconDotsHorizontal} aria-label="Thread actions" />}
         >
-          <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
           <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
+          <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
         </Menu>
       </Container>
     </Tooltip>

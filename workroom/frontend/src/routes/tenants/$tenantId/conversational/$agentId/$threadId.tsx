@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
 import { useLocalStorage } from '@sema4ai/robocloud-ui-utils';
-import { Button } from '@sema4ai/components';
+import { Button, Progress } from '@sema4ai/components';
 
 import { EmptyView } from '~/components/EmptyView';
-import { TransitionLoader } from '~/components/Loaders';
 import { getAgentMetaQueryOptions } from '~/queries/agents';
 import { ThreadsUIContext } from './components/ThreadsUIContext';
 import { Layout } from './components/Layout';
@@ -25,7 +24,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     return { agentMeta };
   },
   component: View,
-  pendingComponent: TransitionLoader,
+  pendingComponent: () => <Progress variant="page" />,
 });
 
 function View() {

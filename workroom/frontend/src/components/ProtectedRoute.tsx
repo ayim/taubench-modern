@@ -2,7 +2,7 @@ import { FC, ReactNode, createContext, useContext, useEffect, useMemo } from 're
 import { useAuth as useAuthUtil } from '@sema4ai/robocloud-ui-utils';
 
 import { useAuthOptions } from '~/queries/auth';
-import { InlineLoader } from './Loaders';
+import { FullScreenLoader } from './Loaders';
 
 type Props = {
   children?: ReactNode;
@@ -39,7 +39,7 @@ export const ProtectedRoute: FC<Props> = ({ children }) => {
   );
 
   if (!authOptions || (!authOptions?.bypassAuth && (isAuthOptionsLoading || isLoading || !isAuthenticated))) {
-    return <InlineLoader />;
+    return <FullScreenLoader />;
   }
 
   return <AuthContext.Provider value={authContext}>{children}</AuthContext.Provider>;

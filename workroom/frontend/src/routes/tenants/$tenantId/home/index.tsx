@@ -1,6 +1,15 @@
 import { useState, useMemo, useCallback } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Box, Button, Filter, FilterGroup, Grid as GridBase, ToggleInputButton, Typography } from '@sema4ai/components';
+import {
+  Box,
+  Button,
+  Filter,
+  FilterGroup,
+  Grid as GridBase,
+  ToggleInputButton,
+  Typography,
+  Progress,
+} from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
 import { IconArrowRight, IconSearch } from '@sema4ai/icons';
 import { AgentContextMenu } from '@sema4ai/spar-ui';
@@ -8,12 +17,12 @@ import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 import { components } from '@sema4ai/agent-server-interface';
 import { styled } from '@sema4ai/theme';
+import { IconAgents } from '@sema4ai/icons/logos';
 
 import { Page } from '~/components/layout/Page';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
 import { AgentUploadForm } from './components/AgentUploadForm';
-import { InlineLoader } from '~/components/Loaders';
 
 export const Route = createFileRoute('/tenants/$tenantId/home/')({
   component: HomePage,
@@ -58,6 +67,7 @@ function HomePage() {
         placeholder="Search"
         onChange={(e) => setSearch(e.target.value)}
         onClear={() => setSearch('')}
+        buttonVariant="ghost-subtle"
       />
     );
   }, [search]);
@@ -80,7 +90,7 @@ function HomePage() {
   }, [search, filters, onAgentSearch]);
 
   if (isLoading) {
-    return <InlineLoader />;
+    return <Progress variant="page" />;
   }
 
   if (allAgents.length === 0) {
@@ -96,7 +106,7 @@ function HomePage() {
   }
 
   return (
-    <Page title="Sema4.ai Agents" actions={<AgentUploadForm />}>
+    <Page title="Sema4.ai Agents" icon={IconAgents} actions={<AgentUploadForm />}>
       <Filter
         contentBefore={searchInput}
         options={filterOptions}
@@ -121,7 +131,11 @@ function HomePage() {
                 <AgentCard
                   variant="thumbnail"
                   illustration={
-                    <AgentIcon mode={isConversationalAgent(agent) ? 'conversational' : 'worker'} size="m" />
+                    <AgentIcon
+                      mode={isConversationalAgent(agent) ? 'conversational' : 'worker'}
+                      size="m"
+                      identifier={agent.id || ''}
+                    />
                   }
                   version={agent.version}
                   title={agent.name}

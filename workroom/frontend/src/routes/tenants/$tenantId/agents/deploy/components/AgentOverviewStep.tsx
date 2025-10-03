@@ -15,7 +15,7 @@ export const AgentOverviewStep: FC<Props> = ({ agentTemplate }) => {
   return (
     <Box>
       <AgentCard
-        illustration={<AgentIcon mode={agentTemplate.metadata.mode} />}
+        illustration={<AgentIcon mode={agentTemplate.metadata.mode} variant="brand" />}
         version={agentTemplate.version}
         title={agentTemplate.name}
         description={agentTemplate.description}

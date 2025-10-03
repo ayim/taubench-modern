@@ -40,11 +40,13 @@ export const WorkerHeader: FC<Props> = ({ children }) => {
         {...triggerProps}
         ref={triggerRef}
       />
-      <Box display="flex" alignItems="center" gap="$12">
-        <AgentIcon mode="worker" size="s" />
-        <Typography variant="body-large" fontWeight="medium">
-          {agent.name}
-        </Typography>
+      <Box display="flex" alignItems="center" gap="$12" minWidth={0}>
+        <AgentIcon mode="worker" size="s" identifier={agent.id || ''} />
+        <Box maxWidth="100%" overflow="hidden">
+          <Typography variant="body-large" fontWeight="medium" $nowrap truncate={1}>
+            {agent.name}
+          </Typography>
+        </Box>
       </Box>
       <Box display="flex" alignItems="center" gap="$8" ml="auto">
         <Tooltip text="New Work Item" placement="bottom">

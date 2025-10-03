@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Box, Button, Typography, Progress, Menu, Divider } from '@sema4ai/components';
+import { Box, Button, Typography, Menu, Divider, Progress } from '@sema4ai/components';
 import {
   IconPlus,
   IconDotsHorizontal,
@@ -15,8 +15,8 @@ import { ConversationGuideCard } from '../ConversationGuideCard/ConversationGuid
 import { UpsertSectionDialog, UpsertSectionFormData } from '../UpsertSectionDialog/UpsertSectionDialog';
 
 export interface ConversationGuidesViewProps {
-    agentId: string;
-    editMode: 'readOnly'; // Add write mode once ready to implement in Studio: the UI logic is there, the API will require using dedicated handlers as Studio currently uses the file system for syncing: direct agent calls should not be done.
+  agentId: string;
+  editMode: 'readOnly'; // Add write mode once ready to implement in Studio: the UI logic is there, the API will require using dedicated handlers as Studio currently uses the file system for syncing: direct agent calls should not be done.
 }
 
 export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentId, editMode }) => {
@@ -58,14 +58,14 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
       updatedQuestionGroups = [...currentQuestionGroups];
       updatedQuestionGroups[editingIndex] = {
         title: data.name,
-        questions: data.prompts.map(p => p.text),
+        questions: data.prompts.map((p) => p.text),
       };
     } else {
       updatedQuestionGroups = [
         ...currentQuestionGroups,
         {
           title: data.name,
-          questions: data.prompts.map(p => p.text),
+          questions: data.prompts.map((p) => p.text),
         },
       ];
     }
@@ -109,7 +109,7 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
 
   const handleSectionDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault();
-    
+
     if (draggedSectionIndex === null || draggedSectionIndex === targetIndex) {
       setDraggedSectionIndex(null);
       return;
@@ -138,7 +138,7 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
       const section = agent.question_groups[editingIndex];
       return {
         name: section.title,
-        prompts: section.questions?.map(q => ({ text: q })) || [{ text: '' }],
+        prompts: section.questions?.map((q) => ({ text: q })) || [{ text: '' }],
       };
     }
     return {
@@ -161,38 +161,39 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
 
   return (
     <>
-    <Box display="flex" flexDirection="column" gap="$16" padding="$16" height="100%" overflow="hidden">
+      <Box display="flex" flexDirection="column" gap="$16" padding="$16" height="100%" overflow="hidden">
         {/* Header */}
         <Box display="flex" flexDirection="column" gap="$8" flexShrink="0">
           <Box display="flex" alignItems="center" gap="$8">
-          <Typography variant="display-small">Conversation Guide</Typography>
+            <Typography variant="display-small">Conversation Guide</Typography>
           </Box>
           <Typography variant="body-medium">
-            Creating a Conversation Guide helps users understand an Agent’s unique capabilities. Edit the automatically generated guide based on your Agent below. 
+            Creating a Conversation Guide helps users understand an Agent’s unique capabilities. Edit the automatically
+            generated guide based on your Agent below.
           </Typography>
           {allowEditing && (
             <Box display="flex" justifyContent="space-between" paddingTop="$8" mb="$8" gap="$8">
-            <Button variant="outline" round onClick={handleOpenUpsertSectionDialog} disabled={isReorderMode}>
-            <IconPlus size="16" />
-              Add New Section
-            </Button>
-            <Button 
-              variant={isReorderMode ? "primary" : "ghost"} 
-              round 
-              onClick={handleToggleReorderMode}
-              disabled={questionGroups.length === 0}
-              icon={isReorderMode ? IconCheckmark : IconNumberedList}
-            >
-              {isReorderMode ? "Done" : "Reorder"}
-            </Button>
-          </Box>
-        )}
+              <Button variant="outline" round onClick={handleOpenUpsertSectionDialog} disabled={isReorderMode}>
+                <IconPlus size="16" />
+                Add New Section
+              </Button>
+              <Button
+                variant={isReorderMode ? 'primary' : 'ghost'}
+                round
+                onClick={handleToggleReorderMode}
+                disabled={questionGroups.length === 0}
+                icon={isReorderMode ? IconCheckmark : IconNumberedList}
+              >
+                {isReorderMode ? 'Done' : 'Reorder'}
+              </Button>
+            </Box>
+          )}
           <Divider />
         </Box>
 
         <Box display="flex" flexDirection="column" gap="$12" flex="1" overflow="auto" minHeight="0">
           {questionGroups.map((questionGroup, groupIndex) => (
-            <Box 
+            <Box
               draggable={isReorderMode}
               onDragStart={isReorderMode ? (e) => handleSectionDragStart(e, groupIndex) : undefined}
               onDragOver={isReorderMode ? handleSectionDragOver : undefined}
@@ -203,22 +204,17 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
                 cursor: isReorderMode ? 'grab' : 'default',
               }}
             >
-              <Box 
-                display="flex" 
-                alignItems="center" 
-                justifyContent="space-between" 
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
                 marginBottom="$8"
                 padding="$8"
                 borderRadius="$8"
               >
                 <Box display="flex" alignItems="center" gap="$8">
                   {isReorderMode && (
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      style={{ cursor: 'grab' }}
-                    >
+                    <Box display="flex" alignItems="center" justifyContent="center" style={{ cursor: 'grab' }}>
                       <IconMenu size={20} />
                     </Box>
                   )}
@@ -236,39 +232,33 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
                       />
                     }
                   >
-                    <Menu.Item
-                      onClick={() => handleEditSection(groupIndex)}
-                      icon={IconEdit}
-                    >
+                    <Menu.Item onClick={() => handleEditSection(groupIndex)} icon={IconEdit}>
                       Edit
                     </Menu.Item>
-                    <Menu.Item
-                      onClick={() => handleDeleteSection(groupIndex)}
-                      icon={IconTrash}
-                    >
+                    <Menu.Item onClick={() => handleDeleteSection(groupIndex)} icon={IconTrash}>
                       Delete
                     </Menu.Item>
                   </Menu>
                 )}
               </Box>
               <Box display="flex" flexDirection="column" gap="$8">
-              {questionGroup.questions?.map((question) => (
-                <ConversationGuideCard 
-                  title={question} 
-                  onClick={() => sendMessage(question, [])} 
-                  disabled={isStreaming}
-                />
-              ))}
+                {questionGroup.questions?.map((question) => (
+                  <ConversationGuideCard
+                    title={question}
+                    onClick={() => sendMessage(question, [])}
+                    disabled={isStreaming}
+                  />
+                ))}
               </Box>
             </Box>
           ))}
         </Box>
       </Box>
-      <UpsertSectionDialog 
-        open={dialogOpen} 
-        onClose={handleCloseDialog} 
-        onSubmit={handleSubmitSection} 
-        isLoading={isUpdating} 
+      <UpsertSectionDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSubmit={handleSubmitSection}
+        isLoading={isUpdating}
         initialValues={getInitialValues()}
         isEditing={editingIndex !== null}
       />

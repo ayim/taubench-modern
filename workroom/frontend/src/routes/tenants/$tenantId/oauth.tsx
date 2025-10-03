@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useSnackbar } from '@sema4ai/components';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import { InlineLoader } from '~/components/Loaders';
+import { FullScreenLoader } from '~/components/Loaders';
 
 export const Route = createFileRoute('/tenants/$tenantId/oauth')({
   component: View,
@@ -53,5 +53,5 @@ function View() {
     initAuth();
   }, [agentAPIClient, navigate, addSnackbar]);
 
-  return <InlineLoader />;
+  return <FullScreenLoader />;
 }

@@ -7,7 +7,6 @@ export const Main = styled.main`
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-areas: 'aside section';
-  overflow: hidden;
 
   ${({ theme }) => theme.screen.m} {
     grid-template-columns: 1fr;

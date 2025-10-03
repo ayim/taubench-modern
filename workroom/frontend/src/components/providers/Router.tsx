@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { RouterProvider as RouterProviderBase, createRouter } from '@tanstack/react-router';
 
 import { AgentAPIClient } from '~/lib/AgentAPIClient';
-import { InlineLoader } from '~/components/Loaders';
+import { FullScreenLoader } from '~/components/Loaders';
 import { routeTree } from '~/routeTree.gen';
 import { queryClient } from './QueryClient';
 import { useAuth } from '../ProtectedRoute';
@@ -11,7 +11,7 @@ import { NotFoundRoute } from '../NotFoundRoute';
 
 export const router = createRouter({
   routeTree,
-  defaultPendingComponent: InlineLoader,
+  defaultPendingComponent: FullScreenLoader,
   defaultPendingMs: 100,
   context: {
     queryClient,
@@ -40,7 +40,7 @@ export const RouterProvider = () => {
   }, [getUserToken]);
 
   if (!context.agentAPIClient) {
-    return <InlineLoader />;
+    return <FullScreenLoader />;
   }
 
   return <RouterProviderBase router={router} context={context} />;

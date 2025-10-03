@@ -62,11 +62,13 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
         {...triggerProps}
         ref={triggerRef}
       />
-      <Box display="flex" alignItems="center" gap="$12">
-        <AgentIcon mode="conversational" size="s" />
-        <Typography variant="body-large" fontWeight="medium">
-          {agent.name}
-        </Typography>
+      <Box display="flex" alignItems="center" gap="$12" minWidth={0}>
+        <AgentIcon mode="conversational" size="s" identifier={agent.id || ''} />
+        <Box maxWidth="100%" overflow="hidden">
+          <Typography variant="body-large" fontWeight="medium" $nowrap truncate={1}>
+            {agent.name}
+          </Typography>
+        </Box>
         <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
       </Box>
       <Box display="flex" alignItems="center" gap="$8" ml="auto">

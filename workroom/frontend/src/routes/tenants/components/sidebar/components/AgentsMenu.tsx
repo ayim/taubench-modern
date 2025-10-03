@@ -43,7 +43,7 @@ export const AgentsMenu = () => {
         return (
           agent.id && (
             <RouterSideNavigationLink
-              icon={<AgentIcon mode="conversational" size="s" />}
+              icon={<AgentIcon mode="conversational" size="s" identifier={agent.id || ''} />}
               key={agent.id}
               to="/tenants/$tenantId/conversational/$agentId"
               params={{ tenantId, agentId: agent.id }}
@@ -67,7 +67,7 @@ export const AgentsMenu = () => {
         return (
           agent.id && (
             <RouterSideNavigationLink
-              icon={<AgentIcon mode="worker" size="s" />}
+              icon={<AgentIcon mode="worker" size="s" identifier={agent.id || ''} />}
               key={agent.id}
               to="/tenants/$tenantId/worker/$agentId"
               params={{ tenantId, agentId: agent.id }}
