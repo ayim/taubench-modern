@@ -312,11 +312,14 @@ def test_get_run_status_happy_path(
     aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
     # tweak runner so that invoke never returns to simulate long-running if desired
 
+    running_blocker = asyncio.Event()
+
     class SlowRunner(StubRunner):
         async def invoke(self, kernel):
             if final_state == "running":
-                # never finishes --> server will mark running
-                await asyncio.sleep(0.05)
+                # Block until the test explicitly releases the runner so the
+                # run remains in the "running" state while we query status.
+                await running_blocker.wait()
             else:
                 await super().invoke(kernel)
 
@@ -325,9 +328,13 @@ def test_get_run_status_happy_path(
     run_resp = client.post(f"/runs/{aid}/async", json=make_initial_payload(aid, tid))
     run_id = run_resp.json()["run_id"]
 
-    status_resp = client.get(f"/runs/{run_id}/status")
-    assert status_resp.status_code == 200
-    assert status_resp.json()["status"] == final_state
+    try:
+        status_resp = client.get(f"/runs/{run_id}/status")
+        assert status_resp.status_code == 200
+        assert status_resp.json()["status"] == final_state
+    finally:
+        if final_state == "running":
+            running_blocker.set()
 
 
 def test_get_run_status_not_found(client: TestClient):
