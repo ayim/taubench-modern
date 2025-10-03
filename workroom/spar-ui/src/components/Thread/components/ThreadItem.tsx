@@ -1,9 +1,10 @@
-import { Box, Button, Input, Menu, Progress, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
+import { FC, useState } from 'react';
+import { Box, Button, Menu, Progress, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
 import { IconChemicalBottle, IconDotsHorizontal } from '@sema4ai/icons';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
-import { FC, useEffect, useRef, useState } from 'react';
 
+import { RenameDialog } from '../../../common/dialogs/RenameDialog';
 import { formatDateTime } from '../../../common/helpers';
 import { SidebarLink } from '../../../common/link';
 import { useNavigate, useParams } from '../../../hooks';
@@ -83,8 +84,6 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const [isRenaming, setIsRenaming] = useState(false);
-  const [threadName, setThreadName] = useState(name);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const onDeleteConfirm = useDeleteConfirm(
     {
@@ -93,12 +92,6 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
     },
     [],
   );
-
-  useEffect(() => {
-    if (isRenaming) {
-      inputRef.current?.focus();
-    }
-  }, [isRenaming]);
 
   const onThreadDelete = onDeleteConfirm(() => {
     deleteThread(
@@ -129,41 +122,19 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
     );
   });
 
-  const onThreadRename = () => {
-    setIsRenaming(false);
-
-    if (threadName !== name) {
-      updateThread(
-        { threadId, name: threadName },
-        {
-          onSuccess: () => {
-            addSnackbar({
-              message: 'Thread renamed successfully',
-              variant: 'success',
-            });
-          },
+  const onThreadRename = (threadName: string) => {
+    updateThread(
+      { threadId, name: threadName },
+      {
+        onSuccess: () => {
+          addSnackbar({
+            message: 'Thread renamed successfully',
+            variant: 'success',
+          });
         },
-      );
-    }
-  };
-
-  if (isRenaming) {
-    return (
-      <Input
-        ref={inputRef}
-        aria-label="Thread name"
-        value={threadName}
-        onChange={(e) => setThreadName(e.target.value)}
-        onBlur={onThreadRename}
-        variant="ghost"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            onThreadRename();
-          }
-        }}
-      />
+      },
     );
-  }
+  };
 
   const thread = threads?.find((curr) => curr.thread_id === threadId);
 
@@ -186,6 +157,14 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
           <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
         </Menu>
       </Container>
+      {isRenaming && (
+        <RenameDialog
+          onClose={() => setIsRenaming(false)}
+          onRename={onThreadRename}
+          entityName={name}
+          entityType="Thread"
+        />
+      )}
     </Tooltip>
   );
 };

@@ -2,7 +2,7 @@ import { createSparMutation, createSparQuery, createSparQueryOptions } from './s
 import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/form';
 
 // TODO: Remove type casting once interface is fixed
-type SemanticModel = {
+export type SemanticModel = {
   id: string;
   name: string;
   description: string;
@@ -133,3 +133,29 @@ export const useCreateSemanticDataMutation = createSparMutation<
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
   },
 }));
+
+/**
+ * Delete Semantic Data Model
+ */
+export const useDeleteSemanticDataModelMutation = createSparMutation<object, { agentId: string; modelId: string }>()(
+  ({ sparAPIClient, queryClient }) => ({
+    mutationFn: async ({ modelId }) => {
+      const deleteResponse = await sparAPIClient.queryAgentServer(
+        'delete',
+        '/api/v2/semantic-data-models/{semantic_data_model_id}',
+        {
+          params: { path: { semantic_data_model_id: modelId } },
+        },
+      );
+
+      if (!deleteResponse.success) {
+        throw new Error(deleteResponse.message || 'Failed to delete Semantic Data model');
+      }
+
+      return deleteResponse.data;
+    },
+    onSuccess: (_, { agentId }) => {
+      queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
+    },
+  }),
+);
