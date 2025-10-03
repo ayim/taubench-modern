@@ -237,7 +237,7 @@ export const getConfiguration = (): Configuration => {
     ? { enabled: true, reason: null }
     : { enabled: false, reason: 'This feature is not available for this deployment' };
 
-  const dataServerHost = process.env.SEMA4AI_WORKROOM_DATA_SERVER_HOST_DEV_OVERRIDE ?? 'http://localhost';
+  const dataServerHost = process.env.SEMA4AI_WORKROOM_DATA_SERVER_HOST_OVERRIDE ?? 'http://localhost';
 
   return {
     agentServerInternalUrl,
