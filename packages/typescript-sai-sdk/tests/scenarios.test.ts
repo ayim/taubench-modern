@@ -49,14 +49,14 @@ describe('Scenario Tests', () => {
       expect(scenario.name).toBe('Basic Q&A');
       expect(scenario.prompt).toContain('capital of France');
       expect(scenario.tools).toHaveLength(0);
-      expect(scenario.context.temperature).toBe(0.2);
+      expect(scenario.context.temperature).toBe(0.3);
 
       // Test scenario summary
       const summary = getScenarioSummary(scenario);
       expect(summary.name).toBe('Basic Q&A');
       expect(summary.toolCount).toBe(0);
       expect(summary.hasSystemInstruction).toBe(false);
-      expect(summary.temperature).toBe(0.2);
+      expect(summary.temperature).toBe(0.3);
     });
 
     it.skipIf(!hasValidApiKey())('should execute basic text generation scenario', async () => {
@@ -528,13 +528,13 @@ describe('Scenario Tests', () => {
         .build();
 
       expect(validateScenario(scenario)).toBe(true);
-      expect(scenario.context.temperature).toBe(0.8);
+      expect(scenario.context.temperature).toBe(0.9);
       expect(scenario.context.top_p).toBe(0.9);
-      expect(scenario.context.max_output_tokens).toBe(3072);
+      expect(scenario.context.max_output_tokens).toBe(4096);
 
       const summary = getScenarioSummary(scenario);
-      expect(summary.temperature).toBe(0.8);
-      expect(summary.maxOutputTokens).toBe(3072);
+      expect(summary.temperature).toBe(0.9);
+      expect(summary.maxOutputTokens).toBe(4096);
     });
 
     it.skipIf(!hasValidApiKey())('should execute creative writing scenario', async () => {
@@ -703,9 +703,9 @@ describe('Scenario Tests', () => {
 
       expect(modifiedScenario.name).toBe('Original Task');
       expect(modifiedScenario.prompt).toBe('Solve this problem: What is 5 + 7?');
-      expect(modifiedScenario.context.temperature).toBe(0.8); // Creative context
+      expect(modifiedScenario.context.temperature).toBe(0.9); // Creative context
       expect(originalScenario.prompt).toBe('Solve this problem: What is 2 + 2?');
-      expect(originalScenario.context.temperature).toBe(0.2); // Conservative context
+      expect(originalScenario.context.temperature).toBe(0.3); // Conservative context
     });
 
     it('should merge contexts correctly', () => {

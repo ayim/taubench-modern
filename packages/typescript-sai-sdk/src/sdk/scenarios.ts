@@ -324,13 +324,18 @@ export class ScenarioBuilder implements ScenarioDefinitionBuilder {
         // Check for tool calls and handle incremental execution
         if (currentResponse.content) {
           for (const content of currentResponse.content) {
+            logger.infoIf(this.scenario.verbose, '[ScenarioBuilder.stream] content:', content);
             if (content.kind === 'tool_use' && content.tool_name && content.tool_call_id) {
               const toolId = content.tool_call_id;
               const toolName = content.tool_name;
               const currentInputRaw = content.tool_input_raw || '';
+              logger.infoIf(this.scenario.verbose, '[ScenarioBuilder.stream] > toolName:', toolName);
+              logger.infoIf(this.scenario.verbose, '[ScenarioBuilder.stream] > toolId:', toolId);
+              logger.infoIf(this.scenario.verbose, '[ScenarioBuilder.stream] > currentInputRaw:', currentInputRaw);
 
               // Find the tool definition
               const tool = this.scenario.tools.find((t) => t.name === toolName);
+              logger.infoIf(this.scenario.verbose, '[ScenarioBuilder.stream] > tool:', tool);
               if (!tool) {
                 logger.warnIf(this.scenario.verbose, `Tool ${toolName} not found in scenario tools`);
                 continue;

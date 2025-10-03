@@ -68,19 +68,23 @@ export function createContext(): ContextDefinitionBuilder {
 
 // Context preset functions
 export function createDefaultContext(): ContextDefinitionBuilder {
-  return createContext().setTemperature(0.0).setTopP(0.5).setMaxOutputTokens(256);
+  return createContext().setTemperature(0.1).setTopP(0.5).setMaxOutputTokens(1024);
 }
 
 export function createConservativeContext(): ContextDefinitionBuilder {
-  return createContext().setTemperature(0.2).setTopP(0.7).setMaxOutputTokens(1024);
+  return createContext().setTemperature(0.3).setTopP(0.7).setMaxOutputTokens(2048);
 }
 
 export function createBalancedContext(): ContextDefinitionBuilder {
-  return createContext().setTemperature(0.6).setTopP(0.8).setMaxOutputTokens(2048);
+  return createContext().setTemperature(0.6).setTopP(0.8).setMaxOutputTokens(3072);
 }
 
 export function createCreativeContext(): ContextDefinitionBuilder {
-  return createContext().setTemperature(0.8).setTopP(0.9).setMaxOutputTokens(3072).setSeed(42);
+  return createContext()
+    .setTemperature(0.9)
+    .setTopP(0.9)
+    .setMaxOutputTokens(4096)
+    .setSeed(Math.floor(Math.random() * 1000000));
 }
 
 export type { ContextDefinitionBuilder };

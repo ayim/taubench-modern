@@ -11,15 +11,18 @@ import {
 export interface PromptEndpointClientConfig {
   baseUrl: string;
   fetch?: typeof fetch;
+  verbose?: boolean;
 }
 
 export class PromptEndpointClient {
   private baseUrl: string;
   private fetchFn: typeof fetch;
+  private verbose: boolean;
 
   constructor(config: PromptEndpointClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.fetchFn = config.fetch || fetch.bind(globalThis);
+    this.verbose = config.verbose || false;
   }
 
   /**
@@ -72,6 +75,8 @@ export class PromptEndpointClient {
       body: JSON.stringify(validatedRequest),
     });
 
+    logger.infoIf(this.verbose, '[ScenarioBuilder.stream] got response:', response);
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -106,7 +111,7 @@ export class PromptEndpointClient {
                 const validatedOperation = JsonPatchOperationSchema.parse(operation);
                 yield validatedOperation;
               } catch (error) {
-                logger.warn('Failed to parse streaming data:', dataStr, error);
+                logger.errorIf(this.verbose, 'Failed to parse streaming data:', dataStr, error);
               }
             }
           }

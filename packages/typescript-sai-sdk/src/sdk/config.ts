@@ -84,7 +84,10 @@ export class SaiSDKConfiguration {
     this.config = config;
 
     // Initialize the prompt client
-    this.promptClient = new PromptEndpointClient(config.promptClient);
+    this.promptClient = new PromptEndpointClient({
+      ...config.promptClient,
+      verbose: config.options?.debug,
+    });
 
     // Initialize the ephemeral agent client
     this.ephemeralAgentClient = new EphemeralAgentClient({

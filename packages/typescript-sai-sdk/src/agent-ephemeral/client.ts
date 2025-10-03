@@ -276,8 +276,8 @@ export function createBasicAgentConfig(options: {
     extra: {},
     advanced_config: {
       architecture: agent_architecture?.name || ('agent_platform.architectures.default' as const),
-      reasoning: 'enabled' as const,
-      recursion_limit: 10,
+      reasoning: 'disabled' as const,
+      recursion_limit: 2,
       langsmith: null,
     },
     metadata: {
