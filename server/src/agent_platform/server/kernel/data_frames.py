@@ -420,6 +420,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                             contents=possible_table,
                         )
                         data_frame_summary = self._data_frame_summary(data_frame)
+                        logger.info(
+                            f"Automatically created data frame {name} from {tool_def.name}."
+                        )
                         msg = f"Data frame {name} created from {tool_def.name}.\nDetails: "
                         msg += data_frame_summary
 

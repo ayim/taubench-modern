@@ -81,13 +81,14 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
                 # Handling of various result types...
                 if isinstance(result, ActionResponse):
-                    logger.info(f"ActionResponse: {result}")
+                    logger.info("Result is an ActionResponse.")
                     result_output = result.result
                     error_message = result.error
                     # Store the action_run_id directly in the result
                     if result.action_server_run_id:
                         tool_result_args["action_server_run_id"] = result.action_server_run_id
                 elif isinstance(result, dict):
+                    logger.info("Result is a dict.")
                     # Check for error_code format
                     if "error_code" in result and result["error_code"] != "":
                         error_code = result["error_code"]
@@ -108,9 +109,11 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
                 # Handles all primitive types that action servers can return
                 elif result is None or isinstance(result, str | int | float | bool):
+                    logger.info(f"Result is a primitive type: {type(result)}.")
                     result_output = result  # This will be stringified later in the run
                 else:
                     # We received a malformed result from the tool
+                    logger.info(f"Result is a malformed type: {type(result)}.")
                     error_message = "Received a malformed result from the tool"
                     result_output = result
             except Exception as e:
