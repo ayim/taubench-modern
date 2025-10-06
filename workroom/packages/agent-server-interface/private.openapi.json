@@ -3093,6 +3093,16 @@
               ],
               "title": "Thread Id"
             }
+          },
+          {
+            "name": "minimize_reasoning",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Minimize Reasoning"
+            }
           }
         ],
         "requestBody": {
@@ -3198,6 +3208,16 @@
                 }
               ],
               "title": "Thread Id"
+            }
+          },
+          {
+            "name": "minimize_reasoning",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Minimize Reasoning"
             }
           }
         ],

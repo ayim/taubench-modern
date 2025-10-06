@@ -265,8 +265,11 @@ class DefaultModelSelector(ModelSelector):
         # Filter by direct model name if specified
         if request.direct_model_name:
             logger.debug(f"Filtering by direct model name: {request.direct_model_name}")
+            target_name = request.direct_model_name
             filtered_candidates = [
-                c for c in filtered_candidates if c.generic_id == request.direct_model_name
+                c
+                for c in filtered_candidates
+                if c.generic_id == target_name or c.generic_id.endswith(f"/{target_name}")
             ]
             if not filtered_candidates:
                 logger.warning(

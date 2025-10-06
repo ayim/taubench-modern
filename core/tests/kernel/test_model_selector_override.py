@@ -1,7 +1,11 @@
+from typing import cast
+
 import pytest
 
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.model_selector import DefaultModelSelector
+from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
+from agent_platform.core.platforms.base import PlatformClient
 
 
 class _DummyParams:
@@ -130,6 +134,34 @@ class _MinimalKernel(Kernel):
     @property
     def work_item(self):  # type: ignore[override]
         raise NotImplementedError
+
+
+@pytest.mark.unit
+def test_default_selector_accepts_simple_model_slug():
+    """Passing a short model slug still resolves to the generic id."""
+    selector = DefaultModelSelector()
+    platform = _DummyClient(name="openai", params=_DummyParams({"openai": ["gpt-4-1"]}))
+
+    selected = selector.select_model(
+        platform=cast(PlatformClient, platform),
+        request=ModelSelectionRequest(direct_model_name="gpt-4-1"),
+    )
+
+    assert selected == "openai/openai/gpt-4-1"
+
+
+@pytest.mark.unit
+def test_default_selector_accepts_full_generic_id():
+    """Passing the canonical generic id still matches exactly."""
+    selector = DefaultModelSelector()
+    platform = _DummyClient(name="openai", params=_DummyParams({"openai": ["gpt-4-1"]}))
+
+    selected = selector.select_model(
+        platform=cast(PlatformClient, platform),
+        request=ModelSelectionRequest(direct_model_name="openai/openai/gpt-4-1"),
+    )
+
+    assert selected == "openai/openai/gpt-4-1"
 
 
 @pytest.mark.unit

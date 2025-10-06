@@ -116,7 +116,9 @@ async def prompt_generate(  # noqa: PLR0913
     model_type: ModelType = "llm",
     agent_id: str | None = None,
     thread_id: str | None = None,
+    minimize_reasoning: bool = False,
 ):
+    prompt.minimize_reasoning = minimize_reasoning
     await prompt.finalize_messages()
 
     # Get agent and observability config if agent_id is available
@@ -204,7 +206,9 @@ async def prompt_stream(  # noqa: PLR0913
     model_type: ModelType = "llm",
     agent_id: str | None = None,
     thread_id: str | None = None,
+    minimize_reasoning: bool = False,
 ) -> EventSourceResponse:
+    prompt.minimize_reasoning = minimize_reasoning
     await prompt.finalize_messages()
 
     # Get agent and observability config if agent_id is available

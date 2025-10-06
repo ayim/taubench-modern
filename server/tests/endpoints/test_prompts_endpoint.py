@@ -2,6 +2,7 @@ import json
 import uuid
 from collections.abc import AsyncGenerator
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -9,7 +10,10 @@ from fastapi import Request
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.agent.agent_architecture import AgentArchitecture
+from agent_platform.core.platforms.configs import PlatformModelConfigs
+from agent_platform.core.platforms.openai.converters import OpenAIConverters
 from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
+from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.prompts.content.document import PromptDocumentContent
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
 from agent_platform.core.prompts.finalizers.truncation_finalizer import (
@@ -53,8 +57,10 @@ class _DummyConverters:
 class _DummyPlatformClient:
     """Enough surface area to satisfy the endpoint helpers."""
 
-    def __init__(self, kind: str) -> None:
+    def __init__(self, kind: str, parameters=None) -> None:
         self.kind = kind
+        self.name = kind
+        self.parameters = parameters
         self.converters = _DummyConverters()
 
     def attach_kernel(self, kernel) -> None:
@@ -127,23 +133,24 @@ _DUMMY_CTX.start_span.return_value.__exit__ = MagicMock(return_value=None)
 # Re-usable monkey-patches
 # ──────────────────────────────────────────────────────────────────────────────
 @pytest.fixture(autouse=True)
-def _patch_dependencies(monkeypatch):
+def _patch_dependencies(monkeypatch, request):
     """Redirect all heavyweight collaborators to our dummies."""
     # Make every platform config return the dummy client -------------------------------
     monkeypatch.setattr(
         "agent_platform.core.platforms.base.PlatformClient.from_platform_config",
-        lambda kernel, config: _DummyPlatformClient(config.kind),
+        lambda kernel, config: _DummyPlatformClient(config.kind, config),
     )
 
     # Avoid needing a real model selector ----------------------------------------------
-    monkeypatch.setattr(
-        "agent_platform.core.model_selector.default.DefaultModelSelector.select_model",
-        lambda *a, **k: (
-            k["request"].direct_model_name or "dummy-model"  # Direct name might be None
-            if "request" in k
-            else "dummy-model"
-        ),
-    )
+    if request.node.get_closest_marker("real_selector") is None:
+        monkeypatch.setattr(
+            "agent_platform.core.model_selector.default.DefaultModelSelector.select_model",
+            lambda *a, **k: (
+                k["request"].direct_model_name or "dummy-model"  # Direct name might be None
+                if "request" in k
+                else "dummy-model"
+            ),
+        )
 
     # Short-circuit context & kernel construction --------------------------------------
     monkeypatch.setattr(
@@ -545,3 +552,180 @@ async def test_generate_endpoint_with_document_content(monkeypatch):
     assert doc_content.mime_type == "application/pdf"
     assert doc_content.value == base64_content
     assert doc_content.sub_type == "base64"
+
+
+@pytest.mark.asyncio
+@pytest.mark.real_selector
+async def test_generate_endpoint_resolves_short_model_slug(monkeypatch):
+    """The prompt endpoint upgrades a slug into the canonical model id."""
+
+    captured: dict[str, str] = {}
+
+    class _RecordedResponse:
+        def __init__(self, model: str) -> None:
+            self.model = model
+
+        def excluding_raw_response(self) -> dict[str, str]:
+            return {"model": self.model}
+
+    async def _record_model(self, prompt, model: str):
+        captured["model"] = model
+        return _RecordedResponse(model)
+
+    monkeypatch.setattr(
+        "agent_platform.server.kernel.model_platform.AgentServerPlatformInterface.generate_response",
+        _record_model,
+    )
+
+    fake_prompt = SimpleNamespace(
+        finalize_messages=AsyncMock(return_value=None),
+        messages=[],
+    )
+
+    response = cast(
+        dict[str, str],
+        await prompt_generate(
+            prompt=fake_prompt,  # type: ignore[arg-type]
+            user=User(user_id="testing", sub="testing"),
+            request=Request(scope={"type": "http", "method": "POST", "path": "/"}),
+            storage=_DummyStorage(),  # type: ignore[arg-type]
+            platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
+            model="gpt-4-1",
+        ),
+    )
+
+    expected = "openai/openai/gpt-4-1"
+    assert response["model"] == expected
+    assert captured["model"] == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.real_selector
+async def test_generate_endpoint_resolves_full_generic_id(monkeypatch):
+    """Canonical ids keep working alongside short slugs."""
+
+    captured: dict[str, str] = {}
+
+    class _RecordedResponse:
+        def __init__(self, model: str) -> None:
+            self.model = model
+
+        def excluding_raw_response(self) -> dict[str, str]:
+            return {"model": self.model}
+
+    async def _record_model(self, prompt, model: str):
+        captured["model"] = model
+        return _RecordedResponse(model)
+
+    monkeypatch.setattr(
+        "agent_platform.server.kernel.model_platform.AgentServerPlatformInterface.generate_response",
+        _record_model,
+    )
+
+    fake_prompt = SimpleNamespace(
+        finalize_messages=AsyncMock(return_value=None),
+        messages=[],
+    )
+
+    canonical = "openai/openai/gpt-4-1"
+    response = cast(
+        dict[str, str],
+        await prompt_generate(
+            prompt=fake_prompt,  # type: ignore[arg-type]
+            user=User(user_id="testing", sub="testing"),
+            request=Request(scope={"type": "http", "method": "POST", "path": "/"}),
+            storage=_DummyStorage(),  # type: ignore[arg-type]
+            platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
+            model=canonical,
+        ),
+    )
+
+    assert response["model"] == canonical
+    assert captured["model"] == canonical
+
+
+@pytest.mark.asyncio
+async def test_generate_endpoint_respects_minimize_reasoning(monkeypatch):
+    """The minimize_reasoning query flag is forwarded to the prompt."""
+
+    observed: dict[str, Any] = {}
+
+    converters = OpenAIConverters()
+    platform_configs = PlatformModelConfigs()
+
+    async def _convert_prompt(
+        self,
+        prompt,
+        model_id: str | None = None,
+    ):
+        converted = await converters.convert_prompt(prompt, model_id=model_id)
+        observed["converted_prompt"] = converted
+        observed["convert_model_id"] = model_id
+        observed["convert_minimize_reasoning"] = prompt.minimize_reasoning
+        return converted
+
+    monkeypatch.setattr(
+        _DummyConverters,
+        "convert_prompt",
+        _convert_prompt,
+    )
+
+    class _RecordedResponse:
+        def __init__(self, model: str) -> None:
+            self.model = model
+
+        def excluding_raw_response(self) -> dict[str, str]:
+            return {"model": self.model}
+
+    async def _record_generate(
+        self,
+        converted_prompt,
+        model: str,
+    ):
+        observed["generate_model"] = model
+        generic_model_id = model if model.count("/") == 2 else f"openai/openai/{model}"
+        platform_specific_model = platform_configs.models_to_platform_specific_model_ids[
+            generic_model_id
+        ]
+        request_payload = converted_prompt.as_platform_request(platform_specific_model)
+        observed["request_payload"] = request_payload
+        return _RecordedResponse(platform_specific_model)
+
+    monkeypatch.setattr(
+        _DummyPlatformClient,
+        "generate_response",
+        _record_generate,
+    )
+
+    prompt = Prompt(
+        messages=[PromptUserMessage([PromptTextContent(text="Hello")])],
+    )
+
+    response = await prompt_generate(
+        prompt=prompt,
+        user=User(user_id="testing", sub="testing"),
+        request=Request(scope={"type": "http", "method": "POST", "path": "/"}),
+        storage=_DummyStorage(),  # type: ignore[arg-type]
+        platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
+        model="gpt-5-high",
+        minimize_reasoning=True,
+    )
+
+    assert prompt.minimize_reasoning is True
+    assert observed["convert_model_id"] == "gpt-5-high"
+    assert observed["convert_minimize_reasoning"] is True
+
+    assert observed["generate_model"] == "gpt-5-high"
+
+    converted_prompt = observed["converted_prompt"]
+    assert isinstance(converted_prompt, OpenAIPrompt)
+    assert "effort" in converted_prompt.reasoning
+    assert converted_prompt.reasoning["effort"] == "minimal"
+    assert "summary" in converted_prompt.reasoning
+    assert converted_prompt.reasoning["summary"] == "concise"
+
+    request_payload = observed["request_payload"]
+    assert request_payload["model"].startswith("gpt-5")
+    assert request_payload["reasoning"]["effort"] == "minimal"
+    assert request_payload["reasoning"]["summary"] == "concise"
+    assert response["model"] == request_payload["model"]  # type: ignore

@@ -53,6 +53,42 @@ curl -X POST 'http://localhost:8000/api/v2/prompts/generate' \
 }'
 ```
 
+### Query parameters
+
+- `model` – pick a specific deployment. The server accepts either the full canonical id (e.g.
+  `openai/openai/gpt-4-1`) or the short slug that OpenAI and others expose publicly (e.g.
+  `gpt-4-1`). When a short slug is supplied the selector resolves it to the matching canonical id
+  before contacting the provider, so existing allowlists that already contain slugs keep working.
+- `minimize_reasoning` – when set to `true` the underlying prompt is routed with
+  `minimize_reasoning=True`, which signals providers that support the flag to bias toward shorter
+  reasoning traces and faster responses.
+
+```bash
+curl -X POST 'http://localhost:8000/api/v2/prompts/generate?model=gpt-4-1&minimize_reasoning=true' \
+-H 'Content-Type: application/json' \
+-d '{
+  "platform_config_raw": {
+    "kind": "openai",
+    "openai_api_key": "REDACTED"
+  },
+  "prompt": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "text": "Say hello!"
+          }
+        ]
+      }
+    ]
+  }
+}'
+```
+
+If `model` is omitted the server falls back to the default selection logic shown in the earlier
+example. `minimize_reasoning` defaults to `false` for both `/generate` and `/stream`.
+
 Example output:
 
 ```json
