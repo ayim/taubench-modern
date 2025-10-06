@@ -2,9 +2,11 @@ import os
 from collections.abc import Callable, Generator
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
+from requests.exceptions import RequestException
 
 from agent_platform.core.data_server.data_connection import DataConnection
 from agent_platform.core.payloads.document_intelligence_config import (
@@ -60,17 +62,78 @@ def agent_server_client(spar_agent_server_base_url: str) -> Generator[AgentServe
 
 @pytest.fixture
 def agent_server_client_with_doc_int(
-    agent_server_client: AgentServerClient, reducto_api_key: str, reducto_endpoint: str
+    agent_server_client: AgentServerClient,
+    reducto_api_key: str,
+    reducto_endpoint: str,
 ) -> AgentServerClient:
-    # The hardcoded port and username / password are default values
-    # Used when SKIP_CONFIGURATION is set to TRUE
+    # Allow the data server connection details to be overridden so that the fixture can
+    # work against either the docker-compose network (default) or services exposed on the
+    # host when running a hot-reloadable Agent Server instance locally.
+    #
+    # The default values are used when SKIP_CONFIGURATION is set to TRUE
     # See https://github.com/Sema4AI/data/blob/master/docker/data-server/default_config.json
+
+    def _env_default(name: str, default: str) -> str:
+        return os.getenv(name, default)
+
+    def _env_int(name: str, default: int) -> int:
+        return int(os.getenv(name, str(default)))
+
+    # Data Server (MindsDB) connection
+    http_url_env = os.getenv("SPAR_DATA_SERVER_HTTP_URL")
+    if http_url_env:
+        parsed_http = urlparse(http_url_env)
+        http_url = http_url_env
+        http_port = _env_int("SPAR_DATA_SERVER_HTTP_PORT", parsed_http.port or 47334)
+    else:
+        http_host = _env_default(
+            "SPAR_DATA_SERVER_HTTP_HOST", _env_default("SPAR_DATA_SERVER_HOST", "data-server")
+        )
+        http_url = f"http://{http_host}" if "://" not in http_host else http_host
+        http_port = _env_int("SPAR_DATA_SERVER_HTTP_PORT", 47334)
+
+    mysql_host = _env_default(
+        "SPAR_DATA_SERVER_MYSQL_HOST",
+        _env_default("SPAR_DATA_SERVER_HOST", "data-server"),
+    )
+    mysql_port = _env_int("SPAR_DATA_SERVER_MYSQL_PORT", 47335)
+    data_server_username = _env_default("SPAR_DATA_SERVER_USERNAME", "sema4ai")
+    data_server_password = _env_default("SPAR_DATA_SERVER_PASSWORD", "sema4ai")
+
+    # Data connection used by Document Intelligence extractions
+    parsed_postgres = urlparse(
+        _env_default(
+            "SPAR_DATA_CONNECTION_POSTGRES_URL", "postgresql://agents:agents@postgres:5432/agents"
+        )
+    )
+    data_connection_host = _env_default(
+        "SPAR_DATA_CONNECTION_HOST",
+        parsed_postgres.hostname or "postgres",
+    )
+    data_connection_port = _env_int(
+        "SPAR_DATA_CONNECTION_PORT",
+        parsed_postgres.port or 5432,
+    )
+    data_connection_user = _env_default(
+        "SPAR_DATA_CONNECTION_USER",
+        parsed_postgres.username or "agents",
+    )
+    data_connection_password = _env_default(
+        "SPAR_DATA_CONNECTION_PASSWORD",
+        parsed_postgres.password or "agents",
+    )
+    data_connection_database = _env_default(
+        "SPAR_DATA_CONNECTION_DATABASE",
+        parsed_postgres.path.lstrip("/") or "agents",
+    )
+    data_connection_engine = _env_default("SPAR_DATA_CONNECTION_ENGINE", "postgres")
+
     doc_int_config = DocumentIntelligenceConfigPayload(
         data_server=DataServerConfig(
-            credentials=_Credentials(username="sema4ai", password="sema4ai"),
+            credentials=_Credentials(username=data_server_username, password=data_server_password),
             api=_ApiConfig(
-                http=_HttpConfig(url="http://data-server", port=47334),
-                mysql=_MysqlConfig(host="http://data-server", port=47335),
+                http=_HttpConfig(url=http_url, port=http_port),
+                mysql=_MysqlConfig(host=mysql_host, port=mysql_port),
             ),
         ),
         integrations=[
@@ -84,18 +147,27 @@ def agent_server_client_with_doc_int(
             DataConnection(
                 external_id="1",
                 name="DocumentIntelligence",
-                engine="postgres",
+                engine=data_connection_engine,
                 configuration={
-                    "user": "agents",
-                    "password": "agents",
-                    "host": "postgres",
-                    "port": 5432,
-                    "database": "agents",
+                    "user": data_connection_user,
+                    "password": data_connection_password,
+                    "host": data_connection_host,
+                    "port": data_connection_port,
+                    "database": data_connection_database,
                 },
             ),
         ],
     )
-    agent_server_client.configure_document_intelligence(doc_int_config)
+    try:
+        agent_server_client.configure_document_intelligence(doc_int_config)
+    except RequestException as error:
+        message = str(error)
+        if "Error configuring document intelligence" in message:
+            pytest.fail(
+                "Document Intelligence configuration failed. Set the SPAR_DATA_SERVER_* "
+                "environment variables to point to a reachable data server."
+            )
+        raise
 
     return agent_server_client
 

@@ -207,8 +207,41 @@ To develop with Document Intelligence v2, you will need to install it in editabl
 Example:
 
 ```sh
-make dev-docint-up DOCINT_PATH=../document-intelligence-worktree-1
+DOCINT_PATH=../document-intelligence-worktree-1 make dev-docint-up
 ```
+
+#### Hot-reloading SPAR integration tests
+
+Our pytest fixtures (for example `agent_server_client_with_doc_int`) allow overriding the Document Intelligence configuration via environment variables. This is especially useful when running the Agent Server outside of Docker with hot reload enabled.
+
+Set whichever of these exports you need before running `uv run pytest -v -m spar`:
+
+| Variable                            | Purpose                                                                                                  | Default                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `SPAR_DATA_SERVER_HOST`             | Data Server host.                                                                                        | `data-server`                                     |
+| `SPAR_DATA_SERVER_HTTP_URL`         | Full HTTP URL to the Data Server API. Overrides host/port when set.                                      | `None`                                            |
+| `SPAR_DATA_SERVER_HTTP_HOST`        | Data Server HTTP host (if `*_HTTP_URL` is not provided, otherwise falls back to `SPAR_DATA_SERVER_HOST`) | `data-server`                                     |
+| `SPAR_DATA_SERVER_HTTP_PORT`        | Data Server HTTP port.                                                                                   | `47334`                                           |
+| `SPAR_DATA_SERVER_MYSQL_HOST`       | Data Server MySQL host (falls back to `SPAR_DATA_SERVER_HOST` when set).                                 | `data-server`                                     |
+| `SPAR_DATA_SERVER_MYSQL_PORT`       | Data Server MySQL port.                                                                                  | `47335`                                           |
+| `SPAR_DATA_SERVER_USERNAME`         | Data Server username.                                                                                    | `sema4ai`                                         |
+| `SPAR_DATA_SERVER_PASSWORD`         | Data Server password.                                                                                    | `sema4ai`                                         |
+| `SPAR_DATA_CONNECTION_POSTGRES_URL` | Postgres connection URL.                                                                                 | `postgresql://agents:agents@postgres:5432/agents` |
+| `SPAR_DATA_CONNECTION_HOST`         | Postgres host backing Document Intelligence. (falls back to `SPAR_DATA_CONNECTION_POSTGRES_URL`)         | `postgres`                                        |
+| `SPAR_DATA_CONNECTION_PORT`         | Postgres port. (falls back to `SPAR_DATA_CONNECTION_POSTGRES_URL`)                                       | `5432`                                            |
+| `SPAR_DATA_CONNECTION_USER`         | Postgres username. (falls back to `SPAR_DATA_CONNECTION_POSTGRES_URL`)                                   | `agents`                                          |
+| `SPAR_DATA_CONNECTION_PASSWORD`     | Postgres password. (falls back to `SPAR_DATA_CONNECTION_POSTGRES_URL`)                                   | `agents`                                          |
+| `SPAR_DATA_CONNECTION_DATABASE`     | Postgres database name. (falls back to `SPAR_DATA_CONNECTION_POSTGRES_URL`)                              | `agents`                                          |
+| `SPAR_DATA_CONNECTION_ENGINE`       | Engine reported to Agent Server.                                                                         | `postgres`                                        |
+| `SPAR_DATA_CONNECTION_POSTGRES_URL` | Postgres connection URL.                                                                                 | `postgresql://agents:agents@postgres:5432/agents` |
+
+Example for running SPAR integration tests against locally running agent server and base SPAR compose stack with no profiles set (assuming `.env` file is set up correctly with valid API keys):
+
+```bash
+SPAR_DATA_SERVER_HOST=localhost uv run pytest -v -m spar
+```
+
+If the configuration still fails (for example because the data server is unreachable), the fixtures will automatically `pytest.skip(...)` the SPAR tests and print guidance so the rest of your selected suite can continue.
 
 ### Breaking Interface Changes: build failing
 
