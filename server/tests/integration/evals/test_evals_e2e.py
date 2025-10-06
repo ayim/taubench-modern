@@ -40,7 +40,27 @@ async def test_evals_e2e(  # noqa: PLR0915
 
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id=agent_id)
 
-        agent_client.send_message_to_agent_thread(agent_id, thread_id, "What is 2+2?")
+        agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            "What is 2+2?",
+        )
+
+        threads_url = f"{base_url_agent_server_evals_matrix}/api/v2"
+
+        async with AsyncClient(base_url=threads_url) as threads_client:
+
+            async def _latest_message_from_agent() -> bool:
+                response = await threads_client.get(f"/threads/{thread_id}/state")
+                assert response.status_code == 200, response.text
+                thread = response.json()
+                messages = thread.get("messages", [])
+                if not messages:
+                    return False
+                latest_message = messages[-1]
+                return latest_message.get("role") == "agent"
+
+            await _wait_until(_latest_message_from_agent, interval=0.5, timeout=60)
 
         evals_url = f"{base_url_agent_server_evals_matrix}/api/v2/evals"
 
