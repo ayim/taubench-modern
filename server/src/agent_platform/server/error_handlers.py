@@ -90,6 +90,26 @@ def convert_error_response(
 ### Default handlers
 
 
+async def generic_exception_handler(
+    request: Request,
+    exc: Exception,
+) -> ORJSONResponse:
+    """A custom handler for generic Exception exceptions that ensures the errors are
+    logged and the response is formatted correctly to match the agreed upon error shape.
+    """
+    error_response = ErrorResponse(ErrorCode.UNEXPECTED, message_override=str(exc))
+    _safe_log_error(
+        logger.error,
+        "Generic Exception (error_id=%s)",
+        error_response.error_id,
+        error_id=error_response.error_id,  # TODO: repeated for current structlog config
+        exc_info=exc,
+    )
+    return convert_error_response(
+        error_response, include_message=True, status_code=HTTP_500_INTERNAL_SERVER_ERROR
+    )
+
+
 async def http_exception_handler(
     request: Request,
     exc: HTTPException,
@@ -213,9 +233,8 @@ async def platform_error_handler(
     """A custom handler for PlatformError exceptions that ensures the errors are
     logged and the response is formatted correctly to match the agreed upon error shape.
 
-    IMPORTANT: PlatformError instances are considered INTERNAL ERRORS and should NOT
-    expose sensitive information to clients. This handler returns a generic 500 error
-    with minimal information to protect internal system details.
+    This handler returns the underlying error message to allow proper debugging
+    and error communication through the API.
     """
     # Log the error with full context using exc_info - the structlog processor
     # will automatically add all the structured error context
@@ -227,7 +246,7 @@ async def platform_error_handler(
         exc_info=exc,
     )
     return convert_error_response(
-        exc.response, include_message=False, status_code=HTTP_500_INTERNAL_SERVER_ERROR
+        exc.response, include_message=True, status_code=HTTP_500_INTERNAL_SERVER_ERROR
     )
 
 
@@ -237,9 +256,6 @@ async def platform_http_error_handler(
 ) -> ORJSONResponse:
     """A custom handler for PlatformHTTPError exceptions that ensures the errors are
     logged and the response is formatted correctly to match the agreed upon error shape.
-
-    PlatformHTTPError instances may expose information to clients, so this handler
-    uses the error's status code and may include the error message and data.
     """
     # Log the error with full context using exc_info - the structlog processor
     # will automatically add all the structured error context
@@ -254,7 +270,7 @@ async def platform_http_error_handler(
 
 
 def add_exception_handlers(app: Starlette) -> None:
-    """Adds our custom exception handlers to the provided FastAPI app."""
+    """Adds our custom exception handlers and middleware to the provided FastAPI app."""
     # Override default handlers - use type: ignore to suppress the type checker warnings
     # about handler signatures since FastAPI's type hints are not perfect
     app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[arg-type]
@@ -272,6 +288,9 @@ def add_exception_handlers(app: Starlette) -> None:
     # since PlatformHTTPError inherits from PlatformError, it must be registered first
     app.add_exception_handler(PlatformHTTPError, platform_http_error_handler)  # type: ignore[arg-type]
     app.add_exception_handler(PlatformError, platform_error_handler)  # type: ignore[arg-type]
+
+    # Generic handler last
+    app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore[arg-type]
 
 
 # -----------------------------------------------------------------------------

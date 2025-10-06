@@ -158,22 +158,16 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
         file_manager=file_manager,
     )
 
-    try:
-        schema = await run_in_threadpool(
-            agent_server_client.generate_schema,
-            uploaded_file.file_ref,
-            user_prompt=instructions,
-        )
+    schema = await run_in_threadpool(
+        agent_server_client.generate_schema,
+        uploaded_file.file_ref,
+        user_prompt=instructions,
+    )
 
-        return GenerateSchemaResponsePayload(
-            schema=schema,
-            file=uploaded_file if new_file else None,
-        )
-    except Exception as e:
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED,
-            message="Failed to generate extraction schema",
-        ) from e
+    return GenerateSchemaResponsePayload(
+        schema=schema,
+        file=uploaded_file if new_file else None,
+    )
 
 
 @router.post("/documents/parse")

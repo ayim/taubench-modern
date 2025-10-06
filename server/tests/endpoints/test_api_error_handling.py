@@ -171,7 +171,7 @@ def fastapi_app_with_error_handling(mock_error_storage, test_user):
 
 @pytest.fixture
 def client(fastapi_app_with_error_handling):
-    return TestClient(fastapi_app_with_error_handling)
+    return TestClient(fastapi_app_with_error_handling, raise_server_exceptions=False)
 
 
 class TestHTTPErrorHandling:
@@ -225,22 +225,128 @@ class TestHTTPErrorHandling:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_internal_server_error_returns_500(self, client: TestClient, mock_error_storage):
-        """Test that internal server errors return 500 status."""
-        # Configure storage to raise a generic exception
-        mock_error_storage.configure_error(Exception, "Internal error")
+    def test_platform_error_returns_500_with_custom_message(
+        self, client: TestClient, mock_error_storage
+    ):
+        """Test that PlatformError returns 500 with the custom message in the API response.
+
+        This verifies that when PlatformError is raised (to capture internal errors),
+        the underlying message is sent out via the API for debugging purposes.
+        """
+        from agent_platform.core.errors import PlatformError
+
+        # Configure storage to raise a PlatformError with custom message
+        custom_message = "Database connection pool exhausted"
+        mock_error_storage.configure_error(
+            PlatformError,
+            message=custom_message,
+        )
 
         thread_id = str(uuid.uuid4())
+        response = client.get(f"/threads/{thread_id}")
 
-        # The error handler should catch the exception and return 500
-        try:
-            response = client.get(f"/threads/{thread_id}")
-            # Should return 500 for unhandled exceptions
-            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        except Exception:
-            # If the exception is still being raised, that means our error handlers
-            # might not be working as expected, so we'll skip this test for now
-            pytest.skip("Error handlers not working as expected in test environment")
+        # Should return 500 for PlatformError
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+        # Check the error structure
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+        assert error_info["code"] == "unexpected"  # Default error code
+        assert "error_id" in error_info
+
+        # The custom message should be included in the response (not squelched)
+        assert error_info["message"] == custom_message
+
+    def test_platform_error_with_error_code_returns_custom_message(
+        self, client: TestClient, mock_error_storage
+    ):
+        """Test that PlatformError with a specific error code returns the custom message."""
+        from agent_platform.core.errors import PlatformError
+        from agent_platform.core.errors.responses import ErrorCode
+
+        # Configure storage to raise a PlatformError with a specific error code and message
+        custom_message = "Configuration validation failed"
+        mock_error_storage.configure_error(
+            PlatformError,
+            error_code=ErrorCode.UNEXPECTED,
+            message=custom_message,
+        )
+
+        thread_id = str(uuid.uuid4())
+        response = client.get(f"/threads/{thread_id}")
+
+        # Should return 500 for PlatformError (always 500 regardless of error code)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+        # Check the error structure
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+        assert error_info["code"] == "unexpected"
+        assert "error_id" in error_info
+
+        # The custom message should be included, not the default message
+        assert error_info["message"] == custom_message
+        assert error_info["message"] != ErrorCode.UNEXPECTED.default_message
+
+    def test_generic_exception_returns_500_with_message(
+        self, client: TestClient, mock_error_storage
+    ):
+        """Test that generic exceptions (not inheriting from PlatformError) are caught.
+
+        This verifies that any unhandled exception that doesn't inherit from
+        PlatformError is caught by the generic exception handler and returns
+        a proper error response with the exception message exposed.
+        """
+        # Configure storage to raise a generic exception
+        error_message = "Test error message: Database connection timeout after 30 seconds"
+        mock_error_storage.configure_error(Exception, error_message)
+
+        thread_id = str(uuid.uuid4())
+        response = client.get(f"/threads/{thread_id}")
+
+        # Should return 500 for unhandled exceptions
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+        # Check the error structure
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+        assert error_info["code"] == "unexpected"
+        assert "error_id" in error_info
+
+        # The exception message should be exposed in the response
+        assert error_info["message"] == error_message
+
+    def test_generic_exception_subclass_returns_500_with_message(
+        self, client: TestClient, mock_error_storage
+    ):
+        """Test that exceptions that subclass Exception (but not PlatformError) are caught."""
+
+        # Create a custom exception class
+        class CustomDatabaseError(Exception):
+            pass
+
+        # Configure storage to raise a custom exception
+        error_message = "Connection pool exhausted"
+        mock_error_storage.configure_error(CustomDatabaseError, error_message)
+
+        thread_id = str(uuid.uuid4())
+        response = client.get(f"/threads/{thread_id}")
+
+        # Should return 500 for unhandled exceptions
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+        # Check the error structure
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+        assert error_info["code"] == "unexpected"
+        assert "error_id" in error_info
+
+        # The exception message should be exposed in the response
+        assert error_info["message"] == error_message
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
     def test_agent_creation_validation_error_secret_redaction(
