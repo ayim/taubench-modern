@@ -12,6 +12,7 @@ import { ThreadItem } from '../ThreadItem';
 import { EvaluationFiltersComponent, type EvaluationFilters } from '../EvaluationFilters';
 import { getMatchingScenarioIds } from './utils';
 import { Header, SectionHeader, ScrollableContainer, ResizeHandle, AnimatedSection, AnimatedEvalSection } from './styles';
+import { NewThreadItem } from '../NewThreadItem';
 
 const defaultFilters: EvaluationFilters = {
   timeRange: 'all',
@@ -170,6 +171,7 @@ export const ThreadsList: FC = () => {
                History
              </Typography>
          </Header>
+         <NewThreadItem />
          <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
            <SectionHeader onClick={handleToggleMessages}>
              <Typography variant="body-medium" fontWeight="medium">
