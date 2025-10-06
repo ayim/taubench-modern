@@ -186,6 +186,83 @@ class TestBedrockConverters:
         assert result.additional_model_request_fields is None
 
     @pytest.mark.asyncio
+    async def test_convert_prompt_sets_budget_when_missing_max_tokens(
+        self,
+        converters: BedrockConverters,
+        kernel: Kernel,
+    ) -> None:
+        """Thinking models without maxTokens still enforce the reasoning budget."""
+
+        prompt = Prompt(
+            system_instruction="You are a helpful assistant.",
+            messages=[
+                PromptUserMessage(content=[PromptTextContent(text="Hello, world!")]),
+            ],
+        )
+
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(
+            finalized_prompt,
+            model_id="anthropic.claude-3-opus-thinking-medium",
+        )
+
+        assert result.inference_config is not None
+        assert "maxTokens" in result.inference_config
+        assert result.inference_config["maxTokens"] == 8192
+
+    @pytest.mark.asyncio
+    async def test_convert_prompt_promotes_low_max_tokens_to_budget(
+        self,
+        converters: BedrockConverters,
+        kernel: Kernel,
+    ) -> None:
+        """User-provided maxTokens below the budget are promoted to match it."""
+
+        prompt = Prompt(
+            system_instruction="You are a helpful assistant.",
+            messages=[
+                PromptUserMessage(content=[PromptTextContent(text="Hello, world!")]),
+            ],
+            max_output_tokens=2048,
+        )
+
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(
+            finalized_prompt,
+            model_id="anthropic.claude-3-opus-thinking-medium",
+        )
+
+        assert result.inference_config is not None
+        assert "maxTokens" in result.inference_config
+        assert result.inference_config["maxTokens"] == 8192
+
+    @pytest.mark.asyncio
+    async def test_convert_prompt_preserves_high_max_tokens(
+        self,
+        converters: BedrockConverters,
+        kernel: Kernel,
+    ) -> None:
+        """User maxTokens above the budget remain unchanged."""
+
+        prompt = Prompt(
+            system_instruction="You are a helpful assistant.",
+            messages=[
+                PromptUserMessage(content=[PromptTextContent(text="Hello, world!")]),
+            ],
+            max_output_tokens=12000,
+        )
+
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(
+            finalized_prompt,
+            model_id="anthropic.claude-3-opus-thinking-medium",
+        )
+
+        assert result.inference_config is not None
+        assert "maxTokens" in result.inference_config
+        assert result.inference_config["maxTokens"] == 12000
+
+    @pytest.mark.asyncio
     async def test_convert_prompt_with_tools(
         self,
         converters: BedrockConverters,

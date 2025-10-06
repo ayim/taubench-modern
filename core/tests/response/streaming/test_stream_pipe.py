@@ -251,6 +251,38 @@ async def test_stream_pipe_flush_on_timeout() -> None:
 
 
 @pytest.mark.asyncio
+async def test_stream_pipe_flush_during_continuous_ingress() -> None:
+    """Verify we still flush regularly when deltas keep arriving faster than the timeout."""
+
+    flush_interval = 0.05
+
+    async def delta_stream():
+        base_text = "Hello"
+        initial_msg = ResponseMessage(
+            content=[ResponseTextContent(text=base_text)],
+            role="agent",
+        )
+        yield GenericDelta(op="replace", path="", value=initial_msg.model_dump())
+
+        for i in range(1, 6):
+            await asyncio.sleep(flush_interval * 0.6)
+            yield GenericDelta(
+                op="replace",
+                path="/content/0/text",
+                value=f"{base_text} {i}",
+            )
+
+    prompt = Prompt(system_instruction="continuous ingress test")
+    sink = CollectingStreamSink()
+    pipe = ResponseStreamPipe(stream=delta_stream(), prompt=prompt, flush_interval=flush_interval)
+
+    await pipe.pipe_to(sink)
+
+    partial_count = sum(1 for name, _ in sink.events if name == "on_text_content_partial")
+    assert partial_count >= 2, f"expected multiple partial flushes, got {partial_count}"
+
+
+@pytest.mark.asyncio
 async def test_stream_pipe_final_flush_on_end() -> None:
     """Any residual batch must flush when the stream ends (sentinel received)."""
 

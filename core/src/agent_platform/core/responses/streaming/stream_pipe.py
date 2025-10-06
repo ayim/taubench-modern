@@ -56,6 +56,8 @@ class ResponseStreamPipe:
     DEFAULT_FLUSH_INTERVAL: float = 1.0 / 30.0
     # 3 second timeout for per-sink callback latency
     DEFAULT_SINK_TIMEOUT: float = 3.0
+    # Hard ceiling to ensure we flush within a bounded time window
+    FLUSH_INTERVAL_CEILING: float = 0.1
 
     # Thread-pool dedicated to combine_generic_deltas
     _DIFF_POOL: ClassVar[ThreadPoolExecutor] = ThreadPoolExecutor(
@@ -74,9 +76,10 @@ class ResponseStreamPipe:
     ) -> None:
         self.stream = stream
         self.source_prompt = prompt
-        self.flush_interval: float = (
+        requested_flush = (
             flush_interval if flush_interval is not None else self.DEFAULT_FLUSH_INTERVAL
         )
+        self.flush_interval = max(0.01, min(requested_flush, self.FLUSH_INTERVAL_CEILING))
 
         # Bound for per-sink callback latency
         self._sink_timeout: float = (
@@ -219,7 +222,7 @@ class ResponseStreamPipe:
             # Stream ended or errored, then we push sentinel for downstream workers
             await self._delta_q.put(DeltaEndSentinel())
 
-    async def _diff_worker(self) -> None:
+    async def _diff_worker(self) -> None:  # noqa: C901
         """Continuously diff/validate pending deltas and emit messages.
 
         The previous implementation only flushed after *reading* a delta. If
@@ -234,6 +237,9 @@ class ResponseStreamPipe:
         batch_size_limit = 128
         # Monotonic timestamp of when we last appended to the current batch
         last_batch_ts: float | None = None
+        # Track when we last flushed so we can enforce a steady cadence even
+        # while new deltas continue to arrive.
+        last_flush_ts: float = time.monotonic()
 
         while True:
             # Wait for the next delta, but time-out regularly so we can flush
@@ -243,10 +249,22 @@ class ResponseStreamPipe:
             except TimeoutError:
                 delta = None
 
+            now = time.monotonic()
+
+            # ─── Flush on elapsed wall-clock time ──────────────────
+            if batch and (now - last_flush_ts) >= self.flush_interval:
+                buffer_obj, flushed = await self._flush_batch(loop, batch, buffer_obj)
+                if flushed:
+                    batch.clear()
+                    last_batch_ts = None
+                    last_flush_ts = time.monotonic()
+
             # ─── End-of-stream sentinel ─────────────────────────────
             if isinstance(delta, DeltaEndSentinel):
                 if batch:
-                    buffer_obj, _ = await self._flush_batch(loop, batch, buffer_obj)
+                    buffer_obj, flushed = await self._flush_batch(loop, batch, buffer_obj)
+                    if flushed:
+                        last_flush_ts = time.monotonic()
                     batch.clear()
                     last_batch_ts = None
                 await self._msg_q.put(MsgEndSentinel())
@@ -254,7 +272,6 @@ class ResponseStreamPipe:
 
             # ─── Normal delta payload ──────────────────────────────
             if isinstance(delta, GenericDelta):
-                now = time.monotonic()
                 # If a new delta arrives after the flush interval elapsed,
                 # flush the existing batch first to avoid coalescing updates.
                 if (
@@ -266,6 +283,7 @@ class ResponseStreamPipe:
                     if flushed:
                         batch.clear()
                         last_batch_ts = None
+                        last_flush_ts = time.monotonic()
 
                 batch.append(delta)
                 last_batch_ts = now
@@ -276,6 +294,7 @@ class ResponseStreamPipe:
                 if flushed:
                     batch.clear()
                     last_batch_ts = None
+                    last_flush_ts = time.monotonic()
 
     async def _flush_batch(
         self,

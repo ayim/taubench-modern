@@ -639,6 +639,8 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If any content in the prompt exceeds Bedrock's limits.
         """
+        from types_boto3_bedrock_runtime.type_defs import InferenceConfigurationTypeDef
+
         is_thinking_model = model_id and "thinking" in model_id
 
         messages = await self._convert_messages(prompt.finalized_messages)
@@ -669,6 +671,20 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             minimize_reasoning=prompt.minimize_reasoning,
         )
 
+        thinking_tokens = (overrides or {}).get("thinking", {}).get("budget_tokens", 0)
+        if thinking_tokens > 0:
+            existing_max_tokens = (
+                inference_config.get("maxTokens") if inference_config is not None else None
+            )
+            required_max_tokens = max(existing_max_tokens or 0, thinking_tokens)
+
+            if inference_config is None:
+                inference_config = InferenceConfigurationTypeDef(
+                    maxTokens=required_max_tokens,
+                )
+            else:
+                inference_config["maxTokens"] = required_max_tokens
+
         return BedrockPrompt(
             messages=messages,
             system=system,
@@ -687,16 +703,32 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         if model_id is None:
             return None
 
+        # We ALWAYS want this on for Anthropic models
+        is_anthropic_model = "anthropic" in model_id
+        base_overrides = (
+            {
+                "anthropic_beta": ["fine-grained-tool-streaming-2025-05-14"],
+            }
+            if is_anthropic_model
+            else None
+        )
+
         if minimize_reasoning:
-            return None
+            return base_overrides
 
         overrides = {
             "thinking": {
                 "type": "enabled",
                 "budget_tokens": 2048,
             },
-            "anthropic_beta": ["interleaved-thinking-2025-05-14"],
+            "anthropic_beta": [
+                *(base_overrides["anthropic_beta"] if base_overrides else []),
+                "interleaved-thinking-2025-05-14",
+            ],
         }
+
+        if not is_anthropic_model:
+            del overrides["anthropic_beta"]
 
         if model_id.endswith("-high"):
             overrides["thinking"]["budget_tokens"] = 16384
@@ -705,6 +737,6 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         elif model_id.endswith("-low"):
             overrides["thinking"]["budget_tokens"] = 4096
         else:
-            return None
+            return base_overrides
 
         return overrides
