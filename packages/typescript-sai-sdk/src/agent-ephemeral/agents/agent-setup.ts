@@ -8,7 +8,7 @@ import {
   ToolDefinitionPayload,
   UpsertAgentPayload,
 } from '../types';
-import { createTool } from '../../sdk/tools';
+import { createSimpleTool } from '../../sdk/tools';
 
 const SAI_AGENT_SETUP_NAME = 'sai-sdk-ephemeral-agent';
 const SAI_AGENT_SETUP_DESCRIPTION = 'Sai SDK Ephemeral Agent';
@@ -245,7 +245,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   const tools: ToolDefinitionPayload[] = [];
 
   // Set the description of the agent
-  const setNameAndDescriptionTool: ToolDefinitionPayload = createTool(
+  const setNameAndDescriptionTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_name_and_description',
     'Set the name and description of the agent',
   )
@@ -261,7 +261,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   tools.push(setNameAndDescriptionTool);
 
   // Set the runbook of the agent
-  const setRunbookTool: ToolDefinitionPayload = createTool('set_agent_runbook', 'Set the runbook of the agent')
+  const setRunbookTool: ToolDefinitionPayload = createSimpleTool('set_agent_runbook', 'Set the runbook of the agent')
     .addStringProperty('runbook', 'The runbook of the agent')
     .addRequired('runbook')
     .setCallback((i) => agentSetupTools.callbackSetRunbook(i.runbook))
@@ -270,7 +270,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   tools.push(setRunbookTool);
 
   // Set the action packages of the agent
-  const setActionPackagesTool: ToolDefinitionPayload = createTool(
+  const setActionPackagesTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_action_packages',
     'Set the action packages of the agent',
   )
@@ -294,7 +294,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   tools.push(setActionPackagesTool);
 
   // Set the MCP servers of the agent
-  const setMcpServersTool: ToolDefinitionPayload = createTool(
+  const setMcpServersTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_mcp_servers',
     'Set the MCP servers of the agent',
   )
@@ -314,7 +314,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   tools.push(setMcpServersTool);
 
   // Set the conversation starter of the agent
-  const setConversationStarterTool: ToolDefinitionPayload = createTool(
+  const setConversationStarterTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_conversation_starter',
     'Set the conversation starter of the agent',
   )
@@ -326,7 +326,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   tools.push(setConversationStarterTool);
 
   // Set the question groups of the agent
-  const setQuestionGroupsTool: ToolDefinitionPayload = createTool(
+  const setQuestionGroupsTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_conversation_guide',
     'Set the question groups of the agent',
   )

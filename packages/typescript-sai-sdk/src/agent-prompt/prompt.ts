@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MessageContentSchema } from './content';
-import { ToolSchema } from './tools';
+import { ToolSchema } from '../tools';
 import { PlatformConfigSchema } from '../platform-config';
 
 // Message roles - extended to support special messages

@@ -1,5 +1,5 @@
 import { ScenarioTool, ScenarioToolSchema } from './types';
-import { JsonSchemaProperty, ToolCategory } from '../agent-prompt/tools';
+import { JsonSchemaProperty, ToolCategory } from '../tools';
 
 // Type for tool definition builder
 interface ToolDefinitionBuilder {
@@ -173,7 +173,7 @@ class ToolBuilder implements ToolDefinitionBuilder {
 }
 
 // Factory functions for creating tool builders
-export function createTool(name: string, description: string): ToolDefinitionBuilder {
+export function createSimpleTool(name: string, description: string): ToolDefinitionBuilder {
   const builder = new ToolBuilder();
   builder.setName(name);
   builder.setDescription(description);

@@ -3,7 +3,7 @@ import {
   PromptEndpointClient,
   createOpenAIConfig,
   createTextUserMessage,
-  createTool,
+  createSimpleTool,
   createPromptRequest,
   createImageContent,
   createTextContent,
@@ -100,7 +100,7 @@ describe('PromptEndpointClient', () => {
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
 
       // Use a simpler tool that's more likely to be supported
-      const calculatorTool = createTool('calculator', 'Perform basic arithmetic calculations')
+      const calculatorTool = createSimpleTool('calculator', 'Perform basic arithmetic calculations')
         .addStringProperty('expression', 'The mathematical expression to evaluate')
         .setRequired(['expression'])
         .build();
@@ -435,7 +435,7 @@ describe('PromptEndpointClient', () => {
     it.skipIf(!hasValidApiKey())('should handle tool choice options', async () => {
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
       const messages = [createTextUserMessage('Use the calculator')];
-      const tool = createTool('calculator', 'Calculate numbers').build();
+      const tool = createSimpleTool('calculator', 'Calculate numbers').build();
 
       const request = createPromptRequest(config, messages, [tool], {
         toolChoice: 'calculator',
@@ -527,8 +527,8 @@ describe('PromptEndpointClient', () => {
       const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
       const messages = [createTextUserMessage('Test')];
       const tools = [
-        createTool('calculator', 'Calculate numbers').build(),
-        createTool('weather', 'Get weather info').build(),
+        createSimpleTool('calculator', 'Calculate numbers').build(),
+        createSimpleTool('weather', 'Get weather info').build(),
       ];
 
       // Valid tool choices should work

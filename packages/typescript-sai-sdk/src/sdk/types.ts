@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ToolSchema } from '../agent-prompt/tools';
+import { ToolSchema } from '../tools';
 
 // Context Schema - specifies the context in which the agent operates with parameters
 export const ContextSchema = z.object({

@@ -6,7 +6,7 @@ import {
   cloneScenario,
   mergeContexts,
 } from '../src/sdk/scenarios';
-import { createTool } from '../src/sdk/tools';
+import { createSimpleTool } from '../src/sdk/tools';
 import {
   createContext,
   createConservativeContext,
@@ -89,7 +89,7 @@ describe('Scenario Tests', () => {
 
   describe('2. Tool Usage Scenario', () => {
     it('should create a scenario with calculator tool', () => {
-      const calculatorTool = createTool('calculator', 'Perform mathematical calculations')
+      const calculatorTool = createSimpleTool('calculator', 'Perform mathematical calculations')
         .addStringProperty('expression', 'Mathematical expression to evaluate (e.g., "2 + 2", "10 * 5")')
         .setRequired(['expression'])
         .setCallback((input) => {
@@ -114,7 +114,7 @@ describe('Scenario Tests', () => {
     });
 
     it.skipIf(!hasValidApiKey())('should execute tool usage scenario', async () => {
-      const weatherTool = createTool('get_weather', 'Get current weather information for a location')
+      const weatherTool = createSimpleTool('get_weather', 'Get current weather information for a location')
         .addStringProperty('location', 'City name or coordinates')
         .addEnumProperty('units', ['celsius', 'fahrenheit'], 'Temperature units')
         .setRequired(['location'])
@@ -151,7 +151,7 @@ describe('Scenario Tests', () => {
     it.skipIf(!hasValidApiKey())('should create a scenario with tool chaining', async () => {
       let orderOfToolCalls: string[] = [];
 
-      const calculatorTool = createTool('calculator', 'Perform mathematical calculations')
+      const calculatorTool = createSimpleTool('calculator', 'Perform mathematical calculations')
         .addStringProperty('expression', 'Mathematical expression to evaluate (e.g., "2 + 2", "10 * 5")')
         .setRequired(['expression'])
         .setCallback((input) => {
@@ -161,7 +161,7 @@ describe('Scenario Tests', () => {
         })
         .build();
 
-      const unitConverterTool = createTool('unit_converter', 'Convert between units')
+      const unitConverterTool = createSimpleTool('unit_converter', 'Convert between units')
         .addStringProperty('value', 'Value to convert')
         .addStringProperty('from_unit', 'Source unit')
         .addStringProperty('to_unit', 'Target unit')
@@ -211,7 +211,7 @@ describe('Scenario Tests', () => {
         const calculatorProgression: string[] = [];
         const weatherProgression: string[] = [];
 
-        const calculatorTool = createTool('calculator', 'Perform mathematical calculations')
+        const calculatorTool = createSimpleTool('calculator', 'Perform mathematical calculations')
           .addStringProperty('expression', 'Mathematical expression to evaluate (e.g., "2 + 2", "10 * 5")')
           .setRequired(['expression'])
           .setCallback((input) => {
@@ -259,7 +259,7 @@ describe('Scenario Tests', () => {
           })
           .build();
 
-        const weatherTool = createTool('get_weather', 'Get current weather information for a location')
+        const weatherTool = createSimpleTool('get_weather', 'Get current weather information for a location')
           .addStringProperty('location', 'City name or coordinates')
           .addEnumProperty('units', ['celsius', 'fahrenheit'], 'Temperature units')
           .setRequired(['location'])
@@ -319,7 +319,7 @@ describe('Scenario Tests', () => {
         let jsonPointerCallCount = 0;
         const jsonPointerProgression: string[] = [];
 
-        const greeterTool = createTool('greet_alice', 'Just greet Alice')
+        const greeterTool = createSimpleTool('greet_alice', 'Just greet Alice')
           .addStringProperty('message', 'Message to greet Alice')
           .setRequired(['message'])
           .setCallback((input) => {
@@ -434,7 +434,7 @@ describe('Scenario Tests', () => {
       let toolPartialEvents = 0;
       let toolResultEvents = 0;
 
-      const calculatorTool = createTool('calculator', 'Perform calculations')
+      const calculatorTool = createSimpleTool('calculator', 'Perform calculations')
         .addStringProperty('expression', 'Math expression to calculate')
         .setRequired(['expression'])
         .setCallback((input) => {
@@ -579,7 +579,7 @@ describe('Scenario Tests', () => {
         let callback2Called = false;
         let callback3Called = false;
 
-        const tool1 = createTool('tool1', 'First tool')
+        const tool1 = createSimpleTool('tool1', 'First tool')
           .addStringProperty('input', 'Input value')
           .setRequired(['input'])
           .setCallback((input) => {
@@ -588,7 +588,7 @@ describe('Scenario Tests', () => {
           })
           .build();
 
-        const tool2 = createTool('tool2', 'Second tool')
+        const tool2 = createSimpleTool('tool2', 'Second tool')
           .addStringProperty('input', 'Input value')
           .setRequired(['input'])
           .setCallback((input) => {
@@ -597,7 +597,7 @@ describe('Scenario Tests', () => {
           })
           .build();
 
-        const tool3 = createTool('tool3', 'Third tool')
+        const tool3 = createSimpleTool('tool3', 'Third tool')
           .addStringProperty('input', 'Input value')
           .setRequired(['input'])
           .setCallback((input) => {
@@ -638,7 +638,7 @@ describe('Scenario Tests', () => {
         let callback2Called = false;
         let callback3Called = false;
 
-        const tool1 = createTool('tool1', 'First tool')
+        const tool1 = createSimpleTool('tool1', 'First tool')
           .addStringProperty('input', 'Input value')
           .setRequired(['input'])
           .setCallback((input) => {
@@ -647,7 +647,7 @@ describe('Scenario Tests', () => {
           })
           .build();
 
-        const tool2 = createTool('tool2', 'Second tool')
+        const tool2 = createSimpleTool('tool2', 'Second tool')
           .addStringProperty('input', 'Input value')
           .setRequired(['input'])
           .setCallback((input) => {
@@ -656,7 +656,7 @@ describe('Scenario Tests', () => {
           })
           .build();
 
-        const tool3 = createTool('tool3', 'Third tool')
+        const tool3 = createSimpleTool('tool3', 'Third tool')
           .addStringProperty('input', 'Input value')
           .setRequired(['input'])
           .setCallback((input) => {
@@ -725,7 +725,7 @@ describe('Scenario Tests', () => {
     });
 
     it.skipIf(!hasValidApiKey())('should execute complex multi-tool scenario', async () => {
-      const calculatorTool = createTool('calculator', 'Perform calculations')
+      const calculatorTool = createSimpleTool('calculator', 'Perform calculations')
         .addStringProperty('expression', 'Math expression')
         .setRequired(['expression'])
         .setCallback((input) => {
@@ -734,7 +734,7 @@ describe('Scenario Tests', () => {
         })
         .build();
 
-      const converterTool = createTool('unit_converter', 'Convert between units')
+      const converterTool = createSimpleTool('unit_converter', 'Convert between units')
         .addStringProperty('value', 'Value to convert')
         .addStringProperty('from_unit', 'Source unit')
         .addStringProperty('to_unit', 'Target unit')

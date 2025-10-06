@@ -3,6 +3,7 @@
  * Based on agent-platform WebSocket streaming API
  */
 
+import { ToolCategory } from '../tools';
 import { PlatformConfig } from '../platform-config';
 
 /**
@@ -118,11 +119,6 @@ export interface AgentMessage {
   /** Additional message properties */
   [key: string]: any;
 }
-
-/**
- * Tool category type
- */
-export type ToolCategory = 'internal-tool' | 'action-tool' | 'mcp-tool' | 'client-exec-tool' | 'client-info-tool';
 
 /**
  * Tool definition for client-side tools

@@ -7,7 +7,7 @@ import {
   EphemeralAgentClient,
   createEphemeralAgentClient,
   createBasicAgentConfig,
-  createHumanMessage,
+  createHumanThreadMessage,
   ThreadMessage,
 } from '../src/agent-ephemeral/index';
 import { createOpenAIConfig } from '../src/utils';
@@ -50,7 +50,7 @@ describe('EphemeralAgentClient', () => {
 
           const stream = await client.createStream({
             agent: agentConfig,
-            messages: [createHumanMessage('Hello. What can you do?')],
+            messages: [createHumanThreadMessage('Hello. What can you do?')],
             handlers: {
               onAgentReady: (event) => {
                 console.log('[TEST] Agent ready:', JSON.stringify(event, null, 2));
@@ -127,7 +127,7 @@ describe('EphemeralAgentClient', () => {
           for (let i = 0; i < 3; i++) {
             console.warn('[TEST] Adding human message:', `message ${i + 1}`);
             // Add human message to messages
-            messages.push(createHumanMessage(`message ${i + 1}`));
+            messages.push(createHumanThreadMessage(`message ${i + 1}`));
             console.warn('[TEST] Messages', messages);
 
             // Wait for message to be added to messages

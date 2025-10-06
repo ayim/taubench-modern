@@ -291,7 +291,7 @@ export function createBasicAgentConfig(options: {
 /**
  * Utility function to create a user message with text content
  */
-export function createUserMessage(text: string, messageId?: string): ThreadMessage {
+export function createUserThreadMessage(text: string, messageId?: string): ThreadMessage {
   return {
     role: 'user',
     content: [{ text, citations: [], kind: 'text' }],
@@ -324,7 +324,7 @@ export function createCitation(
 /**
  * Utility function to create a user message with text content and citations
  */
-export function createUserMessageWithCitations(
+export function createUserThreadMessageWithCitations(
   text: string,
   citations: Citation[] = [],
   messageId?: string,
@@ -348,7 +348,7 @@ export function createUserMessageWithCitations(
 }
 
 // Legacy aliases for backward compatibility
-export const createHumanMessage = createUserMessage;
+export const createHumanThreadMessage = createUserThreadMessage;
 
 /**
  * Utility function to check if an error is an EphemeralAgentStreamError

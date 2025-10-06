@@ -2,7 +2,7 @@
 export * from './content';
 
 // Tool definition exports
-export * from './tools';
+export * from '../tools';
 
 // Prompt and message exports
 export * from './prompt';
