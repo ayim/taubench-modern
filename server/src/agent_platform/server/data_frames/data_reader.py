@@ -7,6 +7,7 @@ from structlog.stdlib import get_logger
 
 if typing.TYPE_CHECKING:
     import fastexcel
+    import pyarrow
     from sema4ai.actions import Row
 
     from agent_platform.core.files import UploadedFile
@@ -207,7 +208,8 @@ class ExcelDataReaderSheet(DataReaderSheet):
         )
 
     def to_ibis(self) -> Any:
-        return self._loaded_sheet().to_arrow()
+        arrow_table = self._loaded_sheet().to_arrow()
+        return _convert_null_data_types_to_string(arrow_table)
 
 
 class CsvDataReaderSheet(DataReaderSheet):
@@ -273,9 +275,37 @@ class CsvDataReaderSheet(DataReaderSheet):
 
         import pyarrow.csv
 
-        return pyarrow.csv.read_csv(
+        csv_table = pyarrow.csv.read_csv(
             io.BytesIO(self._file_bytes),
         )
+
+        csv_table = _convert_null_data_types_to_string(csv_table)
+
+        return csv_table
+
+
+def _convert_null_data_types_to_string(table: "pyarrow.Table") -> "pyarrow.Table":
+    """
+    Convert null column data types to string.
+
+    This is needed because duckdb doesn't support null column types (it does accept
+    having null values in the column if the column is of a different type though).
+    """
+    import pyarrow
+
+    null_data_type: pyarrow.DataType = pyarrow.null()
+
+    new_schema_values = []
+    has_null_data_type = False
+    for f in table.schema:
+        if null_data_type == f.type:
+            has_null_data_type = True
+            f = f.with_type(pyarrow.string())  # noqa: PLW2901
+        new_schema_values.append(f)
+
+    if has_null_data_type:
+        table = table.cast(pyarrow.schema(new_schema_values))
+    return table
 
 
 class CsvDataReader(FileDataReader):

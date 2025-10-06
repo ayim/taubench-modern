@@ -1,0 +1,14 @@
+{
+  "columns": [
+    "name",
+    "country",
+    "null-column"
+  ],
+  "rows": [
+    [
+      "John Smith",
+      "United States",
+      null
+    ]
+  ]
+}

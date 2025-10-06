@@ -260,7 +260,7 @@ curl -X GET http://localhost:58885/api/v2/threads/116745a4-4150-4eb5-9740-da9022
 
 See [./data-frames-db-and-semantic-models.md](data-frames-db-and-semantic-models.md) for more details.
 
-# Step 11 (current PR)
+# Step 11 (done)
 
 - https://sema4ai.slack.com/archives/C06CYLQ7S4R/p1758018826886949 (
 
@@ -268,6 +268,12 @@ See [./data-frames-db-and-semantic-models.md](data-frames-db-and-semantic-models
   - We could also add name and description to the Table so that the user could have more control over it.)
 
 - Add more logging related to what's happening when resolving the data frames/semantic data models.
+
+# Step 11a (current PR)
+
+- Fixed issue where creating a data frame from a csv with no values for one of the columns makes the data frame unusable afterwards.
+  Note: this happens because duckdb doesn't support null column types (it does accept having null values in the column if the
+  column is of a different type though, so, casting the column to string as a workaround).
 
 # Step 12:
 
@@ -294,7 +300,6 @@ when creating a new semantic data model for some other data (if the shape of one
 # Future work (not right now):
 
 - Consume data frames directly from actions/tools.
-- Investigate issue where creating a data frame from a csv with no values for one of the columns makes the data frame unusable afterwards.
 - https://sema4ai.slack.com/archives/C07LMU0AQFR/p1758257549592739
   - make is so that the agent understands an existing data frame cannot be overwritten.
 - Versioning of data frames (or provide more information to the UI so that it can know what's supposed to be a new version of an existing data frame and what's not).
