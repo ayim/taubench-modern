@@ -1,5 +1,5 @@
 import { ScenarioTool, ScenarioToolSchema } from './types';
-import { JsonSchemaProperty, ToolCategory } from '../tools';
+import { JsonSchemaProperty, Tool, ToolCategory } from '../tools';
 
 // Type for tool definition builder
 interface ToolDefinitionBuilder {
@@ -180,6 +180,29 @@ export function createSimpleTool(name: string, description: string): ToolDefinit
   builder.setCallback(() => {});
   builder.setCategory('client-info-tool');
   return builder;
+}
+export const createTool = createSimpleTool;
+
+/**
+ * Create a tool definition
+ */
+export function createFullTool(
+  name: string,
+  description: string,
+  properties: Record<string, any>,
+  required: string[] = [],
+  category: ToolCategory = 'client-info-tool',
+): Tool {
+  return {
+    name,
+    description,
+    input_schema: {
+      type: 'object',
+      properties,
+      required,
+    },
+    category,
+  };
 }
 
 // Validation functions

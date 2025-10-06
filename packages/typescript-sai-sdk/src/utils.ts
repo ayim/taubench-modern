@@ -14,7 +14,6 @@ import {
   ConversationHistorySpecialMessage,
   DocumentsSpecialMessage,
   MemoriesSpecialMessage,
-  ToolCategory,
 } from './agent-prompt/index';
 
 /**
@@ -101,28 +100,6 @@ export function createTextUserMessage(text: string): Message {
  */
 export function createTextAgentMessage(text: string): Message {
   return createAgentMessage([{ kind: 'text', text }]);
-}
-
-/**
- * Create a tool definition
- */
-export function createTool(
-  name: string,
-  description: string,
-  properties: Record<string, any>,
-  required: string[] = [],
-  category: ToolCategory = 'client-info-tool',
-): Tool {
-  return {
-    name,
-    description,
-    input_schema: {
-      type: 'object',
-      properties,
-      required,
-    },
-    category,
-  };
 }
 
 /**
