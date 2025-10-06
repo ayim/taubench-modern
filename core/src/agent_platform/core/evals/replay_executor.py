@@ -313,6 +313,7 @@ class ReplayToolExecutor(ToolExecutor):
         models = set()
         platforms = set()
         tools_by_name: dict[str, ToolDefinition] = {}
+        used_tool_names: set[str] = set()
 
         for msg in messages:
             for item in msg.content:
@@ -337,6 +338,7 @@ class ReplayToolExecutor(ToolExecutor):
                         ) from e
 
                     expected.append(ExpectedCall(tool_name, expected_args, output, item.error))
+                    used_tool_names.add(tool_name)
 
             metadata = msg.agent_metadata
 
@@ -376,6 +378,21 @@ class ReplayToolExecutor(ToolExecutor):
                     # no op: there should not be duplicate names
                     logger.info(f"Found duplicate name for tool {tool_name}")
 
+        defined_tool_names = set(tools_by_name)
+        missing_tool_definitions = sorted(used_tool_names - defined_tool_names)
+        if missing_tool_definitions:
+            raise ValueError(
+                "Missing tool definitions in agent metadata for the following tools: "
+                + ", ".join(missing_tool_definitions)
+            )
+
+        unused_tool_definitions = sorted(defined_tool_names - used_tool_names)
+        if unused_tool_definitions:
+            unused_tools = ", ".join(unused_tool_definitions)
+            logger.info(
+                f"Skipping tool definitions not used in the conversation: {unused_tools}",
+            )
+
         return cls(
             expected,
             policy=DriftPolicy(
@@ -386,5 +403,8 @@ class ReplayToolExecutor(ToolExecutor):
             ),
             models=sorted(models),
             platforms=sorted(platforms),
-            tools=sorted(tools_by_name.values(), key=lambda tool: tool.name),
+            tools=sorted(
+                (tools_by_name[name] for name in used_tool_names),
+                key=lambda tool: tool.name,
+            ),
         )
