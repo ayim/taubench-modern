@@ -3,7 +3,7 @@
 script_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 
 export DATA_SERVER_IMAGE_REF="s4teamedition1registry.azurecr.io/data-server:1.1.15_e65fbf8.20250916T124606Z"
-export SPAR_IMAGE_REF="s4teamedition1registry.azurecr.io/spar:2.1.7_efafb8c4.20250926T084307Z"
+export SPAR_IMAGE_REF="s4teamedition1registry.azurecr.io/spar:2.1.9-agent-platform-featsparfilesazure_7df1394f.20251002T130258Z"
 export PSQL_IMAGE_REF="postgres:16"
 
 required_vars=(

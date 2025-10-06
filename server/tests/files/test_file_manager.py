@@ -43,7 +43,9 @@ def mock_requests():
     mock.post.return_value.status_code = 200
     mock.post.return_value.json.return_value = {
         "url": "https://example.com/upload",
-        "form_data": {"key": "value"},
+        "fields": {"key": "value"},
+        "method": "POST",
+        "headers": {},
     }
     # Mock presigned get URL response
     mock.get.return_value.status_code = 200

@@ -4,6 +4,7 @@ import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { Result } from '../utils/result.js';
 import { createAWSFilesManager } from './aws/index.js';
+import { createAzureFilesManager } from './azure/index.js';
 
 export interface CreateFileOptions {
   baseFolder: string;
@@ -41,8 +42,10 @@ export interface ListFilesOptions {
 }
 
 export interface PresignedPost {
-  url: string;
   fields: Record<string, string>;
+  headers: Record<string, string>;
+  method: 'POST' | 'PUT';
+  url: string;
 }
 
 export interface PresignedGet {
@@ -50,7 +53,7 @@ export interface PresignedGet {
 }
 
 export interface FilesManager {
-  deleteFile(file: File): Promise<Result<void>>;
+  deleteFile(file: File): Promise<Result<{ deleted: true }>>;
   getFileStream(file: File): Promise<Result<{ fileStream: Readable }>>;
   getGetSignedUrl(file: GetFileOptions): Promise<Result<PresignedGet>>;
   getPostSignedUrl(file: CreateFileOptions): Promise<Result<PresignedPost>>;
@@ -70,6 +73,16 @@ export const createFilesManager = async ({
           bucketName: configuration.files.s3BucketName,
           region: configuration.files.awsRegion,
           roleArn: configuration.files.awsRoleArn,
+        },
+        monitoring,
+      });
+
+    case 'azure':
+      return createAzureFilesManager({
+        azure: {
+          clientId: configuration.files.clientId,
+          container: configuration.files.containerName,
+          endpoint: `https://${configuration.files.storageAccountName}.blob.core.windows.net`,
         },
         monitoring,
       });

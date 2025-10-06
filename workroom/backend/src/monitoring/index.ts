@@ -19,16 +19,16 @@ export interface LogAttributes {
   fileName: string;
   fileSize: number;
   fileType: string;
+  objectStorageBucketName: string;
   oidcIssuer: string;
   oidcRedirectUrl: string;
-  s3BucketName: string;
-  sessionId: string;
-  status: number;
-  statusText: string;
   port: number;
   processSignal: string;
   requestMethod: string;
   requestUrl: string;
+  sessionId: string;
+  status: number;
+  statusText: string;
   tenantId: string;
 }
 

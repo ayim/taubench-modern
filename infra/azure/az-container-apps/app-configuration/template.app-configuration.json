@@ -63,6 +63,21 @@
           "name": "oidc-server",
           "identity": "${APP_UAI_ID}",
           "keyVaultUrl": "${KEY_VAULT_URI}/secrets/oidc-server"
+        },
+        {
+          "name": "storage-account-name",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/storage-account-name"
+        },
+        {
+          "name": "storage-container-name",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/storage-container-name"
+        },
+        {
+          "name": "uai-client-id",
+          "identity": "${APP_UAI_ID}",
+          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/uai-client-id"
         }
       ],
       "activeRevisionsMode": null,
@@ -216,6 +231,10 @@
               "value": "8001"
             },
             {
+              "name": "SEMA4AI_WORKROOM_PORT_INTERNAL",
+              "value": "8002"
+            },
+            {
               "name": "SEMA4AI_WORKROOM_AUTH_MODE",
               "value": "oidc"
             },
@@ -234,6 +253,30 @@
             {
               "name": "JWT_ISS",
               "value": "spar"
+            },
+            {
+              "name": "FILE_MANAGEMENT_API_URL",
+              "value": "http://localhost:8002/files"
+            },
+            {
+              "name": "SEMA4AI_AGENT_SERVER_FILE_MANAGER_TYPE",
+              "value": "cloud"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_FILES_MODE",
+              "value": "azure"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_FILES_AZURE_CONTAINER",
+              "secretRef": "storage-container-name"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_FILES_AZURE_STORAGE_ACCOUNT_NAME",
+              "secretRef": "storage-account-name"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_FILES_AZURE_CLIENT_ID",
+              "secretRef": "uai-client-id"
             }
           ],
           "resources": {
@@ -247,7 +290,7 @@
               "type": "liveness",
               "httpGet": {
                 "path": "/ready",
-                "port": 8001
+                "port": 8002
               },
               "initialDelaySeconds": 60,
               "periodSeconds": 30,

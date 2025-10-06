@@ -25,12 +25,12 @@ export interface AWSFilesStorageTarget {
 
 const createDeleteFile =
   ({ monitoring, s3BucketName, s3Client }: { monitoring: MonitoringContext; s3BucketName: string; s3Client: S3 }) =>
-  async (file: File): Promise<Result<void>> => {
+  async (file: File): Promise<Result<{ deleted: true }>> => {
     const key = join(file.baseFolder, file.fileId);
 
     monitoring.logger.info('Delete S3 file', {
       fileName: key,
-      s3BucketName,
+      objectStorageBucketName: s3BucketName,
     });
 
     const command = new DeleteObjectCommand({
@@ -44,7 +44,7 @@ const createDeleteFile =
         errorName: result.error.code,
         errorMessage: result.error.message,
         fileName: key,
-        s3BucketName,
+        objectStorageBucketName: s3BucketName,
       });
 
       return result;
@@ -52,7 +52,7 @@ const createDeleteFile =
 
     return {
       success: true,
-      data: undefined,
+      data: { deleted: true },
     };
   };
 
@@ -63,7 +63,7 @@ const createGetFileStream =
 
     monitoring.logger.info('Get S3 file stream', {
       fileName: key,
-      s3BucketName,
+      objectStorageBucketName: s3BucketName,
     });
 
     const command = new GetObjectCommand({
@@ -89,7 +89,7 @@ const createGetFileStream =
       monitoring.logger.info('Failed getting S3 file stream', {
         error,
         fileName: key,
-        s3BucketName,
+        objectStorageBucketName: s3BucketName,
       });
 
       if (error.name === 'NoSuchKey') {
@@ -124,7 +124,7 @@ const createGetGetSignedUrl =
       expiresInMin: expiresIn,
       fileId,
       fileName: key,
-      s3BucketName,
+      objectStorageBucketName: s3BucketName,
     });
 
     const command = (() => {
@@ -157,7 +157,7 @@ const createGetGetSignedUrl =
         expiresInMin: expiresIn,
         fileId,
         fileName: key,
-        s3BucketName,
+        objectStorageBucketName: s3BucketName,
       });
 
       return urlResult;
@@ -176,7 +176,7 @@ const createGetPostSignedUrl =
 
     monitoring.logger.info('Get POST signed URL', {
       fileName: key,
-      s3BucketName,
+      objectStorageBucketName: s3BucketName,
     });
 
     const options: PresignedPostOptions = {
@@ -195,7 +195,7 @@ const createGetPostSignedUrl =
         errorName: urlResult.error.code,
         errorMessage: urlResult.error.message,
         fileName: key,
-        s3BucketName,
+        objectStorageBucketName: s3BucketName,
       });
 
       return urlResult;
@@ -203,7 +203,12 @@ const createGetPostSignedUrl =
 
     return {
       success: true,
-      data: urlResult.data,
+      data: {
+        fields: urlResult.data.fields,
+        headers: {},
+        method: 'POST',
+        url: urlResult.data.url,
+      },
     };
   };
 

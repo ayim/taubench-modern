@@ -113,16 +113,43 @@ class CloudFileManager(BaseFileManager):
 
     async def _store(self, file_data: FileData, file_id: str) -> str:
         presigned_post = self._get_presigned_post(file_id)
-        payload = presigned_post["form_data"]
-        # Post all the required data to the presigned URL
-        # Check: https://requests.readthedocs.io/en/latest/user/quickstart/#post-a-multipart-encoded-file
-        response = requests.post(
-            presigned_post["url"],
-            data=payload,
-            files={"file": (file_data.file_name, file_data.content, file_data.mime_type)},
-        )
+        method = presigned_post["method"]
+        url = presigned_post["url"]
+        headers = presigned_post.get("headers", {})
+        fields = presigned_post.get("fields", {})
 
-        if response.status_code not in (status.HTTP_200_OK, status.HTTP_204_NO_CONTENT):
+        logger.info(f"Upload file '{file_id}' to cloud storage: {method} {url}")
+
+        if method == "PUT":
+            has_content_type = any(k.lower() == "content-type" for k in headers.keys())
+            if not has_content_type:
+                # Needed because the current implementation is not (and should) sending
+                # the mime-type when requesting the presigned url
+                headers["content-type"] = file_data.mime_type
+
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                data=file_data.content,
+            )
+        elif method == "POST":
+            # POST with form data
+            # Check: https://requests.readthedocs.io/en/latest/user/quickstart/#post-a-multipart-encoded-file
+            response = requests.post(
+                url,
+                headers=headers,
+                data=fields,
+                files={"file": (file_data.file_name, file_data.content, file_data.mime_type)},
+            )
+        else:
+            raise Exception(f"Failed to upload file: Invalid method: {method}")
+
+        if response.status_code not in (
+            status.HTTP_200_OK,
+            status.HTTP_201_CREATED,
+            status.HTTP_204_NO_CONTENT,
+        ):
             logger.error(
                 "Failed to upload file. Received status_code=%s, expected=200 or 204.",
                 response.status_code,
@@ -319,7 +346,7 @@ class CloudFileManager(BaseFileManager):
         presigned_post = self._get_presigned_post(file_id)
         return RemoteFileUploadData(
             url=presigned_post["url"],
-            form_data=presigned_post["form_data"],
+            form_data=presigned_post["fields"],
             file_id=file_id,
             file_ref=file_ref,
         )

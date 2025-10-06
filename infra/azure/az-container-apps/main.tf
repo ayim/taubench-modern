@@ -47,20 +47,25 @@ resource "azurerm_key_vault" "team_edition" {
   sku_name            = "standard"
 
   access_policy {
-    # Allow Terraform to manage secrets
     tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
+    object_id = var.developer_group_object_id
 
     secret_permissions = ["Get", "List", "Set", "Delete", "Purge"]
   }
 
   access_policy {
-    # Allow app UAI to read secrets
     tenant_id = data.azurerm_client_config.current.tenant_id
     object_id = azurerm_user_assigned_identity.app_identity.principal_id
 
     secret_permissions = ["Get", "List"]
   }
+}
+
+resource "azurerm_key_vault_secret" "uai_client_id" {
+  name  = "uai-client-id"
+  value = azurerm_user_assigned_identity.app_identity.client_id
+
+  key_vault_id = azurerm_key_vault.team_edition.id
 }
 
 # Grant ACR registry pull access for app UAI
@@ -104,4 +109,21 @@ module "app-auth" {
   source = "../modules/app-auth"
 
   key_vault_id = azurerm_key_vault.team_edition.id
+}
+
+module "agent_files_storage" {
+  source = "../modules/agent-files-storage"
+
+  container_apps_subnet_id = module.networking.container_apps_subnet_id
+  infra_id                 = var.infra_id
+  key_vault_id             = azurerm_key_vault.team_edition.id
+  resource_group_name      = local.resource_group_name
+  resource_group_location  = local.resource_group_location
+  vnet_id                  = module.networking.vnet_id
+}
+
+resource "azurerm_role_assignment" "agent_files_contributor" {
+  scope                = module.agent_files_storage.storage_account_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.app_identity.principal_id
 }

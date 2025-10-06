@@ -1,7 +1,7 @@
 import express, { type Router } from 'express';
 import createRouter from 'express-promise-router';
 import type { Configuration } from '../configuration.js';
-import type { FilesManager } from '../files/filesManagement.js';
+import type { FilesManager, PresignedPost } from '../files/filesManagement.js';
 import { DeleteFileBody, GetDownloadUrlQuery, GetPostSignedUrlBody } from '../files/schemas.js';
 import type { ExpressRequest, ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
@@ -169,12 +169,14 @@ const createGetPostSignedUrl =
       });
     }
 
-    const { url, fields } = presignedUrlResult.data;
+    const { fields, headers, method, url } = presignedUrlResult.data;
 
     res.json({
+      fields,
+      headers,
+      method,
       url,
-      form_data: fields,
-    });
+    } satisfies PresignedPost);
   };
 
 const getTenantScopedFolderName = ({ tenantId }: { tenantId: string }) => `tenants/${tenantId}`;

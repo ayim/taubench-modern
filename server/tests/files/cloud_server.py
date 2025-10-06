@@ -50,8 +50,10 @@ async def handle_presigned_post(request: PresignedPostRequest):
     )
 
     return {
+        "fields": {"token": token, "fileId": request.fileId},
+        "headers": {},
+        "method": "POST",
         "url": "http://localhost:8001/upload",
-        "form_data": {"token": token, "fileId": request.fileId},
     }
 
 

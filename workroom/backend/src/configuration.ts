@@ -58,6 +58,12 @@ export interface Configuration {
         awsRoleArn: string;
         s3BucketName: string;
         mode: 'aws';
+      }
+    | {
+        clientId: string;
+        containerName: string;
+        mode: 'azure';
+        storageAccountName: string;
       };
   frontendMode: 'disk' | 'middleware';
   legacyRoutingUrl: string | null;
@@ -159,6 +165,14 @@ export const getConfiguration = (): Configuration => {
           awsRoleArn: parseEnvVariable('SEMA4AI_WORKROOM_FILES_AWS_ROLE_ARN'),
           s3BucketName: parseEnvVariable('SEMA4AI_WORKROOM_FILES_S3_BUCKET'),
           mode: 'aws',
+        };
+
+      case 'azure':
+        return {
+          clientId: parseEnvVariable('SEMA4AI_WORKROOM_FILES_AZURE_CLIENT_ID'),
+          containerName: parseEnvVariable('SEMA4AI_WORKROOM_FILES_AZURE_CONTAINER'),
+          mode: 'azure',
+          storageAccountName: parseEnvVariable('SEMA4AI_WORKROOM_FILES_AZURE_STORAGE_ACCOUNT_NAME'),
         };
 
       case 'disabled':
