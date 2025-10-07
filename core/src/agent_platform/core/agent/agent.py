@@ -280,7 +280,6 @@ class Agent(TolerantDataclass):
         question_groups = [
             QuestionGroup.model_validate(question_group) for question_group in question_groups_raw
         ]
-        runbook_structured = Runbook.model_validate(data.pop("runbook_structured", {}))
         platform_configs = [
             PlatformParameters.model_validate(platform_config)
             for platform_config in data.pop("platform_configs", [])
@@ -298,6 +297,19 @@ class Agent(TolerantDataclass):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         if "updated_at" in data and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+
+        # some agents in database don't have agent.runbook.updated_at
+        # let's fallback to agent.updated_at or now
+        # the next time we update the agent, the date will be corrected
+        if "updated_at" in data:
+            fallback_updated_at = data["updated_at"]
+        else:
+            fallback_updated_at = datetime.now(UTC)
+        runbook_structured_raw = data.pop("runbook_structured", {})
+        runbook_structured = Runbook.model_validate(
+            runbook_structured_raw,
+            fallback_updated_at=fallback_updated_at,
+        )
 
         return cls(
             action_packages=actions_packages,

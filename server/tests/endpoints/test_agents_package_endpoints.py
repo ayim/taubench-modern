@@ -23,6 +23,7 @@ from agent_platform.server.api.private_v2.agents import (
 )
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.api.private_v2.package import create_or_update_agent_from_package
+from agent_platform.server.storage.errors import AgentNotFoundError
 
 # Test data directory
 TEST_AGENTS_DIR = Path(__file__).parent / "test-agents"
@@ -39,7 +40,10 @@ def mock_storage():
     """Mock storage dependency for testing."""
     storage = AsyncMock()
     storage.upsert_agent = AsyncMock()
-    storage.get_agent = AsyncMock()
+    # This mimics the "agent does not yet exist" branch exercised in these tests;
+    # the helper under test looks up the agent first and treats the
+    # `AgentNotFoundError` as a signal to create a fresh one.
+    storage.get_agent = AsyncMock(side_effect=AgentNotFoundError())
     return storage
 
 

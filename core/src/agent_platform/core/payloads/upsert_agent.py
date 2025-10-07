@@ -22,8 +22,48 @@ from agent_platform.core.platforms.configs import (
     resolve_provider_from_model_name,
 )
 from agent_platform.core.runbook import Runbook
+from agent_platform.core.runbook.content import AnyRunbookContent
+from agent_platform.core.runbook.content.base import RunbookContent
 from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils import assert_literal_value_valid
+
+
+@dataclass(frozen=True)
+class StructuredRunbookPayload:
+    raw_text: str = field(
+        metadata={
+            "description": "The raw text of the runbook",
+        },
+    )
+    """The raw text of the runbook"""
+
+    content: list[AnyRunbookContent] = field(
+        metadata={
+            "description": "The content of the runbook",
+        },
+    )
+
+    def model_dump(self) -> dict:
+        return {
+            "raw_text": self.raw_text,
+            "content": [content.model_dump() for content in self.content],
+        }
+
+    @classmethod
+    def model_validate(
+        cls,
+        data: dict,
+    ) -> "StructuredRunbookPayload":
+        data = data.copy()
+
+        content = cast(
+            list[AnyRunbookContent],
+            [RunbookContent.model_validate(content) for content in data.pop("content", [])],
+        )
+        return cls(**data, content=content)
+
+    def to_structured_runbook(self) -> Runbook:
+        return Runbook(raw_text=self.raw_text, content=self.content, updated_at=datetime.now(UTC))
 
 
 @dataclass(frozen=True)
@@ -77,7 +117,7 @@ class UpsertAgentPayload:
     )
     """The raw text of the runbook."""
 
-    structured_runbook: Runbook | None = field(
+    structured_runbook: StructuredRunbookPayload | None = field(
         default=None,
         metadata={"description": "The structured runbook of the agent."},
     )
@@ -705,11 +745,12 @@ class UpsertAgentPayload:
         return as_dict
 
     @classmethod
-    def to_agent(
+    def to_agent(  # noqa: C901
         cls,
         payload: Self,
         user_id: str,
         agent_id: str | None = None,
+        existing_agent: Agent | None = None,
     ) -> Agent:
         # Make sure agent_architecture is present
         if payload.agent_architecture is None:
@@ -753,19 +794,42 @@ class UpsertAgentPayload:
         if not isinstance(extra, dict):
             extra = {}
 
+        if payload.runbook:
+            runbook_structured = Runbook(
+                raw_text=payload.runbook, content=[], updated_at=datetime.now(UTC)
+            )
+        elif payload.structured_runbook:
+            runbook_structured = payload.structured_runbook.to_structured_runbook()
+        else:
+            runbook_structured = Runbook(
+                raw_text="You are a helpful assistant.", content=[], updated_at=datetime.now(UTC)
+            )
+
+        existing_runbook = existing_agent.runbook_structured if existing_agent else None
+
+        if existing_runbook is None:
+            runbook_structured.updated_at = runbook_structured.updated_at or datetime.now(UTC)
+        else:
+            existing_snapshot = (
+                existing_runbook.raw_text,
+                [content.model_dump() for content in existing_runbook.content],
+            )
+            new_snapshot = (
+                runbook_structured.raw_text,
+                [content.model_dump() for content in runbook_structured.content],
+            )
+
+            if existing_snapshot != new_snapshot:
+                runbook_structured.updated_at = datetime.now(UTC)
+            else:
+                runbook_structured.updated_at = existing_runbook.updated_at
+
         return Agent(
             name=payload.name,
             mode=maybe_mode if maybe_mode is not None else "conversational",
             version=payload.version,
             description=payload.description,
-            runbook_structured=(
-                Runbook(raw_text=payload.runbook, content=[])
-                if payload.runbook
-                else (
-                    payload.structured_runbook
-                    or Runbook(raw_text="You are a helpful assistant.", content=[])
-                )
-            ),
+            runbook_structured=runbook_structured,
             observability_configs=payload.observability_configs,
             question_groups=payload.question_groups,
             action_packages=payload.action_packages,
@@ -814,8 +878,8 @@ class UpsertAgentPayload:
         if "structured_runbook" in validated_data and isinstance(
             validated_data["structured_runbook"], dict
         ):
-            validated_data["structured_runbook"] = Runbook.model_validate(
-                validated_data["structured_runbook"]
+            validated_data["structured_runbook"] = StructuredRunbookPayload.model_validate(
+                validated_data["structured_runbook"],
             )
 
         # Convert action_packages from list of dicts to list of ActionPackage objects

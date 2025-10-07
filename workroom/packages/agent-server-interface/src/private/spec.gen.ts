@@ -15075,6 +15075,12 @@ export const spec = {
             title: 'Content',
             description: 'The content of the runbook',
           },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description: 'Timestamp of the last update to the runbook',
+          },
         },
         type: 'object',
         required: ['raw_text', 'content'],
@@ -15447,10 +15453,11 @@ export const spec = {
           rationale: {
             type: 'string',
             title: 'Rationale',
+            default: '',
           },
         },
         type: 'object',
-        required: ['name', 'description', 'rationale'],
+        required: ['name', 'description'],
         title: 'ScenarioSuggestion',
       },
       SecretString: {
@@ -16219,6 +16226,36 @@ export const spec = {
         type: 'object',
         required: ['status'],
         title: 'StatusResponse[dict]',
+      },
+      StructuredRunbookPayload: {
+        properties: {
+          raw_text: {
+            type: 'string',
+            title: 'Raw Text',
+            description: 'The raw text of the runbook',
+          },
+          content: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/RunbookStepContent',
+                },
+                {
+                  $ref: '#/components/schemas/RunbookStepsContent',
+                },
+                {
+                  $ref: '#/components/schemas/RunbookTextContent',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Content',
+            description: 'The content of the runbook',
+          },
+        },
+        type: 'object',
+        required: ['raw_text', 'content'],
+        title: 'StructuredRunbookPayload',
       },
       SuggestScenarioPayload: {
         properties: {
@@ -17536,7 +17573,7 @@ export const spec = {
           structured_runbook: {
             anyOf: [
               {
-                $ref: '#/components/schemas/Runbook',
+                $ref: '#/components/schemas/StructuredRunbookPayload',
               },
               {
                 type: 'null',

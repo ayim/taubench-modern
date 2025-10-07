@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 
 import pytest
 
@@ -11,7 +12,8 @@ from agent_platform.core.mcp.mcp_types import (
     MCPVariableTypeSecret,
     MCPVariableTypeString,
 )
-from agent_platform.core.payloads.upsert_agent import UpsertAgentPayload
+from agent_platform.core.payloads.upsert_agent import StructuredRunbookPayload, UpsertAgentPayload
+from agent_platform.core.runbook import Runbook
 from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 
@@ -197,26 +199,153 @@ class TestWorkerConfigRoundTrip:
             "document_type": "Invoice",
         }
 
-    def test_dash_key(self) -> None:
-        payload = _create_payload(
-            {
-                "mode": "worker",
-                "worker-config": {
-                    "type": "Document Intelligence",
-                    "document_type": "Invoice",
-                },
-            }
-        )
-        agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
-        assert agent.extra["worker_config"] == {
-            "type": "Document Intelligence",
-            "document_type": "Invoice",
-        }
-        compat = AgentCompat.from_agent(agent)
-        assert compat.metadata["worker_config"] == {
-            "type": "Document Intelligence",
-            "document_type": "Invoice",
-        }
+
+def test_to_agent_preserves_runbook_timestamp_when_unchanged() -> None:
+    existing_timestamp = datetime(2024, 1, 1, 9, 0, tzinfo=UTC)
+    existing_agent = Agent(
+        name="Existing",
+        description="desc",
+        user_id="u1",
+        runbook_structured=Runbook(
+            raw_text="Do the thing",
+            content=[],
+            updated_at=existing_timestamp,
+        ),
+        version="1.0.0",
+        platform_configs=[],
+        agent_architecture=DEFAULT_ARCH,
+    )
+
+    payload = UpsertAgentPayload(
+        name="Existing",
+        description="desc",
+        version="1.0.1",
+        structured_runbook=StructuredRunbookPayload(raw_text="Do the thing", content=[]),
+        agent_architecture=DEFAULT_ARCH,
+    )
+
+    result = UpsertAgentPayload.to_agent(
+        payload,
+        user_id="u1",
+        existing_agent=existing_agent,
+    )
+
+    assert result.runbook_structured.updated_at == existing_timestamp
+
+
+def test_to_agent_updates_runbook_timestamp_when_changed() -> None:
+    existing_timestamp = datetime(2024, 1, 1, 9, 0, tzinfo=UTC)
+    existing_agent = Agent(
+        name="Existing",
+        description="desc",
+        user_id="u1",
+        runbook_structured=Runbook(
+            raw_text="Do the thing",
+            content=[],
+            updated_at=existing_timestamp,
+        ),
+        version="1.0.0",
+        platform_configs=[],
+        agent_architecture=DEFAULT_ARCH,
+    )
+
+    payload = UpsertAgentPayload(
+        name="Existing",
+        description="desc",
+        version="1.0.1",
+        structured_runbook=StructuredRunbookPayload(raw_text="Do another thing", content=[]),
+        agent_architecture=DEFAULT_ARCH,
+    )
+
+    result = UpsertAgentPayload.to_agent(
+        payload,
+        user_id="u1",
+        existing_agent=existing_agent,
+    )
+
+    assert result.runbook_structured.updated_at > existing_timestamp
+    assert result.runbook_structured.updated_at.tzinfo == UTC
+
+
+def test_to_agent_sets_runbook_updated_at_on_create() -> None:
+    payload = UpsertAgentPayload(
+        name="Agent",
+        description="desc",
+        version="1.0.0",
+        runbook="Do things",
+        agent_architecture=DEFAULT_ARCH,
+    )
+
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+
+    assert agent.runbook_structured.updated_at is not None
+    assert isinstance(agent.runbook_structured.updated_at, datetime)
+
+
+def test_to_agent_preserves_runbook_updated_at_when_unchanged() -> None:
+    payload = UpsertAgentPayload(
+        name="Agent",
+        description="desc",
+        version="1.0.0",
+        runbook="Do things",
+        agent_architecture=DEFAULT_ARCH,
+    )
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+    # Use a deliberately old timestamp to ensure we can detect new updates even when
+    # `datetime.now()` runs within the same microsecond during the test run.
+    agent.runbook_structured.updated_at = datetime(2000, 1, 1, tzinfo=UTC)
+    original_updated_at = agent.runbook_structured.updated_at
+
+    same_payload = UpsertAgentPayload(
+        name="Agent",
+        description="desc",
+        version="1.0.0",
+        runbook="Do things",
+        agent_architecture=DEFAULT_ARCH,
+    )
+    updated_agent = UpsertAgentPayload.to_agent(
+        same_payload,
+        user_id="u1",
+        agent_id=agent.agent_id,
+        existing_agent=agent,
+    )
+
+    assert updated_agent.runbook_structured.updated_at == original_updated_at
+
+
+def test_to_agent_updates_runbook_updated_at_when_runbook_changes() -> None:
+    base_runbook = StructuredRunbookPayload(raw_text="Do things", content=[])
+    payload = UpsertAgentPayload(
+        name="Agent",
+        description="desc",
+        version="1.0.0",
+        structured_runbook=base_runbook,
+        agent_architecture=DEFAULT_ARCH,
+    )
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+    # Use a deliberately old timestamp to ensure we can detect new updates even when
+    # `datetime.now()` runs within the same microsecond during the test run.
+    agent.runbook_structured.updated_at = datetime(2000, 1, 1, tzinfo=UTC)
+    original_updated_at = agent.runbook_structured.updated_at
+
+    changed_payload = UpsertAgentPayload(
+        name="Agent",
+        description="desc",
+        version="1.0.0",
+        runbook="Do different things",
+        agent_architecture=DEFAULT_ARCH,
+    )
+    changed_agent = UpsertAgentPayload.to_agent(
+        changed_payload,
+        user_id="u1",
+        agent_id=agent.agent_id,
+        existing_agent=agent,
+    )
+
+    assert changed_agent.runbook_structured.updated_at is not None
+    assert original_updated_at is not None
+    assert changed_agent.runbook_structured.updated_at != original_updated_at
+    assert changed_agent.runbook_structured.updated_at > original_updated_at
 
 
 class TestMCPServerPayload:

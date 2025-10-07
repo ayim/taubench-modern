@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class ScenarioSuggestion:
     name: str
     description: str
-    rationale: str
+    rationale: str = ""
 
 
 def _extract_suggestion_from_model_response(text: str) -> dict | None:
@@ -125,7 +125,14 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
                 logger.error("Scenario suggestion cannot be parsed from agent response")
                 return None
 
-            return ScenarioSuggestion(**parsed_result)
+            try:
+                return ScenarioSuggestion(**parsed_result)
+            except Exception as e:
+                if isinstance(e, TypeError):
+                    logger.error("Parsed JSON is not ScenarioSuggestion")
+                    return None
+
+                raise
 
     logger.error("Scenario suggestion is not in agent response")
     return None

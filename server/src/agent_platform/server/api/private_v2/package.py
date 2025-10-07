@@ -36,6 +36,7 @@ from agent_platform.server.api.package_content_handler import (
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
+from agent_platform.server.storage.errors import AgentNotFoundError
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -500,10 +501,16 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
 
     # Now, for the third and final step, we have essentially a normal
     # agent create (just as the upsert_agent endpoint does)
+    try:
+        existing_agent = await storage.get_agent(user.user_id, aid)
+    except AgentNotFoundError:
+        existing_agent = None
+
     as_agent = UpsertAgentPayload.to_agent(
         payload=as_upsert_payload,
         agent_id=aid,
         user_id=user.user_id,
+        existing_agent=existing_agent,
     )
     await storage.upsert_agent(user.user_id, as_agent)
     # We might technically clear on a create here, which shouldn't be

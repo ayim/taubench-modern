@@ -264,7 +264,13 @@ async def update_agent(
     storage: StorageDependency,
     _validation: PlatformParamsValidationCheck,
 ) -> AgentCompat:
-    agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
+    existing_agent = await storage.get_agent(user.user_id, aid)
+    agent = UpsertAgentPayload.to_agent(
+        payload,
+        user_id=user.user_id,
+        agent_id=aid,
+        existing_agent=existing_agent,
+    )
     await storage.upsert_agent(user.user_id, agent)
 
     ToolDefinitionCache().clear_for_agent(agent)
@@ -295,7 +301,13 @@ async def update_agent_raw(
     storage: StorageDependency,
     _validation: PlatformParamsValidationCheck,
 ) -> AgentCompat:
-    agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
+    existing_agent = await storage.get_agent(user.user_id, aid)
+    agent = UpsertAgentPayload.to_agent(
+        payload,
+        user_id=user.user_id,
+        agent_id=aid,
+        existing_agent=existing_agent,
+    )
     await storage.upsert_agent(user.user_id, agent)
 
     ToolDefinitionCache().clear_for_agent(agent)

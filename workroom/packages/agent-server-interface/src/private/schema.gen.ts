@@ -5922,6 +5922,12 @@ export interface components {
         | components['schemas']['RunbookStepsContent']
         | components['schemas']['RunbookTextContent']
       )[];
+      /**
+       * Updated At
+       * Format: date-time
+       * @description Timestamp of the last update to the runbook
+       */
+      updated_at?: string;
     };
     /** RunbookStepContent */
     RunbookStepContent: {
@@ -6108,7 +6114,10 @@ export interface components {
       name: string;
       /** Description */
       description: string;
-      /** Rationale */
+      /**
+       * Rationale
+       * @default
+       */
       rationale: string;
     };
     /** SecretString */
@@ -6419,6 +6428,23 @@ export interface components {
        * @description List of errors when the operation fails
        */
       errors?: (components['schemas']['StatusError'] | string)[];
+    };
+    /** StructuredRunbookPayload */
+    StructuredRunbookPayload: {
+      /**
+       * Raw Text
+       * @description The raw text of the runbook
+       */
+      raw_text: string;
+      /**
+       * Content
+       * @description The content of the runbook
+       */
+      content: (
+        | components['schemas']['RunbookStepContent']
+        | components['schemas']['RunbookStepsContent']
+        | components['schemas']['RunbookTextContent']
+      )[];
     };
     /** SuggestScenarioPayload */
     SuggestScenarioPayload: {
@@ -7188,7 +7214,9 @@ export interface components {
        */
       runbook?: string | null;
       /** @description The structured runbook of the agent. */
-      structured_runbook?: components['schemas']['Runbook'] | null;
+      structured_runbook?:
+        | components['schemas']['StructuredRunbookPayload']
+        | null;
       /**
        * Action Packages
        * @description The action packages this agent uses.

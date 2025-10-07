@@ -5,16 +5,26 @@ from agent_platform.core.runbook import Runbook
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 
 
-def create_agent(welcome_message: str, question_groups: list[QuestionGroup]):
+def create_agent(
+    welcome_message: str,
+    question_groups: list[QuestionGroup],
+    *,
+    runbook_updated_at: datetime | None = None,
+):
+    timestamp = runbook_updated_at or datetime.now(UTC)
     return Agent(
         agent_id="agent-compat-1",
         user_id="user-1",
         name="CompatAgent",
         description="desc",
-        runbook_structured=Runbook(raw_text="Welcome!", content=[]),
+        runbook_structured=Runbook(
+            raw_text="Welcome!",
+            content=[],
+            updated_at=timestamp,
+        ),
         version="1.0.0",
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
+        created_at=timestamp,
+        updated_at=timestamp,
         platform_configs=[],
         action_packages=[],
         mcp_servers=[],
@@ -53,3 +63,17 @@ def test_agent_compat_question_groups():
     for group in compat.metadata["question_groups"]:
         assert hasattr(group, "title")
         assert hasattr(group, "questions")
+
+
+def test_agent_compat_runbook_structured_preserves_updated_at():
+    timestamp = datetime(2024, 6, 1, 12, 30, tzinfo=UTC)
+    agent = create_agent(
+        welcome_message="Hello",
+        question_groups=[],
+        runbook_updated_at=timestamp,
+    )
+
+    compat = AgentCompat.from_agent(agent)
+
+    assert compat.runbook_structured.updated_at == timestamp
+    assert compat.runbook_structured.raw_text == "**********"

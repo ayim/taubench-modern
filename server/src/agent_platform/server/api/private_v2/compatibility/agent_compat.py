@@ -246,6 +246,7 @@ class AgentCompat(Agent):
             masked_runbook_structured = Runbook(
                 raw_text="**********" if agent.runbook_structured.raw_text else "",
                 content=[],
+                updated_at=agent.runbook_structured.updated_at,
             )
 
         langsmith_config = None
