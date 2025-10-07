@@ -101,7 +101,8 @@
         { "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES", "value": "true" },
         { "name": "SEMA4AI_WORKROOM_PORT", "value": "8001" },
         { "name": "SEMA4AI_WORKROOM_PORT_INTERNAL", "value": "8002" },
-        { "name": "SEMA4AI_WORKROOM_AUTH_MODE", "value": "oidc" }
+        { "name": "SEMA4AI_WORKROOM_AUTH_MODE", "value": "oidc" },
+        { "name": "SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL", "value": "${OIDC_BOUNCE_FUNCTION_URL}" }
       ],
       "healthCheck": {
         "command": ["CMD-SHELL", "curl -sf http://localhost:8001/ || exit 1"],

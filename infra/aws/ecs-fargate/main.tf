@@ -133,5 +133,15 @@ module "codebuild" {
   rds_credentials_secret_arn    = module.postgres.cluster_credentials_secret_arn
   alb_target_group_arn          = module.alb.alb_target_group_arn
   alb_targets_security_group_id = module.alb.alb_targets_security_group_id
+  alb_listener_arn              = module.alb.alb_listener_arn
+  vpc_id                        = module.vpc.vpc_id
   vpc_subnet_ids                = module.vpc.private_subnet_ids
+  default_security_group_id     = module.vpc.default_security_group
+}
+
+module "oidc_bounce" {
+  source = "../modules/oidc-bounce-lambda"
+
+  alb_listener_arn = module.alb.alb_listener_arn
+  infra_id         = var.infra_id
 }

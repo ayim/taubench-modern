@@ -34,11 +34,19 @@ variable "alb_target_group_arn" {
   type = string
 }
 
+variable "alb_listener_arn" {
+  type = string
+}
+
 variable "auth_configuration_secret_arn" {
   type = string
 }
 
 variable "rds_credentials_secret_arn" {
+  type = string
+}
+
+variable "vpc_id" {
   type = string
 }
 
@@ -59,5 +67,9 @@ variable "agent_files_role_arn" {
 }
 
 variable "agent_files_bucket_name" {
+  type = string
+}
+
+variable "default_security_group_id" {
   type = string
 }

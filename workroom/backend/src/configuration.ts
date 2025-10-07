@@ -30,6 +30,7 @@ export interface Configuration {
     | {
         clientId: string;
         clientSecret: string;
+        intermediaryCallbackRedirectUrl: string | null;
         jwtPrivateKeyB64: string;
         oidcServer: string;
         type: 'oidc';
@@ -141,6 +142,9 @@ export const getConfiguration = (): Configuration => {
         return {
           clientId: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_ID'),
           clientSecret: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET'),
+          intermediaryCallbackRedirectUrl: process.env.SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL
+            ? parseEnvVariable('SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL')
+            : null,
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
           oidcServer,
           tokenIssuer,

@@ -55,7 +55,11 @@ describe('OIDCClient', () => {
 
       beforeEach(async () => {
         challenge = await OIDCClient.generatePKCE();
-        url = await client.getAuthorizationUrl({ codeChallenge: challenge.codeChallenge, redirectUri: redirectURI });
+        url = await client.getAuthorizationUrl({
+          codeChallenge: challenge.codeChallenge,
+          redirectUri: redirectURI,
+          state: 'abc',
+        });
       });
 
       it('sets correct redirect_uri', () => {

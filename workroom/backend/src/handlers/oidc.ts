@@ -84,7 +84,23 @@ export const createOIDCCallbackHandler =
 
     const { code, state } = queryResult.data;
     const origin = `${req.protocol}://${req.get('host')}`;
-    const redirectUri = `${origin}/tenants/${configuration.tenant.tenantId}/workroom/oidc/callback`;
+
+    const redirectUrlsResult = authManager.generateRedirectURLs({ origin });
+    if (!redirectUrlsResult.success) {
+      monitoring.logger.error('OIDC callback handling failed: Failed generating valid redirect URIs', {
+        errorName: redirectUrlsResult.error.code,
+        errorMessage: redirectUrlsResult.error.message,
+      });
+
+      return res.status(500).json({
+        error: { code: 'internal_error', message: 'Callback failed due to internal configuration issue' },
+      } satisfies ErrorResponse);
+    }
+
+    const redirectUri =
+      redirectUrlsResult.data.type === 'intermediary'
+        ? redirectUrlsResult.data.intermediate
+        : redirectUrlsResult.data.url;
 
     const tokensResult = await authManager.exchangeCodeForTokens({
       code,
@@ -99,13 +115,9 @@ export const createOIDCCallbackHandler =
         errorMessage: tokensResult.error.message,
       });
 
-      return {
-        success: false,
-        error: {
-          code: 'token_exchange_failed',
-          message: `Failed exchanging code for tokens: ${tokensResult.error.message}`,
-        },
-      };
+      return res.status(500).json({
+        error: { code: 'internal_error', message: 'Failed processing authentication' },
+      } satisfies ErrorResponse);
     }
 
     await sessionManager.setSessionOnRequest(req, {

@@ -39,3 +39,7 @@ output "rds_cluster_credentials_secret_arn" {
 output "alb_target_group_arn" {
   value = module.alb.alb_target_group_arn
 }
+
+output "bounce_function_url" {
+  value = module.oidc_bounce.bounce_function_url
+}

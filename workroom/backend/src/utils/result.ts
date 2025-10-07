@@ -53,7 +53,7 @@ export const asResult = async <ReturnValue, TError = { code: string; message: st
     return {
       success: false,
       error: {
-        code: options?.errorCode ?? 'UNEXPECTED_ERROR',
+        code: options?.errorCode ?? 'unexpected_error',
         message: options?.errorMessage ? `${options.errorMessage}: ${error.message}` : error.message,
       } as TError,
     };

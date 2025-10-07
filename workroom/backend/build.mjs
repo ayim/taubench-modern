@@ -10,5 +10,5 @@ await esbuild.build({
   format: 'esm',
   logLevel: 'info',
   external: ['path', 'vite', 'fsevents', 'esbuild'],
-  inject: ['src/cjs-shim.ts'],
+  inject: ['src/cjsShim.ts'],
 });

@@ -216,6 +216,8 @@ logs/
 *.tfstate
 *.tfstate.*
 
+infra/**/function.zip
+
 # Crash log files
 crash.log
 crash.*.log

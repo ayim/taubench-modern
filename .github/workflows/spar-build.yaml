@@ -1,11 +1,11 @@
 name: Build and publish SPAR Docker image
 
 on:
-  push:
-    paths:
-      # Workroom
-      - 'workroom/**'
-      # Shared
+  pull_request:
+    types:
+      - labeled
+      - synchronize
+    paths: &workflow-paths
       - '.github/workflows/spar-build.yaml'
       - 'Dockerfile.spar'
       - '.dockerignore'
@@ -13,6 +13,8 @@ on:
       - 'scripts/entrypoint-spar.sh'
       - 'infra/aws/ecs-fargate/codebuild/**'
       - '.env'
+      # Workroom
+      - 'workroom/**'
       # Agent Server
       - 'server/**'
       - 'core/**'
@@ -21,9 +23,13 @@ on:
       - 'pyproject.toml'
       - 'uv.lock'
       - 'Makefile'
+  push:
+    paths: *workflow-paths
+    branches:
+      - main
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}
+  group: spar-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -203,7 +209,7 @@ jobs:
     name: Deploy to ECS
     needs: [build]
     runs-on: ubuntu-24.04
-    if: github.ref_name == 'main'
+    if: github.event_name == 'push' && github.ref_name == 'main'
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@a03048d87541d1d9fcf2ecf528a4a65ba9bd7838 # v5
@@ -219,3 +225,41 @@ jobs:
         with:
           project-name: team-edition-deployer-team-edition-1
           env-vars-for-codebuild: SPAR_IMAGE_REF,RELEASE_NAME
+
+  dynamic-deploy:
+    name: Deploy to dynamic instance (AWS)
+    needs: [build]
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dev_deploy_aws')
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@a03048d87541d1d9fcf2ecf528a4a65ba9bd7838 # v5
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::017820691865:role/github-deployer-team-edition-1
+
+      - name: Comment on PR
+        uses: actions/github-script@v8
+        if: github.event.action == 'labeled' && github.event.label.name == 'dev_deploy_aws'
+        with:
+          script: |
+            const branchName = '${{ env.BRANCH_NAME }}';
+            const cleanBranchName = branchName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const url = 'https://team-edition-1.sema4ai.dev/tenants/${cleanBranchName}/home'
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '`dev_deploy_aws` label added!\n\nThe PR will now deploy to AWS. Once deployed, the application will be available on ${url}. Subsequent pushes to this branch will update the deployment.'
+            })
+
+      - name: Run CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@4d15a47425739ac2296ba5e7eee3bdd4bfbdd767 # v1
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+          SPAR_IMAGE_REF: '${{ needs.build.outputs.image-uri }}'
+          OPERATION: deploy
+        with:
+          project-name: team-edition-dev-deployer-team-edition-1
+          env-vars-for-codebuild: BRANCH_NAME,SPAR_IMAGE_REF,OPERATION
+          source-version-override: ${{ github.head_ref }}

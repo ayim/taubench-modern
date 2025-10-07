@@ -6,6 +6,7 @@ import type { Tokens } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { asResult, type Result } from '../utils/result.js';
 import { Semaphore } from './utils/Semaphore.js';
+import { OIDCAuthState } from '../utils/schemas.js';
 import { safeParseUrl } from '../utils/url.js';
 
 export type EndSessionResult = Result<{ logoutUri: string }>;
@@ -166,6 +167,16 @@ export class AuthManager {
             this.monitoring.logger.info('No ID token for token exchange');
           }
 
+          // Validate state
+          try {
+            const raw = JSON.parse(Buffer.from(state, 'base64').toString());
+            OIDCAuthState.parse(raw);
+          } catch (err) {
+            this.monitoring.logger.error('Error validating OIDC callback state', {
+              error: err as Error,
+            });
+          }
+
           const claims = response.claims();
           if (!claims) {
             throw new Error('No claims returned for token exchange');
@@ -222,22 +233,35 @@ export class AuthManager {
           };
         }
 
-        const redirectUrlResult = safeParseUrl(origin);
-        if (!redirectUrlResult.success) {
-          return {
-            success: false,
-            error: {
-              code: 'invalid_request_origin',
-              message: `Request origin invalid: ${redirectUrlResult.error.message}`,
-            },
-          };
-        }
-
         try {
           const pkce = await OIDCClient.generatePKCE();
 
-          const redirectUrl = redirectUrlResult.data;
-          redirectUrl.pathname = `/tenants/${this.configuration.tenant.tenantId}/workroom/oidc/callback`;
+          const redirectUrlsResult = this.generateRedirectURLs({ origin });
+          if (!redirectUrlsResult.success) {
+            return redirectUrlsResult;
+          }
+
+          const { redirectUrl, state } = ((): { redirectUrl: string; state: string } => {
+            if (redirectUrlsResult.data.type === 'intermediary') {
+              return {
+                redirectUrl: redirectUrlsResult.data.intermediate.toString(),
+                state: Buffer.from(
+                  JSON.stringify({
+                    returnTo: redirectUrlsResult.data.final,
+                  } satisfies OIDCAuthState),
+                ).toString('base64'),
+              };
+            }
+
+            return {
+              redirectUrl: redirectUrlsResult.data.url,
+              state: Buffer.from(
+                JSON.stringify({
+                  returnTo: redirectUrlsResult.data.url,
+                } satisfies OIDCAuthState),
+              ).toString('base64'),
+            };
+          })();
 
           this.monitoring.logger.info('Generating login URL for origin', {
             oidcRedirectUrl: redirectUrl.toString(),
@@ -245,7 +269,8 @@ export class AuthManager {
 
           const url = await this.oidcClient.getAuthorizationUrl({
             codeChallenge: pkce.codeChallenge,
-            redirectUri: redirectUrl.toString(),
+            redirectUri: redirectUrl,
+            state,
           });
 
           return {
@@ -269,6 +294,85 @@ export class AuthManager {
           };
         }
       }
+
+      default:
+        exhaustiveCheck(this.configuration.auth);
+    }
+  }
+
+  generateRedirectURLs({
+    origin,
+  }: {
+    origin: string;
+  }): Result<{ type: 'single'; url: string } | { type: 'intermediary'; intermediate: string; final: string }> {
+    switch (this.configuration.auth.type) {
+      case 'none':
+      case 'sema4-oidc-sso':
+      case 'snowflake':
+        return {
+          success: false,
+          error: {
+            code: 'unsupported_login_url_generation',
+            message: `Login URL generation not supported for auth type: ${this.configuration.auth.type}`,
+          },
+        };
+
+      case 'oidc': {
+        const redirectUrlResult = safeParseUrl(origin);
+        if (!redirectUrlResult.success) {
+          return {
+            success: false,
+            error: {
+              code: 'invalid_redirect_url',
+              message: `Redirect URL invalid: ${redirectUrlResult.error.message}`,
+            },
+          };
+        }
+
+        const targetReturnPath = `/tenants/${this.configuration.tenant.tenantId}/workroom/oidc/callback`;
+
+        const finalRedirectUrl = redirectUrlResult.data;
+        finalRedirectUrl.pathname = targetReturnPath;
+
+        const intermediaryRedirectUrl =
+          (this.configuration.auth.type == 'oidc' && this.configuration.auth.intermediaryCallbackRedirectUrl) || null;
+
+        if (intermediaryRedirectUrl) {
+          const intermediaryUrlResult = safeParseUrl(intermediaryRedirectUrl);
+          if (!intermediaryUrlResult.success) {
+            return {
+              success: false,
+              error: {
+                code: 'invalid_redirect_url',
+                message: `Intermediary redirect URL invalid: ${intermediaryUrlResult.error.message}`,
+              },
+            };
+          }
+
+          const intermediaryUrl = intermediaryUrlResult.data;
+          intermediaryUrl.pathname = '/callback';
+
+          return {
+            success: true,
+            data: {
+              final: finalRedirectUrl.toString(),
+              intermediate: intermediaryUrl.toString(),
+              type: 'intermediary',
+            },
+          };
+        }
+
+        return {
+          success: true,
+          data: {
+            type: 'single',
+            url: finalRedirectUrl.toString(),
+          },
+        };
+      }
+
+      default:
+        exhaustiveCheck(this.configuration.auth);
     }
   }
 

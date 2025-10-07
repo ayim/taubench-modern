@@ -1,5 +1,6 @@
 # Git and version control
 .git
+.github
 .gitignore
 .gitattributes
 

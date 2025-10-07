@@ -17,3 +17,8 @@ export type ControlPlaneUserResponse = z.infer<typeof ControlPlaneUserResponse>;
 export const ControlPlaneUserResponse = z.object({
   userId: z.string(),
 });
+
+export type OIDCAuthState = z.infer<typeof OIDCAuthState>;
+export const OIDCAuthState = z.object({
+  returnTo: z.string().url(),
+});

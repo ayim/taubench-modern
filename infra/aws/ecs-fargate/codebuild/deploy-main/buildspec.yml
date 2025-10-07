@@ -1,0 +1,6 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - infra/aws/ecs-fargate/codebuild/deploy-main/update_task.sh

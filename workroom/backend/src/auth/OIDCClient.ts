@@ -62,13 +62,15 @@ export class OIDCClient {
   async getAuthorizationUrl({
     codeChallenge,
     redirectUri,
+    state,
   }: {
     codeChallenge: string;
     redirectUri: string;
+    state: string;
   }): Promise<string> {
     const authParams: Record<string, string> = {
       redirect_uri: redirectUri,
-      state: oidcClient.randomState(),
+      state,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
     };

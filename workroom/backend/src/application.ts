@@ -9,7 +9,7 @@ import type { Configuration } from './configuration.js';
 import { createFilesManager } from './files/filesManagement.js';
 import { createGetAgentMeta, createProxyHandler } from './handlers/agents.js';
 import { createLogoutHandler } from './handlers/auth.js';
-import { createConfigureDocumentIntelligence } from './handlers/document-intelligence.js';
+import { createConfigureDocumentIntelligence } from './handlers/documentIntelligence.js';
 import { createFilesRouter } from './handlers/files.js';
 import { createHealthCheck } from './handlers/health.js';
 import { createGetMeta, createGetSparTenantsList } from './handlers/meta.js';
