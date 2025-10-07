@@ -24,7 +24,7 @@ export const getListMcpServersQueryOptions = ({ tenantId, agentAPIClient }: Quer
         throw new Error(response.message);
       }
 
-      return Object.values(response.data);
+      return response.data;
     },
   });
 

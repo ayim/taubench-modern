@@ -125,7 +125,7 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
       <PackageCard
         title={
           <Box display="flex" alignItems="center" gap="$8" width="100%">
-            <Typography>{mcpServer.name}</Typography>
+            <Typography>{mcpServerSettings?.name}</Typography>
             <Button
               variant="outline"
               size="small"
@@ -153,6 +153,13 @@ export const McpServerItem: FC<Props> = ({ index, mcpServer }) => {
         version={null}
       >
         <Form.Fieldset>
+          <Input
+            label="MCP Server Name"
+            placeholder="Enter a name for this MCP server"
+            {...register(`mcpServerSettings.${index}.name`)}
+            description="A descriptive name for this MCP server"
+            readOnly={readOnly}
+          />
           <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <Select
               label="Type"

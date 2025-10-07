@@ -48,6 +48,7 @@ export const McpServerSection: FC = () => {
             <Select
               label="Add existing MCP server"
               placeholder={'Choose a server'}
+              value=""
               items={configuredServerItems}
               onChange={async (selectedId) => {
                 if (typeof selectedId !== 'string') return;
@@ -140,7 +141,7 @@ export const McpServerSection: FC = () => {
           </Box>
         )}
         {mcpServerSettings.map((mcpServer, index) => {
-          const key = mcpServer.name || String(index);
+          const key = mcpServer.mcpServerId || `mcp-${index}`;
           return <McpServerItem key={key} index={index} mcpServer={mcpServer} />;
         })}
       </Box>
