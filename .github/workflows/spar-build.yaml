@@ -35,6 +35,7 @@ concurrency:
 permissions:
   contents: read
   id-token: write
+  pull-requests: write
 
 env:
   ECR_REGION: 'us-east-1'
@@ -250,7 +251,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '`dev_deploy_aws` label added!\n\nThe PR will now deploy to AWS. Once deployed, the application will be available on ${url}. Subsequent pushes to this branch will update the deployment.'
+              body: `\`dev_deploy_aws\` label added!\n\nThe PR will now deploy to AWS. Once deployed, the application will be available on ${url}. Subsequent pushes to this branch will update the deployment.`
             })
 
       - name: Run CodeBuild

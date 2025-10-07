@@ -54,7 +54,7 @@ target_group_arn=$(
   aws elbv2 describe-target-groups \
     --names "${target_group_name}" \
     --query 'TargetGroups[0].TargetGroupArn' \
-    --output text
+    --output text || echo ""
 )
 
 if [ -z "${target_group_arn}" ]; then
