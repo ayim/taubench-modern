@@ -33,7 +33,7 @@ export const NewThreadItem: FC = () => {
   return (
     <Container disabled={isCreatingThread} onClick={() => onNewThread({ startingMessage })}>
       <IconPlus />
-      New Thread
+      New Chat
     </Container>
   );
 };

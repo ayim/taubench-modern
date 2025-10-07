@@ -11,7 +11,7 @@ import { useSparUIContext } from '../../../../api/context';
 import { ThreadItem } from '../ThreadItem';
 import { EvaluationFiltersComponent, type EvaluationFilters } from '../EvaluationFilters';
 import { getMatchingScenarioIds } from './utils';
-import { Header, SectionHeader, ScrollableContainer, ResizeHandle, AnimatedSection, AnimatedEvalSection } from './styles';
+import { Header, SectionHeader, ScrollableContainer, ResizeHandle, AnimatedEvalSection } from './styles';
 import { NewThreadItem } from '../NewThreadItem';
 
 const defaultFilters: EvaluationFilters = {
@@ -46,7 +46,6 @@ export const ThreadsList: FC = () => {
     })),
     loading: scenariosLoading || allRunsLoading,
   };
-  const [isMessagesExpanded, setIsMessagesExpanded] = useState(true);
   const [isEvalRunsExpanded, setIsEvalRunsExpanded] = useState(true);
   const [evalSectionHeight, setEvalSectionHeight] = useState('200px');
   const [isResizing, setIsResizing] = useState(false);
@@ -119,10 +118,6 @@ export const ThreadsList: FC = () => {
     startHeightRef.current = currentHeightPx;
   };
 
-  const handleToggleMessages = () => {
-    setIsMessagesExpanded(!isMessagesExpanded);
-  };
-
   const handleToggleEvalRuns = () => {
     if (!isEvalRunsExpanded) {
       setEvalSectionHeight('200px');
@@ -173,26 +168,13 @@ export const ThreadsList: FC = () => {
          </Header>
          <NewThreadItem />
          <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
-           <SectionHeader onClick={handleToggleMessages}>
-             <Typography variant="body-medium" fontWeight="medium">
-               Threads
-             </Typography>
-             <Button
-               variant="ghost"
-               size="small"
-               icon={isMessagesExpanded ? IconChevronDown : IconChevronRight}
-               onClick={handleToggleMessages}
-               aria-label={isMessagesExpanded ? 'Collapse messages' : 'Expand messages'}
-             />
-          </SectionHeader>
-          <AnimatedSection isExpanded={isMessagesExpanded}>
             <ScrollableContainer style={{ flex: 1, minHeight: 0 }}>
               {userInitiatedThreads?.map((thread) => (
-                <ThreadItem 
-                  key={thread.thread_id} 
-                  threadId={thread.thread_id || ''} 
-                  name={thread.name} 
-                  scenarioId={thread.metadata?.scenario_id as string ?? null} 
+                <ThreadItem
+                  key={thread.thread_id}
+                  threadId={thread.thread_id || ''}
+                  name={thread.name}
+                  scenarioId={thread.metadata?.scenario_id as string ?? null}
                 />
               ))}
               {userInitiatedThreads?.length === 0 && (
@@ -203,7 +185,6 @@ export const ThreadsList: FC = () => {
                 </Box>
               )}
             </ScrollableContainer>
-          </AnimatedSection>
          </Box>
 
        {allSimulationThreads && allSimulationThreads.length > 0 && (
