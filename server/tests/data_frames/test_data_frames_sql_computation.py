@@ -10,6 +10,15 @@ from server.tests.storage_fixtures import *  # noqa: F403
 if typing.TYPE_CHECKING:
     from sqlglot.dialects.dialect import DialectType
 
+    from agent_platform.core.payloads.data_connection import DataConnectionsInspectResponse
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        GenerateSemanticDataModelResponse,
+        TableInfo,
+    )
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.data_frames.data_node import DataNodeResult
+    from agent_platform.server.storage.sqlite import SQLiteStorage
+
 
 def verify_safe_select(sql: str, dialect: "DialectType | None" = None) -> None:
     """
@@ -553,92 +562,219 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
     )
 
 
+class _DataFramesChecker:
+    def __init__(self, sqlite_storage: "SQLiteStorage", tmpdir: Path):
+        from server.tests.storage.sample_model_creator import SampleModelCreator
+
+        self.sqlite_storage = sqlite_storage
+        self.tmpdir = tmpdir
+
+        self.model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+
+    async def setup(self):
+        from agent_platform.server.auth.handlers import AuthedUser, User
+
+        await self.model_creator.setup()
+
+        # Setup user and thread
+        user_id = await self.model_creator.get_user_id()
+        self.user = typing.cast(AuthedUser, User(user_id=user_id, sub=""))
+        self.agent = await self.model_creator.obtain_sample_agent()
+        self.thread = await self.model_creator.obtain_sample_thread()
+        self.tid = self.thread.thread_id
+
+    def convert_inspect_response_to_tables_info(
+        self,
+        inspect_response: "DataConnectionsInspectResponse",
+    ) -> "list[TableInfo]":
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            TableInfo,
+        )
+
+        tables_info: list[TableInfo] = []
+        for table in inspect_response.tables:
+            columns: list[ColumnInfo] = []
+            for column in table.columns:
+                columns.append(
+                    ColumnInfo(
+                        name=column.name,
+                        data_type=column.data_type,
+                        sample_values=column.sample_values,
+                    )
+                )
+            tables_info.append(
+                TableInfo(
+                    name=table.name,
+                    columns=columns,
+                    database=table.database,
+                    schema=table.schema,
+                    description=table.description,
+                )
+            )
+        return tables_info
+
+    async def inspect_data_connection(
+        self, data_connection_id: str
+    ) -> "DataConnectionsInspectResponse":
+        from agent_platform.core.payloads.data_connection import DataConnectionsInspectRequest
+        from agent_platform.server.api.private_v2.data_connections import inspect_data_connection
+
+        inspect_response = await inspect_data_connection(
+            connection_id=data_connection_id,
+            request=DataConnectionsInspectRequest(
+                tables_to_inspect=None,
+                inspect_columns=True,
+                n_sample_rows=5,
+            ),
+            user=self.user,
+            storage=self.model_creator.storage,
+        )
+
+        return inspect_response
+
+    async def generate_semantic_data_model(
+        self, tables_info: "list[TableInfo]", data_connection_id: str
+    ) -> "GenerateSemanticDataModelResponse":
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            DataConnectionInfo,
+            GenerateSemanticDataModelPayload,
+        )
+        from agent_platform.server.api.private_v2.semantic_data_model_api import (
+            generate_semantic_data_model,
+        )
+
+        # Generate the semantic data model
+        generated_model = await generate_semantic_data_model(
+            payload=GenerateSemanticDataModelPayload(
+                name="generated_semantic_model",
+                description="A generated semantic model for testing",
+                data_connections_info=[
+                    DataConnectionInfo(
+                        data_connection_id=data_connection_id,
+                        tables_info=tables_info,
+                    )
+                ],
+                files_info=[],
+            ),
+            user=self.user,
+            storage=self.model_creator.storage,
+        )
+
+        return generated_model
+
+    def create_data_frames_kernel(self) -> "DataFramesKernel":
+        from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+
+        return DataFramesKernel(self.model_creator.storage, self.user, self.tid)
+
+    async def create_data_frame_from_sql_computation_api(
+        self, name: str, sql_query: str, description: str, dialect: str = "duckdb"
+    ) -> "DataNodeResult":
+        from agent_platform.server.data_frames.data_frames_from_computation import (
+            create_data_frame_from_sql_computation_api,
+        )
+
+        result, _sliced_data = await create_data_frame_from_sql_computation_api(
+            self.create_data_frames_kernel(),
+            self.model_creator.storage,
+            name,
+            sql_query,
+            dialect=dialect,
+            description=description,
+        )
+        return result
+
+
+@pytest.fixture
+async def dfs_checker(sqlite_storage, tmpdir):
+    ret = _DataFramesChecker(sqlite_storage, tmpdir)
+    await ret.setup()
+    return ret
+
+
+@pytest.mark.asyncio
+async def __manual_test_inspect_manual_postgres_data_connection(
+    file_regression, dfs_checker: _DataFramesChecker, resources_dir
+):
+    """
+    This is a manual test to be used to inspect some connection by
+    manually changing the settings of the database to connect to.
+    """
+    from uuid import uuid4
+
+    from agent_platform.core.data_connections.data_connections import DataConnection
+    from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+
+    data_connection = DataConnection(
+        id=str(uuid4()),
+        name="test_connection",
+        description="Test data connection: test_connection",
+        engine="postgres",
+        configuration=PostgresDataConnectionConfiguration(
+            host="localhost",
+            port=5432,
+            database="dvd_rental",
+            user="xxx",
+            password="xxx",
+        ),
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+    )
+
+    await dfs_checker.model_creator.storage.set_data_connection(data_connection)
+
+    inspect_response = await dfs_checker.inspect_data_connection(data_connection.id)
+
+    tables_info = dfs_checker.convert_inspect_response_to_tables_info(inspect_response)
+
+    generated_model = await dfs_checker.generate_semantic_data_model(
+        tables_info=tables_info,
+        data_connection_id=data_connection.id,
+    )
+    assert generated_model.semantic_model is not None
+
+
+@pytest.mark.parametrize("raise_error", [True])
 @pytest.mark.asyncio
 async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
-    file_regression, sqlite_storage, tmpdir, resources_dir
+    file_regression, dfs_checker: _DataFramesChecker, resources_dir, monkeypatch, raise_error
 ):
     from sema4ai.actions import Table
 
-    from agent_platform.core.payloads.data_connection import DataConnectionsInspectRequest
-    from agent_platform.core.payloads.semantic_data_model_payloads import (
-        ColumnInfo,
-        DataConnectionInfo,
-        GenerateSemanticDataModelPayload,
-        TableInfo,
-    )
-    from agent_platform.server.api.private_v2.data_connections import inspect_data_connection
-    from agent_platform.server.api.private_v2.semantic_data_model_api import (
-        generate_semantic_data_model,
-    )
-    from agent_platform.server.auth.handlers import AuthedUser, User
-    from agent_platform.server.data_frames.data_frames_from_computation import (
-        create_data_frame_from_sql_computation_api,
-    )
-    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
-    from server.tests.storage.sample_model_creator import SampleModelCreator
-
-    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
-    await model_creator.setup()
-
-    # Setup user and thread
-    user_id = await model_creator.get_user_id()
-    user = typing.cast(AuthedUser, User(user_id=user_id, sub=""))
-    agent = await model_creator.obtain_sample_agent()
-    thread = await model_creator.obtain_sample_thread()
-    tid = thread.thread_id
+    from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
 
     # Create a data connection and a semantic data model
     db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
-    data_connection = await model_creator.obtain_sample_data_connection(db_file_path=db_file_path)
-    assert data_connection
-
-    inspect_response = await inspect_data_connection(
-        connection_id=data_connection.id,
-        request=DataConnectionsInspectRequest(
-            tables_to_inspect=None,
-            inspect_columns=True,
-            n_sample_rows=5,
-        ),
-        user=user,
-        storage=model_creator.storage,
+    data_connection = await dfs_checker.model_creator.obtain_sample_data_connection(
+        db_file_path=db_file_path
     )
 
-    tables_info: list[TableInfo] = []
-    for table in inspect_response.tables:
-        columns: list[ColumnInfo] = []
-        for column in table.columns:
-            columns.append(
-                ColumnInfo(
-                    name=column.name,
-                    data_type=column.data_type,
-                    sample_values=column.sample_values,
-                )
-            )
-        tables_info.append(
-            TableInfo(
-                name=table.name,
-                columns=columns,
-                database=table.database,
-                schema=table.schema,
-                description=table.description,
-            )
+    raised_error = False
+
+    if raise_error:
+
+        def _raise_error(self, *args, **kwargs):
+            nonlocal raised_error
+            raised_error = True
+            raise Exception("Expected test error")
+
+        monkeypatch.setattr(
+            DataConnectionInspector,
+            "_select_with_limit",
+            _raise_error,
         )
 
-    # Generate the semantic data model
-    generated_model = await generate_semantic_data_model(
-        payload=GenerateSemanticDataModelPayload(
-            name="generated_semantic_model",
-            description="A generated semantic model for testing",
-            data_connections_info=[
-                DataConnectionInfo(
-                    data_connection_id=data_connection.id,
-                    tables_info=tables_info,
-                )
-            ],
-            files_info=[],
-        ),
-        user=user,
-        storage=model_creator.storage,
+    inspect_response = await dfs_checker.inspect_data_connection(data_connection.id)
+    if raise_error:
+        assert raised_error, "Expected error to be raised when inspecting the data connection"
+
+    tables_info = dfs_checker.convert_inspect_response_to_tables_info(inspect_response)
+
+    generated_model = await dfs_checker.generate_semantic_data_model(
+        tables_info=tables_info,
+        data_connection_id=data_connection.id,
     )
 
     # Ok, a basic model was created, let's change the logical name of the table
@@ -653,7 +789,7 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
         if name == "artificial_intelligence_number_training_datapoints":
             table["name"] = "ai_training_datapoints"
 
-    semantic_data_model_id = await model_creator.storage.set_semantic_data_model(
+    semantic_data_model_id = await dfs_checker.model_creator.storage.set_semantic_data_model(
         semantic_data_model_id=None,
         semantic_model=generated_model.semantic_model,
         data_connection_ids=[data_connection.id],
@@ -661,22 +797,15 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
     )
 
     # Assign the semantic data model to the agent
-    await model_creator.storage.set_agent_semantic_data_models(
-        agent_id=agent.agent_id,
+    await dfs_checker.model_creator.storage.set_agent_semantic_data_models(
+        agent_id=dfs_checker.agent.agent_id,
         semantic_data_model_ids=[semantic_data_model_id],
     )
 
-    new_data_frame_name = "test_data_frame"
-    sql_query = """SELECT * FROM ai_training_datapoints"""
-    description = "Test data frame"
-
-    result, _sliced_data = await create_data_frame_from_sql_computation_api(
-        DataFramesKernel(sqlite_storage, user, tid),
-        sqlite_storage,
-        new_data_frame_name,
-        sql_query,
-        dialect="duckdb",
-        description=description,
+    result = await dfs_checker.create_data_frame_from_sql_computation_api(
+        "test_data_frame",
+        "SELECT * FROM ai_training_datapoints",
+        description="Test data frame",
     )
 
     sliced_table = typing.cast(Table, result.slice(offset=0, limit=10, output_format="table"))

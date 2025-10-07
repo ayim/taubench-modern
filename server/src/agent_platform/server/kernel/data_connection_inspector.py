@@ -4,6 +4,8 @@ from typing import Any
 from structlog import get_logger
 
 if typing.TYPE_CHECKING:
+    import pyarrow
+
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.payloads.data_connection import (
         ColumnInfo,
@@ -48,6 +50,7 @@ class DataConnectionInspector:
         # Get all tables if none specified
         if not self.request.tables_to_inspect:
             initial_time = time.monotonic()
+            logger.info("Collecting tables to inspect")
             tables_to_inspect = await self._get_all_tables(connection)
             logger.info(f"Got all tables in {time.monotonic() - initial_time:.2f} seconds")
         else:
@@ -232,8 +235,17 @@ class DataConnectionInspector:
 
         return table_specs
 
+    def _select_with_limit(self, table, columns_to_inspect, n_sample_rows):
+        """
+        Note: extracted just so that we can mock it easily for testing
+        purposes (to simulate errors when inspecting columns).
+        """
+        return table.select(columns_to_inspect).limit(n_sample_rows)
+
     async def _inspect_table(self, connection: Any, table_spec: "TableToInspect") -> "TableInfo":
         """Inspect a specific table and return its metadata."""
+        import pyarrow
+
         from agent_platform.core.payloads.data_connection import TableInfo
 
         # Get the table reference
@@ -251,13 +263,40 @@ class DataConnectionInspector:
                 continue
             columns_to_inspect.append(column_name)
 
+        sample_table: pyarrow.Table | dict[str, pyarrow.Table | None] | None = None
         if columns_to_inspect:
             # Execute query to get sample values
-            sample_query = table.select(columns_to_inspect).limit(self.request.n_sample_rows)
+            try:
+                sample_query = self._select_with_limit(
+                    table, columns_to_inspect, self.request.n_sample_rows
+                )
 
-            sample_table = sample_query.to_pyarrow()
-        else:
-            sample_table = None
+                sample_table_arrow: pyarrow.Table = sample_query.to_pyarrow()
+                sample_table = sample_table_arrow
+            except Exception as e:
+                logger.error(f"Error inspecting table {table_spec.name}: {e!r}")
+
+                # Ok, we haven't able to do a select with many columns (something went wrong),
+                # let's try columns one by one -- note: this error can be expected if there's an
+                # issue with the column type (for instance, if the column is an int but ibis
+                # got it as a string).
+                #
+                # Example:
+                # Error inspecting table film column release_year column type: unknown(
+                #   DataType(this=Type.USERDEFINED, kind=year)): ArrowTypeError("Expected bytes,
+                #   got a 'int' object")
+                sample_table_dict: dict[str, pyarrow.Table | None] = {}
+                for column_name in columns_to_inspect:
+                    try:
+                        sample_query = table.select(column_name).limit(self.request.n_sample_rows)
+                        sample_table_dict[column_name] = sample_query.to_pyarrow()
+                    except Exception as e:
+                        logger.error(
+                            f"Error inspecting table {table_spec.name} column {column_name} "
+                            f"column type: {table[column_name].type()}: {e!r}"
+                        )
+                        sample_table_dict[column_name] = None
+                sample_table = sample_table_dict
 
         for column_name in columns_to_inspect:
             column_info = await self._inspect_column(table, column_name, sample_table)
@@ -272,17 +311,29 @@ class DataConnectionInspector:
         )
 
     async def _inspect_column(
-        self, table: Any, column_name: str, sample_table: Any | None
+        self,
+        table: Any,
+        column_name: str,
+        sample_table: "pyarrow.Table | dict[str, pyarrow.Table | None] | None",
     ) -> "ColumnInfo":
         """Inspect a specific column and return its metadata."""
         from agent_platform.core.payloads.data_connection import ColumnInfo
+        from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
 
         # Get column type
         column_type = str(table[column_name].type())
         if sample_table is not None:
-            sample_values = sample_table[column_name].to_pylist()
-            # Remove None values
-            sample_values = [v for v in sample_values if v is not None]
+            if isinstance(sample_table, dict):
+                sample_table = sample_table[column_name]
+
+            if not sample_table:
+                sample_values = None
+            else:
+                arrow_sample_values = sample_table[column_name].to_pylist()
+                # Remove None values
+                sample_values = [
+                    convert_to_valid_json_types(v) for v in arrow_sample_values if v is not None
+                ]
         else:
             sample_values = None
 

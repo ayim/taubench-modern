@@ -269,11 +269,15 @@ See [./data-frames-db-and-semantic-models.md](data-frames-db-and-semantic-models
 
 - Add more logging related to what's happening when resolving the data frames/semantic data models.
 
-# Step 11a (current PR)
+# Step 11a (done)
 
 - Fixed issue where creating a data frame from a csv with no values for one of the columns makes the data frame unusable afterwards.
   Note: this happens because duckdb doesn't support null column types (it does accept having null values in the column if the
   column is of a different type though, so, casting the column to string as a workaround).
+
+# Step 11b (current PR)
+
+- Provide an API which would query a file (by receiving the file contents) as if it was a data connection.
 
 # Step 12:
 
