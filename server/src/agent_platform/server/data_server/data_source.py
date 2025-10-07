@@ -4,8 +4,8 @@ from typing import Any
 
 from sema4ai.data import DataSource
 
+from agent_platform.core.data_connections.data_sources import DataSources
 from agent_platform.core.data_server.data_server import DataServerDetails
-from agent_platform.core.data_server.data_sources import DataSources
 
 _database_to_ignore = ["files"]
 

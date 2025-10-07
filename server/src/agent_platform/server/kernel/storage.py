@@ -1,8 +1,7 @@
 from typing import TYPE_CHECKING
 
-from agent_platform.core.data_server.data_connection import DataConnection
-from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.files.files import UploadedFile
+from agent_platform.core.integrations import Integration
 from agent_platform.core.kernel import StorageInterface
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.storage import ScopedStorage
@@ -56,13 +55,9 @@ class AgentServerStorageInterface(StorageInterface, UsesKernelMixin):
         """Gets a file by its ID."""
         return await self._internal_storage.get_file_by_id(file_id, self.kernel.user.user_id)
 
-    async def get_dids_connection_details(self) -> DataServerDetails:
-        """Get the DIDS connection details from storage."""
-        return await self._internal_storage.get_dids_connection_details()
-
-    async def get_dids_data_connections(self) -> list[DataConnection]:
-        """Get the DIDS data connections from storage."""
-        return await self._internal_storage.get_dids_data_connections()
+    async def get_integration_by_kind(self, kind: str) -> "Integration":
+        """Get integration by kind."""
+        return await self._internal_storage.get_integration_by_kind(kind)
 
     async def upsert_agent(self, user_id: str, agent: "Agent") -> None:
         """Create or update an agent definition for a user."""

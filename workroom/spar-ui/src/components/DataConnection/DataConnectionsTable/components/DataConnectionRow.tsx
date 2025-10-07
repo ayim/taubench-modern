@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import type { TableRowProps } from '@sema4ai/components';
-import { Box, Button, Menu, Table, useSnackbar } from '@sema4ai/components';
+import { Badge, Box, Button, Menu, Table, useSnackbar } from '@sema4ai/components';
 import { IconDotsHorizontal } from '@sema4ai/icons';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 
@@ -15,6 +15,7 @@ export const DataConnectionRow: FC<DataAccessRowProps> = ({ rowData }) => {
   const navigate = useNavigate();
   const { mutate: deleteDataConnection } = useDeleteDataConnectionMutation({ dataConnectionId: rowData.id });
   const { addSnackbar } = useSnackbar();
+  const isDataConnectionUsedByDocumentIntelligence = rowData.tags?.[0] === 'data_intelligence';
 
   const onDeleteConfirm = useDeleteConfirm(
     {
@@ -50,7 +51,14 @@ export const DataConnectionRow: FC<DataAccessRowProps> = ({ rowData }) => {
 
   return (
     <Table.Row onClick={onEdit}>
-      <Table.Cell>{rowData.name}</Table.Cell>
+      <Table.Cell>
+        <Box display="flex" alignItems="center" gap="$8">
+          {rowData.name}
+          {isDataConnectionUsedByDocumentIntelligence && (
+            <Badge size="small" variant="info" label="Document Intelligence" aria-description="This data connection is used for Document Intelligence" />
+          )}
+        </Box>
+      </Table.Cell>
       <Table.Cell>
         <Box display="flex" alignItems="center" gap="$8">
           <DataConnectionIcon engine={rowData.engine} />

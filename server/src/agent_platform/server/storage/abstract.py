@@ -6,10 +6,9 @@ import sqlalchemy as sa
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.config.config import Config
-from agent_platform.core.data_server.data_connection import DataConnection
-from agent_platform.core.data_server.data_server import DataServerDetails
-from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
+from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.files import UploadedFile
+from agent_platform.core.integrations import Integration
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.memory import Memory
 from agent_platform.core.platforms.base import PlatformParameters
@@ -601,46 +600,24 @@ class AbstractStorage(ABC):
     # Methods for Document Intelligence
     # -------------------------------------------------------------------------
     @abstractmethod
-    async def get_dids_connection_details(self) -> DataServerDetails:
-        """Get the Document Intelligence Data Server connection details."""
-
-    @abstractmethod
-    async def set_dids_connection_details(self, details: DataServerDetails) -> None:
-        """Set the Document Intelligence Data Server connection details."""
-
-    @abstractmethod
     async def delete_dids_connection_details(self) -> None:
         """Delete the Document Intelligence Data Server connection details."""
 
     @abstractmethod
-    async def get_document_intelligence_integration(
-        self, kind: str
-    ) -> DocumentIntelligenceIntegration:
-        """Get a document intelligence integration by kind."""
+    async def add_data_connection_tag(self, connection_id: str, tag: str) -> None:
+        """Add a tag to a data connection."""
 
     @abstractmethod
-    async def list_document_intelligence_integrations(
-        self,
-    ) -> list[DocumentIntelligenceIntegration]:
-        """List all document intelligence integrations."""
+    async def remove_data_connection_tag(self, connection_id: str, tag: str) -> None:
+        """Remove a tag from a data connection."""
 
     @abstractmethod
-    async def set_document_intelligence_integration(
-        self, integration: DocumentIntelligenceIntegration
-    ) -> DocumentIntelligenceIntegration:
-        """Create or update a document intelligence integration."""
+    async def get_data_connections_by_tag(self, tag: str) -> list[DataConnection]:
+        """Get all data connections that have a specific tag."""
 
     @abstractmethod
-    async def delete_document_intelligence_integration(self, kind: str) -> None:
-        """Delete a document intelligence integration by kind."""
-
-    @abstractmethod
-    async def get_dids_data_connections(self) -> list[DataConnection]:
-        """Get all Document Intelligence Data Server data connections."""
-
-    @abstractmethod
-    async def set_dids_data_connections(self, data_connections: list[DataConnection]) -> None:
-        """Set Document Intelligence Data Server data connections (replace all)."""
+    async def clear_data_connection_tag(self, tag: str) -> None:
+        """Remove a specific tag from all data connections."""
 
     # -------------------------------------------------------------------------
     # Methods for Agent Config
@@ -677,3 +654,21 @@ class AbstractStorage(ABC):
         self, default_retention_period: timedelta
     ) -> list[StaleThreadsResult]:
         """Cleans up stale threads based on the configured retention period."""
+
+    # Methods for integrations
+    # -------------------------
+    @abstractmethod
+    async def upsert_integration(self, integration: Integration) -> None:
+        """Update (or insert) an integration."""
+
+    @abstractmethod
+    async def get_integration_by_kind(self, kind: str) -> Integration:
+        """Get an integration by its kind."""
+
+    @abstractmethod
+    async def delete_integration(self, kind: str) -> None:
+        """Delete an integration by its kind."""
+
+    @abstractmethod
+    async def list_integrations(self) -> list[Integration]:
+        """List all integrations."""

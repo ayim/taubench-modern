@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
+from agent_platform.core.data_connections.data_sources import DataSources
 from agent_platform.core.data_server.data_server import DataServerDetails
-from agent_platform.core.data_server.data_sources import DataSources
 from agent_platform.server.data_server.data_source import (
     DataSourceDefinition,
     delete_data_source_from_data_server,

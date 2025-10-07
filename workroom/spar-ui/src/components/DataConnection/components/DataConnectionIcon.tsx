@@ -23,6 +23,8 @@ export const getDataConnectionIcon = (engine: string): IconType => {
   switch (engine) {
     case 'postgres':
       return IconPostgresql;
+    case 'pgvector':
+      return IconPostgresql;
     case 'snowflake':
       return IconSnowflake;
     case 'redshift':

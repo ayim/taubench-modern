@@ -44,6 +44,26 @@ def sample_mysql_data_connection():
 
 
 @pytest.fixture
+def sample_postgres_data_connection_with_tag():
+    """Sample PostgreSQL data connection payload with tag for API requests."""
+    return {
+        "name": "test-postgres-connection-tagged",
+        "description": "Test PostgreSQL connection with tag",
+        "engine": "postgres",
+        "tags": ["production"],
+        "configuration": {
+            "host": "localhost",
+            "port": 5432,
+            "database": "testdb",
+            "user": "testuser",
+            "password": "testpass",
+            "schema": "public",
+            "sslmode": "require",
+        },
+    }
+
+
+@pytest.fixture
 def sample_sqlite_data_connection(tmp_path: Path):
     """Sample SQLite data connection payload for API requests."""
     import sqlite3
@@ -317,7 +337,7 @@ def test_data_connection_response_format(client: TestClient, sample_postgres_dat
     assert create_response.status_code == 200
     created_data = create_response.json()
 
-    expected_fields = ["id", "name", "description", "engine", "configuration"]
+    expected_fields = ["id", "name", "description", "engine", "configuration", "tags"]
     for field in expected_fields:
         assert field in created_data
 
@@ -337,6 +357,40 @@ def test_data_connection_response_format(client: TestClient, sample_postgres_dat
 
     assert get_data["id"] == connection_id
     assert get_data["name"] == sample_postgres_data_connection["name"]
+
+
+def test_create_data_connection_with_tag(
+    client: TestClient, sample_postgres_data_connection_with_tag: dict
+):
+    """Test creating a data connection with tag via API."""
+    response = client.post(
+        "/api/v2/private/data-connections/", json=sample_postgres_data_connection_with_tag
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == sample_postgres_data_connection_with_tag["name"]
+    assert data["description"] == sample_postgres_data_connection_with_tag["description"]
+    assert data["engine"] == sample_postgres_data_connection_with_tag["engine"]
+    assert data["tags"] == sample_postgres_data_connection_with_tag["tags"]
+    assert data["configuration"] == sample_postgres_data_connection_with_tag["configuration"]
+    assert "id" in data
+    assert data["id"] is not None
+    assert data["created_at"] is not None
+    assert data["updated_at"] is not None
+
+
+def test_create_data_connection_without_tag_has_empty_tag(
+    client: TestClient, sample_postgres_data_connection: dict
+):
+    """Test creating a data connection without tag has empty tag field."""
+    response = client.post(
+        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["tags"] == []
 
 
 def test_inspect_data_connection_success(client: TestClient, sample_sqlite_data_connection: dict):

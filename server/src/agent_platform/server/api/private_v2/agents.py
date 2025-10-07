@@ -13,6 +13,7 @@ from agent_platform.core.actions.action_package import (
     AgentDetails,
 )
 from agent_platform.core.data_connections.data_connections import DataConnection
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.files import UploadedFile
@@ -169,7 +170,10 @@ async def _process_mcp_servers(agent, storage: StorageDependency) -> list[MCPSer
     # Get data server details for MCP context
     data_server_details = None
     try:
-        data_server_details = await storage.get_dids_connection_details()
+        # Use new integration table instead of old dids_connection_details table
+        data_server_integration = await storage.get_integration_by_kind("data_server")
+        settings_dict = data_server_integration.settings.model_dump()
+        data_server_details = DataServerDetails.model_validate(settings_dict)
     except Exception as e:
         # Log but continue without data context - this allows MCP servers to work
         # even when data server details are unavailable

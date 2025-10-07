@@ -19,6 +19,7 @@ import { UserTenant } from '~/queries/tenants';
 import { RequestError } from './Error';
 import { getTenantEnvironmentUrl, resolveWorkroomURL } from './utils';
 import { getMeta } from './meta';
+import { ServerResponse } from '@sema4ai/spar-ui';
 
 // Reference:
 // https://github.com/openapi-ts/openapi-typescript/blob/fdc6d229e995b6009619835530ac74487fda48ef/packages/openapi-fetch/src/index.d.ts#L165
@@ -70,7 +71,7 @@ type WorkroomToken = {
 };
 
 type SPAR_upsertDocumentIntelligenceConfigurationPayload = {
-  postgresConnectionUrl: string;
+  dataConnectionId: string;
   integrations: { type: 'reducto'; api_key: string; endpoint: string }[];
 };
 
@@ -706,28 +707,18 @@ export class AgentAPIClient {
     tenantId,
   }: {
     tenantId: string;
-  }): Promise<
-    { configured: true } | { configured: false; error: { error_id?: string; code: string; message: string } }
-  > {
-    try {
-      await this.agentFetch(tenantId, 'get', '/api/v2/document-intelligence/ok');
+  }): Promise<ServerResponse<'get', '/api/v2/document-intelligence'>> {
+    const documentIntelligence = await this.agentFetch(tenantId, 'get', '/api/v2/document-intelligence');
 
-      return { configured: true };
-    } catch (e) {
-      const error = e as Error;
-      return {
-        configured: false,
-        error: {
-          code: 'unexpected_error',
-          message: `${error.name}:${error.message}`,
-        },
-      };
+    if (!documentIntelligence.success) {
+      throw new RequestError(Number(documentIntelligence.code), documentIntelligence.message);
     }
+
+    return documentIntelligence.data;
   }
 
   public async clearDocumentIntelligenceConfiguration({ tenantId }: { tenantId: string }): Promise<{ deleted: true }> {
     await this.agentFetch(tenantId, 'delete', '/api/v2/document-intelligence');
-
     return { deleted: true };
   }
 
@@ -739,7 +730,7 @@ export class AgentAPIClient {
     configuration: {
       reductoApiKey: string;
       reductoEndpoint: string;
-      postgresConnectionUrl: string;
+      dataConnectionId: string;
     };
   }): Promise<null> {
     const tenant = await this.getTenant(tenantId);
@@ -759,7 +750,7 @@ export class AgentAPIClient {
         authorization: `Bearer ${workroomToken}`,
       },
       body: JSON.stringify({
-        postgresConnectionUrl: configuration.postgresConnectionUrl,
+        dataConnectionId: configuration.dataConnectionId,
         integrations: [
           { type: 'reducto', api_key: configuration.reductoApiKey, endpoint: configuration.reductoEndpoint },
         ],
@@ -775,17 +766,5 @@ export class AgentAPIClient {
     }
 
     return null;
-  }
-
-  public async listDataConnections({
-    tenantId,
-  }: {
-    tenantId: string;
-  }): Promise<
-    ApiResponse<agentServerPaths['/api/v2/data-connections/']['get']['responses']['200']['content']['application/json']>
-  > {
-    const dataConnections = await this.agentFetch(tenantId, 'get', '/api/v2/data-connections/');
-
-    return dataConnections;
   }
 }

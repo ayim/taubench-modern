@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Literal
@@ -11,6 +11,12 @@ class Sslmode(Enum):
     disable = "disable"
     allow = "allow"
     prefer = "prefer"
+
+
+class DataConnectionTag(str, Enum):
+    """Tags that can be applied to data connections."""
+
+    DOCUMENT_INTELLIGENCE = "data_intelligence"
 
 
 @dataclass
@@ -254,6 +260,7 @@ class BaseDataConnection:
     updated_at: datetime | None = None
     id: str | None = None
     external_id: str | None = None
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass

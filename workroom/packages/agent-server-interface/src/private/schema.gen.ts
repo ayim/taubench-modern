@@ -1080,14 +1080,14 @@ export interface paths {
      *
      *     Accepts a combined configuration payload under the `/document-intelligence`
      *     root. It stores the Data Server connection details and any provided
-     *     integrations. For now, integrations are upserted individually by kind.
+     *     integrations using the new v2_integration table.
      *
      *     Returns the updated configuration in the same format as the GET endpoint.
      */
     post: operations['upsert_document_intelligence_document_intelligence_post'];
     /**
      * Clear Document Intelligence
-     * @description Clear the Document Intelligence database.
+     * @description Clear the Document Intelligence configuration.
      */
     delete: operations['clear_document_intelligence_document_intelligence_delete'];
     options?: never;
@@ -3100,6 +3100,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default bigquery
@@ -3280,6 +3282,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default confluence
@@ -3479,6 +3483,70 @@ export interface components {
        */
       callbacks?: components['schemas']['WorkItemCallback'][] | null;
     };
+    /** DataConnection */
+    DataConnection: {
+      /**
+       * Id
+       * @description The unique identifier of the data connection
+       */
+      id: string;
+      /**
+       * Name
+       * @description The name of the data connection
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the data connection
+       */
+      description: string;
+      /**
+       * Engine
+       * @description The engine type of the data connection
+       */
+      engine: string;
+      /**
+       * Configuration
+       * @description The configuration parameters for the data connection
+       */
+      configuration:
+        | components['schemas']['PostgresDataConnectionConfiguration']
+        | components['schemas']['RedshiftDataConnectionConfiguration']
+        | components['schemas']['SnowflakeLinkedConfiguration']
+        | components['schemas']['SnowflakeCustomKeyPairConfiguration']
+        | components['schemas']['SnowflakeDataConnectionConfiguration']
+        | components['schemas']['ConfluenceDataConnectionConfiguration']
+        | components['schemas']['MySQLDataConnectionConfiguration']
+        | components['schemas']['MSSQLDataConnectionConfiguration']
+        | components['schemas']['OracleDataConnectionConfiguration']
+        | components['schemas']['SlackDataConnectionConfiguration']
+        | components['schemas']['SalesforceDataConnectionConfiguration']
+        | components['schemas']['TimescaledbDataConnectionConfiguration']
+        | components['schemas']['PgvectorDataConnectionConfiguration']
+        | components['schemas']['BigqueryDataConnectionConfiguration']
+        | components['schemas']['SemaknowledgebaseDataConnectionConfiguration']
+        | components['schemas']['SQLiteDataConnectionConfiguration'];
+      /**
+       * External Id
+       * @description The external identifier of the data connection
+       */
+      external_id?: string | null;
+      /**
+       * Created At
+       * @description The timestamp when the data connection was created
+       */
+      created_at?: string | null;
+      /**
+       * Updated At
+       * @description The timestamp when the data connection was last updated
+       */
+      updated_at?: string | null;
+      /**
+       * Tags
+       * @description The tags for categorizing the data connection
+       */
+      tags?: string[];
+    };
     /** DataConnectionInfo */
     DataConnectionInfo: {
       /** Data Connection Id */
@@ -3612,9 +3680,7 @@ export interface components {
        * @description A mapping of Data Source names to Data Connections
        */
       data_sources: {
-        [
-          key: string
-        ]: components['schemas']['agent_platform__core__data_server__data_connection__DataConnection'];
+        [key: string]: components['schemas']['DataConnection'];
       };
     };
     /**
@@ -3651,8 +3717,14 @@ export interface components {
       data_server: components['schemas']['DataServerConfig'];
       /** Integrations */
       integrations?: components['schemas']['IntegrationInput'][];
-      /** Data Connections */
-      data_connections?: components['schemas']['agent_platform__core__data_server__data_connection__DataConnection'][];
+      /**
+       * Data Connections
+       * @deprecated
+       * @description Deprecated: Use data_connection_id instead
+       */
+      data_connections?: components['schemas']['DataConnection'][];
+      /** Data Connection Id */
+      data_connection_id?: string | null;
     };
     /** DocumentIntelligenceConfigResponse */
     DocumentIntelligenceConfigResponse: {
@@ -3673,7 +3745,8 @@ export interface components {
     DocumentIntelligenceConfigStatus:
       | 'configured'
       | 'not_configured'
-      | 'not_available';
+      | 'not_available'
+      | 'error';
     /** DocumentLayoutPayload */
     DocumentLayoutPayload: {
       /** Name */
@@ -4143,7 +4216,7 @@ export interface components {
      * @description Supported integration kinds for Document Intelligence Data Server
      * @enum {string}
      */
-    IntegrationKind: 'reducto';
+    IntegrationKind: 'reducto' | 'data_server';
     /** JobStartResponsePayload */
     JobStartResponsePayload: {
       /** Job Id */
@@ -4475,6 +4548,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default mssql
@@ -4584,6 +4659,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default mysql
@@ -4780,6 +4857,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default oracle
@@ -4905,6 +4984,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default pgvector
@@ -4946,6 +5027,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default postgres
@@ -5300,6 +5383,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default redshift
@@ -6005,6 +6090,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default sqlite
@@ -6032,6 +6119,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default salesforce
@@ -6159,6 +6248,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default sema4_knowledge_base
@@ -6272,6 +6363,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default slack
@@ -6329,6 +6422,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default snowflake
@@ -6994,6 +7089,8 @@ export interface components {
       id?: string | null;
       /** External Id */
       external_id?: string | null;
+      /** Tags */
+      tags?: string[];
       /**
        * Engine
        * @default timescaledb
@@ -7796,65 +7893,6 @@ export interface components {
       /** Rules */
       rules: components['schemas']['_TranslationRule'][];
     };
-    /** DataConnection */
-    agent_platform__core__data_connections__data_connections__DataConnection: {
-      /**
-       * Id
-       * @description The unique identifier of the data connection
-       */
-      id: string;
-      /**
-       * Name
-       * @description The name of the data connection
-       */
-      name: string;
-      /**
-       * Description
-       * @description The description of the data connection
-       */
-      description: string;
-      /**
-       * Engine
-       * @description The engine type of the data connection
-       */
-      engine: string;
-      /**
-       * Configuration
-       * @description The configuration parameters for the data connection
-       */
-      configuration:
-        | components['schemas']['PostgresDataConnectionConfiguration']
-        | components['schemas']['RedshiftDataConnectionConfiguration']
-        | components['schemas']['SnowflakeLinkedConfiguration']
-        | components['schemas']['SnowflakeCustomKeyPairConfiguration']
-        | components['schemas']['SnowflakeDataConnectionConfiguration']
-        | components['schemas']['ConfluenceDataConnectionConfiguration']
-        | components['schemas']['MySQLDataConnectionConfiguration']
-        | components['schemas']['MSSQLDataConnectionConfiguration']
-        | components['schemas']['OracleDataConnectionConfiguration']
-        | components['schemas']['SlackDataConnectionConfiguration']
-        | components['schemas']['SalesforceDataConnectionConfiguration']
-        | components['schemas']['TimescaledbDataConnectionConfiguration']
-        | components['schemas']['PgvectorDataConnectionConfiguration']
-        | components['schemas']['BigqueryDataConnectionConfiguration']
-        | components['schemas']['SemaknowledgebaseDataConnectionConfiguration']
-        | components['schemas']['SQLiteDataConnectionConfiguration'];
-      /**
-       * External Id
-       * @description The external identifier of the data connection
-       */
-      external_id?: string | null;
-      /**
-       * Created At
-       * @description The timestamp when the data connection was created
-       */
-      created_at?: string | null;
-      /**
-       * Updated At
-       * @description The timestamp when the data connection was last updated
-       */
-      updated_at?: string | null;
-    };
     /**
      * FileReference
      * @description A file reference represents a file reference.
@@ -7866,37 +7904,6 @@ export interface components {
       file_ref?: string;
       /** Sheet Name */
       sheet_name?: string | null;
-    };
-    /** DataConnection */
-    agent_platform__core__data_server__data_connection__DataConnection: {
-      /**
-       * Name
-       * @description The name of the data connection
-       */
-      name: string;
-      /**
-       * Engine
-       * @description The engine of the data connection
-       */
-      engine: string;
-      /**
-       * Configuration
-       * @description The configuration of the data connection
-       */
-      configuration: {
-        [key: string]: unknown;
-      };
-      /**
-       * External Id
-       * @description The ID of the data connection
-       */
-      external_id?: string | null;
-      /**
-       * Id
-       * @deprecated
-       * @description The ID of the data connection (deprecated, use external_id instead)
-       */
-      id?: string | null;
     };
     /** ColumnInfo */
     agent_platform__core__payloads__data_connection__ColumnInfo: {
@@ -8544,7 +8551,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__core__data_connections__data_connections__DataConnection'][];
+          'application/json': components['schemas']['DataConnection'][];
         };
       };
       /** @description Validation Error */
@@ -8579,7 +8586,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__core__data_connections__data_connections__DataConnection'][];
+          'application/json': components['schemas']['DataConnection'][];
         };
       };
       /** @description Validation Error */

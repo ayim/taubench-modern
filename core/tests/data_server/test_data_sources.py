@@ -1,9 +1,10 @@
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 
+from agent_platform.core.data_connections.data_sources import DataSources
 from agent_platform.core.data_server.data_server import (
     DataServerEndpointKind,
 )
-from agent_platform.core.data_server.data_sources import DataSources
+from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
 from agent_platform.core.utils import SecretString
 
 
@@ -23,8 +24,9 @@ class TestDataSources:
             },
             "data_sources": {
                 DATA_SOURCE_NAME: {
-                    "external_id": "123",
+                    "id": "123",
                     "name": "test_connection",
+                    "description": "Test connection",
                     "engine": "postgres",
                     "configuration": {
                         "user": "postgres",
@@ -32,7 +34,10 @@ class TestDataSources:
                         "host": "postgres.example.com",
                         "port": 5432,
                         "database": "test_db",
+                        "schema": "public",
+                        "sslmode": None,
                     },
+                    "tags": [],
                 }
             },
         }
@@ -49,16 +54,17 @@ class TestDataSources:
         assert sources.data_server.data_server_endpoints[0].kind == DataServerEndpointKind.MYSQL
 
         assert len(sources.data_sources) == 1
-        assert sources.data_sources[DATA_SOURCE_NAME].external_id == "123"
+        assert sources.data_sources[DATA_SOURCE_NAME].id == "123"
         assert sources.data_sources[DATA_SOURCE_NAME].name == "test_connection"
+        assert sources.data_sources[DATA_SOURCE_NAME].description == "Test connection"
         assert sources.data_sources[DATA_SOURCE_NAME].engine == "postgres"
-        assert sources.data_sources[DATA_SOURCE_NAME].configuration["user"] == "postgres"
-        assert sources.data_sources[DATA_SOURCE_NAME].configuration["password"] == "secret123"
-        assert (
-            sources.data_sources[DATA_SOURCE_NAME].configuration["host"] == "postgres.example.com"
-        )
-        assert sources.data_sources[DATA_SOURCE_NAME].configuration["port"] == 5432
-        assert sources.data_sources[DATA_SOURCE_NAME].configuration["database"] == "test_db"
+        config = sources.data_sources[DATA_SOURCE_NAME].configuration
+        assert isinstance(config, PostgresDataConnectionConfiguration)
+        assert config.user == "postgres"
+        assert config.password == "secret123"
+        assert config.host == "postgres.example.com"
+        assert config.port == 5432
+        assert config.database == "test_db"
 
         actual = sources.model_dump(mode="json")
         assert "updated_at" in actual["data_server"], "updated_at should be automatically set"

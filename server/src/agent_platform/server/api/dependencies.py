@@ -1,5 +1,5 @@
 from collections.abc import AsyncGenerator
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from fastapi import Depends, Request, UploadFile
 from sema4ai.data import DataSource
@@ -12,7 +12,6 @@ from starlette.concurrency import run_in_threadpool
 
 from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.data_server.data_server import DataServerDetails
-from agent_platform.core.document_intelligence.integrations import IntegrationKind
 from agent_platform.core.errors import ErrorCode
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.quotas import (
@@ -23,12 +22,16 @@ from agent_platform.core.errors.work_items import (
     WorkItemFileAttachmentTooLargeError,
     WorkItemPayloadTooLargeError,
 )
+from agent_platform.core.integrations.settings.reducto import ReductoSettings
 from agent_platform.server.document_intelligence import DocumentIntelligenceService
 from agent_platform.server.file_manager import BaseFileManager, FileManagerService
 from agent_platform.server.secret_manager.base import BaseSecretManager
 from agent_platform.server.secret_manager.option import SecretService
 from agent_platform.server.storage import BaseStorage, StorageService
-from agent_platform.server.storage.errors import DIDSConnectionDetailsNotFoundError
+from agent_platform.server.storage.errors import (
+    DIDSConnectionDetailsNotFoundError,
+    IntegrationNotFoundError,
+)
 
 StorageDependency = Annotated[BaseStorage, Depends(StorageService.get_instance)]
 
@@ -220,7 +223,17 @@ async def get_dids_connection_details(storage: StorageDependency) -> DataServerD
     This wraps storage access to enable composition in other dependencies and
     keeps the validation in the API layer.
     """
-    details = await storage.get_dids_connection_details()
+    # Use new integration table instead of old dids_connection_details table
+    try:
+        data_server_integration = await storage.get_integration_by_kind("data_server")
+
+        # Convert Integration settings to DataServerDetails format
+        settings_dict = data_server_integration.settings.model_dump()
+        details = DataServerDetails.model_validate(settings_dict)
+    except IntegrationNotFoundError as e:
+        raise DIDSConnectionDetailsNotFoundError(
+            "Document Intelligence Data Server connection details not found"
+        ) from e
 
     # Inline validation mirroring _require_document_intelligence_data_server
     if not details.username or not details.username.strip():
@@ -333,13 +346,26 @@ async def get_async_extraction_client(
     # TODO: Consider performance gains from switching this depedency to use a singleton
     # service pattern like storage. In such a scenario, we would want to pay attention
     # to changes in the reducto integration configuration.
-    reducto_integration = await storage.get_document_intelligence_integration(
-        IntegrationKind.REDUCTO
+    reducto_integration = await storage.get_integration_by_kind("reducto")
+    reducto_settings = reducto_integration.settings
+    if not isinstance(reducto_settings, ReductoSettings):
+        raise ValueError("Expected ReductoSettings for reducto integration")
+
+    reducto_settings = cast(ReductoSettings, reducto_settings)
+
+    # Convert SecretString to str if needed
+    from agent_platform.core.utils import SecretString
+
+    api_key = (
+        reducto_settings.api_key.get_secret_value()
+        if isinstance(reducto_settings.api_key, SecretString)
+        else reducto_settings.api_key
     )
+
     async with AsyncExtractionClient(
-        reducto_integration.api_key.get_secret_value(),
+        api_key,
         disable_ssl_verification=False,
-        base_url=reducto_integration.endpoint,
+        base_url=reducto_settings.endpoint,
     ) as client:
         yield client
 
@@ -354,11 +380,25 @@ async def get_di_service(
     storage: StorageDependency,
     transport: AgentServerTransportDependency,
 ) -> "DIService":
-    reducto_integ = await storage.get_document_intelligence_integration(IntegrationKind.REDUCTO)
+    reducto_integ = await storage.get_integration_by_kind("reducto")
+    reducto_settings = reducto_integ.settings
+    if not isinstance(reducto_settings, ReductoSettings):
+        raise ValueError("Expected ReductoSettings for reducto integration")
+
+    reducto_settings = cast(ReductoSettings, reducto_settings)
+
+    # Convert SecretString to str if needed
+    from agent_platform.core.utils import SecretString
+
+    api_key = (
+        reducto_settings.api_key.get_secret_value()
+        if isinstance(reducto_settings.api_key, SecretString)
+        else reducto_settings.api_key
+    )
 
     di = build_di_service(
         datasource=datasource,
-        sema4_api_key=reducto_integ.api_key.get_secret_value(),
+        sema4_api_key=api_key,
         agent_server_transport=transport,
     )
     return di

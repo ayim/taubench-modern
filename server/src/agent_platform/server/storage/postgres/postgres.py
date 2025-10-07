@@ -24,9 +24,6 @@ from agent_platform.server.storage.postgres.storage_artifacts import (
 from agent_platform.server.storage.postgres.storage_config import (
     PostgresStorageConfigMixin,
 )
-from agent_platform.server.storage.postgres.storage_document_intelligence import (
-    PostgresStorageDocumentIntelligenceMixin,
-)
 from agent_platform.server.storage.postgres.storage_files import (
     PostgresStorageFilesMixin,
 )
@@ -141,7 +138,6 @@ class PostgresStorage(
     PostgresStorageMCPServersMixin,
     PostgresStoragePlatformConfigsMixin,
     PostgresStorageConfigMixin,
-    PostgresStorageDocumentIntelligenceMixin,
     BaseStorage,
 ):
     V2_PREFIX = "v2."

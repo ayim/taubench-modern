@@ -12,6 +12,7 @@ from agent_platform.core.payloads.data_connection import (
 from agent_platform.core.payloads.data_connection import (
     DataConnectionsInspectRequest,
     DataConnectionsInspectResponse,
+    DataConnectionTag,
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
@@ -33,6 +34,18 @@ async def create_data_connection(
         raise HTTPException(
             status_code=400,
             detail="Data connection ID must be None when creating a new data connection",
+        )
+
+    # Prevent users from setting the document_intelligence tag directly
+    if DataConnectionTag.DOCUMENT_INTELLIGENCE in data.tags:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"The '{DataConnectionTag.DOCUMENT_INTELLIGENCE}' tag is managed exclusively "
+                f"by the Document Intelligence configuration endpoint. "
+                f"Please use the /api/v2/document-intelligence endpoint to configure "
+                f"Document Intelligence data connections."
+            ),
         )
 
     if data.created_at is None:
@@ -124,6 +137,18 @@ async def update_data_connection(
     storage: StorageDependency,
 ) -> DataConnectionPayload:
     """Update an existing data connection."""
+    # Prevent users from setting the document_intelligence tag directly
+    if DataConnectionTag.DOCUMENT_INTELLIGENCE in data_connection.tags:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"The '{DataConnectionTag.DOCUMENT_INTELLIGENCE}' tag is managed exclusively "
+                f"by the Document Intelligence configuration endpoint. "
+                f"Please use the /api/v2/document-intelligence endpoint to configure "
+                f"Document Intelligence data connections."
+            ),
+        )
+
     try:
         db_data_connection = DbDataConnection.from_payload(
             payload=data_connection, connection_id=connection_id

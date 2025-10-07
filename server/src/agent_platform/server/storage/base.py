@@ -16,9 +16,6 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_frames import PlatformDataFrame
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
-from agent_platform.core.data_server.data_connection import DataConnection as DIDataConnection
-from agent_platform.core.data_server.data_server import DataServerDetails
-from agent_platform.core.document_intelligence.integrations import DocumentIntelligenceIntegration
 from agent_platform.core.evals.types import (
     EvaluationResult,
     ExecutionState,
@@ -27,12 +24,13 @@ from agent_platform.core.evals.types import (
     Trial,
     TrialStatus,
 )
+from agent_platform.core.integrations import Integration
 from agent_platform.server.storage.abstract import AbstractStorage
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     DataConnectionNotFoundError,
     DIDSConnectionDetailsNotFoundError,
-    DocumentIntelligenceIntegrationNotFoundError,
+    IntegrationNotFoundError,
     TrialAlreadyCanceledError,
     TrialNotFoundError,
 )
@@ -467,77 +465,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Document Intelligence convenience methods
     # -------------------------------------------------------------------------
-    async def get_dids_connection_details(self) -> DataServerDetails:
-        """Get the Document Intelligence Data Server connection details."""
-        dids_connection_details = self._get_table("dids_connection_details")
-
-        stmt = sa.select(dids_connection_details)
-
-        async with self._read_connection() as conn:
-            result = await conn.execute(stmt)
-            # We only ever store one row, so we can just fetch it
-            row = result.mappings().fetchone()
-
-        if row is None:
-            raise DIDSConnectionDetailsNotFoundError()
-
-        # Convert row to dict and handle JSON deserialization
-        row_dict = dict(row)
-        assert "enc_password" in row_dict, "enc_password not found"
-        assert row_dict["enc_password"] is None or isinstance(row_dict["enc_password"], str), (
-            "enc_password is not a string or None"
-        )
-        # Decrypt the password field
-        row_dict["password"] = (
-            self._decrypt_secret_string(row_dict["enc_password"])
-            if row_dict["enc_password"] is not None
-            else None
-        )
-        row_dict.pop("enc_password")
-
-        # Handle connections deserialization based on database type
-        # SQLite stores as JSON string, PostgreSQL stores as JSONB (auto-deserialized)
-        # Automatically handle conversion from connections to data_server_connections
-        if "data_server_endpoints" in row_dict and isinstance(
-            row_dict["data_server_endpoints"], str
-        ):
-            # SQLite case: deserialize JSON string
-            row_dict["data_server_endpoints"] = json.loads(row_dict["data_server_endpoints"])
-        elif "data_server_endpoints" in row_dict and isinstance(
-            row_dict["data_server_endpoints"], str
-        ):
-            row_dict["data_server_endpoints"] = json.loads(row_dict["data_server_endpoints"])
-
-        return DataServerDetails.model_validate(row_dict)
-
-    async def set_dids_connection_details(self, details: DataServerDetails) -> None:
-        """Set the Document Intelligence Data Server connection details."""
-        dids_connection_details = self._get_table("dids_connection_details")
-
-        async with self._write_connection() as conn:
-            # Since we only store one row, clear the table first
-            delete_stmt = sa.delete(dids_connection_details)
-            await conn.execute(delete_stmt)
-
-            details_data = {
-                "username": details.username,
-                "updated_at": details.updated_at,
-                "data_server_endpoints": [
-                    conn.model_dump(mode="json") for conn in details.data_server_endpoints
-                ],
-            }
-
-            # Encrypt the password field for database storage
-            details_data["enc_password"] = (
-                self._encrypt_secret_string(details.password)
-                if details.password is not None
-                else None
-            )
-
-            # Insert the new connection details
-            insert_stmt = sa.insert(dids_connection_details).values(details_data)
-            await conn.execute(insert_stmt)
-
     async def delete_dids_connection_details(self) -> None:
         """Delete the Document Intelligence Data Server connection details."""
         dids_connection_details = self._get_table("dids_connection_details")
@@ -553,105 +480,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
             # Delete the connection details
             delete_stmt = sa.delete(dids_connection_details)
-            await conn.execute(delete_stmt)
-
-    def _parse_di_integration_row(self, row: sa.RowMapping) -> DocumentIntelligenceIntegration:
-        """Parse a document intelligence integration row from the database."""
-        row_dict = dict(row)
-        assert "enc_api_key" in row_dict, "enc_api_key not found"
-        assert isinstance(row_dict["enc_api_key"], str), "enc_api_key is not a string"
-        row_dict["api_key"] = self._decrypt_secret_string(row_dict["enc_api_key"])
-        row_dict.pop("enc_api_key")
-        return DocumentIntelligenceIntegration.model_validate(row_dict)
-
-    async def get_document_intelligence_integration(
-        self, kind: str
-    ) -> DocumentIntelligenceIntegration:
-        """Get a document intelligence integration by kind."""
-        integrations_table = self._get_table("document_intelligence_integrations")
-
-        stmt = sa.select(integrations_table).where(integrations_table.c.kind == kind)
-
-        async with self._read_connection() as conn:
-            result = await conn.execute(stmt)
-            row = result.mappings().fetchone()
-
-        if row is None:
-            raise DocumentIntelligenceIntegrationNotFoundError()
-
-        return self._parse_di_integration_row(row)
-
-    async def list_document_intelligence_integrations(
-        self,
-    ) -> list[DocumentIntelligenceIntegration]:
-        """List all document intelligence integrations."""
-        integrations_table = self._get_table("document_intelligence_integrations")
-
-        stmt = sa.select(integrations_table)
-
-        async with self._read_connection() as conn:
-            result = await conn.execute(stmt)
-            rows = result.mappings().fetchall()
-
-        integrations = []
-        for row in rows:
-            integrations.append(self._parse_di_integration_row(row))
-
-        return integrations
-
-    async def set_document_intelligence_integration(
-        self, integration: DocumentIntelligenceIntegration
-    ) -> DocumentIntelligenceIntegration:
-        """Create or update a document intelligence integration."""
-        integrations_table = self._get_table("document_intelligence_integrations")
-
-        async with self._write_connection() as conn:
-            # Check if integration already exists
-            select_stmt = sa.select(integrations_table).where(
-                integrations_table.c.kind == integration.kind
-            )
-            result = await conn.execute(select_stmt)
-            existing_row = result.mappings().fetchone()
-
-            integration_data = {
-                "external_id": integration.external_id,
-                "kind": integration.kind,
-                "endpoint": integration.endpoint,
-                "updated_at": integration.updated_at,
-                "enc_api_key": self._encrypt_secret_string(integration.api_key),
-            }
-
-            if existing_row is None:
-                # Insert new integration
-                insert_stmt = sa.insert(integrations_table).values(integration_data)
-                await conn.execute(insert_stmt)
-            else:
-                # Update existing integration
-                update_stmt = (
-                    sa.update(integrations_table)
-                    .where(integrations_table.c.kind == integration.kind)
-                    .values(integration_data)
-                )
-                await conn.execute(update_stmt)
-
-            # Return the updated integration
-            return integration
-
-    async def delete_document_intelligence_integration(self, kind: str) -> None:
-        """Delete a document intelligence integration by kind."""
-        integrations_table = self._get_table("document_intelligence_integrations")
-
-        async with self._write_connection() as conn:
-            # Check if integration exists
-            select_stmt = sa.select(integrations_table).where(integrations_table.c.kind == kind)
-            result = await conn.execute(select_stmt)
-            existing_row = result.mappings().fetchone()
-
-            if existing_row is None:
-                raise DocumentIntelligenceIntegrationNotFoundError()
-
-            # Delete the integration
-            delete_stmt = sa.delete(integrations_table).where(integrations_table.c.kind == kind)
             await conn.execute(delete_stmt)
 
     async def clean_up_stale_threads(
@@ -1225,100 +1053,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
         return row["trial_id"] if row is not None else None
 
     # -------------------------------------------------------------------------
-    # Document Intelligence Data Connections getter and setter
-    # -------------------------------------------------------------------------
-    async def get_dids_data_connections(self) -> list["DIDataConnection"]:
-        """Get all Document Intelligence Data Server data connections."""
-        dids_data_connections = self._get_table("dids_data_connections")
-
-        stmt = sa.select(dids_data_connections)
-
-        async with self._read_connection() as conn:
-            result = await conn.execute(stmt)
-            rows = result.mappings().fetchall()
-
-        data_connections = []
-        for row in rows:
-            row_dict = dict(row)
-            # Handle JSON deserialization for configuration
-            if isinstance(row_dict["configuration"], str):
-                configuration = json.loads(row_dict["configuration"])
-            else:
-                # For PostgreSQL JSONB, configuration is already a dict
-                configuration = row_dict["configuration"]
-
-            # Decrypt password in configuration if it exists
-            if "enc_password" in configuration:
-                # Create a copy of the configuration to avoid modifying the original
-                decrypted_config = configuration.copy()
-                decrypted_config["password"] = (
-                    self._decrypt_secret_string(configuration["enc_password"])
-                    if configuration["enc_password"] is not None
-                    else None
-                )
-                # Remove the encrypted password
-                decrypted_config.pop("enc_password", None)
-                row_dict["configuration"] = decrypted_config
-            else:
-                row_dict["configuration"] = configuration
-
-            # Filter to only include DataConnection fields
-            connection_data = {
-                "external_id": row_dict["external_id"],
-                "name": row_dict["name"],
-                "engine": row_dict["engine"],
-                "configuration": row_dict["configuration"],
-            }
-            data_connections.append(DIDataConnection.model_validate(connection_data))
-
-        return data_connections
-
-    async def set_dids_data_connections(self, data_connections: list["DIDataConnection"]) -> None:
-        """Set Document Intelligence Data Server data connections (replace all)."""
-        dids_data_connections = self._get_table("dids_data_connections")
-
-        async with self._write_connection() as conn:
-            # Clear existing connections (PUT semantics)
-            delete_stmt = sa.delete(dids_data_connections)
-            await conn.execute(delete_stmt)
-
-            # Insert new connections
-            if data_connections:
-                insert_data = []
-                for data_connection in data_connections:
-                    data_connection_dict = data_connection.model_dump()
-
-                    # Encrypt password in configuration if it exists
-                    configuration = data_connection_dict["configuration"]
-
-                    # Deserialize configuration if it's a JSON string
-                    if isinstance(configuration, str):
-                        configuration = json.loads(configuration)
-
-                    if isinstance(configuration, dict) and "password" in configuration:
-                        # Create a copy of the configuration to avoid modifying the original
-                        encrypted_config = configuration.copy()
-                        encrypted_config["enc_password"] = (
-                            self._encrypt_secret_string(configuration["password"])
-                            if configuration["password"] is not None
-                            else None
-                        )
-                        # Remove the plaintext password
-                        encrypted_config.pop("password", None)
-                        configuration = encrypted_config
-
-                    data_connection_dict["configuration"] = json.dumps(configuration)
-
-                    insert_data.append(data_connection_dict)
-
-                insert_stmt = sa.insert(dids_data_connections).values(insert_data)
-                await conn.execute(insert_stmt)
-
-    async def delete_dids_data_connections(self) -> None:
-        """Delete all Document Intelligence Data Server data connections."""
-        await self.set_dids_data_connections([])
-
-    # -------------------------------------------------------------------------
     # Data Connections getter and setter
     # -------------------------------------------------------------------------
     async def get_data_connections(self) -> list["DataConnection"]:
@@ -1335,6 +1069,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
         for row in rows:
             row_dict = dict(row)
             row_dict["configuration"] = self._decrypt_config(row_dict["enc_configuration"])
+
+            # Parse tags JSON string back to list for SQLite compatibility
+            if self._sa_engine.dialect.name == "sqlite" and isinstance(row_dict.get("tags"), str):
+                row_dict["tags"] = json.loads(row_dict["tags"]) if row_dict["tags"] else []
+
             decrypted_rows.append(row_dict)
 
         return [DataConnection.model_validate(row_dict) for row_dict in decrypted_rows]
@@ -1352,6 +1091,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
         row_dict = dict(row)
         row_dict["configuration"] = self._decrypt_config(row_dict["enc_configuration"])
         row_dict.pop("enc_configuration")
+
+        # Parse tags JSON string back to list for SQLite compatibility
+        if self._sa_engine.dialect.name == "sqlite" and isinstance(row_dict.get("tags"), str):
+            row_dict["tags"] = json.loads(row_dict["tags"]) if row_dict["tags"] else []
+
         return DataConnection.model_validate(row_dict)
 
     async def set_data_connection(self, data_connection: DataConnection) -> None:
@@ -1362,6 +1106,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
             data_connection_dict["configuration"]
         )
         data_connection_dict.pop("configuration")
+
+        # Convert tags list to JSON string for SQLite compatibility
+        if self._sa_engine.dialect.name == "sqlite":
+            data_connection_dict["tags"] = json.dumps(data_connection_dict["tags"])
+
         async with self._write_connection() as conn:
             await conn.execute(sa.insert(data_connections).values(data_connection_dict))
 
@@ -1384,12 +1133,120 @@ class BaseStorage(AbstractStorage, CommonMixin):
         )
         data_connection_dict.pop("configuration")
         data_connection_dict["updated_at"] = datetime.now(UTC)
+
+        # Convert tags list to JSON string for SQLite compatibility
+        if self._sa_engine.dialect.name == "sqlite":
+            data_connection_dict["tags"] = json.dumps(data_connection_dict["tags"])
+
         async with self._write_connection() as conn:
             await conn.execute(
                 sa.update(data_connections)
                 .where(data_connections.c.id == data_connection.id)
                 .values(data_connection_dict)
             )
+
+    async def add_data_connection_tag(self, connection_id: str, tag: str) -> None:
+        """Add a tag to a data connection."""
+        data_connections = self._get_table("data_connection")
+        async with self._write_connection() as conn:
+            # First get the current tags
+            result = await conn.execute(
+                sa.select(data_connections.c.tags).where(data_connections.c.id == connection_id)
+            )
+            row = result.fetchone()
+            if not row:
+                raise DataConnectionNotFoundError(connection_id)
+
+            tags_raw = row[0] or []
+            # Parse tags from JSON string for SQLite compatibility
+            if self._sa_engine.dialect.name == "sqlite" and isinstance(tags_raw, str):
+                current_tags = json.loads(tags_raw) if tags_raw else []
+            else:
+                current_tags = tags_raw or []
+
+            if tag not in current_tags:
+                current_tags.append(tag)
+
+            # Update with new tags
+            tags_value = (
+                json.dumps(current_tags)
+                if self._sa_engine.dialect.name == "sqlite"
+                else current_tags
+            )
+            await conn.execute(
+                sa.update(data_connections)
+                .where(data_connections.c.id == connection_id)
+                .values(tags=tags_value, updated_at=datetime.now(UTC))
+            )
+
+    async def remove_data_connection_tag(self, connection_id: str, tag: str) -> None:
+        """Remove a tag from a data connection."""
+        data_connections = self._get_table("data_connection")
+        async with self._write_connection() as conn:
+            # First get the current tags
+            result = await conn.execute(
+                sa.select(data_connections.c.tags).where(data_connections.c.id == connection_id)
+            )
+            row = result.fetchone()
+            if not row:
+                raise DataConnectionNotFoundError(connection_id)
+
+            tags_raw = row[0] or []
+            # Parse tags from JSON string for SQLite compatibility
+            if self._sa_engine.dialect.name == "sqlite" and isinstance(tags_raw, str):
+                current_tags = json.loads(tags_raw) if tags_raw else []
+            else:
+                current_tags = tags_raw or []
+
+            if tag in current_tags:
+                current_tags.remove(tag)
+
+            # Update with new tags
+            tags_value = (
+                json.dumps(current_tags)
+                if self._sa_engine.dialect.name == "sqlite"
+                else current_tags
+            )
+            await conn.execute(
+                sa.update(data_connections)
+                .where(data_connections.c.id == connection_id)
+                .values(tags=tags_value, updated_at=datetime.now(UTC))
+            )
+
+    async def get_data_connections_by_tag(self, tag: str) -> list[DataConnection]:
+        """Get all data connections that have a specific tag."""
+        data_connections = self._get_table("data_connection")
+        async with self._read_connection() as conn:
+            if self._sa_engine.dialect.name == "postgresql":
+                result = await conn.execute(
+                    sa.select(data_connections).where(data_connections.c.tags.contains([tag]))
+                )
+            else:  # sqlite
+                result = await conn.execute(
+                    sa.select(data_connections).where(data_connections.c.tags.contains(f'"{tag}"'))
+                )
+
+            rows = result.mappings().fetchall()
+
+        decrypted_rows = []
+        for row in rows:
+            row_dict = dict(row)
+            row_dict["configuration"] = self._decrypt_config(row_dict["enc_configuration"])
+
+            # Parse tags JSON string back to list for SQLite compatibility
+            if self._sa_engine.dialect.name == "sqlite" and isinstance(row_dict.get("tags"), str):
+                row_dict["tags"] = json.loads(row_dict["tags"]) if row_dict["tags"] else []
+
+            decrypted_rows.append(row_dict)
+
+        return [DataConnection.model_validate(row_dict) for row_dict in decrypted_rows]
+
+    async def clear_data_connection_tag(self, tag: str) -> None:
+        """Remove a specific tag from all data connections."""
+        all_data_connections = await self.get_data_connections()
+        for connection in all_data_connections:
+            if tag in connection.tags:
+                await self.remove_data_connection_tag(connection.id, tag)
 
     # -------------------------------------------------------------------------
     # Methods for Semantic Data Models
@@ -1637,6 +1494,98 @@ class BaseStorage(AbstractStorage, CommonMixin):
         return [str(row["semantic_data_model_id"]) for row in rows]
 
     # -------------------------------------------------------------------------
+    # Methods for Integrations
+    # -------------------------------------------------------------------------
+    async def upsert_integration(self, integration: Integration) -> None:
+        """Update (or insert) an integration."""
+        integrations = self._get_table("integration")
+        integration_dict = integration.model_dump()
+
+        # Encrypt the settings
+        integration_dict["enc_settings"] = self._encrypt_config(integration_dict["settings"])
+        integration_dict.pop("settings")
+
+        # Update timestamp
+        integration_dict["updated_at"] = datetime.now(UTC)
+
+        async with self._write_connection() as conn:
+            # Import the appropriate insert class based on dialect
+            if self._sa_engine.dialect.name == "sqlite":
+                from sqlalchemy.dialects.sqlite import insert
+            else:
+                from sqlalchemy.dialects.postgresql import insert
+
+            upsert_stmt = insert(integrations).values(integration_dict)
+            upsert_stmt = upsert_stmt.on_conflict_do_update(
+                index_elements=[integrations.c.kind],
+                set_={
+                    "enc_settings": upsert_stmt.excluded.enc_settings,
+                    "updated_at": upsert_stmt.excluded.updated_at,
+                },
+            )
+
+            await conn.execute(upsert_stmt)
+
+    async def get_integration_by_kind(self, kind: str) -> Integration:
+        """Get an integration by its kind."""
+        integrations = self._get_table("integration")
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(sa.select(integrations).where(integrations.c.kind == kind))
+            row = result.mappings().fetchone()
+
+            if row is None:
+                raise IntegrationNotFoundError(kind)
+
+        # Decrypt settings
+        settings_dict = self._decrypt_config(row["enc_settings"])
+
+        return Integration.model_validate(
+            {
+                "id": str(row["id"]),
+                "kind": row["kind"],
+                "settings": settings_dict,
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            }
+        )
+
+    async def delete_integration(self, kind: str) -> None:
+        """Delete an integration by its kind."""
+        integrations = self._get_table("integration")
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(sa.delete(integrations).where(integrations.c.kind == kind))
+            if result.rowcount == 0:
+                raise IntegrationNotFoundError(kind)
+
+    async def list_integrations(self) -> list[Integration]:
+        """List all integrations."""
+        integrations = self._get_table("integration")
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(sa.select(integrations))
+            rows = result.mappings().fetchall()
+
+        integration_list = []
+        for row in rows:
+            # Decrypt settings
+            settings_dict = self._decrypt_config(row["enc_settings"])
+
+            integration_list.append(
+                Integration.model_validate(
+                    {
+                        "id": str(row["id"]),
+                        "kind": row["kind"],
+                        "settings": settings_dict,
+                        "created_at": row["created_at"],
+                        "updated_at": row["updated_at"],
+                    }
+                )
+            )
+
+        return integration_list
+
     # Methods for listing semantic data models with associations
     # -------------------------------------------------------------------------
     class SemanticDataModelInfo(TypedDict):

@@ -1,16 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, Box, Button, EmptyState, Input, useSnackbar } from '@sema4ai/components';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
+import { Box, Button, EmptyState, Form, Input, Select, useSnackbar } from '@sema4ai/components';
+import { useDataConnectionsQuery } from '@sema4ai/spar-ui/queries';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useCallback } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
 import z from 'zod';
 
 import errorIllustration from '~/assets/error.svg';
+import { InputControlled } from '~/components/InputControlled';
 import { useTenantContext } from '~/lib/tenantContext';
+import { getApiKeyValue } from '~/queries/agent-interface-patches';
 import {
-  getGetDocumentIntelligenceQueryKey,
-  getGetDocumentIntelligenceQueryOptions,
+  getDocumentIntelligenceQueryOptions,
   useClearDocumentIntelligenceConfigMutation,
   useUpsertDocumentIntelligenceConfigMutation,
 } from '~/queries/documentIntelligence';
@@ -21,50 +23,53 @@ type Configuration = z.infer<typeof Configuration>;
 const Configuration = z.object({
   reductoEndpoint: z.string().min(1),
   reductoApiKey: z.string().min(1, 'The API key must be specified'),
-  postgresConnectionUrl: z
-    .string()
-    .regex(
-      /^(postgres(ql)?):\/\/([^:]+)(:([^@]+))?@([^:/]+)(:\d+)?\/([^\s?]+)(\?.*)?$/,
-      'Invalid connection string: expecting the following shape postgresql://user:password@host:port/database?sslmode=require',
-    ),
+  dataConnectionId: z.string().uuid('Please select a data connection'),
 });
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/documentIntelligence/')({
   component: View,
   loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
     const documentIntelligence = await queryClient.ensureQueryData(
-      getGetDocumentIntelligenceQueryOptions({
-        agentAPIClient,
-        tenantId,
-      }),
+      getDocumentIntelligenceQueryOptions({ agentAPIClient, tenantId }),
     );
     return { documentIntelligence };
   },
 });
 
 function View() {
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { tenantId } = Route.useParams();
   const { addSnackbar } = useSnackbar();
   const { documentIntelligence: documentIntelligenceFromRoute } = Route.useLoaderData();
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const documentIntelligence = useQuery({
-    ...getGetDocumentIntelligenceQueryOptions({
-      agentAPIClient,
-      tenantId,
-    }),
+    ...getDocumentIntelligenceQueryOptions({ agentAPIClient, tenantId }),
     initialData: documentIntelligenceFromRoute,
   });
 
   const { features } = useTenantContext();
+
+  const dataConnections = useDataConnectionsQuery({});
+
+  const currentConfig =
+    documentIntelligence.data.status === 'configured' ? documentIntelligence.data.configuration : null;
+
   const formProps = useForm<Configuration>({
     defaultValues: {
-      reductoEndpoint: SEMA4_HOSTED_REDUCTO_ENDPOINT,
-      reductoApiKey: '',
-      postgresConnectionUrl: '',
+      reductoEndpoint: currentConfig?.integrations?.[0]?.endpoint ?? SEMA4_HOSTED_REDUCTO_ENDPOINT,
+      reductoApiKey: getApiKeyValue(currentConfig?.integrations?.[0]?.api_key),
+      dataConnectionId: currentConfig?.data_connection_id ?? '',
     },
     resolver: zodResolver(Configuration),
   });
+
+  const isConfigured = (currentConfig?.integrations?.length ?? 0) > 0 && !!currentConfig?.data_connection_id;
+
+  const postgresConnections = (dataConnections.data ?? [])
+    .filter((connection) => connection.engine === 'postgres' || connection.engine === 'pgvector')
+    .map((connection) => ({ value: connection.id, label: connection.name }));
+
+  const hasPostgresConnections = postgresConnections.length > 0;
 
   const { mutateAsync: upsertDocumentIntelligenceConfiguration, isPending: isUpdatingConfig } =
     useUpsertDocumentIntelligenceConfigMutation();
@@ -76,12 +81,11 @@ function View() {
     await upsertDocumentIntelligenceConfiguration(
       { tenantId, configuration },
       {
-        onSuccess: async () => {
+        onSuccess: () => {
           addSnackbar({
             message: 'Document Intelligence successfully configured!',
             variant: 'success',
           });
-          queryClient.invalidateQueries({ queryKey: getGetDocumentIntelligenceQueryKey(tenantId) });
         },
         onError: (error) => {
           addSnackbar({
@@ -97,12 +101,16 @@ function View() {
     await clearDocumentIntelligenceConfiguration(
       { tenantId },
       {
-        onSuccess: async () => {
+        onSuccess: () => {
           addSnackbar({
             message: 'Document Intelligence successfully cleared!',
             variant: 'success',
           });
-          queryClient.invalidateQueries({ queryKey: getGetDocumentIntelligenceQueryKey(tenantId) });
+          formProps.reset({
+            reductoEndpoint: SEMA4_HOSTED_REDUCTO_ENDPOINT,
+            reductoApiKey: '',
+            dataConnectionId: '',
+          });
         },
         onError: (error) => {
           addSnackbar({
@@ -112,7 +120,7 @@ function View() {
         },
       },
     );
-  }, [tenantId, queryClient, clearDocumentIntelligenceConfiguration, addSnackbar]);
+  }, [tenantId, clearDocumentIntelligenceConfiguration, addSnackbar, formProps]);
 
   if (!features.documentIntelligence.enabled) {
     return (
@@ -135,8 +143,10 @@ function View() {
 
   const isProcessingRequest = isUpdatingConfig || isClearingConfig;
 
+  const formKey = isConfigured ? 'configured' : 'not-configured';
+
   return (
-    <Form onSubmit={onSubmit} busy={isProcessingRequest}>
+    <Form key={formKey} onSubmit={onSubmit} busy={isProcessingRequest}>
       <FormProvider {...formProps}>
         <Form.Fieldset key={'reducto_endpoint'}>
           <Input
@@ -144,10 +154,13 @@ function View() {
             placeholder="Reducto endpoint"
             {...formProps.register('reductoEndpoint')}
             error={formProps.formState.errors.reductoEndpoint?.message}
+            disabled={isConfigured}
           />
         </Form.Fieldset>
         <Form.Fieldset key={'reducto_api_key'}>
-          <Input
+          <InputControlled
+            fieldName="reductoApiKey"
+            type="password"
             label="Reducto API Key"
             placeholder="Your API Key"
             {...formProps.register('reductoApiKey')}
@@ -155,26 +168,55 @@ function View() {
           />
         </Form.Fieldset>
         <Form.Fieldset key={'postgres_connection_details'}>
-          <Input
-            label="Bring your Own Database"
-            placeholder="PostgreSQL connection string"
-            {...formProps.register('postgresConnectionUrl')}
-            error={formProps.formState.errors.postgresConnectionUrl?.message}
+          <Controller
+            control={formProps.control}
+            name="dataConnectionId"
+            render={({ field }) => (
+              <Select
+                label="Bring your Own Database"
+                placeholder="Select a PostgreSQL data connection"
+                items={postgresConnections}
+                error={formProps.formState.errors.dataConnectionId?.message}
+                disabled={isConfigured}
+                description={
+                  !hasPostgresConnections && !isConfigured ? (
+                    <span>
+                      No PostgreSQL connections found.{' '}
+                      <Button
+                        variant="link"
+                        onClick={() =>
+                          navigate({
+                            to: '/tenants/$tenantId/data-access/data-connections/create',
+                            params: { tenantId },
+                          })
+                        }
+                      >
+                        Create New Data Connection
+                      </Button>
+                    </span>
+                  ) : undefined
+                }
+                {...field}
+              />
+            )}
           />
         </Form.Fieldset>
         <Box display="flex" justifyContent="flex-end">
           <Box pl="$8" display="flex" gap={8}>
-            <Button
-              variant="secondary"
-              disabled={!documentIntelligence.data.configured}
-              onClick={handleClearConfig}
-              round
-            >
+            <Button variant="secondary" disabled={!isConfigured} onClick={handleClearConfig} round>
               Clear
             </Button>
-            <Button type="submit" variant="primary" loading={isProcessingRequest} round>
-              {documentIntelligence.data.configured ? 'Update configuration' : 'Configure'}
-            </Button>
+            {!isConfigured && (
+              <Button
+                type="submit"
+                variant="primary"
+                loading={isProcessingRequest}
+                disabled={!hasPostgresConnections}
+                round
+              >
+                Create Configuration
+              </Button>
+            )}
           </Box>
         </Box>
       </FormProvider>

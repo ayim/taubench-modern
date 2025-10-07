@@ -3,17 +3,19 @@ from unittest.mock import patch
 
 import pytest
 
-from agent_platform.core.data_server.data_connection import (  # type: ignore[reportMissingTypeStubs, reportMissingImports]
+from agent_platform.core.data_connections.data_connections import (  # type: ignore[reportMissingTypeStubs, reportMissingImports]
     DataConnection,
-    DataConnectionEngine,
+)
+from agent_platform.core.data_connections.data_sources import (
+    DataSources,  # type: ignore[reportMissingTypeStubs, reportMissingImports]
 )
 from agent_platform.core.data_server.data_server import (  # type: ignore[reportMissingTypeStubs, reportMissingImports]
     DataServerDetails,
     DataServerEndpoint,
     DataServerEndpointKind,
 )
-from agent_platform.core.data_server.data_sources import (
-    DataSources,  # type: ignore[reportMissingTypeStubs, reportMissingImports]
+from agent_platform.core.payloads.data_connection import (  # type: ignore[reportMissingTypeStubs, reportMissingImports]
+    PostgresDataConnectionConfiguration,
 )
 from agent_platform.core.utils import (
     SecretString,  # type: ignore[reportMissingTypeStubs, reportMissingImports]
@@ -38,16 +40,17 @@ async def test_initialize_data_source():
     )
 
     connection = DataConnection(
-        external_id="conn-123",
+        id="conn-123",
         name="test_connection",
-        engine=DataConnectionEngine.POSTGRES,
-        configuration={
-            "user": "postgres",
-            "password": "pgsecret",
-            "host": "postgres.example.com",
-            "port": 5432,
-            "database": "test_db",
-        },
+        description="Test connection",
+        engine="postgres",
+        configuration=PostgresDataConnectionConfiguration(
+            user="postgres",
+            password="pgsecret",
+            host="postgres.example.com",
+            port=5432,
+            database="test_db",
+        ),
     )
 
     data_source_name = "my_datasource"

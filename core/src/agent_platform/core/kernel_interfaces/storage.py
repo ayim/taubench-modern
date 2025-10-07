@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from agent_platform.core.data_server.data_connection import DataConnection
-from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.files import UploadedFile
+from agent_platform.core.integrations import Integration
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import ThreadMessage
@@ -57,13 +56,8 @@ class StorageInterface(ABC):
         pass
 
     @abstractmethod
-    async def get_dids_connection_details(self) -> DataServerDetails:
-        """Get the DIDS connection details from storage."""
-        pass
-
-    @abstractmethod
-    async def get_dids_data_connections(self) -> list[DataConnection]:
-        """Get the DIDS data connections from storage."""
+    async def get_integration_by_kind(self, kind: str) -> "Integration":
+        """Get integration by kind."""
         pass
 
     @abstractmethod

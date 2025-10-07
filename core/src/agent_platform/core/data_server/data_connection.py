@@ -34,6 +34,7 @@ class DataConnectionEngine(StrEnum):
     POSTGRES = "postgres"
 
 
+# Deprecated, use DataConnection from data_connections.py instead of this class
 @dataclass(frozen=True)
 class DataConnection:
     """A data connection to the Document Intelligence Data Server"""

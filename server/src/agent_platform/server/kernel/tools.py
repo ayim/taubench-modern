@@ -9,6 +9,7 @@ import structlog
 
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.actions.action_utils import ActionResponse
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.kernel import ToolsInterface
 from agent_platform.core.kernel_interfaces.thread_state import (
     ThreadMessageWithThreadState,
@@ -499,7 +500,12 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         data_server_details = None
         try:
             if hasattr(self, "kernel") and self.kernel and hasattr(self.kernel, "storage"):
-                data_server_details = await self.kernel.storage.get_dids_connection_details()
+                # Use new integration table instead of old dids_connection_details table
+                data_server_integration = await self.kernel.storage.get_integration_by_kind(
+                    "data_server"
+                )
+                settings_dict = data_server_integration.settings.model_dump()
+                data_server_details = DataServerDetails.model_validate(settings_dict)
         except Exception as e:
             # Log but continue without data context - this allows MCP servers to work
             # even when data server details are unavailable

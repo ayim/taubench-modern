@@ -110,3 +110,12 @@ export const transformPlatformForEditing = (platform: GetPlatformResponse): Plat
 
   throw new Error(`Platform ${platform.platform_id ?? 'unknown'} validation failed`);
 };
+
+/**
+ * @deprecated Use proper typing from agent-server-interface once api_key type is fixed
+ * Helper to extract string value from api_key field
+ */
+export const getApiKeyValue = (apiKey?: unknown): string => {
+  if (!apiKey) return '';
+  return typeof apiKey === 'string' ? apiKey : '';
+};

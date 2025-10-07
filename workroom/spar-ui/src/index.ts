@@ -18,6 +18,8 @@ export * from './components/ConversationGuides';
 export * from './lib/OAuth';
 export * from './lib/constants';
 
+export * from './queries/shared';
+
 export * from './components/DataFrame';
 
 export * from './components/DataConnection/DataConnectionsTable';
@@ -32,3 +34,4 @@ export * from './components/Worker/WorkItemDetails';
 
 export * from './components/DocumentIntelligence';
 export { streamManager } from './hooks';
+

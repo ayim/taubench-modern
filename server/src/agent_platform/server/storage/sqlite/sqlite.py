@@ -26,9 +26,6 @@ from agent_platform.server.storage.sqlite.storage_artifacts import (
 from agent_platform.server.storage.sqlite.storage_config import (
     SQLiteStorageConfigMixin,
 )
-from agent_platform.server.storage.sqlite.storage_document_intelligence import (
-    SQLiteStorageDocumentIntelligenceMixin,
-)
 from agent_platform.server.storage.sqlite.storage_files import (
     SQLiteStorageFilesMixin,
 )
@@ -200,7 +197,6 @@ class SQLiteStorage(
     SQLiteStorageMCPServersMixin,
     SQLiteStoragePlatformConfigsMixin,
     SQLiteStorageConfigMixin,
-    SQLiteStorageDocumentIntelligenceMixin,
     BaseStorage,
 ):
     """

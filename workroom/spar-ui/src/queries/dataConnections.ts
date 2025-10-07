@@ -2,7 +2,7 @@ import { DataConnection as DataConnectionBase } from '@sema4ai/data-interface';
 
 import { createSparQueryOptions, createSparQuery, createSparMutation } from './shared';
 
-export type DataConnection = DataConnectionBase & { id: string };
+export type DataConnection = DataConnectionBase & { id: string; tags?: string[] };
 
 /**
  * List Data Connections query
@@ -17,7 +17,6 @@ export const dataConnectionsQueryOptions = createSparQueryOptions<object>()(({ s
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch data connections');
     }
-
     return response.data as DataConnection[];
   },
 }));

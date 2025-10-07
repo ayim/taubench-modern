@@ -247,7 +247,7 @@ class DataServerDetails:
 
         # Serialize the list of data server API endpoitns.
         # Handle the old name for backwards compatibility as these are in the DB.
-        for key in ["data_server_endpoints", "data_server_connections"]:
+        for key in ["data_server_endpoints", "data_server_connections", "endpoints"]:
             if key in data_dict and isinstance(data_dict[key], list):
                 data_dict["data_server_endpoints"] = [
                     DataServerEndpoint.model_validate(conn) for conn in data_dict[key]
@@ -256,6 +256,8 @@ class DataServerDetails:
         # Remove the old name if present
         if "data_server_connections" in data_dict:
             del data_dict["data_server_connections"]
+        if "endpoints" in data_dict:
+            del data_dict["endpoints"]
 
         # Serialize the list of data sources.
         # Handle the old name for backwards compatibility as these are in the DB.

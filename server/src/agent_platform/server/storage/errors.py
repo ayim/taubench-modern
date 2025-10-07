@@ -203,15 +203,6 @@ class DIDSConnectionDetailsNotFoundError(PlatformHTTPError):
         super().__init__(error_code=ErrorCode.PRECONDITION_FAILED, message=message)
 
 
-class DocumentIntelligenceIntegrationNotFoundError(PlatformHTTPError):
-    """A document intelligence integration with the given ID was not found."""
-
-    def __init__(
-        self, message: str = "A document intelligence integration with the given ID was not found"
-    ):
-        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
-
-
 class ConfigDecryptionError(PlatformHTTPError):
     """Failed to decrypt a configuration."""
 
@@ -244,3 +235,12 @@ class TrialNotFoundError(PlatformHTTPError):
         super().__init__(
             error_code=ErrorCode.NOT_FOUND, message=message, data={"id": connection_id}
         )
+
+
+class IntegrationNotFoundError(PlatformHTTPError):
+    """An integration with the given kind was not found."""
+
+    def __init__(
+        self, kind: str, message: str = "An integration with the given kind was not found"
+    ):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message, data={"kind": kind})

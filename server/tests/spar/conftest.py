@@ -8,7 +8,8 @@ import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from requests.exceptions import RequestException
 
-from agent_platform.core.data_server.data_connection import DataConnection
+from agent_platform.core.data_connections import DataConnection
+from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
 from agent_platform.core.payloads.document_intelligence_config import (
     DataServerConfig,
     DocumentIntelligenceConfigPayload,
@@ -18,6 +19,7 @@ from agent_platform.core.payloads.document_intelligence_config import (
     _HttpConfig,
     _MysqlConfig,
 )
+from agent_platform.core.utils import SecretString
 from agent_platform.server.secret_manager.base import BaseSecretManager
 from agent_platform.server.secret_manager.option import SecretService
 
@@ -140,21 +142,22 @@ def agent_server_client_with_doc_int(
             IntegrationInput(
                 type="reducto",
                 endpoint=reducto_endpoint,
-                api_key=reducto_api_key,
+                api_key=SecretString(reducto_api_key),
             ),
         ],
         data_connections=[
             DataConnection(
-                external_id="1",
+                id="1",
                 name="DocumentIntelligence",
+                description="Test data connection",
                 engine=data_connection_engine,
-                configuration={
-                    "user": data_connection_user,
-                    "password": data_connection_password,
-                    "host": data_connection_host,
-                    "port": data_connection_port,
-                    "database": data_connection_database,
-                },
+                configuration=PostgresDataConnectionConfiguration(
+                    user=data_connection_user,
+                    password=data_connection_password,
+                    host=data_connection_host,
+                    port=data_connection_port,
+                    database=data_connection_database,
+                ),
             ),
         ],
     )

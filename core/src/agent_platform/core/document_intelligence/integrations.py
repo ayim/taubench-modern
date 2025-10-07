@@ -11,6 +11,7 @@ class IntegrationKind(StrEnum):
     """Supported integration kinds for Document Intelligence Data Server"""
 
     REDUCTO = "reducto"
+    DATA_SERVER = "data_server"
 
 
 @dataclass(frozen=True)

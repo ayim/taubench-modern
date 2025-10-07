@@ -7,18 +7,19 @@ from uuid import uuid4
 
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 
-from agent_platform.core.data_server.data_connection import DataConnection
+from agent_platform.core.data_connections import DataConnection, DataSources
 from agent_platform.core.data_server.data_server import (
     DataServerDetails,
     DataServerEndpoint,
     DataServerEndpointKind,
 )
-from agent_platform.core.data_server.data_sources import DataSources
 from agent_platform.core.document_intelligence.integrations import (
     DocumentIntelligenceIntegration,
     IntegrationKind,
 )
+from agent_platform.core.integrations import Integration
 from agent_platform.core.utils import SecretString
+from agent_platform.core.utils.dataclass_meta import TolerantDataclass
 
 
 @dataclass(frozen=True)
@@ -60,7 +61,7 @@ class IntegrationInput:
 
 
 @dataclass(frozen=True)
-class DocumentIntelligenceConfigPayload:
+class DocumentIntelligenceConfigPayload(TolerantDataclass):
     """Payload for upserting Document Intelligence configuration.
 
     This payload groups the Data Server connection details and one or more
@@ -70,7 +71,11 @@ class DocumentIntelligenceConfigPayload:
 
     data_server: DataServerConfig = field()
     integrations: list[IntegrationInput] = field(default_factory=list)
-    data_connections: list[DataConnection] = field(default_factory=list)
+    data_connections: list[DataConnection] = field(
+        default_factory=list,
+        metadata={"deprecated": True, "description": "Deprecated: Use data_connection_id instead"},
+    )
+    data_connection_id: str | None = field(default=None)
 
     @classmethod
     def model_validate(cls, data: Any) -> DocumentIntelligenceConfigPayload:
@@ -116,17 +121,25 @@ class DocumentIntelligenceConfigPayload:
             external_id = item.get("external_id", item.get("id", str(uuid4())))
             data_connections.append(
                 DataConnection(
+                    id=item["id"],
                     external_id=external_id,
                     name=item["name"],
+                    description=item.get("description", ""),
                     engine=item["engine"],
                     configuration=item["configuration"],
                 )
             )
 
+        data_connection_id = obj.get(
+            "data_connection_id",
+            obj.get("data_connection_ids", [None])[0] if obj.get("data_connection_ids") else None,
+        )
+
         return cls(
             integrations=integrations,
             data_server=data_server,
             data_connections=data_connections,
+            data_connection_id=data_connection_id,
         )
 
     # Convenience helpers used by the API layer
@@ -195,22 +208,49 @@ class DocumentIntelligenceConfigPayload:
         return results
 
     @classmethod
-    def from_storage(
-        cls,
+    def _create_data_server_config_from_integration(
+        cls, data_server_integration: Integration
+    ) -> DataServerConfig:
+        """Create DataServerConfig from Integration object."""
+        from agent_platform.core.integrations.settings.data_server import DataServerSettings
+
+        if not isinstance(data_server_integration.settings, DataServerSettings):
+            raise ValueError(
+                f"Data server integration must have DataServerSettings, "
+                f"got {type(data_server_integration.settings).__name__}"
+            )
+
+        settings = data_server_integration.settings
+
+        # Extract HTTP and MySQL endpoints
+        http_endpoint = None
+        mysql_endpoint = None
+
+        for endpoint in settings.endpoints:
+            if endpoint.kind == "http":
+                http_endpoint = endpoint
+            elif endpoint.kind == "mysql":
+                mysql_endpoint = endpoint
+
+        if http_endpoint is None or mysql_endpoint is None:
+            raise ValueError("HTTP and MySQL endpoints not found")
+
+        return DataServerConfig(
+            credentials=_Credentials(
+                username=settings.username,
+                password=settings.password,
+            ),
+            api=_ApiConfig(
+                http=_HttpConfig(url=http_endpoint.host, port=http_endpoint.port),
+                mysql=_MysqlConfig(host=mysql_endpoint.host, port=mysql_endpoint.port),
+            ),
+        )
+
+    @staticmethod
+    def _create_data_server_config_from_details(
         data_server_details: DataServerDetails,
-        integrations: list[DocumentIntelligenceIntegration],
-        data_connections: list[DataConnection],
-    ) -> DocumentIntelligenceConfigPayload:
-        """Create DocumentIntelligenceConfigPayload from stored data.
-
-        Args:
-            data_server_details: The stored data server details
-            integrations: The stored integrations
-            data_connections: The stored data connections
-
-        Returns:
-            A DocumentIntelligenceConfigPayload instance
-        """
+    ) -> DataServerConfig:
+        """Create DataServerConfig from DataServerDetails object."""
         # Extract HTTP and MySQL endpoints
         http_endpoint = None
         mysql_endpoint = None
@@ -224,41 +264,111 @@ class DocumentIntelligenceConfigPayload:
         if http_endpoint is None or mysql_endpoint is None:
             raise ValueError("HTTP and MySQL endpoints not found")
 
-        # Use the host directly from the endpoint
-        http_host = http_endpoint.host
-
         # Validate required credentials
         if data_server_details.username is None:
             raise ValueError("Data server username is required")
         if data_server_details.password is None:
             raise ValueError("Data server password is required")
 
-        # Create data server config
-        data_server = DataServerConfig(
+        return DataServerConfig(
             credentials=_Credentials(
                 username=data_server_details.username,
                 password=data_server_details.password,
             ),
             api=_ApiConfig(
-                http=_HttpConfig(url=http_host, port=http_endpoint.port),
+                http=_HttpConfig(url=http_endpoint.host, port=http_endpoint.port),
                 mysql=_MysqlConfig(host=mysql_endpoint.host, port=mysql_endpoint.port),
             ),
         )
 
-        # Convert integrations to IntegrationInput
+    @staticmethod
+    def _convert_integrations_to_inputs(
+        integrations: list[Integration] | None,
+    ) -> list[IntegrationInput]:
+        """Convert Integration objects to IntegrationInput objects."""
         integration_inputs = []
-        for integration in integrations:
-            integration_inputs.append(
-                IntegrationInput(
-                    external_id=integration.external_id,
-                    type=integration.kind,
-                    endpoint=integration.endpoint,
-                    api_key=integration.api_key,
+        if integrations:
+            from agent_platform.core.integrations.settings.reducto import ReductoSettings
+
+            for integration in integrations:
+                if isinstance(integration.settings, ReductoSettings):
+                    integration_inputs.append(
+                        IntegrationInput(
+                            external_id=integration.settings.external_id,
+                            type=integration.kind,
+                            endpoint=integration.settings.endpoint,
+                            api_key=integration.settings.api_key,
+                        )
+                    )
+        return integration_inputs
+
+    @classmethod
+    def _convert_legacy_integrations_to_inputs(
+        cls, legacy_integrations: list[DocumentIntelligenceIntegration] | None
+    ) -> list[IntegrationInput]:
+        """Convert legacy DocumentIntelligenceIntegration objects to IntegrationInput objects."""
+        integration_inputs = []
+        if legacy_integrations:
+            for integration in legacy_integrations:
+                integration_inputs.append(
+                    IntegrationInput(
+                        external_id=integration.external_id,
+                        type=integration.kind,
+                        endpoint=integration.endpoint,
+                        api_key=integration.api_key,
+                    )
                 )
+        return integration_inputs
+
+    @classmethod
+    def from_storage(
+        cls,
+        data_server_integration: Integration | None = None,
+        integrations: list[Integration] | None = None,
+        data_connections: list[DataConnection] | None = None,
+        # Legacy parameters for backward compatibility
+        data_server_details: DataServerDetails | None = None,
+        legacy_integrations: list[DocumentIntelligenceIntegration] | None = None,
+    ) -> DocumentIntelligenceConfigPayload:
+        """Create DocumentIntelligenceConfigPayload from stored data.
+
+        Args:
+            data_server_integration: The data server integration from v2_integration table
+            integrations: List of other integrations from v2_integration table
+            data_connections: The data connections
+            data_server_details: Legacy data server details (for backward compatibility)
+            legacy_integrations: Legacy integrations (for backward compatibility)
+
+        Returns:
+            A DocumentIntelligenceConfigPayload instance
+        """
+        # Extract data connection ID from the data connections (take the first one)
+        data_connection_id = (
+            data_connections[0].id if data_connections and data_connections[0].id else None
+        )
+
+        # Handle new format (v2_integration table)
+        if data_server_integration is not None:
+            data_server = cls._create_data_server_config_from_integration(data_server_integration)
+            integration_inputs = cls._convert_integrations_to_inputs(integrations)
+
+            return cls(
+                data_server=data_server,
+                integrations=integration_inputs,
+                data_connections=[],  # Keep empty since we're using data_connection_id
+                data_connection_id=data_connection_id,
             )
 
-        return cls(
-            data_server=data_server,
-            integrations=integration_inputs,
-            data_connections=data_connections,
-        )
+        # Handle legacy format (for backward compatibility)
+        if data_server_details is not None:
+            data_server = cls._create_data_server_config_from_details(data_server_details)
+            integration_inputs = cls._convert_legacy_integrations_to_inputs(legacy_integrations)
+
+            return cls(
+                data_server=data_server,
+                integrations=integration_inputs,
+                data_connections=[],  # Keep empty since we're using data_connection_id
+                data_connection_id=data_connection_id,
+            )
+
+        raise ValueError("Either data_server_integration or data_server_details must be provided")

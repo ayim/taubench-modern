@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field, fields
 from typing import Any, Literal
 
@@ -119,6 +120,14 @@ class DataConnection:
     )
     """The timestamp when the data connection was last updated"""
 
+    tags: list[str] = field(
+        default_factory=list,
+        metadata={
+            "description": "The tags for categorizing the data connection",
+        },
+    )
+    """The tags for categorizing the data connection"""
+
     @classmethod
     def model_validate(cls, data: dict[str, Any]) -> DataConnection:
         """Validate and create a DataConnection from a dictionary."""
@@ -140,6 +149,7 @@ class DataConnection:
             external_id=str(data["external_id"]) if data.get("external_id") is not None else None,
             created_at=data.get("created_at"),
             updated_at=data.get("updated_at"),
+            tags=data.get("tags", []),
         )
 
     @classmethod
@@ -287,6 +297,7 @@ class DataConnection:
             "description": self.description,
             "engine": self.engine,
             "configuration": config_dict,
+            "tags": self.tags,
         }
 
         if self.external_id is not None:
@@ -357,6 +368,7 @@ class DataConnection:
                 configuration=snowflake_config,
                 created_at=created_at,
                 updated_at=updated_at,
+                tags=self.tags,
             )
 
         if self.engine in engine_mapping:
@@ -370,9 +382,15 @@ class DataConnection:
                 configuration=self.configuration,
                 created_at=created_at,
                 updated_at=updated_at,
+                tags=self.tags,
             )
 
         raise ValueError(f"Unsupported engine type: {self.engine}")
+
+    def build_mindsdb_parameters(self) -> str:
+        """Generates the body of the PARAMETERS clause for a MindsDB data source"""
+        config_dict = _serialize_config_to_dict(self.configuration)
+        return json.dumps(config_dict).lstrip("{").rstrip("}")
 
     @classmethod
     def from_payload(cls, payload: PayloadDataConnection, connection_id: str) -> DataConnection:
@@ -387,4 +405,5 @@ class DataConnection:
             engine=payload.engine,
             configuration=payload.configuration,
             external_id=payload.external_id,
+            tags=payload.tags,
         )

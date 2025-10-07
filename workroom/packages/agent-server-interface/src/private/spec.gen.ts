@@ -697,7 +697,7 @@ export const spec = {
                 schema: {
                   type: 'array',
                   items: {
-                    $ref: '#/components/schemas/agent_platform__core__data_connections__data_connections__DataConnection',
+                    $ref: '#/components/schemas/DataConnection',
                   },
                   title:
                     'Response Set Agent Data Connections Agents  Aid  Data Connections Put',
@@ -742,7 +742,7 @@ export const spec = {
                 schema: {
                   type: 'array',
                   items: {
-                    $ref: '#/components/schemas/agent_platform__core__data_connections__data_connections__DataConnection',
+                    $ref: '#/components/schemas/DataConnection',
                   },
                   title:
                     'Response Get Agent Data Connections Agents  Aid  Data Connections Get',
@@ -3364,7 +3364,7 @@ export const spec = {
         tags: ['document-intelligence'],
         summary: 'Upsert Document Intelligence',
         description:
-          'Upsert Document Intelligence configuration (PUT semantics).\n\nAccepts a combined configuration payload under the `/document-intelligence`\nroot. It stores the Data Server connection details and any provided\nintegrations. For now, integrations are upserted individually by kind.\n\nReturns the updated configuration in the same format as the GET endpoint.',
+          'Upsert Document Intelligence configuration (PUT semantics).\n\nAccepts a combined configuration payload under the `/document-intelligence`\nroot. It stores the Data Server connection details and any provided\nintegrations using the new v2_integration table.\n\nReturns the updated configuration in the same format as the GET endpoint.',
         operationId: 'upsert_document_intelligence_document_intelligence_post',
         requestBody: {
           content: {
@@ -3402,7 +3402,7 @@ export const spec = {
       delete: {
         tags: ['document-intelligence'],
         summary: 'Clear Document Intelligence',
-        description: 'Clear the Document Intelligence database.',
+        description: 'Clear the Document Intelligence configuration.',
         operationId: 'clear_document_intelligence_document_intelligence_delete',
         responses: {
           '200': {
@@ -8752,6 +8752,13 @@ export const spec = {
             ],
             title: 'External Id',
           },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+          },
           engine: {
             type: 'string',
             const: 'bigquery',
@@ -9256,6 +9263,13 @@ export const spec = {
             ],
             title: 'External Id',
           },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+          },
           engine: {
             type: 'string',
             const: 'confluence',
@@ -9658,6 +9672,132 @@ export const spec = {
         required: ['agent_id'],
         title: 'CreateWorkItemPayload',
       },
+      DataConnection: {
+        properties: {
+          id: {
+            type: 'string',
+            title: 'Id',
+            description: 'The unique identifier of the data connection',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the data connection',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+            description: 'The description of the data connection',
+          },
+          engine: {
+            type: 'string',
+            title: 'Engine',
+            description: 'The engine type of the data connection',
+          },
+          configuration: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/PostgresDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/RedshiftDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/SnowflakeLinkedConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/SnowflakeCustomKeyPairConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/SnowflakeDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/ConfluenceDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/MySQLDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/MSSQLDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/OracleDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/SlackDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/SalesforceDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/TimescaledbDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/PgvectorDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/BigqueryDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/SemaknowledgebaseDataConnectionConfiguration',
+              },
+              {
+                $ref: '#/components/schemas/SQLiteDataConnectionConfiguration',
+              },
+            ],
+            title: 'Configuration',
+            description: 'The configuration parameters for the data connection',
+          },
+          external_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'External Id',
+            description: 'The external identifier of the data connection',
+          },
+          created_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Created At',
+            description: 'The timestamp when the data connection was created',
+          },
+          updated_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Updated At',
+            description:
+              'The timestamp when the data connection was last updated',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+            description: 'The tags for categorizing the data connection',
+          },
+        },
+        type: 'object',
+        required: ['id', 'name', 'description', 'engine', 'configuration'],
+        title: 'DataConnection',
+      },
       DataConnectionInfo: {
         properties: {
           data_connection_id: {
@@ -9953,7 +10093,7 @@ export const spec = {
           },
           data_sources: {
             additionalProperties: {
-              $ref: '#/components/schemas/agent_platform__core__data_server__data_connection__DataConnection',
+              $ref: '#/components/schemas/DataConnection',
             },
             type: 'object',
             title: 'Data Sources',
@@ -10085,10 +10225,23 @@ export const spec = {
           },
           data_connections: {
             items: {
-              $ref: '#/components/schemas/agent_platform__core__data_server__data_connection__DataConnection',
+              $ref: '#/components/schemas/DataConnection',
             },
             type: 'array',
             title: 'Data Connections',
+            description: 'Deprecated: Use data_connection_id instead',
+            deprecated: true,
+          },
+          data_connection_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Data Connection Id',
           },
         },
         type: 'object',
@@ -10129,7 +10282,7 @@ export const spec = {
       },
       DocumentIntelligenceConfigStatus: {
         type: 'string',
-        enum: ['configured', 'not_configured', 'not_available'],
+        enum: ['configured', 'not_configured', 'not_available', 'error'],
         title: 'DocumentIntelligenceConfigStatus',
         description:
           'Status values for Document Intelligence configuration responses.',
@@ -11286,7 +11439,7 @@ export const spec = {
       },
       IntegrationKind: {
         type: 'string',
-        enum: ['reducto'],
+        enum: ['reducto', 'data_server'],
         title: 'IntegrationKind',
         description:
           'Supported integration kinds for Document Intelligence Data Server',
@@ -12198,6 +12351,13 @@ export const spec = {
             ],
             title: 'External Id',
           },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+          },
           engine: {
             type: 'string',
             const: 'mssql',
@@ -12477,6 +12637,13 @@ export const spec = {
               },
             ],
             title: 'External Id',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
           },
           engine: {
             type: 'string',
@@ -12880,6 +13047,13 @@ export const spec = {
             ],
             title: 'External Id',
           },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+          },
           engine: {
             type: 'string',
             const: 'oracle',
@@ -13236,6 +13410,13 @@ export const spec = {
             ],
             title: 'External Id',
           },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+          },
           engine: {
             type: 'string',
             const: 'pgvector',
@@ -13347,6 +13528,13 @@ export const spec = {
               },
             ],
             title: 'External Id',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
           },
           engine: {
             type: 'string',
@@ -13966,6 +14154,13 @@ export const spec = {
               },
             ],
             title: 'External Id',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
           },
           engine: {
             type: 'string',
@@ -15219,6 +15414,13 @@ export const spec = {
             ],
             title: 'External Id',
           },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+          },
           engine: {
             type: 'string',
             const: 'sqlite',
@@ -15299,6 +15501,13 @@ export const spec = {
               },
             ],
             title: 'External Id',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
           },
           engine: {
             type: 'string',
@@ -15556,6 +15765,13 @@ export const spec = {
               },
             ],
             title: 'External Id',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
           },
           engine: {
             type: 'string',
@@ -15884,6 +16100,13 @@ export const spec = {
             ],
             title: 'External Id',
           },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+          },
           engine: {
             type: 'string',
             const: 'slack',
@@ -16044,6 +16267,13 @@ export const spec = {
               },
             ],
             title: 'External Id',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
           },
           engine: {
             type: 'string',
@@ -17158,6 +17388,13 @@ export const spec = {
               },
             ],
             title: 'External Id',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
           },
           engine: {
             type: 'string',
@@ -18771,126 +19008,6 @@ export const spec = {
         required: ['rules'],
         title: '_TranslationSchema',
       },
-      agent_platform__core__data_connections__data_connections__DataConnection:
-        {
-          properties: {
-            id: {
-              type: 'string',
-              title: 'Id',
-              description: 'The unique identifier of the data connection',
-            },
-            name: {
-              type: 'string',
-              title: 'Name',
-              description: 'The name of the data connection',
-            },
-            description: {
-              type: 'string',
-              title: 'Description',
-              description: 'The description of the data connection',
-            },
-            engine: {
-              type: 'string',
-              title: 'Engine',
-              description: 'The engine type of the data connection',
-            },
-            configuration: {
-              anyOf: [
-                {
-                  $ref: '#/components/schemas/PostgresDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/RedshiftDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/SnowflakeLinkedConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/SnowflakeCustomKeyPairConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/SnowflakeDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/ConfluenceDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/MySQLDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/MSSQLDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/OracleDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/SlackDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/SalesforceDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/TimescaledbDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/PgvectorDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/BigqueryDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/SemaknowledgebaseDataConnectionConfiguration',
-                },
-                {
-                  $ref: '#/components/schemas/SQLiteDataConnectionConfiguration',
-                },
-              ],
-              title: 'Configuration',
-              description:
-                'The configuration parameters for the data connection',
-            },
-            external_id: {
-              anyOf: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'External Id',
-              description: 'The external identifier of the data connection',
-            },
-            created_at: {
-              anyOf: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'Created At',
-              description: 'The timestamp when the data connection was created',
-            },
-            updated_at: {
-              anyOf: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'Updated At',
-              description:
-                'The timestamp when the data connection was last updated',
-            },
-          },
-          type: 'object',
-          required: ['id', 'name', 'description', 'engine', 'configuration'],
-          title: 'DataConnection',
-        },
       agent_platform__core__data_frames__semantic_data_model_types__FileReference:
         {
           properties: {
@@ -18918,55 +19035,6 @@ export const spec = {
           title: 'FileReference',
           description: 'A file reference represents a file reference.',
         },
-      agent_platform__core__data_server__data_connection__DataConnection: {
-        properties: {
-          name: {
-            type: 'string',
-            title: 'Name',
-            description: 'The name of the data connection',
-          },
-          engine: {
-            type: 'string',
-            title: 'Engine',
-            description: 'The engine of the data connection',
-          },
-          configuration: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Configuration',
-            description: 'The configuration of the data connection',
-          },
-          external_id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'External Id',
-            description: 'The ID of the data connection',
-          },
-          id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Id',
-            description:
-              'The ID of the data connection (deprecated, use external_id instead)',
-            deprecated: true,
-          },
-        },
-        type: 'object',
-        required: ['name', 'engine', 'configuration'],
-        title: 'DataConnection',
-      },
       agent_platform__core__payloads__data_connection__ColumnInfo: {
         properties: {
           name: {
