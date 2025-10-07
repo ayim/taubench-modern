@@ -1,4 +1,4 @@
-export const getIsSupportedDataFrameFile = <ThreadFile extends { mime_type?: string; file_ref?: string } | undefined>(
+export const getIsSupportedDataFrameFile = <ThreadFile extends { mime_type?: string } | undefined>(
   threadFile?: ThreadFile,
 ): boolean => {
   switch (threadFile?.mime_type) {

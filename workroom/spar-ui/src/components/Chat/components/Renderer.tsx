@@ -15,6 +15,7 @@ import { markdownRules } from './markdown';
 import { ToolCall } from './ToolCall';
 import { useFeatureFlag } from '../../../hooks/useFeatureFlag';
 import { SparUIFeatureFlag } from '../../../api';
+import { DataFrameForm } from '../../DataFrame/Form';
 
 type Props = {
   message: ThreadMessage | AgentErrorStreamPayload;
@@ -40,38 +41,41 @@ const MessageActions = styled(Box)`
 `;
 
 const groupTitleMap = {
-  'done': 'Completed tasks',
-  'in_progress': 'Working on it',
-  'failed': 'Failed tasks',
+  done: 'Completed tasks',
+  in_progress: 'Working on it',
+  failed: 'Failed tasks',
 } as const;
 
-const getGroupeStatus = ({ message }: {message: ThreadMessage }): keyof typeof groupTitleMap => {
+const getGroupeStatus = ({ message }: { message: ThreadMessage }): keyof typeof groupTitleMap => {
   const messageStatus = message.complete ? 'done' : 'in_progress';
   if (messageStatus === 'done') {
-    const failedIndex = message.content.findIndex(item => item.kind === 'tool_call' && item.status === 'failed');
+    const failedIndex = message.content.findIndex((item) => item.kind === 'tool_call' && item.status === 'failed');
     if (failedIndex !== -1) {
       return 'failed';
     }
   }
   return messageStatus;
-}
+};
 
 type ThreadMessageContent = ThreadMessage['content'];
-const getGroupedMessageContent = (messageContent: ThreadMessageContent) => messageContent.reduce<(ThreadMessageContent | ThreadMessageContent[number])[]>((acc, content) => {
-    if (['thought', 'tool_call'].includes(content.kind)) {
-      const previousContent = acc[acc.length - 1];
-      if (Array.isArray(previousContent)) {
-        previousContent.push(content);
+const getGroupedMessageContent = (messageContent: ThreadMessageContent) =>
+  messageContent
+    .reduce<(ThreadMessageContent | ThreadMessageContent[number])[]>((acc, content) => {
+      if (['thought', 'tool_call'].includes(content.kind)) {
+        const previousContent = acc[acc.length - 1];
+        if (Array.isArray(previousContent)) {
+          previousContent.push(content);
+          return acc;
+        }
+
+        acc.push([content]);
         return acc;
       }
 
-      acc.push([content]);
+      acc.push(content);
       return acc;
-    }
-
-    acc.push(content);
-    return acc;
-  }, []).map(content => Array.isArray(content) && content.length === 1 ? content[0] : content);
+    }, [])
+    .map((content) => (Array.isArray(content) && content.length === 1 ? content[0] : content));
 
 export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
   const { query } = useThreadSearchStore();
@@ -107,11 +111,15 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
   }
 
   const messageContent = message.content ?? [];
-  const contentRenderer = (content: typeof messageContent[number]) => {
+  const contentRenderer = (content: (typeof messageContent)[number]) => {
     switch (content.kind) {
       case 'thought':
         return (
-          <Chat.Thinking streaming={streaming} key={content.content_id} title={!streaming && content.complete ? 'Thought' : undefined}>
+          <Chat.Thinking
+            streaming={streaming}
+            key={content.content_id}
+            title={!streaming && content.complete ? 'Thought' : undefined}
+          >
             {content.thought}
           </Chat.Thinking>
         );
@@ -160,18 +168,28 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
       case 'tool_call':
         return <ToolCall key={content.content_id} content={content} />;
       case 'attachment':
-        return <Attachment key={content.content_id} content={content} />;
+        return (
+          <>
+            <Attachment key={content.content_id} content={content} />
+            <DataFrameForm key={`data-frame-${content.content_id}`} content={content} />
+          </>
+        );
       default:
         return null;
     }
-  }
+  };
 
   const groupedMessageContent = getGroupedMessageContent(messageContent);
   return groupedMessageContent.map((content) => {
     if (Array.isArray(content)) {
-      const messageStatus = getGroupeStatus({message});
-      return  (
-        <Chat.Action.Group title={groupTitleMap[messageStatus]} running={messageStatus === 'in_progress'} error={messageStatus === 'failed'} key={`group-${content[0].content_id}`}>
+      const messageStatus = getGroupeStatus({ message });
+      return (
+        <Chat.Action.Group
+          title={groupTitleMap[messageStatus]}
+          running={messageStatus === 'in_progress'}
+          error={messageStatus === 'failed'}
+          key={`group-${content[0].content_id}`}
+        >
           {content.map((itemContent) => contentRenderer(itemContent))}
         </Chat.Action.Group>
       );

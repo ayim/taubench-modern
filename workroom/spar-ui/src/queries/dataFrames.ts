@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { paths as AgentServerPaths } from '@sema4ai/agent-server-interface';
-import { createSparQuery, createSparQueryOptions } from './shared';
+import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
 import { useSparUIContext } from '../api/context';
 
 const getDataFramesQueryKey = ({ threadId }: { threadId: string }) => ['data-frames', threadId];
@@ -166,3 +166,26 @@ export const dataFrameQueryOptions = createSparQueryOptions<{
 }));
 
 export const useDataFrameQuery = createSparQuery(dataFrameQueryOptions);
+
+/**
+ * Update Thread
+ */
+export const useCreateDataFrameFromFileMutation = createSparMutation<
+  object,
+  { threadId: string; fileId: string; sheetName?: string }
+>()(({ sparAPIClient, queryClient }) => ({
+  mutationFn: async ({ threadId, fileId, sheetName }: { threadId: string; fileId: string; sheetName?: string }) => {
+    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/threads/{tid}/data-frames/from-file', {
+      params: { path: { tid: threadId }, query: { file_id: fileId, sheet_name: sheetName } },
+    });
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to create data frame from file');
+    }
+
+    return response.data;
+  },
+  onSuccess: (_, { threadId }) => {
+    queryClient.invalidateQueries({ queryKey: getDataFramesQueryKey({ threadId }) });
+  },
+}));

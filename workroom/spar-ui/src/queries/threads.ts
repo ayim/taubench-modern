@@ -240,3 +240,29 @@ export const useThreadFilesRefetch = ({ threadId }: { threadId: string }) => {
     await queryClient.invalidateQueries({ queryKey: threadFilesQueryKey(threadId) });
   }, [queryClient, threadId]);
 };
+
+export const threadFileQueryKey = (threadId: string, fileRef: string) => [...threadFilesQueryKey(threadId), fileRef];
+
+export type ThreadFile =
+  AgentServerPaths['/api/v2/threads/{tid}/file-by-ref']['get']['responses'][200]['content']['application/json'];
+export const threadFileQueryOptions = createSparQueryOptions<{ threadId: string; fileRef: string }>()(
+  ({ sparAPIClient, threadId, fileRef }) => ({
+    queryKey: threadFileQueryKey(threadId, fileRef),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/threads/{tid}/file-by-ref', {
+        params: { path: { tid: threadId }, query: { file_ref: fileRef } },
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch thread file');
+      }
+
+      return response.data;
+    },
+  }),
+);
+
+/**
+ * Get Thread File
+ */
+export const useThreadFileQuery = createSparQuery(threadFileQueryOptions);

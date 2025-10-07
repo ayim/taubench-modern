@@ -1,7 +1,8 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, DataFrame, Menu, Typography } from '@sema4ai/components';
 import { styled } from '@sema4ai/theme';
-import { IconChevronDown, IconChevronUp, IconDotsVertical, IconTableRows } from '@sema4ai/icons';
+import { IconChevronDown, IconChevronUp, IconDotsVertical } from '@sema4ai/icons';
+import { IconDataFrames } from '@sema4ai/icons/logos';
 
 import { useMessageStream } from '../../hooks';
 import { ListDataFrames, useDataFrameSliceInfiniteQuery, useDataFramesQuery } from '../../queries/dataFrames';
@@ -167,7 +168,7 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
         <Box display="flex" flexDirection="column" gap="$8" pb="$4" px="$4">
           <Box display="flex" gap="$12">
             <Box display="flex" alignItems="center" gap="$8">
-              <IconTableRows />
+              <IconDataFrames />
               <Typography variant="display-small" style={{ wordBreak: 'break-all' }}>
                 {activeDataFrame.name}
               </Typography>
@@ -239,7 +240,7 @@ const EmptyDataFrameView: FC = () => {
   return (
     <Box display="flex" flexDirection="column" height="100%">
       <Box display="flex" flexDirection="column" flex={1} alignItems="center" justifyContent="center" gap="$8">
-        <IconTableRows size={100} />
+        <IconDataFrames size={100} />
         <Typography variant="body-medium" color="content.subtle.light">
           No Data Frames created.
         </Typography>

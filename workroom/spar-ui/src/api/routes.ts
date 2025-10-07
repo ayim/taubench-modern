@@ -5,6 +5,10 @@ export type SparUIRoutes = {
     agentId: string;
     threadId: string;
   };
+  '/thread/$agentId/$threadId/data-frames': {
+    agentId: string;
+    threadId: string;
+  };
   '/thread/$agentId': {
     agentId: string;
   };
