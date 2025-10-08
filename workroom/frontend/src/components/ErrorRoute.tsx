@@ -26,7 +26,7 @@ export const ErrorRoute: FC<ErrorComponentProps> = ({ error }) => {
       meta = {
         ...meta,
         title: `${error.message}`,
-        description: 'The page You are looking for could not be found',
+        description: 'The page you are looking for could not be found',
       };
     }
     if (error.status === 401) {
