@@ -4,11 +4,15 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useParams } from '../../../hooks';
-import { useCreateSemanticDataMutation, useSemanticModelQuery } from '../../../queries/semanticData';
+import {
+  useCreateSemanticDataMutation,
+  useSemanticModelQuery,
+  useUpdateSemanticDataModelMutation,
+} from '../../../queries/semanticData';
 import { ConfigurationStep, DataConnectionFormSchema } from './components/form';
 import { DataConnection } from './components/DataConnection';
 import { DataSelection } from './components/DataSelection';
-import { ModelCreation } from './components/ModelCreation';
+import { ModelEdition } from './components/ModelEdition';
 
 type Props = {
   onClose: () => void;
@@ -22,7 +26,10 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
 
   const { data: semanticModel } = useSemanticModelQuery({ modelId: modelId || '' }, { enabled: !!modelId });
 
-  const { mutate: createSemanticData, isPending } = useCreateSemanticDataMutation({});
+  const { mutate: createSemanticData, isPending: isCreatePending } = useCreateSemanticDataMutation({});
+  const { mutate: updateSemanticData, isPending: isUpdatePending } = useUpdateSemanticDataModelMutation({});
+
+  const isPending = isCreatePending || isUpdatePending;
 
   const formMethods = useForm<DataConnectionFormSchema>({
     resolver: zodResolver(DataConnectionFormSchema),
@@ -36,6 +43,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
   useEffect(() => {
     if (semanticModel) {
       const values = {
+        name: semanticModel.name,
         dataConnectionId: semanticModel.tables[0].base_table.data_connection_id,
         description: semanticModel.description,
         dataSelection: semanticModel.tables.map((table) => {
@@ -49,32 +57,50 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
             }),
           };
         }),
+        tables: semanticModel.tables,
       };
 
       formMethods.reset(values);
-      setActiveStep(ConfigurationStep.DataSelection);
+      setActiveStep(ConfigurationStep.ModelEdition);
     }
   }, [semanticModel]);
 
   const onSubmit = formMethods.handleSubmit(async (values) => {
-    createSemanticData(
-      { ...values, agentId },
-      {
-        onSuccess: () => {
-          addSnackbar({
-            message: `Semantic data model ${modelId ? 'updated' : 'created'} successfully`,
-            variant: 'success',
-          });
-          onClose();
+    if (modelId) {
+      updateSemanticData(
+        { ...values, modelId, agentId },
+        {
+          onSuccess: () => {
+            addSnackbar({ message: 'Semantic data model updated successfully', variant: 'success' });
+            onClose();
+          },
+          onError: (error) => {
+            addSnackbar({ message: error.message, variant: 'danger' });
+          },
         },
-        onError: (error) => {
-          addSnackbar({ message: error.message, variant: 'danger' });
+      );
+    } else {
+      createSemanticData(
+        { ...values, agentId },
+        {
+          onSuccess: () => {
+            addSnackbar({
+              message: `Semantic data model ${modelId ? 'updated' : 'created'} successfully`,
+              variant: 'success',
+            });
+            onClose();
+          },
+          onError: (error) => {
+            addSnackbar({ message: error.message, variant: 'danger' });
+          },
         },
-      },
-    );
+      );
+    }
   });
 
   const step1Status = formMethods.watch('dataConnectionId') ? 'completed' : 'incomplete';
+  const step2Status = formMethods.watch('dataSelection')?.length > 0 ? 'completed' : 'incomplete';
+  const step3Status = modelId ? 'completed' : 'incomplete';
 
   return (
     <Dialog size="page" onClose={onClose} open>
@@ -83,8 +109,12 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
           <Dialog.Bar>
             <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
               <Steps.Step status={step1Status}>Connection</Steps.Step>
-              <Steps.Step disabled={step1Status !== 'completed'}>Data Selection</Steps.Step>
-              <Steps.Step disabled>Data Model</Steps.Step>
+              <Steps.Step status={step2Status} disabled={step1Status !== 'completed'}>
+                Data Selection
+              </Steps.Step>
+              <Steps.Step status={step3Status} disabled={step2Status !== 'completed'}>
+                Data Model
+              </Steps.Step>
             </Steps>
           </Dialog.Bar>
           {activeStep === ConfigurationStep.DataConnection && (
@@ -93,8 +123,8 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
           {activeStep === ConfigurationStep.DataSelection && (
             <DataSelection onClose={onClose} setActiveStep={setActiveStep} />
           )}
-          {activeStep === ConfigurationStep.ModelCreation && (
-            <ModelCreation onClose={onClose} setActiveStep={setActiveStep} />
+          {activeStep === ConfigurationStep.ModelEdition && (
+            <ModelEdition onClose={onClose} setActiveStep={setActiveStep} />
           )}
         </FormProvider>
       </Form>

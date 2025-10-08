@@ -27,7 +27,6 @@ type InitParam<Init> =
   RequiredKeysOf<Init> extends never ? [(Init & { [key: string]: unknown })?] : [Init & { [key: string]: unknown }];
 
 type ApiError = {
-  error_id: string;
   code: string;
   message: string;
 };
@@ -390,7 +389,7 @@ export class AgentAPIClient {
         tenantId: string,
         method: Method,
         path: Path,
-        ...init: InitParam<Init & { errorMsg?: string; toastMessage?: string; silent?: boolean }>
+        ...init: InitParam<Init>
       ): Promise<ApiResponse<SuccessResponseJSON<Paths[Path][Method]>>> {
         const workroomToken = await this.getWorkroomToken();
         const tenant = await this.getTenant(tenantId);
@@ -398,7 +397,6 @@ export class AgentAPIClient {
         if (!tenant) {
           return {
             success: false,
-            error_id: '404',
             code: '404',
             message: 'Workspace not found',
           };
@@ -443,27 +441,21 @@ export class AgentAPIClient {
           };
         }
 
-        // If errorMsg is provided in init argument then show it in toast
-        let errorStr = '';
-
-        const errorDetails = init?.[0] ?? null;
-
-        if (errorDetails) {
-          errorStr = errorDetails.errorMsg ?? JSON.stringify(apiResponse.error);
-          // TODO-V2: Should return a failed response and the snackbar should be triggered from the UI
-          // !errorDetails.silent && errorToast(errorDetails.toastMessage ?? errorStr);
+        if (!apiResponse.error) {
+          return {
+            success: false,
+            code: '500',
+            message: 'Something went wrong',
+          };
         }
 
-        const errorMessage = (() => {
-          try {
-            const parsed = JSON.parse(errorStr);
-            return parsed.detail || parsed.message || errorStr;
-          } catch {
-            return errorStr;
-          }
-        })();
+        const responseError = apiResponse.error as unknown as { error: ApiError };
 
-        throw new RequestError(apiResponse.response.status, errorMessage);
+        return {
+          success: false,
+          code: responseError.error.code,
+          message: responseError.error.message,
+        };
       };
     })<Paths>();
   }

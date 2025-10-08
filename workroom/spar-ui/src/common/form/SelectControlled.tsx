@@ -8,9 +8,17 @@ interface ConnectedSelectProps extends Omit<SelectProps, 'name'> {
   errorMessage?: string;
   onClear?: () => void;
   onMounted?: () => void;
+  explicitError?: string;
 }
 
-export const SelectControlled: FC<ConnectedSelectProps> = ({ onClear, name, errorMessage, onMounted, ...rest }) => {
+export const SelectControlled: FC<ConnectedSelectProps> = ({
+  onClear,
+  name,
+  explicitError,
+  errorMessage,
+  onMounted,
+  ...rest
+}) => {
   const { watch, setValue, formState } = useFormContext();
   const value = watch(name);
   const error = formState.errors[name];
@@ -23,7 +31,7 @@ export const SelectControlled: FC<ConnectedSelectProps> = ({ onClear, name, erro
     <Select
       aria-label="connected label"
       value={value || ''}
-      error={(error && errorMessage) || (error?.message as string)}
+      error={(error && errorMessage) || (error?.message as string) || explicitError}
       onChange={(newValue) => setValue(name, newValue)}
       iconRightSecondary={onClear && value != null ? IconCloseSmall : undefined}
       onIconRightSecondaryClick={onClear}

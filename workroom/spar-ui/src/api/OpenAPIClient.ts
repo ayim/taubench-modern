@@ -2,7 +2,6 @@ import { MaybeOptionalInit } from 'openapi-fetch';
 import { HttpMethod, PathsWithMethod, RequiredKeysOf, SuccessResponseJSON } from 'openapi-typescript-helpers';
 
 export type ApiError = {
-  error_id: string;
   code: string;
   message: string;
 };

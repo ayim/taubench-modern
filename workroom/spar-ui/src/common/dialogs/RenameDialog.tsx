@@ -6,13 +6,25 @@ type Props = {
   onRename: (name: string) => void;
   entityName: string;
   entityType: string;
+  actionType?: 'Rename' | 'Update';
+  actionDescription?: string;
+  multiLine?: boolean;
 };
 
-export const RenameDialog: FC<Props> = ({ onClose, entityName, onRename, entityType }) => {
+export const RenameDialog: FC<Props> = ({
+  actionType = 'Rename',
+  actionDescription,
+  onClose,
+  entityName,
+  onRename,
+  entityType,
+  multiLine = false,
+}) => {
   const [name, setName] = useState(entityName);
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
 
     const newName = name.trim();
 
@@ -30,20 +42,28 @@ export const RenameDialog: FC<Props> = ({ onClose, entityName, onRename, entityT
   };
 
   return (
-    <Dialog onClose={onClose} open>
+    <Dialog onClose={onClose} width={multiLine ? 720 : undefined} open>
       <Form onSubmit={onSubmit}>
         <Dialog.Header>
-          <Dialog.Header.Title title={`Rename ${entityType}`} />
-          <Dialog.Header.Description>Give your {entityType} and clear name.</Dialog.Header.Description>
+          <Dialog.Header.Title title={`${actionType} ${entityType}`} />
+          <Dialog.Header.Description>
+            {actionDescription || `Give your ${entityType} and clear name.`}
+          </Dialog.Header.Description>
         </Dialog.Header>
         <Dialog.Content>
           <Box py={1}>
-            <Input autoFocus aria-label={`${entityType} name`} value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+              rows={multiLine ? 8 : undefined}
+              autoFocus
+              aria-label={`${entityType} name`}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </Box>
         </Dialog.Content>
         <Dialog.Actions>
           <Button variant="primary" type="submit" round>
-            Rename
+            {actionType}
           </Button>
           <Button variant="secondary" onClick={onClose} round>
             Cancel

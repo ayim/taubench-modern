@@ -19,6 +19,23 @@ export const DataSelector = ({
     return tableSelection && tableSelection.columns.findIndex((column) => column.name === columnName) > -1;
   };
 
+  const isTableSelected = (tableName: string): boolean | 'partial' => {
+    const tableSelection = dataSelection.find((selection) => selection.name === tableName);
+    if (!tableSelection) {
+      return false;
+    }
+
+    if (tableSelection.columns.length === 0) {
+      return false;
+    }
+
+    const selectedColumns = data
+      .find((curr) => curr.name === tableName)
+      ?.columns.filter((col) => tableSelection.columns.findIndex((column) => column.name === col.name) > -1);
+
+    return selectedColumns?.length === data.find((curr) => curr.name === tableName)?.columns.length ? true : 'partial';
+  };
+
   const toggleColumnSelection = (
     tableName: string,
     column: components['schemas']['agent_platform__core__payloads__data_connection__ColumnInfo'],
@@ -52,15 +69,54 @@ export const DataSelector = ({
     setValue('dataSelection', nextSelection, { shouldDirty: true });
   };
 
+  const toggleTableSelection = (tableName: string) => {
+    const existingIndex = dataSelection.findIndex((curr) => curr.name === tableName);
+    const table = data.find((t) => t.name === tableName);
+
+    if (!table) return;
+
+    const isFullySelected = isTableSelected(tableName) === true;
+
+    const nextSelection = (() => {
+      if (isFullySelected) {
+        if (existingIndex === -1) return dataSelection;
+        const { ...rest } = dataSelection[existingIndex];
+        const updated = { ...rest, columns: [] };
+        return dataSelection.map((s, i) => (i === existingIndex ? updated : s));
+      }
+
+      const allColumns = table.columns.map((column) => ({
+        name: column.name,
+        data_type: column.data_type,
+        sample_values: column.sample_values || undefined,
+        description: column.description || '',
+        synonyms: column.synonyms || undefined,
+      }));
+
+      if (existingIndex === -1) {
+        return [...dataSelection, { name: tableName, columns: allColumns }];
+      }
+
+      const { ...rest } = dataSelection[existingIndex];
+      const updated = { ...rest, columns: allColumns };
+      return dataSelection.map((s, i) => (i === existingIndex ? updated : s));
+    })();
+
+    setValue('dataSelection', nextSelection, { shouldDirty: true });
+  };
+
   return (
     <Box pb="$32">
       <TreeList>
         {data.map((table) => {
           const selecteditems = dataSelection.find((selection) => selection.name === table.name)?.columns.length || 0;
           return (
-            <TreeList.Item
+            <TreeList.Checkbox
               key={table.name}
               open={selecteditems > 0}
+              checked={isTableSelected(table.name) !== false}
+              indeterminate={isTableSelected(table.name) === 'partial'}
+              onChange={() => toggleTableSelection(table.name)}
               label={
                 <>
                   {table.name}{' '}
@@ -80,7 +136,7 @@ export const DataSelector = ({
                   icon={IconDbColumn}
                 />
               ))}
-            </TreeList.Item>
+            </TreeList.Checkbox>
           );
         })}
       </TreeList>

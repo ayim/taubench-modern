@@ -3,7 +3,7 @@ import { useFormContext } from 'react-hook-form';
 
 import { Link as RouterLink } from '../../../../common/link';
 import { EXTERNAL_LINKS } from '../../../../lib/constants';
-import { useDataConnectionsQuery } from '../../../../queries/dataConnections';
+import { useDataConnectionInspectQuery, useDataConnectionsQuery } from '../../../../queries/dataConnections';
 import { SelectControlled } from '../../../../common/form/SelectControlled';
 import { ConfigurationStep, ConfigurationStepView, DataConnectionFormSchema } from './form';
 import { DataConnectionIcon } from '../../../DataConnection/components/DataConnectionIcon';
@@ -14,13 +14,21 @@ export const DataConnection: ConfigurationStepView = ({ onClose, setActiveStep }
   const { watch } = useFormContext<DataConnectionFormSchema>();
   const dataConnectionId = watch('dataConnectionId');
 
+  const {
+    data: insectData,
+    error: errorInspectingDataConnection,
+    isFetching: isLoadingInspectingDataConnection,
+  } = useDataConnectionInspectQuery({ dataConnectionId }, { enabled: !!dataConnectionId, retry: false });
+
   const onContinue = () => {
     setActiveStep(ConfigurationStep.DataSelection);
   };
 
+  const errorMessage = errorInspectingDataConnection ? errorInspectingDataConnection.message : undefined;
+
   return (
     <>
-      <Dialog.Content>
+      <Dialog.Content maxWidth={768}>
         <Typography variant="display-large" mb="$12">
           Connect to Your Database
         </Typography>
@@ -39,6 +47,7 @@ export const DataConnection: ConfigurationStepView = ({ onClose, setActiveStep }
             label: dataConnection.name,
             value: dataConnection.id,
           }))}
+          explicitError={errorMessage}
           renderItem={({ item }) => {
             const engine = dataConnections.find((dataConnection) => dataConnection.id === item.value)?.engine;
             return (
@@ -59,7 +68,12 @@ export const DataConnection: ConfigurationStepView = ({ onClose, setActiveStep }
       </Dialog.Content>
 
       <Dialog.Actions>
-        <Button disabled={!dataConnectionId} onClick={onContinue} round>
+        <Button
+          disabled={!dataConnectionId || !insectData}
+          loading={isLoadingInspectingDataConnection}
+          onClick={onContinue}
+          round
+        >
           Continue
         </Button>
         <Button variant="secondary" onClick={onClose} round>

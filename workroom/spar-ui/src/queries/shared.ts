@@ -28,7 +28,7 @@ export function createSparQueryOptions<Params extends object>() {
 
 export const createSparQuery =
   <Params extends object, TData = any>(fn: SparQueryOptions<Params, TData>) =>
-  (params: Params, rest: { refetchInterval?: number; enabled?: boolean } = {}) => {
+  (params: Params, rest: { refetchInterval?: number; enabled?: boolean; retry?: boolean | number } = {}) => {
     const { sparAPIClient } = useSparUIContext();
     return useQuery({ ...fn({ ...params, sparAPIClient }), ...rest });
   };

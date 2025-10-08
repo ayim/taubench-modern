@@ -1,9 +1,12 @@
 import { FC } from 'react';
 import z from 'zod';
 
+import { SemanticModel } from '../../../../queries/semanticData';
+
 export const DataConnectionFormSchema = z.object({
   dataConnectionId: z.string().min(1),
   description: z.string().optional(),
+  name: z.string().optional(),
   dataSelection: z.array(
     z.object({
       name: z.string().min(1),
@@ -18,6 +21,7 @@ export const DataConnectionFormSchema = z.object({
       ),
     }),
   ),
+  tables: SemanticModel.shape.tables.optional(),
 });
 
 export type DataConnectionFormSchema = z.infer<typeof DataConnectionFormSchema>;
@@ -25,7 +29,7 @@ export type DataConnectionFormSchema = z.infer<typeof DataConnectionFormSchema>;
 export enum ConfigurationStep {
   DataConnection = 0,
   DataSelection = 1,
-  ModelCreation = 2,
+  ModelEdition = 2,
 }
 
 type ConfigurationStepProps = {

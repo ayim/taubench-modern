@@ -1,29 +1,37 @@
+import { z } from 'zod';
+
 import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
 import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/form';
 
-// TODO: Remove type casting once interface is fixed
-export type SemanticModel = {
-  id: string;
-  name: string;
-  description: string;
-  tables: {
-    name: string;
-    base_table: {
-      data_connection_id: string;
-      database: string | null;
-      schema: string | null;
-      table: string;
-    };
-    description: string | null;
-    dimensions: {
-      name: string;
-      expr: string;
-      data_type: string;
-    }[];
-    facts: string[];
-    time_dimensions: string[];
-  }[];
-};
+// TODO: This model is not complete, update once agent-server-interface is updated and returns correct shape of SemanticModel
+export const SemanticModel = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  tables: z.array(
+    z.object({
+      name: z.string(),
+      base_table: z.object({
+        data_connection_id: z.string(),
+        database: z.string().nullable(),
+        schema: z.string().nullable(),
+        table: z.string(),
+      }),
+      description: z.string().nullable().optional(),
+      dimensions: z.array(
+        z.object({
+          name: z.string(),
+          expr: z.string(),
+          data_type: z.string(),
+          description: z.string().optional(),
+          synonyms: z.array(z.string()).optional(),
+          sample_values: z.array(z.any()).optional(),
+        }),
+      ),
+    }),
+  ),
+});
+export type SemanticModel = z.infer<typeof SemanticModel>;
 
 /**
  * List Agent Semantic data models
@@ -130,6 +138,41 @@ export const useCreateSemanticDataMutation = createSparMutation<
     return attachResponse.data;
   },
   onSuccess: (_, { agentId }) => {
+    queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
+  },
+}));
+
+/**
+ * Update Semantic Data Model
+ */
+export const useUpdateSemanticDataModelMutation = createSparMutation<
+  object,
+  DataConnectionFormSchema & { modelId: string; agentId: string }
+>()(({ sparAPIClient, queryClient }) => ({
+  mutationFn: async (payload) => {
+    const response = await sparAPIClient.queryAgentServer(
+      'put',
+      '/api/v2/semantic-data-models/{semantic_data_model_id}',
+      {
+        params: { path: { semantic_data_model_id: payload.modelId } },
+        body: {
+          semantic_model: {
+            name: payload.name,
+            description: payload.description,
+            tables: payload.tables,
+          },
+        },
+      },
+    );
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to update Semantic Data model');
+    }
+
+    return response.data;
+  },
+  onSuccess: (_, { agentId, modelId }) => {
+    queryClient.invalidateQueries({ queryKey: getSemanticModelQueryKey(modelId) });
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
   },
 }));
