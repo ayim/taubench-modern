@@ -74,7 +74,7 @@ class LangSmithContext:
             f"LangSmithContext initialized with config: {config.type if config else 'None'}"
         )
 
-    def format_response_for_langsmith(self, response) -> list[dict]:
+    def format_response_for_langsmith(self, response) -> list[dict]:  # noqa: C901, PLR0912
         """Formats a response for LangSmith.
 
         Args:
@@ -117,6 +117,28 @@ class LangSmithContext:
                             "role": "tool",
                         }
                     )
+                # Reasoning content gets its own message
+                elif content_item.kind == "reasoning":
+                    # Flush any accumulated text first
+                    if current_text:
+                        messages.append({"content": current_text, "role": "assistant"})
+                        current_text = ""
+                    # If the reasoning attribute is present, use it
+                    if content_item.reasoning:
+                        reasoning_text = content_item.reasoning
+                        messages.append({"content": reasoning_text, "role": "reasoning"})
+                    else:
+                        # Try to populate both summary and content
+                        reasoning_message = ""
+                        if content_item.summary:
+                            reasoning_message += "\n\nSummary:\n" + "\n".join(content_item.summary)
+                        if content_item.content:
+                            reasoning_message += "\n\nContent:\n" + "\n".join(content_item.content)
+                        # It's possible that the reasoning object has no information whatsoever
+                        # (empty reasoning object),
+                        # so we won't send a message if there's no information.
+                        if reasoning_message:
+                            messages.append({"content": reasoning_message, "role": "reasoning"})
 
             # Flush any remaining text
             if current_text:
