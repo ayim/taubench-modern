@@ -1,8 +1,7 @@
-from typing import Literal, cast
+from typing import Literal
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
-from agent_platform.core.platforms.cortex.configs import CortexRoleMap
 from agent_platform.core.platforms.cortex.prompts import CortexPrompt
 from agent_platform.core.platforms.cortex.types import (
     CortexPromptContent,
@@ -130,10 +129,13 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If the role is not found in the map.
         """
-        for cortex_role, our_role in CortexRoleMap.role_map.items():
-            if our_role == role:
-                return cast(Literal["user", "assistant"], cortex_role)
-        raise ValueError(f"Role '{role}' not found in CortexRoleMap")
+        match role:
+            case "user":
+                return "user"
+            case "agent":
+                return "assistant"
+            case _:
+                raise ValueError(f"Unsupported role: {role}")
 
     async def _convert_messages(  # noqa: C901, PLR0912
         self,

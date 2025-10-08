@@ -6,8 +6,8 @@ from snowflake.snowpark import Session
 
 from agent_platform.core.delta import combine_generic_deltas
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.platforms.configs import PlatformModelConfigs
 from agent_platform.core.platforms.cortex.client import CortexClient
-from agent_platform.core.platforms.cortex.configs import CortexModelMap
 from agent_platform.core.platforms.cortex.parameters import CortexPlatformParameters
 from agent_platform.core.responses.content import ResponseTextContent, ResponseToolUseContent
 from agent_platform.core.responses.response import ResponseMessage
@@ -18,9 +18,11 @@ from core.tests.vcrx import patched_vcr
 # -------------------------------------------------------------------------
 # MODEL LISTS
 # -------------------------------------------------------------------------
-MODELS_WITH_TEXT_INPUT = CortexModelMap.distinct_llm_model_ids()
-MODELS_WITH_TOOL_INPUT = CortexModelMap.distinct_llm_model_ids_with_tool_input()
-ALL_MODELS = sorted(CortexModelMap.distinct_llm_model_ids())
+MODELS_TO_TEST = [
+    model
+    for model in PlatformModelConfigs.models_capable_of_driving_agents
+    if model.startswith("cortex/")
+]
 
 # -------------------------------------------------------------------------
 # TEST CASES
@@ -30,42 +32,42 @@ TEST_CASES = [
         "case_name": "basic_prompt",
         "prompt_fixture": "basic_prompt_no_tools",
         "response_fixture": "response_to_basic_prompt_no_tools",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt",
     },
     {
         "case_name": "system_message",
         "prompt_fixture": "basic_prompt_with_system_message",
         "response_fixture": "response_to_basic_prompt_with_system_message",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt_with_system_message",
     },
     {
         "case_name": "three_messages",
         "prompt_fixture": "basic_prompt_with_three_messages",
         "response_fixture": "response_to_basic_prompt_with_three_messages",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt_with_three_messages",
     },
     {
         "case_name": "one_tool",
         "prompt_fixture": "basic_prompt_with_one_tool",
         "response_fixture": "response_to_basic_prompt_with_one_tool",
-        "models": MODELS_WITH_TOOL_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt_with_one_tool",
     },
     {
         "case_name": "tool_no_args",
         "prompt_fixture": "basic_prompt_tool_no_args",
         "response_fixture": "response_to_basic_prompt_tool_no_args",
-        "models": MODELS_WITH_TOOL_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt_tool_no_args",
     },
     {
         "case_name": "parallel_tool_calls",
         "prompt_fixture": "prompt_to_elicit_parallel_tool_calls",
         "response_fixture": "response_to_prompt_to_elicit_parallel_tool_calls",
-        "models": MODELS_WITH_TOOL_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "parallel_tool_calls",
     },
 ]
@@ -172,7 +174,7 @@ def _strip_deepseek_r1_think_tags(response: ResponseMessage) -> ResponseMessage:
 
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
-@pytest.mark.parametrize("model_id", ALL_MODELS)
+@pytest.mark.parametrize("model_id", MODELS_TO_TEST)
 async def test_cortex_generate_responses(request, cortex_client, case, model_id):
     """
     Test each (case, model_id) for generating responses (non-stream).
@@ -213,7 +215,7 @@ async def test_cortex_generate_responses(request, cortex_client, case, model_id)
 
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
-@pytest.mark.parametrize("model_id", ALL_MODELS)
+@pytest.mark.parametrize("model_id", MODELS_TO_TEST)
 async def test_cortex_stream_responses(request, cortex_client, case, model_id):
     """
     Test each (case, model_id) for streaming responses.

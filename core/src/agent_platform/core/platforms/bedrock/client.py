@@ -63,6 +63,10 @@ class BedrockClient(
 
         # 1. Build one global aiobotocore session
         self._session = aiobotocore.session.get_session()
+        # We don't need automatic metadata generation
+        # (Extra network requests and exceptions in debug logs when
+        # metadata is enabled...)
+        self._session.set_config_variable("metadata_disabled", True)
 
         # user-supplied botocore.Config is converted to its async twin
         botocore_cfg = self._parameters.config_params or {}

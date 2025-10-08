@@ -280,12 +280,29 @@ class PlatformModelConfigs(Configuration):
             "cortex/anthropic/claude-3-5-sonnet": "claude-3-5-sonnet",
             "cortex/anthropic/claude-3-7-sonnet": "claude-3-7-sonnet",
             "cortex/anthropic/claude-4-opus": "claude-4-opus",
+            "cortex/anthropic/claude-4-1-opus": "claude-4-1-opus",
+            "cortex/anthropic/claude-4-1-opus-thinking-high": "claude-4-1-opus",
+            "cortex/anthropic/claude-4-1-opus-thinking-medium": "claude-4-1-opus",
+            "cortex/anthropic/claude-4-1-opus-thinking-low": "claude-4-1-opus",
             "cortex/anthropic/claude-4-sonnet": "claude-4-sonnet",
-            "cortex/openai/o4-mini-high": "o4-mini",
-            "cortex/openai/o4-mini-low": "o4-mini",
-            "cortex/openai/gpt-4-1": "gpt-4.1",
-            "cortex/meta/llama-4-scout": "llama-4-scout",
-            "cortex/meta/llama-4-maverick": "llama-4-maverick",
+            "cortex/anthropic/claude-4-sonnet-thinking-high": "claude-4-sonnet",
+            "cortex/anthropic/claude-4-sonnet-thinking-medium": "claude-4-sonnet",
+            "cortex/anthropic/claude-4-sonnet-thinking-low": "claude-4-sonnet",
+            "cortex/anthropic/claude-4-5-sonnet": "claude-4-5-sonnet",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-high": "claude-4-5-sonnet",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": "claude-4-5-sonnet",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-low": "claude-4-5-sonnet",
+            "cortex/openai/gpt-5-high": "openai-gpt-5",
+            "cortex/openai/gpt-5-medium": "openai-gpt-5",
+            "cortex/openai/gpt-5-low": "openai-gpt-5",
+            "cortex/openai/gpt-5-minimal": "openai-gpt-5",
+            "cortex/openai/gpt-5-mini": "openai-gpt-5-mini",
+            "cortex/openai/gpt-5-nano": "openai-gpt-5-nano",
+            "cortex/openai/o4-mini-high": "openai-o4-mini",
+            "cortex/openai/o4-mini-low": "openai-o4-mini",
+            "cortex/openai/gpt-4-1": "openai-gpt-4.1",
+            "cortex/meta/llama-4-scout": "llama4-scout",
+            "cortex/meta/llama-4-maverick": "llama4-maverick",
             "cortex/snowflake/snowflake-arctic-embed-m": "snowflake-arctic-embed-m",
             "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-arctic-embed-l",
             "cortex/voyage/voyage-multilingual": "voyage-multilingual",
@@ -381,7 +398,24 @@ class PlatformModelConfigs(Configuration):
             "cortex/anthropic/claude-3-5-sonnet": "claude",
             "cortex/anthropic/claude-3-7-sonnet": "claude",
             "cortex/anthropic/claude-4-opus": "claude",
+            "cortex/anthropic/claude-4-1-opus": "claude",
+            "cortex/anthropic/claude-4-1-opus-thinking-high": "claude",
+            "cortex/anthropic/claude-4-1-opus-thinking-medium": "claude",
+            "cortex/anthropic/claude-4-1-opus-thinking-low": "claude",
+            "cortex/anthropic/claude-4-sonnet-thinking-high": "claude",
+            "cortex/anthropic/claude-4-sonnet-thinking-medium": "claude",
+            "cortex/anthropic/claude-4-sonnet-thinking-low": "claude",
             "cortex/anthropic/claude-4-sonnet": "claude",
+            "cortex/anthropic/claude-4-5-sonnet": "claude",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-high": "claude",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": "claude",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-low": "claude",
+            "cortex/openai/gpt-5-high": "openai-gpt",
+            "cortex/openai/gpt-5-medium": "openai-gpt",
+            "cortex/openai/gpt-5-low": "openai-gpt",
+            "cortex/openai/gpt-5-minimal": "openai-gpt",
+            "cortex/openai/gpt-5-mini": "openai-gpt",
+            "cortex/openai/gpt-5-nano": "openai-gpt",
             "cortex/openai/o4-mini-high": "openai-o-series",
             "cortex/openai/o4-mini-low": "openai-o-series",
             "cortex/openai/gpt-4-1": "openai-gpt",
@@ -481,9 +515,26 @@ class PlatformModelConfigs(Configuration):
             "cortex/anthropic/claude-3-5-sonnet": "llm",
             "cortex/anthropic/claude-3-7-sonnet": "llm",
             "cortex/anthropic/claude-4-opus": "llm",
+            "cortex/anthropic/claude-4-1-opus": "llm",
+            "cortex/anthropic/claude-4-1-opus-thinking-high": "llm",
+            "cortex/anthropic/claude-4-1-opus-thinking-medium": "llm",
+            "cortex/anthropic/claude-4-1-opus-thinking-low": "llm",
+            "cortex/anthropic/claude-4-sonnet-thinking-high": "llm",
+            "cortex/anthropic/claude-4-sonnet-thinking-medium": "llm",
+            "cortex/anthropic/claude-4-sonnet-thinking-low": "llm",
+            "cortex/anthropic/claude-4-5-sonnet": "llm",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-high": "llm",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": "llm",
+            "cortex/anthropic/claude-4-5-sonnet-thinking-low": "llm",
             "cortex/anthropic/claude-4-sonnet": "llm",
             "cortex/openai/o4-mini-high": "llm",
             "cortex/openai/o4-mini-low": "llm",
+            "cortex/openai/gpt-5-high": "llm",
+            "cortex/openai/gpt-5-medium": "llm",
+            "cortex/openai/gpt-5-low": "llm",
+            "cortex/openai/gpt-5-minimal": "llm",
+            "cortex/openai/gpt-5-mini": "llm",
+            "cortex/openai/gpt-5-nano": "llm",
             "cortex/openai/gpt-4-1": "llm",
             "cortex/meta/llama-4-scout": "llm",
             "cortex/meta/llama-4-maverick": "llm",
@@ -585,9 +636,26 @@ class PlatformModelConfigs(Configuration):
             "cortex/anthropic/claude-3-5-sonnet": 200_000,
             "cortex/anthropic/claude-3-7-sonnet": 200_000,
             "cortex/anthropic/claude-4-opus": 200_000,
+            "cortex/anthropic/claude-4-1-opus": 200_000,
+            "cortex/anthropic/claude-4-1-opus-thinking-high": 200_000,
+            "cortex/anthropic/claude-4-1-opus-thinking-medium": 200_000,
+            "cortex/anthropic/claude-4-1-opus-thinking-low": 200_000,
+            "cortex/anthropic/claude-4-sonnet-thinking-high": 200_000,
+            "cortex/anthropic/claude-4-sonnet-thinking-medium": 200_000,
+            "cortex/anthropic/claude-4-sonnet-thinking-low": 200_000,
+            "cortex/anthropic/claude-4-5-sonnet": 200_000,
+            "cortex/anthropic/claude-4-5-sonnet-thinking-high": 200_000,
+            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": 200_000,
+            "cortex/anthropic/claude-4-5-sonnet-thinking-low": 200_000,
             "cortex/anthropic/claude-4-sonnet": 200_000,
             "cortex/openai/o4-mini-high": 200_000,
             "cortex/openai/o4-mini-low": 200_000,
+            "cortex/openai/gpt-5-high": 200_000,
+            "cortex/openai/gpt-5-medium": 200_000,
+            "cortex/openai/gpt-5-low": 200_000,
+            "cortex/openai/gpt-5-minimal": 200_000,
+            "cortex/openai/gpt-5-mini": 200_000,
+            "cortex/openai/gpt-5-nano": 200_000,
             "cortex/openai/gpt-4-1": 128_000,
             "cortex/meta/llama-4-scout": 128_000,
             "cortex/meta/llama-4-maverick": 128_000,
@@ -666,6 +734,24 @@ class PlatformModelConfigs(Configuration):
             "bedrock/anthropic/claude-4-1-opus-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
             "bedrock/anthropic/claude-4-1-opus-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
             "bedrock/anthropic/claude-4-1-opus-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
+            # Cortex
+            "cortex/anthropic/claude-4-1-opus": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-1-opus-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-1-opus-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-1-opus-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-sonnet-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-sonnet-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-sonnet-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-5-sonnet": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-5-sonnet-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-5-sonnet-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0],
         },
         metadata=FieldMetadata(
             description="A mapping of model IDs to the architectures they require to be used with.",
@@ -787,11 +873,24 @@ async def resolve_generic_model_id_to_platform_specific_model_id(  # noqa: C901,
     # And this either exists in the map or it doesn't (and we're going
     # to assume that we've _already_ been given a provider-specific model ID)
     qualified_model_id = f"{platform}/{provider}/{model}"
+    provider_models = available_models.get(provider)
+    if provider_models is None:
+        available_providers = available_models.keys()
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=(
+                f"Failed to resolve the generic model ID {model_id} to a platform-specific "
+                f"model ID because provider '{provider}' is not available for the configured "
+                f"credentials. Available providers: {available_providers}"
+            ),
+            data=_get_error_data(),
+        )
+
     if qualified_model_id in PlatformModelConfigs.models_to_platform_specific_model_ids:
         platform_specific_model_id = PlatformModelConfigs.models_to_platform_specific_model_ids[
             qualified_model_id
         ]
-        if platform_specific_model_id in available_models[provider]:
+        if platform_specific_model_id in provider_models:
             return platform_specific_model_id
         # This is a case that really should never happen, but we'll handle it
         # just in case (I guess maybe someone might not have access to a model
@@ -825,7 +924,7 @@ async def resolve_generic_model_id_to_platform_specific_model_id(  # noqa: C901,
     # In this scenario, we're going to trust that the model ID (unqualified) is
     # a valid platform-specific model ID, and we'll make sure it's available
     # on the platform
-    if model in available_models[provider]:
+    if model in provider_models:
         return model
     else:
         raise PlatformHTTPError(
