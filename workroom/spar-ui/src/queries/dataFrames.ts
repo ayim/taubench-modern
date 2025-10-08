@@ -1,14 +1,9 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { paths as AgentServerPaths } from '@sema4ai/agent-server-interface';
-import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
+import { createSparQuery, createSparQueryOptions } from './shared';
 import { useSparUIContext } from '../api/context';
 
 const getDataFramesQueryKey = ({ threadId }: { threadId: string }) => ['data-frames', threadId];
-const getDataFramesInspectFileQueryKey = ({ threadId, fileId }: { threadId: string; fileId: string }) => [
-  ...getDataFramesQueryKey({ threadId }),
-  'inspect-file',
-  fileId,
-];
 const getDataFramesSliceQueryKey = ({ threadId, dataFrameId }: { threadId: string; dataFrameId: string }) => [
   ...getDataFramesQueryKey({ threadId }),
   'slice',
@@ -42,32 +37,6 @@ export const dataFramesQueryOptions = createSparQueryOptions<{
 }));
 
 export const useDataFramesQuery = createSparQuery(dataFramesQueryOptions);
-
-export type DataFrameInspectFile =
-  AgentServerPaths['/api/v2/threads/{tid}/inspect-file-as-data-frame']['get']['responses'][200]['content']['application/json'];
-export const dataFramesInspectFileQueryOptions = createSparQueryOptions<{
-  threadId: string;
-  fileId: string;
-  options?: { num_samples?: number; sheet_name?: string };
-}>()(({ sparAPIClient, threadId, fileId, options }) => ({
-  queryKey: getDataFramesInspectFileQueryKey({ threadId, fileId }),
-  queryFn: async () => {
-    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/threads/{tid}/inspect-file-as-data-frame', {
-      params: {
-        path: { tid: threadId },
-        query: { file_id: fileId, num_samples: options?.num_samples, sheet_name: options?.sheet_name },
-      },
-    });
-
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to inspect data frame file');
-    }
-
-    return response.data;
-  },
-}));
-
-export const useDataFramesInspectFileQuery = createSparQuery(dataFramesInspectFileQueryOptions);
 
 export const useDataFrameSliceInfiniteQuery = ({
   threadId,
@@ -166,26 +135,3 @@ export const dataFrameQueryOptions = createSparQueryOptions<{
 }));
 
 export const useDataFrameQuery = createSparQuery(dataFrameQueryOptions);
-
-/**
- * Update Thread
- */
-export const useCreateDataFrameFromFileMutation = createSparMutation<
-  object,
-  { threadId: string; fileId: string; sheetName?: string }
->()(({ sparAPIClient, queryClient }) => ({
-  mutationFn: async ({ threadId, fileId, sheetName }: { threadId: string; fileId: string; sheetName?: string }) => {
-    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/threads/{tid}/data-frames/from-file', {
-      params: { path: { tid: threadId }, query: { file_id: fileId, sheet_name: sheetName } },
-    });
-
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to create data frame from file');
-    }
-
-    return response.data;
-  },
-  onSuccess: (_, { threadId }) => {
-    queryClient.invalidateQueries({ queryKey: getDataFramesQueryKey({ threadId }) });
-  },
-}));

@@ -15,7 +15,6 @@ import { markdownRules } from './markdown';
 import { ToolCall } from './ToolCall';
 import { useFeatureFlag } from '../../../hooks/useFeatureFlag';
 import { SparUIFeatureFlag } from '../../../api';
-import { DataFrameForm } from '../../DataFrame/Form';
 
 type Props = {
   message: ThreadMessage | AgentErrorStreamPayload;
@@ -168,12 +167,7 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
       case 'tool_call':
         return <ToolCall key={content.content_id} content={content} />;
       case 'attachment':
-        return (
-          <>
-            <Attachment key={content.content_id} content={content} />
-            <DataFrameForm key={`data-frame-${content.content_id}`} content={content} />
-          </>
-        );
+        return <Attachment key={content.content_id} content={content} />;
       default:
         return null;
     }

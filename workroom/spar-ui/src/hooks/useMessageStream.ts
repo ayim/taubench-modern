@@ -9,18 +9,11 @@ import { AgentErrorStreamPayload, StreamingDelta, StreamingDeltaMessageContent }
 import { SparAPIClient } from '../api';
 import { useSparUIContext } from '../api/context';
 import { threadMessagesQueryKey, useThreadFilesRefetch, useUploadThreadFilesMutation } from '../queries/threads';
-import { DataFrameClientTools } from '../components/DataFrame/tools/Definitions';
 
 type MessageListener = (
   messages: ThreadMessage[] | undefined,
   streamError: AgentErrorStreamPayload | undefined,
 ) => void;
-
-/**
- * TODO: Address client tool implementation feedback
- * - task: https://linear.app/sema4ai/issue/CLOUD-5234
- */
-const clientTools = [...DataFrameClientTools.clientToolsList];
 
 class StreamManager {
   private wsMap: Record<string, WebSocket | null> = {};
@@ -82,7 +75,6 @@ class StreamManager {
                 content,
               },
             ],
-            client_tools: clientTools,
           }),
         );
         resolve();
@@ -296,9 +288,7 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
   const [streamingMessages, setStreamingMessages] = useState<ThreadMessage[] | undefined>(undefined);
   const [streamError, setStreamError] = useState<AgentErrorStreamPayload | undefined>(undefined);
 
-  const isStreaming = streamingMessages?.some(message => 
-    message.role === 'agent' && !message.complete
-  ) ?? false;
+  const isStreaming = streamingMessages?.some((message) => message.role === 'agent' && !message.complete) ?? false;
 
   const sendMessage = async (text: string, files: File[]) => {
     const uploadedAttachments = files.length ? await uploadFiles({ files }) : [];
