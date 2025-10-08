@@ -6,16 +6,27 @@ import { Chart } from './interactionComponents/chart';
 import { Table } from './markdownComponents/Table';
 
 export const markdownRules: MarkdownParserRules = {
-  code: (tokens, _, messageId) => {
+  code: (key, tokens, _, messageId) => {
     if (tokens.lang && 'sema4-json'.indexOf(tokens.lang) === 0) {
-      return <InteractionComponent content={tokens.text} messageId={messageId} />;
+      return <InteractionComponent key={key} content={tokens.text} messageId={messageId} />;
     }
 
     if (tokens.lang && 'vega-lite'.indexOf(tokens.lang) === 0) {
-      return <Chart spec={tokens.text} />;
+      return <Chart key={key} spec={tokens.text} />;
     }
 
-    return <Code aria-label="Code" lang={tokens.lang} value={tokens.text} />;
+    return <Code key={key} aria-label="Code" lang={tokens.lang} value={tokens.text} />;
   },
-  table: Table,
+  table: (key, { header, rows, raw }) => {
+    const columns = header.map((column) => ({
+      id: column.text,
+      title: column.text,
+    }));
+
+    const data = rows.map((row) => {
+      return Object.fromEntries(columns.map((column, index) => [column.id, row[index].text]));
+    });
+
+    return <Table key={key} columns={columns} data={data} raw={raw} />;
+  },
 };
