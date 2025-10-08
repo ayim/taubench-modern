@@ -736,7 +736,7 @@ async def __manual_test_inspect_manual_postgres_data_connection(
     assert generated_model.semantic_model is not None
 
 
-@pytest.mark.parametrize("raise_error", [True])
+@pytest.mark.parametrize("raise_error", [True, False])
 @pytest.mark.asyncio
 async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
     file_regression, dfs_checker: _DataFramesChecker, resources_dir, monkeypatch, raise_error

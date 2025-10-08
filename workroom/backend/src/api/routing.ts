@@ -178,6 +178,7 @@ function getRouteMap(): {
 
     'post /api/v2/semantic-data-models/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'post /api/v2/data-connections/{connection_id}/inspect': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/data-connections/inspect-file-as-data-connection': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
 
     'post /api/v2/semantic-data-models/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/agents/{aid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],

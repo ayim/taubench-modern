@@ -6652,6 +6652,28 @@ export const spec = {
         },
       },
     },
+    '/api/v2/data-connections/inspect-file-as-data-connection': {
+      post: {
+        tags: ['data-connections'],
+        summary: 'Inspect File As Data Connection',
+        description:
+          'Inspect a file to get tables, columns and sample data as if it were a data connection.',
+        operationId:
+          'inspect_file_as_data_connection_data_connections_inspect_file_as_data_connection_post',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/DataConnectionsInspectResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/evals/scenarios': {
       post: {
         tags: ['evals'],

@@ -498,7 +498,7 @@ def test_data_frames_computation_integration_success(
         loaded = json.loads(slice_response)
         assert loaded == [{"age": 35}]
 
-        result, tool_calls = agent_client.send_message_to_agent_thread(
+        result, _ = agent_client.send_message_to_agent_thread(
             agent_id,
             thread_id,
             "Can you let me know what data frames you have?",
@@ -507,3 +507,47 @@ def test_data_frames_computation_integration_success(
 
         if "my_data" not in result_found.lower() and "filtered_data" not in result_found.lower():
             raise Exception("Data frames not found in the response. Found: " + result_found)
+
+
+@pytest.mark.integration
+def test_inspect_file_as_data_connection(base_url_agent_server):
+    """Test the new inspect file as data connection API."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        # Test with a simple CSV file
+        csv_content = b"name,age,city\nJohn,25,New York\nJane,30,London\nBob,35,Paris"
+
+        result = agent_client.inspect_file_as_data_connection(
+            file_contents=csv_content, file_name="test_data.csv"
+        )
+
+        # Verify the response structure
+        assert "tables" in result
+        assert len(result["tables"]) == 1
+
+        table = result["tables"][0]
+        assert table["name"] == "test_data.csv"
+        assert table["database"] is None
+        assert table["schema"] is None
+        assert "Data from file: test_data.csv" in table["description"]
+
+        # Verify columns
+        assert len(table["columns"]) == 3
+        column_names = [col["name"] for col in table["columns"]]
+        assert "name" in column_names
+        assert "age" in column_names
+        assert "city" in column_names
+
+        # Verify column details
+        name_col = next(col for col in table["columns"] if col["name"] == "name")
+        assert name_col["data_type"] == "string"
+        assert name_col["sample_values"] == ["John", "Jane", "Bob"]
+
+        age_col = next(col for col in table["columns"] if col["name"] == "age")
+        assert age_col["data_type"] == "numeric"
+        assert age_col["sample_values"] == [25, 30, 35]
+
+        city_col = next(col for col in table["columns"] if col["name"] == "city")
+        assert city_col["data_type"] == "string"
+        assert city_col["sample_values"] == ["New York", "London", "Paris"]

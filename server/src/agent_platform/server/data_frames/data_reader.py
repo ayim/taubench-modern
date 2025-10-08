@@ -1,3 +1,4 @@
+import datetime
 import typing
 from abc import abstractmethod
 from collections.abc import Iterator
@@ -149,13 +150,11 @@ class ExcelDataReader(FileDataReader):
             sheet_names = [self._sheet_name]
 
         for sheet_name in sheet_names:
-            yield ExcelDataReaderSheet(self._file_metadata, excel_reader, sheet_name)
+            yield ExcelDataReaderSheet(excel_reader, sheet_name)
 
 
 class ExcelDataReaderSheet(DataReaderSheet):
-    def __init__(
-        self, file_metadata: "UploadedFile", excel_reader: "fastexcel.ExcelReader", sheet_name: str
-    ):
+    def __init__(self, excel_reader: "fastexcel.ExcelReader", sheet_name: str):
         self._excel_reader = excel_reader
         self._sheet_name = sheet_name
         self.__loaded_sheet: fastexcel.ExcelSheet | None = None
@@ -213,8 +212,7 @@ class ExcelDataReaderSheet(DataReaderSheet):
 
 
 class CsvDataReaderSheet(DataReaderSheet):
-    def __init__(self, file_metadata: "UploadedFile", file_bytes: bytes):
-        self._file_metadata = file_metadata
+    def __init__(self, file_bytes: bytes):
         self._file_bytes = file_bytes
 
     @property
@@ -321,7 +319,7 @@ class CsvDataReader(FileDataReader):
         return False
 
     def iter_sheets(self) -> Iterator[DataReaderSheet]:
-        yield CsvDataReaderSheet(self._file_metadata, self._file_bytes)
+        yield CsvDataReaderSheet(self._file_bytes)
 
 
 async def _get_file(
@@ -372,6 +370,69 @@ async def _get_file(
     return file_metadata, file_contents
 
 
+def create_file_data_reader_from_contents(
+    file_contents: bytes,
+    file_name: str,
+    mime_type: str,
+    sheet_name: str | None = None,
+    file_metadata: "UploadedFile | None" = None,
+) -> "FileDataReader":
+    """Create a FileDataReader from file contents directly.
+
+    Args:
+        file_contents: The raw file contents as bytes
+        file_name: The name of the file
+        mime_type: The MIME type of the file
+        sheet_name: Optional sheet name for Excel files
+        file_metadata: Optional file metadata (if not provided,
+            a mock UploadedFile is created internally)
+
+    Returns:
+        A FileDataReader instance
+    """
+    import uuid
+
+    from agent_platform.core.errors.base import PlatformError
+    from agent_platform.core.files import UploadedFile
+
+    if file_metadata is None:
+        # Create a mock UploadedFile for compatibility
+        file_metadata = UploadedFile(
+            file_id=str(uuid.uuid4()),  # No file_id since this is not from storage
+            file_ref=file_name,
+            file_hash="",  # No file_hash since this is not from storage
+            file_size_raw=len(file_contents),
+            mime_type=mime_type,
+            created_at=datetime.datetime.now(datetime.UTC),
+            file_path=None,  # No file_path since this is not from storage
+            thread_id=None,  # No thread_id since this is not from storage
+            user_id=None,  # No user_id since this is not from storage
+            file_path_expiration=None,
+        )
+
+    # Make sure it's an appropriate file type (excel or csv)
+    data_reader: FileDataReader
+    try:
+        if mime_type in ("text/csv", "text/tab-separated-values"):
+            data_reader = CsvDataReader(file_metadata, file_contents)
+        else:
+            data_reader = ExcelDataReader(file_metadata, file_contents, sheet_name=sheet_name)
+    except Exception as e:
+        if mime_type not in _all_mime_types:
+            message = (
+                f"File {file_name} is not a valid table file (unexpected mime type: {mime_type!r})"
+            )
+        else:
+            message = (
+                f"Unable to read file {file_name} as a data frame (found mime type {mime_type!r})"
+            )
+
+        logger.error(message, error=e)
+        raise PlatformError(message=message) from e
+
+    return data_reader
+
+
 async def create_file_data_reader(  # noqa: PLR0913
     user: "AuthedUser",
     tid: str,
@@ -381,7 +442,6 @@ async def create_file_data_reader(  # noqa: PLR0913
     file_id: str | None = None,
     file_ref: str | None = None,
 ) -> "FileDataReader":
-    from agent_platform.core.errors.base import PlatformError
     from agent_platform.server.storage.base import BaseStorage
 
     # Get the file from the storage
@@ -389,26 +449,11 @@ async def create_file_data_reader(  # noqa: PLR0913
         user.user_id, tid, typing.cast(BaseStorage, storage), file_id=file_id, file_ref=file_ref
     )
 
-    # Make sure it's an appropriate file type (excel or csv)
-    data_reader: FileDataReader
-    try:
-        if file_metadata.mime_type in ("text/csv", "text/tab-separated-values"):
-            data_reader = CsvDataReader(file_metadata, file_bytes)
-        else:
-            data_reader = ExcelDataReader(file_metadata, file_bytes, sheet_name=sheet_name)
-    except Exception as e:
-        if file_metadata.mime_type not in _all_mime_types:
-            message = (
-                f"File {file_id} is not a valid table file (unexpected mime type: "
-                f"{file_metadata.mime_type!r})"
-            )
-        else:
-            message = (
-                f"Unable to read file {file_id} as a data frame "
-                f"(found mime type {file_metadata.mime_type!r})"
-            )
-
-        logger.error(message, error=e)
-        raise PlatformError(message=message) from e
-
-    return data_reader
+    # Use the new function to create the data reader
+    return create_file_data_reader_from_contents(
+        file_bytes,
+        file_metadata.file_ref,
+        file_metadata.mime_type,
+        sheet_name=sheet_name,
+        file_metadata=file_metadata,
+    )

@@ -1,18 +1,21 @@
+import mimetypes
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from structlog import get_logger
 
 from agent_platform.core.data_connections.data_connections import (
     DataConnection as DbDataConnection,
 )
 from agent_platform.core.payloads.data_connection import (
-    DataConnection as DataConnectionPayload,
-)
-from agent_platform.core.payloads.data_connection import (
+    ColumnInfo,
     DataConnectionsInspectRequest,
     DataConnectionsInspectResponse,
     DataConnectionTag,
+    TableInfo,
+)
+from agent_platform.core.payloads.data_connection import (
+    DataConnection as DataConnectionPayload,
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
@@ -229,4 +232,122 @@ async def inspect_data_connection(
         )
         raise HTTPException(
             status_code=500, detail=f"Failed to inspect data connection: {e!s}"
+        ) from e
+
+
+def _infer_data_type(sample_values: list) -> str:
+    """Infer data type from sample values."""
+    if not sample_values:
+        return "string"
+
+    for value in sample_values:
+        if value is not None:
+            if isinstance(value, int | float):
+                return "numeric"
+            elif isinstance(value, bool):
+                return "boolean"
+            break
+    return "string"
+
+
+def _create_column_info(header: str, sample_rows: list, column_index: int) -> ColumnInfo:
+    """Create ColumnInfo from header and sample data."""
+    sample_values = (
+        [row[column_index] for row in sample_rows if column_index < len(row)] if sample_rows else []
+    )
+    data_type = _infer_data_type(sample_values)
+
+    return ColumnInfo(
+        name=header,
+        data_type=data_type,
+        sample_values=sample_values[:3] if sample_values else None,
+        primary_key=None,
+        unique=None,
+        description=None,
+        synonyms=None,
+    )
+
+
+def _create_table_info(sheet, file_name: str) -> TableInfo:
+    """Create TableInfo from a data reader sheet."""
+    sample_rows = sheet.list_sample_rows(5)
+    columns = []
+
+    for i, header in enumerate(sheet.column_headers):
+        column_info = _create_column_info(header, sample_rows, i)
+        columns.append(column_info)
+
+    table_name = sheet.name if sheet.name else file_name
+    return TableInfo(
+        name=table_name,
+        database=None,
+        schema=None,
+        description=f"Data from file: {file_name}",
+        columns=columns,
+    )
+
+
+@router.post("/inspect-file-as-data-connection")
+async def inspect_file_as_data_connection(
+    request: Request,
+    user: AuthedUser,
+) -> DataConnectionsInspectResponse:
+    """Inspect a file to get tables, columns and sample data as if it were a data connection."""
+    from agent_platform.core.errors.base import PlatformError
+    from agent_platform.core.errors.responses import ErrorCode
+
+    try:
+        # Get the file name from headers
+        file_name = request.headers.get("X-File-Name")
+        if not file_name:
+            raise PlatformError(
+                error_code=ErrorCode.BAD_REQUEST, message="X-File-Name header is required"
+            )
+
+        # Get the file contents from the request body
+        file_contents = await request.body()
+
+        # Import the data reader functionality
+        from agent_platform.server.data_frames.data_reader import (
+            create_file_data_reader_from_contents,
+        )
+
+        # Determine MIME type from file extension
+        mime_type, _ = mimetypes.guess_type(file_name)
+        if not mime_type:
+            # Default to CSV if we can't determine the type
+            mime_type = "text/csv"
+
+        # Create a file data reader from the contents
+        data_reader = create_file_data_reader_from_contents(
+            file_contents=file_contents,
+            file_name=file_name,
+            mime_type=mime_type,
+        )
+
+        # Convert the data reader sheets to TableInfo objects
+        tables = []
+        for sheet in data_reader.iter_sheets():
+            table_info = _create_table_info(sheet, file_name)
+            tables.append(table_info)
+
+        logger.info(
+            "Successfully inspected file as data connection",
+            file_name=file_name,
+            tables_found=len(tables),
+        )
+
+        return DataConnectionsInspectResponse(tables=tables)
+
+    except PlatformError:
+        raise
+    except Exception as e:
+        logger.error(
+            "Failed to inspect file as data connection",
+            file_name=request.headers.get("X-File-Name", "Not received"),
+            error=e,
+        )
+        raise PlatformError(
+            error_code=ErrorCode.UNEXPECTED,
+            message=f"Failed to inspect file as data connection: {e!s}",
         ) from e

@@ -275,20 +275,45 @@ See [./data-frames-db-and-semantic-models.md](data-frames-db-and-semantic-models
   Note: this happens because duckdb doesn't support null column types (it does accept having null values in the column if the
   column is of a different type though, so, casting the column to string as a workaround).
 
-# Step 11b (current PR)
+# Step 11b (this PR)
 
-- Provide an API which would query a file (by receiving the file contents) as if it was a data connection.
+- Provide an API which would receive the file contents of a file, then create a `create_file_data_reader_from_contents`
+  to create a `FileDataReader` instance ad then create a `DataConnectionsInspectResponse` to return based on the
+  data frames data.
+
+Notes:
+
+- The API should just receive the bytes of the file in the body.
+- The file name should be passed as a header.
+- It should be created next to the `inspect_data_connection` API (in `server/src/agent_platform/server/api/private_v2/data_connections.py`).
+- Create an integration test in `test_data_frames_integration.py` to test the new API (update the agent client to support the new API).
+- Do NOT run the tests, just create it.
 
 # Step 12:
-
-Actually do tests with postgres, redshift and snowflake.
-Do more tests on exceptional use cases (slow queries, bad network, etc.).
-
-# Step 13:
 
 Create a "Full semantic data model" which includes metrics, facts, dimensions, etc.
 
 Extract primary keys/uniqueness from the database directly when available.
+
+# Step 12b:
+
+https://sema4ai.slack.com/archives/C07LMU0AQFR/p1759853149588429
+
+- When the user uploads a file, the UI will stream an `attachment` message. The backend when converting that
+  message to the prompt (in `_user_thread_contents_to_prompt_contents`) will see what's available
+  in the context (data frames, doc intel, excel actions, etc.) and then will ask the agent to do
+  something based on that.
+
+  Example of one of the heuristics:
+
+  - If there are only data-frame actions available and it's an excel file at that point
+    it should inspect the file for multiple sheets and then request the agent to ask the
+    user to select which sheet to create a data frame from.
+
+# Step 13:
+
+Actually do tests with postgres, redshift and snowflake.
+Do more tests on exceptional use cases (slow queries, bad network, etc.).
 
 # Step 14:
 

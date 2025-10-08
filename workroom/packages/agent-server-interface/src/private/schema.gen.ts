@@ -2163,6 +2163,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/data-connections/inspect-file-as-data-connection': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Inspect File As Data Connection
+     * @description Inspect a file to get tables, columns and sample data as if it were a data connection.
+     */
+    post: operations['inspect_file_as_data_connection_data_connections_inspect_file_as_data_connection_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/evals/scenarios': {
     parameters: {
       query?: never;
@@ -12266,6 +12286,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  inspect_file_as_data_connection_data_connections_inspect_file_as_data_connection_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DataConnectionsInspectResponse'];
         };
       };
     };

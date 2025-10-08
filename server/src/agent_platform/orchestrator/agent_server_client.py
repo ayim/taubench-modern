@@ -1169,6 +1169,26 @@ class AgentServerClient:
             ) from e
         return response.json()
 
+    def inspect_file_as_data_connection(
+        self,
+        file_contents: bytes,
+        file_name: str,
+    ) -> dict:
+        """Inspect a file to get tables, columns and sample data as if it were a data connection."""
+        url = urljoin(self.base_url + "/", "data-connections/inspect-file-as-data-connection")
+        headers = {
+            "X-File-Name": file_name,
+            "Content-Type": "application/octet-stream",
+        }
+        response = requests.post(url, data=file_contents, headers=headers)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error inspecting file as data connection: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
     def set_thread_semantic_data_models(
         self, thread_id: str, semantic_data_model_ids: list[str]
     ) -> None:
