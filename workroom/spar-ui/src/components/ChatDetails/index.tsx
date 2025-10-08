@@ -9,7 +9,6 @@ import { MCPServerSection } from './components/MCPServerSection';
 import { OAuthProviderSection } from './components/OAuthProviderSection';
 import RunbookSection from './components/RunbookSection/index';
 import { SemanticDataSection } from './components/SemanticDataSection';
-import { WorkItemAPIUrlSection } from './components/WorkItemAPIUrlSection';
 
 export type ActionPackage = components['schemas']['ActionPackageDetail'];
 export type MCPServer = components['schemas']['MCPServerDetail'];
@@ -40,9 +39,8 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
           {agentOAuthState && <OAuthProviderSection agentOAuthState={agentOAuthState} />}
           {agent?.model && <LLMSection provider={agent.model.provider as string} name={agent.model.name as string} />}
 
-          <WorkItemAPIUrlSection />
           <SemanticDataSection />
-        </Box>
+        </Box>  
       )}
     </Box>
   );

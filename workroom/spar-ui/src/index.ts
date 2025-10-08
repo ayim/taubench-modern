@@ -35,3 +35,4 @@ export * from './components/Worker/WorkItemDetails';
 export * from './components/DocumentIntelligence';
 export { streamManager } from './hooks';
 
+export * from './components/ChatDetails/WorkItemAPIUrl';

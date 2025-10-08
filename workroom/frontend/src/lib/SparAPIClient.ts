@@ -159,7 +159,12 @@ export const createSparAPIClient = (
   },
 
   getWorkItemAPIURL: async () => {
-    return null;
+    return {
+      success: false,
+      error: {
+        message: 'Work Item API URL not available',
+      },
+    };
   },
 
   sendFeedback: async (props) => {

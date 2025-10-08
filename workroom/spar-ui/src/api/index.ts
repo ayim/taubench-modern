@@ -5,6 +5,8 @@ import type { OpenAPIClient } from './OpenAPIClient';
 import type { SparUIRoutes, LooseRouteParams } from './routes';
 import { AgentOAuthProviderState } from '../lib/OAuth';
 
+type ApiResponse<Success> = { data: Success; success: true } | { success: false; error: { message: string } };
+
 export enum SparUIFeatureFlag {
   showActionLogs = 'showActionLogs',
   showFeedback = 'showFeedback',
@@ -87,7 +89,7 @@ export interface SparAPIClient {
   /**
    * Retrieve the URL for the Work Item API
    */
-  getWorkItemAPIURL: () => Promise<string | null>;
+  getWorkItemAPIURL: () => Promise<ApiResponse<string>>;
 
   /**
    * Send feedback
