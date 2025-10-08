@@ -32,12 +32,14 @@ class TestDocumentIntelligenceConfiguration:
 
         with psycopg.connect(spar_postgres_url) as conn:
             with conn.cursor(row_factory=dict_row) as cur:
-                cur.execute("SELECT count(*) FROM v2.dids_connection_details")
+                # Check for data server integration in the new unified integration table
+                cur.execute("SELECT count(*) FROM v2.integration WHERE kind = 'data_server'")
                 row = cur.fetchone()
-                assert row is not None, "DIDS connection details should be set up"
-                assert row["count"] == 1, "DIDS connection details should be set up"
+                assert row is not None, "Data server integration should be set up"
+                assert row["count"] == 1, "Data server integration should be set up"
 
-                cur.execute("SELECT * FROM v2.document_intelligence_integrations")
+                # Check for reducto integration in the new unified integration table
+                cur.execute("SELECT * FROM v2.integration WHERE kind = 'reducto'")
                 row = cur.fetchone()
                 print(row)
                 assert row is not None, "Document intelligence integrations should be set up"
@@ -45,8 +47,11 @@ class TestDocumentIntelligenceConfiguration:
                     "Document intelligence integration kind should be reducto"
                 )
 
-        backend_url = row["endpoint"]
-        api_key = secret_service.fetch(row["enc_api_key"])
+        # Extract endpoint and API key from the enc_settings JSONB field
+        enc_settings = row["enc_settings"]
+        backend_url = enc_settings["endpoint"]
+        enc_api_key = enc_settings["api_key"]
+        api_key = secret_service.fetch(enc_api_key)
         print(f"Backend URL: {backend_url}")
         print(f"API Key: {api_key}")
         request = requests.get(

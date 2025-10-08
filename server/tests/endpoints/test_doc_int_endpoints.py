@@ -422,6 +422,30 @@ class TestDocumentIntelligenceEndpoints:
             MagicMock(id="conn-2", tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE]),
         ]
 
+        # Create a mock data connection with proper UUID
+        from agent_platform.core.data_connections.data_connections import DataConnection
+        from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+
+        mock_data_connection = DataConnection(
+            id="conn-1",
+            name="test-connection",
+            description="Test connection",
+            engine="postgres",
+            configuration=PostgresDataConnectionConfiguration(
+                host="localhost",
+                port=5432,
+                database="testdb",
+                user="testuser",
+                password="testpass",
+                schema="public",
+                sslmode=None,
+            ),
+            external_id="test-external-id",
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z",
+            tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE],
+        )
+
         with (
             patch.object(
                 storage_instance,
@@ -448,12 +472,20 @@ class TestDocumentIntelligenceEndpoints:
                 "get_data_connections",
                 new=AsyncMock(return_value=mock_data_connections),
             ),
+            patch.object(
+                storage_instance,
+                "get_data_connection",
+                new=AsyncMock(return_value=mock_data_connection),
+            ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource.model_validate",
                 return_value=Mock(),
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database",
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source",
             ),
         ):
             response = client.post("/api/v2/document-intelligence", json=payload)
@@ -593,6 +625,30 @@ class TestDocumentIntelligenceEndpoints:
             MagicMock(id="conn-2", tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE]),
         ]
 
+        # Create a mock data connection with proper UUID
+        from agent_platform.core.data_connections.data_connections import DataConnection
+        from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+
+        mock_data_connection = DataConnection(
+            id="conn-1",
+            name="test-connection",
+            description="Test connection",
+            engine="postgres",
+            configuration=PostgresDataConnectionConfiguration(
+                host="localhost",
+                port=5432,
+                database="testdb",
+                user="testuser",
+                password="testpass",
+                schema="public",
+                sslmode=None,
+            ),
+            external_id="test-external-id",
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z",
+            tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE],
+        )
+
         with (
             patch.object(
                 storage_instance,
@@ -619,12 +675,20 @@ class TestDocumentIntelligenceEndpoints:
                 "get_data_connections",
                 new=AsyncMock(return_value=mock_data_connections),
             ),
+            patch.object(
+                storage_instance,
+                "get_data_connection",
+                new=AsyncMock(return_value=mock_data_connection),
+            ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource.model_validate",
                 return_value=Mock(),
             ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database",
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source",
             ),
         ):
             response = client.post("/api/v2/document-intelligence", json=payload)
@@ -673,6 +737,30 @@ class TestDocumentIntelligenceEndpoints:
         mock_integrations = [mock_data_server_integration]
         mock_data_connections = []
 
+        # Create a mock data connection with proper UUID
+        from agent_platform.core.data_connections.data_connections import DataConnection
+        from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+
+        mock_data_connection = DataConnection(
+            id="conn-1",
+            name="test-connection",
+            description="Test connection",
+            engine="postgres",
+            configuration=PostgresDataConnectionConfiguration(
+                host="localhost",
+                port=5432,
+                database="testdb",
+                user="testuser",
+                password="testpass",
+                schema="public",
+                sslmode=None,
+            ),
+            external_id="test-external-id",
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z",
+            tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE],
+        )
+
         with (
             patch.object(
                 storage_instance,
@@ -699,6 +787,11 @@ class TestDocumentIntelligenceEndpoints:
                 "get_data_connections",
                 new=AsyncMock(return_value=mock_data_connections),
             ),
+            patch.object(
+                storage_instance,
+                "get_data_connection",
+                new=AsyncMock(return_value=mock_data_connection),
+            ),
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource.model_validate",
                 return_value=Mock(),
@@ -706,6 +799,9 @@ class TestDocumentIntelligenceEndpoints:
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database",
                 new=AsyncMock(),
+            ),
+            patch(
+                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source",
             ),
         ):
             response = client.post("/api/v2/document-intelligence", json=payload)

@@ -222,8 +222,26 @@ async def upsert_document_intelligence(
             configuration=None,
         )
 
-    # Persist Data Server connection details for DocInt.
-    data_sources = payload.to_data_sources()
+    # Fetch the data connection if data_connection_id is provided
+    if payload.data_connection_id:
+        try:
+            data_connection = await storage.get_data_connection(payload.data_connection_id)
+            # Create a new payload with the fetched data connection
+            payload_with_connection = DocumentIntelligenceConfigPayload(
+                data_server=payload.data_server,
+                integrations=payload.integrations,
+                data_connections=[data_connection],
+                data_connection_id=payload.data_connection_id,
+            )
+            data_sources = payload_with_connection.to_data_sources()
+        except Exception as e:
+            raise PlatformError(
+                ErrorCode.NOT_FOUND,
+                f"Data connection with ID {payload.data_connection_id} not found: {e}",
+            ) from e
+    else:
+        # No data connection ID provided, use empty data sources
+        data_sources = payload.to_data_sources()
 
     # Initialize or refresh the DI database/datasource
     await _build_datasource(data_sources)

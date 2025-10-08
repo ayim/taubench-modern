@@ -390,6 +390,11 @@ class DataConnection:
     def build_mindsdb_parameters(self) -> str:
         """Generates the body of the PARAMETERS clause for a MindsDB data source"""
         config_dict = _serialize_config_to_dict(self.configuration)
+
+        # Ensure port is an integer to avoid "invalid integer value" errors
+        if "port" in config_dict and isinstance(config_dict["port"], float):
+            config_dict["port"] = int(config_dict["port"])
+
         return json.dumps(config_dict).lstrip("{").rstrip("}")
 
     @classmethod
