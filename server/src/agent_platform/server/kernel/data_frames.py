@@ -323,7 +323,12 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         return self._data_frame_tools
 
     async def _create_in_memory_data_frame(
-        self, name: str, contents: dict[str, list], *, storage: "BaseStorage | None" = None
+        self,
+        name: str,
+        contents: dict[str, list],
+        *,
+        description: str | None = None,
+        storage: "BaseStorage | None" = None,
     ) -> "PlatformDataFrame":
         import datetime
         import io
@@ -354,6 +359,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         data_frame = PlatformDataFrame(
             data_frame_id=str(uuid4()),
             name=name,
+            description=description,
             user_id=self.kernel.thread.user_id,
             agent_id=self.kernel.thread.agent_id,
             thread_id=self.kernel.thread.thread_id,
@@ -399,8 +405,10 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
                 if isinstance(possible_table, dict):
                     name = possible_table.get("name")
+                    description = possible_table.get("description")
                     found_keys = set(possible_table.keys())
                     found_keys.discard("name")
+                    found_keys.discard("description")
 
                     if set(("columns", "rows")) == found_keys:
                         if name:
@@ -418,6 +426,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                         data_frame = await self._create_in_memory_data_frame(
                             name=name,
                             contents=possible_table,
+                            description=description,
                         )
                         data_frame_summary = self._data_frame_summary(data_frame)
                         logger.info(
