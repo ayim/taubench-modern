@@ -6,7 +6,6 @@ import type {
   TokenEndpointResponseHelpers,
 } from 'openid-client';
 import * as oidcClient from 'openid-client';
-import z from 'zod';
 import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { safeParseUrl } from '../utils/url.js';
@@ -21,8 +20,6 @@ export interface OIDCPKCEChallenge {
   codeChallenge: string;
   codeVerifier: string;
 }
-
-const emailSchema = z.string().email();
 
 export class OIDCClient {
   private monitoring: MonitoringContext;
@@ -194,16 +191,8 @@ export class OIDCClient {
   }
 
   static extractUserIdFromClaims(claims: IDToken): string {
-    const isEmail = (value: unknown) => emailSchema.safeParse(value).success;
-
-    if (isEmail(claims.sub)) return claims.sub;
-    if (claims['email']) {
-      if (!isEmail(claims['email'])) {
-        throw new Error(`Invalid email claim: Invalid email address: ${claims['email']}`);
-      }
-
-      // @TODO: Handle other types correctly
-      return claims['email'] as string;
+    if (!claims.sub) {
+      throw new Error('Unexpected error: failed retrieving sub from OIDC token claims: sub field is not specified');
     }
 
     return claims.sub;
