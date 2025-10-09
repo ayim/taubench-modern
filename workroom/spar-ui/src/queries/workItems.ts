@@ -87,6 +87,7 @@ export const useCreateWorkItemMutation = createSparMutation<
 >()(({ agentId, sparAPIClient, queryClient }) => ({
   mutationFn: async ({ files, message, payload, workItemName }) => {
     // Upload files
+    let workItemId: string | undefined;
     if (files && files?.length > 0) {
       const firstFileResponse = await uploadWorkItemFile(sparAPIClient, files[0]);
 
@@ -94,7 +95,7 @@ export const useCreateWorkItemMutation = createSparMutation<
         throw new Error('Failed to get Work Item ID from file upload');
       }
 
-      const workItemId = String(firstFileResponse.data.work_item_id);
+      workItemId = String(firstFileResponse.data.work_item_id);
 
       const remainingFiles = files.slice(1);
       const uploadPromises = remainingFiles.map(async (file) => {
@@ -111,6 +112,7 @@ export const useCreateWorkItemMutation = createSparMutation<
     const body: CreateWorkItemPayload = {
       work_item_name: workItemName,
       agent_id: agentId,
+      work_item_id: workItemId,
       messages: [
         {
           role: 'user',

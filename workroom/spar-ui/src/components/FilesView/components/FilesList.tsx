@@ -1,10 +1,10 @@
-import { FileItem, Typography } from '@sema4ai/components';
+import { Box, FileItem, Typography } from '@sema4ai/components';
 import { IconLoading } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { FC, useState } from 'react';
 
 import { useSparUIContext } from '../../../api/context';
-import { getFileTypeIcon } from '../../../common/helpers';
+import { getFileSize, getFileTypeIcon } from '../../../common/helpers';
 import { ThreadFiles, useThreadFilesQuery } from '../../../queries/threads';
 
 type props = {
@@ -25,6 +25,7 @@ const FileListItem = ({ file, threadId }: { file: ThreadFiles[number]; threadId:
       key={file.file_id}
       label={file.file_ref}
       icon={getFileTypeIcon(file.mime_type)}
+      description={file.file_size_raw ? getFileSize(file.file_size_raw) : undefined}
       downloading={downloading}
       onDownloadClick={onDownload}
     />
@@ -47,15 +48,48 @@ const FilesListContent = styled.div`
 
 export const FilesList: FC<props> = ({ threadId }) => {
   const { data: files, isLoading: isFilesLoading } = useThreadFilesQuery({ threadId });
+
+  if (isFilesLoading) {
+    return (
+      <Box display="flex" alignItems="center" justifyContent="center">
+        <IconLoading />
+      </Box>
+    );
+  }
+
+  // Separate files based on work_item_id
+  const conversationFiles = files?.filter((file) => !file.work_item_id) || [];
+  const workItemFiles = files?.filter((file) => file.work_item_id) || [];
+
   return (
-    <Container>
-      <Typography variant="display-small">Conversation Files</Typography>
-      {isFilesLoading && <IconLoading />}
-      <FilesListContent>
-        {files?.map((file) => (
-          <FileListItem file={file} threadId={threadId} key={file.file_id} />
-        ))}
-      </FilesListContent>
-    </Container>
+    <Box display="flex" flexDirection="column" gap={16}>
+      {/* Work Item Files Section */}
+      {workItemFiles.length > 0 && (
+        <Container>
+          <Typography variant="body-medium" fontWeight={600}>
+            Work Item Files
+          </Typography>
+          <FilesListContent>
+            {workItemFiles.map((file) => (
+              <FileListItem file={file} threadId={threadId} key={file.file_id} />
+            ))}
+          </FilesListContent>
+        </Container>
+      )}
+
+      {/* Conversation Files Section */}
+      {conversationFiles.length > 0 && (
+        <Container>
+          <Typography variant="body-medium" fontWeight={600}>
+            Conversation Files
+          </Typography>
+          <FilesListContent>
+            {conversationFiles.map((file) => (
+              <FileListItem file={file} threadId={threadId} key={file.file_id} />
+            ))}
+          </FilesListContent>
+        </Container>
+      )}
+    </Box>
   );
 };

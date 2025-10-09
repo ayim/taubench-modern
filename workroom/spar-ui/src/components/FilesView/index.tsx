@@ -1,7 +1,7 @@
 import { styled } from '@sema4ai/theme';
 import { FC } from 'react';
-import { DropzoneOptions } from 'react-dropzone';
 
+import { DropzoneConfig } from '@sema4ai/components';
 import { AddFiles } from './components/AddFiles';
 import { FilesList } from './components/FilesList';
 
@@ -10,9 +10,9 @@ type props = {
   agentId: string;
   /**
    * Options to control the file acceptance and behavior of the dropzone
-   * @see https://react-dropzone.js.org/#src
+   * @see https://sema4ai-design-system.pages.dev/component/dropzone
    */
-  dropzoneOptions?: DropzoneOptions;
+  dropzoneOptions?: DropzoneConfig;
 };
 
 const Container = styled.div`
