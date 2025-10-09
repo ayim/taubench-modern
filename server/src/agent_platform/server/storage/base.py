@@ -554,6 +554,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     scenarios.c.created_at,
                     scenarios.c.updated_at,
                     scenarios.c.messages,
+                    scenarios.c.metadata,
                 )
             )
             result = await conn.execute(insert_stmt)
@@ -578,6 +579,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             scenarios.c.created_at,
             scenarios.c.updated_at,
             scenarios.c.messages,
+            scenarios.c.metadata,
         ).select_from(scenarios)
 
         if agent_id is not None:
@@ -606,6 +608,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             scenarios.c.created_at,
             scenarios.c.updated_at,
             scenarios.c.messages,
+            scenarios.c.metadata,
         ).where(scenarios.c.scenario_id == scenario_id)
 
         async with self._read_connection() as conn:
@@ -631,6 +634,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 scenarios.c.created_at,
                 scenarios.c.updated_at,
                 scenarios.c.messages,
+                scenarios.c.metadata,
             )
         )
 

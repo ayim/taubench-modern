@@ -9610,6 +9610,39 @@ export const spec = {
             type: 'string',
             title: 'Thread Id',
           },
+          assert_all_consumed: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Assert All Consumed',
+          },
+          allow_llm_arg_validation: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Allow Llm Arg Validation',
+          },
+          allow_llm_interpolation: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Allow Llm Interpolation',
+          },
         },
         type: 'object',
         required: ['name', 'description', 'thread_id'],
@@ -10566,6 +10599,48 @@ export const spec = {
               },
             ],
             title: 'Repair Action',
+          },
+          llm_reason: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Llm Reason',
+          },
+          llm_raw_response: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Llm Raw Response',
+          },
+          llm_proposed_output: {
+            anyOf: [
+              {},
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Llm Proposed Output',
+          },
+          llm_proposed_error: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Llm Proposed Error',
           },
         },
         type: 'object',
@@ -15605,6 +15680,11 @@ export const spec = {
             type: 'array',
             title: 'Messages',
             description: 'All messages in the original thread.',
+          },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
           },
           created_at: {
             type: 'string',

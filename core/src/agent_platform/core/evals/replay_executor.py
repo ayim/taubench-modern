@@ -1,8 +1,8 @@
 import json
 from copy import deepcopy
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
@@ -13,11 +13,19 @@ from agent_platform.core.evals.agent_client import (
     ToolExecutor,
     UnexpectedToolError,
 )
+from agent_platform.core.evals.tool_call_validator import (
+    LanguageModelToolCallValidator,
+    ToolCallValidationContext,
+    ToolCallValidator,
+)
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 logger = structlog.get_logger(__name__)
+
+if TYPE_CHECKING:
+    from agent_platform.core.kernel import Kernel
 
 
 @dataclass
@@ -54,6 +62,10 @@ class DriftEvent:
     expected_args: dict[str, Any] | None = None
     actual_args: dict[str, Any] | None = None
     repair_action: str | None = None
+    llm_reason: str | None = None
+    llm_raw_response: str | None = None
+    llm_proposed_output: Any | None = None
+    llm_proposed_error: str | None = None
 
     @classmethod
     def model_validate(cls, data: dict) -> "DriftEvent":
@@ -79,6 +91,11 @@ class DriftPolicy:
 
     # If True, all expected calls should be consumed
     assert_all_consumed: bool = True
+
+    # if True, arguments are validated using LLM
+    allow_llm_arg_validation: bool = False
+    # it True, tool call outputs are interpolated by LLM
+    allow_llm_interpolation: bool = False
 
     # TODO If True, we try to find the matching recorded call ahead and consume it (reordering).
     # allow_reorder: bool = True
@@ -162,7 +179,7 @@ class ReplayToolExecutor(ToolExecutor):
     Enforces both call order and argument equality (deep compare).
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         expected_calls: list[ExpectedCall],
         *,
@@ -170,6 +187,7 @@ class ReplayToolExecutor(ToolExecutor):
         models: list[str],
         platforms: list[str],
         tools: list[ToolDefinition],
+        validator: ToolCallValidator | None = None,
     ):
         self._calls = expected_calls
         self._i = 0
@@ -179,6 +197,18 @@ class ReplayToolExecutor(ToolExecutor):
         self.models = models
         self.platforms = platforms
         self.tools = tools
+        self._tool_by_name = {tool.name: tool for tool in tools}
+        self._validator: ToolCallValidator | None = (
+            validator if validator is not None else LanguageModelToolCallValidator()
+        )
+
+    def attach_kernel(self, kernel: "Kernel") -> None:
+        if self._validator is None:
+            return
+        try:
+            self._validator.attach_kernel(kernel)
+        except Exception:
+            logger.warning("Failed to attach kernel to tool call validator", exc_info=True)
 
     def _record_drift_event(self, event: DriftEvent) -> None:
         self.drifts.append(event)
@@ -230,45 +260,135 @@ class ReplayToolExecutor(ToolExecutor):
             raise ReplayDriftError(evt.message, {"event": evt.__dict__})
 
         actual_args = _parse_args_as_json(tool, self._i)
-        if not _strict_args_match(exp.expected_args, actual_args):
-            evt = DriftEvent(
-                index_before=self._i,
-                drift_type=DriftType.ARG_MISMATCH,
-                message=(
-                    f"Arguments mismatch at call #{self._i + 1} for '{tool.tool_name}'.\n"
-                    f"  expected args: {json.dumps(exp.expected_args, indent=2, sort_keys=True)}\n"
-                    f"  got args     : {json.dumps(actual_args, indent=2, sort_keys=True)}"
-                ),
-                expected_tool=exp.tool_name,
-                actual_tool=tool.tool_name,
-                expected_args=exp.expected_args,
-                actual_args=actual_args,
-            )
-            # Attempt repair by forgiving args (subset/epsilon/coercions)
+
+        mismatch_args: ArgMismatchDetail | None = None
+        if self._policy.allow_arg_subset:
             mismatch_args = _subset_args_check(
                 exp.expected_args,
                 actual_args,
                 self._policy.numeric_epsilon,
                 self._policy.coerce_json_number_like,
             )
-            if self._policy.allow_arg_subset and mismatch_args:
-                evt.repair_action = "FORGIVE_ARGS"
-                evt.message = (
-                    f"Non-strict arg mismatch at call #{self._i + 1} for '{tool.tool_name}'. "
-                    f"Key '{mismatch_args.path}' expected value {mismatch_args.expected}, "
-                    f"got {mismatch_args.actual}"
-                )
-                self._record_drift_event(evt)
-            else:
-                evt.repair_action = "FAILED"
-                self._record_drift_event(evt)
-                self.error_message = evt.message
-                raise ReplayDriftError(evt.message, {"event": evt.__dict__})
+            args_match = mismatch_args is None
+        else:
+            args_match = _strict_args_match(exp.expected_args, actual_args)
 
-        self._i += 1
+        if args_match:
+            self._i += 1
 
-        logger.info(f"Tool {tool.tool_name} mocked with stored results")
-        return ToolExecutionResult(error=exp.error, output=json.dumps(exp.output))
+            logger.info(f"Tool {tool.tool_name} mocked with stored results")
+            return ToolExecutionResult(error=exp.error, output=json.dumps(exp.output))
+
+        mismatch_message = (
+            f"Arguments mismatch at call #{self._i + 1} for '{tool.tool_name}'.\n"
+            f"  expected args: {json.dumps(exp.expected_args, indent=2, sort_keys=True)}\n"
+            f"  got args     : {json.dumps(actual_args, indent=2, sort_keys=True)}"
+        )
+        if self._policy.allow_arg_subset and mismatch_args is not None:
+            mismatch_message += (
+                f"\n  mismatch detail: key '{mismatch_args.path}' expected value"
+                f" {mismatch_args.expected}, got {mismatch_args.actual}"
+            )
+
+        evt = DriftEvent(
+            index_before=self._i,
+            drift_type=DriftType.ARG_MISMATCH,
+            message=mismatch_message,
+            expected_tool=exp.tool_name,
+            actual_tool=tool.tool_name,
+            expected_args=exp.expected_args,
+            actual_args=actual_args,
+        )
+        self._record_drift_event(evt)
+
+        if self._policy.allow_llm_arg_validation:
+            repair_result = await self._attempt_llm_repair(
+                evt=evt,
+                expected=exp,
+                actual_args=actual_args,
+            )
+            if repair_result is not None:
+                self._i += 1
+                if self._policy.allow_llm_interpolation:
+                    logger.info(f"Tool {tool.tool_name} output LM interpolated")
+                    return repair_result
+                else:
+                    logger.info(f"Tool {tool.tool_name} mocked with stored results")
+                    return ToolExecutionResult(error=exp.error, output=json.dumps(exp.output))
+
+        # all repair attempt failed
+        self.error_message = evt.message
+        raise ReplayDriftError(evt.message, {"event": evt.__dict__})
+
+    async def _attempt_llm_repair(
+        self,
+        *,
+        evt: DriftEvent,
+        expected: ExpectedCall,
+        actual_args: dict[str, Any],
+    ) -> ToolExecutionResult | None:
+        if self._validator is None:
+            return None
+
+        tool_definition = self._tool_by_name.get(expected.tool_name)
+        context = ToolCallValidationContext(
+            tool_name=expected.tool_name,
+            expected_args=expected.expected_args,
+            actual_args=actual_args,
+            expected_output=expected.output,
+            expected_error=expected.error,
+            tool_definition=tool_definition,
+        )
+
+        try:
+            decision = await self._validator.validate(context)
+        except ReplayDriftError:
+            raise
+        except Exception as exc:
+            evt.repair_action = "LLM_ERROR"
+            evt.llm_reason = str(exc)
+            evt.message = f"Language model validation raised an error: {exc}"
+            self._record_drift_event(evt)
+            self.error_message = evt.message
+            raise ReplayDriftError(evt.message, {"event": evt.__dict__}) from exc
+
+        if decision is None:
+            return None
+
+        evt.llm_reason = decision.reason
+        evt.llm_raw_response = decision.raw_response
+
+        if decision.accepted:
+            evt.repair_action = "LLM_ACCEPT"
+            evt.llm_proposed_output = decision.proposed_output
+            evt.llm_proposed_error = decision.proposed_error
+            evt.message = (
+                f"Language model accepted mismatched args at call #{self._i + 1} for "
+                f"'{expected.tool_name}': {decision.reason}"
+            )
+            self._record_drift_event(evt)
+
+            output_payload = (
+                decision.proposed_output
+                if decision.proposed_output is not None
+                else expected.output
+            )
+            error_payload = (
+                decision.proposed_error if decision.proposed_error is not None else expected.error
+            )
+
+            return ToolExecutionResult(
+                error=error_payload,
+                output=json.dumps(output_payload),
+            )
+
+        evt.repair_action = "LLM_REJECT"
+        evt.message = (
+            f"Language model rejected mismatched args at call #{self._i + 1} for "
+            f"'{expected.tool_name}': {decision.reason}"
+        )
+        self.error_message = evt.message
+        raise ReplayDriftError(evt.message, {"event": evt.__dict__})
 
     def finalize(self) -> None:
         if self._i >= len(self._calls):
@@ -308,7 +428,12 @@ class ReplayToolExecutor(ToolExecutor):
         return
 
     @classmethod
-    def from_conversation(cls, messages: list[ThreadMessage]) -> "ReplayToolExecutor":  # noqa: C901, PLR0912
+    def from_conversation(  # noqa: PLR0912, C901, PLR0915
+        cls,
+        messages: list[ThreadMessage],
+        *,
+        policy_overrides: dict[str, Any] | None = None,
+    ) -> "ReplayToolExecutor":
         expected: list[ExpectedCall] = []
         models = set()
         platforms = set()
@@ -378,6 +503,20 @@ class ReplayToolExecutor(ToolExecutor):
                     # no op: there should not be duplicate names
                     logger.info(f"Found duplicate name for tool {tool_name}")
 
+        policy = DriftPolicy(
+            allow_arg_subset=False,
+            numeric_epsilon=1e-6,
+            coerce_json_number_like=True,
+            max_events=20,
+        )
+
+        if policy_overrides:
+            valid_overrides = {
+                key: value for key, value in policy_overrides.items() if hasattr(policy, key)
+            }
+            if valid_overrides:
+                policy = replace(policy, **valid_overrides)
+
         defined_tool_names = set(tools_by_name)
         missing_tool_definitions = sorted(used_tool_names - defined_tool_names)
         if missing_tool_definitions:
@@ -395,12 +534,7 @@ class ReplayToolExecutor(ToolExecutor):
 
         return cls(
             expected,
-            policy=DriftPolicy(
-                allow_arg_subset=False,
-                numeric_epsilon=1e-6,
-                coerce_json_number_like=True,
-                max_events=20,
-            ),
+            policy=policy,
             models=sorted(models),
             platforms=sorted(platforms),
             tools=sorted(

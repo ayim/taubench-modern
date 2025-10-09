@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from textwrap import dedent
-from typing import cast
+from typing import Any, cast
 from uuid import uuid4
 
 from fastapi import Request
@@ -292,7 +292,27 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 scenario=scenario, start_index=len(user_messages_from_scenario) + offset
             )
 
-            tool_executor = ReplayToolExecutor.from_conversation(agent_messages_from_scenario)
+            drift_policy_overrides: dict[str, Any] | None = None
+            scenario_metadata = getattr(scenario, "metadata", {}) or {}
+            if isinstance(scenario_metadata, dict):
+                raw_policy = scenario_metadata.get("drift_policy")
+                if isinstance(raw_policy, dict):
+                    filtered_policy = {
+                        key: raw_policy[key]
+                        for key in (
+                            "assert_all_consumed",
+                            "allow_llm_arg_validation",
+                            "allow_llm_interpolation",
+                        )
+                        if key in raw_policy
+                    }
+                    if filtered_policy:
+                        drift_policy_overrides = filtered_policy
+
+            tool_executor = ReplayToolExecutor.from_conversation(
+                agent_messages_from_scenario,
+                policy_overrides=drift_policy_overrides,
+            )
             missing_tools_in_agent = [
                 tool for tool in tool_executor.tools if not agent_tools.has_tool(tool)
             ]
@@ -341,6 +361,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 run,
                 tool_executor.tools,
             )
+            tool_executor.attach_kernel(kernel)
 
             agent_client = AgentClient(
                 session=Session(runner=runner, kernel=kernel), tool_executor=tool_executor

@@ -28,6 +28,9 @@ class CreateScenarioPayload:
     name: str
     description: str
     thread_id: str
+    assert_all_consumed: bool | None = None
+    allow_llm_arg_validation: bool | None = None
+    allow_llm_interpolation: bool | None = None
 
     @classmethod
     def to_scenario(cls, payload: Self, user_id: str, thread: Thread) -> Scenario:
@@ -46,6 +49,20 @@ class CreateScenarioPayload:
         # that would result in an error.
         # more info https://sema4ai.slack.com/archives/C08HF1FADTQ/p1757927280879779
         messages = trim_initial_agents(thread.messages)
+        policy_overrides = {
+            key: value
+            for key, value in (
+                ("assert_all_consumed", payload.assert_all_consumed),
+                ("allow_llm_arg_validation", payload.allow_llm_arg_validation),
+                ("allow_llm_interpolation", payload.allow_llm_interpolation),
+            )
+            if value is not None
+        }
+
+        metadata: dict[str, Any] = {}
+        if policy_overrides:
+            metadata["drift_policy"] = policy_overrides
+
         return Scenario(
             scenario_id=str(uuid4()),
             name=payload.name,
@@ -54,6 +71,7 @@ class CreateScenarioPayload:
             user_id=user_id,
             agent_id=thread.agent_id,
             messages=messages,
+            metadata=metadata,
         )
 
 

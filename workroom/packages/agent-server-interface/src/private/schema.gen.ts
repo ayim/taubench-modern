@@ -3459,6 +3459,12 @@ export interface components {
       description: string;
       /** Thread Id */
       thread_id: string;
+      /** Assert All Consumed */
+      assert_all_consumed?: boolean | null;
+      /** Allow Llm Arg Validation */
+      allow_llm_arg_validation?: boolean | null;
+      /** Allow Llm Interpolation */
+      allow_llm_interpolation?: boolean | null;
     };
     /** CreateScenarioRunPayload */
     CreateScenarioRunPayload: {
@@ -3853,6 +3859,14 @@ export interface components {
       } | null;
       /** Repair Action */
       repair_action?: string | null;
+      /** Llm Reason */
+      llm_reason?: string | null;
+      /** Llm Raw Response */
+      llm_raw_response?: string | null;
+      /** Llm Proposed Output */
+      llm_proposed_output?: unknown | null;
+      /** Llm Proposed Error */
+      llm_proposed_error?: string | null;
     };
     /**
      * DriftType
@@ -6178,6 +6192,10 @@ export interface components {
        * @description All messages in the original thread.
        */
       messages: components['schemas']['ThreadMessage'][];
+      /** Metadata */
+      metadata?: {
+        [key: string]: unknown;
+      };
       /**
        * Created At
        * Format: date-time

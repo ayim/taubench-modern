@@ -1,3 +1,4 @@
+import json
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from enum import Enum
@@ -28,12 +29,13 @@ class Scenario:
     messages: list[ThreadMessage] = field(
         metadata={"description": "All messages in the original thread."},
     )
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
     @classmethod
-    def model_validate(cls, data: dict) -> "Scenario":
+    def model_validate(cls, data: dict) -> "Scenario":  # noqa: C901
         """Create a scenario from a dictionary."""
         data = data.copy()
 
@@ -55,6 +57,16 @@ class Scenario:
                 ThreadMessage.model_validate(message) for message in data["messages"]
             ]
 
+        metadata = data.get("metadata", {})
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except json.JSONDecodeError:
+                metadata = {}
+        elif metadata is None:
+            metadata = {}
+        data["metadata"] = metadata
+
         return cls(
             **data,
         )
@@ -70,6 +82,7 @@ class Scenario:
             "messages": [message.model_dump() for message in self.messages],
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+            "metadata": self.metadata,
         }
 
 
