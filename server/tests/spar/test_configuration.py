@@ -47,13 +47,16 @@ class TestDocumentIntelligenceConfiguration:
                     "Document intelligence integration kind should be reducto"
                 )
 
-        # Extract endpoint and API key from the enc_settings JSONB field
-        enc_settings = row["enc_settings"]
+        import json
+
+        decrypted_settings_json = secret_service.fetch(row["enc_settings"])
+        enc_settings = json.loads(decrypted_settings_json)
         backend_url = enc_settings["endpoint"]
-        enc_api_key = enc_settings["api_key"]
-        api_key = secret_service.fetch(enc_api_key)
-        print(f"Backend URL: {backend_url}")
-        print(f"API Key: {api_key}")
+        api_key = enc_settings["api_key"]
+
+        assert backend_url is not None
+        assert api_key is not None
+
         request = requests.get(
             backend_url + "/version",
             headers={"X-API-Key": api_key},

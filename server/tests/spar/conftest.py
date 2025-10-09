@@ -162,6 +162,13 @@ def agent_server_client_with_doc_int(
         ],
     )
     try:
+        # Clear any existing document intelligence configuration first
+        try:
+            agent_server_client.clear_document_intelligence()
+        except RequestException:
+            # Ignore errors when clearing (e.g., if no config exists)
+            pass
+
         agent_server_client.configure_document_intelligence(doc_int_config)
     except RequestException as error:
         message = str(error)

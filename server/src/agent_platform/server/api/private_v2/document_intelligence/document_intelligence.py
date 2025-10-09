@@ -22,6 +22,7 @@ from agent_platform.core.integrations.settings.data_server import (
 from agent_platform.core.integrations.settings.reducto import ReductoSettings
 from agent_platform.core.payloads import DocumentIntelligenceConfigPayload
 from agent_platform.core.payloads.data_connection import DataConnectionTag
+from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import (
     DocIntDatasourceDependency,
     StorageDependency,
@@ -222,11 +223,9 @@ async def upsert_document_intelligence(
             configuration=None,
         )
 
-    # Fetch the data connection if data_connection_id is provided
     if payload.data_connection_id:
         try:
             data_connection = await storage.get_data_connection(payload.data_connection_id)
-            # Create a new payload with the fetched data connection
             payload_with_connection = DocumentIntelligenceConfigPayload(
                 data_server=payload.data_server,
                 integrations=payload.integrations,
@@ -269,9 +268,16 @@ async def upsert_document_intelligence(
 
     # Upsert other integrations (if provided)
     for integration_input in payload.integrations:
+        # Extract the actual API key value from SecretString if needed
+        api_key_value = (
+            integration_input.api_key.get_secret_value()
+            if isinstance(integration_input.api_key, SecretString)
+            else integration_input.api_key
+        )
+
         reducto_settings = ReductoSettings(
             endpoint=integration_input.endpoint,
-            api_key=str(integration_input.api_key),
+            api_key=api_key_value,
             external_id=integration_input.external_id,
         )
 
