@@ -10,6 +10,7 @@ type ApiResponse<Success> = { data: Success; success: true } | { success: false;
 export enum SparUIFeatureFlag {
   showActionLogs = 'showActionLogs',
   showFeedback = 'showFeedback',
+  deploymentWizard = 'deploymentWizard',
 }
 
 export type NavigationArgs = {

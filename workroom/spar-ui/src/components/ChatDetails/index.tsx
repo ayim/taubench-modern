@@ -1,6 +1,8 @@
 import { components } from '@sema4ai/agent-server-interface';
 import { Box, Progress } from '@sema4ai/components';
 import { FC } from 'react';
+import { SparUIFeatureFlag } from '../../api';
+import { useFeatureFlag } from '../../hooks';
 import { useAgentDetailsQuery, useAgentOAuthStateQuery, useAgentQuery } from '../../queries/agents';
 import { ActionsSection } from './components/ActionsSection';
 import { DescriptionSection } from './components/DescriptionSection';
@@ -17,6 +19,7 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
   const { data: agentDetails, isLoading: isAgentDetailsLoading } = useAgentDetailsQuery({ agentId });
   const { data: agent, isLoading: isAgentLoading } = useAgentQuery({ agentId });
   const { data: agentOAuthState, isLoading: isAgentOAuthStateLoading } = useAgentOAuthStateQuery({ agentId });
+  const isDeploymentWizardEnabled = useFeatureFlag(SparUIFeatureFlag.deploymentWizard);
 
   return (
     <Box height="100%">
@@ -39,8 +42,8 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
           {agentOAuthState && <OAuthProviderSection agentOAuthState={agentOAuthState} />}
           {agent?.model && <LLMSection provider={agent.model.provider as string} name={agent.model.name as string} />}
 
-          <SemanticDataSection />
-        </Box>  
+          {isDeploymentWizardEnabled && <SemanticDataSection />}
+        </Box>    
       )}
     </Box>
   );

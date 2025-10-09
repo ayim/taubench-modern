@@ -31,6 +31,8 @@ export const createSparAPIClient = (
     switch (feature) {
       case SparUIFeatureFlag.showActionLogs:
         return tenantMeta.features.developerMode.enabled;
+      case SparUIFeatureFlag.deploymentWizard:
+        return tenantMeta.features.deploymentWizard.enabled;
       case SparUIFeatureFlag.showFeedback:
         if (!agentMeta) {
           return false;

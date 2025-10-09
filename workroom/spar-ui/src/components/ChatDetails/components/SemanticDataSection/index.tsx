@@ -1,16 +1,17 @@
-import { useState } from 'react';
 import { Box, Button, Typography } from '@sema4ai/components';
 import { IconPlusSmall } from '@sema4ai/icons';
+import { useState } from 'react';
 
-import { useAgentSemanticDataQuery } from '../../../../queries/semanticData';
 import { useParams } from '../../../../hooks';
-import { SemanticModelItem } from './components/SemanticModelItem';
+import { useAgentSemanticDataQuery } from '../../../../queries/semanticData';
 import { SemanticDataConfiguration } from '../../../SemanticData/SemanticDataConfiguration';
+import { SemanticModelItem } from './components/SemanticModelItem';
 
 export const SemanticDataSection = () => {
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { agentId } = useParams('/thread/$agentId');
   const { data: semanticDataModels } = useAgentSemanticDataQuery({ agentId });
+
 
   const onToggleEditModel = () => {
     setIsConfigurationOpen(!isConfigurationOpen);

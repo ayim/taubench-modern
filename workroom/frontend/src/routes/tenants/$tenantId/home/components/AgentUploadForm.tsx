@@ -9,6 +9,7 @@ import { FileRejection, useDropzone } from 'react-dropzone';
 import type { AgentDeploymentFormSchema } from '../../agents/deploy/components/context';
 import { IconPlus } from '@sema4ai/icons';
 import { useUploadAgentPackageMutation } from '~/queries/agentPackageUpload';
+import { useTenantContext } from '~/lib/tenantContext';
 
 export type LLMFromIntrospection = {
   provider: 'OpenAI';
@@ -68,6 +69,7 @@ export const AgentUploadForm = () => {
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const { addSnackbar } = useSnackbar();
   const uploadAgentPackageMutation = useUploadAgentPackageMutation();
+  const { features } = useTenantContext();
 
   const schema = z.object({
     file: z
@@ -241,9 +243,11 @@ export const AgentUploadForm = () => {
   return (
     <Box height="100%" display="flex" flexDirection="row" gap={2}>
       <input {...getInputProps()} />
-      <Button icon={IconPlus} round onClick={open} loading={uploadAgentPackageMutation.isPending}>
-        Agent
-      </Button>
+      {features.deploymentWizard.enabled && (
+        <Button icon={IconPlus} round onClick={open} loading={uploadAgentPackageMutation.isPending}>
+          Agent
+        </Button>
+      )}
     </Box>
   );
 };
