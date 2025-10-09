@@ -4,6 +4,8 @@ import { useDeleteConfirm } from '@sema4ai/layouts';
 import { IconDotsHorizontal } from '@sema4ai/icons';
 
 import { useDeleteAgentMutation } from '../../queries';
+import { SparUIFeatureFlag } from '../../api';
+import { useFeatureFlag } from '../../hooks';
 
 type Props = {
   agent: components['schemas']['AgentCompat'];
@@ -16,6 +18,7 @@ type Props = {
 export const AgentContextMenu = ({ agent, onAgentDelete }: Props) => {
   const deleteAgentMutation = useDeleteAgentMutation({});
   const { addSnackbar } = useSnackbar();
+  const isDeploymentWizardEnabled = useFeatureFlag(SparUIFeatureFlag.deploymentWizard);
 
   const onDeleteConfirm = useDeleteConfirm(
     {
@@ -51,15 +54,17 @@ export const AgentContextMenu = ({ agent, onAgentDelete }: Props) => {
   });
 
   return (
-    <Menu trigger={<Button size="small" icon={IconDotsHorizontal} aria-label="More" round variant="ghost" />}>
-      <Menu.Item
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDelete();
-        }}
-      >
-        Delete
-      </Menu.Item>
-    </Menu>
-  );
+    isDeploymentWizardEnabled && (
+      <Menu trigger={<Button size="small" icon={IconDotsHorizontal} aria-label="More" round variant="ghost" />}>
+        <Menu.Item
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete();
+          }}
+        >
+          Delete
+        </Menu.Item>
+      </Menu>
+    )
+  )
 };
