@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12.9, <3.13"
 
 [manifest]
@@ -307,7 +307,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", extras = ["memory"], specifier = ">=0.10.1,<0.11.0" },
+    { name = "sema4ai-docint", extras = ["memory"], specifier = ">=0.11.0,<0.12.0" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -3529,7 +3529,7 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.10.1"
+version = "0.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -3551,9 +3551,9 @@ dependencies = [
     { name = "sema4ai-data" },
     { name = "sema4ai-http-helper" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/da/b11b1ccee900f75115b573f41cfd9f328574cd8dddcaaf6a20856b963536/sema4ai_docint-0.10.1.tar.gz", hash = "sha256:10665b09b7e773cd4634b22b4936ccd374bcbaae7ec34cf634966c3294c7c8fe", size = 24297803, upload-time = "2025-09-30T14:43:35.336Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/70/5f/381ccf24fdd9a58c144ab1c7e23b6bb149202a19429bf7b35336633bfc28/sema4ai_docint-0.11.1.tar.gz", hash = "sha256:1194a06e342d7e8c1b985782a5e30545518f745f1f1cbf4bd2f3df67c0e284c1", size = 1348725, upload-time = "2025-10-09T22:09:00.576Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/52/75/a7c9d4d7ca8309e0e72b6cef7c8d3d1b78176fc0e56efdcfcef3315e1824/sema4ai_docint-0.10.1-py3-none-any.whl", hash = "sha256:d1fdbe7387dd6c1be5fcb4ea93a2753d8761ef78ce6d3d36dcc1ee60a6f31a2f", size = 148216, upload-time = "2025-09-30T14:43:33.05Z" },
+    { url = "https://files.pythonhosted.org/packages/73/b9/a1a24fdb1e37e48bd40222ae89a6c518e19111a6e9b1e72f2d800458fe8e/sema4ai_docint-0.11.1-py3-none-any.whl", hash = "sha256:906274dbb504855e35dfb4a9938be16675917250b600d516559aec7a790cd79e", size = 147292, upload-time = "2025-10-09T22:08:59.169Z" },
 ]
 
 [package.optional-dependencies]

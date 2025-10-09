@@ -174,8 +174,9 @@ def agent_server_client_with_doc_int(
         message = str(error)
         if "Error configuring document intelligence" in message:
             pytest.fail(
-                "Document Intelligence configuration failed. Set the SPAR_DATA_SERVER_* "
-                "environment variables to point to a reachable data server."
+                f"Document Intelligence configuration failed: {message}"
+                f"\n\nYou may need to set the SPAR_DATA_SERVER_* environment variables "
+                f"to point to a reachable data server."
             )
         raise
 
