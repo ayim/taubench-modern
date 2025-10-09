@@ -4,6 +4,7 @@ import { OAuthProvider } from '@sema4ai/oauth-client';
 import type { OpenAPIClient } from './OpenAPIClient';
 import type { SparUIRoutes, LooseRouteParams } from './routes';
 import { AgentOAuthProviderState } from '../lib/OAuth';
+import { ActionPackage } from '../lib/DeprecatedTypes';
 
 type ApiResponse<Success> = { data: Success; success: true } | { success: false; error: { message: string } };
 
@@ -96,4 +97,11 @@ export interface SparAPIClient {
    * Send feedback
    */
   sendFeedback?: (props: { agentId: string; threadId: string; feedback: string; comment: string }) => Promise<boolean>;
+
+  /**
+   * @deprecated Do not use
+   * Used to get Action details for a given agent including OAuth information
+   * TODO: In future, this information should be returned by Agent Server
+   */
+  getActionDetails?: (props: { agentId: string }) => Promise<ActionPackage[]>;
 }
