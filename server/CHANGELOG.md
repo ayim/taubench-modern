@@ -1,3 +1,19 @@
+# Sema4.ai Agent Server 2.1.11 (2025-10-06)
+
+- [GPT-1384] Have Work Items Use `ThreadContentAttachement` For Uploaded Files (#1232)
+- GPT-1360 LM-driven evaluation checks (#1177)
+- Fix: SPAR Integration tests (#1229)
+- [GPT-1294] Model Client Fixes (#1168)
+- [GPT-1381] Add reasoning to LangSmith traces (#1227)
+- Fix: document intelligence upsert (#1226)
+- [Data Frames] Also accept a description besides name, columns, rows to auto-create data frame (#1216)
+- Create `data-connections/inspect-file-as-data-connection` API (#1220)
+- Add Semantic Data Model edit feature (#1207)
+- Implement Integration table and deprecate older di config tables (#1095)
+- If ibis cannot load the contents of a column, still proceed to inspect the other columns (#1202)
+- GPT-1355 Add `updated_at` to `Runbook` (#1164)
+- Add New Chat (instead of Thread) (#1200)
+
 # Sema4.ai Agent Server 2.1.10 (2025-10-06)
 
 - [DEV-218] Fix prompt endpoint model selection (#1185)
