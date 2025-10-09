@@ -79,7 +79,7 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
   });
   const { ref, ...inputProps } = register('message');
 
-  const { streamingMessages, uploadingFiles, sendMessage, streamError } = useMessageStream({ agentId, threadId });
+  const { streamingMessages, uploadingFiles, sendMessage, streamError, stopStream } = useMessageStream({ agentId, threadId });
   const isStreaming = !!streamingMessages;
 
   const queryDataGuard = useQueryDataGuard([threadQueryState, oauthStateQueryState]);
@@ -91,6 +91,12 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
       reset();
     }
   });
+
+  const onAbort = () => {
+    stopStream();
+    setAttachements([]);
+    reset();
+  };
 
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
     const items = Array.from(e.clipboardData?.items || []);
@@ -151,7 +157,7 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
           </Dialog>
         )}
         {requiresOAuth && <OAuth />}
-        <ChatInput streaming={isStreaming} busy={uploadingFiles} onSend={onSubmit}>
+        <ChatInput streaming={isStreaming} busy={uploadingFiles} onSend={onSubmit} onAbort={onAbort}>
           {attachements.length > 0 && (
             <ChatInput.FileList>
               {attachements.map((file) => (

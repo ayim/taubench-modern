@@ -172,6 +172,40 @@ class StreamManager {
     }
   }
 
+  /**
+   * Stop the stream for a given thread
+   * - Closes the WebSocket connection
+   * - Saves only completed messages (discards incomplete ones)
+   * - Updates the query cache with completed messages
+   * 
+   * Note: This mirrors server behavior - when a WebSocket disconnects,
+   * the server cancels tasks and does NOT persist uncommitted messages.
+   * Only messages that were explicitly committed before disconnect are saved.
+   */
+  public stopStream(threadId: string): void {
+    const ws = this.wsMap[threadId];
+    
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+
+    this.wsMap[threadId] = null;
+
+    const threadMessages = this.messagesMap[threadId] ?? [];
+    const completedMessages = threadMessages.filter(message => message.complete);
+    
+    if (completedMessages.length > 0) {
+      this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (messages: ThreadMessage[]) => {
+        return [...messages, ...completedMessages];
+      });
+    }
+
+    this.messagesMap[threadId] = [];
+    this.streamErrorMap[threadId] = undefined;
+    
+    this.emitMessage(threadId);
+  }
+
   public getCurrentMessages(threadId: string) {
     return this.messagesMap[threadId];
   }
@@ -308,6 +342,10 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     await streamManager.sendClientToolResult({ threadId, tool, result, error, sparAPIClient, queryClient, agentId });
   };
 
+  const stopStream = () => {
+    streamManager.stopStream(threadId);
+  };
+
   useEffect(() => {
     const messageListener: MessageListener = (messages, err) => {
       if (messages && messages[messages.length - 1].complete) {
@@ -345,5 +383,6 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     streamError,
     sendClientToolMessage,
     isStreaming,
+    stopStream,
   };
 };
