@@ -17,8 +17,8 @@ from agent_platform.core.prompts import Prompt
 from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.prompts.messages import PromptUserMessage
 from agent_platform.core.responses.content.text import ResponseTextContent
-from agent_platform.core.thread import ThreadTextContent
 from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.attachment import ThreadAttachmentContent
 from agent_platform.core.thread.thread import Thread
 from agent_platform.core.work_items import (
     WorkItem,
@@ -206,9 +206,15 @@ async def run_agent(item: WorkItem) -> bool:
         file_upload_message = ThreadMessage(
             role="user",
             content=[
-                ThreadTextContent(
-                    text=f"Uploaded [{file.file_ref}]({file.file_url})",
-                )
+                # This needs to be aligned with how we expect our clients
+                # to handle files (which is to upload and then insert a ThreadAttachmentContent
+                # into the thread with the appropriate metadata from the file)
+                # See workroom/spar-ui/src/queries/threads.ts as reference
+                ThreadAttachmentContent(
+                    name=file.file_ref,
+                    mime_type=file.mime_type,
+                    uri=f"agent-server-file://{file.file_id}",
+                ),
             ],
         )
 

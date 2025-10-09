@@ -10,7 +10,7 @@ import pytest
 from agent_platform.core.responses import ResponseMessage
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
-from agent_platform.core.thread.content import ThreadTextContent
+from agent_platform.core.thread.content import ThreadAttachmentContent, ThreadTextContent
 from agent_platform.core.thread.messages import ThreadAgentMessage, ThreadUserMessage
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
 from agent_platform.server.storage.option import StorageService
@@ -748,24 +748,19 @@ class TestBackgroundWorker:
             assert len(stream_payloads) == 1
             payload = stream_payloads[0]
 
-            # Check that file upload messages were added to the payload messages
-            file_upload_messages = [
-                msg
+            # Check that file upload attachments were added to the payload messages
+            attachment_contents = [
+                content
                 for msg in payload.messages
-                if any(
-                    "Uploaded" in str(content)
-                    and ("document.txt" in str(content) or "data.csv" in str(content))
-                    for content in msg.content
-                )
+                for content in msg.content
+                if isinstance(content, ThreadAttachmentContent)
             ]
-            assert len(file_upload_messages) >= 2  # Two files should have upload messages
+            file_refs = {content.name for content in attachment_contents}
+            assert {"document.txt", "data.csv"}.issubset(file_refs)
 
-            # Check that both files are referenced in the messages
-            all_message_text = " ".join(
-                [str(content) for msg in payload.messages for content in msg.content]
-            )
-            assert "document.txt" in all_message_text
-            assert "data.csv" in all_message_text
+            for content in attachment_contents:
+                assert content.uri is not None
+                assert content.uri.startswith("agent-server-file://")
 
     @pytest.mark.asyncio
     async def test_work_item_thread_id_updated_after_creation(
