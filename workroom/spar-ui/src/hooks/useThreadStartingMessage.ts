@@ -3,16 +3,30 @@ import { useAgentQuery } from '../queries/agents';
 
 /**
  * Hook to get the starting message for a new thread
- * If the agent has a conversation starter, it will be used
- * Otherwise, the default starting message will be used
+ * If the agent has a conversation starter, it will be used as a user message
+ * Otherwise, the default starting message will be used as an agent message
  */
 export const useThreadStartingMessage = ({ agentId }: { agentId: string }) => {
   const { data: agent } = useAgentQuery({ agentId });
 
   if (!agent) {
-    return NEW_CHAT_STARTING_MSG;
+    return {
+      message: NEW_CHAT_STARTING_MSG,
+      isUserMessage: false,
+    };
   }
 
-  const startingMessage = agent.extra?.conversation_starter as string | undefined;
-  return startingMessage ?? NEW_CHAT_STARTING_MSG;
+  const conversationStarter = agent.extra?.conversation_starter as string | undefined;
+  
+  if (conversationStarter) {
+    return {
+      message: conversationStarter,
+      isUserMessage: true,
+    };
+  }
+  
+  return {
+    message: NEW_CHAT_STARTING_MSG,
+    isUserMessage: false,
+  };
 };

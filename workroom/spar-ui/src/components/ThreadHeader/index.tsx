@@ -40,7 +40,7 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
   const { triggerProps, triggerRef } = useSidebarMenu('threads-list');
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const { onNewThread, isCreatingThread } = useCreateThread();
-  const startingMessage = useThreadStartingMessage({ agentId });
+  const {message: startingMessage, isUserMessage} = useThreadStartingMessage({ agentId });
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
@@ -78,7 +78,7 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
             disabled={isCreatingThread}
             round
             aria-label="New Chat"
-            onClick={() => onNewThread({ startingMessage })}
+            onClick={() => onNewThread({ startingMessage, isUserMessage })}
           />
         </Tooltip>
         {children}

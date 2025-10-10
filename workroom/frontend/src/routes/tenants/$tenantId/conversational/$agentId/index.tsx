@@ -48,7 +48,6 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
      */
     const searchParams = new URLSearchParams(location.search);
     const initialThreadMessage = searchParams.get('initial_thread_message')?.trim();
-    const conversationStarter = agent.extra?.conversation_starter as string | undefined;
 
     if (initialThreadMessage) {
       const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
@@ -73,6 +72,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
         queryClient,
         threadId: newThread.data.thread_id,
         sparAPIClient: createSparAPIClient(tenantId, undefined as unknown as TenantMeta, agentAPIClient, router),
+        skipInitialUserMessage: true,
       });
 
       throw redirect({
@@ -81,9 +81,6 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
           tenantId,
           agentId,
           threadId: newThread.data.thread_id,
-        },
-        search: {
-          initial_thread_message: initialThreadMessage,
         },
       });
     }
@@ -140,7 +137,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
         messages: [
           {
             role: 'agent',
-            content: [{ kind: 'text', text: conversationStarter ?? NEW_CHAT_STARTING_MSG, complete: true }],
+            content: [{ kind: 'text', text: NEW_CHAT_STARTING_MSG, complete: true }],
             complete: true,
             commited: false,
           },

@@ -12,10 +12,11 @@ export const useCreateThread = () => {
   const { mutate: createThread, isPending: isCreatingThread } = useCreateThreadMutation({ agentId });
 
   const onNewThread = useCallback(
-    async ({ startingMessage }: { startingMessage: string }) => {
+    async ({ startingMessage, isUserMessage }: { startingMessage: string; isUserMessage: boolean }) => {
       const name = threads?.length === undefined ? 'New Chat' : `Chat ${(threads.length || 0) + 1}`;
+      
       createThread(
-        { name, startingMessage },
+        { name, startingMessage, isUserMessage },
         {
           onSuccess: (data) => {
             if (data?.thread_id) {

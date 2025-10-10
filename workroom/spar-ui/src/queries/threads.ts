@@ -9,6 +9,7 @@ import { useCallback } from 'react';
 
 import { getFileSize } from '../common/helpers';
 import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
+import { streamManager } from '../hooks/useMessageStream';
 
 /**
  * List Threads
@@ -86,26 +87,41 @@ export const useThreadMessagesQuery = createSparQuery(threadMessagesQueryOptions
  */
 export const useCreateThreadMutation = createSparMutation<
   { agentId: string },
-  { name: string; startingMessage: string }
+  { name: string; startingMessage: string; isUserMessage?: boolean }
 >()(({ agentId, sparAPIClient, queryClient }) => ({
-  mutationFn: async ({ name, startingMessage }) => {
+  mutationFn: async ({ name, startingMessage, isUserMessage = true }) => {
     const response = await sparAPIClient.queryAgentServer('post', '/api/v2/threads/', {
       body: {
         name,
         agent_id: agentId,
-        messages: [
-          {
-            role: 'agent',
-            content: [{ kind: 'text', text: startingMessage, complete: true }],
-            complete: true,
-            commited: false,
-          },
-        ],
+        ...(isUserMessage ? {} : {
+          messages: [
+            {
+              role: 'agent',
+              content: [{ kind: 'text', text: startingMessage, complete: true }],
+              complete: true,
+              commited: false,
+            },
+          ],
+        }),
       },
     });
-
     if (!response.success) {
       throw new Error(response.message || 'Failed to create thread');
+    }
+
+    if (!response.data.thread_id) {
+      throw new Error('Failed to create thread');
+    }
+
+    if (isUserMessage) {
+      streamManager.initiateStream({
+        content: [{ kind: 'text', text: startingMessage, complete: true }],
+        agentId,
+        queryClient,
+        threadId: response.data.thread_id,
+        sparAPIClient
+      });
     }
 
     return response.data;

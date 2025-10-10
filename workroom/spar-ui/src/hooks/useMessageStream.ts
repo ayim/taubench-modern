@@ -32,31 +32,46 @@ class StreamManager {
     content,
     threadId,
     agentId,
+    skipInitialUserMessage = false,
   }: {
     sparAPIClient: SparAPIClient;
     queryClient: QueryClient;
     content: ThreadContent[];
     threadId: string;
     agentId: string;
+    skipInitialUserMessage?: boolean;
   }) {
     this.streamErrorMap[threadId] = undefined;
     this.queryClient = queryClient;
 
     this.messagesMap[threadId] = [];
-    this.messagesMap[threadId].push({
-      message_id: uuidv4(),
-      role: 'user',
-      content,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      agent_metadata: {},
-      server_metadata: {},
-      commited: true,
-      complete: true,
-    });
-
+    if (!skipInitialUserMessage) {
+      this.messagesMap[threadId].push({
+        message_id: uuidv4(),
+        role: 'user',
+        content,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        agent_metadata: {},
+        server_metadata: {},
+        commited: true,
+        complete: true,
+      });
+    }
+    else {
+      this.messagesMap[threadId].push({
+          message_id: uuidv4(),
+          role: 'user',
+          content: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          agent_metadata: {},
+          server_metadata: {},
+          commited: false,
+          complete: true,
+      });
+    }
     this.emitMessage(threadId);
-
     const ws = await sparAPIClient.startWebsocketStream(agentId);
 
     /**

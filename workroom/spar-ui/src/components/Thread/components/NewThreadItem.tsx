@@ -26,12 +26,12 @@ const Container = styled.button`
 
 export const NewThreadItem: FC = () => {
   const { agentId } = useParams('/thread/$agentId');
-  const startingMessage = useThreadStartingMessage({ agentId });
+  const { message: startingMessage, isUserMessage } = useThreadStartingMessage({ agentId });
 
   const { onNewThread, isCreatingThread } = useCreateThread();
 
   return (
-    <Container disabled={isCreatingThread} onClick={() => onNewThread({ startingMessage })}>
+    <Container disabled={isCreatingThread} onClick={() => onNewThread({ startingMessage, isUserMessage })}>
       <IconPlus />
       New Chat
     </Container>
