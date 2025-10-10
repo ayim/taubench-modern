@@ -247,3 +247,37 @@ class TestWorkItemTools:
                 status,
                 WorkItemStatusUpdatedBy.AGENT,
             )
+
+    @pytest.mark.asyncio
+    async def test_work_item_update_status_accepts_string_input_success(
+        self, work_item_tools, mock_work_item, mock_storage
+    ):
+        """Tool path supplies strings; ensure coercion to enum works."""
+        result = await work_item_tools.work_item_update_status("COMPLETED")
+
+        assert result == {"result": "Work item status updated to 'COMPLETED'"}
+        assert mock_work_item.status == WorkItemStatus.COMPLETED
+        mock_storage.update_work_item_status.assert_called_with(
+            work_item_tools._user.user_id,
+            mock_work_item.work_item_id,
+            WorkItemStatus.COMPLETED,
+            WorkItemStatusUpdatedBy.AGENT,
+        )
+
+    @pytest.mark.asyncio
+    async def test_work_item_update_status_invalid_string_returns_error_and_skips_storage(
+        self, mock_work_item, mock_storage
+    ):
+        tools = WorkItemTools(
+            user=MagicMock(),
+            tid="test-thread-id",
+            work_item=mock_work_item,
+            storage=mock_storage,
+        )
+
+        # type: ignore is needed because we're intentionally not passing an enum for testing
+        result = await tools.work_item_update_status("NOT_A_REAL_STATUS")  # type: ignore
+
+        assert result["error_code"] == "invalid_status"
+        assert "Invalid status 'NOT_A_REAL_STATUS'" in result["error"]
+        mock_storage.update_work_item_status.assert_not_called()

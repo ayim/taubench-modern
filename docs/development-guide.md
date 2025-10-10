@@ -321,6 +321,7 @@ To create a preview deployment, add the `dev_deploy_aws` label to your Pull Requ
 ### Automatic Cleanup
 
 To keep costs down, preview deployments are automatically torn down in the following scenarios:
+
 - When you remove the `dev_deploy_aws` label from your PR
 - When you close or merge your PR
 

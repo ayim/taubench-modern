@@ -175,8 +175,18 @@ class WorkItemTools:
                 "error": "No work item associated with this thread",
             }
 
-        # Status is already validated by the type system
-        work_item_status = status
+        # Coerce string inputs (from tool runners) to the enum and validate
+        if isinstance(status, str):
+            try:
+                work_item_status = WorkItemStatus(status)
+            except ValueError:
+                allowed = ", ".join([s.value for s in WorkItemStatus])
+                return {
+                    "error_code": "invalid_status",
+                    "error": f"Invalid status '{status}'. Allowed: {allowed}",
+                }
+        else:
+            work_item_status = status
 
         try:
             # Update the work item status
