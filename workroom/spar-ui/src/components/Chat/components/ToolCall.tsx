@@ -14,6 +14,15 @@ type Props = {
   content: ThreadToolUsageContent;
 };
 
+const safeParseJson = (text: string | null | undefined) => {
+  if (typeof text !== 'string') return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
+
 const isActionServerToolCall = (content: ThreadToolUsageContent) => {
   // All existing tool calls made by action server have an action-external sub_type
   // With agent-server >= 2.1.6, action_server_run_id is also surfaced for action-servers (and in the future, by action-server as MCP)
@@ -33,41 +42,48 @@ export const ToolCall: FC<Props> = ({ content }) => {
   const { addSnackbar } = useSnackbar();
   const { mutateAsync, isPending } = useShowActionLogsMutation({});
 
+  const isError = content.status === 'failed';
+  const isRunning = ['streaming', 'pending', 'running'].includes(content.status);
+
+  const input = content.arguments_raw;
+  const output = isError ? (content.error ?? content.result) : content.result;
+
   const toolbar = useMemo(() => {
     return (
       <>
-        <Button
-          aria-label="Copy to clipboard"
-          variant="inverted"
-          size="small"
-          icon={inputCopied ? IconCheck2 : IconCopy}
-          onClick={onCopyInput(content.arguments_raw)}
-        >
-          Input
-        </Button>
-        {content.result && (
+        {input ? (
+          <Button
+            aria-label="Copy to clipboard"
+            variant="inverted"
+            size="small"
+            icon={inputCopied ? IconCheck2 : IconCopy}
+            onClick={onCopyInput(input)}
+          >
+            Input
+          </Button>
+        ) : null}
+        {output ? (
           <Button
             aria-label="Copy to clipboard"
             variant="inverted"
             size="small"
             icon={outputCopied ? IconCheck2 : IconCopy}
-            onClick={onCopyOutput(content.result)}
+            onClick={onCopyOutput(output)}
           >
             Output
           </Button>
-        )}
+        ) : null}
       </>
     );
-  }, [inputCopied, outputCopied]);
+  }, [input, output, inputCopied, outputCopied]);
 
   const result = useMemo(() => {
-    try {
-      const json = JSON.parse(content.result ?? '{}');
-      return JSON.stringify(json, null, 2);
-    } catch (e) {
-      return content.result ?? `{\n}`;
-    }
-  }, [content]);
+    const parsedInput = safeParseJson(input);
+    const parsedOutput = safeParseJson(output);
+    if (!parsedInput && !parsedOutput) return null;
+    if (!parsedOutput) return JSON.stringify({ Input: parsedInput }, null, 2);
+    return JSON.stringify({ Input: parsedInput, Output: parsedOutput }, null, 2);
+  }, [input, output]);
 
   const onShowLogs = async () => {
     await mutateAsync(
@@ -89,12 +105,8 @@ export const ToolCall: FC<Props> = ({ content }) => {
 
   return (
     <Fragment key={content.content_id}>
-      <Chat.Action
-        actionName={snakeCaseToTitleCase(content.name)}
-        running={['streaming', 'pending', 'running'].includes(content.status)}
-        error={content.status === 'failed'}
-      >
-        <Code value={result} toolbar={toolbar} lang="json" maxRows={10} />
+      <Chat.Action title={snakeCaseToTitleCase(content.name)} running={isRunning} error={isError}>
+        {result ? <Code value={result} toolbar={toolbar} lang="json" maxRows={10} /> : null}
         <Box display="flex" gap="$8">
           {showActionLogs && isActionServerToolCall(content) && (
             <Button

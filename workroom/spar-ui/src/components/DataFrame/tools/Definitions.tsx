@@ -21,10 +21,7 @@ export class DataFrameClientTools {
     switch (tool.name) {
       case SERVER_TOOLS_THAT_REQUIRE_CLIENT_ACTION.CREATE_FROM_FILE:
       case SERVER_TOOLS_THAT_REQUIRE_CLIENT_ACTION.CREATE_FROM_SQL:
-        if (tool.complete) {
-          return <DataFrameCallbackDataFrameCreation key={tool.content_id} tool={tool} />;
-        }
-        return null;
+        return <DataFrameCallbackDataFrameCreation key={`${tool.content_id}-callback`} tool={tool} />;
       default:
         return null;
     }

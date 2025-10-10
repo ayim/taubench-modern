@@ -40,10 +40,17 @@ const MessageActions = styled(Box)`
 `;
 
 const groupTitleMap = {
-  done: 'Completed tasks',
-  in_progress: 'Working on it',
-  failed: 'Failed tasks',
+  done: 'Completed actions',
+  in_progress: 'Taking actions',
+  failed: 'Failed actions',
 } as const;
+
+const TOOL_CALLS_TO_IGNORE: string[] = [
+  'quick_reply',
+  'consider_runbook_adherence',
+  'ready_to_reply_to_user',
+  'unable_to_satisfy_request',
+];
 
 const getGroupeStatus = ({ message }: { message: ThreadMessage }): keyof typeof groupTitleMap => {
   const messageStatus = message.complete ? 'done' : 'in_progress';
@@ -165,9 +172,13 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
           </MessageContainer>
         );
       case 'tool_call':
+        /**
+         * Skip internal tool calls that don't bring value to the user
+         */
+        if (TOOL_CALLS_TO_IGNORE.includes(content.name)) return null;
         return <ToolCall key={content.content_id} content={content} />;
       case 'attachment':
-        return <Attachment key={content.content_id} content={content} />;
+        return <Attachment key={content.content_id ?? content.name} content={content} />;
       default:
         return null;
     }
