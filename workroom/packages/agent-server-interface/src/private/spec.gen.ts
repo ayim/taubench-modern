@@ -9643,6 +9643,18 @@ export const spec = {
             ],
             title: 'Allow Llm Interpolation',
           },
+          tool_execution_mode: {
+            anyOf: [
+              {
+                type: 'string',
+                enum: ['replay', 'live'],
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Tool Execution Mode',
+          },
         },
         type: 'object',
         required: ['name', 'description', 'thread_id'],
@@ -10679,6 +10691,11 @@ export const spec = {
       },
       ExecutionState: {
         properties: {
+          execution_mode: {
+            type: 'string',
+            title: 'Execution Mode',
+            default: 'replay',
+          },
           status: {
             type: 'string',
             title: 'Status',

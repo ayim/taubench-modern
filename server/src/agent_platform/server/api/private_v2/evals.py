@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Self
+from typing import Any, Literal, Self
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
@@ -31,6 +31,7 @@ class CreateScenarioPayload:
     assert_all_consumed: bool | None = None
     allow_llm_arg_validation: bool | None = None
     allow_llm_interpolation: bool | None = None
+    tool_execution_mode: Literal["replay", "live"] | None = None
 
     @classmethod
     def to_scenario(cls, payload: Self, user_id: str, thread: Thread) -> Scenario:
@@ -55,6 +56,7 @@ class CreateScenarioPayload:
                 ("assert_all_consumed", payload.assert_all_consumed),
                 ("allow_llm_arg_validation", payload.allow_llm_arg_validation),
                 ("allow_llm_interpolation", payload.allow_llm_interpolation),
+                ("tool_execution_mode", payload.tool_execution_mode),
             )
             if value is not None
         }

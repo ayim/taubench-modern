@@ -1,13 +1,14 @@
 import { FC, useEffect } from "react";
 import z from "zod";
-import { Dialog, Box, Typography, Form, Input, Button, Progress } from "@sema4ai/components";
+import { Dialog, Box, Typography, Form, Input, Button, Progress, Checkbox } from "@sema4ai/components";
 import { IconChemicalBottle } from "@sema4ai/icons";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const createEvalFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
   description: z.string().min(1, 'Description is required').max(500, 'Description must be less than 500 characters'),
+  useLiveExecution: z.boolean().default(false),
 });
 
 export type CreateEvalFormData = z.infer<typeof createEvalFormSchema>;
@@ -31,15 +32,17 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
 }) => {
   const form = useForm<CreateEvalFormData>({
     resolver: zodResolver(createEvalFormSchema),
-    defaultValues: { 
-      name: initialValues?.name || '', 
-      description: initialValues?.description || '' 
+    defaultValues: {
+      name: initialValues?.name || '',
+      description: initialValues?.description || '',
+      useLiveExecution: initialValues?.useLiveExecution ?? false,
     },
     mode: 'onChange',
   });
 
   const {
     register,
+    control,
     formState: { errors, isValid },
     handleSubmit,
     reset,
@@ -49,18 +52,19 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     if (open && initialValues) {
       reset({
         name: initialValues.name || '',
-        description: initialValues.description || ''
+        description: initialValues.description || '',
+        useLiveExecution: initialValues.useLiveExecution ?? false,
       });
     }
   }, [open, initialValues, reset]);
 
   const handleFormSubmit = handleSubmit(async (data) => {
     await onSubmit(data);
-    reset();
+    reset({ name: '', description: '', useLiveExecution: false });
   });
 
   const handleClose = () => {
-    reset();
+    reset({ name: '', description: '', useLiveExecution: false });
     onClose();
   };
 
@@ -147,6 +151,19 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
               disabled={isLoading}
               error={errors.description?.message}
               {...register('description')} 
+            />
+            <Controller
+              name="useLiveExecution"
+              control={control}
+              render={({ field: { value, onChange } }) => (
+                <Checkbox
+                  label="Execute tools live during evaluation"
+                  description="When enabled, the evaluation will run real tool calls instead of replaying recorded outputs."
+                  checked={value}
+                  onChange={(event) => onChange(event.target.checked)}
+                  disabled={isLoading}
+                />
+              )}
             />
           </Form.Fieldset>
         </Form>

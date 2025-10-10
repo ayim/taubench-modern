@@ -3465,6 +3465,8 @@ export interface components {
       allow_llm_arg_validation?: boolean | null;
       /** Allow Llm Interpolation */
       allow_llm_interpolation?: boolean | null;
+      /** Tool Execution Mode */
+      tool_execution_mode?: ('replay' | 'live') | null;
     };
     /** CreateScenarioRunPayload */
     CreateScenarioRunPayload: {
@@ -3888,6 +3890,11 @@ export interface components {
     };
     /** ExecutionState */
     ExecutionState: {
+      /**
+       * Execution Mode
+       * @default replay
+       */
+      execution_mode: string;
       /**
        * Status
        * @default STARTED

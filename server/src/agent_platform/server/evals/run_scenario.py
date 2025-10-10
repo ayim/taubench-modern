@@ -2,11 +2,13 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from tempfile import SpooledTemporaryFile
 from textwrap import dedent
-from typing import Any, cast
+from typing import Any, BinaryIO, cast
 from uuid import uuid4
 
-from fastapi import Request
+from fastapi import Request, UploadFile
+from starlette.datastructures import Headers
 
 from agent_platform.architectures.default.thread_conversion import (
     thread_messages_to_prompt_messages,
@@ -18,7 +20,12 @@ from agent_platform.core.evals.agent_client import (
     ToolExecutionError,
     UnexpectedToolError,
 )
-from agent_platform.core.evals.replay_executor import ReplayDriftError, ReplayToolExecutor
+from agent_platform.core.evals.live_executor import LiveToolExecutor
+from agent_platform.core.evals.replay_executor import (
+    DriftEvent,
+    ReplayDriftError,
+    ReplayToolExecutor,
+)
 from agent_platform.core.evals.session import Session
 from agent_platform.core.evals.types import (
     ActionCallingResult,
@@ -30,6 +37,7 @@ from agent_platform.core.evals.types import (
     Trial,
     TrialStatus,
 )
+from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.prompts import Prompt
 from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.prompts.messages import PromptUserMessage
@@ -44,6 +52,7 @@ from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
+from agent_platform.server.file_manager import FileManagerService
 from agent_platform.server.kernel.kernel import AgentServerKernel
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
 from agent_platform.server.storage.option import StorageService
@@ -121,6 +130,15 @@ def _get_termination_reason(e: Exception) -> str:
     return "UNEXPECTED_ERROR"
 
 
+def _collect_tool_executor_drifts(
+    tool_executor: LiveToolExecutor | ReplayToolExecutor,
+) -> list[DriftEvent]:
+    if hasattr(tool_executor, "drifts"):
+        return tool_executor.drifts
+
+    return []
+
+
 @dataclass(frozen=True)
 class ToolsBundle:
     action_tools: Sequence[ToolDefinition]
@@ -135,6 +153,95 @@ class ToolsBundle:
 
     def has_tool(self, tool: ToolDefinition) -> bool:
         return any(t.name == tool.name and t.input_schema == tool.input_schema for t in self.all)
+
+
+async def _copy_thread_files_to_run_thread(
+    storage: StorageDependency,
+    source_thread_id: str | None,
+    source_user_id: str,
+    destination_thread: Thread,
+    destination_user_id: str,
+) -> None:
+    """Copy files from the source thread to the destination thread."""
+
+    if not source_thread_id:
+        logger.info("Scenario has no source thread; skipping file copy")
+        return
+
+    try:
+        source_files = await storage.get_thread_files(source_thread_id, source_user_id)
+    except Exception as exc:
+        logger.warning(
+            "Unable to list files for scenario thread %s: %s",
+            source_thread_id,
+            exc,
+        )
+        return
+
+    if not source_files:
+        logger.info("No files to copy for scenario thread %s", source_thread_id)
+        return
+
+    file_manager = FileManagerService.get_instance(storage)
+
+    uploads: list[tuple[UploadFile, BinaryIO]] = []
+    try:
+        for uploaded_file in source_files:
+            try:
+                file_bytes = await file_manager.read_file_contents(
+                    uploaded_file.file_id,
+                    source_user_id,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Failed to read file %s from thread %s: %s",
+                    uploaded_file.file_id,
+                    source_thread_id,
+                    exc,
+                )
+                continue
+
+            temp_file = SpooledTemporaryFile()
+            temp_file.write(file_bytes)
+            temp_file.seek(0)
+
+            file = cast(BinaryIO, temp_file)
+            upload = UploadFile(
+                filename=uploaded_file.file_ref,
+                file=file,
+                headers=Headers(
+                    {
+                        "content-type": uploaded_file.mime_type or "application/octet-stream",
+                    }
+                ),
+            )
+            uploads.append((upload, file))
+
+        if not uploads:
+            logger.info(
+                "No readable files found when copying scenario attachments for thread %s",
+                source_thread_id,
+            )
+            return
+
+        payloads = [UploadFilePayload(file=upload) for upload, _ in uploads]
+        await file_manager.upload(payloads, destination_thread, destination_user_id)
+        logger.info(
+            "Copied %s scenario thread files from %s to %s",
+            len(uploads),
+            source_thread_id,
+            destination_thread.thread_id,
+        )
+    finally:
+        for upload, temp_file in uploads:
+            try:
+                await upload.close()
+            except Exception:
+                logger.debug("Error closing upload file during cleanup", exc_info=True)
+            try:
+                temp_file.close()
+            except Exception:
+                logger.debug("Error closing temporary file during cleanup", exc_info=True)
 
 
 async def _gather_agent_tools(
@@ -190,7 +297,25 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
     if agent is None:
         raise RuntimeError(f"Cannot find agent {scenario.agent_id}")
 
-    state = ExecutionState()
+    drift_policy_overrides: dict[str, Any] | None = None
+    execution_mode = "replay"
+    if isinstance(scenario.metadata, dict):
+        raw_policy = scenario.metadata.get("drift_policy")
+        if isinstance(raw_policy, dict):
+            execution_mode = raw_policy.get("tool_execution_mode", execution_mode)
+            filtered_policy = {
+                key: raw_policy[key]
+                for key in (
+                    "assert_all_consumed",
+                    "allow_llm_arg_validation",
+                    "allow_llm_interpolation",
+                )
+                if key in raw_policy
+            }
+            if filtered_policy:
+                drift_policy_overrides = filtered_policy
+
+    state = ExecutionState(execution_mode)
 
     runbook_updated_at = scenario_run.configuration.get("runbook_updated_at", None)
     architecture_version = scenario_run.configuration.get("architecture_version", None)
@@ -266,6 +391,19 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
 
     await storage.set_trial_thread(trial_id=task.trial_id, thread_id=new_thread.thread_id)
 
+    # files are scoped by thread
+    # in live mode we may need to access files
+    # where tool calls are not stored
+    # so we need to copy over the file
+    if execution_mode == "live":
+        await _copy_thread_files_to_run_thread(
+            storage=storage,
+            source_thread_id=scenario.thread_id,
+            source_user_id=scenario.user_id,
+            destination_thread=new_thread,
+            destination_user_id=system_user.user_id,
+        )
+
     current_user_message_index = len(initial_agent_messages)
     current_turn = 1
     drifts = []
@@ -292,46 +430,41 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 scenario=scenario, start_index=len(user_messages_from_scenario) + offset
             )
 
-            drift_policy_overrides: dict[str, Any] | None = None
-            scenario_metadata = getattr(scenario, "metadata", {}) or {}
-            if isinstance(scenario_metadata, dict):
-                raw_policy = scenario_metadata.get("drift_policy")
-                if isinstance(raw_policy, dict):
-                    filtered_policy = {
-                        key: raw_policy[key]
-                        for key in (
-                            "assert_all_consumed",
-                            "allow_llm_arg_validation",
-                            "allow_llm_interpolation",
-                        )
-                        if key in raw_policy
-                    }
-                    if filtered_policy:
-                        drift_policy_overrides = filtered_policy
+            tool_executor = None
 
-            tool_executor = ReplayToolExecutor.from_conversation(
-                agent_messages_from_scenario,
-                policy_overrides=drift_policy_overrides,
-            )
-            missing_tools_in_agent = [
-                tool for tool in tool_executor.tools if not agent_tools.has_tool(tool)
-            ]
-
-            if len(missing_tools_in_agent) > 0:
-                message = (
-                    f"The following tools used in the conversation "
-                    f"are missing from agent or have different input schema "
-                    f"in the selected agent: "
-                    f"{', '.join([tool.name for tool in missing_tools_in_agent])}"
+            if execution_mode == "live":
+                tool_executor = LiveToolExecutor(list(agent_tools.all))
+            elif execution_mode == "replay":
+                tool_executor = ReplayToolExecutor.from_conversation(
+                    agent_messages_from_scenario,
+                    policy_overrides=drift_policy_overrides,
                 )
-                logger.info(f"Agent tools don't match the conversation: {message}")
-                state.termination = "AGENT_TOOL_MISMATCH"
-                state.status = "ERROR"
-                state.error_message = message
-                state.drift_events = drifts + tool_executor.drifts
-                state.finished_at = datetime.now()
+                missing_tools_in_agent = [
+                    tool for tool in tool_executor.tools if not agent_tools.has_tool(tool)
+                ]
 
-                return False
+                if len(missing_tools_in_agent) > 0:
+                    message = (
+                        f"The following tools used in the conversation "
+                        f"are missing from agent or have different input schema "
+                        f"in the selected agent: "
+                        f"{', '.join([tool.name for tool in missing_tools_in_agent])}"
+                    )
+                    logger.info(f"Agent tools don't match the conversation: {message}")
+                    state.termination = "AGENT_TOOL_MISMATCH"
+                    state.status = "ERROR"
+                    state.error_message = message
+                    additional_drifts = (
+                        _collect_tool_executor_drifts(tool_executor)
+                        if tool_executor is not None
+                        else []
+                    )
+                    state.drift_events = [*drifts, *additional_drifts]
+                    state.finished_at = datetime.now()
+
+                    return False
+            else:
+                raise RuntimeError(f"Unknown execution mode {execution_mode}")
 
             for user_message in user_messages_from_scenario:
                 await storage.add_message_to_thread(
@@ -376,14 +509,20 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 state.termination = _get_termination_reason(e)
                 state.status = "ERROR"
                 state.error_message = str(e)
-                state.drift_events = drifts + tool_executor.drifts
+                additional_drifts = (
+                    _collect_tool_executor_drifts(tool_executor)
+                    if tool_executor is not None
+                    else []
+                )
+                state.drift_events = [*drifts, *additional_drifts]
                 state.finished_at = datetime.now()
 
                 return False
 
             current_turn += 1
             current_user_message_index = next_user_message_index
-            drifts.extend(tool_executor.drifts)
+            if tool_executor is not None:
+                drifts.extend(_collect_tool_executor_drifts(tool_executor))
     except Exception as e:
         logger.error(f"Unexpected error when processing evals: {e}.")
         state.termination = _get_termination_reason(e)

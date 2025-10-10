@@ -185,6 +185,7 @@ export const useEvalSidebarData = ({
         name: data.name,
         description: data.description,
         thread_id: threadId,
+        tool_execution_mode: data.useLiveExecution ? 'live' : undefined,
       },
     });
   };

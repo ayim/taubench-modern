@@ -9678,6 +9678,18 @@
               }
             ],
             "title": "Allow Llm Interpolation"
+          },
+          "tool_execution_mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["replay", "live"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Execution Mode"
           }
         },
         "type": "object",
@@ -10705,6 +10717,11 @@
       },
       "ExecutionState": {
         "properties": {
+          "execution_mode": {
+            "type": "string",
+            "title": "Execution Mode",
+            "default": "replay"
+          },
           "status": {
             "type": "string",
             "title": "Status",

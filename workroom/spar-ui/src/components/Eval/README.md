@@ -67,5 +67,6 @@ function MyComponent() {
 interface CreateEvalFormData {
   name: string;        // Required, max 100 chars
   description: string; // Required, max 500 chars
+  useLiveExecution: boolean; // When true, execute real tools during evaluation
 }
 ```

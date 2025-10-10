@@ -182,6 +182,7 @@ EvaluationResult = ResponseAccuracyResult | FlowAdherenceResult | ActionCallingR
 
 @dataclass
 class ExecutionState:
+    execution_mode: str = "replay"
     status: str = "STARTED"
     termination: str | None = None
     drift_events: list[DriftEvent] = field(default_factory=list)
@@ -192,6 +193,7 @@ class ExecutionState:
 
     def model_dump(self) -> dict:
         return {
+            "execution_mode": self.execution_mode,
             "status": self.status,
             "termination": self.termination,
             "drift_events": [event.model_dump() for event in self.drift_events],
