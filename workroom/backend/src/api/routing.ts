@@ -55,14 +55,6 @@ function getRouteMap(): {
       SIGN_WITH_TENANT,
       agentReadPermissions,
     ],
-    'post /api/v2/evals/scenarios': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
-    'post /api/v2/evals/scenarios/{scenario_id}/runs': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
-    'post /api/v2/evals/scenarios/suggest': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
-    'delete /api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}': [
-      ALLOWED,
-      SIGN_WITH_TENANT,
-      agentReadPermissions,
-    ],
     'post /api/v2/package/deploy/agent': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
 
     // Allowed routes with user-level signing
@@ -111,7 +103,7 @@ function getRouteMap(): {
     'get /api/v2/config/': [ALLOWED, SIGN_WITH_USER, deploymentMonitoringReadPermissions],
     'post /api/v2/config/': [ALLOWED, SIGN_WITH_USER, deploymentMonitoringReadPermissions],
 
-    // @TODO: New endpoints, needs perms - no examples in ACE yet
+    // @TODO: New endpoints, needs perms - needs PRODUCT decision
     'delete /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'delete /api/v2/platforms/{platform_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/capabilities/platforms': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
@@ -186,6 +178,14 @@ function getRouteMap(): {
     'get /api/v2/threads/{tid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/threads/{tid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/semantic-data-models/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/evals/scenarios': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/evals/scenarios/{scenario_id}/runs': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/evals/scenarios/suggest': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'delete /api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}': [
+      ALLOWED,
+      SIGN_WITH_USER,
+      agentReadPermissions,
+    ],
 
     // #region Disallowed Routes
     'get /api/v2/health': [DISALLOWED],
