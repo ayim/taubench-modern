@@ -308,6 +308,24 @@ make run-server-exe
 make check-pr
 ```
 
+## Shareable PR Deployments
+
+![dev_deploy_aws](./dev-deploy-aws.png)
+
+This repository supports creating shareable preview deployments directly from your Pull Requests, making it easy to share your work with team members or stakeholders for testing and review.
+
+### Creating a Deployment
+
+To create a preview deployment, add the `dev_deploy_aws` label to your Pull Request. This will trigger the deployment process and post a comment to your PR with a link to the preview.
+
+### Automatic Cleanup
+
+To keep costs down, preview deployments are automatically torn down in the following scenarios:
+- When you remove the `dev_deploy_aws` label from your PR
+- When you close or merge your PR
+
+This ensures you only pay for active deployments that are being actively used for review.
+
 ## CI/CD Pipelines
 
 The project uses GitHub Actions for fully automated CI/CD. The main workflows are:
