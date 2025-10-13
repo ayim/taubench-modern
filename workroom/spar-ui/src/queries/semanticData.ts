@@ -12,10 +12,17 @@ export const SemanticModel = z.object({
     z.object({
       name: z.string(),
       base_table: z.object({
-        data_connection_id: z.string(),
-        database: z.string().nullable(),
-        schema: z.string().nullable(),
+        data_connection_id: z.string().optional(),
+        database: z.string().nullable().optional(),
+        schema: z.string().nullable().optional(),
         table: z.string(),
+        file_reference: z
+          .object({
+            thread_id: z.string(),
+            file_ref: z.string(),
+            sheet_name: z.string().nullable().optional(),
+          })
+          .optional(),
       }),
       description: z.string().nullable().optional(),
       dimensions: z.array(
@@ -95,20 +102,36 @@ export const useSemanticModelQuery = createSparQuery(semanticModelQueryOptions);
  */
 export const useCreateSemanticDataMutation = createSparMutation<
   object,
-  DataConnectionFormSchema & { agentId: string }
+  DataConnectionFormSchema & { agentId: string; threadId: string }
 >()(({ sparAPIClient, queryClient }) => ({
   mutationFn: async (payload) => {
+    const tableData = payload.dataConnectionId
+      ? {
+          data_connections_info: [
+            {
+              data_connection_id: payload.dataConnectionId,
+              tables_info: payload.dataSelection,
+            },
+          ],
+          files_info: [],
+        }
+      : {
+          data_connections_info: [],
+          files_info: [
+            {
+              thread_id: payload.threadId,
+              file_ref: 'selected-services-june-2025-quarter.csv',
+              tables_info: payload.dataSelection,
+            },
+          ],
+        };
+
     const generateResponse = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/generate', {
       body: {
         name: 'Semantic Data Model',
         description: payload.description || '',
-        data_connections_info: [
-          {
-            data_connection_id: payload.dataConnectionId,
-            tables_info: payload.dataSelection,
-          },
-        ],
-        files_info: [],
+        agent_id: payload.agentId,
+        ...tableData,
       },
     });
 

@@ -1,28 +1,47 @@
 import { Box, Button, Dialog, Link, Typography } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
+import { useContext, useEffect } from 'react';
 
-import { Link as RouterLink } from '../../../../common/link';
-import { EXTERNAL_LINKS } from '../../../../lib/constants';
-import { useDataConnectionInspectQuery, useDataConnectionsQuery } from '../../../../queries/dataConnections';
-import { SelectControlled } from '../../../../common/form/SelectControlled';
-import { ConfigurationStep, ConfigurationStepView, DataConnectionFormSchema } from './form';
-import { DataConnectionIcon } from '../../../DataConnection/components/DataConnectionIcon';
+import { Link as RouterLink } from '../../../../../../common/link';
+import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
+import {
+  useDataConnectionDatabaseInspectMutation,
+  useDataConnectionsQuery,
+} from '../../../../../../queries/dataConnections';
+import { SelectControlled } from '../../../../../../common/form/SelectControlled';
+import {
+  ConfigurationStep,
+  ConfigurationStepView,
+  DataConnectionFormContext,
+  DataConnectionFormSchema,
+} from '../../form';
+import { DataConnectionIcon } from '../../../../../DataConnection/components/DataConnectionIcon';
 
-export const DataConnection: ConfigurationStepView = ({ onClose, setActiveStep }) => {
+export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
+  const { inspectedDataTables, setInspectedDataTables } = useContext(DataConnectionFormContext);
   const { data: dataConnections = [] } = useDataConnectionsQuery({});
 
   const { watch } = useFormContext<DataConnectionFormSchema>();
   const dataConnectionId = watch('dataConnectionId');
 
   const {
-    data: insectData,
+    mutateAsync: inspectDataConnection,
     error: errorInspectingDataConnection,
-    isFetching: isLoadingInspectingDataConnection,
-  } = useDataConnectionInspectQuery({ dataConnectionId }, { enabled: !!dataConnectionId, retry: false });
+    isPending: isLoadingInspectingDataConnection,
+  } = useDataConnectionDatabaseInspectMutation({});
 
-  const onContinue = () => {
-    setActiveStep(ConfigurationStep.DataSelection);
-  };
+  useEffect(() => {
+    const inspect = async () => {
+      if (dataConnectionId) {
+        const result = await inspectDataConnection({ dataConnectionId });
+
+        if (result) {
+          setInspectedDataTables(result);
+        }
+      }
+    };
+    inspect();
+  }, [dataConnectionId]);
 
   const errorMessage = errorInspectingDataConnection ? errorInspectingDataConnection.message : undefined;
 
@@ -69,9 +88,9 @@ export const DataConnection: ConfigurationStepView = ({ onClose, setActiveStep }
 
       <Dialog.Actions>
         <Button
-          disabled={!dataConnectionId || !insectData}
+          onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
+          disabled={!dataConnectionId || inspectedDataTables.length === 0}
           loading={isLoadingInspectingDataConnection}
-          onClick={onContinue}
           round
         >
           Continue

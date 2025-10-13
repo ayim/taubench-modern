@@ -1,17 +1,17 @@
+import { useContext } from 'react';
 import { Box, Button, Dialog, Link, Typography } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 
 import { EXTERNAL_LINKS } from '../../../../lib/constants';
 import { InputControlled } from '../../../../common/form/InputControlled';
-import { ConfigurationStepView, DataConnectionFormSchema } from './form';
+import { ConfigurationStepView, DataConnectionFormContext, DataConnectionFormSchema } from './form';
 import { DataSelector } from './DataSelector';
-import { useDataConnectionInspectQuery } from '../../../../queries/dataConnections';
 
 export const DataSelection: ConfigurationStepView = ({ onClose }) => {
+  const { inspectedDataTables } = useContext(DataConnectionFormContext);
   const { watch } = useFormContext<DataConnectionFormSchema>();
 
-  const { dataConnectionId, dataSelection } = watch();
-  const { data: tables = [] } = useDataConnectionInspectQuery({ dataConnectionId });
+  const { dataSelection } = watch();
 
   return (
     <>
@@ -37,7 +37,7 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
           />
 
           <Typography my="$16">Select data</Typography>
-          <DataSelector data={tables} />
+          <DataSelector data={inspectedDataTables} />
         </Box>
       </Dialog.Content>
 

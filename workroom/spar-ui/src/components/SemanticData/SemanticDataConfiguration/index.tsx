@@ -1,5 +1,5 @@
-import { FC, useEffect, useState } from 'react';
-import { Dialog, Form, Steps, useSnackbar } from '@sema4ai/components';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { Box, Dialog, Form, Progress, Steps, Typography, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -9,7 +9,12 @@ import {
   useSemanticModelQuery,
   useUpdateSemanticDataModelMutation,
 } from '../../../queries/semanticData';
-import { ConfigurationStep, DataConnectionFormSchema } from './components/form';
+import {
+  ConfigurationStep,
+  DataConnectionFormContext,
+  DataConnectionFormSchema,
+  InspectedTableInfo,
+} from './components/form';
 import { DataConnection } from './components/DataConnection';
 import { DataSelection } from './components/DataSelection';
 import { ModelEdition } from './components/ModelEdition';
@@ -20,9 +25,10 @@ type Props = {
 };
 
 export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
-  const { agentId } = useParams('/thread/$agentId');
+  const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const [activeStep, setActiveStep] = useState<ConfigurationStep>(ConfigurationStep.DataConnection);
   const { addSnackbar } = useSnackbar();
+  const [inspectedDataTables, setInspectedDataTables] = useState<InspectedTableInfo[]>([]);
 
   const { data: semanticModel } = useSemanticModelQuery({ modelId: modelId || '' }, { enabled: !!modelId });
 
@@ -65,6 +71,8 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
     }
   }, [semanticModel]);
 
+  const formContextValue = useMemo(() => ({ inspectedDataTables, setInspectedDataTables }), [inspectedDataTables]);
+
   const onSubmit = formMethods.handleSubmit(async (values) => {
     if (modelId) {
       updateSemanticData(
@@ -81,7 +89,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
       );
     } else {
       createSemanticData(
-        { ...values, agentId },
+        { ...values, agentId, threadId },
         {
           onSuccess: () => {
             addSnackbar({
@@ -98,34 +106,47 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
     }
   });
 
-  const step1Status = formMethods.watch('dataConnectionId') ? 'completed' : 'incomplete';
+  const step1Status = inspectedDataTables.length > 0 ? 'completed' : 'incomplete';
   const step2Status = formMethods.watch('dataSelection')?.length > 0 ? 'completed' : 'incomplete';
-  const step3Status = modelId ? 'completed' : 'incomplete';
+  const step3Status = modelId || isCreatePending ? 'completed' : 'incomplete';
 
   return (
     <Dialog size="page" onClose={onClose} open>
       <Form busy={isPending} onSubmit={onSubmit}>
         <FormProvider {...formMethods}>
-          <Dialog.Bar>
-            <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
-              <Steps.Step status={step1Status}>Connection</Steps.Step>
-              <Steps.Step status={step2Status} disabled={step1Status !== 'completed'}>
-                Data Selection
-              </Steps.Step>
-              <Steps.Step status={step3Status} disabled={step2Status !== 'completed'}>
-                Data Model
-              </Steps.Step>
-            </Steps>
-          </Dialog.Bar>
-          {activeStep === ConfigurationStep.DataConnection && (
-            <DataConnection onClose={onClose} setActiveStep={setActiveStep} />
-          )}
-          {activeStep === ConfigurationStep.DataSelection && (
-            <DataSelection onClose={onClose} setActiveStep={setActiveStep} />
-          )}
-          {activeStep === ConfigurationStep.ModelEdition && (
-            <ModelEdition onClose={onClose} setActiveStep={setActiveStep} />
-          )}
+          <DataConnectionFormContext.Provider value={formContextValue}>
+            <Dialog.Bar>
+              <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
+                <Steps.Step status={step1Status}>Connection</Steps.Step>
+                <Steps.Step status={step2Status} disabled={step1Status !== 'completed'}>
+                  Data Selection
+                </Steps.Step>
+                <Steps.Step status={step3Status} disabled={step2Status !== 'completed'}>
+                  Data Model
+                </Steps.Step>
+              </Steps>
+            </Dialog.Bar>
+            {isCreatePending ? (
+              <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100%">
+                <Typography variant="body-large" color="content.subtle">
+                  Creating Semantic Data Model...
+                </Typography>
+                <Progress />
+              </Box>
+            ) : (
+              <>
+                {activeStep === ConfigurationStep.DataConnection && (
+                  <DataConnection onClose={onClose} setActiveStep={setActiveStep} />
+                )}
+                {activeStep === ConfigurationStep.DataSelection && (
+                  <DataSelection onClose={onClose} setActiveStep={setActiveStep} />
+                )}
+                {activeStep === ConfigurationStep.ModelEdition && (
+                  <ModelEdition onClose={onClose} setActiveStep={setActiveStep} />
+                )}
+              </>
+            )}
+          </DataConnectionFormContext.Provider>
         </FormProvider>
       </Form>
     </Dialog>

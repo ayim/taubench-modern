@@ -119,15 +119,11 @@ export const useDeleteDataConnectionMutation = createSparMutation<
 }));
 
 /**
- * Inspect a Data Connection data model
+ * Inspect a database type data Connection data model
  */
-
-export const dataConnectionInspectQueryKey = (id: string) => ['dataConnectionInspect', id];
-
-export const dataConnectionInspectQueryOptions = createSparQueryOptions<{ dataConnectionId: string }>()(
-  ({ sparAPIClient, dataConnectionId }) => ({
-    queryKey: dataConnectionInspectQueryKey(dataConnectionId),
-    queryFn: async () => {
+export const useDataConnectionDatabaseInspectMutation = createSparMutation<object, { dataConnectionId: string }>()(
+  ({ sparAPIClient }) => ({
+    mutationFn: async ({ dataConnectionId }) => {
       const response = await sparAPIClient.queryAgentServer(
         'post',
         '/api/v2/data-connections/{connection_id}/inspect',
@@ -150,4 +146,30 @@ export const dataConnectionInspectQueryOptions = createSparQueryOptions<{ dataCo
   }),
 );
 
-export const useDataConnectionInspectQuery = createSparQuery(dataConnectionInspectQueryOptions);
+export const useDataConnectionFileInspectMutation = createSparMutation<
+  object,
+  { fileName: string; fileContent: Blob }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async ({ fileName, fileContent }) => {
+    const response = await sparAPIClient.queryAgentServer(
+      'post',
+      '/api/v2/data-connections/inspect-file-as-data-connection',
+      {
+        headers: {
+          'X-File-Name': fileName,
+          'Content-Type': 'application/octet-stream',
+        },
+        body: fileContent as never, // TODO: Remove type casting once the agent-server-interface is updated
+        bodySerializer(body) {
+          return body as unknown as Blob;
+        },
+      },
+    );
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to delete data connection');
+    }
+
+    return response.data;
+  },
+}));
