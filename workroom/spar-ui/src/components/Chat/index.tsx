@@ -9,8 +9,8 @@ import {
   FileItem,
 } from '@sema4ai/components';
 import { IconPaperclip } from '@sema4ai/icons';
-import { styled } from '@sema4ai/theme';
 import { useForm } from 'react-hook-form';
+import { styled } from '@sema4ai/theme';
 import { useDropzone } from 'react-dropzone';
 
 import { getFileTypeIcon } from '../../common/helpers';
@@ -48,21 +48,32 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
   const { currentMessageIndex } = useThreadSearchStore();
   const { data: messages = [], ...threadQueryState } = useThreadMessagesQuery({ threadId });
   const { data: oAuthState = [], ...oauthStateQueryState } = useAgentOAuthStateQuery({ agentId });
-  const [attachements, setAttachements] = useState<File[]>([]);
+  const [attachmentsByThreadId, setAttachmentsByThreadId] = useState<Record<string, File[]>>({});
+  const [messageByThreadId, setMessageByThreadId] = useState<Record<string, string>>({});
+
+  const attachments = attachmentsByThreadId[threadId] ?? [];
+  const draftMessage = messageByThreadId[threadId] ?? '';
 
   // Check if any uploaded file has the div2_ prefix - (This is for the Document Intelligence v2 modal TEST)
-  const hasDiv2File = attachements.some(file => file.name.startsWith('div2_'));
+  const hasDiv2File = attachments.some(file => file.name.startsWith('div2_'));
 
-  const onAddAttachements = (files: File[]) => {
-    setAttachements((previousFiles) => {
-      const nameToFile = new Map<string, File>(previousFiles.map((f) => [f.name, f]));
+  const onAddAttachments = (files: File[]) => {
+    setAttachmentsByThreadId((prevAttachmentsByThread) => {
+      const prevThreadAttachments = prevAttachmentsByThread[threadId] ?? [];
+      const nameToFile = new Map<string, File>(prevThreadAttachments.map((f) => [f.name, f]));
       files.forEach((file) => nameToFile.set(file.name, file));
-      return Array.from(nameToFile.values());
+      return { ...prevAttachmentsByThread, [threadId]: Array.from(nameToFile.values()) };
     });
   };
 
-  const onRemoveAttachement = (file: File) => {
-    setAttachements((prev) => prev.filter((f) => f.name !== file.name));
+  const onRemoveAttachment = (file: File) => {
+    setAttachmentsByThreadId((prevAttachmentsByThread) => {
+      const prevThreadAttachments = prevAttachmentsByThread[threadId] ?? [];
+      return {
+        ...prevAttachmentsByThread,
+        [threadId]: prevThreadAttachments.filter((f) => f.name !== file.name),
+      };
+    });
   };
 
   const {
@@ -70,14 +81,20 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
     getInputProps,
     open: onOpenFilePicker,
     isDragActive,
-  } = useDropzone({ onDrop: onAddAttachements, noClick: true });
+  } = useDropzone({ onDrop: onAddAttachments, noClick: true });
 
-  const { register, handleSubmit, reset } = useForm({
-    defaultValues: {
-      message: '',
-    },
+  const { register, handleSubmit, reset } = useForm<{ message: string }>({
+    defaultValues: { message: draftMessage },
+    shouldUnregister: true,
   });
-  const { ref, ...inputProps } = register('message');
+  const { ref, onChange, ...inputProps } = register('message');
+  const onMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(e);
+    setMessageByThreadId((prevMessagesByThread) => ({
+      ...prevMessagesByThread,
+      [threadId]: e.target.value,
+    }));
+  };
 
   const { streamingMessages, uploadingFiles, sendMessage, streamError, stopStream } = useMessageStream({ agentId, threadId });
   const isStreaming = !!streamingMessages;
@@ -86,16 +103,30 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
 
   const onSubmit = handleSubmit(({ message }) => {
     if (!isStreaming) {
-      sendMessage(message, attachements);
-      setAttachements([]);
-      reset();
+      sendMessage(message, attachments);
+      setAttachmentsByThreadId((prevAttachmentsByThread) => ({
+        ...prevAttachmentsByThread,
+        [threadId]: [],
+      }));
+      setMessageByThreadId((prevMessagesByThread) => ({
+        ...prevMessagesByThread,
+        [threadId]: '',
+      }));
+      reset({ message: '' });
     }
   });
 
   const onAbort = () => {
     stopStream();
-    setAttachements([]);
-    reset();
+    setAttachmentsByThreadId((prevAttachmentsByThread) => ({
+      ...prevAttachmentsByThread,
+      [threadId]: [],
+    }));
+    setMessageByThreadId((prevMessagesByThread) => ({
+      ...prevMessagesByThread,
+      [threadId]: '',
+    }));
+    reset({ message: '' });
   };
 
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -104,11 +135,14 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
     const files = items
       .filter((item) => item.kind === 'file')
       .map((item) => item.getAsFile())
-      .filter(Boolean) as File[];
+      .filter((f): f is File => f !== null);
 
     if (files.length > 0) {
       e.preventDefault();
-      setAttachements(files);
+      setAttachmentsByThreadId((prevAttachmentsByThread) => ({
+        ...prevAttachmentsByThread,
+        [threadId]: files,
+      }));
     }
   };
 
@@ -123,6 +157,11 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
       chatInputRef.current?.focus();
     }
   }, [threadId, queryDataGuard]);
+
+  useEffect(() => {
+    // Ensure the text input reflects the draft for the active thread
+    reset({ message: draftMessage });
+  }, [threadId, draftMessage, reset]);
 
   if (queryDataGuard) {
     return queryDataGuard;
@@ -151,22 +190,22 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
                 agentId={agentId}
                 threadId={threadId}
                 flowType="parse"
-                fileRef={attachements[0]}
+                fileRef={attachments[0]}
               />
             </Dialog.Content>
           </Dialog>
         )}
         {requiresOAuth && <OAuth />}
         <ChatInput streaming={isStreaming} busy={uploadingFiles} onSend={onSubmit} onAbort={onAbort}>
-          {attachements.length > 0 && (
+          {attachments.length > 0 && (
             <ChatInput.FileList>
-              {attachements.map((file) => (
+              {attachments.map((file) => (
                 <FileItem
                   key={file.name}
                   label={file.name}
                   icon={getFileTypeIcon(file.type)}
                   embeded
-                  onCloseClick={() => onRemoveAttachement(file)}
+                  onCloseClick={() => onRemoveAttachment(file)}
                 />
               ))}
             </ChatInput.FileList>
@@ -178,6 +217,7 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
               chatInputRef.current = e;
             }}
             {...inputProps}
+            onChange={onMessageChange}
             onPaste={onPaste}
             placeholder="Message Agent"
           />
