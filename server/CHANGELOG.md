@@ -1,3 +1,11 @@
+# Sema4.ai Agent Server 2.1.12 (2025-10-13)
+
+- GPT-1375 Support eval runs that execute live tools and copy scenario thread files as needed (#1214)
+- [Data Frames] Enhance semantic data model generation using an LLM-powered pipeline (#1238)
+- [DEV-2213] Respect agent architecture settings when importing packages (#1260)
+- GPT-1257 Fix deserialization of `work_item_update_status` values (#1248)
+- [DIN-651] Update `sema4ai-docint` to v0.11.1 and cover `/documents/ingest` with SPAR integration tests (#1242)
+
 # Sema4.ai Agent Server 2.1.11 (2025-10-06)
 
 - [GPT-1384] Have Work Items Use `ThreadContentAttachement` For Uploaded Files (#1232)
