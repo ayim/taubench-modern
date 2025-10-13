@@ -291,7 +291,67 @@ Notes:
 
 # Step 12:
 
-Create a "Full semantic data model" which includes metrics, facts, dimensions, etc.
+Create a "Full semantic data model" which includes metrics, facts, dimensions, time dimensions, synonyms, etc.
+
+Note: this is an "agentic" step, so, it should be done by using the `prompt_generate` API.
+
+The idea is that we'll already have a "base" semantic data model (with tables, columns, sample data) and then we'll
+enhance it with additional information.
+
+We should:
+
+1. Create a prompt for the LLM where we'll provide the current semantic data model.
+
+- The prompt should:
+
+  - Ask for better descriptions for the tables
+  - Ask to improve the "logical" name of the table (the initial name should be considered as that's what's in the database, but it should be treated as a hint)
+  - Ask to add synonyms to the tables
+  - Ask for better names for the columns (the initial name should be considered as that's what's in the database, but it should be treated as a hint)
+  - Ask for better descriptions for the columns
+  - Ask to re-categorize the columns into dimensions, facts, metrics, time dimensions (the initial categorization should be treated as a hint)
+
+  To get the output, we should have a simple way of passing the data and then the LLM should output the data in json format.
+
+  The information we're interested in having in the output is something as:
+
+  ```json
+  {
+    "tables": [
+      {
+        "new_name": "table1",
+        "original_name": "table1",
+        "description": "Better description for table1",
+        "synonyms": ["table1_synonym1", "table1_synonym2"],
+        "columns": [
+          {
+            "new_name": "column1",
+            "original_name": "column1",
+            "description": "Better description for column1",
+            "synonyms": ["column1_synonym1", "column1_synonym2"],
+            "category": "dimension"
+          }
+        ]
+      }
+    ]
+  }
+  ```
+
+- The algorithm should be able to do a few rounds of iterations to improve the semantic data model, doing something as:
+  - Ask the LLM for improvements
+  - Verify using the LLM if the improvements are good
+  - Ask again if the improvements were not good enough
+  - Apply the improvements (either after a few rounds or after the LLM confirms that the improvements are good enough)
+
+2. Run that prompt through the `prompt_generate` API.
+3. Collect the response from the LLM and update the semantic data model accordingly.
+
+This must be implemented in `server/src/agent_platform/server/kernel/semantic_data_model_generator.py` (in the `enhance_semantic_data_model` method).
+
+The `suggest_scenario_from_thread` method from `server/src/agent_platform/server/evals/advisor.py` can be used as a reference on how to use
+the `prompt_generate` API.
+
+# Step 12b:
 
 Extract primary keys/uniqueness from the database directly when available.
 
@@ -328,7 +388,10 @@ when creating a new semantic data model for some other data (if the shape of one
 
 # Future work (not right now):
 
-- Consume data frames directly from actions/tools.
+- sema4ai.actions improvements:
+  - Consume data frames directly from actions/tools.
+  - Validate if user tries to create a Table with inconsistent column/rows.
+  - Accept name and description for a Table.
 - https://sema4ai.slack.com/archives/C07LMU0AQFR/p1758257549592739
   - make is so that the agent understands an existing data frame cannot be overwritten.
 - Versioning of data frames (or provide more information to the UI so that it can know what's supposed to be a new version of an existing data frame and what's not).

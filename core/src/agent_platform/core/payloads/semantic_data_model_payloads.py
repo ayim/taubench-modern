@@ -105,6 +105,7 @@ class GenerateSemanticDataModelPayload:
     description: str | None
     data_connections_info: list[DataConnectionInfo]
     files_info: list[FileInfo]
+    agent_id: str | None = None
 
 
 @dataclass(frozen=True)

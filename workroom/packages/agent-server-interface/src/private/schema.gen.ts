@@ -4084,6 +4084,8 @@ export interface components {
       data_connections_info: components['schemas']['DataConnectionInfo'][];
       /** Files Info */
       files_info: components['schemas']['FileInfo'][];
+      /** Agent Id */
+      agent_id?: string | null;
     };
     /** GenerateSemanticDataModelResponse */
     GenerateSemanticDataModelResponse: {

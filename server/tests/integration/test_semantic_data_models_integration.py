@@ -1,8 +1,9 @@
 """Integration tests for semantic data model API endpoints."""
 
-from typing import Any
-
 import pytest
+from structlog import get_logger
+
+logger = get_logger(__name__)
 
 
 @pytest.mark.integration
@@ -383,11 +384,12 @@ def check_upload_response(thread_response) -> str:
 
 @pytest.mark.integration
 def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
-    base_url_agent_server, resources_dir, data_regression
+    base_url_agent_server, resources_dir, data_regression, openai_api_key
 ):
     """Test generate semantic data model API endpoint integration."""
     import copy
 
+    import yaml
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
@@ -401,8 +403,8 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
             platform_configs=[
                 {
                     "kind": "openai",
-                    "openai_api_key": "unused",
-                    "models": {"openai": ["gpt-4.1"]},
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-5-low"]},
                 },
             ],
         )
@@ -522,10 +524,12 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
                     "tables_info": file_tables_info,
                 }
             ],
+            "agent_id": agent_id,
         }
 
         # Generate the semantic data model
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
+        logger.info(f"Generated model:\n{yaml.safe_dump(generated_model)}")
         original_generated_model = copy.deepcopy(generated_model)
 
         semantic_model = generated_model["semantic_model"]
@@ -539,7 +543,13 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
                 table["base_table"]["file_reference"]["thread_id"] = "<redacted>"
                 table["base_table"]["file_reference"]["file_ref"] = "<redacted>"
 
-        data_regression.check(generated_model, basename="generated_semantic_model")
+        # We cannot use data_regression here as the generated model is different on each run
+        # (as the LLM is used to enhance the model).
+        # As such, just verify that the generated model tables/columns are present.
+        assert "tables" in semantic_model, "Tables are expected"
+        assert len(semantic_model["tables"]) > 0, "At least one table is expected"
+        for table in semantic_model["tables"]:
+            assert "name" in table, "Table name is expected"
 
         semantic_data_model_id = agent_client.create_semantic_data_model(original_generated_model)[
             "semantic_data_model_id"
@@ -559,61 +569,8 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
         # Test the new list semantic data models API
         # List all semantic data models
         all_models = agent_client.list_semantic_data_models()
-        # Now, we have to do some replacements to make the data_regression work
-        replacements = {
-            agent_id: "agent-id1",
-            thread_id: "thread-id1",
-            semantic_data_model_id: "semantic-data-model-id1",
-            file_id: "file_id1",
-            data_connection_1["id"]: "data_connection_1",
-        }
-        all_models = update_models_for_data_regression(all_models, replacements)
-        data_regression.check(all_models, basename="list_semantic_data_models")
-
-
-def update_models_for_data_regression(obj: Any, replacements: dict[str, Any]) -> Any:
-    if isinstance(obj, list):
-        return [update_models_for_data_regression(item, replacements) for item in obj]
-    elif isinstance(obj, dict):
-        ret = {}
-        for k, v in obj.items():
-            try:
-                k = update_models_for_data_regression(k, replacements)  # noqa: PLW2901
-            except UUIDNotFoundError as e:
-                e.push_context(f"key: {k}")
-                raise
-            try:
-                v = update_models_for_data_regression(v, replacements)  # noqa: PLW2901
-            except UUIDNotFoundError as e:
-                e.push_context(f"key: {k} (in value)")
-                raise
-            ret[k] = v
-        return ret
-
-    ret = replacements.get(obj, obj)
-    if is_uuid(ret):
-        raise UUIDNotFoundError(ret, f"UUID not replaced in the data: {ret}")
-    return ret
-
-
-class UUIDNotFoundError(Exception):
-    def __init__(self, obj: Any, message: str):
-        self.obj = obj
-        self.message = message
-        self.context = []
-        super().__init__(message)
-
-    def push_context(self, context: str):
-        self.context.insert(0, context)
-
-
-def is_uuid(obj: Any) -> bool:
-    import uuid
-
-    try:
-        if not isinstance(obj, str):
-            return False
-        uuid.UUID(obj)
-        return True
-    except ValueError:
-        return False
+        assert len(all_models) == 1
+        assert all_models[0]["semantic_data_model_id"] == semantic_data_model_id
+        assert all_models[0]["agent_ids"] == [agent_id]
+        assert all_models[0]["thread_ids"] == [thread_id]
+        assert all_models[0]["data_connection_ids"] == [data_connection_1["id"]]

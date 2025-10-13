@@ -11209,6 +11209,17 @@ export const spec = {
             type: 'array',
             title: 'Files Info',
           },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+          },
         },
         type: 'object',
         required: [

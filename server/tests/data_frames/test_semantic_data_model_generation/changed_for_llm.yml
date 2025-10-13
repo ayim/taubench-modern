@@ -1,0 +1,45 @@
+description: This semantic model can be used for asking questions over the sales data.
+name: Sales Data
+tables:
+- base_table:
+    schema: public
+    table: sd_data
+  columns:
+  - category: fact
+    data_type: NUMBER
+    description: The category of the product sold.
+    expr: cat
+    name: product_category
+    sample_values:
+    - '501'
+    - '544'
+    synonyms:
+    - product_category_synonym1
+    - product_category_synonym2
+    unique: false
+  - category: dimension
+    data_type: TIMESTAMP
+    description: The time when the sale occurred. In UTC.
+    expr: dt
+    name: sale_timestamp
+    sample_values: null
+    synonyms:
+    - store_country_synonym1
+    - store_country_synonym2
+    unique: false
+  - category: dimension
+    data_type: TEXT
+    description: The country where the sale took place.
+    expr: cntry
+    name: store_country
+    sample_values:
+    - USA
+    - GBR
+    synonyms:
+    - sales_channel_synonym1
+    - sales_channel_synonym2
+    unique: false
+  description: "A logical table capturing daily sales information across different\n\
+    \                store locations and product categories."
+  name: sales_data
+  synonyms: null

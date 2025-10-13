@@ -201,6 +201,16 @@ async def generate_semantic_data_model(
             files_info=payload.files_info,
         )
 
+        if payload.agent_id:
+            await generator.enhance_semantic_data_model(
+                semantic_model, user=user, storage=storage, agent_id=payload.agent_id
+            )
+        else:
+            logger.critical(
+                "No agent ID provided when generating semantic data model, "
+                "LLM improvement is not possible! This will become an error in the future."
+            )
+
         logger.info(
             "Successfully generated semantic data model",
             model_name=payload.name,
