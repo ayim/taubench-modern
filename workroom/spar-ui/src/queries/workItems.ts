@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import { components } from '@sema4ai/agent-server-interface';
+import { asyncForLoop } from '@sema4ai/robocloud-shared-utils';
+import { useEffect, useState } from 'react';
 
 import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
-import { SparAPIClient } from '../api';
 
 type WorkItem = components['schemas']['WorkItem'];
 type CreateWorkItemPayload = components['schemas']['CreateWorkItemPayload'];
@@ -61,21 +61,6 @@ export const useWorkItemQuery = ({ workItemId }: { workItemId: string }) => {
   return query;
 };
 
-/**
- * Create Work Item
- */
-const uploadWorkItemFile = async (sparAPIClient: SparAPIClient, file: File, workItemId?: string) => {
-  return sparAPIClient.queryAgentServer('post', '/api/v2/work-items/upload-file', {
-    params: { query: workItemId ? { work_item_id: workItemId } : {} },
-    body: { file: file as unknown as string },
-    bodySerializer(body: { file: string }) {
-      const formData = new FormData();
-      formData.append('file', body.file);
-      return formData;
-    },
-  });
-};
-
 export const useCreateWorkItemMutation = createSparMutation<
   { agentId: string },
   {
@@ -86,61 +71,85 @@ export const useCreateWorkItemMutation = createSparMutation<
   }
 >()(({ agentId, sparAPIClient, queryClient }) => ({
   mutationFn: async ({ files, message, payload, workItemName }) => {
-    // Upload files
-    let workItemId: string | undefined;
-    if (files && files?.length > 0) {
-      const firstFileResponse = await uploadWorkItemFile(sparAPIClient, files[0]);
-
-      if (!firstFileResponse?.success || !firstFileResponse?.data?.work_item_id) {
-        throw new Error('Failed to get Work Item ID from file upload');
-      }
-
-      workItemId = String(firstFileResponse.data.work_item_id);
-
-      const remainingFiles = files.slice(1);
-      const uploadPromises = remainingFiles.map(async (file) => {
-        return uploadWorkItemFile(sparAPIClient, file, workItemId);
+    const uploadFile = async (file: File, workItemId?: string) => {
+      const response = await sparAPIClient.queryAgentServer('post', '/api/v2/work-items/upload-file', {
+        params: { query: workItemId ? { work_item_id: workItemId } : {} },
+        body: { file: file as unknown as string },
+        bodySerializer(body: { file: string }) {
+          const formData = new FormData();
+          formData.append('file', body.file);
+          return formData;
+        },
       });
 
-      try {
-        await Promise.all(uploadPromises);
-      } catch (error) {
-        throw new Error('Failed to upload some files');
+      if (!response.success) {
+        throw new Error(response.message);
       }
-    }
-
-    const body: CreateWorkItemPayload = {
-      work_item_name: workItemName,
-      agent_id: agentId,
-      work_item_id: workItemId,
-      messages: [
-        {
-          role: 'user',
-          content: [{ kind: 'text', text: message, complete: true }],
-          complete: true,
-          commited: true,
-        },
-      ],
+      return response.data;
     };
 
-    // Add payload if provided; JSON validity is enforced by the form schema
-    if (payload && payload.trim()) {
-      const parsedPayload = JSON.parse(payload);
-      body.payload = parsedPayload;
+    const createWorkItem = async (workItemId?: string) => {
+      // request body to create work item
+      const requestBody: CreateWorkItemPayload = {
+        work_item_name: workItemName,
+        agent_id: agentId,
+        messages: [
+          {
+            role: 'user',
+            content: [{ kind: 'text', text: message, complete: true }],
+            complete: true,
+            commited: true,
+          },
+        ],
+      };
+
+      if (payload && payload.trim()) {
+        requestBody.payload = JSON.parse(payload);
+      }
+
+      if (workItemId) {
+        requestBody.work_item_id = workItemId;
+      }
+
+      const response = await sparAPIClient.queryAgentServer('post', '/api/v2/work-items/', {
+        body: requestBody,
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to create work item');
+      }
+
+      // Updating query cache with new data
+      queryClient.setQueryData(workItemsQueryKey(agentId), (data?: WorkItem[]) => {
+        return [response.data, ...(data || [])];
+      });
+
+      return response.data;
+    };
+
+    const hasWorkItemFiles = files && files.length > 0;
+
+    /** If no work item files, just create work item */
+    if (!hasWorkItemFiles) {
+      return createWorkItem();
     }
 
-    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/work-items/', {
-      body,
-    });
+    /** Upload files and create work item using workItemId */
+    const [firstFile, ...remainingFiles] = files;
 
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to create work item');
+    const firstFileResponse = await uploadFile(firstFile);
+
+    const workItemId = firstFileResponse.work_item_id;
+    if (!workItemId || typeof workItemId !== 'string') {
+      throw new Error('Failed to get Work Item ID from first file upload');
     }
 
-    queryClient.setQueryData(workItemsQueryKey(agentId), (data?: WorkItem[]) => {
-      return [response.data, ...(data || [])];
+    await asyncForLoop(remainingFiles, async (file) => {
+      await uploadFile(file, workItemId);
     });
 
-    return response.data;
+    const createdWorkItem = await createWorkItem(workItemId);
+
+    return createdWorkItem;
   },
 }));
