@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import type { Readable } from 'node:stream';
-import { DeleteObjectCommand, GetObjectCommand, type S3 } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { createPresignedPost, type PresignedPostOptions } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
@@ -14,7 +14,7 @@ import type {
   PresignedGet,
   PresignedPost,
 } from '../filesManagement.js';
-import { getRoleBasedS3Client } from './s3Client.js';
+import { getRoleBasedS3Factory, type S3ClientFactory } from './s3Client.js';
 import { getContentType } from '../utils.js';
 
 export interface AWSFilesStorageTarget {
@@ -24,7 +24,15 @@ export interface AWSFilesStorageTarget {
 }
 
 const createDeleteFile =
-  ({ monitoring, s3BucketName, s3Client }: { monitoring: MonitoringContext; s3BucketName: string; s3Client: S3 }) =>
+  ({
+    monitoring,
+    s3BucketName,
+    s3ClientFactory,
+  }: {
+    monitoring: MonitoringContext;
+    s3BucketName: string;
+    s3ClientFactory: S3ClientFactory;
+  }) =>
   async (file: File): Promise<Result<{ deleted: true }>> => {
     const key = join(file.baseFolder, file.fileId);
 
@@ -38,7 +46,13 @@ const createDeleteFile =
       Key: key,
     });
 
-    const result = await asResult(() => s3Client.send(command));
+    const s3ClientResult = await s3ClientFactory.getS3Client();
+
+    if (!s3ClientResult.success) {
+      return s3ClientResult;
+    }
+
+    const result = await asResult(() => s3ClientResult.data.send(command));
     if (!result.success) {
       monitoring.logger.error('Failed deleting S3 file', {
         errorName: result.error.code,
@@ -57,7 +71,15 @@ const createDeleteFile =
   };
 
 const createGetFileStream =
-  ({ monitoring, s3BucketName, s3Client }: { monitoring: MonitoringContext; s3BucketName: string; s3Client: S3 }) =>
+  ({
+    monitoring,
+    s3BucketName,
+    s3ClientFactory,
+  }: {
+    monitoring: MonitoringContext;
+    s3BucketName: string;
+    s3ClientFactory: S3ClientFactory;
+  }) =>
   async (file: File): Promise<Result<{ fileStream: Readable }>> => {
     const key = join(file.baseFolder, file.fileId);
 
@@ -71,8 +93,14 @@ const createGetFileStream =
       Key: key,
     });
 
+    const s3ClientResult = await s3ClientFactory.getS3Client();
+
+    if (!s3ClientResult.success) {
+      return s3ClientResult;
+    }
+
     try {
-      const response = await s3Client.send(command);
+      const response = await s3ClientResult.data.send(command);
       if (!response.Body) {
         throw new Error('Unexpected: response for GetObjectCommand does not have a body');
       }
@@ -113,7 +141,15 @@ const createGetFileStream =
   };
 
 const createGetGetSignedUrl =
-  ({ monitoring, s3BucketName, s3Client }: { monitoring: MonitoringContext; s3BucketName: string; s3Client: S3 }) =>
+  ({
+    monitoring,
+    s3BucketName,
+    s3ClientFactory,
+  }: {
+    monitoring: MonitoringContext;
+    s3BucketName: string;
+    s3ClientFactory: S3ClientFactory;
+  }) =>
   async (file: GetFileOptions): Promise<Result<PresignedGet>> => {
     const { baseFolder, contentDispositionType, expiresIn, fileId, fileName } = file;
 
@@ -149,7 +185,13 @@ const createGetGetSignedUrl =
       }
     })();
 
-    const urlResult = await asResult(() => getSignedUrl(s3Client, command, { expiresIn }));
+    const s3ClientResult = await s3ClientFactory.getS3Client();
+
+    if (!s3ClientResult.success) {
+      return s3ClientResult;
+    }
+
+    const urlResult = await asResult(() => getSignedUrl(s3ClientResult.data, command, { expiresIn }));
     if (!urlResult.success) {
       monitoring.logger.error('Failed generating signed GET url', {
         errorName: urlResult.error.code,
@@ -170,7 +212,15 @@ const createGetGetSignedUrl =
   };
 
 const createGetPostSignedUrl =
-  ({ monitoring, s3BucketName, s3Client }: { monitoring: MonitoringContext; s3BucketName: string; s3Client: S3 }) =>
+  ({
+    monitoring,
+    s3BucketName,
+    s3ClientFactory,
+  }: {
+    monitoring: MonitoringContext;
+    s3BucketName: string;
+    s3ClientFactory: S3ClientFactory;
+  }) =>
   async (file: CreateFileOptions): Promise<Result<PresignedPost>> => {
     const key = join(file.baseFolder, file.fileId);
 
@@ -189,7 +239,13 @@ const createGetPostSignedUrl =
       Conditions: file.fileSize !== undefined ? [['content-length-range', file.fileSize, file.fileSize]] : undefined,
     };
 
-    const urlResult = await asResult(() => createPresignedPost(s3Client, options));
+    const s3ClientResult = await s3ClientFactory.getS3Client();
+
+    if (!s3ClientResult.success) {
+      return s3ClientResult;
+    }
+
+    const urlResult = await asResult(() => createPresignedPost(s3ClientResult.data, options));
     if (!urlResult.success) {
       monitoring.logger.error('Failed generating signed POST url', {
         errorName: urlResult.error.code,
@@ -219,20 +275,16 @@ export const createAWSFilesManager = async ({
   aws: AWSFilesStorageTarget;
   monitoring: MonitoringContext;
 }): Promise<FilesManager> => {
-  const s3ClientResult = await getRoleBasedS3Client({
+  const s3ClientFactory = await getRoleBasedS3Factory({
     awsRegion: aws.region,
     awsRoleARN: aws.roleArn,
+    monitoring,
   });
-  if (!s3ClientResult.success) {
-    throw new Error(`Failed configuring AWS files manager S3 client: ${s3ClientResult.error.message}`);
-  }
-
-  const s3Client = s3ClientResult.data.s3;
 
   return {
-    deleteFile: createDeleteFile({ monitoring, s3BucketName: aws.bucketName, s3Client }),
-    getFileStream: createGetFileStream({ monitoring, s3BucketName: aws.bucketName, s3Client }),
-    getGetSignedUrl: createGetGetSignedUrl({ monitoring, s3BucketName: aws.bucketName, s3Client }),
-    getPostSignedUrl: createGetPostSignedUrl({ monitoring, s3BucketName: aws.bucketName, s3Client }),
+    deleteFile: createDeleteFile({ monitoring, s3BucketName: aws.bucketName, s3ClientFactory }),
+    getFileStream: createGetFileStream({ monitoring, s3BucketName: aws.bucketName, s3ClientFactory }),
+    getGetSignedUrl: createGetGetSignedUrl({ monitoring, s3BucketName: aws.bucketName, s3ClientFactory }),
+    getPostSignedUrl: createGetPostSignedUrl({ monitoring, s3BucketName: aws.bucketName, s3ClientFactory }),
   };
 };
