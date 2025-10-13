@@ -457,6 +457,12 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
         except Exception:
             normalized_model = None
 
+    # Original architecture name (if not present, use default)
+    mapped_architecture_name = agent0.get("architecture", "agent_platform.architectures.default")
+    if not mapped_architecture_name.startswith("agent_platform.architectures."):
+        # If we have any legacy value, use default
+        mapped_architecture_name = "agent_platform.architectures.default"
+
     as_upsert_payload = UpsertAgentPayload(
         name=payload.name,  # Want name from payload, not agent project
         description=payload.description
@@ -488,9 +494,10 @@ async def create_or_update_agent_from_package(  # noqa: C901, PLR0912, PLR0915
         },
         model=normalized_model,
         agent_architecture=AgentArchitecture(
-            # Doesn't matter what we were given, all legacy architectures
-            # get mapped to default for v2 & v3
-            name="agent_platform.architectures.default",
+            # Take architecture name from package, force
+            # version to 1.0.0 (we don't support arch versioning yet
+            # across the stack)
+            name=mapped_architecture_name,
             version="1.0.0",
         ),
         metadata={

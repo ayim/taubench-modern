@@ -628,6 +628,36 @@ class TestCreateAgentFromPackage:
         mock_storage.upsert_agent.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_create_agent_from_real_package_openai_gpt_5_new_arch(
+        self,
+        mock_user,
+        mock_storage,
+    ):
+        """Test successful agent creation from real OpenAI agent package with new architecture."""
+        test_package_path = TEST_AGENTS_DIR / "gpt-5-testing.zip"
+        if not test_package_path.exists():
+            pytest.skip("gpt-5-testing.zip not found")
+
+        package_base64 = base64.b64encode(test_package_path.read_bytes()).decode()
+
+        payload = AgentPackagePayload(
+            name="Test OpenAI Agent",
+            agent_package_base64=package_base64,
+        )
+
+        result = await create_agent_from_package(
+            user=mock_user,
+            payload=payload,
+            storage=mock_storage,
+            _=None,
+        )
+
+        assert isinstance(result, AgentCompat)
+        assert result.name == "Test OpenAI Agent"
+        assert result.agent_architecture.name == "agent_platform.architectures.experimental_1"
+        mock_storage.upsert_agent.assert_called_once()
+
+    @pytest.mark.asyncio
     @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
     async def test_create_agent_from_package_url_success(
         self,
