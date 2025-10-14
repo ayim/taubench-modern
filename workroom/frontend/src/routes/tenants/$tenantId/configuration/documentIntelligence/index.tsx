@@ -66,7 +66,7 @@ function View() {
   const isConfigured = (currentConfig?.integrations?.length ?? 0) > 0 && !!currentConfig?.data_connection_id;
 
   const postgresConnections = (dataConnections.data ?? [])
-    .filter((connection) => connection.engine === 'postgres' || connection.engine === 'pgvector')
+    .filter((connection) => connection.engine === 'postgres')
     .map((connection) => ({ value: connection.id, label: connection.name }));
 
   const hasPostgresConnections = postgresConnections.length > 0;
