@@ -1,6 +1,7 @@
 import uuid
 from collections import defaultdict
 from http import HTTPStatus
+from typing import TypedDict
 
 from aiohttp import ClientSession
 from fastapi import APIRouter, HTTPException
@@ -41,6 +42,13 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
+class ActionPackageData(TypedDict):
+    """Structure for action package data returned by fetch functions."""
+
+    actions: list[str]
+    version: str
+
+
 def _to_human_friendly_name(name: str) -> str:
     """Convert action package/action name to human-friendly versions."""
     # Step 1: Replace hyphens and underscores with spaces
@@ -55,65 +63,52 @@ def _to_human_friendly_name(name: str) -> str:
     return " ".join(word.title() for word in formatted.split())
 
 
-async def _fetch_action_packages_data(url: str, api_key: str) -> dict[str, list[str]]:
-    """Fetch and parse OpenAPI spec to extract action packages from path structure."""
+async def _fetch_action_packages_data(url: str, api_key: str) -> dict[str, ActionPackageData]:
+    """Fetch action packages data directly from /api/actionPackages endpoint."""
 
-    # Build OpenAPI spec URL
     http_url = "http://" + url if not url.startswith("http") else url
-    spec_url = safe_urljoin(http_url, "openapi.json")
+    action_packages_url = safe_urljoin(http_url, "api/actionPackages")
 
-    # Fetch OpenAPI spec
+    headers = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
     async with ClientSession() as session:
-        async with session.get(spec_url) as response:
+        async with session.get(action_packages_url, headers=headers) as response:
             if response.status == HTTPStatus.OK:
-                spec = await response.json()
+                action_packages_data = await response.json()
+                logger.info(f"Successfully fetched action packages from {action_packages_url}")
+
+                # Convert list format to dict format with human-friendly names
+                packages_dict = {}
+                for package in action_packages_data:
+                    package_name = package.get("name", "")
+                    package_version = package.get("version", "1.0.0")
+                    package_actions = package.get("actions", [])
+
+                    if not package_name:
+                        continue
+
+                    # Convert to human-friendly name
+                    friendly_package_name = _to_human_friendly_name(package_name)
+
+                    # Extract action names (handle both string and dict formats)
+                    action_names = []
+                    for action in package_actions:
+                        if isinstance(action, str):
+                            action_names.append(_to_human_friendly_name(action))
+                        elif isinstance(action, dict) and "name" in action:
+                            action_names.append(_to_human_friendly_name(action["name"]))
+
+                    packages_dict[friendly_package_name] = {
+                        "version": package_version,
+                        "actions": action_names,
+                    }
+
+                return packages_dict
             else:
-                raise Exception(f"HTTP {response.status}: Failed to fetch OpenAPI spec")
-
-    # Parse paths to extract action packages and actions
-    packages_dict = {}
-
-    for path, methods in spec.get("paths", {}).items():
-        # Must start with /api/actions
-        if not path.startswith("/api/actions"):
-            continue
-
-        # Must end with /run
-        if not path.endswith("/run"):
-            continue
-
-        # Parse path: /api/actions/<package>/<action>/run
-        path_parts = path.strip("/").split("/")
-
-        # Must have exactly 5 parts: ["api", "actions", "<package>", "<action>", "run"]
-        if (
-            len(path_parts) != 5  # noqa: PLR2004
-            or path_parts[0] != "api"
-            or path_parts[1] != "actions"
-            or path_parts[4] != "run"
-        ):
-            logger.warning(f"Skipping path with unexpected format: {path}")
-            continue
-
-        package_name = path_parts[2]
-        action_name = path_parts[3]
-
-        # Only process POST methods with 200 responses
-        post_spec = methods.get("post")
-        if not post_spec or "200" not in post_spec.get("responses", {}):
-            continue
-
-        # Convert to human-friendly names
-        friendly_package_name = _to_human_friendly_name(package_name)
-        friendly_action_name = _to_human_friendly_name(action_name)
-
-        # Initialize package if it doesn't exist
-        packages_dict.setdefault(friendly_package_name, [])
-
-        # Add action to package
-        packages_dict[friendly_package_name].append(friendly_action_name)
-
-    return packages_dict
+                logger.error(f"ActionPackages endpoint returned {response.status}")
+                raise Exception(f"HTTP {response.status}: Failed to fetch action packages")
 
 
 async def _process_action_packages(agent) -> list[ActionPackageDetail]:
@@ -132,11 +127,13 @@ async def _process_action_packages(agent) -> list[ActionPackageDetail]:
             # Get the first package to extract api_key (they should all be the same for same URL)
             api_key = packages[0].api_key.get_secret_value() if packages[0].api_key else ""
 
-            # Fetch action packages data from OpenAPI spec
+            # Fetch action packages data from /api/actionPackages
             action_packages_data = await _fetch_action_packages_data(url, api_key)
 
             # Create package details directly from server response
-            for pkg_name, actions in action_packages_data.items():
+            for pkg_name, package_info in action_packages_data.items():
+                actions = package_info.get("actions", [])
+                version = package_info.get("version", "1.0.0")
                 package_actions = [ActionDetail(name=action) for action in actions]
 
                 # Only create package if it has actions
@@ -144,7 +141,7 @@ async def _process_action_packages(agent) -> list[ActionPackageDetail]:
                     action_package_details = ActionPackageDetail(
                         name=pkg_name,
                         actions=package_actions,
-                        version="1.0.0",
+                        version=version,
                         status="online",
                     )
                     all_action_details.append(action_package_details)

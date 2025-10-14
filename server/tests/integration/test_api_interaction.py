@@ -754,9 +754,9 @@ async def test_agent_details_endpoint(
         assert len(online_packages) == 1, "Should have one online package from valid URL"
         assert len(offline_packages) == 1, "Should have one offline package from invalid URL"
 
-        # The online package should be the actual server package name
+        # The online package should be the actual server package name (human-friendly format)
         online_package = online_packages[0]
-        assert online_package["name"] == "Simpleactionpackage"
+        assert online_package["name"] == "Simple Action Package"
         assert online_package["version"] == "1.0.0"
         assert online_package["status"] == "online"
         assert len(online_package["actions"]) > 0, "Online package should have actions"
