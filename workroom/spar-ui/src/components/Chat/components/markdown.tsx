@@ -17,14 +17,16 @@ export const markdownRules: MarkdownParserRules = {
 
     return <Code key={key} aria-label="Code" lang={tokens.lang} value={tokens.text} />;
   },
-  table: (key, { header, rows, raw }) => {
+  table: (key, { header, rows, raw }, parseContent, messageId, streaming) => {
     const columns = header.map((column) => ({
       id: column.text,
       title: column.text,
     }));
 
     const data = rows.map((row) => {
-      return Object.fromEntries(columns.map((column, index) => [column.id, row[index].text]));
+      return Object.fromEntries(
+        columns.map((column, index) => [column.id, parseContent(key, row[index].tokens, messageId, streaming)]),
+      );
     });
 
     return <Table key={key} columns={columns} data={data} raw={raw} />;
