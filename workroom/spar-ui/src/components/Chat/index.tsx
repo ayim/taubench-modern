@@ -7,6 +7,7 @@ import {
   Dialog,
   DropzoneOverlay,
   FileItem,
+  useSnackbar,
 } from '@sema4ai/components';
 import { IconPaperclip } from '@sema4ai/icons';
 import { useForm } from 'react-hook-form';
@@ -42,6 +43,7 @@ const Footer = styled.footer`
 `;
 
 export const Chat: FC<Props> = ({ agentId, threadId }) => {
+  const { addSnackbar } = useSnackbar();
   const [documentIntelligenceModalOpen, setDocumentIntelligenceModalOpen] = useState<boolean>(false);
   const chatRef = useRef<ChatRef>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -115,9 +117,14 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
 
   const queryDataGuard = useQueryDataGuard([threadQueryState, oauthStateQueryState]);
 
-  const onSubmit = handleSubmit(({ message }) => {
+  const onSubmit = handleSubmit(async ({ message }) => {
     if (!isStreaming) {
-      sendMessage(message, attachments);
+      const sendMessageResult = await sendMessage(message, attachments);
+
+      if (!sendMessageResult.success) {
+        addSnackbar({ message: sendMessageResult.error.message, variant: 'danger' });
+        return;
+      }
       setAttachmentsByThreadId((prevAttachmentsByThread) => ({
         ...prevAttachmentsByThread,
         [threadId]: [],

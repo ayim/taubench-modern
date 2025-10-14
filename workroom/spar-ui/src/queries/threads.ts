@@ -94,16 +94,18 @@ export const useCreateThreadMutation = createSparMutation<
       body: {
         name,
         agent_id: agentId,
-        ...(isUserMessage ? {} : {
-          messages: [
-            {
-              role: 'agent',
-              content: [{ kind: 'text', text: startingMessage, complete: true }],
-              complete: true,
-              commited: false,
-            },
-          ],
-        }),
+        ...(isUserMessage
+          ? {}
+          : {
+              messages: [
+                {
+                  role: 'agent',
+                  content: [{ kind: 'text', text: startingMessage, complete: true }],
+                  complete: true,
+                  commited: false,
+                },
+              ],
+            }),
       },
     });
     if (!response.success) {
@@ -120,7 +122,7 @@ export const useCreateThreadMutation = createSparMutation<
         agentId,
         queryClient,
         threadId: response.data.thread_id,
-        sparAPIClient
+        sparAPIClient,
       });
     }
 
@@ -202,7 +204,8 @@ export const useUploadThreadFilesMutation = createSparMutation<{ threadId: strin
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to upload thread files');
+        // The current error returned by the agent-server is not customer facing at all
+        throw new Error('Failed to upload the file(s)');
       }
 
       const attachements = response.data.map(

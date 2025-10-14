@@ -174,14 +174,14 @@ class StreamManager {
    * - Closes the WebSocket connection
    * - Saves only completed messages (discards incomplete ones)
    * - Updates the query cache with completed messages
-   * 
+   *
    * Note: This mirrors server behavior - when a WebSocket disconnects,
    * the server cancels tasks and does NOT persist uncommitted messages.
    * Only messages that were explicitly committed before disconnect are saved.
    */
   public stopStream(threadId: string): void {
     const ws = this.wsMap[threadId];
-    
+
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.close();
     }
@@ -199,7 +199,7 @@ class StreamManager {
 
     this.messagesMap[threadId] = [];
     this.streamErrorMap[threadId] = undefined;
-    
+
     this.emitMessage(threadId);
   }
 
@@ -325,18 +325,80 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
 
   const isStreaming = streamingMessages?.some((message) => message.role === 'agent' && !message.complete) ?? false;
 
-  const sendMessage = async (text: string, files: File[]) => {
-    const uploadedAttachments = files.length ? await uploadFiles({ files }) : [];
-    if (files.length) {
-      // only refetch files if any file is uploaded
-      await refetchFiles();
+  const sendMessage = async (
+    text: string,
+    files: File[],
+  ): Promise<{ success: true; data: null } | { success: false; error: { message: string } }> => {
+    const uploadedAttachments = await (async (): Promise<
+      | { success: true; data: Awaited<ReturnType<typeof uploadFiles>> }
+      | {
+          success: false;
+          error: {
+            message: string;
+          };
+        }
+    > => {
+      const hasNoAttachments = files.length === 0;
+
+      if (hasNoAttachments) {
+        return {
+          success: true,
+          data: [],
+        };
+      }
+
+      try {
+        const uploadedFiles = await uploadFiles({ files });
+
+        await refetchFiles();
+
+        return {
+          success: true,
+          data: uploadedFiles,
+        };
+      } catch (e) {
+        const error = e as Error;
+        return {
+          success: false,
+          error: {
+            message: error.message,
+          },
+        };
+      }
+    })();
+
+    if (!uploadedAttachments.success) {
+      return uploadedAttachments;
     }
-    const content: ThreadContent[] = [...uploadedAttachments];
-    if (text.trim()) {
-      // only add text message if it is not empty
-      content.push({ kind: 'text', text, complete: true });
+
+    const isEmptyMessage = text.trim().length === 0;
+
+    if (isEmptyMessage) {
+      return {
+        success: false,
+        error: {
+          message: 'Sending empty messages is not supported',
+        },
+      };
     }
-    await streamManager.initiateStream({ sparAPIClient, queryClient, content, threadId, agentId });
+
+    const content: ThreadContent[] = [...uploadedAttachments.data, { kind: 'text', text, complete: true }];
+
+    try {
+      await streamManager.initiateStream({ sparAPIClient, queryClient, content, threadId, agentId });
+
+      return {
+        success: true,
+        data: null,
+      };
+    } catch (e) {
+      return {
+        success: false,
+        error: {
+          message: 'Failed to reach the agent: if the issue persists, please file a support ticket',
+        },
+      };
+    }
   };
 
   const sendClientToolMessage = async (tool: ThreadToolUsageContent, result: string, error?: string) => {
