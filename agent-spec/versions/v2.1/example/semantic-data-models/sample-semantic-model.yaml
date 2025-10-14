@@ -22,7 +22,7 @@ tables:
         expr: customer_id
         data_type: NUMBER
         unique: true
-      
+
       - name: customer_name
         synonyms:
           - client name
@@ -30,7 +30,7 @@ tables:
         description: Full name of the customer
         expr: customer_name
         data_type: VARCHAR
-      
+
       - name: customer_email
         synonyms:
           - email address
@@ -38,7 +38,7 @@ tables:
         description: Email address of the customer
         expr: customer_email
         data_type: VARCHAR
-      
+
       - name: registration_date
         synonyms:
           - signup date
@@ -46,7 +46,7 @@ tables:
         description: Date when the customer registered
         expr: registration_date
         data_type: DATE
-    
+
     metrics:
       - name: total_customers
         synonyms:
@@ -71,7 +71,7 @@ tables:
         expr: order_id
         data_type: NUMBER
         unique: true
-      
+
       - name: customer_id
         synonyms:
           - customer identifier
@@ -79,7 +79,7 @@ tables:
         description: Foreign key to customers table
         expr: customer_id
         data_type: NUMBER
-      
+
       - name: order_date
         synonyms:
           - purchase date
@@ -87,7 +87,7 @@ tables:
         description: Date when the order was placed
         expr: order_date
         data_type: DATE
-    
+
     metrics:
       - name: order_amount
         synonyms:
@@ -96,7 +96,7 @@ tables:
         description: Total amount of the order
         expr: order_amount
         data_type: NUMBER
-      
+
       - name: total_orders
         synonyms:
           - order count
@@ -104,7 +104,7 @@ tables:
         description: Total number of orders
         expr: COUNT(*)
         data_type: NUMBER
-      
+
       - name: total_revenue
         synonyms:
           - total sales
@@ -122,4 +122,3 @@ relationships:
         right_column: customer_id
     join_type: left_outer
     relationship_type: one_to_many
-

@@ -39,6 +39,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@sema4ai/workroom-frontend": "*",
     "@sema4ai/workroom-interface": "^2.2.2",
     "@types/cookie-signature": "^1.1.2",
     "@types/cors": "^2.8.19",

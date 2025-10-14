@@ -1329,11 +1329,11 @@ def test_spec():
 def test_spec_validation_semantic_data_models_ok(datadir: Path, v_2_1_spec: dict):
     """Test that semantic-data-models section is valid when properly formatted."""
     from ._spec_validation import load_spec
-    
+
     # Create semantic-data-models directory and YAML file (Snowflake format)
     (datadir / "semantic-data-models").mkdir(parents=True)
     (datadir / "semantic-data-models" / "customer-analytics.yaml").write_text(
-        'name: Customer Analytics\ndescription: Example semantic model\n'
+        "name: Customer Analytics\ndescription: Example semantic model\n"
     )
 
     valid_yaml = """
@@ -1356,7 +1356,7 @@ agent-package:
       metadata:
         mode: conversational
 """
-    
+
     validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir)
 
 
@@ -1364,7 +1364,7 @@ agent-package:
 def test_spec_validation_semantic_data_models_optional(datadir: Path, v_2_1_spec: dict):
     """Test that semantic-data-models is optional (backward compatibility)."""
     from ._spec_validation import load_spec
-    
+
     valid_yaml = """
 agent-package:
   spec-version: v2
@@ -1383,7 +1383,7 @@ agent-package:
       metadata:
         mode: conversational
 """
-    
+
     validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir)
 
 
@@ -1391,9 +1391,9 @@ agent-package:
 def test_spec_validation_semantic_data_models_missing_file(datadir: Path, v_2_1_spec: dict):
     """Test that validation fails if SDM file is missing."""
     from ._spec_validation import load_spec
-    
+
     # Don't create the semantic-data-models directory or file
-    
+
     invalid_yaml = """
 agent-package:
   spec-version: v2
@@ -1414,18 +1414,19 @@ agent-package:
       metadata:
         mode: conversational
 """
-    
+
     errors = validate_from_spec(load_spec(v_2_1_spec), invalid_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors for missing SDM file"
-    assert any("nonexistent-model.yaml" in str(e) for e in errors), \
+    assert any("nonexistent-model.yaml" in str(e) for e in errors), (
         f"Expected error about missing SDM file, got: {errors}"
+    )
 
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_semantic_data_models_missing_name(datadir: Path, v_2_1_spec: dict):
     """Test that validation fails if SDM is missing required 'name' field."""
     from ._spec_validation import load_spec
-    
+
     invalid_yaml = """
 agent-package:
   spec-version: v2
@@ -1446,8 +1447,9 @@ agent-package:
       metadata:
         mode: conversational
 """
-    
+
     errors = validate_from_spec(load_spec(v_2_1_spec), invalid_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors for missing 'name' field"
-    assert any("semantic-data-models/name" in str(e).lower() for e in errors), \
+    assert any("semantic-data-models/name" in str(e).lower() for e in errors), (
         f"Expected error about missing 'name' field in SDM, got: {errors}"
+    )
