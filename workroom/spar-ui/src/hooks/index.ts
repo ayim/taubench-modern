@@ -5,4 +5,3 @@ export * from './useParams';
 export * from './useRoute';
 export * from './useToggle';
 export * from './useQueryDataGuard';
-export * from './useThreadStartingMessage';

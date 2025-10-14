@@ -55,7 +55,7 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
   const draftMessage = messageByThreadId[threadId] ?? '';
 
   // Check if any uploaded file has the div2_ prefix - (This is for the Document Intelligence v2 modal TEST)
-  const hasDiv2File = attachments.some(file => file.name.startsWith('div2_'));
+  const hasDiv2File = attachments.some((file) => file.name.startsWith('div2_'));
 
   const onAddAttachments = (files: File[]) => {
     setAttachmentsByThreadId((prevAttachmentsByThread) => {
@@ -96,8 +96,22 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
     }));
   };
 
-  const { streamingMessages, uploadingFiles, sendMessage, streamError, stopStream } = useMessageStream({ agentId, threadId });
-  const isStreaming = !!streamingMessages;
+  const {
+    streamingMessages: allStreamingMessages,
+    uploadingFiles,
+    sendMessage,
+    streamError,
+    stopStream,
+  } = useMessageStream({
+    agentId,
+    threadId,
+  });
+
+  const streamingMessages = allStreamingMessages?.filter(
+    (curr) => !messages.some((message) => message.message_id === curr.message_id),
+  );
+
+  const isStreaming = !!streamingMessages?.length;
 
   const queryDataGuard = useQueryDataGuard([threadQueryState, oauthStateQueryState]);
 

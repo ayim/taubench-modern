@@ -4,7 +4,7 @@ import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
 
-import { useNavigate, useParams, useThreadStartingMessage } from '../../hooks';
+import { useNavigate, useParams } from '../../hooks';
 import { useCreateThread } from '../../hooks/useCreateThread';
 import { useAgentQuery } from '../../queries/agents';
 import { ThreadSearch } from '../ThreadSearch';
@@ -40,10 +40,8 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
   const { triggerProps, triggerRef } = useSidebarMenu('threads-list');
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const { onNewThread, isCreatingThread } = useCreateThread();
-  const {message: startingMessage, isUserMessage} = useThreadStartingMessage({ agentId });
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
-
 
   const onAgentDelete = () => {
     navigate({ to: '/home', params: {} });
@@ -78,7 +76,7 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
             disabled={isCreatingThread}
             round
             aria-label="New Chat"
-            onClick={() => onNewThread({ startingMessage, isUserMessage })}
+            onClick={onNewThread}
           />
         </Tooltip>
         {children}

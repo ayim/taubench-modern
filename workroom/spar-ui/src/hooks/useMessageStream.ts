@@ -32,45 +32,32 @@ class StreamManager {
     content,
     threadId,
     agentId,
-    skipInitialUserMessage = false,
   }: {
     sparAPIClient: SparAPIClient;
     queryClient: QueryClient;
     content: ThreadContent[];
     threadId: string;
     agentId: string;
-    skipInitialUserMessage?: boolean;
   }) {
     this.streamErrorMap[threadId] = undefined;
     this.queryClient = queryClient;
 
     this.messagesMap[threadId] = [];
-    if (!skipInitialUserMessage) {
-      this.messagesMap[threadId].push({
-        message_id: uuidv4(),
-        role: 'user',
-        content,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        agent_metadata: {},
-        server_metadata: {},
-        commited: true,
-        complete: true,
-      });
-    }
-    else {
-      this.messagesMap[threadId].push({
-          message_id: uuidv4(),
-          role: 'user',
-          content: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          agent_metadata: {},
-          server_metadata: {},
-          commited: false,
-          complete: true,
-      });
-    }
+
+    const userMessage = {
+      message_id: uuidv4(),
+      content,
+      role: 'user',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      agent_metadata: {},
+      server_metadata: {},
+      commited: true,
+      complete: true,
+    } satisfies ThreadMessage;
+
+    this.messagesMap[threadId].push(userMessage);
+
     this.emitMessage(threadId);
     const ws = await sparAPIClient.startWebsocketStream(agentId);
 
@@ -84,12 +71,7 @@ class StreamManager {
           JSON.stringify({
             thread_id: threadId,
             agent_id: agentId,
-            messages: [
-              {
-                role: 'user',
-                content,
-              },
-            ],
+            messages: [userMessage],
           }),
         );
         resolve();
@@ -207,8 +189,8 @@ class StreamManager {
     this.wsMap[threadId] = null;
 
     const threadMessages = this.messagesMap[threadId] ?? [];
-    const completedMessages = threadMessages.filter(message => message.complete);
-    
+    const completedMessages = threadMessages.filter((message) => message.complete);
+
     if (completedMessages.length > 0) {
       this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (messages: ThreadMessage[]) => {
         return [...messages, ...completedMessages];
@@ -248,9 +230,10 @@ class StreamManager {
   private emitMessage(threadId: string): void {
     const listenersSet = this.messageListeners.get(threadId);
     if (listenersSet) {
-      const messages = this.messagesMap[threadId];
+      const messages = this.messagesMap[threadId] || [];
+
       listenersSet.forEach((listener) =>
-        listener(messages && messages.length > 0 ? [...messages] : undefined, this.streamErrorMap[threadId]),
+        listener(messages.length > 0 ? [...messages] : undefined, this.streamErrorMap[threadId]),
       );
     }
   }
@@ -316,8 +299,11 @@ class StreamManager {
     );
 
     if (completedMessages.length > 0) {
-      this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (messages: ThreadMessage[]) => {
-        return [...messages, ...completedMessages];
+      this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (messages: ThreadMessage[] = []) => {
+        const newMessages = completedMessages.filter(
+          (curr) => !messages.some((message) => message.message_id === curr.message_id),
+        );
+        return [...(messages ?? []), ...newMessages];
       });
     }
 

@@ -72,7 +72,6 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
         queryClient,
         threadId: newThread.data.thread_id,
         sparAPIClient: createSparAPIClient(tenantId, undefined as unknown as TenantMeta, agentAPIClient, router),
-        skipInitialUserMessage: true,
       });
 
       throw redirect({
@@ -122,14 +121,17 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     /**
      * 4. If no threads exist, create a new one
      */
+    const text = (agent?.extra?.conversation_starter as string | undefined) ?? NEW_CHAT_STARTING_MSG;
+    const role = agent?.extra?.conversation_starter ? 'user' : 'agent';
+
     const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
       body: {
         name: 'Chat 1',
         agent_id: agentId,
         messages: [
           {
-            role: 'agent',
-            content: [{ kind: 'text', text: NEW_CHAT_STARTING_MSG, complete: true }],
+            role,
+            content: [{ kind: 'text', text, complete: true }],
             complete: true,
             commited: false,
           },

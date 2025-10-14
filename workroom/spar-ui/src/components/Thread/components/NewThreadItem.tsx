@@ -1,7 +1,6 @@
 import { IconPlus } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { FC } from 'react';
-import { useParams, useThreadStartingMessage } from '../../../hooks';
 import { useCreateThread } from '../../../hooks/useCreateThread';
 
 const Container = styled.button`
@@ -25,13 +24,10 @@ const Container = styled.button`
 `;
 
 export const NewThreadItem: FC = () => {
-  const { agentId } = useParams('/thread/$agentId');
-  const { message: startingMessage, isUserMessage } = useThreadStartingMessage({ agentId });
-
   const { onNewThread, isCreatingThread } = useCreateThread();
 
   return (
-    <Container disabled={isCreatingThread} onClick={() => onNewThread({ startingMessage, isUserMessage })}>
+    <Container disabled={isCreatingThread} onClick={onNewThread}>
       <IconPlus />
       New Chat
     </Container>
