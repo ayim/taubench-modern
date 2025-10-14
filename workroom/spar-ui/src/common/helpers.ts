@@ -83,3 +83,8 @@ export const formatDateTime = (dateString: string | undefined): string => {
 
   return `${datePart} at ${timePart}`;
 };
+
+
+export const isImageFile = (file: File): boolean =>{ 
+  return file.type.startsWith('image/');
+}

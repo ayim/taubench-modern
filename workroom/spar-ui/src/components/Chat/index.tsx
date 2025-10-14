@@ -1,4 +1,3 @@
-import { ClipboardEvent, FC, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Chat as ChatComponent,
@@ -10,18 +9,19 @@ import {
   useSnackbar,
 } from '@sema4ai/components';
 import { IconPaperclip } from '@sema4ai/icons';
-import { useForm } from 'react-hook-form';
 import { styled } from '@sema4ai/theme';
+import { ClipboardEvent, FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useForm } from 'react-hook-form';
 
-import { getFileTypeIcon } from '../../common/helpers';
-import { useThreadMessagesQuery } from '../../queries/threads';
-import { useAgentOAuthStateQuery } from '../../queries/agents';
+import { getFileSize, getFileTypeIcon, isImageFile } from '../../common/helpers';
 import { useMessageStream, useQueryDataGuard } from '../../hooks';
+import { useAgentOAuthStateQuery } from '../../queries/agents';
+import { useThreadMessagesQuery } from '../../queries/threads';
 import { useThreadSearchStore } from '../../state/useThreadSearchStore';
-import { MessageRenderer } from './components/renderer/Message';
-import { OAuth } from './components/OAuth';
 import { DocumentIntelligenceView } from '../DocumentIntelligence';
+import { OAuth } from './components/OAuth';
+import { MessageRenderer } from './components/renderer/Message';
 
 type Props = {
   agentId: string;
@@ -41,6 +41,47 @@ const Footer = styled.footer`
   margin: 0 auto;
   padding: 0 ${({ theme }) => theme.space.$20} ${({ theme }) => theme.space.$20};
 `;
+
+const ChatInputAttachment: FC<{ file: File; onCloseClick: () => void }> = ({ file, onCloseClick }) => {
+  const { variant, icon, cleanupAttachmentPreview } = useMemo<
+    Pick<React.ComponentProps<typeof FileItem>, 'variant' | 'icon'> & { cleanupAttachmentPreview: () => void }
+  >(() => {
+    if (isImageFile(file)) {
+      const imgSrc = URL.createObjectURL(file);
+      return {
+        variant: 'image',
+        icon: <img src={imgSrc} alt={file.name} />,
+        // cleanup function that releases resources of imgSrc
+        cleanupAttachmentPreview: () => {
+          URL.revokeObjectURL(imgSrc);
+        },
+      };
+    }
+
+    return {
+      variant: 'file',
+      icon: getFileTypeIcon(file.type),
+      cleanupAttachmentPreview: () => {},
+    };
+  }, [file]);
+
+  const fileSizeText = useMemo(() => getFileSize(file.size), [file.size]);
+
+  useEffect(() => {
+    return cleanupAttachmentPreview;
+  }, [cleanupAttachmentPreview]);
+
+  return (
+    <FileItem
+      variant={variant}
+      label={file.name}
+      description={fileSizeText}
+      icon={icon}
+      embeded
+      onCloseClick={onCloseClick}
+    />
+  );
+};
 
 export const Chat: FC<Props> = ({ agentId, threadId }) => {
   const { addSnackbar } = useSnackbar();
@@ -85,7 +126,7 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
     isDragActive,
   } = useDropzone({ onDrop: onAddAttachments, noClick: true });
 
-  const { register, handleSubmit, reset } = useForm<{ message: string }>({
+  const { register, handleSubmit, reset, watch } = useForm<{ message: string }>({
     defaultValues: { message: draftMessage },
     shouldUnregister: true,
   });
@@ -190,6 +231,12 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
 
   const requiresOAuth = oAuthState.some((state) => !state.isAuthorized);
 
+  const chatInputMessageText = watch('message');
+  const hasContentToSend = chatInputMessageText.trim().length > 0 || attachments.length > 0;
+
+  const isStreamingOrUploadingFiles = isStreaming || uploadingFiles;
+  const isChatInputBusy = uploadingFiles || (!hasContentToSend && !isStreaming);
+
   return (
     <Container {...getRootProps()}>
       <ChatComponent
@@ -217,17 +264,11 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
           </Dialog>
         )}
         {requiresOAuth && <OAuth />}
-        <ChatInput streaming={isStreaming} busy={uploadingFiles} onSend={onSubmit} onAbort={onAbort}>
+        <ChatInput streaming={isStreamingOrUploadingFiles} busy={isChatInputBusy} onSend={onSubmit} onAbort={onAbort}>
           {attachments.length > 0 && (
             <ChatInput.FileList>
               {attachments.map((file) => (
-                <FileItem
-                  key={file.name}
-                  label={file.name}
-                  icon={getFileTypeIcon(file.type)}
-                  embeded
-                  onCloseClick={() => onRemoveAttachment(file)}
-                />
+                <ChatInputAttachment key={file.name} file={file} onCloseClick={() => onRemoveAttachment(file)} />
               ))}
             </ChatInput.FileList>
           )}
@@ -249,7 +290,7 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
               aria-label="Attach file button"
               variant="ghost"
               round
-              disabled={isStreaming}
+              disabled={isStreamingOrUploadingFiles}
             />
           </ChatInput.Actions>
         </ChatInput>
