@@ -32,7 +32,10 @@ const Container = styled.section`
   position: relative;
   display: grid;
   grid-template-rows: 1fr auto;
-  height: calc(100vh - ${({ theme }) => theme.sizes.$64});
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
 `;
 
 const Footer = styled.footer`
