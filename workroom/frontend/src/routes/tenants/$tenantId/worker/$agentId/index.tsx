@@ -19,21 +19,11 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/')({
      */
     const prefearedWorkItemId = getUserPreferenceId(getPreferenceKey({ agentId }));
     if (prefearedWorkItemId) {
-      let workItemExists = false;
+      const workItem = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/{work_item_id}', {
+        params: { path: { work_item_id: prefearedWorkItemId } },
+      });
 
-      try {
-        const thread = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/{work_item_id}', {
-          params: { path: { work_item_id: prefearedWorkItemId } },
-          silent: true,
-        });
-
-        workItemExists = !!thread;
-      } catch (e) {
-        console.error('Failed redirecting to preferred workitem', e);
-        removeUserPreferenceId(getPreferenceKey({ agentId }));
-      }
-
-      if (workItemExists) {
+      if (workItem.success) {
         throw redirect({
           to: '/tenants/$tenantId/worker/$agentId/$workItemId',
           params: {
@@ -42,6 +32,8 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/')({
             workItemId: prefearedWorkItemId,
           },
         });
+      } else {
+        removeUserPreferenceId(getPreferenceKey({ agentId }));
       }
     }
 

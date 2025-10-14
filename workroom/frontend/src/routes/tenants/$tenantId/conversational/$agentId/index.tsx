@@ -91,21 +91,11 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     const preferedThreadId = getUserPreferenceId(getPreferenceKey({ agentId }));
 
     if (preferedThreadId) {
-      let threadExists = false;
+      const thread = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/{tid}', {
+        params: { path: { tid: preferedThreadId } },
+      });
 
-      try {
-        const thread = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/{tid}', {
-          params: { path: { tid: preferedThreadId } },
-          silent: true,
-        });
-
-        threadExists = !!thread;
-      } catch (e) {
-        console.error('Failed redirecting to preferred thread', e);
-        removeUserPreferenceId(getPreferenceKey({ agentId }));
-      }
-
-      if (threadExists) {
+      if (thread.success) {
         throw redirect({
           to: '/tenants/$tenantId/conversational/$agentId/$threadId',
           params: {
@@ -114,6 +104,8 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
             threadId: preferedThreadId,
           },
         });
+      } else {
+        removeUserPreferenceId(getPreferenceKey({ agentId }));
       }
     }
 
