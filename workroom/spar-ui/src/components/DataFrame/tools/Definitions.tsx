@@ -1,5 +1,5 @@
 import { ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
-import { DataFrameCallbackDataFrameCreation } from './Tools';
+import { DataFrameCallbackDataFrameCreation, DataFrameCallbackState } from './Tools';
 
 export const DATA_FRAME_TOOL_PREFIX = 'data_frames_';
 
@@ -17,11 +17,11 @@ export class DataFrameClientTools {
    * These tools provide user interaction points during data frame creation workflows
    */
 
-  static chooseToolToRender = (tool: ThreadToolUsageContent) => {
+  static chooseToolToRender = (tool: ThreadToolUsageContent, state: DataFrameCallbackState) => {
     switch (tool.name) {
       case SERVER_TOOLS_THAT_REQUIRE_CLIENT_ACTION.CREATE_FROM_FILE:
       case SERVER_TOOLS_THAT_REQUIRE_CLIENT_ACTION.CREATE_FROM_SQL:
-        return <DataFrameCallbackDataFrameCreation key={`${tool.content_id}-callback`} tool={tool} />;
+        return <DataFrameCallbackDataFrameCreation key={`${tool.content_id}-callback`} state={state} />;
       default:
         return null;
     }

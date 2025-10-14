@@ -1,9 +1,8 @@
 import { FC, useEffect, useState } from 'react';
-import { ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
-import { useParams } from '../../../hooks';
+import { useParams, useStateTransitionCallback } from '../../../hooks';
 import { useDataFramesQuery } from '../../../queries/dataFrames';
 
-const DATA_FRAME_REFETCH_GRACE_PERIOD = 500;
+const DATA_FRAME_REFETCH_GRACE_PERIOD = 1000;
 
 const DataFrameCallback: FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
@@ -20,17 +19,18 @@ const DataFrameCallback: FC<{ onComplete: () => void }> = ({ onComplete }) => {
   return null;
 };
 
-export const DataFrameCallbackDataFrameCreation: FC<{ tool: ThreadToolUsageContent }> = ({ tool }) => {
+export type DataFrameCallbackState = 'in_progress' | 'done' | 'failed';
+export const DataFrameCallbackDataFrameCreation: FC<{
+  state: DataFrameCallbackState;
+}> = ({ state }) => {
   const [triggered, setTriggered] = useState(false);
-  const onComplete = () => setTriggered(false);
+  const onTransitionTriggered = () => setTriggered(true);
+  const onTransitionComplete = () => setTriggered(false);
 
-  const isRunning = ['streaming', 'pending', 'running'].includes(tool.status);
-  useEffect(() => {
-    if (isRunning) {
-      setTriggered(true);
-    }
-  }, [isRunning]);
-
-  if (triggered && tool.complete && tool.status !== 'failed') return <DataFrameCallback onComplete={onComplete} />;
+  useStateTransitionCallback<DataFrameCallbackState>(
+    { onTransition: onTransitionTriggered, from: 'in_progress', to: 'done' },
+    state,
+  );
+  if (triggered) return <DataFrameCallback onComplete={onTransitionComplete} />;
   return null;
 };

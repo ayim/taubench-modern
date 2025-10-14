@@ -19,7 +19,7 @@ import { useThreadMessagesQuery } from '../../queries/threads';
 import { useAgentOAuthStateQuery } from '../../queries/agents';
 import { useMessageStream, useQueryDataGuard } from '../../hooks';
 import { useThreadSearchStore } from '../../state/useThreadSearchStore';
-import { MessageRenderer } from './components/Renderer';
+import { MessageRenderer } from './components/renderer/Message';
 import { OAuth } from './components/OAuth';
 import { DocumentIntelligenceView } from '../DocumentIntelligence';
 

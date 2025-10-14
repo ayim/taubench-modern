@@ -1,15 +1,16 @@
-import { FC, Fragment, useMemo } from 'react';
-import { ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
-import { Box, Button, Chat, useClipboard, useSnackbar } from '@sema4ai/components';
+import { FC, Fragment, ReactNode, useMemo, useRef } from 'react';
+import { ThreadContent, ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
+import { Box, Button, Chat, ChatActionRefType, useClipboard, useSnackbar } from '@sema4ai/components';
 import { IconCheck2, IconCode, IconCopy } from '@sema4ai/icons';
 
 import { snakeCaseToTitleCase } from '../../../common/helpers';
 import { Code } from '../../../common/code';
 import { SparUIFeatureFlag } from '../../../api';
-import { useFeatureFlag, useParams } from '../../../hooks';
+import { useFeatureFlag, useParams, useStateTransitionCallback } from '../../../hooks';
 import { DataFrameClientTools } from '../../DataFrame/tools/Definitions';
 import { useShowActionLogsMutation } from '../../../queries';
 
+type ActionState = 'in_progress' | 'done' | 'failed';
 type Props = {
   content: ThreadToolUsageContent;
 };
@@ -21,6 +22,111 @@ const safeParseJson = (text: string | null | undefined) => {
   } catch {
     return text;
   }
+};
+
+const formatGroupTitleDetails = (contentItem?: { name: string }, count = 0) => {
+  const contentName = contentItem?.name ? ` ${snakeCaseToTitleCase(contentItem.name)}` : '';
+  const contentNameSuffix = count > 1 ? ` and ${count - 1} more` : '';
+
+  return {
+    title: contentName,
+    optionalSuffix: contentNameSuffix,
+  };
+};
+
+const getActionState = (
+  status: ThreadToolUsageContent['status'],
+  contentComplete: ThreadToolUsageContent['complete'],
+): ActionState => {
+  const isRunning = !contentComplete || ['streaming', 'pending', 'running'].includes(status);
+  if (isRunning) return 'in_progress';
+  if (status === 'failed') return 'failed';
+  return 'done';
+};
+
+const getActionGroupStateDetails = ({
+  messageContent,
+  messageComplete,
+}: {
+  messageContent: ThreadContent[];
+  messageComplete: boolean;
+}): { state: ActionState; title: string } => {
+  const groupedContent = messageContent.reduce<{
+    inProgress: ThreadToolUsageContent[];
+    done: ThreadToolUsageContent[];
+    failed: ThreadToolUsageContent[];
+    incomplete: ThreadContent[];
+  }>(
+    (acc, item) => {
+      if (!item.complete) {
+        acc.incomplete.push(item);
+      }
+
+      if (item.kind === 'tool_call') {
+        const actionState = getActionState(item.status, item.complete);
+        switch (actionState) {
+          case 'in_progress':
+            acc.inProgress.push(item);
+            break;
+          case 'failed':
+            acc.failed.push(item);
+            break;
+          default:
+            acc.done.push(item);
+            break;
+        }
+      }
+      return acc;
+    },
+    { inProgress: [], done: [], failed: [], incomplete: [] },
+  );
+
+  const isStreamingFinished = messageComplete && groupedContent.incomplete.length === 0;
+  if (groupedContent.inProgress.length > 0 && !isStreamingFinished) {
+    const runningGroupTitleDetails = formatGroupTitleDetails(
+      groupedContent.inProgress[0],
+      groupedContent.inProgress.length,
+    );
+    return {
+      state: 'in_progress',
+      title: `Running ${runningGroupTitleDetails.title} action${runningGroupTitleDetails.optionalSuffix}`,
+    };
+  }
+
+  if (!isStreamingFinished) {
+    return {
+      state: 'in_progress',
+      title: 'Running',
+    };
+  }
+
+  if (groupedContent.failed.length === 1) {
+    const failedGroupTitleDetails = formatGroupTitleDetails(groupedContent.failed[0], groupedContent.failed.length);
+    return {
+      state: 'failed',
+      title: `Failed to complete ${failedGroupTitleDetails.title} action`,
+    };
+  }
+
+  if (groupedContent.failed.length > 1) {
+    return {
+      state: 'failed',
+      title: 'Failed to complete',
+    };
+  }
+
+  if (groupedContent.done.length > 1) {
+    const doneGroupTitleDetails = formatGroupTitleDetails(groupedContent.failed[0], groupedContent.failed.length);
+    return {
+      state: 'done',
+      title: `Completed ${doneGroupTitleDetails.title} action${doneGroupTitleDetails.optionalSuffix}`,
+    };
+  }
+
+  return {
+    state: 'done',
+    title: 'Completed',
+  };
 };
 
 const isActionServerToolCall = (content: ThreadToolUsageContent) => {
@@ -43,7 +149,7 @@ export const ToolCall: FC<Props> = ({ content }) => {
   const { mutateAsync, isPending } = useShowActionLogsMutation({});
 
   const isError = content.status === 'failed';
-  const isRunning = ['streaming', 'pending', 'running'].includes(content.status);
+  const state = getActionState(content.status, content.complete);
 
   const input = content.arguments_raw;
   const output = isError ? (content.error ?? content.result) : content.result;
@@ -105,7 +211,11 @@ export const ToolCall: FC<Props> = ({ content }) => {
 
   return (
     <Fragment key={content.content_id}>
-      <Chat.Action title={snakeCaseToTitleCase(content.name)} running={isRunning} error={isError}>
+      <Chat.Action
+        title={snakeCaseToTitleCase(content.name)}
+        running={state === 'in_progress'}
+        error={state === 'failed'}
+      >
         {result ? <Code value={result} toolbar={toolbar} lang="json" maxRows={10} /> : null}
         <Box display="flex" gap="$8">
           {showActionLogs && isActionServerToolCall(content) && (
@@ -121,7 +231,34 @@ export const ToolCall: FC<Props> = ({ content }) => {
           )}
         </Box>
       </Chat.Action>
-      {DataFrameClientTools.chooseToolToRender(content)}
+      {DataFrameClientTools.chooseToolToRender(content, state)}
     </Fragment>
+  );
+};
+
+export const ToolCallGroup: FC<{ children: ReactNode; messageContent: ThreadContent[]; messageComplete: boolean }> = ({
+  children,
+  messageContent,
+  messageComplete,
+}) => {
+  const groupActionRef = useRef<ChatActionRefType>(null);
+  const { state, title } = useMemo(
+    () => getActionGroupStateDetails({ messageContent, messageComplete }),
+    [messageContent, messageComplete],
+  );
+
+  const onExpandGroup = () => groupActionRef.current?.setExpanded(true);
+  useStateTransitionCallback<typeof state>({ onTransition: onExpandGroup, from: 'in_progress', to: 'failed' }, state);
+
+  return (
+    <Chat.Action.Group
+      ref={groupActionRef}
+      title={title}
+      running={state === 'in_progress'}
+      error={state === 'failed'}
+      key={`group-${messageContent[0].content_id}`}
+    >
+      {children}
+    </Chat.Action.Group>
   );
 };
