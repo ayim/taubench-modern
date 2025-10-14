@@ -188,6 +188,19 @@
     "required": false,
     "expected-type": "string"
   },
+  "agent-package/agents/semantic-data-models": {
+    "description": "Section to indicate semantic data models for the agent.",
+    "required": false,
+    "expected-type": "list"
+  },
+  "agent-package/agents/semantic-data-models/name": {
+    "description": "Relative path under \"semantic-data-models\" for the semantic data model file. Example: \"customer-analytics.yaml\"",
+    "required": true,
+    "expected-type": {
+      "type": "file",
+      "relative-to": "./semantic-data-models"
+    }
+  },
   "agent-package/agents/mcp-servers": {
     "description": "Section to define MCP (Model Context Protocol) servers that the agent can connect to.",
     "required": false,

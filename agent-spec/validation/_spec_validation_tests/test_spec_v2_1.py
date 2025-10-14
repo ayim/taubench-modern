@@ -1323,3 +1323,131 @@ def test_spec():
                 raise Exception(
                     f"Invalid spec: {yaml_spec_path} does not match {json_spec_path}"
                 ) from e
+
+
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_validation_semantic_data_models_ok(datadir: Path, v_2_1_spec: dict):
+    """Test that semantic-data-models section is valid when properly formatted."""
+    from ._spec_validation import load_spec
+    
+    # Create semantic-data-models directory and YAML file (Snowflake format)
+    (datadir / "semantic-data-models").mkdir(parents=True)
+    (datadir / "semantic-data-models" / "customer-analytics.yaml").write_text(
+        'name: Customer Analytics\ndescription: Example semantic model\n'
+    )
+
+    valid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent with SDM
+      description: Test agent with semantic data models
+      version: 1.0.0
+      model:
+        provider: OpenAI
+        name: gpt-4
+      architecture: agent
+      reasoning: disabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      semantic-data-models:
+        - name: customer-analytics.yaml
+      metadata:
+        mode: conversational
+"""
+    
+    validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir)
+
+
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_validation_semantic_data_models_optional(datadir: Path, v_2_1_spec: dict):
+    """Test that semantic-data-models is optional (backward compatibility)."""
+    from ._spec_validation import load_spec
+    
+    valid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent without SDM
+      description: Test agent without semantic data models
+      version: 1.0.0
+      model:
+        provider: OpenAI
+        name: gpt-4
+      architecture: agent
+      reasoning: disabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+"""
+    
+    validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir)
+
+
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_validation_semantic_data_models_missing_file(datadir: Path, v_2_1_spec: dict):
+    """Test that validation fails if SDM file is missing."""
+    from ._spec_validation import load_spec
+    
+    # Don't create the semantic-data-models directory or file
+    
+    invalid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent with missing SDM
+      description: Test agent with missing SDM file
+      version: 1.0.0
+      model:
+        provider: OpenAI
+        name: gpt-4
+      architecture: agent
+      reasoning: disabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      semantic-data-models:
+        - name: nonexistent-model.yaml
+      metadata:
+        mode: conversational
+"""
+    
+    errors = validate_from_spec(load_spec(v_2_1_spec), invalid_yaml, datadir, raise_on_error=False)
+    assert errors, "Expected errors for missing SDM file"
+    assert any("nonexistent-model.yaml" in str(e) for e in errors), \
+        f"Expected error about missing SDM file, got: {errors}"
+
+
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_validation_semantic_data_models_missing_name(datadir: Path, v_2_1_spec: dict):
+    """Test that validation fails if SDM is missing required 'name' field."""
+    from ._spec_validation import load_spec
+    
+    invalid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent with invalid SDM
+      description: Test agent with invalid SDM entry
+      version: 1.0.0
+      model:
+        provider: OpenAI
+        name: gpt-4
+      architecture: agent
+      reasoning: disabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      semantic-data-models:
+        - {}
+      metadata:
+        mode: conversational
+"""
+    
+    errors = validate_from_spec(load_spec(v_2_1_spec), invalid_yaml, datadir, raise_on_error=False)
+    assert errors, "Expected errors for missing 'name' field"
+    assert any("semantic-data-models/name" in str(e).lower() for e in errors), \
+        f"Expected error about missing 'name' field in SDM, got: {errors}"

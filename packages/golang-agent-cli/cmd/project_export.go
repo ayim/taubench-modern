@@ -32,6 +32,7 @@ type SpecState struct {
 	AssistantDockerMcpGateway   map[string]*common.SpecDockerMcpGateway
 	assistantRunbooks           map[string]string
 	AssistantConversationGuides map[string]string
+	assistantSemanticDataModels map[string][]common.SpecSemanticDataModel
 }
 
 // safeAgentString returns a sanitized string representation of an Agent
@@ -129,12 +130,13 @@ func (state *SpecState) specForAgent(assistant AgentServer.Agent, projectPath st
 			}
 			return assistant.Metadata.WelcomeMessage
 		}(),
-		AgentSettings:    common.NormalizeMap(assistant.Extra.AgentSettings),
-		ActionPackages:   state.assistantActionPackages[assistant.ID],
-		McpServers:       state.assistantMcpServer[assistant.ID],
-		DockerMcpGateway: mergedDockerMcpGateway,
-		Knowledge:        state.assistantKnowledge[assistant.ID],
-		Metadata:         metadata,
+		AgentSettings:      common.NormalizeMap(assistant.Extra.AgentSettings),
+		ActionPackages:     state.assistantActionPackages[assistant.ID],
+		McpServers:         state.assistantMcpServer[assistant.ID],
+		DockerMcpGateway:   mergedDockerMcpGateway,
+		Knowledge:          state.assistantKnowledge[assistant.ID],
+		SemanticDataModels: state.assistantSemanticDataModels[assistant.ID],
+		Metadata:           metadata,
 	}
 }
 
@@ -525,6 +527,88 @@ func (state *SpecState) createMcpServers(assistants []AgentServer.Agent) error {
 	return nil
 }
 
+func (state *SpecState) createSemanticDataModelsDir(assistants []AgentServer.Agent, projectPath string, client *AgentServer.Client) error {
+	sdmPath := filepath.Join(projectPath, "semantic-data-models")
+	
+	for _, assistant := range assistants {
+		pretty.LogIfVerbose("[createSemanticDataModelsDir] fetching SDMs for agent: %s", assistant.ID)
+		
+		// Fetch SDMs from agent server
+		sdms, err := client.GetAgentSemanticDataModels(assistant.ID)
+		if err != nil {
+			pretty.LogIfVerbose("[createSemanticDataModelsDir] failed to fetch SDMs for agent %s: %s", assistant.ID, err)
+			continue // Continue with other agents if one fails
+		}
+		
+		if len(sdms) == 0 {
+			pretty.LogIfVerbose("[createSemanticDataModelsDir] no SDMs found for agent: %s", assistant.ID)
+			continue
+		}
+		
+		// Create semantic-data-models directory only if we have SDMs
+		err = os.MkdirAll(sdmPath, 0o755)
+		if err != nil {
+			return fmt.Errorf("[createSemanticDataModelsDir] failed to create semantic-data-models directory: %w", err)
+		}
+		
+		sdmRefs := []common.SpecSemanticDataModel{}
+		usedFilenames := make(map[string]bool)
+		
+		for _, sdm := range sdms {
+			// Generate filename from SDM name or ID
+			var filename string
+			if nameVal, ok := sdm.SemanticModel["name"]; ok {
+				if nameStr, ok := nameVal.(string); ok && nameStr != "" {
+					// Sanitize filename using slugify for consistent naming
+					slugified := common.Slugify(nameStr)
+					filename = fmt.Sprintf("%s.yaml", slugified)
+					
+					// Handle filename collision: append short ID (first 8 chars) if name already exists
+					if usedFilenames[filename] {
+						pretty.LogIfVerbose("[createSemanticDataModelsDir] filename collision detected for '%s', appending short ID", filename)
+						shortID := sdm.ID
+						if len(sdm.ID) > 8 {
+							shortID = sdm.ID[:8]
+						}
+						filename = fmt.Sprintf("%s-%s.yaml", slugified, shortID)
+					}
+				}
+			}
+			if filename == "" {
+				// Use SDM ID as fallback
+				filename = fmt.Sprintf("sdm-%s.yaml", sdm.ID)
+			}
+			
+			// Mark filename as used
+			usedFilenames[filename] = true
+			
+			// Write SDM to file
+			sdmFilePath := filepath.Join(sdmPath, filename)
+			
+			// Export as YAML
+			sdmYAML, err := yaml.Marshal(sdm.SemanticModel)
+			if err != nil {
+				return fmt.Errorf("[createSemanticDataModelsDir] failed to marshal SDM: %w", err)
+			}
+			
+		if err := os.WriteFile(sdmFilePath, sdmYAML, 0o644); err != nil {
+			return fmt.Errorf("[createSemanticDataModelsDir] failed to write SDM file: %w", err)
+		}
+		
+		sdmRefs = append(sdmRefs, common.SpecSemanticDataModel{
+			Name: filename,
+		})
+			
+			pretty.LogIfVerbose("[createSemanticDataModelsDir] exported SDM: %s", filename)
+		}
+		
+		state.assistantSemanticDataModels[assistant.ID] = sdmRefs
+	}
+	
+	pretty.LogIfVerbose("[createSemanticDataModelsDir] semantic data models are ready!")
+	return nil
+}
+
 func createAgentProject(assistants []AgentServer.Agent, projectPath string) error {
 	if projectPath == "" {
 		return fmt.Errorf("[createAgentProject] project path cannot be empty")
@@ -547,12 +631,21 @@ func createAgentProject(assistants []AgentServer.Agent, projectPath string) erro
 		AssistantDockerMcpGateway:   map[string]*common.SpecDockerMcpGateway{},
 		assistantRunbooks:           map[string]string{},
 		AssistantConversationGuides: map[string]string{},
+		assistantSemanticDataModels: map[string][]common.SpecSemanticDataModel{},
 	}
 
 	// Create the knowledge directory and copy agent files
 	err = state.createKnowledgeDir(assistants, projectPath)
 	if err != nil {
 		return err
+	}
+
+	// Create the semantic data models directory
+	client := AgentServer.NewClient(agentServerURL)
+	err = state.createSemanticDataModelsDir(assistants, projectPath, client)
+	if err != nil {
+		// Log error but don't fail the entire export
+		pretty.LogIfVerbose("[createAgentProject] warning: failed to export SDMs: %s", err)
 	}
 
 	// Create the actions directory and copy action packages

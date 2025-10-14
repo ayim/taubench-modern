@@ -63,6 +63,8 @@ agent-package:
               - confluence_add_label
               - confluence_create_page
           duckduckgo:
+      semantic-data-models:
+        - name: sample-semantic-model.yaml
       conversation-starter: 'Hello, what tools do you have?'
       welcome-message: 'Hello, how can I help you today?'
       metadata:

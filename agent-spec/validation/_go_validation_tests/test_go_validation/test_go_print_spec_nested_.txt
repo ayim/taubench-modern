@@ -56,6 +56,8 @@ root (no data)
       resources (deprecated)
       runbook (required)
       runbooks (deprecated)
+      semantic-data-models
+        name (required)
       type (deprecated)
       version (required)
       welcome-message

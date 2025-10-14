@@ -23,11 +23,16 @@ const (
 
 type SpecAgentActionPackageType string
 
-// ----- SpecAgentActionPackage
+// ----- SpecAgentKnowledge
 type SpecAgentKnowledge struct {
 	Name     string `yaml:"name" json:"name"`
 	Embedded bool   `yaml:"embedded" json:"embedded"`
 	Digest   string `yaml:"digest" json:"digest"`
+}
+
+// ----- SpecSemanticDataModel
+type SpecSemanticDataModel struct {
+	Name string `yaml:"name" json:"name"`
 }
 
 // ----- SpecAgentModel
@@ -213,6 +218,7 @@ type SpecAgent struct {
 	McpServers           []SpecMcpServer                         `yaml:"mcp-servers,omitempty" json:"mcp_servers,omitempty"`
 	DockerMcpGateway     *SpecDockerMcpGateway                   `yaml:"docker-mcp-gateway,omitempty" json:"docker_mcp_gateway,omitempty"`
 	Knowledge            []SpecAgentKnowledge                    `yaml:"knowledge" json:"knowledge"`
+	SemanticDataModels   []SpecSemanticDataModel                 `yaml:"semantic-data-models,omitempty" json:"semantic_data_models,omitempty"`
 	Metadata             AgentServer.AgentMetadata               `yaml:"metadata" json:"metadata"`
 }
 

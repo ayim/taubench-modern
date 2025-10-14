@@ -192,6 +192,14 @@ type AgentFile struct {
 	Embedded bool   `json:"embedded"`
 }
 
+// SemanticDataModel represents a semantic data model associated with an agent
+// The server returns a map[string]interface{} where the key is the SDM ID
+// and the value is the semantic model content
+type SemanticDataModel struct {
+	ID            string
+	SemanticModel map[string]interface{}
+}
+
 type AgentMetadata struct {
 	Mode           AgentMode      `json:"mode"`
 	WorkerConfig   *WorkerConfig  `json:"worker_config,omitempty" yaml:"worker-config,omitempty"`

@@ -1,0 +1,125 @@
+# Snowflake Cortex Analyst Semantic Model
+# This is an example semantic data model for demonstration purposes
+# Based on Snowflake semantic model specification v2.1
+
+name: Sample Semantic Model
+description: Example semantic data model for demonstration purposes
+
+tables:
+  - name: customers
+    description: Customer information table
+    base_table:
+      database: MAIN_DB
+      schema: PUBLIC
+      table: CUSTOMERS
+    dimensions:
+      - name: customer_id
+        synonyms:
+          - customer identifier
+          - customer number
+          - client id
+        description: Unique identifier for the customer
+        expr: customer_id
+        data_type: NUMBER
+        unique: true
+      
+      - name: customer_name
+        synonyms:
+          - client name
+          - customer full name
+        description: Full name of the customer
+        expr: customer_name
+        data_type: VARCHAR
+      
+      - name: customer_email
+        synonyms:
+          - email address
+          - contact email
+        description: Email address of the customer
+        expr: customer_email
+        data_type: VARCHAR
+      
+      - name: registration_date
+        synonyms:
+          - signup date
+          - account created
+        description: Date when the customer registered
+        expr: registration_date
+        data_type: DATE
+    
+    metrics:
+      - name: total_customers
+        synonyms:
+          - customer count
+          - number of customers
+        description: Total number of customers
+        expr: COUNT(*)
+        data_type: NUMBER
+
+  - name: orders
+    description: Customer orders table
+    base_table:
+      database: MAIN_DB
+      schema: PUBLIC
+      table: ORDERS
+    dimensions:
+      - name: order_id
+        synonyms:
+          - order number
+          - transaction id
+        description: Unique identifier for the order
+        expr: order_id
+        data_type: NUMBER
+        unique: true
+      
+      - name: customer_id
+        synonyms:
+          - customer identifier
+          - client id
+        description: Foreign key to customers table
+        expr: customer_id
+        data_type: NUMBER
+      
+      - name: order_date
+        synonyms:
+          - purchase date
+          - transaction date
+        description: Date when the order was placed
+        expr: order_date
+        data_type: DATE
+    
+    metrics:
+      - name: order_amount
+        synonyms:
+          - order total
+          - transaction amount
+        description: Total amount of the order
+        expr: order_amount
+        data_type: NUMBER
+      
+      - name: total_orders
+        synonyms:
+          - order count
+          - number of orders
+        description: Total number of orders
+        expr: COUNT(*)
+        data_type: NUMBER
+      
+      - name: total_revenue
+        synonyms:
+          - total sales
+          - revenue
+        description: Sum of all order amounts
+        expr: SUM(order_amount)
+        data_type: NUMBER
+
+relationships:
+  - name: customer_orders
+    left_table: customers
+    right_table: orders
+    relationship_columns:
+      - left_column: customer_id
+        right_column: customer_id
+    join_type: left_outer
+    relationship_type: one_to_many
+

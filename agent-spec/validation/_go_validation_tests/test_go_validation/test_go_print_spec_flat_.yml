@@ -625,6 +625,27 @@ agent-package/agents/runbooks:
     RelativeTo: ''
   Path: agent-package/agents/runbooks
   Required: false
+agent-package/agents/semantic-data-models:
+  Deprecated: false
+  Description: Section to indicate semantic data models for the agent.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/semantic-data-models
+  Required: false
+agent-package/agents/semantic-data-models/name:
+  Deprecated: false
+  Description: 'Relative path under "semantic-data-models" for the semantic data model
+    file. Example: "customer-analytics.yaml"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./semantic-data-models
+  Path: agent-package/agents/semantic-data-models/name
+  Required: true
 agent-package/agents/type:
   Deprecated: true
   Description: Please use 'architecture' instead

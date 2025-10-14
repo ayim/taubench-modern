@@ -463,6 +463,42 @@ func (c *Client) fetchFiles(agentID string) ([]AgentFile, error) {
 	return files, nil
 }
 
+// GetAgentSemanticDataModels fetches semantic data models for an agent
+// Server returns: [{sdm_id1: model1}, {sdm_id2: model2}, ...]
+func (c *Client) GetAgentSemanticDataModels(agentID string) ([]SemanticDataModel, error) {
+	url := fmt.Sprintf("%s/api/v2/agents/%s/semantic-data-models", c.BaseURL, agentID)
+
+	// Server returns a list of maps, where each map has one key (the SDM ID) and the value is the model
+	var rawSDMs []map[string]interface{}
+	if err := c.get(url, &rawSDMs); err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to fetch semantic data models for agent %s: %w", agentID, err), http.StatusInternalServerError)
+	}
+
+	// Convert to our struct format
+	sdms := make([]SemanticDataModel, 0, len(rawSDMs))
+	for _, rawSDM := range rawSDMs {
+		// Each rawSDM is {id: model}
+		for id, modelData := range rawSDM {
+			// modelData should be a map[string]interface{} representing the semantic model
+			var semanticModel map[string]interface{}
+			if modelMap, ok := modelData.(map[string]interface{}); ok {
+				semanticModel = modelMap
+			} else {
+				// If it's null or unexpected type, use empty map
+				semanticModel = map[string]interface{}{}
+			}
+			
+			sdms = append(sdms, SemanticDataModel{
+				ID:            id,
+				SemanticModel: semanticModel,
+			})
+			break // Each map should only have one entry
+		}
+	}
+
+	return sdms, nil
+}
+
 // UploadFile uploads a file and associates it with a given agentID.
 func (c *Client) UploadFile(agentID, filePath string) error {
 	if agentID == "" || filePath == "" {
