@@ -1,20 +1,13 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { Box, useSnackbar } from '@sema4ai/components';
 import { CLEAR_EDITOR_COMMAND } from 'lexical';
 import { useCallback, useEffect, useState } from 'react';
-import { useSnackbar } from '@sema4ai/components';
 import { MARKDOWN_TRANSFORMERS } from './FunctionalToolbar/MarkdownTransformers';
-// import './index.css';
 import { $convertFromMarkdownString } from './plugins/lexical-markdown';
-import {
-  RunbookEditorContainer,
-  RunbookEditorInner,
-  RunbookEditorInput,
-  RunbookEditorPlaceholder,
-} from './styledComponents';
-
-const EDITOR_PLACEHOLDER = 'There is no content in this runbook !';
+import { RunbookEditorContainer } from './styledComponents';
 
 type RunbookEditorProps = {
   runbookMarkdown: string;
@@ -50,26 +43,25 @@ const RunbookEditor = ({ runbookMarkdown }: RunbookEditorProps) => {
 
   return (
     <RunbookEditorContainer>
-      <RunbookEditorInner
+      <Box
+        className="editor-inner"
         onPaste={(e) => {
           e.preventDefault();
         }}
       >
         <RichTextPlugin
           contentEditable={
-            <RunbookEditorInput
-              loadingEditorContents={loadingEditorContents}
+            <ContentEditable
+              className={`editor-input ${loadingEditorContents ? 'editor-input-disabled' : ''}`}
               onPaste={(e) => {
                 e.preventDefault();
               }}
-              aria-placeholder={EDITOR_PLACEHOLDER}
-              placeholder={<RunbookEditorPlaceholder>{EDITOR_PLACEHOLDER}</RunbookEditorPlaceholder>}
               disabled={loadingEditorContents}
             />
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-      </RunbookEditorInner>
+      </Box>
     </RunbookEditorContainer>
   );
 };

@@ -30,7 +30,7 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
       ) : (
         <Box display="flex" flexDirection="column" gap={20} p={8}>
           {agent?.description && <DescriptionSection description={agent.description} />}
-          {agentDetails?.runbook && (
+          {agentDetails?.runbook && !!agentDetails.runbook.trim() && (
             <RunbookSection agentName={agent?.name || ''} runbookMarkdown={agentDetails.runbook} />
           )}
           {agentDetails?.action_packages && agentDetails.action_packages.length > 0 && (

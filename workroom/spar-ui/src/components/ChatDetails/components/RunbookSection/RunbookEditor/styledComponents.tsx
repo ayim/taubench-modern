@@ -1,34 +1,24 @@
-import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { Box } from '@sema4ai/components';
 import { css, styled } from '@sema4ai/theme';
 
-export const RunbookEditorContainer = styled(Box)`
-  border-radius: 2px;
-  width: 100%;
-  min-width: 100%;
-  height: 100%;
-  min-height: 100%;
-  color: #000;
-  position: relative;
-  line-height: 20px;
-  text-align: left;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
-
-  /* Lexical theme styles */
+/**
+ * Styles for the Lexical editor.
+ * Copied directly from https://github.com/Sema4AI/sema4ai-studio/blob/develop/src/components/pages/Agents/RunbookEditor/index.scss
+ */
+const LexicalThemeStyles = css`
   hr {
-    height: 2px !important;
-    background-color: #999;
+    height: 2px;
+    background-color: rgb(var(--color-background-subtle));
   }
 
   .other h2 {
     font-size: 18px;
-    color: #444;
+    color: rgb(var(--color-content-subtle));
     margin-bottom: 7px;
   }
 
   .other a {
-    color: #777;
+    color: rgb(var(--color-content-subtle));
     text-decoration: underline;
     font-size: 14px;
   }
@@ -40,7 +30,7 @@ export const RunbookEditorContainer = styled(Box)`
 
   h1 {
     font-size: 24px;
-    color: #333;
+    color: rgb(var(--color-content-primary));
   }
 
   .ltr {
@@ -57,7 +47,7 @@ export const RunbookEditorContainer = styled(Box)`
     min-width: 100%;
     height: 100%;
     min-height: 100%;
-    color: #000;
+    color: rgb(var(--color-content-primary));
     position: relative;
     line-height: 20px;
     text-align: left;
@@ -66,7 +56,7 @@ export const RunbookEditorContainer = styled(Box)`
   }
 
   .editor-inner {
-    background: #fff;
+    background: rgb(var(--color-background-panels));
     position: relative;
     width: 100%;
     min-width: 100%;
@@ -91,13 +81,16 @@ export const RunbookEditorContainer = styled(Box)`
     resize: none;
     font-size: 16px;
     line-height: 22px;
+
     overflow-y: scroll;
-    caret-color: rgb(5, 5, 5);
+
+    caret-color: rgb(var(--color-content-primary));
     tab-size: 1;
     outline: 0;
     padding: 48px 64px 64px 64px;
     border: none !important;
-    background-color: white;
+
+    background-color: rgb(var(--color-background-panels));
   }
 
   .editor-input:focus-visible {
@@ -106,12 +99,12 @@ export const RunbookEditorContainer = styled(Box)`
   }
 
   .editor-input-disabled {
-    background-color: rgb(243, 244, 246, 1) !important;
+    background-color: rgb(var(--color-background-subtle)) !important;
     pointer-events: none !important;
   }
 
   .editor-placeholder {
-    color: #999;
+    color: rgb(var(--color-content-subtle));
     overflow: hidden;
     position: absolute;
     text-overflow: ellipsis;
@@ -148,14 +141,14 @@ export const RunbookEditorContainer = styled(Box)`
   }
 
   .editor-text-code {
-    background-color: rgb(240, 242, 245);
+    background-color: rgb(var(--color-background-subtle));
     padding: 1px 0.25rem;
     font-family: 'DM Mono', Menlo, Consolas, Monaco, monospace;
     font-size: 94%;
   }
 
   .editor-link {
-    color: rgb(33, 111, 219);
+    color: rgb(var(--color-content-link));
     text-decoration: none;
   }
 
@@ -163,8 +156,8 @@ export const RunbookEditorContainer = styled(Box)`
     display: block;
     width: 100%;
     height: 100%;
-    background: #222;
-    color: #fff;
+    background: rgb(var(--color-background-subtle));
+    color: rgb(var(--color-content-primary));
     padding: 5px;
     font-size: 12px;
     white-space: pre-wrap;
@@ -177,7 +170,7 @@ export const RunbookEditorContainer = styled(Box)`
   }
 
   .editor-code {
-    background-color: rgb(240, 242, 245);
+    background-color: rgb(var(--color-background-subtle));
     font-family: 'DM Mono', Menlo, Consolas, Monaco, monospace;
     display: block;
     padding: 8px 8px 8px 32px;
@@ -187,6 +180,7 @@ export const RunbookEditorContainer = styled(Box)`
     margin-top: 8px;
     margin-bottom: 8px;
     tab-size: 2;
+    /* white-space: pre; */
     overflow-x: auto;
     position: relative;
     width: 100%;
@@ -236,7 +230,7 @@ export const RunbookEditorContainer = styled(Box)`
 
   .editor-heading-h1 {
     font-size: 24px;
-    color: rgb(5, 5, 5);
+    color: rgb(var(--color-content-primary));
     font-weight: bold;
     margin: 0;
     margin-top: 16px;
@@ -246,7 +240,7 @@ export const RunbookEditorContainer = styled(Box)`
 
   .editor-heading-h2 {
     font-size: 20px;
-    color: rgb(5, 5, 5);
+    color: rgb(var(--color-content-primary));
     font-weight: bold;
     margin: 0;
     margin-top: 16px;
@@ -256,7 +250,7 @@ export const RunbookEditorContainer = styled(Box)`
 
   .editor-heading-h3 {
     font-size: 16px;
-    color: rgb(5, 5, 5);
+    color: rgb(var(--color-content-primary));
     font-weight: bold;
     margin: 0;
     margin-top: 16px;
@@ -268,8 +262,8 @@ export const RunbookEditorContainer = styled(Box)`
     margin: 0;
     margin-left: 20px;
     font-size: 15px;
-    color: rgb(101, 103, 107);
-    border-left-color: rgb(206, 208, 212);
+    color: rgb(var(--color-content-subtle));
+    border-left-color: rgb(var(--color-border-subtle));
     border-left-width: 4px;
     border-left-style: solid;
     padding-left: 16px;
@@ -303,7 +297,7 @@ export const RunbookEditorContainer = styled(Box)`
   }
 
   pre::-webkit-scrollbar-thumb {
-    background: #999;
+    background: rgb(var(--color-background-subtle));
   }
 
   .debug-timetravel-panel {
@@ -323,7 +317,7 @@ export const RunbookEditorContainer = styled(Box)`
     border: 0;
     background: none;
     flex: 1;
-    color: #fff;
+    color: rgb(var(--color-content-primary));
     font-size: 12px;
   }
 
@@ -339,7 +333,7 @@ export const RunbookEditorContainer = styled(Box)`
     right: 15px;
     position: absolute;
     background: none;
-    color: #fff;
+    color: rgb(var(--color-content-primary));
   }
 
   .debug-timetravel-button:hover {
@@ -360,71 +354,26 @@ export const RunbookEditorContainer = styled(Box)`
   }
 `;
 
-export const RunbookEditorInner = styled(Box)`
-  background: #fff;
+export const RunbookEditorContainer = styled(Box)`
+  border-radius: 2px;
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100%;
+  color: ${({ theme }) => theme.colors.content.primary.color};
   position: relative;
-  width: 100%;
-  min-width: 100%;
-  height: 100%;
-  min-height: 100%;
+  line-height: 20px;
+  text-align: left;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 
-  div {
-    position: relative;
-    width: 100%;
-    min-width: 100%;
-    height: 100%;
-    min-height: 100%;
+  ${LexicalThemeStyles}
+
+    ${({ theme }) => theme.screen.s} {
+    .editor-input {
+      padding: 0;
+    }
   }
-`;
-
-export const RunbookEditorInput = styled(ContentEditable)<{ loadingEditorContents?: boolean }>`
-  position: relative;
-  width: 100%;
-  min-width: 100%;
-  height: 100%;
-  min-height: 100%;
-  resize: none;
-  font-size: 16px;
-  line-height: 22px;
-
-  overflow-y: scroll;
-
-  caret-color: rgb(5, 5, 5);
-  tab-size: 1;
-  outline: 0;
-  padding: 48px 64px 64px 64px;
-  border: none !important;
-
-  background-color: white;
-
-  &:focus-visible {
-    border: none !important;
-    box-shadow: none !important;
-  }
-
-  ${({ loadingEditorContents }) =>
-    loadingEditorContents &&
-    css`
-      background-color: rgb(243, 244, 246, 1) !important;
-      pointer-events: none !important;
-    `}
-`;
-
-export const RunbookEditorPlaceholder = styled(Box)`
-  color: #999;
-  overflow: hidden;
-  position: absolute;
-  text-overflow: ellipsis;
-  top: 48px;
-  left: 64px;
-  font-size: 14px;
-  user-select: none;
-  display: inline-block;
-  pointer-events: none;
-  width: 100%;
-  min-width: 100%;
-  height: 100%;
-  min-height: 100%;
 `;
 
 export const StyledRunbookEditorWrapper = styled(Box)`

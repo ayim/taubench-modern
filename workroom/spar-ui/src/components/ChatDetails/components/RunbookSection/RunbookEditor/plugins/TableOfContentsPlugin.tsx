@@ -3,14 +3,9 @@ import type { NodeKey } from 'lexical';
 
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { TableOfContentsPlugin as LexicalTableOfContentsPlugin } from '@lexical/react/LexicalTableOfContentsPlugin';
+import type { HeadingTagType } from '@lexical/rich-text';
+import { Box } from '@sema4ai/components';
 import { JSX, useEffect, useRef, useState } from 'react';
-import {
-  StyledHeadings,
-  StyledNormalHeading,
-  StyledNormalHeadingWrapper,
-  StyledTableOfContents,
-  StyledHeadingItem,
-} from './styledComponents';
 
 const MARGIN_ABOVE_EDITOR = 624;
 const HEADING_WIDTH = 9;
@@ -26,6 +21,16 @@ function isHeadingAboveViewport(element: HTMLElement): boolean {
 function isHeadingBelowTheTopOfThePage(element: HTMLElement): boolean {
   const elementYPosition = element?.getClientRects()[0].y;
   return elementYPosition >= MARGIN_ABOVE_EDITOR + HEADING_WIDTH;
+}
+
+function indent(tagName: HeadingTagType) {
+  if (tagName === 'h2') {
+    return 'heading2';
+  }
+  if (tagName === 'h3') {
+    return 'heading3';
+  }
+  return 'heading1';
 }
 
 const TableOfContentsList = ({ tableOfContents }: { tableOfContents: Array<TableOfContentsEntry> }): JSX.Element => {
@@ -107,19 +112,22 @@ const TableOfContentsList = ({ tableOfContents }: { tableOfContents: Array<Table
   }, [tableOfContents, editor]);
 
   return (
-    <StyledTableOfContents>
-      <StyledHeadings>
+    <Box className="table-of-contents">
+      <Box as="ul" className="headings">
         {tableOfContents.map(([key, text, tag], index) => {
           return (
-            <StyledNormalHeadingWrapper key={key} selected={selectedKey === key}>
-              <StyledHeadingItem onClick={() => scrollToNode(key, index)} role="button" headingLevel={tag} tabIndex={0}>
-                <StyledNormalHeading selected={selectedKey === key}>{text}</StyledNormalHeading>
-              </StyledHeadingItem>
-            </StyledNormalHeadingWrapper>
+            <Box
+              className={`normal-heading-wrapper ${selectedKey === key ? 'selected-heading-wrapper' : ''}`}
+              key={key}
+            >
+              <Box onClick={() => scrollToNode(key, index)} role="button" className={indent(tag)} tabIndex={0}>
+                <Box as="li" className={`normal-heading ${selectedKey === key ? 'selected-heading' : ''}`}>{text}</Box>
+              </Box>
+            </Box>
           );
         })}
-      </StyledHeadings>
-    </StyledTableOfContents>
+      </Box>
+    </Box>
   );
 };
 
