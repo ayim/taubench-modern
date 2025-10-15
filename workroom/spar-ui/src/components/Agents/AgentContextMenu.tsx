@@ -66,5 +66,5 @@ export const AgentContextMenu = ({ agent, onAgentDelete }: Props) => {
         </Menu.Item>
       </Menu>
     )
-  )
+  );
 };

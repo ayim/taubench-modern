@@ -296,6 +296,7 @@ export const getConfiguration = (): Configuration => {
       features: {
         mcpServersManagement: sparOnlyFeature,
         deploymentWizard: sparOnlyFeature,
+        agentAuthoring: sparOnlyFeature,
         settings: sparOnlyFeature,
         agentEvals: sparOnlyFeature,
         documentIntelligence: sparOnlyFeature,

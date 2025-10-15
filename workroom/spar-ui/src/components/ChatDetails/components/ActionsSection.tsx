@@ -1,5 +1,5 @@
 import { Typography } from '@sema4ai/components';
-import { IconActions, IconStatusDisabled, IconStatusEnabled } from '@sema4ai/icons';
+import { IconActions } from '@sema4ai/icons';
 import { AgentCard } from '@sema4ai/layouts';
 import { ActionPackage } from '../index';
 
@@ -18,13 +18,6 @@ export const ActionsSection = ({ actionPackages }: { actionPackages: ActionPacka
             actions={actionPackage.actions}
             illustration={<IconActions />}
             version={actionPackage.version}
-            statusIcon={
-              actionPackage.status === 'online' ? (
-                <IconStatusEnabled color="content.success" />
-              ) : (
-                <IconStatusDisabled color="background.notification" />
-              )
-            }
           />
         ))}
       </AgentCard.ActionPackageList>

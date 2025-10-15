@@ -2,7 +2,8 @@ import { Box, Button, Typography } from '@sema4ai/components';
 import { IconPlusSmall } from '@sema4ai/icons';
 import { useState } from 'react';
 
-import { useParams } from '../../../../hooks';
+import { SparUIFeatureFlag } from '../../../../api';
+import { useFeatureFlag, useParams } from '../../../../hooks';
 import { useAgentSemanticDataQuery } from '../../../../queries/semanticData';
 import { SemanticDataConfiguration } from '../../../SemanticData/SemanticDataConfiguration';
 import { SemanticModelItem } from './components/SemanticModelItem';
@@ -11,19 +12,21 @@ export const SemanticDataSection = () => {
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { agentId } = useParams('/thread/$agentId');
   const { data: semanticDataModels } = useAgentSemanticDataQuery({ agentId });
-
+  const canEditAgent = useFeatureFlag(SparUIFeatureFlag.canEditAgent);
 
   const onToggleEditModel = () => {
     setIsConfigurationOpen(!isConfigurationOpen);
   };
 
+  if (!canEditAgent && semanticDataModels?.length === 0) return null;
+
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" mb="$4">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb="$4">
         <Typography variant="body-medium" fontWeight="bold">
           Data Models
         </Typography>
-        {semanticDataModels?.length === 0 && (
+        {semanticDataModels?.length === 0 && canEditAgent && (
           <Button
             onClick={onToggleEditModel}
             variant="outline"

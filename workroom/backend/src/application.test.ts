@@ -65,6 +65,10 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         enabled: true,
         reason: null,
       },
+      agentAuthoring: {
+        enabled: true,
+        reason: null,
+      },
       documentIntelligence: {
         enabled: true,
         reason: null,

@@ -38,6 +38,10 @@ export const createSparAPIClient = (
           return false;
         }
         return agentMeta.workroomUi?.feedback?.enabled ?? false;
+      case SparUIFeatureFlag.canEditAgent:
+        return tenantMeta.features.agentAuthoring.enabled;
+      case SparUIFeatureFlag.agentDetails:
+        return tenantMeta.features.agentDetails.enabled;
       default:
         return false;
     }

@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@sema4ai/workroom-frontend": "*",
-    "@sema4ai/workroom-interface": "^2.2.2",
+    "@sema4ai/workroom-interface": "^2.4.0",
     "@types/cookie-signature": "^1.1.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",

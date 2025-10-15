@@ -13,20 +13,21 @@ export const RunbookSection = memo<RunbookSectionProps>(({ agentName, runbookMar
   const { val: isDislogOpen, setTrue: openDialog, setFalse: closeDialog } = useToggle();
 
   return (
-    <>
-      <Typography variant="display-headline">Runbook</Typography>
-      <Box as="section">
+    <Box display="flex" flexDirection="column" gap="$10">
+      <Typography variant="body-medium" fontWeight="bold">
+        Runbook
+      </Typography>
+      <Box>
         <Button iconAfter={IconShare} round onClick={openDialog} variant="outline" width="fit-content">
           View Runbook
         </Button>
       </Box>
-
       <RunbookDialog
         open={isDislogOpen}
         onClose={closeDialog}
         agentName={agentName}
         runbookMarkdown={runbookMarkdown}
       />
-    </>
+    </Box>
   );
 });

@@ -156,15 +156,15 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
           <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
           <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
         </Menu>
+        {isRenaming && (
+          <RenameDialog
+            onClose={() => setIsRenaming(false)}
+            onRename={onThreadRename}
+            entityName={name}
+            entityType="Thread"
+          />
+        )}
       </Container>
-      {isRenaming && (
-        <RenameDialog
-          onClose={() => setIsRenaming(false)}
-          onRename={onThreadRename}
-          entityName={name}
-          entityType="Thread"
-        />
-      )}
     </Tooltip>
   );
 };

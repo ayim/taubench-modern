@@ -6,11 +6,13 @@ import { useParams } from '@tanstack/react-router';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
 import { useToggleRoutePath } from '~/hooks/useToggleRoutePath';
+import { useTenantContext } from '~/lib/tenantContext';
 
 export const Header = () => {
   const { agentId, tenantId } = useParams({ from: '/tenants/$tenantId/worker/$agentId' });
   const { workItemId, threadId } = useParams({ strict: false });
 
+  const { features } = useTenantContext();
   const isMobile = useScreenSize('m');
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
@@ -32,18 +34,20 @@ export const Header = () => {
         <>
           {workItemId && threadId && (
             <>
-              <Tooltip text="Details" placement="bottom">
-                <RouterSideNavigationLink
-                  icon={<IconInformation />}
-                  round
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                />
-              </Tooltip>
+              {features.agentDetails.enabled && (
+                <Tooltip text="Details" placement="bottom">
+                  <RouterSideNavigationLink
+                    icon={<IconInformation />}
+                    round
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
+                  />
+                </Tooltip>
+              )}
               <Tooltip text="Work Item Details" placement="bottom">
                 <RouterSideNavigationLink
                   icon={<IconPoll />}
@@ -87,17 +91,19 @@ export const Header = () => {
 
             {workItemId && threadId && (
               <>
-                <RouterMenuLink
-                  icon={IconInformation}
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                >
-                  Details
-                </RouterMenuLink>
+                {features.agentDetails.enabled && (
+                  <RouterMenuLink
+                    icon={IconInformation}
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
+                  >
+                    Details
+                  </RouterMenuLink>
+                )}
                 <RouterMenuLink
                   icon={IconPoll}
                   {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {

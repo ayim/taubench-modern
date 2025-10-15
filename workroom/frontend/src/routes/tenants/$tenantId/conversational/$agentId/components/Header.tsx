@@ -47,17 +47,19 @@ export const Header = () => {
               round
             />
           </Tooltip>
-          <Tooltip text="Details" placement="bottom">
-            <RouterSideNavigationLink
-              icon={<IconInformation />}
-              round
-              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/chat-details', {
-                tenantId,
-                agentId,
-                threadId,
-              })}
-            />
-          </Tooltip>
+          {features.agentDetails.enabled && (
+            <Tooltip text="Details" placement="bottom">
+              <RouterSideNavigationLink
+                icon={<IconInformation />}
+                round
+                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/chat-details', {
+                  tenantId,
+                  agentId,
+                  threadId,
+                })}
+              />
+            </Tooltip>
+          )}
 
           <Tooltip text="Data Frames" placement="bottom">
             <RouterSideNavigationLink
@@ -114,17 +116,19 @@ export const Header = () => {
             >
               Files
             </RouterMenuLink>
-            <RouterMenuLink
-              icon={IconPaperclip}
-              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/chat-details', {
-                tenantId,
-                agentId,
-                threadId,
-              })}
-              params={{ tenantId, agentId, threadId }}
-            >
-              Chat Details
-            </RouterMenuLink>
+            {features.agentDetails.enabled && (
+              <RouterMenuLink
+                icon={IconInformation}
+                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/chat-details', {
+                  tenantId,
+                  agentId,
+                  threadId,
+                })}
+                params={{ tenantId, agentId, threadId }}
+              >
+                Chat Details
+              </RouterMenuLink>
+            )}
 
             <RouterMenuLink
               icon={IconSpreadsheet}
