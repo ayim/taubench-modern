@@ -49,7 +49,7 @@ export PSQL_IMAGE_REF="024848458362.dkr.ecr.us-east-1.amazonaws.com/docker-hub/l
 export OIDC_BOUNCE_FUNCTION_URL="https://gh3hejttujva6f73f2uvi3f5rq0ywnzb.lambda-url.us-east-1.on.aws/"
 
 # Check if Target Group exists, create if not
-target_group_name="${RELEASE_NAME}-tg"
+target_group_name="${RELEASE_NAME:0:29}-tg" # Note: Maximum length of target group name is 32 characters
 target_group_arn=$(
   aws elbv2 describe-target-groups \
     --names "${target_group_name}" \
