@@ -1376,7 +1376,7 @@ class TestDataModelEndpoints:
             "data_model": {
                 "name": "invoices",
                 "description": "Invoice data model",
-                "schema": {"type": "object", "properties": {"id": {"type": "string"}}},
+                "model_schema": {"type": "object", "properties": {"id": {"type": "string"}}},
                 "views": [
                     {
                         "name": "v_invoices",
@@ -1512,7 +1512,7 @@ class TestDataModelEndpoints:
         assert resp.status_code == 201
         body = resp.json()
         assert body["data_model"]["name"] == "invoices"
-        assert body["data_model"]["schema"]["type"] == "object"
+        assert body["data_model"]["model_schema"]["type"] == "object"
         mocked_find_by_name.assert_called()
         fake_di_service.data_model.create_from_schema.assert_called_once()
 
@@ -3350,7 +3350,8 @@ class TestGenerateDataModelFromDocument:
         assert response.status_code == 200
         body = response.json()
         assert "model_schema" in body
-        assert "uploaded_file" not in body
+        assert "uploaded_file" in body
+        assert body["uploaded_file"] is None
 
         mock_get_file_by_ref.assert_awaited()
         fake_file_manager.refresh_file_paths.assert_awaited()
@@ -3571,7 +3572,11 @@ class TestParseDocumentEndpoints:
             )
 
         assert resp.status_code == 200
-        assert resp.json() == parse_response.result.model_dump(mode="json")
+        body = resp.json()
+        # Response now only includes chunks, not type/custom/ocr fields
+        assert isinstance(parse_response.result, ResultFullResult)
+        expected_chunks = [chunk.model_dump(mode="json") for chunk in parse_response.result.chunks]
+        assert body == {"chunks": expected_chunks}
 
     def test_parse_with_upload_success(self, client: TestClient, parse_response: ParseResponse):
         storage_instance = StorageService.get_instance()
@@ -3636,7 +3641,10 @@ class TestParseDocumentEndpoints:
 
         assert resp.status_code == 200
         body = resp.json()
-        assert body == parse_response.result.model_dump(mode="json")
+        # Response now only includes chunks, not type/custom/ocr fields
+        assert isinstance(parse_response.result, ResultFullResult)
+        expected_chunks = [chunk.model_dump(mode="json") for chunk in parse_response.result.chunks]
+        assert body == {"chunks": expected_chunks}
 
     def test_parse_thread_not_found(self, client: TestClient):
         storage_instance = StorageService.get_instance()

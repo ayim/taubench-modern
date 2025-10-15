@@ -50,7 +50,7 @@ export interface SparAPIClient {
   /**
    * Download a file
    */
-  downloadFile: (props: { threadId: string; name: string }) => Promise<void>;
+  downloadFile: (props: { threadId: string; name: string; type?: 'inline' }) => Promise<{ file: File } | void>;
 
   /**
    * Navigation helper

@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Form, UploadFile
 from sema4ai_docint.models.data_model import DataModel
@@ -8,9 +8,11 @@ from starlette.concurrency import run_in_threadpool
 
 from agent_platform.core.document_intelligence.data_models import (
     CreateDataModelRequest,
+    DataModelResponse,
+    DataModelSummary,
+    GenerateDataModelResponse,
     GenerateDescriptionResponse,
     UpdateDataModelRequest,
-    model_to_spec_dict,
     summary_from_model,
 )
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
@@ -36,7 +38,7 @@ router = APIRouter()
 
 
 @router.get("/data-models")
-async def list_data_models(docint_ds: DocIntDatasourceDependency):
+async def list_data_models(docint_ds: DocIntDatasourceDependency) -> list[DataModelSummary]:
     try:
         models = DataModel.find_all(docint_ds)
         return [summary_from_model(m) for m in models]
@@ -51,7 +53,7 @@ async def create_data_model(
     payload: CreateDataModelRequest,
     docint_ds: DocIntDatasourceDependency,
     di_service: DIDependency,
-) -> dict[str, Any]:
+) -> DataModelResponse:
     try:
         existing = DataModel.find_by_name(docint_ds, payload.data_model.name)
         if existing is not None:
@@ -63,14 +65,14 @@ async def create_data_model(
             di_service.data_model.create_from_schema,
             normalize_name(payload.data_model.name),
             payload.data_model.description,
-            json.dumps(payload.data_model.schema),
+            json.dumps(payload.data_model.model_schema),
         )
         model = DataModel.find_by_name(docint_ds, result["name"])
         if model is None:
             raise PlatformHTTPError(
                 ErrorCode.UNEXPECTED, f"Data model not found: {payload.data_model.name}"
             )
-        return {"data_model": model_to_spec_dict(model)}
+        return DataModelResponse(data_model=model)
     except PlatformHTTPError:
         raise
     except Exception as e:
@@ -78,12 +80,14 @@ async def create_data_model(
 
 
 @router.get("/data-models/{model_name}")
-async def get_data_model(model_name: str, docint_ds: DocIntDatasourceDependency):
+async def get_data_model(
+    model_name: str, docint_ds: DocIntDatasourceDependency
+) -> DataModelResponse:
     try:
         model = DataModel.find_by_name(docint_ds, model_name)
         if model is None:
             raise PlatformHTTPError(ErrorCode.NOT_FOUND, f"Data model not found: {model_name}")
-        return {"data_model": model_to_spec_dict(model)}
+        return DataModelResponse(data_model=model)
     except PlatformHTTPError:
         raise
     except Exception as e:
@@ -93,7 +97,7 @@ async def get_data_model(model_name: str, docint_ds: DocIntDatasourceDependency)
 @router.put("/data-models/{model_name}")
 async def update_data_model(
     model_name: str, payload: UpdateDataModelRequest, docint_ds: DocIntDatasourceDependency
-):
+) -> dict[str, bool]:
     try:
         existing = DataModel.find_by_name(docint_ds, model_name)
         if existing is None:
@@ -101,8 +105,8 @@ async def update_data_model(
 
         if payload.data_model.description:
             existing.description = payload.data_model.description
-        if payload.data_model.schema:
-            existing.model_schema = payload.data_model.schema
+        if payload.data_model.model_schema:
+            existing.model_schema = payload.data_model.model_schema
         if payload.data_model.views:
             existing.views = payload.data_model.views
         if payload.data_model.quality_checks:
@@ -121,7 +125,9 @@ async def update_data_model(
 
 
 @router.delete("/data-models/{model_name}")
-async def delete_data_model(model_name: str, docint_ds: DocIntDatasourceDependency):
+async def delete_data_model(
+    model_name: str, docint_ds: DocIntDatasourceDependency
+) -> dict[str, bool]:
     try:
         model = DataModel.find_by_name(docint_ds, model_name)
         if model is None:
@@ -146,7 +152,7 @@ async def generate_data_model_from_document(  # noqa: PLR0913
     file_manager: FileManagerDependency,
     agent_server_client: AgentServerClientDependency,
     instructions: Annotated[str | None, Form(...)] = None,
-):
+) -> GenerateDataModelResponse:
     """Generate a data model from a document."""
 
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
@@ -169,14 +175,14 @@ async def generate_data_model_from_document(  # noqa: PLR0913
         raise PlatformHTTPError(ErrorCode.UNEXPECTED, "Failed to generate data model") from e
 
     if new_file:
-        return {
-            "model_schema": schema,
-            "uploaded_file": uploaded_file,
-        }
+        return GenerateDataModelResponse(
+            model_schema=schema,
+            uploaded_file=uploaded_file,
+        )
     else:
-        return {
-            "model_schema": schema,
-        }
+        return GenerateDataModelResponse(
+            model_schema=schema,
+        )
 
 
 @router.post("/data-models/generate-description")

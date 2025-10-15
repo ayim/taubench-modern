@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from reducto.types.shared.parse_response import ResultFullResult as ParseResult
+from reducto.types.shared.parse_response import ResultFullResultChunk
 from reducto.types.shared.split_response import Result as SplitResult
 from sema4ai_docint import normalize_name
 from sema4ai_docint.extraction.reducto.async_ import JobStatus, JobType
@@ -128,6 +128,18 @@ class ExtractDocumentResponsePayload:
     citations: dict[str, Any] | None = None
 
 
+@dataclass(frozen=True)
+class ParseDocumentResponsePayload:
+    # We exclude the `type`, `custom`, and `ocr` fields from the OpenAPI schema because they
+    # are not used by any downstream users (e.g., spar-ui)
+    chunks: list[ResultFullResultChunk]
+
+
+@dataclass(frozen=True)
+class UpsertLayoutResponsePayload:
+    ok: bool
+
+
 # Extraction Client Job result types
 
 
@@ -150,7 +162,7 @@ class JobStatusResponsePayload:
 # Response types for get_job_result endpoint
 @dataclass(frozen=True)
 class ParseJobResult:
-    result: ParseResult
+    result: ParseDocumentResponsePayload
     job_type: Literal["parse"] = "parse"
 
 

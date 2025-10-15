@@ -3426,7 +3426,14 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/DataModelSummary',
+                  },
+                  title:
+                    'Response List Data Models Document Intelligence Data Models Get',
+                },
               },
             },
           },
@@ -3479,10 +3486,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  type: 'object',
-                  additionalProperties: true,
-                  title:
-                    'Response Create Data Model Document Intelligence Data Models Post',
+                  $ref: '#/components/schemas/DataModelResponse',
                 },
               },
             },
@@ -3522,7 +3526,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/DataModelResponse',
+                },
               },
             },
           },
@@ -3569,7 +3575,14 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  type: 'object',
+                  additionalProperties: {
+                    type: 'boolean',
+                  },
+                  title:
+                    'Response Update Data Model Document Intelligence Data Models  Model Name  Put',
+                },
               },
             },
           },
@@ -3606,7 +3619,14 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  type: 'object',
+                  additionalProperties: {
+                    type: 'boolean',
+                  },
+                  title:
+                    'Response Delete Data Model Document Intelligence Data Models  Model Name  Delete',
+                },
               },
             },
           },
@@ -3665,7 +3685,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/GenerateDataModelResponse',
+                },
               },
             },
           },
@@ -3956,7 +3978,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/UpsertLayoutResponsePayload',
+                },
               },
             },
           },
@@ -4296,7 +4320,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ResultFullResult',
+                  $ref: '#/components/schemas/ParseDocumentResponsePayload',
                 },
               },
             },
@@ -9920,6 +9944,130 @@ export const spec = {
         required: ['tables'],
         title: 'DataConnectionsInspectResponse',
       },
+      DataModel: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          model_schema: {
+            type: 'string',
+            contentMediaType: 'application/json',
+            contentSchema: {
+              additionalProperties: true,
+              type: 'object',
+            },
+            title: 'Model Schema',
+          },
+          views: {
+            anyOf: [
+              {
+                type: 'string',
+                contentMediaType: 'application/json',
+                contentSchema: {
+                  items: {
+                    additionalProperties: true,
+                    type: 'object',
+                  },
+                  type: 'array',
+                },
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Views',
+          },
+          quality_checks: {
+            anyOf: [
+              {
+                type: 'string',
+                contentMediaType: 'application/json',
+                contentSchema: {
+                  items: {
+                    additionalProperties: {
+                      type: 'string',
+                    },
+                    type: 'object',
+                  },
+                  type: 'array',
+                },
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Quality Checks',
+          },
+          prompt: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Prompt',
+          },
+          base_config: {
+            anyOf: [
+              {
+                type: 'string',
+                contentMediaType: 'application/json',
+                contentSchema: {
+                  additionalProperties: true,
+                  type: 'object',
+                },
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Base Config',
+          },
+          summary: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Summary',
+          },
+          created_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Created At',
+          },
+          updated_at: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Updated At',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description', 'model_schema'],
+        title: 'DataModel',
+      },
       DataModelPayload: {
         properties: {
           name: {
@@ -9930,10 +10078,10 @@ export const spec = {
             type: 'string',
             title: 'Description',
           },
-          schema: {
+          model_schema: {
             additionalProperties: true,
             type: 'object',
-            title: 'Schema',
+            title: 'Model Schema',
           },
           views: {
             anyOf: [
@@ -10013,8 +10161,38 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['name', 'description', 'schema'],
+        required: ['name', 'description', 'model_schema'],
         title: 'DataModelPayload',
+      },
+      DataModelResponse: {
+        properties: {
+          data_model: {
+            $ref: '#/components/schemas/DataModel',
+          },
+        },
+        type: 'object',
+        required: ['data_model'],
+        title: 'DataModelResponse',
+      },
+      DataModelSummary: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          model_schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Model Schema',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description', 'model_schema'],
+        title: 'DataModelSummary',
       },
       DataServerConfig: {
         properties: {
@@ -11102,6 +11280,28 @@ export const spec = {
         type: 'object',
         required: ['message_id'],
         title: 'ForkThreadPayload',
+      },
+      GenerateDataModelResponse: {
+        properties: {
+          model_schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Model Schema',
+          },
+          uploaded_file: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/UploadedFile',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: ['model_schema'],
+        title: 'GenerateDataModelResponse',
       },
       GenerateDataQualityChecksRequest: {
         properties: {
@@ -13287,10 +13487,24 @@ export const spec = {
         required: ['host', 'user', 'password', 'service_name'],
         title: 'OracleDataConnectionConfiguration',
       },
+      ParseDocumentResponsePayload: {
+        properties: {
+          chunks: {
+            items: {
+              $ref: '#/components/schemas/ResultFullResultChunk',
+            },
+            type: 'array',
+            title: 'Chunks',
+          },
+        },
+        type: 'object',
+        required: ['chunks'],
+        title: 'ParseDocumentResponsePayload',
+      },
       ParseJobResult: {
         properties: {
           result: {
-            $ref: '#/components/schemas/ResultFullResult',
+            $ref: '#/components/schemas/ParseDocumentResponsePayload',
           },
           job_type: {
             type: 'string',
@@ -13316,7 +13530,7 @@ export const spec = {
             ],
             title: 'Description',
           },
-          schema: {
+          model_schema: {
             anyOf: [
               {
                 additionalProperties: true,
@@ -13326,7 +13540,7 @@ export const spec = {
                 type: 'null',
               },
             ],
-            title: 'Schema',
+            title: 'Model Schema',
           },
           views: {
             anyOf: [
@@ -15014,45 +15228,6 @@ export const spec = {
         required: ['splits'],
         title: 'Result',
       },
-      ResultFullResult: {
-        properties: {
-          chunks: {
-            items: {
-              $ref: '#/components/schemas/ResultFullResultChunk',
-            },
-            type: 'array',
-            title: 'Chunks',
-          },
-          type: {
-            type: 'string',
-            const: 'full',
-            title: 'Type',
-          },
-          custom: {
-            anyOf: [
-              {},
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Custom',
-          },
-          ocr: {
-            anyOf: [
-              {
-                $ref: '#/components/schemas/ResultFullResultOcr',
-              },
-              {
-                type: 'null',
-              },
-            ],
-          },
-        },
-        additionalProperties: true,
-        type: 'object',
-        required: ['chunks', 'type'],
-        title: 'ResultFullResult',
-      },
       ResultFullResultChunk: {
         properties: {
           blocks: {
@@ -15151,80 +15326,6 @@ export const spec = {
         type: 'object',
         required: ['bbox', 'content', 'type'],
         title: 'ResultFullResultChunkBlock',
-      },
-      ResultFullResultOcr: {
-        properties: {
-          lines: {
-            items: {
-              $ref: '#/components/schemas/ResultFullResultOcrLine',
-            },
-            type: 'array',
-            title: 'Lines',
-          },
-          words: {
-            items: {
-              $ref: '#/components/schemas/ResultFullResultOcrWord',
-            },
-            type: 'array',
-            title: 'Words',
-          },
-        },
-        additionalProperties: true,
-        type: 'object',
-        required: ['lines', 'words'],
-        title: 'ResultFullResultOcr',
-      },
-      ResultFullResultOcrLine: {
-        properties: {
-          bbox: {
-            $ref: '#/components/schemas/BoundingBox',
-          },
-          text: {
-            type: 'string',
-            title: 'Text',
-          },
-          confidence: {
-            anyOf: [
-              {
-                type: 'number',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Confidence',
-          },
-        },
-        additionalProperties: true,
-        type: 'object',
-        required: ['bbox', 'text'],
-        title: 'ResultFullResultOcrLine',
-      },
-      ResultFullResultOcrWord: {
-        properties: {
-          bbox: {
-            $ref: '#/components/schemas/BoundingBox',
-          },
-          text: {
-            type: 'string',
-            title: 'Text',
-          },
-          confidence: {
-            anyOf: [
-              {
-                type: 'number',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Confidence',
-          },
-        },
-        additionalProperties: true,
-        type: 'object',
-        required: ['bbox', 'text'],
-        title: 'ResultFullResultOcrWord',
       },
       ResultSplit: {
         properties: {
@@ -18135,6 +18236,17 @@ export const spec = {
         type: 'object',
         required: ['name', 'description', 'version'],
         title: 'UpsertAgentPayload',
+      },
+      UpsertLayoutResponsePayload: {
+        properties: {
+          ok: {
+            type: 'boolean',
+            title: 'Ok',
+          },
+        },
+        type: 'object',
+        required: ['ok'],
+        title: 'UpsertLayoutResponsePayload',
       },
       UpsertPlatformConfigPayload: {
         properties: {

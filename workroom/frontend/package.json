@@ -16,6 +16,7 @@
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/lang-sql": "^6.10.0",
     "@hookform/resolvers": "^5.2.1",
     "@lezer/json": "^1.0.3",
     "@lezer/python": "^1.1.18",

@@ -12,7 +12,10 @@ from agent_platform.core.document_intelligence import DocumentLayoutSummary
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads import DocumentLayoutPayload
-from agent_platform.core.payloads.document_intelligence import GenerateLayoutResponsePayload
+from agent_platform.core.payloads.document_intelligence import (
+    GenerateLayoutResponsePayload,
+    UpsertLayoutResponsePayload,
+)
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
     DocIntDatasourceDependency,
@@ -92,7 +95,7 @@ async def get_layout(
 async def upsert_layout(
     payload: DocumentLayoutPayload,
     docint_ds: DocIntDatasourceDependency,
-):
+) -> UpsertLayoutResponsePayload:
     """Upsert a layout into the Document Intelligence database.
 
     Behavior:
@@ -133,7 +136,7 @@ async def upsert_layout(
             layout = normalized.to_document_layout()
             layout.insert(docint_ds)
 
-        return {"ok": True}
+        return UpsertLayoutResponsePayload(ok=True)
     except PlatformHTTPError:
         raise
     except Exception as e:

@@ -26,6 +26,7 @@ from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
     ExtractJobResult,
     JobResult,
+    ParseDocumentResponsePayload,
     ParseJobResult,
     SplitJobResult,
 )
@@ -363,7 +364,7 @@ def _create_job_result(result: Any) -> JobResult:
     """
     match result:
         case ParseResponse(result=ParseResult() as parse_result):
-            return ParseJobResult(result=parse_result)
+            return ParseJobResult(result=ParseDocumentResponsePayload(chunks=parse_result.chunks))
         case ExtractResponse() as extract_resp:
             # Reducto's ExtractResponse.result and .citations are both lists of objects,
             # result can't be typed, but citations has some structure.

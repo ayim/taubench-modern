@@ -44,6 +44,21 @@ export const listModelsQueryOptions = ({ sparAPIClient }: { sparAPIClient: SparA
 });
 export const useListModelsQuery = createSparQuery(listModelsQueryOptions);
 
+export const useGetDataModelsMutation = createSparMutation<
+  object,
+  object
+>()(({ sparAPIClient }) => ({
+  mutationFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/data-models'>> => {
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/document-intelligence/data-models', {
+      params: {},
+    });
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    return response.data;
+  },
+}));
+
 export const getDataModelQueryOptions = createSparQueryOptions<{ modelName: string }>()(
   ({ sparAPIClient, modelName }) => ({
     queryKey: getDataModelQueryKey(modelName),
@@ -152,7 +167,7 @@ export const useCreateDataModelMutation = createSparMutation<
         },
       },
       body: {
-        data_model: dataModel,
+        data_model: dataModel
       } satisfies CreateDataModelRequest,
     });
     if (!response.success) {
@@ -478,3 +493,42 @@ export const useExecuteQualityChecksMutation = createSparMutation<
     return response.data;
   },
 }));
+
+export const useGenerateExtractionSchemaMutation = createSparMutation<
+  object,
+  {
+    threadId: string;
+    agentId: string;
+    formData: DocumentIntelligenceFileUpload;
+    instructions?: string;
+  }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async ({
+    threadId,
+    agentId,
+    formData,
+    instructions,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/generate-schema'>> => {
+    const response = await sparAPIClient.queryAgentServer(
+      'post',
+      '/api/v2/document-intelligence/documents/generate-schema',
+      {
+        params: { query: { thread_id: threadId, agent_id: agentId } },
+        body: { file: formData as unknown as string, instructions },
+        bodySerializer(body: { file: string; instructions?: string | null }) {
+          const formDataSerializer = new FormData();
+          formDataSerializer.append('file', body.file);
+          if (body.instructions) {
+            formDataSerializer.append('instructions', body.instructions);
+          }
+          return formDataSerializer;
+        },
+      },
+    );
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+    return response.data;
+  },
+}));
+

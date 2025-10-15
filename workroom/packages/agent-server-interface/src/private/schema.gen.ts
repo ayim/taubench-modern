@@ -3602,14 +3602,37 @@ export interface components {
       /** Tables */
       tables: components['schemas']['agent_platform__core__payloads__data_connection__TableInfo'][];
     };
+    /** DataModel */
+    DataModel: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Model Schema */
+      model_schema: string;
+      /** Views */
+      views?: string | null;
+      /** Quality Checks */
+      quality_checks?: string | null;
+      /** Prompt */
+      prompt?: string | null;
+      /** Base Config */
+      base_config?: string | null;
+      /** Summary */
+      summary?: string | null;
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+    };
     /** DataModelPayload */
     DataModelPayload: {
       /** Name */
       name: string;
       /** Description */
       description: string;
-      /** Schema */
-      schema: {
+      /** Model Schema */
+      model_schema: {
         [key: string]: unknown;
       };
       /** Views */
@@ -3632,6 +3655,21 @@ export interface components {
       created_at?: string | null;
       /** Updated At */
       updated_at?: string | null;
+    };
+    /** DataModelResponse */
+    DataModelResponse: {
+      data_model: components['schemas']['DataModel'];
+    };
+    /** DataModelSummary */
+    DataModelSummary: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Model Schema */
+      model_schema: {
+        [key: string]: unknown;
+      };
     };
     /** DataServerConfig */
     DataServerConfig: {
@@ -4047,6 +4085,14 @@ export interface components {
        * @description Optional custom name for the forked thread
        */
       name?: string | null;
+    };
+    /** GenerateDataModelResponse */
+    GenerateDataModelResponse: {
+      /** Model Schema */
+      model_schema: {
+        [key: string]: unknown;
+      };
+      uploaded_file?: components['schemas']['UploadedFile'] | null;
     };
     /** GenerateDataQualityChecksRequest */
     GenerateDataQualityChecksRequest: {
@@ -4939,9 +4985,14 @@ export interface components {
       /** Auth Mode */
       auth_mode?: string | null;
     };
+    /** ParseDocumentResponsePayload */
+    ParseDocumentResponsePayload: {
+      /** Chunks */
+      chunks: components['schemas']['ResultFullResultChunk'][];
+    };
     /** ParseJobResult */
     ParseJobResult: {
-      result: components['schemas']['ResultFullResult'];
+      result: components['schemas']['ParseDocumentResponsePayload'];
       /**
        * Job Type
        * @default parse
@@ -4953,8 +5004,8 @@ export interface components {
     PartialDataModelPayload: {
       /** Description */
       description?: string | null;
-      /** Schema */
-      schema?: {
+      /** Model Schema */
+      model_schema?: {
         [key: string]: unknown;
       } | null;
       /** Views */
@@ -5862,21 +5913,6 @@ export interface components {
     } & {
       [key: string]: unknown;
     };
-    /** ResultFullResult */
-    ResultFullResult: {
-      /** Chunks */
-      chunks: components['schemas']['ResultFullResultChunk'][];
-      /**
-       * Type
-       * @constant
-       */
-      type: 'full';
-      /** Custom */
-      custom?: unknown | null;
-      ocr?: components['schemas']['ResultFullResultOcr'] | null;
-    } & {
-      [key: string]: unknown;
-    };
     /** ResultFullResultChunk */
     ResultFullResultChunk: {
       /** Blocks */
@@ -5917,35 +5953,6 @@ export interface components {
       confidence?: string | null;
       /** Image Url */
       image_url?: string | null;
-    } & {
-      [key: string]: unknown;
-    };
-    /** ResultFullResultOcr */
-    ResultFullResultOcr: {
-      /** Lines */
-      lines: components['schemas']['ResultFullResultOcrLine'][];
-      /** Words */
-      words: components['schemas']['ResultFullResultOcrWord'][];
-    } & {
-      [key: string]: unknown;
-    };
-    /** ResultFullResultOcrLine */
-    ResultFullResultOcrLine: {
-      bbox: components['schemas']['BoundingBox'];
-      /** Text */
-      text: string;
-      /** Confidence */
-      confidence?: number | null;
-    } & {
-      [key: string]: unknown;
-    };
-    /** ResultFullResultOcrWord */
-    ResultFullResultOcrWord: {
-      bbox: components['schemas']['BoundingBox'];
-      /** Text */
-      text: string;
-      /** Confidence */
-      confidence?: number | null;
     } & {
       [key: string]: unknown;
     };
@@ -7472,6 +7479,11 @@ export interface components {
        * @default true
        */
       public: boolean;
+    };
+    /** UpsertLayoutResponsePayload */
+    UpsertLayoutResponsePayload: {
+      /** Ok */
+      ok: boolean;
     };
     /** UpsertPlatformConfigPayload */
     UpsertPlatformConfigPayload: {
@@ -10390,7 +10402,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['DataModelSummary'][];
         };
       };
     };
@@ -10417,9 +10429,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json': components['schemas']['DataModelResponse'];
         };
       };
       /** @description Validation Error */
@@ -10450,7 +10460,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['DataModelResponse'];
         };
       };
       /** @description Validation Error */
@@ -10485,7 +10495,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': {
+            [key: string]: boolean;
+          };
         };
       };
       /** @description Validation Error */
@@ -10516,7 +10528,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': {
+            [key: string]: boolean;
+          };
         };
       };
       /** @description Validation Error */
@@ -10552,7 +10566,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['GenerateDataModelResponse'];
         };
       };
       /** @description Validation Error */
@@ -10743,7 +10757,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['UpsertLayoutResponsePayload'];
         };
       };
       /** @description Validation Error */
@@ -10954,7 +10968,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ResultFullResult'];
+          'application/json': components['schemas']['ParseDocumentResponsePayload'];
         };
       };
       /** @description Validation Error */

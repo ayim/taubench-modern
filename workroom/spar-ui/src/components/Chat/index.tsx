@@ -3,7 +3,6 @@ import {
   Chat as ChatComponent,
   ChatInput,
   ChatRef,
-  Dialog,
   DropzoneOverlay,
   FileItem,
   useSnackbar,
@@ -19,7 +18,6 @@ import { useMessageStream, useQueryDataGuard } from '../../hooks';
 import { useAgentOAuthStateQuery } from '../../queries/agents';
 import { useThreadMessagesQuery } from '../../queries/threads';
 import { useThreadSearchStore } from '../../state/useThreadSearchStore';
-import { DocumentIntelligenceView } from '../DocumentIntelligence';
 import { OAuth } from './components/OAuth';
 import { MessageRenderer } from './components/renderer/Message';
 
@@ -88,7 +86,6 @@ const ChatInputAttachment: FC<{ file: File; onCloseClick: () => void }> = ({ fil
 
 export const Chat: FC<Props> = ({ agentId, threadId }) => {
   const { addSnackbar } = useSnackbar();
-  const [documentIntelligenceModalOpen, setDocumentIntelligenceModalOpen] = useState<boolean>(false);
   const chatRef = useRef<ChatRef>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const { currentMessageIndex } = useThreadSearchStore();
@@ -99,9 +96,6 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
 
   const attachments = attachmentsByThreadId[threadId] ?? [];
   const draftMessage = messageByThreadId[threadId] ?? '';
-
-  // Check if any uploaded file has the div2_ prefix - (This is for the Document Intelligence v2 modal TEST)
-  const hasDiv2File = attachments.some((file) => file.name.startsWith('div2_'));
 
   const onAddAttachments = (files: File[]) => {
     setAttachmentsByThreadId((prevAttachmentsByThread) => {
@@ -249,24 +243,7 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
         renderer={MessageRenderer}
       />
       <Footer>
-        {hasDiv2File && (
-          <Dialog
-            trigger={<Button onClick={() => setDocumentIntelligenceModalOpen(true)}>Document Intelligence v2</Button>}
-            open={documentIntelligenceModalOpen}
-            onClose={() => setDocumentIntelligenceModalOpen(false)}
-            size="full-screen"
-          >
-            <Dialog.Content>
-              <DocumentIntelligenceView
-                agentId={agentId}
-                threadId={threadId}
-                flowType="parse"
-                fileRef={attachments[0]}
-              />
-            </Dialog.Content>
-          </Dialog>
-        )}
-        {requiresOAuth && <OAuth />}
+      {requiresOAuth && <OAuth />}
         <ChatInput streaming={isStreamingOrUploadingFiles} busy={isChatInputBusy} onSend={onSubmit} onAbort={onAbort}>
           {attachments.length > 0 && (
             <ChatInput.FileList>

@@ -5,7 +5,7 @@ from typing import TypedDict
 
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
-from reducto.types.shared.parse_response import ResultFullResult as ParseResult
+from reducto.types.shared.parse_response import ResultFullResultChunk
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
 from agent_platform.core.payloads.document_intelligence import (
@@ -27,10 +27,14 @@ class ExtractionSchemaResult(TypedDict):
 class TestReductoIntegration:
     def _assert_tables_pdf_parse_result(self, parse_result_json: dict) -> None:
         """Helper function to assert the parse result for tables.pdf matches expected structure."""
-        # Validate the parse result is a full result
-        parse_result = ParseResult.model_validate(parse_result_json)
+        # The API now returns {"chunks": [...]}, validate chunks directly
+        assert "chunks" in parse_result_json, "Expected 'chunks' key in parse result"
+        chunks_data = parse_result_json["chunks"]
+        assert len(chunks_data) > 0, "Expected at least one chunk in parse result"
 
-        blocks = parse_result.chunks[0].blocks
+        # Validate the first chunk structure
+        first_chunk = ResultFullResultChunk.model_validate(chunks_data[0])
+        blocks = first_chunk.blocks
 
         # Should have multiple blocks (around 17-20 based on the sample)
         assert len(blocks) >= 15, f"Expected at least 15 blocks, got {len(blocks)}"
@@ -40,7 +44,7 @@ class TestReductoIntegration:
             assert block.confidence == "high"
 
         # Check for specific content markers to ensure we parsed the right document
-        content = parse_result.chunks[0].content
+        content = first_chunk.content
 
         # Should contain table structures
         assert "<table>" in content
@@ -78,7 +82,7 @@ class TestReductoIntegration:
             assert element in content, f"Expected table data '{element}' not found"
 
         # Check that embed content matches content (as per sample)
-        assert parse_result.chunks[0].embed == parse_result.chunks[0].content
+        assert first_chunk.embed == first_chunk.content
 
         # Verify we have blocks spanning across pages (page 1 and 2)
         pages = {block.bbox.page for block in blocks}

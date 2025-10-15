@@ -7,6 +7,8 @@ from sema4ai_docint.models.data_model import DataModel
 from sema4ai_docint.utils import normalize_name
 from sema4ai_docint.validation.models import ValidationRule
 
+from agent_platform.core.files import UploadedFile
+
 
 @dataclass(frozen=True)
 class DataModelPayload:
@@ -14,7 +16,7 @@ class DataModelPayload:
 
     name: str
     description: str
-    schema: dict[str, Any]
+    model_schema: dict[str, Any]
     views: list[dict[str, Any]] | None = None
     quality_checks: list[dict[str, str]] | None = None
     prompt: str | None = None
@@ -32,7 +34,7 @@ class DataModelPayload:
 
         name = normalize_name(str(obj.get("name")))
         description = obj.get("description")
-        schema = obj.get("schema")
+        model_schema = obj.get("model_schema")
         views = obj.get("views")
         quality_checks = obj.get("quality_checks")
         prompt = obj.get("prompt")
@@ -44,13 +46,13 @@ class DataModelPayload:
             raise ValueError("DataModel.name is required")
         if not description:
             raise ValueError("DataModel.description is required")
-        if not schema:
+        if not model_schema:
             raise ValueError("DataModel.schema is required")
 
         return cls(
             name=str(name),
             description=str(description),
-            schema=schema,
+            model_schema=model_schema,
             views=views,
             quality_checks=quality_checks,
             prompt=prompt,
@@ -63,7 +65,7 @@ class DataModelPayload:
         return DataModel(
             name=self.name,
             description=self.description,
-            model_schema=self.schema,  # Map schema to model_schema
+            model_schema=self.model_schema,
             views=self.views,
             quality_checks=self.quality_checks,
             prompt=self.prompt,
@@ -73,28 +75,22 @@ class DataModelPayload:
         )
 
 
-def model_to_spec_dict(model: DataModel) -> dict[str, Any]:
-    """Convert internal DataModel to an API response dict using snake_case keys."""
-    return {
-        "name": getattr(model, "name", None),
-        "description": getattr(model, "description", None),
-        "schema": getattr(model, "model_schema", None),
-        "views": getattr(model, "views", None),
-        "quality_checks": getattr(model, "quality_checks", None),
-        "prompt": getattr(model, "prompt", None),
-        "summary": getattr(model, "summary", None),
-        "created_at": getattr(model, "created_at", None),
-        "updated_at": getattr(model, "updated_at", None),
-    }
+@dataclass(frozen=True)
+class DataModelSummary:
+    """Summary of a data model."""
+
+    name: str
+    description: str
+    model_schema: dict[str, Any]
 
 
-def summary_from_model(model: DataModel) -> dict[str, Any]:
+def summary_from_model(model: DataModel) -> DataModelSummary:
     """Build DataModelSummary (name, description, schema)."""
-    return {
-        "name": model.name,
-        "description": model.description,
-        "schema": model.model_schema,
-    }
+    return DataModelSummary(
+        name=model.name,
+        description=model.description,
+        model_schema=model.model_schema,
+    )
 
 
 @dataclass(frozen=True)
@@ -105,11 +101,26 @@ class CreateDataModelRequest:
 
 
 @dataclass(frozen=True)
+class DataModelResponse:
+    """Response payload for creating/getting a data model."""
+
+    data_model: DataModel
+
+
+@dataclass(frozen=True)
+class GenerateDataModelResponse:
+    """Response payload for generating a data model."""
+
+    model_schema: dict[str, Any]
+    uploaded_file: UploadedFile | None = None
+
+
+@dataclass(frozen=True)
 class PartialDataModelPayload:
     """Payload for partial updates of a DataModel (all fields optional)."""
 
     description: str | None = None
-    schema: dict[str, Any] | None = None
+    model_schema: dict[str, Any] | None = None
     views: list[dict[str, Any]] | None = None
     quality_checks: list[dict[str, str]] | None = None
     prompt: str | None = None
@@ -126,7 +137,7 @@ class PartialDataModelPayload:
             obj = dict(getattr(data, "__dict__", {}))
 
         description = obj.get("description")
-        schema = obj.get("schema")
+        model_schema = obj.get("model_schema")
         views = obj.get("views")
         quality_checks = obj.get("quality_checks")
         prompt = obj.get("prompt")
@@ -136,7 +147,7 @@ class PartialDataModelPayload:
 
         return cls(
             description=str(description) if description is not None else None,
-            schema=schema,
+            model_schema=model_schema,
             views=views,
             quality_checks=quality_checks,
             prompt=prompt,

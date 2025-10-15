@@ -77,7 +77,7 @@ class TestDataModels:
             data_model=DataModelPayload(
                 name=model_name,
                 description="An Example Ski Rental equipment safety report",
-                schema=gen_body["model_schema"],
+                model_schema=gen_body["model_schema"],
             )
         )
         create_resp = httpx.post(

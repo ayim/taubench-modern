@@ -58,7 +58,7 @@ class TestDocuments:
             data_model=DataModelPayload(
                 name=data_model_name,
                 description=f"An example {data_model_name} document",
-                schema=data_model_schema,
+                model_schema=data_model_schema,
             )
         )
         response = requests.post(

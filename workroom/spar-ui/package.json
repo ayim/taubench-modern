@@ -46,6 +46,8 @@
   "peerDependencies": {
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/view": "^6.0.0",
     "@hookform/resolvers": "^3.10.0",
     "@sema4ai/components": "*",
     "@sema4ai/icons": "*",
@@ -88,6 +90,7 @@
     "openapi-typescript-helpers": "^0.0.13",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.62.0",
+    "react-pdf": "^10.1.0",
     "uuid": "^9.0.1",
     "vega": "^6.1.2",
     "vega-embed": "^7.0.2",

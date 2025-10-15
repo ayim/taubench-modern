@@ -93,7 +93,7 @@ export const createSparAPIClient = (
     return { success: true };
   },
 
-  downloadFile: async ({ threadId, name }) => {
+  downloadFile: async ({ threadId, name, type }) => {
     const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/{tid}/files/download/', {
       params: { path: { tid: threadId }, query: { file_ref: name } },
       parseAs: 'stream',
@@ -117,6 +117,11 @@ export const createSparAPIClient = (
 
     const blob = new Blob(chunks);
 
+    if (type === 'inline') {
+      const file = new File([blob], name);
+      return { file };
+    }
+
     const downloadFileAndCleanUp = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -131,6 +136,8 @@ export const createSparAPIClient = (
     };
 
     downloadFileAndCleanUp();
+
+    return;
   },
 
   getAgentOAuthState: async ({ agentId }) => {

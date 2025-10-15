@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Form, UploadFile
-from reducto.types.shared.parse_response import ResultFullResult as ParseResult
 from sema4ai_docint.extraction.reducto.async_ import JobType
 from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
@@ -15,6 +14,7 @@ from agent_platform.core.payloads.document_intelligence import (
     ExtractJobResult,
     GenerateSchemaResponsePayload,
     JobStartResponsePayload,
+    ParseDocumentResponsePayload,
     ParseJobResult,
 )
 from agent_platform.server.api.dependencies import (
@@ -178,7 +178,7 @@ async def parse_document(  # noqa: PLR0913
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     extraction_client: AsyncExtractionClientDependency,
-) -> ParseResult:
+) -> ParseDocumentResponsePayload:
     """Parse a new document using the Document Intelligence database.
 
     This endpoint is used to parse a new document. It now uses the async client
@@ -186,7 +186,7 @@ async def parse_document(  # noqa: PLR0913
     """
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
-    uploaded_file, new_file = await _get_or_upload_file(
+    uploaded_file, _ = await _get_or_upload_file(
         file,
         thread=thread,
         user_id=user.user_id,

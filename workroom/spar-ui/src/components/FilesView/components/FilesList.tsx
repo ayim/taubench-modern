@@ -1,17 +1,26 @@
-import { Box, FileItem, Typography } from '@sema4ai/components';
-import { IconLoading } from '@sema4ai/icons';
+import { Box, Button, FileItem, Typography } from '@sema4ai/components';
+import { IconDocumentIntelligence, IconLoading } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
-import { FC, useState } from 'react';
+import { FC, useState, useMemo, useCallback } from 'react';
 
 import { useSparUIContext } from '../../../api/context';
 import { getFileSize, getFileTypeIcon } from '../../../common/helpers';
 import { ThreadFiles, useThreadFilesQuery } from '../../../queries/threads';
+import { DocumentData, DocumentIntelligenceDialog } from '../../DocumentIntelligence';
 
 type props = {
   threadId: string;
 };
 
-const FileListItem = ({ file, threadId }: { file: ThreadFiles[number]; threadId: string }) => {
+const FileListItem = ({
+  file,
+  threadId,
+  onDocumentIntelligenceClick,
+}: {
+  file: ThreadFiles[number];
+  threadId: string;
+  onDocumentIntelligenceClick: (params: { file: File; agentId: string }) => void;
+}) => {
   const { sparAPIClient } = useSparUIContext();
   const [downloading, setDownloading] = useState(false);
 
@@ -20,15 +29,52 @@ const FileListItem = ({ file, threadId }: { file: ThreadFiles[number]; threadId:
     await sparAPIClient.downloadFile({ threadId, name: file.file_ref });
     setDownloading(false);
   };
+
+  const shoulDisplayDocIntelButton = useMemo(() => {
+    const lowerCasedFile = file.file_ref.toLowerCase();
+
+    if (lowerCasedFile.startsWith('div2_') && file.mime_type === 'application/pdf') {
+      return true;
+    }
+
+    return false;
+  }, [file.file_ref]);
+
+  const handleDocIntelClick = useCallback(async () => {
+    // This entire logic should be moved to the Doc Intel component that should accept:
+    // A file ID, a thread ID and agent ID and eprform this downloadFile
+    const downloadedFile = await sparAPIClient.downloadFile({
+      threadId,
+      name: file.file_ref,
+      type: 'inline',
+    });
+
+    const agentId = file.agent_id;
+    if (!agentId || !downloadedFile) {
+      return;
+    }
+
+    onDocumentIntelligenceClick({ file: downloadedFile.file, agentId });
+  }, [file]);
+
   return (
-    <FileItem
-      key={file.file_id}
-      label={file.file_ref}
-      icon={getFileTypeIcon(file.mime_type)}
-      description={file.file_size_raw ? getFileSize(file.file_size_raw) : undefined}
-      downloading={downloading}
-      onDownloadClick={onDownload}
-    />
+    <Box display="flex" alignItems="center">
+      <FileItem
+        key={file.file_id}
+        label={file.file_ref}
+        icon={getFileTypeIcon(file.mime_type)}
+        description={file.file_size_raw ? getFileSize(file.file_size_raw) : undefined}
+        downloading={downloading}
+        onDownloadClick={onDownload}
+      />
+      {shoulDisplayDocIntelButton && (
+        <Box ml="$8">
+          <Button variant="ghost" onClick={handleDocIntelClick}>
+            <IconDocumentIntelligence />
+          </Button>
+        </Box>
+      )}
+    </Box>
   );
 };
 
@@ -49,6 +95,22 @@ const FilesListContent = styled.div`
 export const FilesList: FC<props> = ({ threadId }) => {
   const { data: files, isLoading: isFilesLoading } = useThreadFilesQuery({ threadId });
 
+  const [docIntelDialogData, setDocIntelDialogData] = useState<DocumentData | null>(null);
+
+  const handleCloseDocIntelDialog = () => {
+    setDocIntelDialogData(null);
+  };
+
+  const handleOpenDocIntelDialog = (params: { file: File; agentId: string }) => {
+    setDocIntelDialogData({
+      flowType: 'parse_current_document' as const,
+      fileRef: params.file,
+      threadId,
+      agentId: params.agentId,
+      dataModelName: undefined,
+    });
+  };
+
   if (isFilesLoading) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center">
@@ -63,6 +125,14 @@ export const FilesList: FC<props> = ({ threadId }) => {
 
   return (
     <Box display="flex" flexDirection="column" gap={16}>
+      {docIntelDialogData && (
+        <DocumentIntelligenceDialog
+          isOpen={docIntelDialogData !== null}
+          onClose={handleCloseDocIntelDialog}
+          documentData={docIntelDialogData}
+        />
+      )}
+
       {/* Work Item Files Section */}
       {workItemFiles.length > 0 && (
         <Container>
@@ -71,7 +141,12 @@ export const FilesList: FC<props> = ({ threadId }) => {
           </Typography>
           <FilesListContent>
             {workItemFiles.map((file) => (
-              <FileListItem file={file} threadId={threadId} key={file.file_id} />
+              <FileListItem
+                file={file}
+                threadId={threadId}
+                key={file.file_id}
+                onDocumentIntelligenceClick={handleOpenDocIntelDialog}
+              />
             ))}
           </FilesListContent>
         </Container>
@@ -85,7 +160,12 @@ export const FilesList: FC<props> = ({ threadId }) => {
           </Typography>
           <FilesListContent>
             {conversationFiles.map((file) => (
-              <FileListItem file={file} threadId={threadId} key={file.file_id} />
+              <FileListItem
+                file={file}
+                threadId={threadId}
+                key={file.file_id}
+                onDocumentIntelligenceClick={handleOpenDocIntelDialog}
+              />
             ))}
           </FilesListContent>
         </Container>
