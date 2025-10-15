@@ -15,6 +15,12 @@ export const Layout = styled.section<{ workItemListOnly?: boolean }>`
 
   > aside {
     grid-area: workitems;
+    overflow-x: hidden;
+    max-width: 100%;
+
+    > div {
+      overflow-x: hidden;
+    }
   }
 
   > section {
