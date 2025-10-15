@@ -247,10 +247,10 @@ async def list_semantic_data_models(
         # Convert the results to SemanticDataModelWithAssociations objects
         semantic_data_models_with_associations = []
         semantic_data_model_info: BaseStorage.SemanticDataModelInfo
-        for semantic_data_model_info in semantic_data_models_info:
-            # Convert file references to FileReference objects
-            from agent_platform.core.payloads import FileReference
+        # Convert file references to FileReference objects
+        from agent_platform.core.payloads import EmptyFileReference, FileReference
 
+        for semantic_data_model_info in semantic_data_models_info:
             # Note: lots of 'str' to convert UUIDs to strings
 
             semantic_data_model_id = str(semantic_data_model_info["semantic_data_model_id"])
@@ -266,6 +266,15 @@ async def list_semantic_data_models(
                     sheet_name=ref.sheet_name,
                 )
                 for ref in references.file_references
+            ]
+
+            empty_file_references = [
+                EmptyFileReference(
+                    logical_table_name=ref.logical_table_name,
+                    sheet_name=ref.sheet_name,
+                    base_table_table=ref.base_table_table,
+                )
+                for ref in references.tables_with_unresolved_file_references
             ]
 
             semantic_data_models_with_associations.append(
@@ -284,6 +293,7 @@ async def list_semantic_data_models(
                     ),
                     file_references=file_references,
                     errors_in_semantic_data_model=references.errors,
+                    empty_file_references=empty_file_references,
                 )
             )
 

@@ -419,9 +419,16 @@ class DataFramesKernel:
 
     async def get_semantic_data_models(self) -> list["BaseStorage.SemanticDataModelInfo"]:
         if self._semantic_data_models is None:
-            self._semantic_data_models = await self._storage.list_semantic_data_models(
-                agent_id=await self.get_agent_id(), thread_id=self._tid
+            from agent_platform.server.data_frames.semantic_data_model_collector import (
+                SemanticDataModelCollector,
             )
+
+            collector = SemanticDataModelCollector(
+                agent_id=await self.get_agent_id(),
+                thread_id=self._tid,
+                user=self._user,
+            )
+            self._semantic_data_models = await collector.collect_semantic_data_models(self._storage)
         assert self._semantic_data_models is not None
         return self._semantic_data_models
 
@@ -585,12 +592,12 @@ class DataFramesKernel:
             return self._resolved_data_frames[data_frame.data_frame_id]
 
         if data_frame.input_id_type == "file":
-            if data_frame.file_id is None:
+            if data_frame.file_id is None and data_frame.file_ref is None:
                 raise PlatformHTTPError(
                     error_code=ErrorCode.PRECONDITION_FAILED,
                     message=(
                         "Error in database: Data frame is marked with having input "
-                        "type file, but it has no file_id!"
+                        "type file, but it has no file_id or file_ref!"
                     ),
                 )
             data_reader = await create_file_data_reader(

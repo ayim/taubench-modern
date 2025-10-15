@@ -132,3 +132,52 @@ def test_semantic_model_validation(data_regression):
 
     references = validate_semantic_model_payload_and_extract_references(semantic_model_example)
     data_regression.check(references.errors)
+
+
+def test_semantic_model_validation_with_empty_file_reference():
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        EmptyFileReference,
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    # Create a new small example from scratch with an empty file reference
+    semantic_model_example: SemanticDataModel = {
+        "name": "Sales Data",
+        "description": "This semantic model can be used for asking questions over the sales data.",
+        "tables": [
+            {
+                "name": "sales_data",
+                "description": (
+                    "A logical table capturing daily sales information across different"
+                    "store locations and product categories."
+                ),
+                "base_table": {
+                    "file_reference": {
+                        "thread_id": "",
+                        "file_ref": "",
+                        "sheet_name": "",
+                    },
+                    "table": "sales_data",
+                },
+                "dimensions": [
+                    {
+                        "name": "product_category",
+                        "expr": "cat",
+                        "data_type": "NUMBER",
+                        "description": "The category of the product sold.",
+                    },
+                ],
+                "time_dimensions": [],
+                "facts": [],
+                "filters": [],
+            }
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model_example)
+    assert not references.errors  # no errors are expected
+    assert references.tables_with_unresolved_file_references == {
+        EmptyFileReference(
+            logical_table_name="sales_data", sheet_name="", base_table_table="sales_data"
+        )
+    }

@@ -574,3 +574,136 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
         assert all_models[0]["agent_ids"] == [agent_id]
         assert all_models[0]["thread_ids"] == [thread_id]
         assert all_models[0]["data_connection_ids"] == [data_connection_1["id"]]
+
+
+@pytest.mark.integration
+def test_semantic_data_model_with_file_reference_workflow(base_url_agent_server, openai_api_key):
+    """Create semantic data model from file, upload file, and query with LLM."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        # Step 1: Create a CSV file in memory
+        csv_content = """Entity,Year,Cost
+OpenAI,2023,10
+Anthropic,2023,20
+Google,2023,15"""
+
+        # Step 2: Use the API to inspect the file in-memory to extract contents
+        # as if it was a database
+        inspect_response = agent_client.inspect_file_as_data_connection(
+            file_contents=csv_content.encode("utf-8"), file_name="test-ai-systems.csv"
+        )
+
+        # Verify inspection response has expected structure
+        assert "tables" in inspect_response
+        assert len(inspect_response["tables"]) == 1
+        table_info = inspect_response["tables"][0]
+        assert table_info["name"] == "test-ai-systems.csv"
+        assert len(table_info["columns"]) == 3  # Entity, Year, Cost
+
+        # Step 3: Create a semantic data model from it
+        semantic_model: SemanticDataModel = {
+            "name": "test_ai_systems_semantic_model",
+            "description": "A test semantic model for AI systems data",
+            "tables": [
+                {
+                    "name": "ai_systems_data",
+                    "base_table": {
+                        # This will be the data frame name (use to reference the table in the
+                        # SQL queries)
+                        "table": "data_frame_test_ai_systems",
+                        # Because we're uploading the semantic data model to an agent, we don't
+                        # know the thread_id or file_ref yet, so we leave them empty. Later
+                        # on we must automatically match with a matching file uploaded to the
+                        # thread.
+                        "file_reference": {
+                            "thread_id": "",
+                            "file_ref": "",
+                            "sheet_name": "",
+                        },
+                    },
+                    "dimensions": [
+                        {
+                            "name": "Entity",
+                            "expr": "Entity",
+                            "data_type": "TEXT",
+                            "description": "The entity of the AI system",
+                        },
+                        {
+                            "name": "Year",
+                            "expr": "Year",
+                            "data_type": "TEXT",
+                            "description": "The year of the AI system",
+                        },
+                        {
+                            "name": "Cost",
+                            "expr": "Cost",
+                            "data_type": "NUMBER",
+                            "description": "The cost of the AI system",
+                        },
+                    ],
+                },
+            ],
+        }
+
+        # Step 4: Create a new thread
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4o-mini"]},
+                },
+            ],
+            runbook=(
+                "You are an agent which should create data frames using the "
+                "data_frames_create_from_sql tool, referencing the semantic data model "
+                "that the user provides to answer user's questions."
+            ),
+            description="Agent which can query the semantic data model",
+        )
+
+        # Create the semantic data model -- note that it doesn't really reference
+        # a file yet (because it currently doesn't exist in a thread).
+        created_model = agent_client.create_semantic_data_model(
+            dict(semantic_model=semantic_model),
+        )
+        semantic_data_model_id = created_model["semantic_data_model_id"]
+
+        # Set the semantic data model for the agent
+        agent_client.set_agent_semantic_data_models(agent_id, [semantic_data_model_id])
+
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        # Step 5: Upload that file to the thread
+        thread_response = agent_client.upload_file_to_thread(
+            thread_id,
+            "test-ai-systems.csv",
+            embedded=False,
+            content=csv_content.encode("utf-8"),
+        )
+        check_upload_response(thread_response)
+
+        # Step 7: Actually ask the LLM which semantic data models it has available
+        result, _tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            "What semantic data models do you have available?",
+        )
+
+        # Verify that the agent can access the semantic data model
+        result_text = str(result)
+        assert "test_ai_systems_semantic_model" in result_text or "ai_systems_data" in result_text
+
+        result, tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            "Please create a data frame from the AI systems table showing entity, year and cost.",
+        )
+        result_text = str(result)
+        assert "data_frames_create_from_sql" in str(tool_calls)
+        assert "Data frame" in str(tool_calls)
+        assert "created from SQL query" in str(tool_calls)

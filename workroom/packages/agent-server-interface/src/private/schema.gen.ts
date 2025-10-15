@@ -2999,7 +2999,7 @@ export interface components {
       /** Schema */
       schema?: string | null;
       /** Table */
-      table?: string | null;
+      table?: string;
       /** Data Connection Id */
       data_connection_id?: string | null;
       file_reference?:
@@ -3881,6 +3881,15 @@ export interface components {
       | 'EXTRA_ACTUAL_CALL'
       | 'MISSING_ACTUAL_CALL'
       | 'LEFTOVER_RECORDED_CALLS';
+    /** EmptyFileReference */
+    EmptyFileReference: {
+      /** Logical Table Name */
+      logical_table_name: string;
+      /** Sheet Name */
+      sheet_name: string | null;
+      /** Base Table Table */
+      base_table_table: string;
+    };
     /** ExecuteDataQualityChecksRequest */
     ExecuteDataQualityChecksRequest: {
       /** Quality Checks */
@@ -6358,6 +6367,8 @@ export interface components {
       file_references: components['schemas']['agent_platform__core__payloads__semantic_data_model_payloads__FileReference'][];
       /** Errors In Semantic Data Model */
       errors_in_semantic_data_model: string[];
+      /** Empty File References */
+      empty_file_references: components['schemas']['EmptyFileReference'][];
     };
     /** SetAgentDataConnectionsPayload */
     SetAgentDataConnectionsPayload: {

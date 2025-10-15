@@ -141,6 +141,18 @@ class FileReference:
 
 
 @dataclass(frozen=True)
+class EmptyFileReference:
+    """Empty file reference information. This is used when the semantic data model
+    has an empty file reference (thread_id and file_ref are empty).
+    This means that the semantic data model must match a file automatically
+    after it's added to a thread (and cannot be used until that reference is satisfied)."""
+
+    logical_table_name: str
+    sheet_name: str | None
+    base_table_table: str
+
+
+@dataclass(frozen=True)
 class SemanticDataModelWithAssociations:
     """Semantic data model with its associations."""
 
@@ -151,3 +163,4 @@ class SemanticDataModelWithAssociations:
     data_connection_ids: list[str]
     file_references: list[FileReference]
     errors_in_semantic_data_model: list[str]
+    empty_file_references: list[EmptyFileReference]

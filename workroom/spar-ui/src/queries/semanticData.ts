@@ -102,7 +102,7 @@ export const useSemanticModelQuery = createSparQuery(semanticModelQueryOptions);
  */
 export const useCreateSemanticDataMutation = createSparMutation<
   object,
-  DataConnectionFormSchema & { agentId: string; threadId: string }
+  DataConnectionFormSchema & { agentId: string }
 >()(({ sparAPIClient, queryClient }) => ({
   mutationFn: async (payload) => {
     const tableData = payload.dataConnectionId
@@ -119,8 +119,8 @@ export const useCreateSemanticDataMutation = createSparMutation<
           data_connections_info: [],
           files_info: [
             {
-              thread_id: payload.threadId,
-              file_ref: 'selected-services-june-2025-quarter.csv',
+              thread_id: '',
+              file_ref: '',
               tables_info: payload.dataSelection,
             },
           ],

@@ -9,7 +9,9 @@ from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        SemanticDataModel,
+    )
     from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
@@ -121,6 +123,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
     ):
         from typing import Literal
 
+        from agent_platform.server.data_frames.semantic_data_model_collector import (
+            SemanticDataModelCollector,
+        )
         from agent_platform.server.storage.option import StorageService
 
         previous_state: Literal["enabled", ""] = state.data_frames_tools_state
@@ -138,10 +143,12 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
         self._name_to_data_frame = {data_frame.name: data_frame for data_frame in data_frames}
 
-        semantic_data_models = await storage.list_semantic_data_models(
-            agent_id=self.kernel.thread.agent_id, thread_id=self.kernel.thread.thread_id
+        collector = SemanticDataModelCollector(
+            agent_id=self.kernel.thread.agent_id,
+            thread_id=self.kernel.thread.thread_id,
+            user=self.kernel.user,
         )
-        self._semantic_data_models = semantic_data_models
+        self._semantic_data_models = await collector.collect_semantic_data_models(storage)
 
         data_frame_tools = _DataFrameTools(
             self.kernel.user, self.kernel.thread.thread_id, self._name_to_data_frame, storage

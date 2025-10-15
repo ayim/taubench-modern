@@ -274,10 +274,11 @@ class BaseTable(TypedDict, total=False):
     ]
 
     # The real table name is required for all use cases, for files, the table is the data frame name
-    # (because we can only reference it in a sql after it's in a data frame format).
+    # (this is the name that the SQL must reference the table by, it must be a valid SQL identifier)
     table: Annotated[
-        str | None,
-        "Name of the table (or data frame name for a file)",
+        str,
+        """Name of the table (or data frame name for a file). It must be a valid SQL identifier
+        and is used to reference this table in the SQL queries.""",
     ]
 
     # For data connections the data_connection_id is required

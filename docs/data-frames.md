@@ -275,7 +275,7 @@ See [./data-frames-db-and-semantic-models.md](data-frames-db-and-semantic-models
   Note: this happens because duckdb doesn't support null column types (it does accept having null values in the column if the
   column is of a different type though, so, casting the column to string as a workaround).
 
-# Step 11b (this PR)
+# Step 11b (done)
 
 - Provide an API which would receive the file contents of a file, then create a `create_file_data_reader_from_contents`
   to create a `FileDataReader` instance ad then create a `DataConnectionsInspectResponse` to return based on the
@@ -289,7 +289,7 @@ Notes:
 - Create an integration test in `test_data_frames_integration.py` to test the new API (update the agent client to support the new API).
 - Do NOT run the tests, just create it.
 
-# Step 12:
+# Step 12 (done):
 
 Create a "Full semantic data model" which includes metrics, facts, dimensions, time dimensions, synonyms, etc.
 
@@ -351,11 +351,42 @@ This must be implemented in `server/src/agent_platform/server/kernel/semantic_da
 The `suggest_scenario_from_thread` method from `server/src/agent_platform/server/evals/advisor.py` can be used as a reference on how to use
 the `prompt_generate` API.
 
-# Step 12b:
+# Step 13 (this PR):
 
-Extract primary keys/uniqueness from the database directly when available.
+- We have the following issue: when a semantic data model that references a file is
+  added to an agent, we can't really reference the actual file because it will only
+  be valid after the user uploads it in a thread.
 
-# Step 12b:
+# Step 13a (this PR):
+
+- Create a new integration test (in `server/tests/integration/test_semantic_data_models_integration.py`) that:
+  1. Creates a csv file in memory
+  2. Uses the API to inspect the file in-memory to extract contents as if it was a database
+  3. Creates a semantic data model from it
+  4. Create a new thread
+  5. Upload that file to the thread
+  6. Actually ask the LLM which semantic data models it has available
+
+# Step 13b (this PR):
+
+Actually make it possible to use that semantic data model with a file in a thread.
+
+Note: this is tricky because we don't have a good way to make the link that a given file in the
+thread is the same file that was used to create the semantic data model.
+
+The process we go through is that at each processing step we check if semantic data models
+have unresolved file references and if they have we try to resolve them.
+
+At this point we'll do it without any caching to try to keep the PR as small as possible
+(which is already quite big).
+
+# Step 13c:
+
+- Add caches for the inspection metadata when a file is inspected for tabular data (data frames).
+- Add cache associating which file matches which semantic data model when a semantic data model is
+  added to an agent (but the file is only available after it's uploaded to the thread).
+
+# Step 14:
 
 https://sema4ai.slack.com/archives/C07LMU0AQFR/p1759853149588429
 
@@ -370,16 +401,16 @@ https://sema4ai.slack.com/archives/C07LMU0AQFR/p1759853149588429
     it should inspect the file for multiple sheets and then request the agent to ask the
     user to select which sheet to create a data frame from.
 
-# Step 13:
+# Step 15:
 
 Actually do tests with postgres, redshift and snowflake.
 Do more tests on exceptional use cases (slow queries, bad network, etc.).
 
-# Step 14:
+# Step 16:
 
 Support "federated" queries (i.e.: SQL referencing multiple data connections or referencing a data connection and a file or in-memory data).
 
-# Step 15:
+# Step 17:
 
 When a semantic data model is later needed just for a subset (say a semantic data model was created from 2 databases and a file), if
 later on a file is required, it should be possible to extract a subset of the semantic data model to be used just for that file.
@@ -392,10 +423,11 @@ when creating a new semantic data model for some other data (if the shape of one
   - Consume data frames directly from actions/tools.
   - Validate if user tries to create a Table with inconsistent column/rows.
   - Accept name and description for a Table.
+- Verify that errors with proper messages are returned to the LLM.
+- Extract primary keys/uniqueness from the database directly when available.
 - https://sema4ai.slack.com/archives/C07LMU0AQFR/p1758257549592739
   - make is so that the agent understands an existing data frame cannot be overwritten.
 - Versioning of data frames (or provide more information to the UI so that it can know what's supposed to be a new version of an existing data frame and what's not).
-- It should be possible to add name and description to a `Table` to create the data frame accordingly.
 - Let agents put frames into the chat w/ minimal token cost (i.e.: `<data-frame name="..." />`)
 - Investigate shortcomings of the "just SQL" approach and see if an approach using "sanitized but possibly unsafe python code" can be better.
   - See: https://github.com/Sema4AI/agent-platform/pull/794#issuecomment-3234347346 for use-cases to test.

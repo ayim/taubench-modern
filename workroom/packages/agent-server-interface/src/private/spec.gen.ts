@@ -8496,14 +8496,7 @@ export const spec = {
             title: 'Schema',
           },
           table: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
+            type: 'string',
             title: 'Table',
           },
           data_connection_id: {
@@ -10670,6 +10663,32 @@ export const spec = {
           'LEFTOVER_RECORDED_CALLS',
         ],
         title: 'DriftType',
+      },
+      EmptyFileReference: {
+        properties: {
+          logical_table_name: {
+            type: 'string',
+            title: 'Logical Table Name',
+          },
+          sheet_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sheet Name',
+          },
+          base_table_table: {
+            type: 'string',
+            title: 'Base Table Table',
+          },
+        },
+        type: 'object',
+        required: ['logical_table_name', 'sheet_name', 'base_table_table'],
+        title: 'EmptyFileReference',
       },
       ExecuteDataQualityChecksRequest: {
         properties: {
@@ -16093,6 +16112,13 @@ export const spec = {
             type: 'array',
             title: 'Errors In Semantic Data Model',
           },
+          empty_file_references: {
+            items: {
+              $ref: '#/components/schemas/EmptyFileReference',
+            },
+            type: 'array',
+            title: 'Empty File References',
+          },
         },
         type: 'object',
         required: [
@@ -16103,6 +16129,7 @@ export const spec = {
           'data_connection_ids',
           'file_references',
           'errors_in_semantic_data_model',
+          'empty_file_references',
         ],
         title: 'SemanticDataModelWithAssociations',
       },

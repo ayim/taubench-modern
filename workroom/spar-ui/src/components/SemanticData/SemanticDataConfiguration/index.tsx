@@ -25,7 +25,7 @@ type Props = {
 };
 
 export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
-  const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
+  const { agentId } = useParams('/thread/$agentId');
   const [activeStep, setActiveStep] = useState<ConfigurationStep>(ConfigurationStep.DataConnection);
   const { addSnackbar } = useSnackbar();
   const [inspectedDataTables, setInspectedDataTables] = useState<InspectedTableInfo[]>([]);
@@ -89,7 +89,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
       );
     } else {
       createSemanticData(
-        { ...values, agentId, threadId },
+        { ...values, agentId },
         {
           onSuccess: () => {
             addSnackbar({

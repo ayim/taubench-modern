@@ -19,6 +19,7 @@ from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.payloads.mcp_server_response import MCPServerResponse
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     DeleteSemanticDataModelPayload,
+    EmptyFileReference,
     FileReference,
     GenerateSemanticDataModelPayload,
     GenerateSemanticDataModelResponse,
@@ -49,6 +50,7 @@ __all__ = [
     "DeleteSemanticDataModelPayload",
     "DocumentIntelligenceConfigPayload",
     "DocumentLayoutPayload",
+    "EmptyFileReference",
     "EphemeralStreamPayload",
     "FileReference",
     "ForkThreadPayload",
