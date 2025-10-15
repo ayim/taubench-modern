@@ -1,4 +1,5 @@
-import { FC, useMemo } from 'react';
+import { FC, memo, useMemo } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 import { Banner } from '@sema4ai/components';
 import { IconAlert } from '@sema4ai/icons';
@@ -13,8 +14,22 @@ type Props = {
 };
 
 type ThreadMessageContent = ThreadMessage['content'];
-const getGroupedMessageContent = (messageContent: ThreadMessageContent) =>
-  messageContent
+const getGroupedMessageContent = (messageContent: ThreadMessageContent, messageComplete: boolean) => {
+  /**
+   * If message stream started with empty content show thinking state as placeholder
+   */
+  if (messageContent.length === 0 && !messageComplete) {
+    return [
+      {
+        kind: 'thought' as const,
+        thought: '',
+        complete: false,
+        content_id: uuidv4(),
+      },
+    ];
+  }
+
+  return messageContent
     .reduce<(ThreadMessageContent | ThreadMessageContent[number])[]>((acc, content) => {
       if (content.kind === 'tool_call' && shouldIgnoreToolCall(content.name)) {
         return acc;
@@ -35,12 +50,13 @@ const getGroupedMessageContent = (messageContent: ThreadMessageContent) =>
       return acc;
     }, [])
     .map((content) => (Array.isArray(content) && content.length === 1 ? content[0] : content));
+};
 
 const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message, streaming }) => {
   const groupedMessageContent = useMemo(() => {
     const messageContent = message.content ?? [];
-    return getGroupedMessageContent(messageContent);
-  }, [message.content]);
+    return getGroupedMessageContent(messageContent, message.complete);
+  }, [message.content, message.complete]);
 
   return groupedMessageContent.map((processedContent) => {
     if (Array.isArray(processedContent)) {
@@ -72,7 +88,7 @@ const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message,
   });
 };
 
-export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
+const MessageRendererComponent: FC<Props> = ({ message, streaming }) => {
   // TODO-V2: Styling of a stream error
   if ('error_id' in message) {
     return <Banner message="An error occurred" description={message.message} icon={IconAlert} variant="error" />;
@@ -80,3 +96,5 @@ export const MessageRenderer: FC<Props> = ({ message, streaming }) => {
 
   return <Renderer message={message} streaming={streaming} />;
 };
+
+export const MessageRenderer = memo(MessageRendererComponent);

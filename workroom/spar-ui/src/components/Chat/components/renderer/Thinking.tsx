@@ -44,11 +44,17 @@ const extractThought = (text: string, platform: string | undefined): string | nu
   return null;
 };
 
+const END_OF_LINE_REGEX = /\n+$/;
+const formatContent = (content: string) => {
+  return content.replace(END_OF_LINE_REGEX, '');
+};
+
 export const Thinking: FC<Props> = ({ complete, children, platform }) => {
   const thought = useMemo(() => extractThought(children, platform), [children, platform]);
+  const content = useMemo(() => formatContent(children), [children]);
   return (
     <Chat.Thinking streaming={!complete} title={thought ?? (complete ? 'Thought' : undefined)}>
-      {children}
+      {content}
     </Chat.Thinking>
   );
 };

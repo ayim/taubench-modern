@@ -415,13 +415,7 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
         messages.push({
           message_id: uuidv4(),
           role: 'agent',
-          content: [
-            {
-              kind: 'thought',
-              thought: '',
-              complete: false,
-            },
-          ],
+          content: [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           complete: false,
