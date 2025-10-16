@@ -17,24 +17,6 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
     tokenIssuer: 'spar',
     type: 'none',
   },
-  files: {
-    mode: 'disabled',
-  },
-  frontendMode: 'disk',
-  legacyRoutingUrl: null,
-  metaUrl: null,
-  ports: {
-    internal: 'NOT_USED_IN_TESTS' as unknown as number,
-    public: 'NOT_USED_IN_TESTS' as unknown as number,
-  },
-  session: null,
-  tenant: {
-    tenantId: 'spar-test',
-    tenantName: 'SPAR test',
-  },
-  userIdentity: {
-    cacheTTL: 300,
-  },
   dataServerCredentials: {
     credentials: {
       username: 'NOT_USED_IN_TESTS',
@@ -50,6 +32,25 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         port: 'NOT_USED_IN_TESTS' as unknown as number,
       },
     },
+  },
+  files: {
+    mode: 'disabled',
+  },
+  frontendMode: 'disk',
+  legacyRoutingUrl: null,
+  logLevel: 'INFO',
+  metaUrl: null,
+  ports: {
+    internal: 'NOT_USED_IN_TESTS' as unknown as number,
+    public: 'NOT_USED_IN_TESTS' as unknown as number,
+  },
+  session: null,
+  tenant: {
+    tenantId: 'spar-test',
+    tenantName: 'SPAR test',
+  },
+  userIdentity: {
+    cacheTTL: 300,
   },
   workroomMeta: {
     features: {
@@ -137,6 +138,7 @@ describe('application', () => {
         configuration: generateConfiguration({ agentServerInternalUrl: targetServerUrl }),
         monitoring: {
           logger: {
+            debug: () => {},
             info: () => {},
             error: () => {},
           },
@@ -173,6 +175,7 @@ describe('application', () => {
         },
         monitoring: {
           logger: {
+            debug: () => {},
             info: () => {},
             error: () => {},
           },
@@ -235,6 +238,7 @@ describe('application', () => {
         },
         monitoring: {
           logger: {
+            debug: () => {},
             info: () => {},
             error: () => {},
           },

@@ -16,7 +16,7 @@ const gracefulShutdown =
 
 const main = async () => {
   const configuration = getConfiguration();
-  const monitoring = createMonitoringContext();
+  const monitoring = createMonitoringContext({ logLevel: configuration.logLevel });
 
   const app = await createApplication({ configuration, monitoring });
   await app.start();
@@ -30,7 +30,7 @@ const main = async () => {
 };
 
 main().catch((err) => {
-  const monitoring = createMonitoringContext();
+  const monitoring = createMonitoringContext({});
   monitoring.logger.error('Fatal error', { error: err });
 
   process.exit(1);

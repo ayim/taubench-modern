@@ -1,14 +1,13 @@
+import z from 'zod';
 import type { Configuration } from '../configuration.js';
 
-type LogMethod = (text: string, data?: Partial<LogAttributes>) => void;
-type LogSeverity = 'INFO' | 'ERROR';
+type LogMethod<Attributes extends LogAttributes> = (text: string, data?: Partial<Attributes>) => void;
 
-export interface LogAttributes {
+interface LogAttributes {
   authMode: Configuration['auth']['type'];
   authSkip: boolean;
   contentDispositionType: string;
   count: number;
-  deploymentType: 'spar';
   error?: Error;
   errorCause: string;
   errorMessage: string;
@@ -19,6 +18,7 @@ export interface LogAttributes {
   fileName: string;
   fileSize: number;
   fileType: string;
+  logLevel: LogSeverity;
   objectStorageBucketName: string;
   oidcIssuer: string;
   oidcRedirectUrl: string;
@@ -32,18 +32,44 @@ export interface LogAttributes {
   tenantId: string;
 }
 
+interface DebugLogAttributes extends LogAttributes {
+  oidcClaims: string;
+}
+
 export interface LoggingContext {
-  error: LogMethod;
-  info: LogMethod;
+  debug: LogMethod<DebugLogAttributes>;
+  error: LogMethod<LogAttributes>;
+  info: LogMethod<LogAttributes>;
 }
 
 export interface MonitoringContext {
   logger: LoggingContext;
 }
 
-const buildLogMethod = (severity: LogSeverity): LogMethod => {
-  return (text: string, data: Partial<LogAttributes> = {}) => {
-    const attributes: Partial<LogAttributes> = { ...data };
+export type LogSeverity = z.infer<typeof LogSeverity>;
+export const LogSeverity = z.preprocess(
+  (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+  z.enum(['DEBUG', 'INFO', 'ERROR']),
+);
+
+const SEVERITY_VALUE: { [K in LogSeverity]: number } = {
+  DEBUG: 20,
+  ERROR: 40,
+  INFO: 30,
+};
+
+const buildLogMethod = <Attributes extends LogAttributes>(
+  severity: LogSeverity,
+  { minimumSeverity }: { minimumSeverity: LogSeverity },
+): LogMethod<Attributes> => {
+  const currentLevel = SEVERITY_VALUE[severity];
+  const minLevel = SEVERITY_VALUE[minimumSeverity];
+  const shouldOutput = currentLevel >= minLevel;
+
+  return (text: string, data: Partial<Attributes> = {}): void => {
+    if (!shouldOutput) return;
+
+    const attributes: Partial<Attributes> = { ...data };
 
     if (data.error) {
       Object.assign(attributes, {
@@ -110,11 +136,12 @@ const writeLogToStdout = ({
   }
 };
 
-export const createMonitoringContext = (): MonitoringContext => {
+export const createMonitoringContext = ({ logLevel = 'INFO' }: { logLevel?: LogSeverity }): MonitoringContext => {
   return {
     logger: {
-      error: buildLogMethod('ERROR'),
-      info: buildLogMethod('INFO'),
+      debug: buildLogMethod('DEBUG', { minimumSeverity: logLevel }),
+      error: buildLogMethod('ERROR', { minimumSeverity: logLevel }),
+      info: buildLogMethod('INFO', { minimumSeverity: logLevel }),
     },
   };
 };

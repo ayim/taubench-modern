@@ -5,6 +5,7 @@ import {
   parseEnvVariableInteger,
 } from '@sema4ai/robocloud-shared-utils';
 import type { operations } from '@sema4ai/workroom-interface';
+import { LogSeverity } from './monitoring/index.js';
 
 export type WorkroomMeta = operations['getWorkroomMeta']['responses']['200']['content']['application/json'];
 
@@ -33,6 +34,7 @@ export interface Configuration {
         intermediaryCallbackRedirectUrl: string | null;
         jwtPrivateKeyB64: string;
         oidcServer: string;
+        scopes: Array<string>;
         type: 'oidc';
       }
   );
@@ -68,6 +70,7 @@ export interface Configuration {
       };
   frontendMode: 'disk' | 'middleware';
   legacyRoutingUrl: string | null;
+  logLevel: LogSeverity;
   metaUrl: string | null;
   ports: {
     internal: number;
@@ -139,6 +142,13 @@ export const getConfiguration = (): Configuration => {
       case 'oidc': {
         const oidcServer = parseEnvVariable('SEMA4AI_WORKROOM_OIDC_SERVER');
 
+        // Standard, required scopes:
+        //  offline_access  => Refresh tokens
+        //  openid          => ID tokens
+        const scopes = process.env.SEMA4AI_WORKROOM_OIDC_SCOPES
+          ? parseEnvVariable('SEMA4AI_WORKROOM_OIDC_SCOPES').split(/\s+/g)
+          : ['offline_access', 'openid'];
+
         return {
           clientId: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_ID'),
           clientSecret: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET'),
@@ -147,6 +157,7 @@ export const getConfiguration = (): Configuration => {
             : null,
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
           oidcServer,
+          scopes,
           tokenIssuer,
           type: 'oidc',
         };
@@ -185,6 +196,14 @@ export const getConfiguration = (): Configuration => {
       default:
         exhaustiveCheck(mode);
     }
+  })();
+
+  const logLevel = ((): LogSeverity => {
+    if (process.env.SEMA4AI_WORKROOM_LOG_LEVEL) {
+      return LogSeverity.parse(parseEnvVariable('SEMA4AI_WORKROOM_LOG_LEVEL'));
+    }
+
+    return 'INFO';
   })();
 
   const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
@@ -282,6 +301,7 @@ export const getConfiguration = (): Configuration => {
     files,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
     legacyRoutingUrl,
+    logLevel,
     metaUrl,
     ports: {
       internal: portInternal,

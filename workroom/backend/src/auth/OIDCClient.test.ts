@@ -18,6 +18,7 @@ describe('OIDCClient', () => {
 
   const monitoring: MonitoringContext = {
     logger: {
+      debug: () => {},
       info: () => {},
       error: () => {},
     },
@@ -27,6 +28,7 @@ describe('OIDCClient', () => {
     const client = new OIDCClient({
       oidcClientConfiguration: getConfiguration(),
       monitoring,
+      scopes: ['offline_access', 'openid'],
     });
 
     expect(client).toBeInstanceOf(OIDCClient);
@@ -45,6 +47,7 @@ describe('OIDCClient', () => {
       client = new OIDCClient({
         oidcClientConfiguration: getConfiguration(),
         monitoring,
+        scopes: ['offline_access', 'openid'],
       });
     });
 

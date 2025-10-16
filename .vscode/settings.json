@@ -28,6 +28,9 @@
   "[yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[dockercompose]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "json.schemas": [
     {
       "fileMatch": ["*ecs-task-def.json"],

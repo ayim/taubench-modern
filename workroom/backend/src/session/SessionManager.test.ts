@@ -17,6 +17,7 @@ describe('SessionManager', () => {
       sessionManager = new SessionManager({
         monitoring: {
           logger: {
+            debug: () => {},
             info: () => {},
             error: () => {},
           },

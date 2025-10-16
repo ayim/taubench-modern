@@ -5,7 +5,7 @@ x-postgres-image: &postgres-image "postgres:17"
 x-env-spar: &template-env-spar
     # Agent Server
     AGENT_SERVER_PORT: 8000
-    LOG_LEVEL: DEBUG
+    LOG_LEVEL: INFO
     OTEL_COLLECTOR_URL: http://otel-collector:4318
     OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
     POSTGRES_DB: agents
@@ -16,10 +16,11 @@ x-env-spar: &template-env-spar
     SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
     SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
     # Workroom
+    SEMA4AI_ENABLE_SPAR_ONLY_FEATURES: true
     SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
     SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS: true
     SEMA4AI_WORKROOM_AUTH_MODE: none
-    SEMA4AI_ENABLE_SPAR_ONLY_FEATURES: true
+    SEMA4AI_WORKROOM_LOG_LEVEL: INFO
     SEMA4AI_WORKROOM_PORT: 8001
     SEMA4AI_WORKROOM_PORT_INTERNAL: 8002
     SEMA4AI_WORKROOM_TENANT_ID: spar
@@ -49,7 +50,7 @@ x-service-spar: &template-service-spar
             aliases:
                 - spar
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+        - "host.docker.internal:host-gateway"
     depends_on:
         postgres:
             condition: service_healthy
@@ -64,14 +65,14 @@ services:
             POSTGRES_USER: agents
             POSTGRES_PASSWORD: agents
         ports:
-            - '5432:5432'
+            - "5432:5432"
         expose:
-            - '5432'
+            - "5432"
         volumes:
             - postgres_data:/var/lib/postgresql/data
             - ./data-server/data-server-create-pg-db.sql:/docker-entrypoint-initdb.d/data-server-create-pg-db.sql
         healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U agents -d agents']
+            test: ["CMD-SHELL", "pg_isready -U agents -d agents"]
             interval: 5s
             timeout: 5s
             retries: 5
@@ -83,7 +84,7 @@ services:
         platform: linux/amd64
         environment:
             # Uses the default config: https://github.com/Sema4AI/data/blob/master/docker/data-server/default_config.json
-            SKIP_CONFIGURATION: 'true'
+            SKIP_CONFIGURATION: "true"
         ports:
             - "47334:47334"
             - "47335:47335"
@@ -115,9 +116,9 @@ services:
         ports:
             - 8086:8086
         expose:
-            - '8086'
+            - "8086"
         healthcheck:
-            test: ['CMD-SHELL', 'curl -f http://localhost:8086/ping || exit 1']
+            test: ["CMD-SHELL", "curl -f http://localhost:8086/ping || exit 1"]
             interval: 5s
             timeout: 5s
             retries: 5
@@ -126,7 +127,7 @@ services:
         image: otel/opentelemetry-collector-contrib:0.130.0
         platform: linux/amd64
         command:
-            - '--config=/etc/otelcol-contrib/config.yaml'
+            - "--config=/etc/otelcol-contrib/config.yaml"
         volumes:
             - ./observability/dev/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
             - ./observability/dev/otlp-output:/data/collector:rw
@@ -134,8 +135,8 @@ services:
             - 4318:4318
             - 13133:13133
         expose:
-            - '4318'
-            - '13133'
+            - "4318"
+            - "13133"
         depends_on:
             influx-db:
                 condition: service_healthy

@@ -22,6 +22,7 @@ describe('createGetACEUser', () => {
 
   const monitoring = {
     logger: {
+      debug: () => {},
       info: () => {},
       error: () => {},
     },

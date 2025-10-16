@@ -5,6 +5,7 @@ import type { MonitoringContext } from '../../monitoring/index.js';
 describe('extractSnowflakeUserIdentity', () => {
   const monitoring = {
     logger: {
+      debug: () => {},
       info: () => {},
       error: () => {},
     },

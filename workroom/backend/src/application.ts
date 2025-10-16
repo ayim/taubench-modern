@@ -43,7 +43,7 @@ export const createApplication = async ({
 }> => {
   monitoring.logger.info('Configuring application', {
     authMode: configuration.auth.type,
-    deploymentType: 'spar',
+    logLevel: configuration.logLevel,
   });
 
   const authManager = new AuthManager({

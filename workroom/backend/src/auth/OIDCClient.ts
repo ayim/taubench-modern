@@ -24,16 +24,20 @@ export interface OIDCPKCEChallenge {
 export class OIDCClient {
   private monitoring: MonitoringContext;
   private oidcClientConfiguration: ClientConfiguration;
+  private scopes: Array<string>;
 
   constructor({
     monitoring,
     oidcClientConfiguration,
+    scopes,
   }: {
     monitoring: MonitoringContext;
     oidcClientConfiguration: ClientConfiguration;
+    scopes: Array<string>;
   }) {
     this.monitoring = monitoring;
     this.oidcClientConfiguration = oidcClientConfiguration;
+    this.scopes = scopes;
   }
 
   async exchangeCodeForTokens({
@@ -52,6 +56,11 @@ export class OIDCClient {
         pkceCodeVerifier: codeVerifier,
       },
     );
+
+    const idToken = tokenSet.claims();
+    this.monitoring.logger.debug('Exchanged OIDC token', {
+      oidcClaims: JSON.stringify(idToken ?? {}),
+    });
 
     return tokenSet;
   }
@@ -80,15 +89,11 @@ export class OIDCClient {
     if (issuerUrlResult.data.host === 'accounts.google.com') {
       // Google handles offline access (refresh tokens) differently, so we cannot specify the
       // 'offline_access' scope, and instead need to use non-standard parameters:
-      authParams.scope = 'openid email';
+      this.scopes = this.scopes.filter((scope) => scope !== 'offline_access');
       authParams.access_type = 'offline';
-    } else {
-      // Required scopes:
-      //  email           => Email address sub
-      //  offline_access  => Refresh tokens
-      //  openid          => ID tokens
-      authParams.scope = 'openid email offline_access';
     }
+
+    authParams.scope = this.scopes.join(' ');
 
     const authUrl = oidcClient.buildAuthorizationUrl(this.oidcClientConfiguration, authParams);
 
@@ -133,6 +138,11 @@ export class OIDCClient {
     refreshToken: string;
   }): Promise<TokenEndpointResponse & TokenEndpointResponseHelpers> {
     const tokenSet = await oidcClient.refreshTokenGrant(this.oidcClientConfiguration, refreshToken);
+
+    const idToken = tokenSet.claims();
+    this.monitoring.logger.debug('Refreshed OIDC token', {
+      oidcClaims: JSON.stringify(idToken ?? {}),
+    });
 
     return tokenSet;
   }
@@ -187,6 +197,7 @@ export class OIDCClient {
     return new OIDCClient({
       monitoring,
       oidcClientConfiguration: config,
+      scopes: configuration.auth.scopes,
     });
   }
 

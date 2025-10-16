@@ -13,7 +13,7 @@ These variables are agent-server related, and can be applied to the general SPAR
 | Variable                                            | Example                      | Definition                         | Required  |
 | --------------------------------------------------- | ---------------------------- | ---------------------------------- | --------- |
 | `AGENT_SERVER_PORT`                                 | `8000`                       | Agent server listen port.          | Yes       |
-| `LOG_LEVEL`                                         | `DEBUG`                      | Agent server log level.            | No        |
+| `LOG_LEVEL`                                         | `INFO`                       | Agent server log level.            | No [^3]   |
 | `OTEL_COLLECTOR_URL`                                | `http://otel-collector:4318` | Open Telemetry collector URL.      | _No_ [^1] |
 | `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` | `delta`                      | Open Telemetry metric temporality. | _No_ [^2] |
 | `POSTGRES_DB`                                       | `agents`                     | Postgres database name.            | _No_ [^2] |
@@ -22,10 +22,6 @@ These variables are agent-server related, and can be applied to the general SPAR
 | `POSTGRES_PORT`                                     | `5432`                       | Postgres database port.            | _No_ [^2] |
 | `POSTGRES_USER`                                     | `agents`                     | Postgres database username.        | _No_ [^2] |
 | `SEMA4AI_AGENT_SERVER_DB_TYPE`                      | `postgres`                   | Agent server database type.        | _No_ [^2] |
-
-[^1]: Not required but recommended for full functionality.
-
-[^2]: Not required but _expected_ for Sema4.ai production applications.
 
 > [!CAUTION]
 > You should be running SPAR with a Postgres database in all production scenarios. Use of the built-in SQLite DB is not supported outside of brief demonstration scenarios.
@@ -48,6 +44,7 @@ These variables are workroom related, and can be applied to the general SPAR doc
 | ------------------------------------------ | --------------------- | --------------------------------------------------- | -------- |
 | `SEMA4AI_WORKROOM_AGENT_SERVER_URL`        | `http://agent-server` | URL to the agent server, non-public.                | Yes      |
 | `SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS` | `true`                | Allow non-HTTPS requests (session/cookie handling). | No       |
+| `SEMA4AI_WORKROOM_LOG_LEVEL`               | `INFO`                | Configure log level for the workroom backend.       | No [^3]  |
 | `SEMA4AI_WORKROOM_PORT`                    | `8001`                | Workroom / gateway HTTP listen port.                | Yes      |
 | `SEMA4AI_WORKROOM_PORT_INTERNAL`           | `8002`                | Internal (private) HTTP listen port.                | Yes      |
 | `SEMA4AI_WORKROOM_TENANT_ID`               | `spar`                | Tenant identifier.                                  | Yes      |
@@ -75,6 +72,12 @@ The following environment variables should be configured for this setup:
 
 ## Foot Notes
 
+[^1]: Not required but recommended for full functionality.
+
+[^2]: Not required but _expected_ for Sema4.ai production applications.
+
+[^3]: Logging can be configured using a variety of [verbosity levels](#logging).
+
 ### OIDC Provider Support
 
 SPAR / Workroom can be connected to an OIDC-capable authentication provider, such as Okta, Google etc.
@@ -90,3 +93,10 @@ Redirect URIs:
 OIDC authentication providers are _discovered_ automatically by our OIDC client. That means that a compatible service must provide a `.well-known/openid-configuration` endpoint. You **should not** specify the `.well-known` portion in this value - it is assumed to be available.
 
 For instance, the correct value for the mock OIDC server we test with is `http://localhost:9000/default`, not `http://localhost:9000/default/.well-known/openid-configuration`.
+
+### Logging
+
+Logging can be configured for the Agent Server and Workroom backend separately, via the use of the following environment variables:
+
+- `LOG_LEVEL` - Agent server log level. Defaults to `INFO`. Valid levels: `ERROR`, `INFO`, `DEBUG`, `TRACE`.
+- `SEMA4AI_WORKROOM_LOG_LEVEL` - Workroom backend log level. Defaults to `INFO`. Valid levels: `ERROR`, `INFO`, `DEBUG`. Case insensitive.
