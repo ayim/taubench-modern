@@ -36,6 +36,7 @@ class QuotasService:
     PARALLEL_WORK_ITEMS = ConfigType.MAX_PARALLEL_WORK_ITEMS
     MCP_SERVERS_PER_AGENT = ConfigType.MAX_MCP_SERVERS
     AGENT_THREAD_RETENTION_PERIOD_DAYS = ConfigType.AGENT_THREAD_RETENTION_PERIOD
+    POSTGRES_POOL_MAX_SIZE = ConfigType.POSTGRES_POOL_MAX_SIZE
 
     # Storage key constants imported from config_validation (single source of truth)
 
@@ -70,6 +71,11 @@ class QuotasService:
             storage_key=ConfigType.AGENT_THREAD_RETENTION_PERIOD,
             default_value=90,
             description="Retention period for agent threads in days",
+        ),
+        POSTGRES_POOL_MAX_SIZE: QuotaConfig(
+            storage_key=ConfigType.POSTGRES_POOL_MAX_SIZE,
+            default_value=50,
+            description="Maximum PostgreSQL connection pool size (applies to Psycopg/SQLAlchemy)",
         ),
     }
 
@@ -162,14 +168,28 @@ class QuotasService:
             new_value: The new value as a string
 
         Raises:
-            ValueError: If the value is invalid for the given config type
+            PlatformHTTPError: If the value is invalid for the given config type
         """
-        # Validate both config type and value - this will raise ValueError if invalid
+        # Validate both config type and value - this will raise PlatformHTTPError if invalid
         int_value = validate_config_value(config_type, new_value)
 
         config = self.CONFIG_TYPES[config_type]
+        # Pre-validate against current pool min_size when updating postgres pool size
+        if config_type is self.POSTGRES_POOL_MAX_SIZE:
+            await self._validate_and_apply_postgres_pool_max_size(int_value)
         await StorageService.get_instance().set_config(config.storage_key, new_value)
         self._config_values[config_type] = int_value
+
+    async def _validate_and_apply_postgres_pool_max_size(self, new_value: int) -> None:
+        """Validate and apply the postgres pool max size."""
+        storage = StorageService.get_instance()
+        # Delegate to PostgresStorage if available; otherwise, no-op
+        from agent_platform.server.storage.postgres.postgres import (
+            PostgresStorage,
+        )  # local import
+
+        if isinstance(storage, PostgresStorage):
+            await storage.apply_pool_size(new_value)
 
     def _get_config_value(self, config_type: ConfigType) -> int:
         """Generic method to get a config value."""

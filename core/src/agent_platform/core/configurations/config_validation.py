@@ -5,6 +5,8 @@ This module provides validation for configuration types without circular depende
 
 from enum import StrEnum
 
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
+
 
 class ConfigType(StrEnum):
     MAX_WORK_ITEM_PAYLOAD_SIZE = "MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB"
@@ -13,6 +15,7 @@ class ConfigType(StrEnum):
     MAX_PARALLEL_WORK_ITEMS = "MAX_PARALLEL_WORK_ITEMS_IN_PROCESS"
     MAX_MCP_SERVERS = "MAX_MCP_SERVERS_IN_AGENT"
     AGENT_THREAD_RETENTION_PERIOD = "AGENT_THREAD_RETENTION_PERIOD"
+    POSTGRES_POOL_MAX_SIZE = "POSTGRES_POOL_MAX_SIZE"
 
 
 def validate_config_type(config_type: str) -> None:
@@ -48,22 +51,32 @@ def validate_config_value(config_type: ConfigType | str, value: str) -> int:
     Raises:
         ValueError: If the value is invalid
     """
-    # First validate the config type exists
+    # First validate the config type exists and normalize to enum
     validate_config_type(config_type)
+    config_type_enum = ConfigType(config_type)
 
     try:
         int_value = int(value)
     except ValueError as e:
-        raise ValueError(
-            f"Invalid value '{value}' for {config_type}: must be a valid integer"
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=f"Invalid value '{value}' for {config_type}: must be a valid integer",
         ) from e
 
-    # All config types should be non-negative.
-    # Later, when there is an usecase, we can use the config_type
-    # and do match case to validate the value.
+    # Common rule: all config values should be non-negative
     if int_value < 0:
-        raise ValueError(
-            f"Invalid value {int_value} for {config_type}: must be >= 0 (non-negative)"
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=f"Invalid value {int_value} for {config_type}: must be >= 0 (non-negative)",
         )
+
+    # Specific rules
+    if config_type_enum is ConfigType.POSTGRES_POOL_MAX_SIZE:
+        # Pool size must be at least 1
+        if int_value < 1:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message=f"Invalid value {int_value} for {config_type}: must be >= 1",
+            )
 
     return int_value

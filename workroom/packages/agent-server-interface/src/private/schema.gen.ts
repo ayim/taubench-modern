@@ -3279,7 +3279,8 @@ export interface components {
       | 'MAX_AGENTS'
       | 'MAX_PARALLEL_WORK_ITEMS_IN_PROCESS'
       | 'MAX_MCP_SERVERS_IN_AGENT'
-      | 'AGENT_THREAD_RETENTION_PERIOD';
+      | 'AGENT_THREAD_RETENTION_PERIOD'
+      | 'POSTGRES_POOL_MAX_SIZE';
     /** ConfirmRemoteFileUploadPayload */
     ConfirmRemoteFileUploadPayload: {
       /** File Ref */

@@ -36,11 +36,7 @@ async def set_config(
     logger.info("Setting configuration", config_type=payload.config_type, user_id=user.user_id)
 
     quotas_service = await QuotasService.get_instance()
-    try:
-        await quotas_service.set_config(payload.config_type, payload.current_value)
-    except Exception as e:
-        logger.error("Failed to set configuration", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    await quotas_service.set_config(payload.config_type, payload.current_value)
 
     return {
         "message": "Configuration set successfully",

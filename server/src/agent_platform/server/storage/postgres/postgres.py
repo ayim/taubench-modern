@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -13,6 +14,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.postgres.migrations import PostgresMigrations
 from agent_platform.server.storage.postgres.storage_agents import (
@@ -164,6 +166,7 @@ class PostgresStorage(
         self._is_setup = False
         self._dns = dsn
         self._write_lock = NullAsyncLock()
+        self._engine_swap_lock: asyncio.Lock = asyncio.Lock()
 
     async def setup(self) -> None:
         """Create and open the async connection pool."""
@@ -220,6 +223,31 @@ class PostgresStorage(
         if not self._pool:
             raise RuntimeError("Pool not initialized; call setup() first.")
         return await self._pool.getconn()
+
+    async def apply_pool_size(self, new_max: int) -> None:
+        """Resize psycopg pool to the new pool size.
+
+        Validates against current psycopg min_size. On invalid values, raises
+        PlatformHTTPError with BAD_REQUEST.
+        """
+        # Resize psycopg pool if available
+        pool = self._pool
+        if pool is not None:
+            current_min = pool.min_size
+            if new_max < current_min:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=(
+                        "Invalid value for POSTGRES_POOL_MAX_SIZE: must be >= "
+                        f"current min_size {current_min}"
+                    ),
+                    data={
+                        "new_value": new_max,
+                        "current_min": current_min,
+                    },
+                )
+            await pool.resize(current_min, new_max)
+            self._logger.info("Resized psycopg pool", new_max=new_max)
 
     def _get_dsn(self) -> str:
         return self._dns or PostgresConfig.dsn

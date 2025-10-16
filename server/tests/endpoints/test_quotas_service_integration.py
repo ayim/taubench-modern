@@ -1,4 +1,8 @@
+import pytest
+
+from agent_platform.core.configurations.config_validation import ConfigType
 from agent_platform.core.configurations.quotas import QuotasService
+from agent_platform.core.errors import PlatformHTTPError
 from agent_platform.server.storage.option import StorageService
 
 
@@ -47,3 +51,26 @@ class TestQuotasServiceIntegration:
     def teardown_method(self):
         QuotasService._instance = None
         StorageService.reset()
+
+    async def test_postgres_pool_max_size_round_trip_and_validation(self, storage):
+        StorageService.set_for_testing(storage)
+        QuotasService._instance = None
+
+        quotas_service = await QuotasService.get_instance()
+
+        # Default is 50 (from QuotasService mapping)
+        assert quotas_service.get_config(ConfigType.POSTGRES_POOL_MAX_SIZE) == 50
+
+        # Set to a valid value
+        await quotas_service.set_config(ConfigType.POSTGRES_POOL_MAX_SIZE, "80")
+        assert quotas_service.get_config(ConfigType.POSTGRES_POOL_MAX_SIZE) == 80
+
+        # Persisted across instances
+        QuotasService._instance = None
+        fresh = await QuotasService.get_instance()
+        assert fresh.get_config(ConfigType.POSTGRES_POOL_MAX_SIZE) == 80
+
+        # Invalid values are rejected
+        for bad in ["0", "-1"]:
+            with pytest.raises(PlatformHTTPError):
+                await quotas_service.set_config(ConfigType.POSTGRES_POOL_MAX_SIZE, bad)

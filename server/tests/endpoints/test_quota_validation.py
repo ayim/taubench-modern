@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from agent_platform.core.configurations.quotas import QuotasService
+from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.quotas import AgentQuotaExceededError
 from agent_platform.server.api.dependencies import check_agent_quota
 
@@ -227,8 +228,8 @@ class TestQuotaServiceConfig:
         assert validate_config_value("MAX_AGENTS", "1") == 1
 
         # Test negative values - should raise error
-        with pytest.raises(ValueError, match="must be >= 0 \\(non-negative\\)"):
+        with pytest.raises(PlatformHTTPError, match="must be >= 0 \\(non-negative\\)"):
             validate_config_value("MAX_AGENTS", "-1")
 
-        with pytest.raises(ValueError, match="must be >= 0 \\(non-negative\\)"):
+        with pytest.raises(PlatformHTTPError, match="must be >= 0 \\(non-negative\\)"):
             validate_config_value("MAX_AGENTS", "-100")
