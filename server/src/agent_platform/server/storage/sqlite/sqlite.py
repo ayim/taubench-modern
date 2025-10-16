@@ -409,3 +409,7 @@ class SQLiteStorage(
             f"datetime('{now.isoformat()}', '-' "
             f"|| CAST(json_extract({config_column.name}, '$') AS integer) || ' days')"
         )
+
+    async def apply_pool_size(self, new_max: int) -> None:
+        # No-op on SQLite since we don't support this function on SQLite
+        pass

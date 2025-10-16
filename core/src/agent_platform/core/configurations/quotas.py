@@ -183,13 +183,8 @@ class QuotasService:
     async def _validate_and_apply_postgres_pool_max_size(self, new_value: int) -> None:
         """Validate and apply the postgres pool max size."""
         storage = StorageService.get_instance()
-        # Delegate to PostgresStorage if available; otherwise, no-op
-        from agent_platform.server.storage.postgres.postgres import (
-            PostgresStorage,
-        )  # local import
 
-        if isinstance(storage, PostgresStorage):
-            await storage.apply_pool_size(new_value)
+        await storage.apply_pool_size(new_value)
 
     def _get_config_value(self, config_type: ConfigType) -> int:
         """Generic method to get a config value."""

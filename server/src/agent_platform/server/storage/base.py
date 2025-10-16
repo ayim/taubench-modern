@@ -156,6 +156,16 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def _run_migrations(self) -> None:
         """Run the migrations."""
 
+    @abstractmethod
+    async def apply_pool_size(self, new_max: int) -> None:
+        """Resize psycopg pool to the new pool size.
+
+        Validates against current psycopg min_size. On invalid values, raises
+        PlatformHTTPError with BAD_REQUEST.
+
+        On SQLite, this is a no-op.
+        """
+
     # -------------------------------------------------------------------------
     # Methods for Data Frames
     # -------------------------------------------------------------------------
