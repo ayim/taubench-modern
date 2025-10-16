@@ -196,10 +196,10 @@ const CitationBox: FC<CitationBoxProps> = ({
 
     // Hover/selection takes highest priority
     if (isHovered || isActuallySelected) return 'rgba(255, 193, 7, 1)'; // Yellow border on hover OR when selected
-    // If matched, use the specified blue border
-    if (isMatched) return 'rgb(59, 130, 246)'; // Blue border for matched citations
-    // Default blue for unmatched citations
-    return 'rgba(59, 130, 246, 1)'; // Blue for citation boxes
+    // If matched, use the specified green border
+    if (isMatched) return 'rgb(22, 140, 43)'; // Green border for matched citations
+    // Default green for unmatched citations
+    return 'rgb(22, 140, 43)'; // Green for citation boxes
   };
 
   const getBackgroundColor = () => {
@@ -208,10 +208,10 @@ const CitationBox: FC<CitationBoxProps> = ({
 
     // Hover/selection takes highest priority
     if (isHovered || isActuallySelected) return 'rgba(255, 193, 7, 0.4)'; // Yellow background on hover OR when selected
-    // If matched, use the specified blue background
-    if (isMatched) return 'rgba(59, 130, 246, 0.2)'; // Blue background for matched citations
-    // Default blue for unmatched citations
-    return 'rgba(59, 130, 246, 0.2)'; // Blue background for citation boxes
+    // If matched, use the specified green background
+    if (isMatched) return 'rgb(39 214 60 / 20%)'; // Green background for matched citations
+    // Default green for unmatched citations
+    return 'rgb(39 214 60 / 20%)'; // Green background for citation boxes
   };
 
   // Extract nested ternary expressions to variables

@@ -9,7 +9,7 @@ import {
   Progress,
 } from '@sema4ai/components';
 import { IconSparkles2, IconPlus, IconCursorText, IconInformation, IconPencil } from '@sema4ai/icons';
-import { ChangeEvent, FC, useCallback, useMemo, useState, useEffect, useRef } from 'react';
+import { ChangeEvent, FC, useCallback, useMemo, useState, useEffect } from 'react';
 
 import { LayoutFieldRow, getTableColumns, FieldRowProps, DocumentData } from '../types';
 import { StepDataTable, StepDataDisplayTable } from './common/StepDataTable';
@@ -49,6 +49,8 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
     addField,
     removeField,
     setDocumentLayout,
+    flowExecuted,
+    setFlowExecuted,
   } = useDocumentIntelligenceStore();
 
   const effectiveFlowType = currentFlowType || flowType;
@@ -58,13 +60,11 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
   const [cachedSelectedFields, setCachedSelectedFields] = useState<string[]>([]);
   const [cachedSelectedTableColumns, setCachedSelectedTableColumns] = useState<Record<string, string[]>>({});
 
-  const flowExecutedRef = useRef(false);
-
   // Initialize flow when component mounts (only once)
   useEffect(() => {
     // Only run the flow for parse_current_document flow and if it hasn't been executed yet
-    if (fileRef && threadId && agentId && !isProcessing && !flowLoading && !flowExecutedRef.current && effectiveFlowType === 'parse_current_document') {
-      flowExecutedRef.current = true;
+    if (fileRef && threadId && agentId && !isProcessing && !flowLoading && !flowExecuted && effectiveFlowType === 'parse_current_document') {
+      setFlowExecuted(true);
       executeDocumentLayoutFlow({
         fileRef,
         threadId,
@@ -72,10 +72,10 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         dataModelName: documentData.dataModelName,
         flowType: effectiveFlowType,
       }).catch(() => {
-        flowExecutedRef.current = false;
+        setFlowExecuted(false);
       });
     }
-  }, [fileRef, threadId, agentId, effectiveFlowType, documentData.dataModelName, isProcessing, flowLoading]);
+  }, [fileRef, threadId, agentId, effectiveFlowType, documentData.dataModelName, isProcessing, flowLoading, flowExecuted, setFlowExecuted]);
 
   // Sync local selection state with store
   useEffect(() => {

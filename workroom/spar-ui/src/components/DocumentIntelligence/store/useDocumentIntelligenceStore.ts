@@ -87,6 +87,7 @@ interface DocumentIntelligenceState {
   dataModel: DataModelPayload | null;
   activeRequests: Map<string, AbortController>;
   isCancelled: boolean;
+  flowExecuted: boolean;
 
   // Actions
   setFileRef: (fileRef: File | null) => void;
@@ -135,6 +136,8 @@ interface DocumentIntelligenceState {
   removeField: (id: string) => void;
   updateTableField: (name: string, updates: Partial<LayoutTableRow>) => void;
 
+  setFlowExecuted: (executed: boolean) => void;
+
   // Reset all state
   reset: () => void;
 }
@@ -178,6 +181,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     dataModel: null,
     activeRequests: new Map<string, AbortController>(),
     isCancelled: false,
+    flowExecuted: false,
 
     // Actions
     setFileRef: (fileRef: File | null) => {
@@ -286,6 +290,8 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         isProcessing: false,
         processingError: null,
         processingStep: 'Cancelled by user',
+        extractedData: null, // Clear extracted data when cancelling
+        parseData: null, // Clear parse data when cancelling
       });
     },
 
@@ -334,6 +340,11 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         layoutTables: state.layoutTables.map((table) => (table.name === name ? { ...table, ...updates } : table)),
       })),
 
+    // Flow execution tracking
+    setFlowExecuted: (executed: boolean) => {
+      set({ flowExecuted: executed });
+    },
+
     // Reset all state
     reset: () => {
       // Cancel any ongoing requests first
@@ -347,6 +358,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         selectedFieldId: null,
         parseData: null,
         extractedData: null,
+        documentLayout: null,
         layoutFields: [],
         layoutTables: [],
         selectedFields: [],
@@ -362,9 +374,12 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         dataQualityChecks: [],
         dataQualityChecksError: null,
         qualityCheckResults: {},
+        dataQualityPrompt: null,
         ingestedDocument: null,
+        dataModel: null,
         activeRequests: new Map<string, AbortController>(),
         isCancelled: false,
+        flowExecuted: false,
       });
     },
   }),

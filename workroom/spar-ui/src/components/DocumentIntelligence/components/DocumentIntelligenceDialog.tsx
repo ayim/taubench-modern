@@ -23,8 +23,9 @@ export const DocumentIntelligenceDialog: FC<DocumentIntelligenceDialogProps> = (
     if (activeRequests.size > 0) {
       cancelAllRequests();
     }
+    reset(); // Clear all data immediately when closing
     onClose();
-  }, [onClose, cancelAllRequests, activeRequests]);
+  }, [onClose, cancelAllRequests, activeRequests, reset]);
 
   const shouldShowConfirmation = useCallback(() => {
     // This means the user has completed the workflow and can close gracefully
@@ -103,6 +104,7 @@ export const DocumentIntelligenceDialog: FC<DocumentIntelligenceDialogProps> = (
           variant="primary"
           onClick={() => {
             setOpenExitConfirmation(false);
+            reset(); // Clear all data immediately
             handleCloseWithCancellation();
           }}
         >
