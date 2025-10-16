@@ -341,7 +341,7 @@ def test_data_frames_with_data_sources(base_url_agent_server_with_data_frames, r
                 {
                     "kind": "openai",
                     "openai_api_key": "unused",
-                    "models": {"openai": ["gpt-4-1"]},
+                    "models": {"openai": ["gpt-4.1"]},
                 },
             ],
         )

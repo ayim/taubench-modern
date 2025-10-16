@@ -19,7 +19,7 @@ def test_semantic_data_models_integration(base_url_agent_server, datadir, resour
                 {
                     "kind": "openai",
                     "openai_api_key": "unused",
-                    "models": {"openai": ["gpt-4-1"]},
+                    "models": {"openai": ["gpt-4.1"]},
                 },
             ],
         )
