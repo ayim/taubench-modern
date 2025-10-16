@@ -115,6 +115,14 @@ class PostgresConfig(Configuration):
     # derived field
     dsn: str = field(init=False)
 
+    pool_max_size: int = field(
+        default=50,
+        metadata=FieldMetadata(
+            description="The maximum size of the connection pool.",
+            env_vars=["SEMA4AI_AGENT_SERVER_POSTGRES_POOL_MAX_SIZE", "POSTGRES_POOL_MAX_SIZE"],
+        ),
+    )
+
     def __post_init__(self) -> None:
         object.__setattr__(
             self,
@@ -166,7 +174,7 @@ class PostgresStorage(
         self._pool = (
             AsyncConnectionPool(
                 conninfo=dsn,
-                max_size=20,
+                max_size=PostgresConfig.pool_max_size,
                 num_workers=3,
                 open=False,
             )
@@ -185,6 +193,7 @@ class PostgresStorage(
             echo=False,
             pool_pre_ping=True,
             pool_recycle=3600,
+            pool_size=PostgresConfig.pool_max_size,
         )
         await self._run_migrations()
 

@@ -1,4 +1,5 @@
-from contextlib import AsyncExitStack, asynccontextmanager
+import asyncio
+from contextlib import AsyncExitStack, asynccontextmanager, suppress
 from os import getenv
 
 import structlog
@@ -28,6 +29,7 @@ from agent_platform.server.secret_manager.option import SecretService
 # Use our new telemetry module instead of the old otel module
 from agent_platform.server.shutdown_manager import ShutdownManager
 from agent_platform.server.storage import StorageService
+from agent_platform.server.storage.pool_monitor import pool_monitor_loop
 from agent_platform.server.telemetry import setup_telemetry
 from agent_platform.server.work_items.background_worker import (
     WORKER_NAME as WORK_ITEMS_WORKER_NAME,
@@ -60,6 +62,26 @@ def _start_evals_background_worker() -> None:
     )
 
     ShutdownManager.register_drainable_background_worker(EVALS_WORKER_NAME, queue.worker_loop)
+
+
+def _start_pool_monitor() -> tuple[asyncio.Task, asyncio.Event]:
+    logger.info("Starting database connection pool monitor")
+    shutdown_event = asyncio.Event()
+
+    def _callback(future: asyncio.Task):
+        try:
+            if exc := future.exception():
+                logger.error(f"Database connection pool monitor error: {exc}", exc_info=exc)
+
+        except asyncio.CancelledError:
+            pass
+
+        logger.info("Database connection pool monitor shut down")
+
+    t = asyncio.create_task(pool_monitor_loop(shutdown_event))
+    t.add_done_callback(_callback)
+
+    return t, shutdown_event
 
 
 @asynccontextmanager
@@ -103,6 +125,13 @@ async def lifespan(app: FastAPI):
     if not migration_success:
         logger.warning("Data migration from v1 to v2 failed, but server will continue")
 
+    # Start the database connection pool monitor (only for PostgreSQL)
+    pool_monitor_task: asyncio.Task | None = None
+    pool_monitor_shutdown_event: asyncio.Event | None = None
+
+    if SystemConfig.db_type == "postgres":
+        pool_monitor_task, pool_monitor_shutdown_event = _start_pool_monitor()
+
     # Start the work-items background worker only if enabled in configuration
     if SystemConfig.enable_workitems:
         _start_work_items_background_worker()
@@ -121,6 +150,13 @@ async def lifespan(app: FastAPI):
         await ShutdownManager.drain_background_workers()
 
         data_retention_task.cancel()
+
+        # Shut down the pool monitor if it was started
+        if pool_monitor_shutdown_event is not None and pool_monitor_task is not None:
+            logger.info("Shutting down pool monitor")
+            pool_monitor_shutdown_event.set()
+            with suppress(asyncio.CancelledError):
+                await pool_monitor_task
 
         # Shutdown separate diff pool for ResponseStreamPipe
         logger.info("Shutting down ResponseStreamPipe diff pool")
