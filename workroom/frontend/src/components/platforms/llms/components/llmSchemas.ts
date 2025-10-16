@@ -8,11 +8,9 @@ export const OPENAI_MODEL_VALUES = [
   'openai:o4-mini-high',
   'openai:o3-high',
   'openai:o3-low',
-  'openai:gpt-4.1',
-  'openai:gpt-4.1-mini',
+  'openai:gpt-4-1',
+  'openai:gpt-4-1-mini',
   'openai:gpt-4o',
-  'openai:gpt-4-turbo',
-  'openai:gpt-3.5-turbo',
 ] as const;
 export const AZURE_MODEL_VALUES = ['azure:azure-openai-service'] as const;
 export const BEDROCK_MODEL_VALUES = [
@@ -28,8 +26,6 @@ export const BEDROCK_MODEL_VALUES = [
   'bedrock:claude-4-sonnet-thinking-low',
   'bedrock:claude-4-opus',
   'bedrock:claude-4-sonnet',
-  'bedrock:claude-3.7-sonnet',
-  'bedrock:amazon-bedrock',
 ] as const;
 
 type AllPlatformParameters =
@@ -37,13 +33,13 @@ type AllPlatformParameters =
   | components['schemas']['AzureOpenAIPlatformParameters']
   | components['schemas']['BedrockPlatformParameters'];
 
-export type Provider = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock'>;
+export type Platform = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock'>;
 
-export const PROVIDERS = ['openai', 'azure', 'bedrock'] as const satisfies readonly Provider[];
+export const PLATFORMS = ['openai', 'azure', 'bedrock'] as const satisfies readonly Platform[];
 
 // TODO: [fix-type] Backend returns string | null for fields that are required when editing
 const baseLLMSchema = z.object({
-  provider: z.enum(PROVIDERS),
+  platform: z.enum(PLATFORMS),
   validateLLM: z.boolean(),
   name: z.string().min(1),
   model: z.string().min(1),
@@ -57,10 +53,10 @@ const baseLLMSchema = z.object({
 });
 
 export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ctx) => {
-  if (values.provider === 'openai') {
+  if (values.platform === 'openai') {
     if (!values.apiKey) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['apiKey'], message: 'API key is required' });
   }
-  if (values.provider === 'azure') {
+  if (values.platform === 'azure') {
     if (!values.apiKey) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['apiKey'], message: 'API key is required' });
     if (!values.azure_endpoint_url)
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['azure_endpoint_url'], message: 'Required' });
@@ -69,7 +65,7 @@ export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ct
     if (!values.azure_deployment_name)
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['azure_deployment_name'], message: 'Required' });
   }
-  if (values.provider === 'bedrock') {
+  if (values.platform === 'bedrock') {
     if (!values.aws_access_key_id)
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['aws_access_key_id'], message: 'Required' });
     if (!values.aws_secret_access_key)

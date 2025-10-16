@@ -4,6 +4,7 @@ import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Dialog, Button, useSnackbar } from '@sema4ai/components';
 import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/LLMsTable';
 import { getListPlatformsQueryOptions, type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
+import { getAlowedModelFromPlatform } from '~/lib/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) => {
@@ -56,8 +57,8 @@ function RouteComponent() {
       .map((p) => ({
         id: p.platform_id as string,
         name: p.name,
-        provider: p.kind,
-        model: Array.isArray(p.models?.[p.kind]) && p.models?.[p.kind]?.length ? p.models?.[p.kind]?.[0] : p.kind,
+        platform: p.kind,
+        model: getAlowedModelFromPlatform(p),
         createdAt: p.created_at || '',
       }));
   }, [data, queryClient, tenantId]);

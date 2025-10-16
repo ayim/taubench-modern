@@ -2,6 +2,7 @@ import { UserTenant } from '~/queries/tenants';
 import { getBasePath } from '~/utils/base';
 import type { MCPServerCreate, MCPServer, MCPServerEdit } from '~/queries/mcpServers';
 import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
+import { ListPlatformsResponse } from '~/queries/platforms';
 
 export const snakeCaseToCamelCase = (str: string): string => {
   return str
@@ -86,20 +87,47 @@ export const getTenantWorkoomRedirect = ({
   };
 };
 
+export const getAlowedModelFromPlatform = (platform: ListPlatformsResponse[number]) => {
+  // The allow list in platform.models is a map from <provider>: [<model1>, <model2>, ...]
+  // We set this up with the flexibility to allow _more than a single model_ across _many providers_
+  // in a platform (say use either OpenAI's gpt-5 or Anthropic's claude-4-5 on the Cortex platform)
+  const allowedProviders = Object.keys(platform.models ?? {});
+  const allowedModels = allowedProviders.flatMap((provider) => platform.models?.[provider] ?? []);
+  // Shouldn't be possible, but just in case
+  if (allowedModels.length === 0) {
+    return 'unknown';
+  }
+  // Today, however, we almost solely construct platforms pinned to a single mode from a single provider
+  if (allowedModels.length === 1) {
+    return allowedModels[0];
+  }
+  // Shouldn't hit this, but if we do, return something reasonable
+  return allowedModels.join(', ');
+};
+
 export const beautifyLabel = (value: string): string => {
   const id = value.split(':')[1] || value;
-  return id
-    .replace(/-/g, ' ')
-    .replace(/^gpt /, 'GPT ')
-    .replace(/^o(\d)/i, (_, d) => `O${d} `)
-    .replace(/\bmini\b/i, 'Mini')
-    .replace(/\bhigh\b/i, 'High')
-    .replace(/\bopenai service\b/i, 'OpenAI Service')
-    .replace(/\bamazon bedrock\b/i, 'Amazon Bedrock')
-    .replace(/\bazure\b/i, 'Azure')
-    .replace(/\bopenai\b/i, 'OpenAI')
-    .replace(/\bbedrock\b/i, 'Bedrock')
-    .replace(/\b(\w)/g, (m) => m.toUpperCase());
+  return (
+    id
+      .replace(/-/g, ' ')
+      .replace(/^gpt /, 'GPT-')
+      .replace(/^claude /, 'Claude ')
+      .replace(/^o(\d)/i, (_, d) => `O${d} `)
+      .replace(/\bmini\b/i, 'Mini')
+      .replace(/\bhigh\b/i, '(High)')
+      .replace(/\bmedium\b/i, '(Medium)')
+      .replace(/\blow\b/i, '(Low)')
+      .replace(/\bminimal\b/i, '(Minimal)')
+      .replace(/\bopenai service\b/i, 'OpenAI Service')
+      .replace(/\bamazon bedrock\b/i, 'Amazon Bedrock')
+      .replace(/\bazure\b/i, 'Azure')
+      .replace(/\bopenai\b/i, 'OpenAI')
+      .replace(/\bbedrock\b/i, 'Bedrock')
+      .replace(/\cortex\b/i, 'Cortex')
+      // Digit space digit -> digit.digit
+      .replace(/\b(\d) (\d)\b/g, '$1.$2')
+      .replace(/\b(\w)/g, (m) => m.toUpperCase())
+  );
 };
 
 export const joinURL = (...parts: Array<string>): string => {

@@ -4,12 +4,12 @@ import { IconDotsHorizontal, IconPlus } from '@sema4ai/icons';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 import { FC, useState } from 'react';
 import { formatDatetime } from '~/lib/utils';
-import { PROVIDERS } from './llmSchemas';
+import { PLATFORMS } from './llmSchemas';
 
 export type LLMTableItem = {
   id: string;
   name: string;
-  provider: string;
+  platform: string;
   model: string;
   createdAt?: string;
 };
@@ -24,7 +24,7 @@ type Props = {
   onSelect?: (item: LLMTableItem) => void;
 };
 
-type Provider = (typeof PROVIDERS)[number];
+type Platform = (typeof PLATFORMS)[number];
 
 export const LLMsTable: FC<Props> = ({
   items,
@@ -35,14 +35,14 @@ export const LLMsTable: FC<Props> = ({
   selectedId = null,
   onSelect,
 }) => {
-  const [providerFilter, setProviderFilter] = useState<'all' | Provider>('all');
+  const [platformFilter, setPlatformFilter] = useState<'all' | Platform>('all');
   const Row: FC<TableRowProps<LLMTableItem>> = ({ rowData }) => (
     <Table.Row
       onClick={selectable && onSelect ? () => onSelect(rowData) : onEdit ? () => onEdit?.(rowData) : undefined}
       aria-selected={selectable && selectedId === rowData.id}
     >
       <Table.Cell>{rowData.name}</Table.Cell>
-      <Table.Cell>{rowData.provider}</Table.Cell>
+      <Table.Cell>{rowData.platform}</Table.Cell>
       <Table.Cell>{rowData.model}</Table.Cell>
       <Table.Cell>{rowData.createdAt ? formatDatetime(rowData.createdAt) : ''}</Table.Cell>
       <Table.Cell controls>
@@ -61,7 +61,7 @@ export const LLMsTable: FC<Props> = ({
     label: { singular: 'LLM', plural: 'LLMs' },
     columns: [
       { id: 'name', title: 'Name', sortable: true, required: true },
-      { id: 'provider', title: 'Provider', sortable: true },
+      { id: 'platform', title: 'Platform', sortable: true },
       { id: 'model', title: 'Model', sortable: true },
       { id: 'createdAt', title: 'Created at', sortable: true },
       { id: 'actions', title: '', sortable: false },
@@ -69,12 +69,12 @@ export const LLMsTable: FC<Props> = ({
     sort: ['createdAt', 'desc'],
     searchRules: {
       name: { value: (item) => item.name },
-      provider: { value: (item) => item.provider },
+      platform: { value: (item) => item.platform },
       model: { value: (item) => item.model },
     },
     sortRules: {
       name: { type: 'string', value: (item) => item.name },
-      provider: { type: 'string', value: (item) => item.provider },
+      platform: { type: 'string', value: (item) => item.platform },
       model: { type: 'string', value: (item) => item.model },
       createdAt: { type: 'date', value: (item) => item.createdAt ?? '' },
     },
@@ -86,21 +86,21 @@ export const LLMsTable: FC<Props> = ({
           </Button>
         )}
         <Select
-          aria-label="Provider filter"
+          aria-label="Platform filter"
           items={[
-            { value: 'all', label: 'All providers' },
-            ...Array.from(PROVIDERS).map((provider) => ({
-              value: provider,
-              label: provider.charAt(0).toUpperCase() + provider.slice(1),
+            { value: 'all', label: 'All platforms' },
+            ...Array.from(PLATFORMS).map((platform) => ({
+              value: platform,
+              label: platform.charAt(0).toUpperCase() + platform.slice(1),
             })),
           ]}
-          value={providerFilter}
-          onChange={(selectedProvider) => {
-            const isValidProvider = (value: string): value is 'all' | Provider => {
+          value={platformFilter}
+          onChange={(selectedPlatform) => {
+            const isValidPlatform = (value: string): value is 'all' | Platform => {
               return value === 'all' || value === 'openai' || value === 'azure' || value === 'bedrock';
             };
-            if (isValidProvider(selectedProvider)) {
-              setProviderFilter(selectedProvider);
+            if (isValidPlatform(selectedPlatform)) {
+              setPlatformFilter(selectedPlatform);
             }
           }}
         />
@@ -109,7 +109,7 @@ export const LLMsTable: FC<Props> = ({
   };
 
   const filteredItems =
-    providerFilter === 'all' ? items : items.filter((i) => i.provider.toLowerCase() === providerFilter);
+    platformFilter === 'all' ? items : items.filter((i) => i.platform.toLowerCase() === platformFilter);
 
   return (
     <Box>

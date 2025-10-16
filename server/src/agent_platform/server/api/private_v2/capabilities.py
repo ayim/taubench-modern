@@ -277,7 +277,6 @@ async def test_model_platform_params(
                 platform=platform_client,
                 request=ModelSelectionRequest(
                     model_type="llm",
-                    prioritize="intelligence",
                 ),
             )
 

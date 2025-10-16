@@ -9,11 +9,11 @@ import {
   OPENAI_MODEL_VALUES,
   editLLMFormSchema,
   type EditLLMFormSchema,
-  type Provider,
+  type Platform,
 } from '~/components/platforms/llms/components/llmSchemas';
 import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
 import { type PlatformForEditing } from '~/queries/agent-interface-patches';
-import { beautifyLabel } from '~/lib/utils';
+import { beautifyLabel, getAlowedModelFromPlatform } from '~/lib/utils';
 
 type Props = {
   open: boolean;
@@ -25,13 +25,13 @@ type Props = {
 
 export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdated, tenantId }) => {
   const { addSnackbar } = useSnackbar();
-  const kind: Provider = platform.kind;
+  const kind: Platform = platform.kind;
 
-  const firstModel = platform.models?.[kind]?.[0];
+  const firstModel = getAlowedModelFromPlatform(platform);
   const currentModel = firstModel ? `${kind}:${firstModel}` : `${kind}:unknown`;
 
   const getPlatformConfig = () => {
-    const base = { name: platform.name, provider: kind, model: currentModel, validateLLM: true };
+    const base = { name: platform.name, platform: kind, model: currentModel, validateLLM: true };
 
     return {
       ...base,
@@ -67,18 +67,22 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     const [, modelId] = String(values.model).split(':');
 
     const credentials: Record<string, unknown> = {};
+    let provider = null;
 
     if (kind === 'azure') {
       if (values.apiKey) credentials.azure_api_key = values.apiKey;
       if (values.azure_endpoint_url) credentials.azure_endpoint_url = values.azure_endpoint_url;
       if (values.azure_api_version) credentials.azure_api_version = values.azure_api_version;
       if (values.azure_deployment_name) credentials.azure_deployment_name = values.azure_deployment_name;
+      provider = 'openai';
     } else if (kind === 'bedrock') {
       if (values.aws_access_key_id) credentials.aws_access_key_id = values.aws_access_key_id;
       if (values.aws_secret_access_key) credentials.aws_secret_access_key = values.aws_secret_access_key;
       if (values.region_name) credentials.region_name = values.region_name;
+      provider = 'anthropic';
     } else if (kind === 'openai') {
       if (values.apiKey) credentials.openai_api_key = values.apiKey;
+      provider = 'openai';
     } else {
       kind satisfies never;
     }
@@ -87,7 +91,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
       id: platform.platform_id,
       name: values.name,
       kind: kind,
-      models: { [kind]: [modelId] },
+      models: { [provider ?? '']: [modelId] },
       credentials: Object.keys(credentials).length ? credentials : undefined,
     } satisfies UpdatePlatformBody;
 
@@ -107,13 +111,13 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
   });
 
   const modelItems = useMemo(() => {
-    const forProvider = (values: readonly string[]) =>
+    const forPlatform = (values: readonly string[]) =>
       values
         .filter((modelValue) => modelValue.startsWith(kind + ':'))
         .map((modelValue) => ({ value: modelValue, label: beautifyLabel(modelValue) }));
-    if (kind === 'azure') return forProvider(AZURE_MODEL_VALUES);
-    if (kind === 'bedrock') return forProvider(BEDROCK_MODEL_VALUES);
-    if (kind === 'openai') return forProvider(OPENAI_MODEL_VALUES);
+    if (kind === 'azure') return forPlatform(AZURE_MODEL_VALUES);
+    if (kind === 'bedrock') return forPlatform(BEDROCK_MODEL_VALUES);
+    if (kind === 'openai') return forPlatform(OPENAI_MODEL_VALUES);
     else {
       kind satisfies never;
       return [];

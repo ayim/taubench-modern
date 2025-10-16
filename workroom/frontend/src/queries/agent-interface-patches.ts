@@ -1,6 +1,6 @@
 import type { MCPServer } from './mcpServers';
 import type { GetPlatformResponse } from './platforms';
-import { PROVIDERS, type Provider } from '../components/platforms/llms/components/llmSchemas';
+import { PLATFORMS, type Platform } from '../components/platforms/llms/components/llmSchemas';
 
 /**
  * @deprecated Use proper typing from agent-server-interface instead of manual validation
@@ -61,7 +61,7 @@ export const transformMcpServerForEditing = (server: MCPServer): MCPServerForEdi
  * Properly typed platform for editing with supported provider constraints
  */
 export type PlatformForEditing = GetPlatformResponse & {
-  kind: Provider;
+  kind: Platform;
   name: NonNullable<GetPlatformResponse['name']>;
   models: NonNullable<GetPlatformResponse['models']>;
 };
@@ -70,8 +70,8 @@ export type PlatformForEditing = GetPlatformResponse & {
  * @deprecated Use proper typing from agent-server-interface instead of manual validation
  * Type guard for supported platform providers
  */
-export const isSupportedProvider = (provider: string): provider is Provider => {
-  return PROVIDERS.some((p) => p === provider);
+export const isSupportedPlatform = (platform: string): platform is Platform => {
+  return PLATFORMS.some((p) => p === platform);
 };
 
 /**
@@ -79,7 +79,7 @@ export const isSupportedProvider = (provider: string): provider is Provider => {
  * Type guard for platform editing readiness
  */
 const isPlatformReadyForEditing = (platform: GetPlatformResponse): platform is PlatformForEditing => {
-  return !!(platform.kind && platform.name && platform.models && isSupportedProvider(platform.kind));
+  return !!(platform.kind && platform.name && platform.models && isSupportedPlatform(platform.kind));
 };
 
 /**
@@ -96,9 +96,9 @@ export const transformPlatformForEditing = (platform: GetPlatformResponse): Plat
   if (!platform.name) missingFields.push('name');
   if (!platform.models) missingFields.push('models');
 
-  if (platform.kind && !isSupportedProvider(platform.kind)) {
+  if (platform.kind && !isSupportedPlatform(platform.kind)) {
     throw new Error(
-      `Platform provider '${platform.kind}' is not supported for editing. Only ${PROVIDERS.join(', ')} are supported.`,
+      `Platform provider '${platform.kind}' is not supported for editing. Only ${PLATFORMS.join(', ')} are supported.`,
     );
   }
 
