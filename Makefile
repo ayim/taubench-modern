@@ -169,7 +169,7 @@ run-server-hot-reload: sync  ## Run the agent server with hot reloading (uvicorn
 	@echo "       Or use docker compose up postgres to start containerized PostgreSQL"
 	@echo ""
 	SEMA4AI_AGENT_SERVER_DB_TYPE=postgres \
-	LOG_LEVEL=DEBUG \
+	LOG_LEVEL=$${LOG_LEVEL:-DEBUG} \
 	POSTGRES_HOST=$${POSTGRES_HOST:-localhost} \
 	POSTGRES_DB=$${POSTGRES_DB:-agents} \
 	POSTGRES_USER=$${POSTGRES_USER:-agents} \

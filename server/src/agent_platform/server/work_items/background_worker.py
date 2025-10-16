@@ -258,7 +258,7 @@ async def run_agent(item: WorkItem) -> bool:
             logger.error(f"Work item {item.work_item_id}: Run {run_id} failed")
             return False
         else:
-            logger.info(f"Work item {item.work_item_id}: Run {run_id} is {run_status_resp.status}")
+            logger.debug(f"Work item {item.work_item_id}: Run {run_id} is {run_status_resp.status}")
             await asyncio.sleep(1)
 
     assert_never(run_agent)
