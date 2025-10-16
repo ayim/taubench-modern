@@ -192,6 +192,12 @@ type AgentFile struct {
 	Embedded bool   `json:"embedded"`
 }
 
+// DataConnection represents a data connection
+type DataConnection struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // SemanticDataModel represents a semantic data model associated with an agent
 // The server returns a map[string]interface{} where the key is the SDM ID
 // and the value is the semantic model content

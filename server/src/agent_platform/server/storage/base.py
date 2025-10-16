@@ -1102,6 +1102,29 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return DataConnection.model_validate(row_dict)
 
+    async def get_data_connection_by_name(self, name: str) -> DataConnection | None:
+        """Get data connection by name (case-insensitive). Returns None if not found."""
+        data_connections = self._get_table("data_connection")
+        async with self._read_connection() as conn:
+            result = await conn.execute(
+                sa.select(data_connections).where(
+                    sa.func.lower(data_connections.c.name) == name.lower()
+                )
+            )
+            row = result.mappings().fetchone()
+            if row is None:
+                return None
+
+        row_dict = dict(row)
+        row_dict["configuration"] = self._decrypt_config(row_dict["enc_configuration"])
+        row_dict.pop("enc_configuration")
+
+        # Parse tags JSON string back to list for SQLite compatibility
+        if self._sa_engine.dialect.name == "sqlite" and isinstance(row_dict.get("tags"), str):
+            row_dict["tags"] = json.loads(row_dict["tags"]) if row_dict["tags"] else []
+
+        return DataConnection.model_validate(row_dict)
+
     async def set_data_connection(self, data_connection: DataConnection) -> None:
         """Set data connections."""
         data_connections = self._get_table("data_connection")
@@ -1271,16 +1294,22 @@ class BaseStorage(AbstractStorage, CommonMixin):
         input_file_references = self._get_table("semantic_data_model_input_file_references")
 
         # Note: there's currently no validation at all here!
-        semantic_model_as_json = json.dumps(semantic_model)
-
         async with self._write_connection() as conn:
+            # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
+            # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
+            semantic_model_value = (
+                json.dumps(semantic_model)
+                if self._sa_engine.dialect.name == "sqlite"
+                else semantic_model
+            )
+
             if semantic_data_model_id is None:
                 semantic_data_model_id = str(uuid.uuid4())
 
                 # Insert the semantic data model
                 insert_stmt = sa.insert(semantic_data_models).values(
                     id=semantic_data_model_id,
-                    semantic_model=semantic_model_as_json,
+                    semantic_model=semantic_model_value,
                     updated_at=datetime.now(UTC),
                 )
 
@@ -1308,7 +1337,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
                 upsert_stmt = insert(semantic_data_models).values(
                     id=semantic_data_model_id,
-                    semantic_model=semantic_model_as_json,
+                    semantic_model=semantic_model_value,
                     updated_at=datetime.now(UTC),
                 )
 
@@ -1364,8 +1393,14 @@ class BaseStorage(AbstractStorage, CommonMixin):
             if row is None:
                 raise ValueError(f"Semantic data model with ID {semantic_data_model_id} not found")
 
-        # Parse the JSON semantic model
-        semantic_model = json.loads(row["semantic_model"])
+        # PostgreSQL: SQLAlchemy returns JSONB as dict (no parsing needed)
+        # SQLite: SQLAlchemy returns TEXT as string (needs json.loads)
+        semantic_model = row["semantic_model"]
+
+        # Parse if string (SQLite normal, or PostgreSQL legacy double-serialized)
+        if isinstance(semantic_model, str):
+            semantic_model = json.loads(semantic_model)
+
         return semantic_model
 
     async def delete_semantic_data_model(self, semantic_data_model_id: str) -> None:
@@ -1651,7 +1686,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 model_id = str(row["id"])
 
                 if model_id not in models_by_id:
-                    semantic_model = json.loads(row["semantic_model"])
+                    # PostgreSQL: SQLAlchemy returns JSONB as dict (no parsing needed)
+                    # SQLite: SQLAlchemy returns TEXT as string (needs json.loads)
+                    semantic_model = row["semantic_model"]
+                    # Parse if string (SQLite normal, or PostgreSQL legacy double-serialized)
+                    if isinstance(semantic_model, str):
+                        semantic_model = json.loads(semantic_model)
+
                     models_by_id[model_id] = {
                         "semantic_data_model": semantic_model,
                         "semantic_data_model_id": model_id,

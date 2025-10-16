@@ -1563,6 +1563,313 @@ class TestConversationFields:
         assert "Can you integrate with other tools?" in second_group.questions
 
 
+class TestSemanticDataModelImport:
+    """Test cases for SDM import functionality using sqlite_storage."""
+
+    @pytest.mark.asyncio
+    async def test_import_sdm_with_data_connection_name(
+        self,
+        sqlite_storage,
+        tmp_path,
+    ):
+        """Test SDM import with data_connection_name that resolves successfully."""
+        from agent_platform.core.data_connections.data_connections import (
+            DataConnection,
+            PostgresDataConnectionConfiguration,
+        )
+        from server.tests.storage.sample_model_creator import SampleModelCreator
+
+        # Setup real data connection in storage
+        creator = SampleModelCreator(sqlite_storage, tmp_path)
+        await creator.setup()
+
+        # Create real data connection with name "Local postgres"
+        # (matches the name in the exported agent-package.zip)
+        data_connection = DataConnection(
+            id="test-conn-id",
+            name="Local postgres",
+            description="Test connection",
+            engine="postgres",
+            configuration=PostgresDataConnectionConfiguration(
+                host="localhost",
+                port=5432,
+                database="test_db",
+                user="test_user",
+                password="test_password",
+            ),
+            tags=[],
+        )
+        await sqlite_storage.set_data_connection(data_connection)
+
+        # Use real agent package ZIP with SDM
+        test_package_path = TEST_AGENTS_DIR / "test-sdm-agent.zip"
+        package_base64 = base64.b64encode(test_package_path.read_bytes()).decode()
+
+        payload = AgentPackagePayload(
+            name="SDM Test Agent",
+            agent_package_base64=package_base64,
+            model={"provider": "OpenAI", "name": "gpt-4"},
+        )
+
+        # Get user for import
+        user, _ = await sqlite_storage.get_or_create_user("tenant:test:user:test")
+        user_obj = User(user_id=user.user_id, sub=user.sub)
+
+        # Execute real import (no mocks!)
+        result = await create_agent_from_package(
+            user=user_obj,
+            payload=payload,
+            storage=sqlite_storage,
+            _=None,
+        )
+
+        # Verify SDM was imported using real storage queries
+        assert isinstance(result, AgentCompat)
+
+        # Query real storage to verify SDM
+        sdms = await sqlite_storage.get_agent_semantic_data_models(result.agent_id)
+        assert len(sdms) == 1
+
+        # Get the SDM content
+        sdm_id = next(iter(sdms[0].keys()))
+        stored_sdm = sdms[0][sdm_id]
+
+        # Verify data_connection_id is present in SDM metadata (for querying)
+        assert "tables" in stored_sdm
+        assert len(stored_sdm["tables"]) > 0
+        assert "base_table" in stored_sdm["tables"][0]
+        assert stored_sdm["tables"][0]["base_table"]["data_connection_id"] == data_connection.id
+
+        # Verify data_connection_name was removed (only needed during import)
+        assert "data_connection_name" not in stored_sdm["tables"][0]["base_table"]
+
+    @pytest.mark.asyncio
+    async def test_import_sdm_with_unresolved_connection_name(
+        self,
+        sqlite_storage,
+        tmp_path,
+    ):
+        """Test SDM import with data_connection_name that cannot be resolved."""
+        from server.tests.storage.sample_model_creator import SampleModelCreator
+
+        # Setup storage WITHOUT creating the data connection
+        # (so "Local postgres" won't be found)
+        creator = SampleModelCreator(sqlite_storage, tmp_path)
+        await creator.setup()
+
+        # Use real agent package ZIP with SDM (references "Local postgres")
+        test_package_path = TEST_AGENTS_DIR / "test-sdm-agent.zip"
+        package_base64 = base64.b64encode(test_package_path.read_bytes()).decode()
+
+        payload = AgentPackagePayload(
+            name="SDM Test Agent",
+            agent_package_base64=package_base64,
+            model={"provider": "OpenAI", "name": "gpt-4"},
+        )
+
+        # Get user for import
+        user, _ = await sqlite_storage.get_or_create_user("tenant:test:user:test")
+        user_obj = User(user_id=user.user_id, sub=user.sub)
+
+        # Execute import
+        result = await create_agent_from_package(
+            user=user_obj,
+            payload=payload,
+            storage=sqlite_storage,
+            _=None,
+        )
+
+        # Verify SDM was still imported (without connection)
+        assert isinstance(result, AgentCompat)
+
+        # Query real storage to verify SDM
+        sdms = await sqlite_storage.get_agent_semantic_data_models(result.agent_id)
+        assert len(sdms) == 1
+
+        # Get the SDM content
+        sdm_id = next(iter(sdms[0].keys()))
+        stored_sdm = sdms[0][sdm_id]
+
+        # Verify data_connection_name was removed even though it couldn't be resolved
+        assert "tables" in stored_sdm
+        assert len(stored_sdm["tables"]) > 0
+        assert "base_table" in stored_sdm["tables"][0]
+        assert "data_connection_name" not in stored_sdm["tables"][0]["base_table"]
+
+        # Verify no data_connection_id was added (since it couldn't be resolved)
+        assert "data_connection_id" not in stored_sdm["tables"][0]["base_table"]
+
+    @pytest.mark.asyncio
+    async def test_import_sdm_deduplication_within_same_agent(
+        self,
+        sqlite_storage,
+        tmp_path,
+    ):
+        """Test that duplicate SDMs are not created when re-importing the same agent."""
+        from server.tests.storage.sample_model_creator import SampleModelCreator
+
+        # Setup storage
+        creator = SampleModelCreator(sqlite_storage, tmp_path)
+        await creator.setup()
+
+        # Use real agent package ZIP with SDM
+        test_package_path = TEST_AGENTS_DIR / "test-sdm-agent.zip"
+        package_base64 = base64.b64encode(test_package_path.read_bytes()).decode()
+
+        payload = AgentPackagePayload(
+            name="SDM Test Agent",
+            agent_package_base64=package_base64,
+            model={"provider": "OpenAI", "name": "gpt-4"},
+        )
+
+        # Get user for import
+        user, _ = await sqlite_storage.get_or_create_user("tenant:test:user:test")
+        user_obj = User(user_id=user.user_id, sub=user.sub)
+
+        # Import agent FIRST time - creates agent and SDM
+        result1 = await create_agent_from_package(
+            user=user_obj,
+            payload=payload,
+            storage=sqlite_storage,
+            _=None,
+        )
+
+        # Get SDM ID from first import
+        sdms1 = await sqlite_storage.get_agent_semantic_data_models(result1.agent_id)
+        assert len(sdms1) == 1
+        first_sdm_id = next(iter(sdms1[0].keys()))
+
+        # Re-import SAME agent (update) - should reuse existing SDM
+        result2 = await update_agent_from_package(
+            user=user_obj,
+            aid=result1.agent_id,  # Same agent ID
+            payload=payload,
+            storage=sqlite_storage,
+        )
+
+        # Verify SDM was reused (same ID)
+        sdms2 = await sqlite_storage.get_agent_semantic_data_models(result2.agent_id)
+        assert len(sdms2) == 1
+        second_sdm_id = next(iter(sdms2[0].keys()))
+
+        # Same SDM ID means deduplication worked
+        assert first_sdm_id == second_sdm_id
+
+    @pytest.mark.asyncio
+    async def test_import_agent_with_sdm_has_multiple_tables(
+        self,
+        sqlite_storage,
+        tmp_path,
+    ):
+        """Test that agent with SDM containing multiple tables imports correctly."""
+        from agent_platform.core.data_connections.data_connections import (
+            DataConnection,
+            PostgresDataConnectionConfiguration,
+        )
+        from server.tests.storage.sample_model_creator import SampleModelCreator
+
+        # Setup storage
+        creator = SampleModelCreator(sqlite_storage, tmp_path)
+        await creator.setup()
+
+        # Create data connection
+        data_connection = DataConnection(
+            id="test-conn-id",
+            name="Local postgres",
+            description="Test connection",
+            engine="postgres",
+            configuration=PostgresDataConnectionConfiguration(
+                host="localhost",
+                port=5432,
+                database="test_db",
+                user="test_user",
+                password="test_password",
+            ),
+            tags=[],
+        )
+        await sqlite_storage.set_data_connection(data_connection)
+
+        # Use real agent package ZIP (has SDM with 2 tables)
+        test_package_path = TEST_AGENTS_DIR / "test-sdm-agent.zip"
+        package_base64 = base64.b64encode(test_package_path.read_bytes()).decode()
+
+        payload = AgentPackagePayload(
+            name="SDM Test Agent",
+            agent_package_base64=package_base64,
+            model={"provider": "OpenAI", "name": "gpt-4"},
+        )
+
+        # Get user for import
+        user, _ = await sqlite_storage.get_or_create_user("tenant:test:user:test")
+        user_obj = User(user_id=user.user_id, sub=user.sub)
+
+        # Execute import
+        result = await create_agent_from_package(
+            user=user_obj,
+            payload=payload,
+            storage=sqlite_storage,
+            _=None,
+        )
+
+        # Verify SDM with multiple tables was imported
+        assert isinstance(result, AgentCompat)
+
+        sdms = await sqlite_storage.get_agent_semantic_data_models(result.agent_id)
+        assert len(sdms) == 1
+
+        sdm_id = next(iter(sdms[0].keys()))
+        stored_sdm = sdms[0][sdm_id]
+
+        # Verify multiple tables are present
+        assert "tables" in stored_sdm
+        assert len(stored_sdm["tables"]) > 1  # Real ZIP has 2 tables
+
+    @pytest.mark.asyncio
+    async def test_import_agent_without_semantic_data_models(
+        self,
+        sqlite_storage,
+        tmp_path,
+    ):
+        """Test that agents without SDMs import correctly."""
+        from server.tests.storage.sample_model_creator import SampleModelCreator
+
+        # Setup storage
+        creator = SampleModelCreator(sqlite_storage, tmp_path)
+        await creator.setup()
+
+        # Use a real agent package without SDMs (e.g., test-openai.zip)
+        test_package_path = TEST_AGENTS_DIR / "test-openai.zip"
+        if not test_package_path.exists():
+            pytest.skip("test-openai.zip not found")
+
+        package_base64 = base64.b64encode(test_package_path.read_bytes()).decode()
+
+        payload = AgentPackagePayload(
+            name="Basic Agent",
+            agent_package_base64=package_base64,
+            model={"provider": "OpenAI", "name": "gpt-4"},
+        )
+
+        # Get user for import
+        user, _ = await sqlite_storage.get_or_create_user("tenant:test:user:test")
+        user_obj = User(user_id=user.user_id, sub=user.sub)
+
+        # Execute import
+        result = await create_agent_from_package(
+            user=user_obj,
+            payload=payload,
+            storage=sqlite_storage,
+            _=None,
+        )
+
+        # Verify agent created successfully without SDMs
+        assert isinstance(result, AgentCompat)
+
+        # Verify no SDMs are linked
+        sdms = await sqlite_storage.get_agent_semantic_data_models(result.agent_id)
+        assert len(sdms) == 0
+
+
 class TestEdgeCases:
     """Test edge cases and error conditions."""
 

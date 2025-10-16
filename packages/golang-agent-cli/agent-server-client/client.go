@@ -499,6 +499,17 @@ func (c *Client) GetAgentSemanticDataModels(agentID string) ([]SemanticDataModel
 	return sdms, nil
 }
 
+func (c *Client) GetDataConnection(connectionID string) (*DataConnection, error) {
+	url := fmt.Sprintf("%s/api/v2/data-connections/%s", c.BaseURL, connectionID)
+	
+	var dataConnection DataConnection
+	if err := c.get(url, &dataConnection); err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to fetch data connection %s: %w", connectionID, err), http.StatusInternalServerError)
+	}
+	
+	return &dataConnection, nil
+}
+
 // UploadFile uploads a file and associates it with a given agentID.
 func (c *Client) UploadFile(agentID, filePath string) error {
 	if agentID == "" || filePath == "" {

@@ -530,6 +530,9 @@ func (state *SpecState) createMcpServers(assistants []AgentServer.Agent) error {
 func (state *SpecState) createSemanticDataModelsDir(assistants []AgentServer.Agent, projectPath string, client *AgentServer.Client) error {
 	sdmPath := filepath.Join(projectPath, "semantic-data-models")
 	
+	// Cache for data connections to avoid redundant API calls
+	connectionCache := make(map[string]*AgentServer.DataConnection)
+	
 	for _, assistant := range assistants {
 		pretty.LogIfVerbose("[createSemanticDataModelsDir] fetching SDMs for agent: %s", assistant.ID)
 		
@@ -581,6 +584,42 @@ func (state *SpecState) createSemanticDataModelsDir(assistants []AgentServer.Age
 			
 			// Mark filename as used
 			usedFilenames[filename] = true
+			
+			// Replace data_connection_id with data_connection_name for portability
+			if tables, ok := sdm.SemanticModel["tables"].([]interface{}); ok {
+				for _, tableInterface := range tables {
+					if table, ok := tableInterface.(map[string]interface{}); ok {
+						if baseTable, ok := table["base_table"].(map[string]interface{}); ok {
+							if dcIDInterface, ok := baseTable["data_connection_id"]; ok {
+								if dcID, ok := dcIDInterface.(string); ok && dcID != "" {
+									// Check cache first
+									dc, found := connectionCache[dcID]
+									if !found {
+										// Fetch data connection to get name
+										var err error
+										dc, err = client.GetDataConnection(dcID)
+										if err != nil {
+											pretty.LogIfVerbose("[createSemanticDataModelsDir] warning: failed to fetch data connection %s: %s", dcID, err)
+											// Continue without replacing
+											dc = nil
+										} else {
+											// Cache for future use
+											connectionCache[dcID] = dc
+										}
+									}
+									
+									if dc != nil {
+										// Replace ID with name
+										baseTable["data_connection_name"] = dc.Name
+										delete(baseTable, "data_connection_id")
+										pretty.LogIfVerbose("[createSemanticDataModelsDir] replaced data_connection_id with name: %s", dc.Name)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			
 			// Write SDM to file
 			sdmFilePath := filepath.Join(sdmPath, filename)

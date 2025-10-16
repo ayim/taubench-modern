@@ -138,3 +138,17 @@ class AgentPackageParsed:
         },
     )
     """The action packages of the agent (from agent.action-packages)."""
+
+    semantic_data_models: Mapping[str, dict[str, Any]] | None = field(
+        default=None,
+        metadata={
+            "description": (
+                "The semantic data models from semantic-data-models/ folder, "
+                "if present (default: ``None``). Maps filename to SDM content."
+            ),
+            "default": None,
+        },
+    )
+    """The semantic data models from semantic-data-models/ folder, if present.
+
+    Maps filename to SDM content (default: ``None``)."""

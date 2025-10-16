@@ -80,6 +80,7 @@ async def extract_agent_package_data(
     welcome_message = _extract_welcome_message(spec)
     agent_settings = _extract_agent_settings(spec)
     action_packages = _extract_action_packages(spec)
+    semantic_data_models = _extract_semantic_data_models(spec, zf)
 
     knowledge: Mapping[str, bytes] | KnowledgeStreams | None
     if include_knowledge:
@@ -100,6 +101,7 @@ async def extract_agent_package_data(
         welcome_message=welcome_message,
         agent_settings=agent_settings,
         action_packages=action_packages,
+        semantic_data_models=semantic_data_models,
     )
 
 
@@ -246,3 +248,75 @@ def _extract_action_packages(spec: dict[str, Any]) -> list[ActionPackageParsed]:
     agent0 = _get_single_agent(spec)
     action_packages = agent0.get("action-packages", [])
     return [ActionPackageParsed.model_validate(ap) for ap in action_packages]
+
+
+def _extract_semantic_data_models(
+    spec: dict[str, Any], zf: zipfile.ZipFile
+) -> dict[str, dict[str, Any]] | None:
+    """
+    Extract semantic data models from the semantic-data-models/ folder.
+
+    Returns:
+        Dictionary mapping filename to SDM content (parsed YAML), or None if no SDMs
+    """
+    logger.info("[_extract_semantic_data_models] Starting SDM extraction")
+    agent0 = _get_single_agent(spec)
+    sdm_refs = agent0.get("semantic-data-models", [])
+
+    logger.info(
+        f"[_extract_semantic_data_models] Found {len(sdm_refs)} SDM references in spec: {sdm_refs}"
+    )
+
+    if not sdm_refs:
+        logger.info("[_extract_semantic_data_models] No SDM references found, returning None")
+        return None
+
+    sdms: dict[str, dict[str, Any]] = {}
+
+    for sdm_ref in sdm_refs:
+        sdm_filename = sdm_ref.get("name")
+        if not sdm_filename:
+            logger.warning("SDM reference missing 'name' field, skipping")
+            continue
+
+        # SDMs are stored in semantic-data-models/ folder
+        sdm_path = f"semantic-data-models/{sdm_filename}"
+
+        try:
+            sdm_bytes = read_file_from_zip(zf, sdm_path)
+            # Parse YAML (Snowflake Cortex Analyst semantic model format)
+            sdm_content = _yaml.load(sdm_bytes.decode("utf-8"))
+
+            if not isinstance(sdm_content, dict):
+                logger.warning(
+                    "SDM file '%s' does not contain valid YAML dict, skipping",
+                    sdm_path,
+                )
+                continue
+
+            sdms[sdm_filename] = sdm_content
+            logger.info(
+                f"[_extract_semantic_data_models] Successfully extracted SDM: {sdm_filename}"
+            )
+
+        except KeyError:
+            logger.warning(
+                f"[_extract_semantic_data_models] SDM file not found in package: {sdm_path}"
+            )
+        except Exception as e:
+            logger.error(
+                f"[_extract_semantic_data_models] Failed to parse SDM file {sdm_path}: {e}",
+                exc_info=True,
+                error=str(e),
+            )
+            # Continue with other SDMs even if one fails
+            continue
+
+    result = sdms if sdms else None
+    sdm_count = len(sdms) if sdms else 0
+    sdm_keys = list(sdms.keys()) if sdms else []
+    logger.info(
+        f"[_extract_semantic_data_models] Extraction complete. "
+        f"Returning {sdm_count} SDMs: {sdm_keys}"
+    )
+    return result
