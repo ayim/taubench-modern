@@ -1,3 +1,5 @@
+# ruff: noqa: E501
+# Ignoring long lines for the sake of readability in the prompt templates.
 """
 Semantic data model generator for converting table/column information to semantic models.
 """
@@ -181,9 +183,10 @@ Please improve the following semantic data model by improving table and column i
 **Important:**
 - Ensure all synonyms are unique across the model
 - Make names SQL-safe (no spaces, special characters)
-- Ouput JUST THE YAML, nothing else.
-- Do not include any text outside the YAML block.
-- The output MUST be in YAML format and match the yaml schema below:
+- Ouput the YAML in the following format: <semantic-data-model>{{yaml-output}}</semantic-data-model>.
+- Do not include any other text except the <semantic-data-model>{{yaml-output}}</semantic-data-model> block.
+- The {{yaml-output}} MUST be the semantic data model in YAML format and MUST match the YAML schema below:
+
 {OUTPUT_SCHEMA_FORMAT}
 """
 
@@ -226,6 +229,26 @@ def _create_full_enhancement_prompt(
     """
     logger.info(len_summary)
     return prompt
+
+
+def _extract_response_text(response_text: str) -> str:
+    """Extract the yaml from the <semantic-data-model>{{yaml-output}}</semantic-data-model> block."""
+    i = response_text.find("<semantic-data-model>")
+    j = response_text.rfind("</semantic-data-model>")
+    if i == -1 or j == -1:
+        # We couldn't find the <semantic-data-model>{{yaml-output}}</semantic-data-model> block.
+        logger.warning(
+            f"Couldn't find the <semantic-data-model>{{yaml-output}}</semantic-data-model> block"
+            f" in the response text: {response_text}"
+        )
+        raise ValueError(
+            "Couldn't find the <semantic-data-model>{{yaml-output}}</semantic-data-model> block"
+            " in the response. Please fix the response text and try again. Please pay extra attention"
+            " to the output format and the YAML schema."
+        )
+    response_text = response_text[i + len("<semantic-data-model>") : j]
+    response_text = response_text.strip()
+    return response_text
 
 
 class SemanticDataModelGenerator:
@@ -469,7 +492,7 @@ class SemanticDataModelGenerator:
                 ret.append(str(value))
         return ret
 
-    async def enhance_semantic_data_model(  # noqa: C901, PLR0915
+    async def enhance_semantic_data_model(  # noqa: C901, PLR0915, PLR0912
         self,
         semantic_model: SemanticDataModel,
         user: User,
@@ -491,12 +514,14 @@ class SemanticDataModelGenerator:
         Returns:
             Enhanced semantic data model.
         """
-        logger.info("Starting semantic data model enhancement")
-
         from agent_platform.server.kernel.semantic_data_model_generator_types import (
             SemanticDataModelForLLM,
             update_semantic_data_model_with_semantic_data_model_from_llm,
         )
+
+        logger.info("Starting semantic data model enhancement")
+
+        enhancement_done = False
 
         max_iterations = MAX_ITERATIONS
 
@@ -542,7 +567,16 @@ class SemanticDataModelGenerator:
                         max_iterations += 1  # Allow one retry if we only had one iteration
                     continue  # Retry to fix
 
-                response_text = text_content[-1]
+                try:
+                    response_text = _extract_response_text(text_content[-1])
+                except ValueError as e:
+                    prompt.messages.append(
+                        PromptUserMessage(content=[PromptTextContent(text=f"{e}")])
+                    )
+                    if max_iterations <= 1:
+                        max_iterations += 1  # Allow one retry if we only had one iteration
+                    continue  # Retry with fix request!
+
                 self._write_output_response(response_text, "enhancement", iteration=iteration)
                 logger.debug(f"LLM response for iteration {iteration}: {response_text}")
 
@@ -593,11 +627,14 @@ class SemanticDataModelGenerator:
                         f" {iteration}: {e}\n"
                         f"Found response: {enhanced_model_dict}"
                     )
+                    if max_iterations <= 1:
+                        max_iterations += 1  # Allow one retry if we only had one iteration
                     continue  # Retry with fix request!
 
                 update_semantic_data_model_with_semantic_data_model_from_llm(
                     semantic_model, semantic_data_model_from_llm
                 )
+                enhancement_done = True
 
                 # Commented out: let's see how well we do things with a single iteration
                 # before we start doing multiple iterations.
@@ -620,6 +657,10 @@ class SemanticDataModelGenerator:
                 logger.error(f"Error in enhancement iteration {iteration}: {e}")
                 break
 
+        if not enhancement_done:
+            logger.warning(
+                "It was not possible to enhance the semantic data model. Returning the original model."
+            )
         return semantic_model
 
     async def _check_enhancement_quality(

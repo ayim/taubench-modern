@@ -24,7 +24,7 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
             Select the tables and columns you want your agent to use. Add a brief explanation of the structure and
             business meaning so the agent can interpret the data correctly.{' '}
             <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
-              Learn mores
+              Learn more
             </Link>
           </Typography>
 

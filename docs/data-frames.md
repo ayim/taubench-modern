@@ -20,14 +20,26 @@ Table(columns, rows) shape).
 Start agent server and then start Studio in another terminal:
 
 ```bash
-set SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1
 make run-as-studio
 
+# On studio (using the `develop` branch`):
 set SEMA4AI_STUDIO_SUDO_BLOCK_AGENT_SERVER_LAUNCH=yes
 npm i
 npm run force-clean-clis
 npm run cpb
 npm run vite-bs
+```
+
+## To run integrated with SPAR
+
+Start agent server and then start SPAR in another terminal:
+
+```bash
+make run-server
+
+cd workroom
+npm i
+npm run dev
 ```
 
 # References:
@@ -351,13 +363,13 @@ This must be implemented in `server/src/agent_platform/server/kernel/semantic_da
 The `suggest_scenario_from_thread` method from `server/src/agent_platform/server/evals/advisor.py` can be used as a reference on how to use
 the `prompt_generate` API.
 
-# Step 13 (this PR):
+# Step 13 (done):
 
 - We have the following issue: when a semantic data model that references a file is
   added to an agent, we can't really reference the actual file because it will only
   be valid after the user uploads it in a thread.
 
-# Step 13a (this PR):
+# Step 13a (done):
 
 - Create a new integration test (in `server/tests/integration/test_semantic_data_models_integration.py`) that:
   1. Creates a csv file in memory
@@ -367,7 +379,7 @@ the `prompt_generate` API.
   5. Upload that file to the thread
   6. Actually ask the LLM which semantic data models it has available
 
-# Step 13b (this PR):
+# Step 13b (done):
 
 Actually make it possible to use that semantic data model with a file in a thread.
 
@@ -423,6 +435,7 @@ when creating a new semantic data model for some other data (if the shape of one
   - Consume data frames directly from actions/tools.
   - Validate if user tries to create a Table with inconsistent column/rows.
   - Accept name and description for a Table.
+- Bug in agent server: only a `Response[Table]` is accepted, but just a `Table` should be accepted too.
 - Verify that errors with proper messages are returned to the LLM.
 - Extract primary keys/uniqueness from the database directly when available.
 - https://sema4ai.slack.com/archives/C07LMU0AQFR/p1758257549592739
