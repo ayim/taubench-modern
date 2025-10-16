@@ -32,15 +32,6 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/$workIt
           workItemId,
         },
       });
-    } else {
-      throw redirect({
-        to: '/tenants/$tenantId/worker/$agentId/$workItemId',
-        params: {
-          agentId,
-          tenantId,
-          workItemId,
-        },
-      });
     }
   },
 });
