@@ -229,7 +229,7 @@ export const ToolCall: FC<Props> = ({ content }) => {
         onError: (error) =>
           addSnackbar({
             message: error.message,
-            variant: 'danger',
+            variant: error.details?.type === 'notice' ? 'default' : 'danger',
           }),
       },
     );

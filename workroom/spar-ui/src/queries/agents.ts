@@ -1,7 +1,7 @@
 import { Agent } from '@sema4ai/agent-server-interface';
 import { OAuthProvider } from '@sema4ai/oauth-client';
 
-import { createSparQueryOptions, createSparQuery, createSparMutation } from './shared';
+import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError } from './shared';
 
 /**
  * List Agents query
@@ -147,7 +147,7 @@ export const useShowActionLogsMutation = createSparMutation<
     });
 
     if (!response.success) {
-      throw new Error(response.error.message);
+      throw new QueryError(response.error.message, { type: response.error.type });
     }
 
     return response.success;

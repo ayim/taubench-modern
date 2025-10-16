@@ -45,7 +45,7 @@ export interface SparAPIClient {
     toolCallId: string;
     // Only surfaced by agent-server >= 2.1.6
     actionServerRunId: string | null;
-  }) => Promise<{ success: true } | { success: false; error: { message: string } }>;
+  }) => Promise<{ success: true } | { success: false; error: { type?: 'error' | 'notice'; message: string } }>;
 
   /**
    * Download a file

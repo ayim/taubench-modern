@@ -4,6 +4,20 @@ import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/re
 import { SparAPIClient } from '../api';
 import { useSparUIContext } from '../api/context';
 
+type QueryErrorDetails = {
+  type?: 'error' | 'notice';
+};
+
+export class QueryError extends Error {
+  details?: QueryErrorDetails;
+
+  constructor(message: string, details?: QueryErrorDetails) {
+    super(message);
+    this.name = 'QueryError';
+    this.details = details;
+  }
+}
+
 type CommonQueryParams = {
   sparAPIClient: SparAPIClient;
 };
@@ -30,7 +44,7 @@ export const createSparQuery =
   <Params extends object, TData = any>(fn: SparQueryOptions<Params, TData>) =>
   (params: Params, rest: { refetchInterval?: number; enabled?: boolean; retry?: boolean | number } = {}) => {
     const { sparAPIClient } = useSparUIContext();
-    return useQuery({ ...fn({ ...params, sparAPIClient }), ...rest });
+    return useQuery<TData, QueryError>({ ...fn({ ...params, sparAPIClient }), ...rest });
   };
 
 type CommonMutationParams = {
@@ -40,22 +54,22 @@ type CommonMutationParams = {
 
 export const createSparMutation =
   <HookParams extends object, MutateParams extends object>() =>
-  <TData = any, TError = Error>(
+  <TData = any>(
     fn: (params: CommonMutationParams & HookParams) => {
       mutationFn: (variables: MutateParams) => Promise<TData>;
       onSuccess?: (data: TData, variables: MutateParams, hookParams: HookParams) => void;
-      onError?: (error: TError, variables: MutateParams, hookParams: HookParams) => void;
+      onError?: (error: QueryError, variables: MutateParams, hookParams: HookParams) => void;
     },
   ) =>
   (hookParams: HookParams) => {
     const { sparAPIClient } = useSparUIContext();
     const queryClient = useQueryClient();
-    return useMutation({
+    return useMutation<TData, QueryError, MutateParams>({
       ...fn({ sparAPIClient, queryClient, ...hookParams }),
       onSuccess: (data, variables) => {
         fn({ sparAPIClient, queryClient, ...hookParams }).onSuccess?.(data, variables, hookParams);
       },
-      onError: (error: TError, variables) => {
+      onError: (error: QueryError, variables) => {
         fn({ sparAPIClient, queryClient, ...hookParams }).onError?.(error, variables, hookParams);
       },
     });
