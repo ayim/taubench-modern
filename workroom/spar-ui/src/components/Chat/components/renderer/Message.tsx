@@ -31,6 +31,9 @@ const getGroupedMessageContent = (messageContent: ThreadMessageContent, messageC
 
   return messageContent
     .reduce<(ThreadMessageContent | ThreadMessageContent[number])[]>((acc, content) => {
+      /**
+       * Skip internal tool calls that don't bring value to the user
+       */
       if (content.kind === 'tool_call' && shouldIgnoreToolCall(content.name)) {
         return acc;
       }
@@ -58,6 +61,9 @@ const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message,
     return getGroupedMessageContent(messageContent, message.complete);
   }, [message.content, message.complete]);
 
+  const messagePlatform = message.agent_metadata?.platform;
+  const platform = typeof messagePlatform === 'string' ? messagePlatform : undefined;
+
   return groupedMessageContent.map((processedContent) => {
     if (Array.isArray(processedContent)) {
       return (
@@ -65,6 +71,7 @@ const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message,
           key={`group-${processedContent[0].content_id}`}
           messageContent={processedContent}
           messageComplete={message.complete}
+          platform={platform}
         >
           {processedContent.map((processedContentItem) => (
             <MessageContentItemRenderer
@@ -72,6 +79,7 @@ const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message,
               message={message}
               messageContentItem={processedContentItem}
               streaming={streaming}
+              platform={platform}
             />
           ))}
         </ToolCallGroup>
@@ -83,6 +91,7 @@ const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message,
         message={message}
         messageContentItem={processedContent}
         streaming={streaming}
+        platform={platform}
       />
     );
   });

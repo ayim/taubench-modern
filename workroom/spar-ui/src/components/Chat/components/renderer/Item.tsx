@@ -24,6 +24,7 @@ type Props = {
    */
   messageContentItem: ThreadMessage['content'][number];
   streaming: boolean;
+  platform?: string;
 };
 
 const MessageContainer = styled(Box)`
@@ -52,7 +53,12 @@ const TOOL_CALLS_TO_IGNORE: Record<string, boolean> = {
 };
 export const shouldIgnoreToolCall = (toolCallName: string) => TOOL_CALLS_TO_IGNORE[toolCallName] === true;
 
-export const MessageContentItemRenderer: FC<Props> = ({ message, messageContentItem: content, streaming }) => {
+export const MessageContentItemRenderer: FC<Props> = ({
+  message,
+  messageContentItem: content,
+  streaming,
+  platform,
+}) => {
   const { query } = useThreadSearchStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const { onCopyToClipboard, copiedToClipboard } = useClipboard();
@@ -83,13 +89,8 @@ export const MessageContentItemRenderer: FC<Props> = ({ message, messageContentI
   switch (content.kind) {
     case 'thought': {
       const isThinkingDone = content.complete;
-      const messagePlatform = message.agent_metadata?.platform;
       return (
-        <Thinking
-          key={content.content_id}
-          complete={isThinkingDone}
-          platform={typeof messagePlatform === 'string' ? messagePlatform : undefined}
-        >
+        <Thinking key={content.content_id} complete={isThinkingDone} platform={platform}>
           {content.thought}
         </Thinking>
       );
@@ -137,10 +138,6 @@ export const MessageContentItemRenderer: FC<Props> = ({ message, messageContentI
         </MessageContainer>
       );
     case 'tool_call':
-      /**
-       * Skip internal tool calls that don't bring value to the user
-       */
-      if (shouldIgnoreToolCall(content.name)) return null;
       return <ToolCall key={content.content_id} content={content} />;
     case 'attachment':
       return <Attachment key={content.content_id ?? content.name} content={content} />;

@@ -36,12 +36,22 @@ const extractThoughtOpenAI = (text: string): string | null => {
   return null;
 };
 
-const extractThought = (text: string, platform: string | undefined): string | null => {
+export const formatThoughtTitle = ({
+  text,
+  platform,
+  complete,
+}: {
+  text: string;
+  platform: string | undefined;
+  complete: boolean;
+}): string => {
+  const result = complete ? 'Thought' : 'Thinking';
+
   const parsedPlatform = platform?.toLowerCase();
   if (parsedPlatform === 'openai') {
-    return extractThoughtOpenAI(text);
+    return extractThoughtOpenAI(text) ?? result;
   }
-  return null;
+  return result;
 };
 
 const END_OF_LINE_REGEX = /\n+$/;
@@ -50,10 +60,13 @@ const formatContent = (content: string) => {
 };
 
 export const Thinking: FC<Props> = ({ complete, children, platform }) => {
-  const thought = useMemo(() => extractThought(children, platform), [children, platform]);
+  const thought = useMemo(
+    () => formatThoughtTitle({ text: children, platform, complete }),
+    [children, platform, complete],
+  );
   const content = useMemo(() => formatContent(children), [children]);
   return (
-    <Chat.Thinking streaming={!complete} title={thought ?? (complete ? 'Thought' : undefined)}>
+    <Chat.Thinking streaming={!complete} title={thought}>
       {content}
     </Chat.Thinking>
   );

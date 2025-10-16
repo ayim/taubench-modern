@@ -1,5 +1,5 @@
 import { FC, Fragment, ReactNode, useMemo, useRef } from 'react';
-import { ThreadContent, ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
+import { ThreadContent, ThreadThoughtContent, ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
 import { Box, Button, Chat, ChatActionRefType, useClipboard, useSnackbar } from '@sema4ai/components';
 import { IconCheck2, IconCode, IconCopy } from '@sema4ai/icons';
 
@@ -9,6 +9,7 @@ import { SparUIFeatureFlag } from '../../../api';
 import { useFeatureFlag, useParams, useStateTransitionCallback } from '../../../hooks';
 import { DataFrameClientTools } from '../../DataFrame/tools/Definitions';
 import { useShowActionLogsMutation } from '../../../queries';
+import { formatThoughtTitle } from './renderer/Thinking';
 
 type ActionState = 'in_progress' | 'done' | 'failed';
 type Props = {
@@ -44,22 +45,22 @@ const getActionState = (
   return 'done';
 };
 
-const getActionGroupStateDetails = ({
-  messageContent,
-  messageComplete,
-}: {
-  messageContent: ThreadContent[];
-  messageComplete: boolean;
-}): { state: ActionState; title: string } => {
-  const groupedContent = messageContent.reduce<{
+const getGroupedActions = (messageContent: ThreadContent[]) =>
+  messageContent.reduce<{
     inProgress: ThreadToolUsageContent[];
     done: ThreadToolUsageContent[];
     failed: ThreadToolUsageContent[];
-    incomplete: ThreadContent[];
+    thinking: ThreadThoughtContent[];
+    complete: boolean;
   }>(
     (acc, item) => {
-      if (!item.complete) {
-        acc.incomplete.push(item);
+      // Check if grouped only items are incomplete
+      if (!item.complete && (item.kind === 'thought' || item.kind === 'tool_call')) {
+        acc.complete = false;
+      }
+
+      if (item.kind === 'thought') {
+        acc.thinking.push(item);
       }
 
       if (item.kind === 'tool_call') {
@@ -78,10 +79,35 @@ const getActionGroupStateDetails = ({
       }
       return acc;
     },
-    { inProgress: [], done: [], failed: [], incomplete: [] },
+    { inProgress: [], done: [], failed: [], thinking: [], complete: true },
   );
 
-  const isStreamingFinished = messageComplete && groupedContent.incomplete.length === 0;
+const getActionGroupStateDetails = ({
+  messageContent,
+  messageComplete,
+  platform,
+}: {
+  messageContent: ThreadContent[];
+  messageComplete: boolean;
+  platform?: string;
+}): { state: ActionState; title: string } => {
+  const groupedContent = getGroupedActions(messageContent);
+
+  /**
+   * To avoid group going from "in progress" to "done" and back to "in progress" when new item is added wait for message to be completed
+   * - more common with thinking models where it starts new thought after some action or thought
+   */
+  const isStreamingFinished = messageComplete && groupedContent.complete;
+
+  // Group only contains thinking items
+  if (groupedContent.thinking.length === messageContent.length) {
+    const lastThinkingItem = groupedContent.thinking[groupedContent.thinking.length - 1];
+    return {
+      state: isStreamingFinished ? 'done' : 'in_progress',
+      title: formatThoughtTitle({ text: lastThinkingItem.thought, platform, complete: lastThinkingItem.complete }),
+    };
+  }
+
   if (groupedContent.inProgress.length > 0 && !isStreamingFinished) {
     const runningGroupTitleDetails = formatGroupTitleDetails(
       groupedContent.inProgress[0],
@@ -108,15 +134,15 @@ const getActionGroupStateDetails = ({
     };
   }
 
-  if (groupedContent.failed.length > 1) {
+  if (groupedContent.failed.length > 0) {
     return {
       state: 'failed',
       title: 'Failed to complete',
     };
   }
 
-  if (groupedContent.done.length > 1) {
-    const doneGroupTitleDetails = formatGroupTitleDetails(groupedContent.failed[0], groupedContent.failed.length);
+  if (groupedContent.done.length > 0) {
+    const doneGroupTitleDetails = formatGroupTitleDetails(groupedContent.done[0], groupedContent.done.length);
     return {
       state: 'done',
       title: `Completed ${doneGroupTitleDetails.title} action${doneGroupTitleDetails.optionalSuffix}`,
@@ -236,28 +262,23 @@ export const ToolCall: FC<Props> = ({ content }) => {
   );
 };
 
-export const ToolCallGroup: FC<{ children: ReactNode; messageContent: ThreadContent[]; messageComplete: boolean }> = ({
-  children,
-  messageContent,
-  messageComplete,
-}) => {
+export const ToolCallGroup: FC<{
+  children: ReactNode;
+  messageContent: ThreadContent[];
+  messageComplete: boolean;
+  platform?: string;
+}> = ({ children, messageContent, messageComplete, platform }) => {
   const groupActionRef = useRef<ChatActionRefType>(null);
   const { state, title } = useMemo(
-    () => getActionGroupStateDetails({ messageContent, messageComplete }),
-    [messageContent, messageComplete],
+    () => getActionGroupStateDetails({ messageContent, messageComplete, platform }),
+    [messageContent, messageComplete, platform],
   );
 
   const onExpandGroup = () => groupActionRef.current?.setExpanded(true);
   useStateTransitionCallback<typeof state>({ onTransition: onExpandGroup, from: 'in_progress', to: 'failed' }, state);
 
   return (
-    <Chat.Action.Group
-      ref={groupActionRef}
-      title={title}
-      running={state === 'in_progress'}
-      error={state === 'failed'}
-      key={`group-${messageContent[0].content_id}`}
-    >
+    <Chat.Action.Group ref={groupActionRef} title={title} running={state === 'in_progress'} error={state === 'failed'}>
       {children}
     </Chat.Action.Group>
   );
