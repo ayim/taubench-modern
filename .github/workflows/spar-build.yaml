@@ -5,6 +5,7 @@ on:
     types:
       - labeled
       - synchronize
+      - opened
     paths: &workflow-paths
       - '.github/workflows/spar-build.yaml'
       - 'Dockerfile.spar'
