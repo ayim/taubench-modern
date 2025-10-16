@@ -329,6 +329,18 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     text: string,
     files: File[],
   ): Promise<{ success: true; data: null } | { success: false; error: { message: string } }> => {
+    const hasText = text.trim().length > 0;
+    const hasAttachments = files.length > 0;
+
+    if (!hasText && !hasAttachments) {
+      return {
+        success: false,
+        error: {
+          message: 'Sending empty messages is not supported',
+        },
+      };
+    }
+
     const uploadedAttachments = await (async (): Promise<
       | { success: true; data: Awaited<ReturnType<typeof uploadFiles>> }
       | {
@@ -338,9 +350,7 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
           };
         }
     > => {
-      const hasNoAttachments = files.length === 0;
-
-      if (hasNoAttachments) {
+      if (!hasAttachments) {
         return {
           success: true,
           data: [],
@@ -371,18 +381,11 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
       return uploadedAttachments;
     }
 
-    const isEmptyMessage = text.trim().length === 0;
+    const content: ThreadContent[] = [...uploadedAttachments.data];
 
-    if (isEmptyMessage) {
-      return {
-        success: false,
-        error: {
-          message: 'Sending empty messages is not supported',
-        },
-      };
+    if (hasText) {
+      content.push({ kind: 'text', text, complete: true });
     }
-
-    const content: ThreadContent[] = [...uploadedAttachments.data, { kind: 'text', text, complete: true }];
 
     try {
       await streamManager.initiateStream({ sparAPIClient, queryClient, content, threadId, agentId });
