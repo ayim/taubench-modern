@@ -131,13 +131,31 @@ const PayloadSection: FC<{ workItem: WorkItem }> = memo(({ workItem }) => {
   );
 });
 
-const IdSection: FC<Pick<WorkItem, 'work_item_id'>> = ({ work_item_id: workItemId }) => {
+const IdSection: FC<{ workItem: WorkItem }> = ({ workItem }) => {
+  if (!workItem.work_item_id) {
+    return null
+  };
+  
   return (
     <Box as="section">
       <Typography variant="body-medium" fontWeight="bold" marginBottom="$4">
         Work Item ID
       </Typography>
-      <Box as="span">{workItemId}</Box>
+      <Box as="span">{workItem.work_item_id}</Box>
+    </Box>
+  );
+};
+
+const NameSection: FC<{ workItem: WorkItem }> = ({ workItem }) => {
+  if (!workItem.work_item_name) {
+    return null
+  };
+  return (
+    <Box as="section">
+      <Typography variant="body-medium" fontWeight="bold" marginBottom="$4">
+        Name
+      </Typography>
+      <Box as="span">{workItem.work_item_name}</Box>
     </Box>
   );
 };
@@ -168,7 +186,8 @@ export const WorkItemDetails = ({
   return (
     <Box height="100%" display="flex" flexDirection="column" justifyContent="space-between" px={20} py={16}>
       <Box paddingY="$4" paddingX="$5" display="flex" flexDirection="column" gap="$20">
-        <IdSection work_item_id={workItem.work_item_id} />
+        <NameSection workItem={workItem} />
+        <IdSection workItem={workItem} />
         <MessagesSection workItem={workItem} />
         <PayloadSection workItem={workItem} />
         <StatusSection workItem={workItem} />
