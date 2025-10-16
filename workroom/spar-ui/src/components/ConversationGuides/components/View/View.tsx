@@ -9,7 +9,7 @@ import {
   IconNumberedList,
   IconCheckmark,
 } from '@sema4ai/icons';
-import { useAgentQuery, useUpdateAgentQuestionGroupsMutation } from '../../../../queries';
+import { useAgentOAuthStateQuery, useAgentQuery, useUpdateAgentQuestionGroupsMutation } from '../../../../queries';
 import { useMessageStream, useParams } from '../../../../hooks';
 import { ConversationGuideCard } from '../ConversationGuideCard/ConversationGuideCard';
 import { UpsertSectionDialog, UpsertSectionFormData } from '../UpsertSectionDialog/UpsertSectionDialog';
@@ -33,7 +33,12 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
     agentId,
   });
   const { mutate: updateAgentQuestionGroups, isPending: isUpdating } = useUpdateAgentQuestionGroupsMutation({});
-  const { sendMessage, isStreaming } = useMessageStream({ agentId, threadId });
+  const { sendMessage, isStreaming, uploadingFiles } = useMessageStream({ agentId, threadId });
+
+  const { data: oAuthState = [] } = useAgentOAuthStateQuery({ agentId });
+  const requiresOAuth = oAuthState.some((state) => !state.isAuthorized);
+
+  const canSendMessage = !requiresOAuth && !isStreaming && !uploadingFiles;
 
   const handleOpenUpsertSectionDialog = () => {
     setEditingIndex(null);
@@ -246,7 +251,7 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
                   <ConversationGuideCard
                     title={question}
                     onClick={() => sendMessage(question, [])}
-                    disabled={isStreaming}
+                    disabled={!canSendMessage}
                   />
                 ))}
               </Box>
