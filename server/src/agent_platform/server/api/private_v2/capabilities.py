@@ -271,13 +271,20 @@ async def test_model_platform_params(
             # Attach the platform client to the kernel
             platform_client.attach_kernel(kernel)
 
+            # We are usually getting a specific model name from the client, so let's use that
+            specific_model = None
+            if "models" in platform_params:
+                for provider in platform_params["models"]:
+                    specific_model = platform_params["models"][provider][0]
+                    break
+
             # Test the platform client
             model_selector = DefaultModelSelector()
             model = model_selector.select_model(
                 platform=platform_client,
                 request=ModelSelectionRequest(
                     model_type="llm",
-                    prioritize="intelligence",
+                    direct_model_name=specific_model,
                 ),
             )
 
