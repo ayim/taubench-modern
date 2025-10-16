@@ -9,6 +9,7 @@ import {
   createBasicAgentConfig,
   createHumanThreadMessage,
   ThreadMessage,
+  createSaiGenericAgentConfig,
 } from '../src/agent-ephemeral/index';
 import { createOpenAIConfig } from '../src/utils';
 
@@ -29,7 +30,7 @@ describe('EphemeralAgentClient', () => {
     });
   });
 
-  describe('createStream', () => {
+  describe('Test Creating Streams', () => {
     // ===============================
     // INTERNAL TESTS
     // ===============================
@@ -262,5 +263,172 @@ describe('EphemeralAgentClient', () => {
         }),
       ).rejects.toThrow();
     });
+  });
+
+  describe('Test Generic Agent', () => {
+    it('should create a generic agent config with default values', () => {
+      const platformConfig = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
+      const agentConfig = createSaiGenericAgentConfig({
+        platform_configs: [platformConfig],
+      });
+
+      expect(agentConfig).toBeDefined();
+      expect(agentConfig.name).toContain('sai-sdk-generic-agent');
+      expect(agentConfig.description).toBe('Sai SDK Generic Agent');
+      expect(agentConfig.runbook).toContain('OBJECTIVE');
+      expect(agentConfig.platform_configs).toHaveLength(1);
+    });
+
+    it('should create a generic agent config with custom values', () => {
+      const platformConfig = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
+      const agentConfig = createSaiGenericAgentConfig({
+        platform_configs: [platformConfig],
+        name: 'My Custom Agent',
+        description: 'A custom agent for testing',
+      });
+
+      expect(agentConfig).toBeDefined();
+      expect(agentConfig.name).toBe('My Custom Agent');
+      expect(agentConfig.description).toBe('A custom agent for testing');
+    });
+
+    it('should create a simple generic agent', () => {
+      const platformConfig = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
+      const agentConfig = createSaiGenericAgentConfig({
+        platform_configs: [platformConfig],
+        name: 'Simple Agent',
+        description: 'Simple description',
+      });
+
+      expect(agentConfig).toBeDefined();
+      expect(agentConfig.name).toBe('Simple Agent');
+      expect(agentConfig.description).toBe('Simple description');
+      expect(agentConfig.platform_configs).toHaveLength(1);
+    });
+
+    it.skipIf(!hasValidApiKey())(
+      'should stream with generic agent successfully',
+      async () => {
+        const platformConfig = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
+        const agentConfig = createSaiGenericAgentConfig({
+          platform_configs: [platformConfig],
+          name: 'Test Generic Agent',
+          description: 'Testing generic agent streaming',
+        });
+
+        return new Promise<void>(async (resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Test timeout after 30 seconds'));
+          }, 30000);
+
+          let receivedText = '';
+
+          try {
+            const stream = await client.createStream({
+              agent: agentConfig,
+              messages: [createHumanThreadMessage('Hello! What is your name?')],
+              handlers: {
+                onMessageEnd: (event) => {
+                  console.log('[TEST] Message end:', JSON.stringify(event, null, 2));
+                  if (event.data?.content && event.data?.content.length > 0) {
+                    const textContent = event.data?.content.find((c) => c.kind === 'text');
+                    if (textContent && 'text' in textContent) {
+                      receivedText += textContent.text;
+                    }
+                  }
+                },
+                onAgentFinished: () => {
+                  try {
+                    clearTimeout(timeoutId);
+                    expect(receivedText.length).toBeGreaterThan(0);
+                    expect(receivedText).toContain('Sai');
+                    resolve();
+                  } catch (e) {
+                    reject(e);
+                    clearTimeout(timeoutId);
+                  }
+                },
+                onAgentError: (event) => {
+                  clearTimeout(timeoutId);
+                  reject(new Error(event.error_message));
+                },
+              },
+            });
+
+            if (!stream) {
+              clearTimeout(timeoutId);
+              reject(new Error('Failed to create stream'));
+            }
+          } catch (error) {
+            clearTimeout(timeoutId);
+            reject(error);
+          }
+        });
+      },
+      30000,
+    ); // 30 second timeout
+
+    it.skipIf(!hasValidApiKey()).only(
+      'should stream with generic agent successfully with sub context',
+      async () => {
+        const platformConfig = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
+        const agentConfig = createSaiGenericAgentConfig({
+          platform_configs: [platformConfig],
+          sub_context: '{"name": "John", "age": 30}',
+          name: 'Test Generic Agent',
+          description: 'Testing generic agent streaming',
+        });
+
+        return new Promise<void>(async (resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Test timeout after 30 seconds'));
+          }, 30000);
+
+          let receivedText = '';
+
+          try {
+            const stream = await client.createStream({
+              agent: agentConfig,
+              messages: [createHumanThreadMessage("Hello! What is John's age?")],
+              handlers: {
+                onMessageEnd: (event) => {
+                  console.log('[TEST] Message end:', JSON.stringify(event, null, 2));
+                  if (event.data?.content && event.data?.content.length > 0) {
+                    const textContent = event.data?.content.find((c) => c.kind === 'text');
+                    if (textContent && 'text' in textContent) {
+                      receivedText += textContent.text;
+                    }
+                  }
+                },
+                onAgentFinished: () => {
+                  try {
+                    clearTimeout(timeoutId);
+                    expect(receivedText.length).toBeGreaterThan(0);
+                    expect(receivedText).toContain('30');
+                    resolve();
+                  } catch (e) {
+                    reject(e);
+                    clearTimeout(timeoutId);
+                  }
+                },
+                onAgentError: (event) => {
+                  clearTimeout(timeoutId);
+                  reject(new Error(event.error_message));
+                },
+              },
+            });
+
+            if (!stream) {
+              clearTimeout(timeoutId);
+              reject(new Error('Failed to create stream'));
+            }
+          } catch (error) {
+            clearTimeout(timeoutId);
+            reject(error);
+          }
+        });
+      },
+      30000,
+    ); // 30 second timeout for this test
   });
 });

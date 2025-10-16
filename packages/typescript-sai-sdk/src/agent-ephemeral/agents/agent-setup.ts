@@ -1,17 +1,10 @@
-import { PlatformConfig } from '../../platform-config';
 import { createBasicAgentConfig } from '../client';
-import {
-  ActionPackage,
-  AgentArchitecture,
-  McpServer,
-  QuestionGroup,
-  ToolDefinitionPayload,
-  UpsertAgentPayload,
-} from '../types';
+import { ActionPackage, McpServer, QuestionGroup, ToolDefinitionPayload, UpsertAgentPayload } from '../types';
 import { createSimpleTool } from '../../sdk/tools';
+import { GenericAgentOptions } from './generic';
 
-const SAI_AGENT_SETUP_NAME = 'sai-sdk-ephemeral-agent';
-const SAI_AGENT_SETUP_DESCRIPTION = 'Sai SDK Ephemeral Agent';
+const SAI_AGENT_SETUP_NAME = 'sai-sdk-agent-setup';
+const SAI_AGENT_SETUP_DESCRIPTION = 'Sai SDK Agent Setup';
 const SAI_AGENT_SETUP_RUNBOOK = `
 ## OBJECTIVE
 You are an expert agent creation assistant. Your role is to guide users through building a complete agent by gathering their intent and generating seven key components: Name, Description, Runbook, Action Packages, MCP Servers, Conversation Starter, and Conversation Guide.
@@ -213,28 +206,22 @@ type AgentSetupTools = {
 /**
  * Utility function to create a basic ephemeral agent configuration
  */
-export function createSaiAgentSetupConfig(
-  platform_configs: PlatformConfig[],
-  availableActionPackages?: ActionPackage[],
-  availableMcpServers?: McpServer[],
-  agent_id?: string, // * THIS ISN'T USABLE YET - IT SHOULD CREATE A PERSISTENCY WITHIN AGENT SERVER
-  agent_architecture?: AgentArchitecture,
-): UpsertAgentPayload {
+export function createSaiAgentSetupConfig(options: GenericAgentOptions): UpsertAgentPayload {
   const runbook = SAI_AGENT_SETUP_RUNBOOK.replace(
     '{AVAILABLE_ACTION_PACKAGES_PLACEHOLDER}',
-    availableActionPackages?.map((actionPackage) => JSON.stringify(actionPackage)).join('\n\n') || '',
+    options.availableActionPackages?.map((actionPackage) => JSON.stringify(actionPackage)).join('\n\n') || '',
   ).replace(
     '{AVAILABLE_MCP_SERVERS_PLACEHOLDER}',
-    availableMcpServers?.map((mcpServer) => JSON.stringify(mcpServer)).join('\n\n') || '',
+    options.availableMcpServers?.map((mcpServer) => JSON.stringify(mcpServer)).join('\n\n') || '',
   );
 
   return createBasicAgentConfig({
     name: SAI_AGENT_SETUP_NAME + Date.now().toString(),
     description: SAI_AGENT_SETUP_DESCRIPTION,
     runbook: runbook,
-    platform_configs,
-    agent_id: agent_id,
-    agent_architecture: agent_architecture,
+    platform_configs: options.platform_configs,
+    agent_id: options.agent_id,
+    agent_architecture: options.agent_architecture,
   });
 }
 

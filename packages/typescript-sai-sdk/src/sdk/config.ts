@@ -4,6 +4,7 @@ import { PlatformConfig } from '../platform-config';
 import {
   ActionPackage,
   AgentArchitecture,
+  createSaiGenericAgentConfig,
   EphemeralAgentClient,
   McpServer,
   UpsertAgentPayload,
@@ -44,6 +45,7 @@ export interface SaiSDKConfig {
 }
 
 type EphemeralAgents = {
+  generic: UpsertAgentPayload;
   agentSetup: UpsertAgentPayload;
 };
 
@@ -96,13 +98,18 @@ export class SaiSDKConfiguration {
     });
     // Initialize the ephemeral agents
     this.ephemeralAgents = {
-      agentSetup: createSaiAgentSetupConfig(
-        [config.platformConfig],
-        config.availableResources?.actionPackages,
-        config.availableResources?.mcpServers,
-        config.agentId,
-        config.agentArchitecture,
-      ),
+      generic: createSaiGenericAgentConfig({
+        platform_configs: [config.platformConfig],
+        agent_id: config.agentId,
+        agent_architecture: config.agentArchitecture,
+      }),
+      agentSetup: createSaiAgentSetupConfig({
+        platform_configs: [config.platformConfig],
+        availableActionPackages: config.availableResources?.actionPackages,
+        availableMcpServers: config.availableResources?.mcpServers,
+        agent_id: config.agentId,
+        agent_architecture: config.agentArchitecture,
+      }),
     };
 
     // Log the configuration
