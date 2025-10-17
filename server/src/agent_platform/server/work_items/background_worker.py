@@ -409,15 +409,15 @@ async def execute_work_item(
 
         result = await agent_func(item)
 
-        # Do not overwrite CANCELLED if the user cancelled while we were executing.
         try:
             item = await storage.get_work_item(item.work_item_id)
             current_status = item.status
         except Exception:  # If fetch fails, fall back to our computed status
-            current_status = None
+            logger.error("Error fetching work item %s, validating anyway", item.work_item_id)
+            current_status = WorkItemStatus.EXECUTING
 
-        # Only update if the current status is not CANCELLED
-        if current_status != WorkItemStatus.CANCELLED:
+        # Only run judge if the work item status wasn't already set by user or runbook step
+        if current_status == WorkItemStatus.EXECUTING:
             logger.info(
                 "Completed execution on work item %s, function result: %s (updating status)",
                 item.work_item_id,
@@ -448,10 +448,11 @@ async def execute_work_item(
             await execute_callbacks(item, new_status)
         else:
             logger.info(
-                "Work item %s was cancelled during execution: leaving status as CANCELLED",
+                "Work item %s is in already in status %s, skipping validation",
                 item.work_item_id,
+                item.status,
             )
-            await execute_callbacks(item, WorkItemStatus.CANCELLED)
+            await execute_callbacks(item, item.status)
 
         return result
     except Exception as e:

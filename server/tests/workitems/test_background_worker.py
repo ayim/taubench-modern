@@ -13,6 +13,7 @@ from agent_platform.core.responses.content.tool_use import ResponseToolUseConten
 from agent_platform.core.thread.content import ThreadAttachmentContent, ThreadTextContent
 from agent_platform.core.thread.messages import ThreadAgentMessage, ThreadUserMessage
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.core.work_items.work_item import WorkItemStatusUpdatedBy
 from agent_platform.server.storage.option import StorageService
 from agent_platform.server.work_items import background_worker as bw
 from agent_platform.server.work_items.settings import Settings as WorkerSettings
@@ -104,6 +105,14 @@ class TestBackgroundWorker:
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
+        # Mark the work item as EXECUTING to simulate the normal worker flow
+        await configured_storage.update_work_item_status(
+            system_user.user_id,
+            item.work_item_id,
+            WorkItemStatus.EXECUTING,
+            WorkItemStatusUpdatedBy.SYSTEM,
+        )
+
         async def mock_agent_func(wi: WorkItem) -> bool:
             return True
 
@@ -127,6 +136,14 @@ class TestBackgroundWorker:
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
+        # Mark the work item as EXECUTING to simulate the normal worker flow
+        await configured_storage.update_work_item_status(
+            system_user.user_id,
+            item.work_item_id,
+            WorkItemStatus.EXECUTING,
+            WorkItemStatusUpdatedBy.SYSTEM,
+        )
+
         async def error_agent_func(_: WorkItem) -> bool:
             raise Exception("Test error")
 
@@ -149,6 +166,14 @@ class TestBackgroundWorker:
     ):
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
+
+        # Mark the work item as EXECUTING to simulate the normal worker flow
+        await configured_storage.update_work_item_status(
+            system_user.user_id,
+            item.work_item_id,
+            WorkItemStatus.EXECUTING,
+            WorkItemStatusUpdatedBy.SYSTEM,
+        )
 
         async def fail_agent_func(_: WorkItem) -> bool:
             return False
@@ -191,7 +216,16 @@ class TestBackgroundWorker:
             work_items.append(wi)
             await configured_storage.create_work_item(wi)
 
+        # Mark all work items as EXECUTING to simulate the normal worker flow
         work_item_ids = [wi.work_item_id for wi in work_items]
+        for work_item_id in work_item_ids:
+            await configured_storage.update_work_item_status(
+                system_user.user_id,
+                work_item_id,
+                WorkItemStatus.EXECUTING,
+                WorkItemStatusUpdatedBy.SYSTEM,
+            )
+
         results = await bw.run_batch(work_item_ids, sometimes_fail_agent, batch_timeout=2.0)
 
         # Expectations: 3 successes, 2 handled failures (False)
@@ -348,6 +382,14 @@ class TestBackgroundWorker:
 
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
+
+        # Mark the work item as EXECUTING to simulate the normal worker flow
+        await configured_storage.update_work_item_status(
+            system_user.user_id,
+            item.work_item_id,
+            WorkItemStatus.EXECUTING,
+            WorkItemStatusUpdatedBy.SYSTEM,
+        )
 
         async def mock_agent_func(wi: WorkItem) -> bool:
             return True
@@ -1022,3 +1064,56 @@ class TestBackgroundWorker:
             assert len(created_threads) == 1
             created_thread = created_threads[0]["thread"]
             assert created_thread.work_item_id == item.work_item_id
+
+    @pytest.mark.asyncio
+    async def test_execute_work_item_skips_validation_when_status_changed_during_execution(
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        mocker,
+    ):
+        """Test that _validate_success is not called when work item status changes during execution.
+        This is to prevent the agent from overwriting the status set by a step in the runbook.
+        """
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
+        await configured_storage.create_work_item(item)
+
+        # Mock _validate_success to track if it's called
+        validate_success_mock = mocker.patch(
+            "agent_platform.server.work_items.background_worker._validate_success",
+            return_value=WorkItemStatus.COMPLETED,
+        )
+
+        # Mock execute_callbacks to track what status it's called with
+        execute_callbacks_mock = mocker.patch(
+            "agent_platform.server.work_items.background_worker.execute_callbacks"
+        )
+
+        async def agent_func_that_changes_status(wi: WorkItem) -> bool:
+            # Simulate the work item status changing to NEEDS_REVIEW during execution
+            # This could happen if another process updates the work item status
+            await configured_storage.update_work_item_status(
+                system_user.user_id,
+                wi.work_item_id,
+                WorkItemStatus.NEEDS_REVIEW,
+                WorkItemStatusUpdatedBy.AGENT,
+            )
+            return True
+
+        result = await bw.execute_work_item(item, agent_func_that_changes_status)
+        assert result is True
+
+        # Verify that _validate_success was NOT called because status changed during execution
+        validate_success_mock.assert_not_called()
+
+        # Verify that execute_callbacks was called with the actual status (NEEDS_REVIEW)
+        execute_callbacks_mock.assert_called_once()
+        call_args = execute_callbacks_mock.call_args
+        assert call_args[0][0].work_item_id == item.work_item_id  # First arg is the work item
+        assert call_args[0][1] == WorkItemStatus.NEEDS_REVIEW  # Second arg is the status
+
+        # Verify the work item status in the database is NEEDS_REVIEW
+        updated_item = await configured_storage.get_work_item(item.work_item_id)
+        assert updated_item.status == WorkItemStatus.NEEDS_REVIEW
