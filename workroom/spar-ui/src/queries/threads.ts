@@ -122,7 +122,7 @@ export const useCreateThreadMutation = createSparMutation<
         agentId,
         queryClient,
         threadId: response.data.thread_id,
-        sparAPIClient,
+        startWebsocketStream: sparAPIClient.startWebsocketStream,
       });
     }
 

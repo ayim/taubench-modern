@@ -3,9 +3,6 @@ import { NEW_CHAT_STARTING_MSG, streamManager } from '@sema4ai/spar-ui';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { AgentNotFound } from '~/components/AgentNotFound';
-import { router } from '~/components/providers/Router';
-import { createSparAPIClient } from '~/lib/SparAPIClient';
-import { TenantMeta } from '~/lib/tenantContext';
 import { getPreferenceKey, getUserPreferenceId, isWorkerAgent, removeUserPreferenceId } from '~/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/')({
@@ -48,6 +45,10 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
      */
     const searchParams = new URLSearchParams(location.search);
     const initialThreadMessage = searchParams.get('initial_thread_message')?.trim();
+    const startWebsocketStream = async (agentId: string) => {
+      const { url, token, withBearerTokenAuth } = await agentAPIClient.getWsStreamUrl({ agentId, tenantId });
+      return withBearerTokenAuth ? new WebSocket(url, ['Bearer', token]) : new WebSocket(url);
+    };
 
     if (initialThreadMessage) {
       const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
@@ -71,7 +72,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
         agentId,
         queryClient,
         threadId: newThread.data.thread_id,
-        sparAPIClient: createSparAPIClient(tenantId, undefined as unknown as TenantMeta, agentAPIClient, router),
+        startWebsocketStream,
       });
 
       throw redirect({
@@ -144,6 +145,16 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       throw redirect({
         to: '/tenants/$tenantId/conversational/$agentId',
         params: { tenantId, agentId },
+      });
+    }
+
+    if (role == 'user') {
+      streamManager.initiateStream({
+        content: [],
+        agentId,
+        queryClient,
+        threadId: newThread.data.thread_id ?? '',
+        startWebsocketStream,
       });
     }
 

@@ -27,13 +27,13 @@ class StreamManager {
   private queryClient: QueryClient | undefined;
 
   public async initiateStream({
-    sparAPIClient,
+    startWebsocketStream,
     queryClient,
     content,
     threadId,
     agentId,
   }: {
-    sparAPIClient: SparAPIClient;
+    startWebsocketStream: (agentId: string) => Promise<WebSocket>;
     queryClient: QueryClient;
     content: ThreadContent[];
     threadId: string;
@@ -59,7 +59,7 @@ class StreamManager {
     this.messagesMap[threadId].push(userMessage);
 
     this.emitMessage(threadId);
-    const ws = await sparAPIClient.startWebsocketStream(agentId);
+    const ws = await startWebsocketStream(agentId);
 
     /**
      * Wait for the WebSocket to be open before resolving
@@ -137,8 +137,9 @@ class StreamManager {
     let activeWebSocketForThread = this.wsMap[threadId];
     if (!activeWebSocketForThread || activeWebSocketForThread.readyState !== WebSocket.OPEN) {
       // Use initiateStream to set up the WebSocket connection with empty messages
+
       await this.initiateStream({
-        sparAPIClient,
+        startWebsocketStream: sparAPIClient.startWebsocketStream,
         queryClient,
         content: [],
         threadId,
@@ -388,7 +389,7 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     }
 
     try {
-      await streamManager.initiateStream({ sparAPIClient, queryClient, content, threadId, agentId });
+      await streamManager.initiateStream({ startWebsocketStream: sparAPIClient.startWebsocketStream, queryClient, content, threadId, agentId });
 
       return {
         success: true,
