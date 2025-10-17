@@ -1,4 +1,4 @@
-import { createSparQueryOptions, createSparQuery } from './shared';
+import { createSparQueryOptions, createSparQuery, QueryError, ResourceType } from './shared';
 
 /**
  * Get Work Item API URL query
@@ -9,11 +9,11 @@ export const workItemAPIUrlQueryOptions = createSparQueryOptions<object>()(({ sp
   queryKey: workItemAPIUrlQueryKey(),
   queryFn: async () => {
     const response = await sparAPIClient.getWorkItemAPIURL();
-    
+
     if (!response.success) {
-      throw new Error(response.error.message);
+      throw new QueryError(response.error.message, { code: 'unexpected', resource: ResourceType.WorkItem });
     }
-    
+
     return response.data;
   },
 }));

@@ -10,13 +10,12 @@ type UpdateAgentQuestionGroupsPayload = {
 };
 
 export const useUpdateAgentQuestionGroupsMutation = createSparMutation<
-  Record<string, never>, 
+  Record<string, never>,
   { agentId: string; body: UpdateAgentQuestionGroupsPayload }
 >()(({ /* sparAPIClient, */ queryClient }) => ({
   mutationFn: async (/* {  agentId, body } */): Promise<Agent> => {
     // TODO: Implement a PATCH endpoint to update only question_groups of an agent
-    
-    
+
     return null as unknown as Agent;
   },
   onSuccess: async (_data, { agentId }) => {

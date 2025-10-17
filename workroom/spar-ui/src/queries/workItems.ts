@@ -2,7 +2,7 @@ import { components } from '@sema4ai/agent-server-interface';
 import { asyncForLoop } from '@sema4ai/robocloud-shared-utils';
 import { useEffect, useState } from 'react';
 
-import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
+import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 
 type WorkItem = components['schemas']['WorkItem'];
 type CreateWorkItemPayload = components['schemas']['CreateWorkItemPayload'];
@@ -20,7 +20,10 @@ export const workItemsQueryOptions = createSparQueryOptions<{ agentId?: string }
     });
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch threads');
+      throw new QueryError(response.message || 'Failed to fetch threads', {
+        code: response.code,
+        resource: ResourceType.WorkItem,
+      });
     }
 
     return response.data.records;
@@ -42,7 +45,10 @@ export const workItemQueryOptions = createSparQueryOptions<{ workItemId: string 
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch work item');
+        throw new QueryError(response.message || 'Failed to fetch work item', {
+          code: response.code,
+          resource: ResourceType.WorkItem,
+        });
       }
 
       return response.data;
@@ -83,7 +89,7 @@ export const useCreateWorkItemMutation = createSparMutation<
       });
 
       if (!response.success) {
-        throw new Error(response.message);
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.WorkItem });
       }
       return response.data;
     };
@@ -116,7 +122,10 @@ export const useCreateWorkItemMutation = createSparMutation<
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to create work item');
+        throw new QueryError(response.message || 'Failed to create work item', {
+          code: response.code,
+          resource: ResourceType.WorkItem,
+        });
       }
 
       // Updating query cache with new data
@@ -141,7 +150,10 @@ export const useCreateWorkItemMutation = createSparMutation<
 
     const workItemId = firstFileResponse.work_item_id;
     if (!workItemId || typeof workItemId !== 'string') {
-      throw new Error('Failed to get Work Item ID from first file upload');
+      throw new QueryError('Failed to get Work Item ID from first file upload', {
+        code: 'bad_request',
+        resource: ResourceType.WorkItem,
+      });
     }
 
     await asyncForLoop(remainingFiles, async (file) => {

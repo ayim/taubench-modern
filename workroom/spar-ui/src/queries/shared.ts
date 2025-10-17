@@ -4,17 +4,57 @@ import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/re
 import { SparAPIClient } from '../api';
 import { useSparUIContext } from '../api/context';
 
+enum QueryErrorCode {
+  NotFound = 'not_found',
+  Unauthorized = 'unauthorized',
+  Forbidden = 'forbidden',
+  TooManyRequests = 'too_many_requests',
+  MethodNotAllowed = 'method_not_allowed',
+  Conflict = 'conflict',
+  BadRequest = 'bad_request',
+  Unexpected = 'unexpected',
+  UnprocessableEntity = 'unprocessable_entity',
+  PreconditionFailed = 'precondition_failed',
+}
+
+export enum ResourceType {
+  Agent = 'agent',
+  DataConnection = 'data_connection',
+  DataFrame = 'data_frame',
+  DocumentIntelligence = 'document_intelligence',
+  Evaluation = 'eval',
+  Feedback = 'feedback',
+  SemanticData = 'semantic_data',
+  Thread = 'thread',
+  WorkItem = 'work_item',
+}
+
+const KnownErrorCodes = new Set<string>(Object.values(QueryErrorCode));
 type QueryErrorDetails = {
   type?: 'error' | 'notice';
+  /*
+   * There might be more codes, this narrows down codes to the known ones
+   */
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  code?: `${QueryErrorCode}` | (string & {});
+  resource?: ResourceType;
 };
 
 export class QueryError extends Error {
-  details?: QueryErrorDetails;
+  details: Omit<QueryErrorDetails, 'code'> & { code?: QueryErrorCode };
 
   constructor(message: string, details?: QueryErrorDetails) {
     super(message);
     this.name = 'QueryError';
-    this.details = details;
+    this.details = {
+      type: details?.type,
+      // Set code values only to the known ones that are type safe
+      code:
+        typeof details?.code === 'string' && KnownErrorCodes.has(details.code)
+          ? (details.code as QueryErrorCode)
+          : undefined,
+      resource: details?.resource,
+    };
   }
 }
 

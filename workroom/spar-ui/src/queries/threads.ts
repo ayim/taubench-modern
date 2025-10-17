@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import { getFileSize } from '../common/helpers';
-import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
+import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 import { streamManager } from '../hooks/useMessageStream';
 
 /**
@@ -25,7 +25,10 @@ export const threadsQueryOptions = createSparQueryOptions<{ agentId: string; lim
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch threads');
+        throw new QueryError(response.message || 'Failed to fetch threads', {
+          code: response.code,
+          resource: ResourceType.Thread,
+        });
       }
 
       return response.data;
@@ -48,7 +51,10 @@ export const threadQueryOptions = createSparQueryOptions<{ threadId: string }>()
     });
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch threads');
+      throw new QueryError(response.message || 'Failed to fetch threads', {
+        code: response.code,
+        resource: ResourceType.Thread,
+      });
     }
 
     return response.data;
@@ -71,7 +77,10 @@ export const threadMessagesQueryOptions = createSparQueryOptions<{ threadId: str
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch thread messages');
+        throw new QueryError(response.message || 'Failed to fetch thread messages', {
+          code: response.code,
+          resource: ResourceType.Thread,
+        });
       }
 
       // TODO-V2: Why is "ThreadMessage = Overwrite<components['schemas']['ThreadMessage']>{...}" happening at @sema4ai/agent-server-interface
@@ -109,11 +118,14 @@ export const useCreateThreadMutation = createSparMutation<
       },
     });
     if (!response.success) {
-      throw new Error(response.message || 'Failed to create thread');
+      throw new QueryError(response.message || 'Failed to create thread', {
+        code: response.code,
+        resource: ResourceType.Thread,
+      });
     }
 
     if (!response.data.thread_id) {
-      throw new Error('Failed to create thread');
+      throw new QueryError('Failed to create thread', { code: 'bad_request', resource: ResourceType.Thread });
     }
 
     if (isUserMessage) {
@@ -147,7 +159,10 @@ export const useUpdateThreadMutation = createSparMutation<{ agentId: string }, {
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to update thread');
+        throw new QueryError(response.message || 'Failed to update thread', {
+          code: response.code,
+          resource: ResourceType.Thread,
+        });
       }
 
       return response.data;
@@ -171,7 +186,10 @@ export const useDeleteThreadMutation = createSparMutation<{ agentId: string }, {
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to delete thread');
+        throw new QueryError(response.message || 'Failed to delete thread', {
+          code: response.code,
+          resource: ResourceType.Thread,
+        });
       }
 
       return response.data;
@@ -205,7 +223,7 @@ export const useUploadThreadFilesMutation = createSparMutation<{ threadId: strin
 
       if (!response.success) {
         // The current error returned by the agent-server is not customer facing at all
-        throw new Error('Failed to upload the file(s)');
+        throw new QueryError('Failed to upload the file(s)', { code: 'bad_request', resource: ResourceType.Thread });
       }
 
       const attachements = response.data.map(
@@ -239,7 +257,10 @@ export const threadFilesQueryOptions = createSparQueryOptions<{ threadId: string
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch threads');
+        throw new QueryError(response.message || 'Failed to fetch threads', {
+          code: response.code,
+          resource: ResourceType.Thread,
+        });
       }
 
       return response.data;

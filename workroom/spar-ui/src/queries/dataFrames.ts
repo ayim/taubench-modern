@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { paths as AgentServerPaths } from '@sema4ai/agent-server-interface';
-import { createSparQuery, createSparQueryOptions } from './shared';
+import { createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 import { useSparUIContext } from '../api/context';
 
 const getDataFramesQueryKey = ({ threadId }: { threadId: string }) => ['data-frames', threadId];
@@ -29,7 +29,10 @@ export const dataFramesQueryOptions = createSparQueryOptions<{
     });
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch data frames');
+      throw new QueryError(response.message || 'Failed to fetch data frames', {
+        code: response.code,
+        resource: ResourceType.DataFrame,
+      });
     }
 
     return response.data;
@@ -80,7 +83,10 @@ export const useDataFrameSliceInfiniteQuery = ({
       });
 
       if (!response.success) {
-        throw new Error(response.message);
+        throw new QueryError(response.message || 'Failed to fetch data frame data', {
+          code: response.code,
+          resource: ResourceType.DataFrame,
+        });
       }
 
       return response.data;
@@ -123,7 +129,10 @@ export const dataFrameQueryOptions = createSparQueryOptions<{
     );
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to get data frame file');
+      throw new QueryError(response.message || 'Failed to get data frame file', {
+        code: response.code,
+        resource: ResourceType.DataFrame,
+      });
     }
 
     return response.data;

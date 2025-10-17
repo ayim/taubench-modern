@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { createSparMutation, createSparQuery, createSparQueryOptions } from './shared';
+import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/form';
 
 // TODO: This model is not complete, update once agent-server-interface is updated and returns correct shape of SemanticModel
@@ -53,7 +53,10 @@ const agentSemanticDataQueryOptions = createSparQueryOptions<{ agentId: string }
     });
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to get semantic data models');
+      throw new QueryError(response.message || 'Failed to get semantic data models', {
+        code: response.code,
+        resource: ResourceType.SemanticData,
+      });
     }
 
     const semanticModels = response.data.flatMap((curr) => {
@@ -88,7 +91,10 @@ const semanticModelQueryOptions = createSparQueryOptions<{ modelId: string }>()(
     );
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to get semantic data model');
+      throw new QueryError(response.message || 'Failed to get semantic data model', {
+        code: response.code,
+        resource: ResourceType.SemanticData,
+      });
     }
 
     return response.data as SemanticModel;
@@ -136,7 +142,10 @@ export const useCreateSemanticDataMutation = createSparMutation<
     });
 
     if (!generateResponse.success) {
-      throw new Error(generateResponse.message || 'Failed to generate Semantic Data model');
+      throw new QueryError(generateResponse.message || 'Failed to generate Semantic Data model', {
+        code: generateResponse.code,
+        resource: ResourceType.SemanticData,
+      });
     }
 
     const createResponse = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/', {
@@ -144,7 +153,10 @@ export const useCreateSemanticDataMutation = createSparMutation<
     });
 
     if (!createResponse.success) {
-      throw new Error(createResponse.message || 'Failed to create Semantic Data model');
+      throw new QueryError(createResponse.message || 'Failed to create Semantic Data model', {
+        code: createResponse.code,
+        resource: ResourceType.SemanticData,
+      });
     }
 
     const attachResponse = await sparAPIClient.queryAgentServer('put', '/api/v2/agents/{aid}/semantic-data-models', {
@@ -155,7 +167,10 @@ export const useCreateSemanticDataMutation = createSparMutation<
     });
 
     if (!attachResponse.success) {
-      throw new Error(attachResponse.message || 'Failed to attach Semantic Data model to Agent');
+      throw new QueryError(attachResponse.message || 'Failed to attach Semantic Data model to Agent', {
+        code: attachResponse.code,
+        resource: ResourceType.SemanticData,
+      });
     }
 
     return attachResponse.data;
@@ -189,7 +204,10 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
     );
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to update Semantic Data model');
+      throw new QueryError(response.message || 'Failed to update Semantic Data model', {
+        code: response.code,
+        resource: ResourceType.SemanticData,
+      });
     }
 
     return response.data;
@@ -215,7 +233,10 @@ export const useDeleteSemanticDataModelMutation = createSparMutation<object, { a
       );
 
       if (!deleteResponse.success) {
-        throw new Error(deleteResponse.message || 'Failed to delete Semantic Data model');
+        throw new QueryError(deleteResponse.message || 'Failed to delete Semantic Data model', {
+          code: deleteResponse.code,
+          resource: ResourceType.SemanticData,
+        });
       }
 
       return deleteResponse.data;

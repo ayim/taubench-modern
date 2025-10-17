@@ -1,6 +1,6 @@
 import { DataConnection as DataConnectionBase } from '@sema4ai/data-interface';
 
-import { createSparQueryOptions, createSparQuery, createSparMutation } from './shared';
+import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
 
 export type DataConnection = DataConnectionBase & { id: string; tags?: string[] };
 
@@ -15,7 +15,10 @@ export const dataConnectionsQueryOptions = createSparQueryOptions<object>()(({ s
     const response = await sparAPIClient.queryAgentServer('get', '/api/v2/data-connections/', {});
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch data connections');
+      throw new QueryError(response.message || 'Failed to fetch data connections', {
+        code: response.code,
+        resource: ResourceType.DataConnection,
+      });
     }
     return response.data as DataConnection[];
   },
@@ -37,7 +40,10 @@ export const dataConnectionQueryOptions = createSparQueryOptions<{ dataConnectio
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch data connection');
+        throw new QueryError(response.message || 'Failed to fetch data connection', {
+          code: response.code,
+          resource: ResourceType.DataConnection,
+        });
       }
 
       return response.data as DataConnection;
@@ -58,7 +64,10 @@ export const useCreateDataConnectionMutation = createSparMutation<Record<string,
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to create data connection');
+        throw new QueryError(response.message || 'Failed to create data connection', {
+          code: response.code,
+          resource: ResourceType.DataConnection,
+        });
       }
 
       return response.data;
@@ -83,7 +92,10 @@ export const useUpdateDataConnectionMutation = createSparMutation<{ dataConnecti
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to update data connection');
+        throw new QueryError(response.message || 'Failed to update data connection', {
+          code: response.code,
+          resource: ResourceType.DataConnection,
+        });
       }
 
       return response.data;
@@ -106,7 +118,10 @@ export const useDeleteDataConnectionMutation = createSparMutation<
     });
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to delete data connection');
+      throw new QueryError(response.message || 'Failed to delete data connection', {
+        code: response.code,
+        resource: ResourceType.DataConnection,
+      });
     }
 
     return response.data;
@@ -138,7 +153,10 @@ export const useDataConnectionDatabaseInspectMutation = createSparMutation<objec
       );
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to inspect data connection');
+        throw new QueryError(response.message || 'Failed to inspect data connection', {
+          code: response.code,
+          resource: ResourceType.DataConnection,
+        });
       }
 
       return response.data.tables;
@@ -167,7 +185,10 @@ export const useDataConnectionFileInspectMutation = createSparMutation<
     );
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to delete data connection');
+      throw new QueryError(response.message || 'Failed to inspect data connection', {
+        code: response.code,
+        resource: ResourceType.DataConnection,
+      });
     }
 
     return response.data;

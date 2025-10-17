@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { components, paths } from '@sema4ai/agent-server-interface';
-import { createSparQuery, createSparQueryOptions, createSparMutation } from './shared';
+import { createSparQuery, createSparQueryOptions, createSparMutation, QueryError, ResourceType } from './shared';
 import { useSparUIContext } from '../api/context';
 
 type ListScenariosResponse = paths['/api/v2/evals/scenarios']['get']['responses']['200']['content']['application/json'];
@@ -23,10 +23,7 @@ const getListScenariosQueryKey = ({ agentId, limit }: { agentId: string; limit?:
   limit ?? 0,
 ];
 const getScenarioQueryKey = ({ scenarioId }: { scenarioId: string }) => ['scenario', scenarioId];
-const getLatestScenarioRunQueryKey = ({ scenarioId }: { scenarioId: string }) => [
-  'scenario-run-latest',
-  scenarioId,
-];
+const getLatestScenarioRunQueryKey = ({ scenarioId }: { scenarioId: string }) => ['scenario-run-latest', scenarioId];
 const getScenarioRunsQueryKey = ({ scenarioId, limit }: { scenarioId: string; limit?: number }) => [
   'scenario-runs',
   scenarioId,
@@ -53,7 +50,7 @@ export const listScenariosQueryOptions = createSparQueryOptions<{
       },
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
     }
     return response.data;
   },
@@ -68,7 +65,7 @@ export const scenarioQueryOptions = createSparQueryOptions<{
       params: { path: { scenario_id: scenarioId } },
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
     }
     return response.data;
   },
@@ -79,15 +76,11 @@ export const latestScenarioRunQueryOptions = createSparQueryOptions<{
 }>()(({ sparAPIClient, scenarioId }) => ({
   queryKey: getLatestScenarioRunQueryKey({ scenarioId }),
   queryFn: async (): Promise<ScenarioRun | null> => {
-    const response = await sparAPIClient.queryAgentServer(
-      'get',
-      '/api/v2/evals/scenarios/{scenario_id}/runs/latest',
-      {
-        params: { path: { scenario_id: scenarioId } },
-      },
-    );
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/evals/scenarios/{scenario_id}/runs/latest', {
+      params: { path: { scenario_id: scenarioId } },
+    });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
     }
     return response.data;
   },
@@ -99,18 +92,14 @@ export const scenarioRunsQueryOptions = createSparQueryOptions<{
 }>()(({ sparAPIClient, scenarioId, limit }) => ({
   queryKey: getScenarioRunsQueryKey({ scenarioId, limit }),
   queryFn: async (): Promise<ScenarioRun[]> => {
-    const response = await sparAPIClient.queryAgentServer(
-      'get',
-      '/api/v2/evals/scenarios/{scenario_id}/runs',
-      {
-        params: { 
-          path: { scenario_id: scenarioId },
-          ...(limit && { query: { limit } }),
-        },
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/evals/scenarios/{scenario_id}/runs', {
+      params: {
+        path: { scenario_id: scenarioId },
+        ...(limit && { query: { limit } }),
       },
-    );
+    });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
     }
     return response.data;
   },
@@ -126,16 +115,16 @@ export const scenarioRunQueryOptions = createSparQueryOptions<{
       'get',
       '/api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}',
       {
-        params: { 
-          path: { 
+        params: {
+          path: {
             scenario_id: scenarioId,
-            scenario_run_id: scenarioRunId 
-          } 
+            scenario_run_id: scenarioRunId,
+          },
         },
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
     }
     return response.data;
   },
@@ -154,7 +143,7 @@ export const useCreateScenarioMutation = createSparMutation<Record<string, never
         body,
       });
       if (!response.success) {
-        throw new Error(response.message);
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
       }
       return response.data;
     },
@@ -171,7 +160,7 @@ export const useDeleteScenarioMutation = createSparMutation<Record<string, never
         params: { path: { scenario_id: scenarioId } },
       });
       if (!response.success) {
-        throw new Error(response.message);
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
       }
       return response.data;
     },
@@ -192,7 +181,7 @@ export const useCreateScenarioRunMutation = createSparMutation<
       body,
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
     }
     return response.data;
   },
@@ -209,7 +198,7 @@ export const useSuggestScenarioMutation = createSparMutation<Record<string, neve
         body,
       });
       if (!response.success) {
-        throw new Error(response.message);
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
       }
       return response.data;
     },
@@ -225,16 +214,16 @@ export const useCancelScenarioRunMutation = createSparMutation<
       'delete',
       '/api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}',
       {
-        params: { 
-          path: { 
+        params: {
+          path: {
             scenario_id: scenarioId,
-            scenario_run_id: scenarioRunId 
-          } 
+            scenario_run_id: scenarioRunId,
+          },
         },
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
     }
     return null;
   },
@@ -252,7 +241,10 @@ export const usePollScenarioRun = () => {
     async (scenarioId: string): Promise<void> => {
       const poll = async (attempt: number): Promise<void> => {
         if (attempt >= MAX_POLLING_ATTEMPTS) {
-          throw new Error('Trial execution timed out after 60 seconds');
+          throw new QueryError('Trial execution timed out after 60 seconds', {
+            code: 'too_many_requests',
+            resource: ResourceType.Evaluation,
+          });
         }
 
         if (attempt > 0) {
@@ -272,10 +264,9 @@ export const usePollScenarioRun = () => {
 
           if (response.success) {
             queryClient.setQueryData(['scenario-run-latest', scenarioId], response.data);
-            
+
             const allTrialsComplete =
-              response.data.trials?.every((trial) => trial.status === 'COMPLETED' || trial.status === 'ERROR') ??
-              false;
+              response.data.trials?.every((trial) => trial.status === 'COMPLETED' || trial.status === 'ERROR') ?? false;
 
             const completedTrialsHaveResults =
               response.data.trials?.every((trial) => {

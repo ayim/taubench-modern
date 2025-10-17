@@ -1,7 +1,7 @@
 import { Agent } from '@sema4ai/agent-server-interface';
 import { OAuthProvider } from '@sema4ai/oauth-client';
 
-import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError } from './shared';
+import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
 
 /**
  * List Agents query
@@ -14,7 +14,10 @@ export const agentsQueryOptions = createSparQueryOptions<object>()(({ sparAPICli
     const response = await sparAPIClient.queryAgentServer('get', '/api/v2/agents/', {});
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch agents');
+      throw new QueryError(response.message || 'Failed to fetch agents', {
+        code: response.code,
+        resource: ResourceType.Agent,
+      });
     }
 
     return response.data;
@@ -41,7 +44,10 @@ export const agentQueryOptions = createSparQueryOptions<{ agentId: string }>()((
     });
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch agent');
+      throw new QueryError(response.message || 'Failed to fetch agent', {
+        code: response.code,
+        resource: ResourceType.Agent,
+      });
     }
 
     return response.data;
@@ -63,7 +69,10 @@ export const agentDetailsQueryOptions = createSparQueryOptions<{ agentId: string
     });
 
     if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch agent details');
+      throw new QueryError(response.message || 'Failed to fetch agent details', {
+        code: response.code,
+        resource: ResourceType.Agent,
+      });
     }
 
     return response.data;
@@ -123,7 +132,10 @@ export const useDeleteAgentMutation = createSparMutation<object, { agentId: stri
       });
 
       if (!response.success) {
-        throw new Error(response.message || 'Failed to delete agent');
+        throw new QueryError(response.message || 'Failed to delete agent', {
+          code: response.code,
+          resource: ResourceType.Agent,
+        });
       }
     },
     onSuccess: (_, { agentId }) => {

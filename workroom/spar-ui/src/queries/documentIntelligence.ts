@@ -1,5 +1,13 @@
 import type { components } from '@sema4ai/agent-server-interface';
-import { createSparQuery, createSparQueryOptions, createSparMutation, ServerResponse, ServerRequest } from './shared';
+import {
+  createSparQuery,
+  createSparQueryOptions,
+  createSparMutation,
+  ServerResponse,
+  ServerRequest,
+  QueryError,
+  ResourceType,
+} from './shared';
 import { SparAPIClient } from '../api';
 
 const getListModelsQueryKey = () => ['document-intelligence', 'data-models'];
@@ -37,23 +45,20 @@ export const listModelsQueryOptions = ({ sparAPIClient }: { sparAPIClient: SparA
       params: {},
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
 });
 export const useListModelsQuery = createSparQuery(listModelsQueryOptions);
 
-export const useGetDataModelsMutation = createSparMutation<
-  object,
-  object
->()(({ sparAPIClient }) => ({
+export const useGetDataModelsMutation = createSparMutation<object, object>()(({ sparAPIClient }) => ({
   mutationFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/data-models'>> => {
     const response = await sparAPIClient.queryAgentServer('get', '/api/v2/document-intelligence/data-models', {
       params: {},
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -71,7 +76,7 @@ export const getDataModelQueryOptions = createSparQueryOptions<{ modelName: stri
         },
       );
       if (!response.success) {
-        throw new Error(response.message);
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
       }
       return response.data;
     },
@@ -105,7 +110,7 @@ export const useParseDocumentMutation = createSparMutation<
       },
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -144,7 +149,7 @@ export const useExtractDocumentMutation = createSparMutation<
       } satisfies ExtractDocumentPayload,
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -167,11 +172,11 @@ export const useCreateDataModelMutation = createSparMutation<
         },
       },
       body: {
-        data_model: dataModel
+        data_model: dataModel,
       } satisfies CreateDataModelRequest,
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -199,7 +204,7 @@ export const useUpdateDataModelMutation = createSparMutation<
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -220,7 +225,7 @@ export const useDeleteDataModelMutation = createSparMutation<object, { modelName
         },
       );
       if (!response.success) {
-        throw new Error(response.message);
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
       }
       return response.data;
     },
@@ -257,7 +262,7 @@ export const useGenerateDataModelMutation = createSparMutation<
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -284,7 +289,7 @@ export const useGenerateDataModelDescriptionMutation = createSparMutation<
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -297,7 +302,7 @@ export const listLayoutsQueryOptions = ({ sparAPIClient }: { sparAPIClient: Spar
       params: {},
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -321,7 +326,7 @@ export const getLayoutQueryOptions = createSparQueryOptions<{
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -339,7 +344,7 @@ export const useUpsertLayoutMutation = createSparMutation<
       body: layoutData,
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -379,7 +384,7 @@ export const useGenerateLayoutMutation = createSparMutation<
       },
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -419,7 +424,7 @@ export const useIngestDocumentMutation = createSparMutation<
       },
     });
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -460,7 +465,7 @@ export const useGenerateQualityChecksMutation = createSparMutation<
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -488,7 +493,7 @@ export const useExecuteQualityChecksMutation = createSparMutation<
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
@@ -526,9 +531,8 @@ export const useGenerateExtractionSchemaMutation = createSparMutation<
       },
     );
     if (!response.success) {
-      throw new Error(response.message);
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
     }
     return response.data;
   },
 }));
-
