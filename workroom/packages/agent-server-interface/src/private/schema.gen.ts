@@ -2430,6 +2430,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** ActionCalling */
+    ActionCalling: {
+      /** Assert All Consumed */
+      assert_all_consumed?: boolean | null;
+      /** Allow Llm Arg Validation */
+      allow_llm_arg_validation?: boolean | null;
+      /** Allow Llm Interpolation */
+      allow_llm_interpolation?: boolean | null;
+      /**
+       * Type
+       * @default action_calling
+       * @constant
+       */
+      type: 'action_calling';
+    };
     /** ActionCallingResult */
     ActionCallingResult: {
       /** Issues */
@@ -3460,14 +3475,16 @@ export interface components {
       description: string;
       /** Thread Id */
       thread_id: string;
-      /** Assert All Consumed */
-      assert_all_consumed?: boolean | null;
-      /** Allow Llm Arg Validation */
-      allow_llm_arg_validation?: boolean | null;
-      /** Allow Llm Interpolation */
-      allow_llm_interpolation?: boolean | null;
       /** Tool Execution Mode */
       tool_execution_mode?: ('replay' | 'live') | null;
+      /** Evaluation Criteria */
+      evaluation_criteria?:
+        | (
+            | components['schemas']['ActionCalling']
+            | components['schemas']['FlowAdherence']
+            | components['schemas']['ResponseAccuracy']
+          )[]
+        | null;
     };
     /** CreateScenarioRunPayload */
     CreateScenarioRunPayload: {
@@ -4058,6 +4075,15 @@ export interface components {
       synonyms?: string[] | null;
       /** Description */
       description?: string | null;
+    };
+    /** FlowAdherence */
+    FlowAdherence: {
+      /**
+       * Type
+       * @default flow_adherence
+       * @constant
+       */
+      type: 'flow_adherence';
     };
     /** FlowAdherenceResult */
     FlowAdherenceResult: {
@@ -5605,6 +5631,17 @@ export interface components {
       /** File Name */
       file_name: string;
     };
+    /** ResponseAccuracy */
+    ResponseAccuracy: {
+      /** Expectation */
+      expectation: string;
+      /**
+       * Type
+       * @default response_accuracy
+       * @constant
+       */
+      type: 'response_accuracy';
+    };
     /** ResponseAccuracyResult */
     ResponseAccuracyResult: {
       /** Explanation */
@@ -6268,10 +6305,10 @@ export interface components {
       /** Description */
       description: string;
       /**
-       * Rationale
+       * Response Accuracy Expectation
        * @default
        */
-      rationale: string;
+      response_accuracy_expectation: string;
     };
     /** SecretString */
     SecretString: {

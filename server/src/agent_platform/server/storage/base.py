@@ -1,7 +1,7 @@
 import asyncio
 import json
 from abc import abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from types import TracebackType
@@ -1020,7 +1020,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 raise TrialAlreadyCanceledError(f"Trial {trial_id!r} is already canceled")
 
     async def update_trial_evaluation_results(
-        self, trial_id: str, evaluations: list[EvaluationResult]
+        self, trial_id: str, evaluations: Sequence[EvaluationResult]
     ):
         trials = self._get_table("trials")
         now = datetime.now(UTC)

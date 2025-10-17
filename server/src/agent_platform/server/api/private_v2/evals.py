@@ -24,17 +24,37 @@ logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
+class ActionCalling:
+    assert_all_consumed: bool | None = None
+    allow_llm_arg_validation: bool | None = None
+    allow_llm_interpolation: bool | None = None
+    type: Literal["action_calling"] = "action_calling"
+
+
+@dataclass(frozen=True)
+class FlowAdherence:
+    type: Literal["flow_adherence"] = "flow_adherence"
+
+
+@dataclass(frozen=True)
+class ResponseAccuracy:
+    expectation: str
+    type: Literal["response_accuracy"] = "response_accuracy"
+
+
+EvaluationCriterion = ActionCalling | FlowAdherence | ResponseAccuracy
+
+
+@dataclass(frozen=True)
 class CreateScenarioPayload:
     name: str
     description: str
     thread_id: str
-    assert_all_consumed: bool | None = None
-    allow_llm_arg_validation: bool | None = None
-    allow_llm_interpolation: bool | None = None
     tool_execution_mode: Literal["replay", "live"] | None = None
+    evaluation_criteria: list[EvaluationCriterion] | None = None
 
     @classmethod
-    def to_scenario(cls, payload: Self, user_id: str, thread: Thread) -> Scenario:
+    def to_scenario(cls, payload: Self, user_id: str, thread: Thread) -> Scenario:  # noqa: C901
         def trim_initial_agents(messages):
             trimmed = []
             skip = True
@@ -50,20 +70,46 @@ class CreateScenarioPayload:
         # that would result in an error.
         # more info https://sema4ai.slack.com/archives/C08HF1FADTQ/p1757927280879779
         messages = trim_initial_agents(thread.messages)
-        policy_overrides = {
-            key: value
-            for key, value in (
-                ("assert_all_consumed", payload.assert_all_consumed),
-                ("allow_llm_arg_validation", payload.allow_llm_arg_validation),
-                ("allow_llm_interpolation", payload.allow_llm_interpolation),
-                ("tool_execution_mode", payload.tool_execution_mode),
-            )
-            if value is not None
-        }
-
         metadata: dict[str, Any] = {}
-        if policy_overrides:
-            metadata["drift_policy"] = policy_overrides
+        drift_policy_overrides: dict[str, Any] = {}
+
+        if payload.tool_execution_mode is not None:
+            drift_policy_overrides["tool_execution_mode"] = payload.tool_execution_mode
+
+        criteria = payload.evaluation_criteria or []
+
+        if criteria:
+            evaluations_config: dict[str, Any] = {}
+
+            for criterion in criteria:
+                if criterion.type == "action_calling":
+                    action_config: dict[str, Any] = {"enabled": True}
+                    for attr in (
+                        "assert_all_consumed",
+                        "allow_llm_arg_validation",
+                        "allow_llm_interpolation",
+                    ):
+                        value = getattr(criterion, attr)
+                        if value is not None:
+                            action_config[attr] = value
+                            drift_policy_overrides[attr] = value
+                    evaluations_config["action_calling"] = action_config
+                elif criterion.type == "flow_adherence":
+                    evaluations_config["flow_adherence"] = {"enabled": True}
+                elif criterion.type == "response_accuracy":
+                    expectation = criterion.expectation.strip()
+                    if not expectation:
+                        raise ValueError("Response accuracy expectation cannot be empty")
+                    evaluations_config["response_accuracy"] = {
+                        "enabled": True,
+                        "expectation": expectation,
+                    }
+
+            if evaluations_config:
+                metadata["evaluations"] = evaluations_config
+
+        if drift_policy_overrides:
+            metadata["drift_policy"] = drift_policy_overrides
 
         return Scenario(
             scenario_id=str(uuid4()),
@@ -85,7 +131,10 @@ async def create_scenario(
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    scenario = CreateScenarioPayload.to_scenario(payload, user.user_id, thread)
+    try:
+        scenario = CreateScenarioPayload.to_scenario(payload, user.user_id, thread)
+    except ValueError as exc:  # pragma: no cover - validated via unit tests
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return await storage.create_scenario(scenario)
 

@@ -7518,6 +7518,51 @@ export const spec = {
   },
   components: {
     schemas: {
+      ActionCalling: {
+        properties: {
+          assert_all_consumed: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Assert All Consumed',
+          },
+          allow_llm_arg_validation: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Allow Llm Arg Validation',
+          },
+          allow_llm_interpolation: {
+            anyOf: [
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Allow Llm Interpolation',
+          },
+          type: {
+            type: 'string',
+            const: 'action_calling',
+            title: 'Type',
+            default: 'action_calling',
+          },
+        },
+        type: 'object',
+        title: 'ActionCalling',
+      },
       ActionCallingResult: {
         properties: {
           issues: {
@@ -9628,39 +9673,6 @@ export const spec = {
             type: 'string',
             title: 'Thread Id',
           },
-          assert_all_consumed: {
-            anyOf: [
-              {
-                type: 'boolean',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Assert All Consumed',
-          },
-          allow_llm_arg_validation: {
-            anyOf: [
-              {
-                type: 'boolean',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Allow Llm Arg Validation',
-          },
-          allow_llm_interpolation: {
-            anyOf: [
-              {
-                type: 'boolean',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Allow Llm Interpolation',
-          },
           tool_execution_mode: {
             anyOf: [
               {
@@ -9672,6 +9684,30 @@ export const spec = {
               },
             ],
             title: 'Tool Execution Mode',
+          },
+          evaluation_criteria: {
+            anyOf: [
+              {
+                items: {
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/ActionCalling',
+                    },
+                    {
+                      $ref: '#/components/schemas/FlowAdherence',
+                    },
+                    {
+                      $ref: '#/components/schemas/ResponseAccuracy',
+                    },
+                  ],
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Evaluation Criteria',
           },
         },
         type: 'object',
@@ -11232,6 +11268,18 @@ export const spec = {
         title: 'Filter',
         description:
           "A filter represents a SQL expression that's used for filtering.",
+      },
+      FlowAdherence: {
+        properties: {
+          type: {
+            type: 'string',
+            const: 'flow_adherence',
+            title: 'Type',
+            default: 'flow_adherence',
+          },
+        },
+        type: 'object',
+        title: 'FlowAdherence',
       },
       FlowAdherenceResult: {
         properties: {
@@ -14761,6 +14809,23 @@ export const spec = {
         required: ['file_name'],
         title: 'RequestRemoteFileUploadPayload',
       },
+      ResponseAccuracy: {
+        properties: {
+          expectation: {
+            type: 'string',
+            title: 'Expectation',
+          },
+          type: {
+            type: 'string',
+            const: 'response_accuracy',
+            title: 'Type',
+            default: 'response_accuracy',
+          },
+        },
+        type: 'object',
+        required: ['expectation'],
+        title: 'ResponseAccuracy',
+      },
       ResponseAccuracyResult: {
         properties: {
           explanation: {
@@ -15910,9 +15975,9 @@ export const spec = {
             type: 'string',
             title: 'Description',
           },
-          rationale: {
+          response_accuracy_expectation: {
             type: 'string',
-            title: 'Rationale',
+            title: 'Response Accuracy Expectation',
             default: '',
           },
         },

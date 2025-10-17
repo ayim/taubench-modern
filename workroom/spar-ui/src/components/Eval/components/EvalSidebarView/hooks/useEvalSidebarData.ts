@@ -1,6 +1,7 @@
 import { useMemo, useEffect } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from '@sema4ai/components';
+import type { components } from '@sema4ai/agent-server-interface';
 import { 
   latestScenarioRunQueryOptions, 
   scenarioRunsQueryOptions, 
@@ -25,6 +26,11 @@ export interface UseEvalSidebarDataProps {
   expandResults: (scenarioId: string) => void;
   expandedResults: Set<string>;
 }
+
+type EvaluationCriterionConfig =
+  | components['schemas']['ActionCalling']
+  | components['schemas']['FlowAdherence']
+  | components['schemas']['ResponseAccuracy'];
 
 export const useEvalSidebarData = ({ 
   agentId, 
@@ -180,12 +186,35 @@ export const useEvalSidebarData = ({
   const isAnyTestRunning = evaluations.some(evaluation => evaluation.isRunning);
 
   const handleCreateEvaluation = async (data: CreateEvalFormData) => {
+    const evaluationCriteria: EvaluationCriterionConfig[] = [];
+
+    if (data.evaluationCriteria.actionCalling) {
+      const { actionCallingPolicy } = data.evaluationCriteria;
+      evaluationCriteria.push({
+        type: 'action_calling',
+        assert_all_consumed: actionCallingPolicy.assertAllConsumed,
+        allow_llm_arg_validation: actionCallingPolicy.allowLlmArgValidation,
+        allow_llm_interpolation: actionCallingPolicy.allowLlmInterpolation,
+      });
+    }
+    if (data.evaluationCriteria.flowAdherence) {
+      evaluationCriteria.push({ type: 'flow_adherence' });
+    }
+    if (data.evaluationCriteria.responseAccuracy) {
+      const expectation = data.evaluationCriteria.responseAccuracyExpectation.trim();
+      evaluationCriteria.push({
+        type: 'response_accuracy',
+        expectation,
+      });
+    }
+
     await createScenarioMutation.mutateAsync({
       body: {
         name: data.name,
         description: data.description,
         thread_id: threadId,
         tool_execution_mode: data.useLiveExecution ? 'live' : undefined,
+        evaluation_criteria: evaluationCriteria,
       },
     });
   };
@@ -202,6 +231,17 @@ export const useEvalSidebarData = ({
       return {
         name: suggestion.name,
         description: suggestion.description,
+        evaluationCriteria: {
+          actionCalling: true,
+          actionCallingPolicy: {
+            assertAllConsumed: true,
+            allowLlmArgValidation: false,
+            allowLlmInterpolation: false,
+          },
+          flowAdherence: true,
+          responseAccuracy: true,
+          responseAccuracyExpectation: suggestion.response_accuracy_expectation ?? '',
+        },
       };
     } catch (_error) {
       addSnackbar({

@@ -155,6 +155,64 @@ class ToolsBundle:
         return any(t.name == tool.name and t.input_schema == tool.input_schema for t in self.all)
 
 
+@dataclass(frozen=True)
+class ScenarioEvaluationPreferences:
+    action_calling: bool
+    flow_adherence: bool
+    response_accuracy: bool
+    response_accuracy_expectation: str
+
+
+def _extract_enabled_flag(value: Any, default: bool) -> tuple[bool, dict[str, Any] | None]:
+    if isinstance(value, dict):
+        return bool(value.get("enabled", False)), value
+
+    if isinstance(value, bool):
+        return value, None
+
+    return default, None
+
+
+def _resolve_scenario_evaluation_preferences(scenario: Scenario) -> ScenarioEvaluationPreferences:
+    default_expectation = scenario.description
+    metadata = scenario.metadata if isinstance(scenario.metadata, dict) else {}
+    evaluations_metadata = metadata.get("evaluations")
+
+    if isinstance(evaluations_metadata, dict):
+        action_calling_enabled, _ = _extract_enabled_flag(
+            evaluations_metadata.get("action_calling"), False
+        )
+        if not action_calling_enabled:
+            legacy_flag, _ = _extract_enabled_flag(evaluations_metadata.get("live_actions"), False)
+            action_calling_enabled = action_calling_enabled or legacy_flag
+        flow_adherence_enabled, _ = _extract_enabled_flag(
+            evaluations_metadata.get("flow_adherence"), False
+        )
+        response_accuracy_enabled, response_accuracy_config = _extract_enabled_flag(
+            evaluations_metadata.get("response_accuracy"), False
+        )
+
+        response_accuracy_expectation = default_expectation
+        if isinstance(response_accuracy_config, dict):
+            expectation = response_accuracy_config.get("expectation")
+            if isinstance(expectation, str):
+                expectation = expectation.strip()
+            if expectation:
+                response_accuracy_expectation = expectation
+    else:
+        action_calling_enabled = True
+        flow_adherence_enabled = True
+        response_accuracy_enabled = True
+        response_accuracy_expectation = default_expectation
+
+    return ScenarioEvaluationPreferences(
+        action_calling=action_calling_enabled,
+        flow_adherence=flow_adherence_enabled,
+        response_accuracy=response_accuracy_enabled,
+        response_accuracy_expectation=response_accuracy_expectation,
+    )
+
+
 async def _copy_thread_files_to_run_thread(
     storage: StorageDependency,
     source_thread_id: str | None,
@@ -644,7 +702,11 @@ async def _evaluate_flow_adherence(
 
 
 async def _evaluate_response_accuracy(
-    thread: Thread, scenario: Scenario, user: User, storage: StorageDependency
+    thread: Thread,
+    scenario: Scenario,
+    user: User,
+    storage: StorageDependency,
+    criteria: str,
 ) -> EvaluationResult | None:
     system_message = dedent("""
         You are an expert evaluator of LLM conversations. \
@@ -686,7 +748,7 @@ async def _evaluate_response_accuracy(
 
     judge_prompt_msg = judge_prompt_msg.format(
         target_conversation=formatted_target_conversation_thread,
-        criteria=scenario.description,
+        criteria=criteria,
     )
 
     prompt = Prompt(
@@ -733,7 +795,7 @@ async def _evaluate_response_accuracy(
     )
 
 
-async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str | None]:
+async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str | None]:  # noqa: C901
     storage = StorageService.get_instance()
 
     if (
@@ -741,17 +803,6 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str
         and task.execution_state.termination != "REPLAY_DRIFT_ERROR"
     ):
         return TrialStatus.ERROR.value, task.execution_state.error_message
-
-    action_calling = ActionCallingResult(
-        issues=[event.message for event in task.execution_state.drift_events],
-        passed=task.execution_state.status == "COMPLETED",
-    )
-
-    # if simulation is terminated because of drift
-    # no need to run LLM judges: return error
-    if task.execution_state.termination == "REPLAY_DRIFT_ERROR":
-        await storage.update_trial_evaluation_results(task.trial_id, [action_calling])
-        return TrialStatus.ERROR.value, None
 
     system_user, _ = await storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
 
@@ -767,9 +818,42 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str
     if thread is None:
         raise RuntimeError(f"Cannot find thread {task.thread_id}")
 
-    flow_adherence = await _evaluate_flow_adherence(thread, scenario, system_user, storage)
-    response_accuracy = await _evaluate_response_accuracy(thread, scenario, system_user, storage)
-    evaluations = [flow_adherence, response_accuracy, action_calling]
+    preferences = _resolve_scenario_evaluation_preferences(scenario)
+
+    action_calling: ActionCallingResult | None = None
+    if preferences.action_calling:
+        action_calling = ActionCallingResult(
+            issues=[event.message for event in task.execution_state.drift_events],
+            passed=task.execution_state.status == "COMPLETED",
+        )
+
+    # if simulation is terminated because of drift
+    # no need to run LLM judges: return error
+    if task.execution_state.termination == "REPLAY_DRIFT_ERROR":
+        evaluations_to_persist = [result for result in (action_calling,) if result is not None]
+        await storage.update_trial_evaluation_results(task.trial_id, evaluations_to_persist)
+        return TrialStatus.ERROR.value, None
+
+    evaluations: list[EvaluationResult] = []
+
+    if action_calling is not None:
+        evaluations.append(action_calling)
+
+    if preferences.flow_adherence:
+        flow_adherence = await _evaluate_flow_adherence(thread, scenario, system_user, storage)
+        if flow_adherence is not None:
+            evaluations.append(flow_adherence)
+
+    if preferences.response_accuracy:
+        response_accuracy = await _evaluate_response_accuracy(
+            thread,
+            scenario,
+            system_user,
+            storage,
+            preferences.response_accuracy_expectation,
+        )
+        if response_accuracy is not None:
+            evaluations.append(response_accuracy)
 
     await storage.update_trial_evaluation_results(task.trial_id, evaluations)
 

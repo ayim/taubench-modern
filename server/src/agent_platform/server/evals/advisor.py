@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class ScenarioSuggestion:
     name: str
     description: str
-    rationale: str = ""
+    response_accuracy_expectation: str = ""
 
 
 def _extract_suggestion_from_model_response(text: str) -> dict | None:
@@ -40,25 +40,28 @@ def _extract_suggestion_from_model_response(text: str) -> dict | None:
         return None
 
 
-async def suggest_scenario_from_thread(user: User, thread: Thread, storage: StorageDependency):
+async def suggest_scenario_from_thread(user: User, thread: Thread, storage: StorageDependency):  # noqa: C901
     system_message = dedent("""
-        You are an assistant that helps generate concise and meaningful \
-        scenario blueprints from conversation threads. \
-        A scenario consists of a short, descriptive name and a short description \
-        of what the thread is supposed to accomplish. \
-        Always keep names clear, action-oriented, and under 60 characters. \
-        Descriptions should capture the purpose or outcome, not the implementation details. \
+        You are an assistant that creates evaluation-ready scenario blueprints \
+        from conversation threads. Each scenario suggestion must include: \
+        - a concise, action-oriented name under 60 characters; \
+        - a description that summarize the content of the conversation; \
+        - a response accuracy expectation explaining the behaviors the agent \
+          should exhibit to consider the run successful. \
+        The expectation should summarize the desired steps or checks the agent performed \
+        during the golden run, using short imperative sentences, one per line. \
         \
         Output ONLY valid JSON. Do not include extra commentary, markdown, \
         or formatting outside of the JSON.
     """)
 
     user_prompt_msg = dedent("""
-        Given the following conversation thread, suggest a scenario name and description. \
-        The suggestion must have: \
-        - A name (≤60 characters, concise, action-oriented). \
-        - A description explaining the purpose. \
-        - A rationale for why this suggestion fits. \
+        Given the following conversation thread, suggest an evaluation scenario. \
+        The suggestion must include: \
+        - "name": ≤60 characters, concise, action-oriented. \
+        - "description": summarize the content of the conversation. \
+        - "response_accuracy_expectation": list 2-5 short sentences (separated by newlines) \
+          describing the behaviors the agent should demonstrate for a correct run. \
         \
         Thread: \
         \n \
@@ -126,6 +129,9 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
                 return None
 
             try:
+                if "response_accuracy_expectation" not in parsed_result:
+                    parsed_result["response_accuracy_expectation"] = ""
+
                 return ScenarioSuggestion(**parsed_result)
             except Exception as e:
                 if isinstance(e, TypeError):
