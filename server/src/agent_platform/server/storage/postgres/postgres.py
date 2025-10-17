@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from psycopg import AsyncConnection, AsyncCursor
 from psycopg.rows import DictRow, dict_row
 from psycopg_pool import AsyncConnectionPool
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
@@ -168,11 +168,24 @@ class PostgresStorage(
         self._write_lock = NullAsyncLock()
         self._engine_swap_lock: asyncio.Lock = asyncio.Lock()
 
+    def _create_async_engine(self, dsn: str, pool_size: int) -> AsyncEngine:
+        assert dsn.startswith("postgresql://"), "DSN must start with postgresql://"
+        return create_async_engine(
+            dsn.replace("postgresql://", "postgresql+psycopg://"),
+            echo=False,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+            pool_size=pool_size,
+        )
+
     async def setup(self) -> None:
         """Create and open the async connection pool."""
         if self._is_setup:
             return  # Already setup
 
+        # Instantiate the pool with the default pool size
+        # from PostgresConfig. We don't use the QuotasService
+        # config here because we instantiate storage before QuotasService.
         dsn = self._get_dsn()
         self._pool = (
             AsyncConnectionPool(
@@ -187,17 +200,12 @@ class PostgresStorage(
         await self._pool.open()
 
         # Initialize SQLAlchemy engine
-        assert dsn.startswith("postgresql://"), (
-            "DSN must start with postgresql:// (if this fails the logic below needs to be updated)"
-        )
+        # We assert the dsn starts with postgresql:// in _create_async_engine;
+        # if that fails, the logic below needs to be updated
 
-        self._sa_engine = create_async_engine(
-            dsn.replace("postgresql://", "postgresql+psycopg://"),
-            echo=False,
-            pool_pre_ping=True,
-            pool_recycle=3600,
-            pool_size=PostgresConfig.pool_max_size,
-        )
+        # Same as with Psycopg, we create the engine
+        # with the default pool size from PostgresConfig.
+        self._sa_engine = self._create_async_engine(dsn=dsn, pool_size=PostgresConfig.pool_max_size)
         await self._run_migrations()
 
         # Run database reflection for SQLAlchemy
@@ -248,6 +256,22 @@ class PostgresStorage(
                 )
             await pool.resize(current_min, new_max)
             self._logger.info("Resized psycopg pool", new_max=new_max)
+
+        # SQLAlchemy pool resizing
+        dsn = self._get_dsn()
+        new_engine = self._create_async_engine(
+            dsn=dsn,
+            pool_size=new_max,
+        )
+
+        async with self._engine_swap_lock:
+            old_engine: AsyncEngine | None = self._sa_engine
+            self._sa_engine = new_engine
+        try:
+            if old_engine is not None:
+                await old_engine.dispose()
+        finally:
+            self._logger.info("Hot-swapped SQLAlchemy engine", pool_size=new_max)
 
     def _get_dsn(self) -> str:
         return self._dns or PostgresConfig.dsn

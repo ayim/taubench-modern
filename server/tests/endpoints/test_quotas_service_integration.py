@@ -1,9 +1,11 @@
 import pytest
+import sqlalchemy as sa
 
 from agent_platform.core.configurations.config_validation import ConfigType
 from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.errors import PlatformHTTPError
 from agent_platform.server.storage.option import StorageService
+from agent_platform.server.storage.postgres import PostgresStorage
 
 
 class TestQuotasServiceIntegration:
@@ -74,3 +76,63 @@ class TestQuotasServiceIntegration:
         for bad in ["0", "-1"]:
             with pytest.raises(PlatformHTTPError):
                 await quotas_service.set_config(ConfigType.POSTGRES_POOL_MAX_SIZE, bad)
+
+    @pytest.mark.postgresql
+    async def test_postgres_pool_size_applied_to_actual_pools(self, postgres_testing):
+        """Verify that PostgresStorage creates pool with configured size on startup."""
+        dsn = postgres_testing.url()
+        storage = PostgresStorage(dsn=dsn)
+
+        try:
+            # Setup will create pool with PostgresConfig.pool_max_size (default 50)
+            await storage.setup()
+
+            # Verify pools were created
+            assert storage._pool is not None, "psycopg pool should be created"
+            assert storage._sa_engine is not None, "SQLAlchemy engine should be created"
+
+            # Set storage for QuotasService to use
+            StorageService.set_for_testing(storage)
+            quotas_service = await QuotasService.get_instance()
+
+            # Get initial pool stats - should use PostgresConfig.pool_max_size default (50)
+            initial_stats = storage._pool.get_stats()
+            initial_max = initial_stats["pool_max"]
+            assert initial_max == 50, f"Pool should start with default 50, got {initial_max}"
+
+            # Now resize to a different value via API
+            new_size = 100
+            await quotas_service.set_config(ConfigType.POSTGRES_POOL_MAX_SIZE, str(new_size))
+
+            # Verify psycopg pool was resized
+            updated_stats = storage._pool.get_stats()
+            assert updated_stats["pool_max"] == new_size, (
+                f"psycopg pool not resized: expected {new_size}, got {updated_stats['pool_max']}"
+            )
+
+            # Pretty hacky check as the status() method returns a string with the pool size;
+            # adding it for completeness.
+            updated_stats_sa = storage._sa_engine.pool.status()
+            assert f"Pool size: {new_size}" in updated_stats_sa, (
+                f"SQLAlchemy pool not resized: expected {new_size}, got {updated_stats_sa}"
+            )
+
+            # Verify SQLAlchemy engine is functional after swap
+            async with storage._sa_engine.begin() as conn:
+                result = await conn.execute(sa.text("SELECT 1 as test_value"))
+                row = result.fetchone()
+                assert row is not None, "Query should return a row"
+                assert row[0] == 1, "SQLAlchemy engine not functional after resize"
+
+            # Verify psycopg pool is functional after resize
+            async with storage._pool.connection() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute("SELECT 1 as test_value")
+                    row = await cur.fetchone()
+                    assert row is not None, "Query should return a row"
+                    assert row[0] == 1, "psycopg pool not functional after resize"
+        finally:
+            # Clean up
+            await storage.teardown()
+            StorageService.reset()
+            QuotasService._instance = None
