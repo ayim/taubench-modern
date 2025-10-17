@@ -211,7 +211,7 @@ export class AgentAPIClient {
             agentId,
           },
           query: {
-            redirectUri: `${window.location.protocol}//${window.location.host}/oauth`,
+            redirectUri: `${window.location.protocol}//${window.location.host}/tenants/${tenantId}/oauth`,
           },
         },
       });
