@@ -35,8 +35,12 @@ export const WorkerList: FC = () => {
   };
 
   const filteredWorkItems = useMemo(() => {
+    const textToSearch = workItemFilterText.toLowerCase().trim();
+
     return workItems?.filter((workItem) => {
-      return workItem.work_item_name?.toLowerCase().includes(workItemFilterText.toLowerCase().trim());
+      const { work_item_name: workItemName, work_item_id: workItemId } = workItem;
+      const textToSearchInto = (workItemName ?? workItemId).toLowerCase();
+      return textToSearchInto.includes(textToSearch);
     });
   }, [workItems, workItemFilterText]);
 
@@ -78,7 +82,7 @@ export const WorkerList: FC = () => {
                   if (e.key === 'Escape') stopWorkItemFilter();
                 }}
                 onBlur={() => {
-                  if(!workItemFilterText.trim()) stopWorkItemFilter();
+                  if (!workItemFilterText.trim()) stopWorkItemFilter();
                 }}
                 iconRightLabel="close-search"
                 round
