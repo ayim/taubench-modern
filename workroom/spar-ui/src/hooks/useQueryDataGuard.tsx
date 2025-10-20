@@ -20,6 +20,7 @@ const ACTION_MAP: Record<ResourceType, { to: keyof SparUIRoutes; label: string }
   semantic_data: DEFAULT_ACTION,
   work_item: DEFAULT_ACTION,
   document_intelligence: DEFAULT_ACTION,
+  thread_file: DEFAULT_ACTION,
   data_connection: {
     to: '/data-connections',
     label: 'Return to Data Access',

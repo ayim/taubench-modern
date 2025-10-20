@@ -48,11 +48,6 @@ export interface SparAPIClient {
   }) => Promise<{ success: true } | { success: false; error: { type?: 'error' | 'notice'; message: string } }>;
 
   /**
-   * Download a file
-   */
-  downloadFile: (props: { threadId: string; name: string; type?: 'inline' }) => Promise<{ file: File } | void>;
-
-  /**
    * Navigation helper
    */
   navigate: (args: NavigationArgs) => void;

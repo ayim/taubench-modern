@@ -51,25 +51,27 @@ const ERROR_CODE_DETAILS: Record<ErrorCode, ErrorDescription> = {
 
 const RESOURCE_TYPE_TITLE: Record<ResourceType, string> = {
   agent: 'Agent',
-  thread: 'Conversation',
   data_connection: 'Data Connection',
   data_frame: 'Data Frame',
   document_intelligence: 'Document Intelligence',
   eval: 'Evaluation',
   feedback: 'Feedback',
   semantic_data: 'Semantic Data',
+  thread: 'Conversation',
+  thread_file: 'File',
   work_item: 'Work Item',
 };
 
 const ILLUSTRATION_NAME: Record<ResourceType, IllustrationName> = {
   agent: 'agents',
-  thread: 'agents',
   data_connection: 'generic',
   data_frame: 'generic',
   document_intelligence: 'generic',
   eval: 'generic',
   feedback: 'generic',
   semantic_data: 'generic',
+  thread: 'agents',
+  thread_file: 'generic',
   work_item: 'generic',
 };
 

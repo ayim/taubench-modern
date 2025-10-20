@@ -1,12 +1,12 @@
-import { Box, Button, FileItem, Typography } from '@sema4ai/components';
+import { Box, Button, FileItem, Typography, useSnackbar } from '@sema4ai/components';
 import { IconDocumentIntelligence, IconLoading } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { FC, useState, useMemo, useCallback } from 'react';
 
-import { useSparUIContext } from '../../../api/context';
 import { getFileSize, getFileTypeIcon } from '../../../common/helpers';
-import { ThreadFiles, useThreadFilesQuery } from '../../../queries/threads';
+import { ThreadFiles, useThreadFilesQuery, useDownloadThreadFileMutation } from '../../../queries/threads';
 import { DocumentData, DocumentIntelligenceDialog } from '../../DocumentIntelligence';
+import { getSnackbarContent } from '../../../queries/shared';
 
 type props = {
   threadId: string;
@@ -21,13 +21,21 @@ const FileListItem = ({
   threadId: string;
   onDocumentIntelligenceClick: (params: { file: File; agentId: string }) => void;
 }) => {
-  const { sparAPIClient } = useSparUIContext();
-  const [downloading, setDownloading] = useState(false);
+  const { mutateAsync: downloadThreadFile, isPending: isDownloadingThreadFile } = useDownloadThreadFileMutation({
+    type: 'download',
+  });
+  const { mutateAsync: getFileForDocumentIntelligence } = useDownloadThreadFileMutation({ type: 'inline' });
+  const { addSnackbar } = useSnackbar();
 
   const onDownload = async () => {
-    setDownloading(true);
-    await sparAPIClient.downloadFile({ threadId, name: file.file_ref });
-    setDownloading(false);
+    await downloadThreadFile(
+      { threadId, name: file.file_ref },
+      {
+        onError: (error) => {
+          addSnackbar(getSnackbarContent(error));
+        },
+      },
+    );
   };
 
   const shoulDisplayDocIntelButton = useMemo(() => {
@@ -38,24 +46,37 @@ const FileListItem = ({
     }
 
     return false;
-  }, [file.file_ref]);
+  }, [file.file_ref, file.mime_type]);
 
   const handleDocIntelClick = useCallback(async () => {
     // This entire logic should be moved to the Doc Intel component that should accept:
     // A file ID, a thread ID and agent ID and eprform this downloadFile
-    const downloadedFile = await sparAPIClient.downloadFile({
-      threadId,
-      name: file.file_ref,
-      type: 'inline',
-    });
+    const downloadedFileResult = await getFileForDocumentIntelligence(
+      {
+        threadId,
+        name: file.file_ref,
+      },
+      {
+        onError: (error) => {
+          addSnackbar(getSnackbarContent(error));
+        },
+      },
+    );
 
     const agentId = file.agent_id;
-    if (!agentId || !downloadedFile) {
+    if (!agentId) {
       return;
     }
 
-    onDocumentIntelligenceClick({ file: downloadedFile.file, agentId });
-  }, [file]);
+    onDocumentIntelligenceClick({ file: downloadedFileResult.file, agentId });
+  }, [
+    threadId,
+    file.file_ref,
+    file.agent_id,
+    getFileForDocumentIntelligence,
+    onDocumentIntelligenceClick,
+    addSnackbar,
+  ]);
 
   return (
     <Box display="flex" alignItems="center">
@@ -64,7 +85,7 @@ const FileListItem = ({
         label={file.file_ref}
         icon={getFileTypeIcon(file.mime_type)}
         description={file.file_size_raw ? getFileSize(file.file_size_raw) : undefined}
-        downloading={downloading}
+        downloading={isDownloadingThreadFile}
         onDownloadClick={onDownload}
       />
       {shoulDisplayDocIntelButton && (

@@ -27,6 +27,7 @@ export enum ResourceType {
   SemanticData = 'semantic_data',
   Thread = 'thread',
   WorkItem = 'work_item',
+  ThreadFile = 'thread_file',
 }
 
 const KnownErrorCodes = new Set<string>(Object.values(QueryErrorCode));
@@ -57,6 +58,26 @@ export class QueryError extends Error {
     };
   }
 }
+
+export const getSnackbarContent = (error: QueryError): { message: string; variant: 'danger' | 'default' } => {
+  const variant = (() => {
+    switch (error.details.type) {
+      case undefined:
+      case 'error':
+        return 'danger';
+      case 'notice':
+        return 'default';
+      default:
+        error.details.type satisfies never;
+        return 'danger';
+    }
+  })();
+
+  return {
+    message: error.message,
+    variant,
+  };
+};
 
 type CommonQueryParams = {
   sparAPIClient: SparAPIClient;

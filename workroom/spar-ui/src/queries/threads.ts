@@ -280,3 +280,70 @@ export const useThreadFilesRefetch = ({ threadId }: { threadId: string }) => {
     await queryClient.invalidateQueries({ queryKey: threadFilesQueryKey(threadId) });
   }, [queryClient, threadId]);
 };
+
+/**
+ * Download Thread File
+ */
+type DownloadThreadFileMutationResult<TType extends 'download' | 'inline'> = TType extends 'inline'
+  ? { file: File }
+  : void;
+
+export const useDownloadThreadFileMutation = <TType extends 'download' | 'inline'>(params: { type: TType }) =>
+  createSparMutation<Record<string, never>, { threadId: string; name: string }>()(({ sparAPIClient }) => ({
+    mutationFn: async ({ threadId, name }): Promise<DownloadThreadFileMutationResult<TType>> => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/threads/{tid}/files/download/', {
+        params: { path: { tid: threadId }, query: { file_ref: name } },
+        parseAs: 'stream',
+      });
+
+      if (!response.success) {
+        // This is a best guess scenario here: the agent server returns "unexpected error" here
+        throw new QueryError('Failed to download file: the file cannot be found', {
+          code: 'unexpected',
+          resource: ResourceType.ThreadFile,
+        });
+      }
+
+      const reader = (response.data as ReadableStream)?.getReader();
+      if (!reader) {
+        throw new QueryError(
+          'Something went wrong when downloading the file. If the issue persists, reach out to our support.',
+          { code: 'unexpected', resource: ResourceType.ThreadFile },
+        );
+      }
+
+      const chunks: BlobPart[] = [];
+      let done = false;
+
+      while (!done) {
+        // eslint-disable-next-line no-await-in-loop
+        const { value, done: streamDone } = await reader.read();
+        if (value) chunks.push(value);
+        done = streamDone;
+      }
+
+      const blob = new Blob(chunks);
+
+      if (params.type === 'inline') {
+        const file = new File([blob], name);
+        return { file } as DownloadThreadFileMutationResult<TType>;
+      }
+
+      const downloadFileAndCleanUp = () => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = name;
+
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        a.remove();
+      };
+
+      downloadFileAndCleanUp();
+
+      return undefined as DownloadThreadFileMutationResult<TType>;
+    },
+  }))({});

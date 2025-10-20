@@ -94,53 +94,6 @@ export const createSparAPIClient = (
     return { success: true };
   },
 
-  downloadFile: async ({ threadId, name, type }) => {
-    const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/{tid}/files/download/', {
-      params: { path: { tid: threadId }, query: { file_ref: name } },
-      parseAs: 'stream',
-    });
-
-    if (!response.success) {
-      throw new Error('Failed to download file');
-    }
-
-    const reader = (response.data as ReadableStream)?.getReader();
-    if (!reader) return;
-
-    const chunks: BlobPart[] = [];
-    let done = false;
-
-    while (!done) {
-      const { value, done: streamDone } = await reader.read();
-      if (value) chunks.push(value);
-      done = streamDone;
-    }
-
-    const blob = new Blob(chunks);
-
-    if (type === 'inline') {
-      const file = new File([blob], name);
-      return { file };
-    }
-
-    const downloadFileAndCleanUp = () => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-
-      a.href = url;
-      a.download = name;
-
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    };
-
-    downloadFileAndCleanUp();
-
-    return;
-  },
-
   getAgentOAuthState: async ({ agentId }) => {
     // TODO-V2: Resolve type casting, Workroom interface should rely on @sema4ai/oauth-client for OAuth provider type (single source of truth)
     return agentAPIClient.getAgentPermissions({ agentId, tenantId }) as Promise<AgentOAuthProviderState[]>;
