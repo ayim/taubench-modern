@@ -37,7 +37,7 @@ export const WorkerList: FC = () => {
   const filteredWorkItems = useMemo(() => {
     const textToSearch = workItemFilterText.toLowerCase().trim();
 
-    return workItems?.filter((workItem) => {
+    return workItems?.records?.filter((workItem) => {
       const { work_item_name: workItemName, work_item_id: workItemId } = workItem;
       const textToSearchInto = (workItemName ?? workItemId).toLowerCase();
       return textToSearchInto.includes(textToSearch);

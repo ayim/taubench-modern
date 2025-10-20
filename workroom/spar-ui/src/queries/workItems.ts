@@ -4,31 +4,73 @@ import { useEffect, useState } from 'react';
 
 import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 
-type WorkItem = components['schemas']['WorkItem'];
+export type WorkItem = components['schemas']['WorkItem'];
+export type WorkItemStatus = components['schemas']['WorkItemStatus'];
+export type WorkItemsListResponse = components['schemas']['WorkItemsListResponse'];
 type CreateWorkItemPayload = components['schemas']['CreateWorkItemPayload'];
 
 /**
  * List Work items
  */
-export const workItemsQueryKey = (agentId?: string) => ['work-items', agentId || 'all'];
+export type WorkItemsQueryParams = {
+  agentId?: string;
+  workItemStatus?: WorkItemStatus[];
+  nameSearch?: string;
+  limit?: number;
+  offset?: number;
+};
 
-export const workItemsQueryOptions = createSparQueryOptions<{ agentId?: string }>()(({ sparAPIClient, agentId }) => ({
-  queryKey: workItemsQueryKey(agentId),
-  queryFn: async () => {
-    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/', {
-      params: { query: { agent_id: agentId } },
-    });
+const DEFAULT_LIMIT = 100;
+const DEFAULT_OFFSET = 0;
 
-    if (!response.success) {
-      throw new QueryError(response.message || 'Failed to fetch threads', {
-        code: response.code,
-        resource: ResourceType.WorkItem,
-      });
-    }
+const normalizeWorkItemsParams = (params: WorkItemsQueryParams) => ({
+  agentId: params.agentId,
+  workItemStatus: params.workItemStatus,
+  nameSearch: params.nameSearch,
+  limit: params.limit ?? DEFAULT_LIMIT,
+  offset: params.offset ?? DEFAULT_OFFSET,
+});
 
-    return response.data.records;
+export const workItemsQueryKey = (params: WorkItemsQueryParams) => {
+  const normalized = normalizeWorkItemsParams(params);
+  return [
+    'work-items',
+    normalized.agentId ?? 'all',
+    normalized.workItemStatus?.join(',') ?? 'all-statuses',
+    normalized.nameSearch ?? '',
+    normalized.limit,
+    normalized.offset,
+  ];
+};
+
+export const workItemsQueryOptions = createSparQueryOptions<WorkItemsQueryParams>()<WorkItemsListResponse>(
+  ({ sparAPIClient, agentId, workItemStatus, nameSearch, limit, offset }) => {
+    const normalized = normalizeWorkItemsParams({ agentId, workItemStatus, nameSearch, limit, offset });
+    
+    return {
+      queryKey: workItemsQueryKey({ agentId, workItemStatus, nameSearch, limit, offset }),
+      queryFn: async (): Promise<WorkItemsListResponse> => {
+        const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/', {
+          params: {
+            query: {
+              agent_id: normalized.agentId,
+              work_item_status: normalized.workItemStatus,
+              name_search: normalized.nameSearch,
+              limit: normalized.limit,
+              offset: normalized.offset,
+            },
+          },
+        });
+
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to fetch work items');
+        }
+
+        return response.data;
+      },
+    };
   },
-}));
+);
 
 export const useWorkItemsQuery = createSparQuery(workItemsQueryOptions);
 
@@ -129,7 +171,7 @@ export const useCreateWorkItemMutation = createSparMutation<
       }
 
       // Updating query cache with new data
-      queryClient.setQueryData(workItemsQueryKey(agentId), (data?: WorkItem[]) => {
+      queryClient.setQueryData(workItemsQueryKey({ agentId }), (data?: WorkItem[]) => {
         return [response.data, ...(data || [])];
       });
 
@@ -165,3 +207,49 @@ export const useCreateWorkItemMutation = createSparMutation<
     return createdWorkItem;
   },
 }));
+
+/**
+ * Restart Work Item
+ */
+export const useRestartWorkItemMutation = createSparMutation<{ workItemId: string }, Record<string, never>>()(
+  ({ workItemId, sparAPIClient, queryClient }) => ({
+    mutationFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('post', '/api/v2/work-items/{work_item_id}/restart', {
+        params: { path: { work_item_id: workItemId } },
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to restart work item', { code: response.code, resource: ResourceType.WorkItem });
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workItemQueryKey(workItemId) });
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
+  }),
+);
+
+/**
+ * Complete Work Item
+ */
+export const useCompleteWorkItemMutation = createSparMutation<{ workItemId: string }, Record<string, never>>()(
+  ({ workItemId, sparAPIClient, queryClient }) => ({
+    mutationFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('post', '/api/v2/work-items/{work_item_id}/complete', {
+        params: { path: { work_item_id: workItemId } },
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to complete work item', { code: response.code, resource: ResourceType.WorkItem });
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workItemQueryKey(workItemId) });
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
+  }),
+);

@@ -10,6 +10,7 @@ import { Container as HeaderContainer } from '../ThreadHeader';
 
 type Props = {
   children: ReactNode;
+  leftAction?: ReactNode;
 };
 
 const WorkItemsToggle = styled(Button)<{ $expanded?: boolean }>`
@@ -17,7 +18,7 @@ const WorkItemsToggle = styled(Button)<{ $expanded?: boolean }>`
   position: relative;
 `;
 
-export const WorkerHeader: FC<Props> = ({ children }) => {
+export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
   const { agentId } = useParams('/workItem/$agentId');
 
   const { triggerProps, triggerRef } = useSidebarMenu('work-items-list');
@@ -48,6 +49,7 @@ export const WorkerHeader: FC<Props> = ({ children }) => {
           </Typography>
         </Box>
       </Box>
+      {leftAction}
       <Box display="flex" alignItems="center" gap="$8" ml="auto">
         <Tooltip text="New Work Item" placement="bottom">
           <SideNavigation.Item as="a" icon={IconPlus} round aria-label="New Work Item" {...createWorkItemLinkProps} />

@@ -13,6 +13,7 @@ const routesMapping = {
   '/workItem/$agentId': '/tenants/$tenantId/worker/$agentId',
   '/workItem/$agentId/create': '/tenants/$tenantId/worker/$agentId/create',
   '/workItem/$agentId/$workItemId/$threadId': '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId',
+  '/workItem/$agentId/$workItemId': '/tenants/$tenantId/worker/$agentId/$workItemId',
   '/data-connections': '/tenants/$tenantId/data-access/data-connections',
   '/data-connections/create': '/tenants/$tenantId/data-access/data-connections/create',
   '/data-connections/$dataConnectionId': '/tenants/$tenantId/data-access/data-connections/$dataConnectionId',

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { WorkItemsTable } from '@sema4ai/spar-ui';
 
 import { Page } from '~/components/layout/Page';
-import WorkItemsTable from './components/WorkItemsTable';
 
 export const Route = createFileRoute('/tenants/$tenantId/workItems/')({
   component: WorkItems,

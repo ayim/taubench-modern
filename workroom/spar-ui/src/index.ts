@@ -36,3 +36,5 @@ export * from './components/DocumentIntelligence';
 export { streamManager } from './hooks';
 
 export * from './components/ChatDetails/WorkItemAPIUrl';
+
+export * from './components/WorkItemsTable';

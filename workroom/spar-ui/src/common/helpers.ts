@@ -88,3 +88,10 @@ export const formatDateTime = (dateString: string | undefined): string => {
 export const isImageFile = (file: File): boolean =>{ 
   return file.type.startsWith('image/');
 }
+
+export const snakeCaseToCamelCase = (str: string): string => {
+  return str
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};

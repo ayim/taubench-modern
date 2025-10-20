@@ -1,8 +1,8 @@
 import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
-import { IconDotsHorizontal, IconInformation, IconPaperclip, IconPlus, IconPoll } from '@sema4ai/icons';
+import { IconArrowLeft, IconDotsHorizontal, IconInformation, IconPaperclip, IconPlus, IconPoll } from '@sema4ai/icons';
 import { WorkerHeader } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
-import { useParams } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
 import { useToggleRoutePath } from '~/hooks/useToggleRoutePath';
@@ -11,11 +11,19 @@ import { useTenantContext } from '~/lib/tenantContext';
 export const Header = () => {
   const { agentId, tenantId } = useParams({ from: '/tenants/$tenantId/worker/$agentId' });
   const { workItemId, threadId } = useParams({ strict: false });
+  const navigate = useNavigate();
 
   const { features } = useTenantContext();
   const isMobile = useScreenSize('m');
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
+
+  const handleBackToWorkItems = () => {
+    navigate({
+      to: '/tenants/$tenantId/workItems',
+      params: { tenantId },
+    });
+  };
 
   const defaultLink = {
     to: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId',
@@ -29,7 +37,21 @@ export const Header = () => {
   }
 
   return (
-    <WorkerHeader>
+    <WorkerHeader
+      leftAction={
+        !isMobile ? (
+          <Tooltip text="Back to Work Items" placement="bottom">
+            <Button
+              icon={IconArrowLeft}
+              variant="ghost-subtle"
+              round
+              onClick={handleBackToWorkItems}
+              aria-label="Back to Work Items"
+            />
+          </Tooltip>
+        ) : undefined
+      }
+    >
       {!isMobile && (
         <>
           {workItemId && threadId && (
@@ -81,6 +103,9 @@ export const Header = () => {
       {isMobile && (
         <>
           <Menu trigger={<Button icon={IconDotsHorizontal} variant="ghost" aria-label="Chat Actions" />}>
+            <Menu.Item icon={IconArrowLeft} onClick={handleBackToWorkItems}>
+              Back to Work Items
+            </Menu.Item>
             <RouterMenuLink
               to="/tenants/$tenantId/worker/$agentId/create"
               icon={IconPlus}

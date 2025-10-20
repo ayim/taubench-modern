@@ -23,6 +23,10 @@ export type SparUIRoutes = {
     workItemId: string;
     threadId: string;
   };
+  '/workItem/$agentId/$workItemId': {
+    agentId: string;
+    workItemId: string;
+  };
   '/data-connections': {};
   '/data-connections/create': {};
   '/data-connections/$dataConnectionId': {
