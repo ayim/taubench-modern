@@ -1,5 +1,5 @@
-import { Box } from "@sema4ai/components";
-import { styled } from "@sema4ai/theme";
+import { Box } from '@sema4ai/components';
+import { styled } from '@sema4ai/theme';
 
 export const ResizeHandle = styled.button`
   height: 4px;
@@ -9,11 +9,11 @@ export const ResizeHandle = styled.button`
   padding: 0;
   position: relative;
   width: 100%;
-  
+
   &:hover {
     background: ${({ theme }) => theme.color('border.primary')};
   }
-  
+
   &:hover::before {
     content: '';
     position: absolute;
@@ -31,7 +31,7 @@ export const Header = styled(Box)`
   justify-content: space-between;
   padding: ${({ theme }) => theme.space.$8};
   gap: ${({ theme }) => theme.space.$8};
-  
+
   button {
     padding: 0;
     min-width: auto;
@@ -45,7 +45,7 @@ export const SectionHeader = styled(Box)`
   padding: ${({ theme }) => theme.space.$8};
   gap: ${({ theme }) => theme.space.$8};
   cursor: pointer;
-  
+
   button {
     padding: 0;
     min-width: auto;
@@ -60,18 +60,18 @@ export const ScrollableContainer = styled(Box)`
   padding-left: ${({ theme }) => theme.space.$12};
   margin-left: -${({ theme }) => theme.space.$12};
   height: auto;
-  
+
   scrollbar-width: none;
   -ms-overflow-style: none;
-  
+
   &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: none;
   }
-  
+
   &:hover {
     scrollbar-width: auto;
     -ms-overflow-style: auto;
-    
+
     &::-webkit-scrollbar {
       display: block;
     }
@@ -80,7 +80,9 @@ export const ScrollableContainer = styled(Box)`
 
 export const AnimatedSection = styled(Box)<{ isExpanded: boolean }>`
   overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-in-out;
+  transition:
+    max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s ease-in-out;
   max-height: ${({ isExpanded }) => (isExpanded ? '1000px' : '0px')};
   opacity: ${({ isExpanded }) => (isExpanded ? 1 : 0)};
   display: flex;
@@ -89,17 +91,14 @@ export const AnimatedSection = styled(Box)<{ isExpanded: boolean }>`
   min-height: 0;
 `;
 
-export const AnimatedEvalSection = styled(Box)<{ 
-  isExpanded: boolean; 
+export const AnimatedEvalSection = styled(Box)<{
+  isExpanded: boolean;
   height: string;
   enableTransition?: boolean;
 }>`
   overflow: hidden;
-  transition: ${({ enableTransition = true }) => 
-    enableTransition 
-      ? 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-in-out' 
-      : 'none'
-  };
+  transition: ${({ enableTransition = true }) =>
+    enableTransition ? 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-in-out' : 'none'};
   height: ${({ isExpanded, height }) => (isExpanded ? height : '0px')};
   opacity: ${({ isExpanded }) => (isExpanded ? 1 : 0)};
   display: flex;

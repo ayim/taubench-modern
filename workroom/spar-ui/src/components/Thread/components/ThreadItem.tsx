@@ -8,12 +8,13 @@ import { RenameDialog } from '../../../common/dialogs/RenameDialog';
 import { formatDateTime } from '../../../common/helpers';
 import { SidebarLink } from '../../../common/link';
 import { useNavigate, useParams } from '../../../hooks';
-import { useDeleteThreadMutation, useThreadsQuery, useUpdateThreadMutation } from '../../../queries/threads';
+import { ServerResponse } from '../../../queries/shared';
+import { useDeleteThreadMutation, useUpdateThreadMutation } from '../../../queries/threads';
 
 type ThreadItemProps = {
-  threadId: string;
-  name: string;
-  scenarioId: string | null;
+  item: ServerResponse<'get', '/api/v2/threads/'>[number] & {
+    scenarioId?: string;
+  };
 };
 
 const Container = styled(Box)`
@@ -23,6 +24,10 @@ const Container = styled(Box)`
     flex: 1;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  > button {
+    display: none;
   }
 
   &:hover > a {
@@ -76,18 +81,17 @@ const ToolTipContent: FC<{ name: string; createdAt?: string }> = ({ name, create
   );
 };
 
-export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) => {
+export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
   const { agentId, threadId: activeThreadId } = useParams('/thread/$agentId/$threadId');
   const { mutate: deleteThread, isPending: isDeleting } = useDeleteThreadMutation({ agentId });
   const { mutate: updateThread } = useUpdateThreadMutation({ agentId });
-  const { data: threads } = useThreadsQuery({ agentId });
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const [isRenaming, setIsRenaming] = useState(false);
 
   const onDeleteConfirm = useDeleteConfirm(
     {
-      entityName: name,
+      entityName: thread.name,
       entityType: 'thread',
     },
     [],
@@ -95,7 +99,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
 
   const onThreadDelete = onDeleteConfirm(() => {
     deleteThread(
-      { threadId },
+      { threadId: thread.thread_id || '' },
       {
         onSuccess: () => {
           addSnackbar({
@@ -103,13 +107,8 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
             variant: 'success',
           });
 
-          if (activeThreadId === threadId) {
-            const thread = threads?.find((curr) => curr.thread_id !== threadId);
-            if (thread?.thread_id) {
-              navigate({ to: '/thread/$agentId/$threadId', params: { threadId: thread.thread_id, agentId } });
-            } else {
-              navigate({ to: '/thread/$agentId', params: { agentId } });
-            }
+          if (activeThreadId === thread.thread_id) {
+            navigate({ to: '/thread/$agentId', params: { agentId } });
           }
         },
         onError: () => {
@@ -124,7 +123,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
 
   const onThreadRename = (threadName: string) => {
     updateThread(
-      { threadId, name: threadName },
+      { threadId: thread.thread_id || '', name: threadName },
       {
         onSuccess: () => {
           addSnackbar({
@@ -136,17 +135,15 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
     );
   };
 
-  const thread = threads?.find((curr) => curr.thread_id === threadId);
-
   return (
-    <Tooltip text={<ToolTipContent name={name} createdAt={thread?.created_at} />} placement="bottom-end" $nowrap>
+    <Tooltip text={<ToolTipContent name={thread.name} createdAt={thread?.created_at} />} placement="bottom-end" $nowrap>
       <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center">
         {isDeleting && <Progress variant="page" />}
 
-        <SidebarLink to="/thread/$agentId/$threadId" params={{ threadId, agentId }}>
+        <SidebarLink to="/thread/$agentId/$threadId" params={{ threadId: thread.thread_id || '', agentId }}>
           <Box display="flex" alignItems="center" gap="$8">
-            {scenarioId && <IconChemicalBottle size={20} />}
-            {name}
+            {thread.scenarioId && <IconChemicalBottle size={20} />}
+            {thread.name}
           </Box>
         </SidebarLink>
 
@@ -160,7 +157,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ threadId, name, scenarioId }) 
           <RenameDialog
             onClose={() => setIsRenaming(false)}
             onRename={onThreadRename}
-            entityName={name}
+            entityName={thread.name}
             entityType="Thread"
           />
         )}

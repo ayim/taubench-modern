@@ -13,8 +13,7 @@ import { useWorkItemQuery } from '../../../queries/workItems';
 type WorkItem = components['schemas']['WorkItem'];
 
 type WorkItemProps = {
-  workItemId: string;
-  name: string;
+  item: WorkItem;
 };
 
 const Container = styled(Box)`
@@ -65,13 +64,16 @@ const ToolTipContent: FC<Pick<WorkItem, 'created_at' | 'updated_at' | 'status'> 
   );
 };
 
-export const WorkerItem: FC<WorkItemProps> = ({ workItemId, name }) => {
+export const WorkerItem: FC<WorkItemProps> = ({ item: initialData }) => {
   const {
     agentId,
     threadId: threadIdFromParams,
     workItemId: workItemIdFromParams,
   } = useParams('/workItem/$agentId/$workItemId/$threadId');
-  const { data: workItem } = useWorkItemQuery({ workItemId });
+  const { data: workItem } = useWorkItemQuery(
+    { workItemId: initialData.work_item_id },
+    { initialData, enabled: !initialData.thread_id, refetchInterval: 2000 },
+  );
   const { sparAPIClient } = useSparUIContext();
 
   const threadId = workItem?.thread_id;
@@ -83,13 +85,13 @@ export const WorkerItem: FC<WorkItemProps> = ({ workItemId, name }) => {
    * navigate to the threadId route.
    */
   useEffect(() => {
-    if (workItemIdFromParams === workItemId && !threadIdFromParams && threadId) {
+    if (workItemIdFromParams === workItem.work_item_id && !threadIdFromParams && threadId) {
       sparAPIClient.navigate({
         to: '/workItem/$agentId/$workItemId/$threadId',
-        params: { agentId, workItemId, threadId },
+        params: { agentId, workItemId: workItem.work_item_id, threadId },
       });
     }
-  }, [threadIdFromParams, workItemIdFromParams, threadId, agentId, workItemId]);
+  }, [threadIdFromParams, workItemIdFromParams, threadId, agentId, workItem.work_item_id]);
 
   if (!threadId) {
     return (
@@ -100,10 +102,11 @@ export const WorkerItem: FC<WorkItemProps> = ({ workItemId, name }) => {
         pl="$8"
         alignItems="center"
         color="content.subtle.light"
+        height={36}
       >
         <Box flex={1}>
           <Typography $nowrap truncate={1}>
-            {name}
+            {workItem.work_item_name}
           </Typography>
         </Box>
         <IconLoading />
@@ -115,7 +118,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ workItemId, name }) => {
     <Tooltip
       text={
         <ToolTipContent
-          name={name}
+          name={workItem.work_item_name}
           created_at={workItem?.created_at}
           updated_at={workItem?.updated_at}
           status={workItem?.status}
@@ -125,8 +128,11 @@ export const WorkerItem: FC<WorkItemProps> = ({ workItemId, name }) => {
       $nowrap
     >
       <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center">
-        <SidebarLink to="/workItem/$agentId/$workItemId/$threadId" params={{ agentId, workItemId, threadId }}>
-          {name}
+        <SidebarLink
+          to="/workItem/$agentId/$workItemId/$threadId"
+          params={{ agentId, workItemId: workItem.work_item_id, threadId }}
+        >
+          {workItem.work_item_name}
         </SidebarLink>
       </Container>
     </Tooltip>

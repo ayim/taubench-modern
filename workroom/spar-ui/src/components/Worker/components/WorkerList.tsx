@@ -8,7 +8,7 @@ import { useParams } from '../../../hooks';
 import { useWorkItemsQuery } from '../../../queries/workItems';
 import { NewWorkItem } from './NewWorkItem';
 import { WorkerItem } from './WorkerItem';
-import { ScrollableContainer } from '../../Thread/components/ThreadsList/styles';
+import { VirtualList } from '../../../common/VirtualList';
 
 const WorkItemSearchButton = styled(Button)<{ $expanded: boolean }>`
   position: absolute;
@@ -18,7 +18,7 @@ const WorkItemSearchButton = styled(Button)<{ $expanded: boolean }>`
 
 export const WorkerList: FC = () => {
   const { agentId } = useParams('/workItem/$agentId/$workItemId/$threadId');
-  const { data: workItems, isLoading } = useWorkItemsQuery({ agentId });
+  const { data: workItems, isLoading } = useWorkItemsQuery({ agentId, limit: 1000, offset: 0 });
 
   const { expanded: workItemsListExpanded } = useSidebarMenu('work-items-list');
   const [filteringWorkItem, setFilteringWorkItem] = useState(false);
@@ -92,22 +92,14 @@ export const WorkerList: FC = () => {
           <NewWorkItem />
         </Box>
         <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
-          <ScrollableContainer flex="1" minHeight="0">
-            {filteredWorkItems?.map((workItem) => (
-              <WorkerItem
-                key={workItem.work_item_id}
-                name={workItem.work_item_name || workItem.work_item_id}
-                workItemId={workItem.work_item_id}
-              />
-            ))}
-            {filteredWorkItems?.length === 0 && (
-              <Box p="$12">
-                <Typography variant="body-small">
-                  {filteringWorkItem ? 'No work items found' : 'No work items yet'}
-                </Typography>
-              </Box>
-            )}
-          </ScrollableContainer>
+          {filteredWorkItems && <VirtualList items={filteredWorkItems} renderComponent={WorkerItem} itemHeight={36} />}
+          {filteredWorkItems?.length === 0 && (
+            <Box p="$12">
+              <Typography variant="body-small">
+                {filteringWorkItem ? 'No work items found' : 'No work items yet'}
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
     </SidebarMenu>

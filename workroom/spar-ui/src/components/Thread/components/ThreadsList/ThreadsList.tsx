@@ -2,9 +2,9 @@ import { Box, Button, Input, Menu, Typography } from '@sema4ai/components';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
-
 import { IconChevronDown, IconChevronRight, IconCloseSmall, IconFilters, IconSearch, IconTrash } from '@sema4ai/icons';
 import { useQueries } from '@tanstack/react-query';
+
 import { useSparUIContext } from '../../../../api/context';
 import { useParams } from '../../../../hooks';
 import { scenarioRunsQueryOptions, useListScenariosQuery } from '../../../../queries/evals';
@@ -14,6 +14,7 @@ import { NewThreadItem } from '../NewThreadItem';
 import { ThreadItem } from '../ThreadItem';
 import { AnimatedEvalSection, Header, ResizeHandle, ScrollableContainer, SectionHeader } from './styles';
 import { getMatchingScenarioIds } from './utils';
+import { VirtualList } from '../../../../common/VirtualList';
 
 const defaultFilters: EvaluationFilters = {
   timeRange: 'all',
@@ -221,7 +222,7 @@ export const ThreadsList: FC = () => {
                 if (e.key === 'Escape') stopThreadFilter();
               }}
               onBlur={() => {
-                if(!threadFilterText.trim()) stopThreadFilter();
+                if (!threadFilterText.trim()) stopThreadFilter();
               }}
               iconRightLabel="close-search"
               round
@@ -230,21 +231,16 @@ export const ThreadsList: FC = () => {
         )}
         <NewThreadItem />
         <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
-          <ScrollableContainer style={{ flex: 1, minHeight: 0 }}>
-            {filteredUserInitiatedThreads?.map((thread) => (
-              <ThreadItem
-                key={thread.thread_id}
-                threadId={thread.thread_id || ''}
-                name={thread.name}
-                scenarioId={(thread.metadata?.scenario_id as string) ?? null}
-              />
-            ))}
-            {filteredUserInitiatedThreads?.length === 0 && (
+          {filteredUserInitiatedThreads && (
+            <VirtualList items={filteredUserInitiatedThreads} renderComponent={ThreadItem} itemHeight={36} />
+          )}
+          {filteredUserInitiatedThreads?.length === 0 && (
+            <ScrollableContainer>
               <Box p="$12">
                 <Typography variant="body-small">{filteringThread ? 'No threads found' : 'No messages yet'}</Typography>
               </Box>
-            )}
-          </ScrollableContainer>
+            </ScrollableContainer>
+          )}
         </Box>
 
         {allSimulationThreads && allSimulationThreads.length > 0 && (
@@ -309,9 +305,7 @@ export const ThreadsList: FC = () => {
                     simulationThreads.map((thread) => (
                       <ThreadItem
                         key={thread.thread_id}
-                        threadId={thread.thread_id || ''}
-                        name={thread.name}
-                        scenarioId={(thread.metadata?.scenario_id as string) ?? null}
+                        item={{ ...thread, scenarioId: (thread.metadata?.scenario_id as string) ?? null }}
                       />
                     ))
                   ) : (

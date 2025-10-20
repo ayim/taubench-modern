@@ -1,6 +1,5 @@
 import { components } from '@sema4ai/agent-server-interface';
 import { asyncForLoop } from '@sema4ai/robocloud-shared-utils';
-import { useEffect, useState } from 'react';
 
 import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 
@@ -43,34 +42,39 @@ export const workItemsQueryKey = (params: WorkItemsQueryParams) => {
   ];
 };
 
-export const workItemsQueryOptions = createSparQueryOptions<WorkItemsQueryParams>()<WorkItemsListResponse>(
-  ({ sparAPIClient, agentId, workItemStatus, nameSearch, limit, offset }) => {
-    const normalized = normalizeWorkItemsParams({ agentId, workItemStatus, nameSearch, limit, offset });
-    
-    return {
-      queryKey: workItemsQueryKey({ agentId, workItemStatus, nameSearch, limit, offset }),
-      queryFn: async (): Promise<WorkItemsListResponse> => {
-        const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/', {
-          params: {
-            query: {
-              agent_id: normalized.agentId,
-              work_item_status: normalized.workItemStatus,
-              name_search: normalized.nameSearch,
-              limit: normalized.limit,
-              offset: normalized.offset,
-            },
+export const workItemsQueryOptions = createSparQueryOptions<WorkItemsQueryParams>()<WorkItemsListResponse>(({
+  sparAPIClient,
+  agentId,
+  workItemStatus,
+  nameSearch,
+  limit,
+  offset,
+}) => {
+  const normalized = normalizeWorkItemsParams({ agentId, workItemStatus, nameSearch, limit, offset });
+
+  return {
+    queryKey: workItemsQueryKey({ agentId, workItemStatus, nameSearch, limit, offset }),
+    queryFn: async (): Promise<WorkItemsListResponse> => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/', {
+        params: {
+          query: {
+            agent_id: normalized.agentId,
+            work_item_status: normalized.workItemStatus,
+            name_search: normalized.nameSearch,
+            limit: normalized.limit,
+            offset: normalized.offset,
           },
-        });
+        },
+      });
 
-        if (!response.success) {
-          throw new Error(response.message || 'Failed to fetch work items');
-        }
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch work items');
+      }
 
-        return response.data;
-      },
-    };
-  },
-);
+      return response.data;
+    },
+  };
+});
 
 export const useWorkItemsQuery = createSparQuery(workItemsQueryOptions);
 
@@ -98,16 +102,7 @@ export const workItemQueryOptions = createSparQueryOptions<{ workItemId: string 
   }),
 );
 
-export const useWorkItemQuery = ({ workItemId }: { workItemId: string }) => {
-  const [refetchInterval, setRefetchInterval] = useState<number | undefined>(undefined);
-  const query = createSparQuery(workItemQueryOptions)({ workItemId }, { refetchInterval });
-
-  useEffect(() => {
-    setRefetchInterval(!query.data?.thread_id ? 2000 : undefined);
-  }, [query.data]);
-
-  return query;
-};
+export const useWorkItemQuery = createSparQuery<{ workItemId: string }>(workItemQueryOptions);
 
 export const useCreateWorkItemMutation = createSparMutation<
   { agentId: string },
@@ -170,10 +165,7 @@ export const useCreateWorkItemMutation = createSparMutation<
         });
       }
 
-      // Updating query cache with new data
-      queryClient.setQueryData(workItemsQueryKey({ agentId }), (data?: WorkItem[]) => {
-        return [response.data, ...(data || [])];
-      });
+      queryClient.invalidateQueries({ queryKey: workItemsQueryKey({ agentId }) });
 
       return response.data;
     };
@@ -219,7 +211,10 @@ export const useRestartWorkItemMutation = createSparMutation<{ workItemId: strin
       });
 
       if (!response.success) {
-        throw new QueryError(response.message || 'Failed to restart work item', { code: response.code, resource: ResourceType.WorkItem });
+        throw new QueryError('Failed to restart work item', {
+          code: response.code,
+          resource: ResourceType.WorkItem,
+        });
       }
 
       return response.data;
@@ -242,7 +237,10 @@ export const useCompleteWorkItemMutation = createSparMutation<{ workItemId: stri
       });
 
       if (!response.success) {
-        throw new QueryError(response.message || 'Failed to complete work item', { code: response.code, resource: ResourceType.WorkItem });
+        throw new QueryError(response.message || 'Failed to complete work item', {
+          code: response.code,
+          resource: ResourceType.WorkItem,
+        });
       }
 
       return response.data;
