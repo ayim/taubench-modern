@@ -1,4 +1,5 @@
 import json
+import os
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
@@ -21,6 +22,7 @@ class QuotaConfig:
     storage_key: ConfigType
     default_value: int
     description: str
+    env_vars: list[str]
 
 
 class QuotasService:
@@ -46,36 +48,43 @@ class QuotasService:
             storage_key=ConfigType.MAX_WORK_ITEM_PAYLOAD_SIZE,
             default_value=100,
             description="Maximum work item payload size in KB",
+            env_vars=["SEMA4AI_AGENT_SERVER_MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB"],
         ),
         WORK_ITEM_FILE_ATTACHMENT_SIZE: QuotaConfig(
             storage_key=ConfigType.MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE,
             default_value=100,
             description="Maximum work item file attachment size in MB",
+            env_vars=["SEMA4AI_AGENT_SERVER_MAX_WORK_ITEM_FILE_ATTACHMENT_SIZE_IN_MB"],
         ),
         MAX_AGENTS: QuotaConfig(
             storage_key=ConfigType.MAX_AGENTS,
             default_value=100,
             description="Maximum number of agents",
+            env_vars=["SEMA4AI_AGENT_SERVER_MAX_AGENTS"],
         ),
         PARALLEL_WORK_ITEMS: QuotaConfig(
             storage_key=ConfigType.MAX_PARALLEL_WORK_ITEMS,
             default_value=10,
             description="Maximum parallel work items in process",
+            env_vars=["SEMA4AI_AGENT_SERVER_MAX_PARALLEL_WORK_ITEMS_IN_PROCESS"],
         ),
         MCP_SERVERS_PER_AGENT: QuotaConfig(
             storage_key=ConfigType.MAX_MCP_SERVERS,
             default_value=30,
             description="Maximum MCP servers per agent",
+            env_vars=["SEMA4AI_AGENT_SERVER_MAX_MCP_SERVERS_IN_AGENT"],
         ),
         AGENT_THREAD_RETENTION_PERIOD_DAYS: QuotaConfig(
             storage_key=ConfigType.AGENT_THREAD_RETENTION_PERIOD,
             default_value=90,
             description="Retention period for agent threads in days",
+            env_vars=["SEMA4AI_AGENT_SERVER_AGENT_THREAD_RETENTION_PERIOD"],
         ),
         POSTGRES_POOL_MAX_SIZE: QuotaConfig(
             storage_key=ConfigType.POSTGRES_POOL_MAX_SIZE,
             default_value=50,
             description="Maximum PostgreSQL connection pool size (applies to Psycopg/SQLAlchemy)",
+            env_vars=["SEMA4AI_AGENT_SERVER_POSTGRES_POOL_MAX_SIZE", "POSTGRES_POOL_MAX_SIZE"],
         ),
     }
 
@@ -107,6 +116,9 @@ class QuotasService:
         if cls._instance is None:
             cls._instance = cls._create()
             await cls._instance._initialize_from_storage()
+            # Apply environment variable overrides and persist them so that
+            # the entire system uses a single, consistent source of truth.
+            await cls._instance._apply_env_overrides_and_persist()
         return cls._instance
 
     async def _initialize_from_storage(self) -> None:
@@ -159,6 +171,57 @@ class QuotasService:
                     storage_key=storage_key,
                     config_value=current_config.config_value,
                 )
+
+    async def _apply_env_overrides_and_persist(self) -> None:
+        """Scan env vars for quota overrides and persist effective values.
+
+        For each quota, if any of its declared env vars is set, validate and persist
+        the value using the same code path as user-set configs. This ensures that
+        runtime side-effects (e.g., resizing Postgres pools) are applied.
+        """
+        applied_postgres_pool_from_env = False
+
+        for config_key, quota_config in self.CONFIG_TYPES.items():
+            config_type_enum: ConfigType = ConfigType(config_key)
+            selected_env_value: str | None = None
+            selected_env_var: str | None = None
+            for env_var in quota_config.env_vars:
+                value = os.getenv(env_var)
+                if value is not None and value != "":
+                    selected_env_value = value
+                    selected_env_var = env_var
+                    break
+
+            if selected_env_value is None:
+                continue
+
+            try:
+                new_int_value = validate_config_value(config_type_enum, selected_env_value)
+                current_value = self._get_config_value(config_type_enum)
+
+                # At this point, we have a valid env var value,
+                # and it's not equal to the value of the same var in storage.
+                # Prefer the env var value over the storage value.
+                if new_int_value != current_value:
+                    # For Postgres Pool size, setting a flag to
+                    # apply either the env var value or the storage value.
+                    if config_type_enum is self.POSTGRES_POOL_MAX_SIZE:
+                        applied_postgres_pool_from_env = True
+                    await self._set_config_value(config_type_enum, selected_env_value)
+                    logger.info(
+                        f"Applied env override for quota {config_type_enum}: "
+                        f"new value {selected_env_value} from env var {selected_env_var}"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"Invalid env override for quota {config_type_enum}; keeping existing value. "
+                    f"Error: {e!s}"
+                )
+
+        # If no env override for pool size, apply the persisted/default value once
+        if not applied_postgres_pool_from_env:
+            current_pool_size = self._get_config_value(self.POSTGRES_POOL_MAX_SIZE)
+            await self._validate_and_apply_postgres_pool_max_size(current_pool_size)
 
     async def _set_config_value(self, config_type: ConfigType, new_value: str) -> None:
         """Generic method to set a config value.
@@ -235,6 +298,14 @@ class QuotasService:
 
     def get_agent_thread_retention_period(self) -> int:
         return self._get_config_value(self.AGENT_THREAD_RETENTION_PERIOD_DAYS)
+
+    def get_postgres_pool_max_size(self) -> int:
+        """Get maximum PostgreSQL/Postgres SQLAlchemy connection pool size."""
+        return self._get_config_value(self.POSTGRES_POOL_MAX_SIZE)
+
+    async def set_postgres_pool_max_size(self, new_value: str) -> None:
+        """Set maximum PostgreSQL/Postgres SQLAlchemy connection pool size."""
+        await self._set_config_value(self.POSTGRES_POOL_MAX_SIZE, new_value)
 
     def get_all_configs(self) -> dict[str, dict[str, Any]]:
         """Get all config values with their configurations."""
