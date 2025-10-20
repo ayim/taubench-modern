@@ -8,10 +8,6 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
 import { formatFieldName } from '../utils/dataTransformations';
 
-// TEMPORARY TO UNBLOCK DI v2 merging
-// This must be fixed BEFORE releasing STUDIO
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
 export type PDFDocumentProxy = pdfjs.PDFDocumentProxy;
 export type PDFPageProxy = pdfjs.PDFPageProxy;
 
