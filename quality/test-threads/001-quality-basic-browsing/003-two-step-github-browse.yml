@@ -1,6 +1,8 @@
 name: two-step-github-browse
 description: 'Navigate GitHub repo to find release information'
 
+trials: 2
+
 thread:
   - name: two-step-github-browse
     description: 'Navigate GitHub repo to find release information'

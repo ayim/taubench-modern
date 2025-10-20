@@ -201,6 +201,9 @@ class QualityResultsManager:
 
                 # Convert ThreadResult to JSON-serializable format
                 result_data = {
+                    "agent_name": agent_name,
+                    "agent_id": result.agent_id,
+                    "thread_id": result.thread_id,
                     "trial_id": index,
                     "test_name": result.test_case.name,
                     "platform": result.platform.name,
@@ -222,6 +225,10 @@ class QualityResultsManager:
                             }
                             for e in result.test_case.evaluations
                         ],
+                        "thread": self._serialize_thread(getattr(result.test_case, "thread", None)),
+                        "workitem": self._serialize_workitem(
+                            getattr(result.test_case, "workitem", None)
+                        ),
                     },
                     "agent_messages": [
                         {
@@ -298,6 +305,32 @@ class QualityResultsManager:
         else:
             return str(obj)
 
+    def _serialize_message(self, message):
+        return {
+            "role": message.role,
+            "content": [self._serialize_content(content) for content in message.content],
+        }
+
+    def _serialize_thread(self, thread):
+        if thread is None:
+            return None
+
+        return {
+            "name": thread.name,
+            "description": thread.description,
+            "messages": [self._serialize_message(message) for message in thread.messages],
+        }
+
+    def _serialize_workitem(self, workitem):
+        if workitem is None:
+            return None
+
+        return {
+            "messages": [self._serialize_message(message) for message in workitem.messages],
+            "payload": workitem.payload,
+            "is_preview_only": workitem.is_preview_only,
+        }
+
     def complete_agent_testing(self, agent_name: str, error: str | None = None):
         """Mark completion of all tests for an agent."""
         logger.info(f"Completing agent testing: {agent_name}")
@@ -357,9 +390,9 @@ class QualityResultsManager:
         """Get the current run directory path."""
         return self.current_run_dir
 
-    def _serialize_content(self, content):
+    def _serialize_content(self, content):  # noqa: PLR0911
         """Serialize message content for JSON storage."""
-        from agent_platform.quality.models import Text, Thought, ToolUse
+        from agent_platform.quality.models import FileAttachment, Text, Thought, ToolUse
 
         if isinstance(content, Text):
             return {"type": "text", "data": {"text": content.content}}
@@ -375,6 +408,15 @@ class QualityResultsManager:
                     "output_as_string": content.output_as_string,
                     "input_as_string": content.input_as_string,
                     "error": content.error,
+                },
+            }
+        elif isinstance(content, FileAttachment):
+            return {
+                "type": "attachment",
+                "data": {
+                    "file_name": content.file_name,
+                    "description": content.description,
+                    "mime_type": content.mime_type,
                 },
             }
         else:

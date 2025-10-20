@@ -1,7 +1,8 @@
 import asyncio
+import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import structlog
@@ -20,7 +21,87 @@ from agent_platform.quality.models import (
 logger = structlog.get_logger(__name__)
 
 
-def build_agent_platform_message(message: Message):
+def _index_uploaded_file_metadata(
+    uploaded_files: dict[str, Any],
+    attachment: FileAttachment,
+    metadata: dict[str, Any],
+) -> None:
+    """Index uploaded file metadata by various keys for quick lookup."""
+    candidate_keys = {
+        attachment.file_name,
+        Path(attachment.file_name).name,
+    }
+    file_ref = metadata.get("file_ref")
+    if file_ref:
+        candidate_keys.add(file_ref)
+        candidate_keys.add(Path(file_ref).name)
+
+    for key in candidate_keys:
+        uploaded_files[key] = metadata
+
+
+def _strip_file_attachments(messages: list[Message]) -> list[Message]:
+    """Remove attachment-only content so the backend can inject file messages."""
+    stripped_messages: list[Message] = []
+    for message in messages:
+        filtered_content = [
+            content_item
+            for content_item in message.content
+            if not isinstance(content_item, FileAttachment)
+        ]
+        if filtered_content:
+            stripped_messages.append(
+                Message(
+                    role=message.role,
+                    content=cast(list[Thought | Text | ToolUse | FileAttachment], filtered_content),
+                )
+            )
+    return stripped_messages
+
+
+def _format_http_error(error: httpx.HTTPStatusError) -> str:  # noqa: C901
+    """Build a concise error string from an HTTPStatusError."""
+
+    status = error.response.status_code if error.response is not None else "unknown"
+    detail_payload: Any | None = None
+
+    if error.response is not None:
+        try:
+            payload = error.response.json()
+            if isinstance(payload, dict):
+                if "detail" in payload:
+                    detail_payload = payload.get("detail")
+                elif "error" in payload:
+                    detail_payload = payload.get("error")
+                else:
+                    detail_payload = payload
+            else:
+                detail_payload = payload
+        except ValueError:
+            detail_payload = error.response.text
+
+    message: str | None = None
+    code: str | None = None
+
+    if isinstance(detail_payload, dict):
+        code = detail_payload.get("code")
+        raw_message = detail_payload.get("message")
+        message = raw_message if isinstance(raw_message, str) else json.dumps(detail_payload)
+    elif detail_payload:
+        message = str(detail_payload)
+
+    if not message and error.response is not None:
+        message = error.response.text
+
+    if not message:
+        message = str(error)
+
+    if code:
+        return f"HTTP {status} ({code}): {message}"
+    return f"HTTP {status}: {message}"
+
+
+def build_agent_platform_message(message: Message, uploaded_files: dict[str, Any] | None = None):
     api_content = []
     for content_item in message.content:
         match content_item:
@@ -54,16 +135,35 @@ def build_agent_platform_message(message: Message):
                 mime_type=mime_type,
                 file_name=file_name,
             ):
-                api_content.append(
-                    {
-                        "kind": "attachment",
-                        "base64_data": None,
-                        "description": description,
-                        "mime_type": mime_type,
-                        "name": file_name,
-                        "uri": f"agent-server-uri://{file_name}",
-                    }
-                )
+                file_metadata = None
+                if uploaded_files:
+                    file_metadata = uploaded_files.get(file_name) or uploaded_files.get(
+                        Path(file_name).name
+                    )
+
+                if file_metadata and file_metadata.get("file_id"):
+                    api_content.append(
+                        {
+                            "kind": "attachment",
+                            "base64_data": None,
+                            "description": description,
+                            "mime_type": file_metadata.get("mime_type", mime_type),
+                            "name": file_metadata.get("file_ref", file_name),
+                            "uri": f"agent-server-file://{file_metadata['file_id']}",
+                            "complete": True,
+                        }
+                    )
+                else:
+                    api_content.append(
+                        {
+                            "kind": "attachment",
+                            "base64_data": None,
+                            "description": description,
+                            "mime_type": mime_type,
+                            "name": file_name,
+                            "uri": f"agent-server-uri://{file_name}",
+                        }
+                    )
             case _:
                 # Fallback for unknown content types
                 api_content.append({"kind": "text", "text": str(content_item)})
@@ -98,8 +198,6 @@ def from_api_response_to_messages(api_response: Any) -> list[Message]:
                     # TODO server returns it, but should it?
                     pass
                 case _:
-                    import json
-
                     print(json.dumps(part, indent=4))
                     raise ValueError(f"unexpected message kind: {part.get('kind')}")
 
@@ -137,7 +235,7 @@ class AgentRunner:
     def __init__(self, server_url: str):
         self.server_url = server_url.rstrip("/")
 
-    async def run_test_case(  # noqa: PLR0915
+    async def run_test_case(  # noqa: C901, PLR0912, PLR0915
         self, agent_id: str, test_case: TestCase, platform_name: str
     ) -> TestRunResult:
         """Run a test case against an agent and return agent messages."""
@@ -147,8 +245,9 @@ class AgentRunner:
             )
 
             if test_case.workitem.is_preview_only:
+                stripped_messages = _strip_file_attachments(test_case.workitem.messages)
                 api_messages = [
-                    build_agent_platform_message(message) for message in test_case.workitem.messages
+                    build_agent_platform_message(message) for message in stripped_messages
                 ]
                 payload = {
                     "messages": api_messages,
@@ -180,34 +279,36 @@ class AgentRunner:
                 if isinstance(attachment, FileAttachment)
             ]
 
-            if len(attachments) > 1:
-                raise ValueError(f"Only one file is allowed in workitems. Found {len(attachments)}")
-
-            if len(attachments) == 1:
-                attachment = attachments[0]
-                workitem_file = {
-                    "file": (
-                        attachment.file_name,
-                        open(test_case_folder / attachment.file_name, "rb"),
-                        attachment.mime_type,
-                    ),
-                }
+            if attachments:
                 async with httpx.AsyncClient(timeout=15.0) as client:
-                    try:
-                        response = await client.post(
-                            f"{self.server_url}/api/public/v1/work-items/upload-file",
-                            files=workitem_file,
-                        )
-                        response.raise_for_status()
+                    for attachment in attachments:
+                        file_path = test_case_folder / attachment.file_name
+                        try:
+                            with file_path.open("rb") as file_handle:
+                                workitem_file = {
+                                    "file": (
+                                        attachment.file_name,
+                                        file_handle,
+                                        attachment.mime_type,
+                                    ),
+                                }
+                                request_kwargs: dict[str, Any] = {"files": workitem_file}
+                                if workitem_id:
+                                    request_kwargs["params"] = {"work_item_id": workitem_id}
+                                response = await client.post(
+                                    f"{self.server_url}/api/public/v1/work-items/upload-file",
+                                    **request_kwargs,
+                                )
+                                response.raise_for_status()
+                        except httpx.HTTPError as e:
+                            logger.error(f"Cannot upload files: {e}")
+                            raise
+                        upload_response = response.json()
+                        workitem_id = upload_response.get("work_item_id", workitem_id)
 
-                        workitem = response.json()
-                        workitem_id = workitem.get("work_item_id")
-                    except httpx.HTTPError as e:
-                        logger.error(f"Cannot upload files: {e}")
-                        raise
-
+            messages_without_attachments = _strip_file_attachments(test_case.workitem.messages)
             api_messages = [
-                build_agent_platform_message(message) for message in test_case.workitem.messages
+                build_agent_platform_message(message) for message in messages_without_attachments
             ]
             payload = {
                 "messages": api_messages,
@@ -265,23 +366,29 @@ class AgentRunner:
                 logger.info(f"Created new thread: {thread_id}")
 
             test_case_folder = Path(test_case.file_path).parent
-            thread_files = [
-                (
-                    "files",
-                    (
-                        attachment.file_name,
-                        open(test_case_folder / attachment.file_name, "rb"),
-                        attachment.mime_type,
-                    ),
-                )
-                for message in test_case.thread.messages
-                for attachment in message.content
-                if isinstance(attachment, FileAttachment)
-            ]
+            thread_files: list[tuple[str, tuple[str, Any, str]]] = []
+            thread_attachments: list[FileAttachment] = []
+            open_file_handles = []
+            for message in test_case.thread.messages:
+                for attachment in message.content:
+                    if not isinstance(attachment, FileAttachment):
+                        continue
+
+                    file_path = test_case_folder / attachment.file_name
+                    file_handle = file_path.open("rb")
+                    open_file_handles.append(file_handle)
+                    thread_files.append(
+                        (
+                            "files",
+                            (attachment.file_name, file_handle, attachment.mime_type),
+                        )
+                    )
+                    thread_attachments.append(attachment)
 
             logger.info(f"Found {len(thread_files)} files in thread")
 
-            if len(thread_files) > 0:
+            uploaded_thread_files: dict[str, Any] = {}
+            if thread_files:
                 async with httpx.AsyncClient(timeout=15.0) as client:
                     try:
                         response = await client.post(
@@ -289,12 +396,46 @@ class AgentRunner:
                             files=thread_files,
                         )
                         response.raise_for_status()
+                        uploaded_files = response.json() or []
+                        uploaded_thread_files = {}
+                        for attachment, file_info in zip(
+                            thread_attachments,
+                            uploaded_files,
+                            strict=False,
+                        ):
+                            if not isinstance(file_info, dict):
+                                continue
+
+                            _index_uploaded_file_metadata(
+                                uploaded_thread_files,
+                                attachment,
+                                file_info,
+                            )
+
+                        for file_info in uploaded_files:
+                            if not isinstance(file_info, dict):
+                                continue
+
+                            file_ref = file_info.get("file_ref")
+                            if file_ref:
+                                uploaded_thread_files.setdefault(file_ref, file_info)
+                                uploaded_thread_files.setdefault(Path(file_ref).name, file_info)
                     except httpx.HTTPError as e:
                         logger.error(f"Cannot upload files: {e}")
                         raise
+                    finally:
+                        for handle in open_file_handles:
+                            handle.close()
+            else:
+                for handle in open_file_handles:
+                    handle.close()
 
             api_messages = [
-                build_agent_platform_message(message) for message in test_case.thread.messages
+                build_agent_platform_message(
+                    message,
+                    uploaded_files=uploaded_thread_files,
+                )
+                for message in test_case.thread.messages
             ]
             payload = {
                 "agent_id": agent_id,
@@ -304,11 +445,16 @@ class AgentRunner:
             }
 
             async with httpx.AsyncClient(timeout=60.0 * 5) as client:
-                response = await client.post(
-                    f"{self.server_url}/api/v2/runs/{agent_id}/sync",
-                    json=payload,
-                )
-                response.raise_for_status()
+                try:
+                    response = await client.post(
+                        f"{self.server_url}/api/v2/runs/{agent_id}/sync",
+                        json=payload,
+                    )
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as e:
+                    error_message = _format_http_error(e)
+                    logger.error(f"Agent sync failed: {error_message}")
+                    raise RuntimeError(f"Agent sync failed: {error_message}") from e
 
                 agent_messages_data = response.json()
                 agent_messages = from_api_response_to_messages(agent_messages_data)

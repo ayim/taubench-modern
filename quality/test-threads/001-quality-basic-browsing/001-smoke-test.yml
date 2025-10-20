@@ -1,6 +1,8 @@
 name: smoke-test
 description: 'Smoke test'
 
+trials: 2
+
 thread:
   - name: smoke-test
     description: 'Smoke test'
@@ -19,6 +21,5 @@ target-platforms:
 evaluations:
   - kind: llm-eval-of-last-agent-turn
     expected: |
-      The agent should have sent a message in reply to the simple testing message.
-      The message should be succinct and say something to the effect of
-      "I'm ready to help you with your request."
+      The agent should have replied, in some way, to the simple testing message.
+      (Think of this as a kind of end-to-end "smoke test" that just verifies things are running.)

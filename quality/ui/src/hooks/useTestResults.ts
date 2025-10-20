@@ -103,14 +103,18 @@ export function useTestResults({ homeFolder }: { homeFolder: string }) {
 
           // Parse the directory listing or file names
           // For now, we'll build test results from completed test files
-          // Real file names look like: 001-quality-basic-browsing_one-step-browse_azure.json
-          const filePattern = /(\d+-\w+-[\w-]+)_([\w-]+)_(\w+)_([\w-]+)\.json/g;
+          // Real file names look like: 001-quality-basic-browsing_one-step-browse_azure_0.json
+          const filePattern = /([-\w]+)_([-\w]+)_([-\w]+)_([-\w]+)\.json/g;
           const matches = [...filesText.matchAll(filePattern)];
 
           const results: TestResult[] = [];
 
           for (const match of matches) {
-            const [filename, agentName, threadName, platform] = match;
+            const filename = match[0];
+            const agentName = match[1];
+            const testNameFromFile = match[2];
+            const platformFromFile = match[3];
+            const trialIdFromFile = match[4];
 
             try {
               // Fetch the individual test result file
@@ -122,15 +126,17 @@ export function useTestResults({ homeFolder }: { homeFolder: string }) {
               if (testResponse.ok) {
                 const testData = await testResponse.json();
 
-                // Always derive the agent identifier from the filename (first capture group).
-                // This guarantees it matches the names surfaced in the AgentsList and keeps
-                // the filtering logic consistent.
-                results.push({
+                const normalizedResult: TestResult = {
                   ...testData,
-                  agent_name: agentName,
-                  thread_name: threadName,
-                  platform: platform,
-                });
+                  agent_name: testData.agent_name ?? agentName,
+                  test_name: testData.test_name ?? testNameFromFile,
+                  platform: testData.platform ?? platformFromFile,
+                  trial_id: String(testData.trial_id ?? trialIdFromFile ?? filename.replace('.json', '')),
+                  agent_id: testData.agent_id ?? null,
+                  thread_id: testData.thread_id ?? null,
+                };
+
+                results.push(normalizedResult);
               }
             } catch (error) {
               console.warn(`Failed to fetch test result ${filename}:`, error);
@@ -152,10 +158,16 @@ export function useTestResults({ homeFolder }: { homeFolder: string }) {
   }, [homeFolder]);
 
   const fetchIndividualTestResult = useCallback(
-    async (agentName: string, testName: string, platform: string, runId: string): Promise<TestResult | null> => {
+    async (
+      agentName: string,
+      testName: string,
+      platform: string,
+      trialId: string,
+      runId: string,
+    ): Promise<TestResult | null> => {
       try {
-        // Real file naming pattern: {agentName}_{testName}_{platform}.json
-        const filename = `${agentName}_${testName}_${platform}.json`;
+        // Real file naming pattern: {agentName}_{testName}_{platform}_{trialId}.json
+        const filename = `${agentName}_${testName}_${platform}_${trialId}.json`;
         const response = await fetch(`/api/quality_results/runs/${runId}/${filename}`, {
           headers: {
             'x-quality-home-folder': homeFolder,
@@ -169,7 +181,12 @@ export function useTestResults({ homeFolder }: { homeFolder: string }) {
         const testData = await response.json();
         return {
           ...testData,
-          agent_name: agentName,
+          agent_name: testData.agent_name ?? agentName,
+          test_name: testData.test_name ?? testName,
+          platform: testData.platform ?? platform,
+          trial_id: String(testData.trial_id ?? trialId),
+          agent_id: testData.agent_id ?? null,
+          thread_id: testData.thread_id ?? null,
         };
       } catch (error) {
         console.error('Failed to fetch individual test result:', error);

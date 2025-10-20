@@ -13,9 +13,10 @@ workitem:
         content:
           kind: text
           text: |
-            Review the structure of the uploaded file. Identify the overall schema by listing all sheets, and for each sheet the column names.
+            Review the structure of the uploaded file.
+            Identify the overall schema by listing all sheets, and for each sheet the column names.
             Do your analysis without expecting further input from user.
-            Remember that you should use the full path to download a file.
+            (No need to download the file, you should be able to analyze it directly.)
     payload: {}
 
 target-platforms:

@@ -64,6 +64,9 @@ class QualityTestRunner:
         self.oauth = OAuthManager(data_dir=datadir)
         self.is_in_github_actions = is_in_github_actions
 
+        # Serialize access to shared sf-auth.json credentials file.
+        self._sf_auth_lock = asyncio.Lock()
+
         # Discover agents early so we can expose them to the UI
         self.discovered_agents = self.discover_agents()
 
@@ -211,7 +214,7 @@ class QualityTestRunner:
                 logger.info("Stopping shared infrastructure")
                 await self.orchestrator.stop_infrastructure()
 
-    async def _run_agent_fully_parallel(  # noqa: C901 PLR0912 PLR0915
+    async def _run_agent_fully_parallel(  # noqa: C901
         self, agent_package: AgentPackage, action_server_url: str
     ) -> list[ThreadResult]:
         """Run all tests for a single agent with full parallelization."""
@@ -285,78 +288,25 @@ class QualityTestRunner:
             # (But we are _sequential_ at the level of a test case!!)
             all_results = []
             for test_case in test_cases:
-                # Update sf-auth.json if sf-auth-override is present (one time)
-                # There's some tricky concurrency stuff here... we probably need to LOCK
-                # so that only one agent can update sf-auth.json at a time. (Or find a way
-                # to pass this information scoped to the agent... but that might be essentially
-                # impossible given how our platform is architected.)
                 if test_case.sf_auth_override:
-                    self._update_sf_auth_json(test_case.sf_auth_override)
-
-                # Create tasks for all platforms for this test case
-                platform_tasks = []
-                for platform in test_case.target_platforms:
-                    agent_id = platform_agent_ids[platform.name]
-
-                    # Update the secrets on the action server for this agent and test case
-                    await self.update_action_secrets(
-                        agent_id,
-                        test_case.action_secrets + package_oauth_secrets,
+                    async with self._sf_auth_override(test_case.sf_auth_override):
+                        case_results = await self._run_test_case_with_platforms(
+                            agent_package,
+                            test_case,
+                            platform_agent_ids,
+                            package_oauth_secrets,
+                            action_server_url,
+                        )
+                else:
+                    case_results = await self._run_test_case_with_platforms(
+                        agent_package,
+                        test_case,
+                        platform_agent_ids,
+                        package_oauth_secrets,
                         action_server_url,
                     )
 
-                    # Start test tracking (sequential to avoid race conditions)
-                    self.results_manager.start_test(agent_package.name, test_case, platform)
-
-                    # Create the async task for this platform
-                    task = self._run_test_case_on_platform(agent_id, test_case, platform)
-                    platform_tasks.append(task)
-
-                # Run all platforms for this test case in parallel
-                try:
-                    test_results = await asyncio.gather(*platform_tasks, return_exceptions=True)
-
-                    # Process results and handle any exceptions
-                    for i, result in enumerate(test_results):
-                        if isinstance(result, Exception):
-                            # Handle exceptions from parallel execution
-                            platform = test_case.target_platforms[i]
-                            logger.error(
-                                f"Test case failed: {test_case.file_path} "
-                                f"on platform {platform.name}",
-                                error=str(result),
-                            )
-                            error_result = ThreadResult(
-                                test_case=test_case,
-                                platform=platform,
-                                agent_messages=[],
-                                evaluation_results=[],
-                                success=False,
-                                error=str(result),
-                            )
-                            all_results.append(error_result)
-                            self.results_manager.complete_test(agent_package.name, error_result, 1)
-                        elif isinstance(result, TestResultGroup):
-                            for index, thread_result in enumerate(result.thread_results):
-                                all_results.append(thread_result)
-                                self.results_manager.complete_test(
-                                    agent_package.name, thread_result, index
-                                )
-
-                except Exception as e:
-                    logger.error(f"Failed to execute test case {test_case.name} in parallel: {e}")
-                    # Create error results for all platforms in this test case
-                    for platform in test_case.target_platforms:
-                        error_result = ThreadResult(
-                            test_case=test_case,
-                            platform=platform,
-                            agent_messages=[],
-                            evaluation_results=[],
-                            success=False,
-                            error=str(e),
-                        )
-                        all_results.append(error_result)
-                        self.results_manager.complete_test(agent_package.name, error_result, 1)
+                all_results.extend(case_results)
 
             # Mark agent testing as complete
             self.results_manager.complete_agent_testing(agent_package.name)
@@ -367,9 +317,76 @@ class QualityTestRunner:
             # Mark agent testing as failed
             self.results_manager.complete_agent_testing(agent_package.name, str(e))
             raise
-        finally:
-            # Restore sf-auth.json
-            self._restore_sf_auth_json()
+
+    async def _run_test_case_with_platforms(
+        self,
+        agent_package: AgentPackage,
+        test_case: TestCase,
+        platform_agent_ids: dict[str, str],
+        package_oauth_secrets: list[ActionPackageSecret],
+        action_server_url: str,
+    ) -> list[ThreadResult]:
+        """Run a single test case across all of its target platforms."""
+
+        all_results: list[ThreadResult] = []
+        platform_tasks = []
+
+        for platform in test_case.target_platforms:
+            agent_id = platform_agent_ids[platform.name]
+
+            await self.update_action_secrets(
+                agent_id,
+                test_case.action_secrets + package_oauth_secrets,
+                action_server_url,
+            )
+
+            self.results_manager.start_test(agent_package.name, test_case, platform)
+
+            task = self._run_test_case_on_platform(agent_id, test_case, platform)
+            platform_tasks.append(task)
+
+        try:
+            test_results = await asyncio.gather(*platform_tasks, return_exceptions=True)
+
+            for i, result in enumerate(test_results):
+                if isinstance(result, Exception):
+                    platform = test_case.target_platforms[i]
+                    logger.error(
+                        f"Test case failed: {test_case.file_path} on platform {platform.name}",
+                        error=str(result),
+                    )
+                    error_result = ThreadResult(
+                        test_case=test_case,
+                        platform=platform,
+                        agent_messages=[],
+                        evaluation_results=[],
+                        success=False,
+                        agent_id=platform_agent_ids.get(platform.name),
+                        error=str(result),
+                    )
+                    all_results.append(error_result)
+                    self.results_manager.complete_test(agent_package.name, error_result, 1)
+                elif isinstance(result, TestResultGroup):
+                    for index, thread_result in enumerate(result.thread_results):
+                        all_results.append(thread_result)
+                        self.results_manager.complete_test(agent_package.name, thread_result, index)
+
+        except Exception as e:
+            logger.error(f"Failed to execute test case {test_case.name} in parallel: {e}")
+            for platform in test_case.target_platforms:
+                error_result = ThreadResult(
+                    test_case=test_case,
+                    platform=platform,
+                    agent_messages=[],
+                    evaluation_results=[],
+                    success=False,
+                    agent_id=platform_agent_ids.get(platform.name),
+                    error=str(e),
+                )
+                all_results.append(error_result)
+                self.results_manager.complete_test(agent_package.name, error_result, 1)
+
+        return all_results
 
     async def get_oauth_connections(
         self,
@@ -584,6 +601,8 @@ class QualityTestRunner:
                 agent_messages=test_run.agent_messages,
                 evaluation_results=evaluation_results,
                 success=success,
+                agent_id=agent_id,
+                thread_id=test_run.thread_id,
                 thread_raw=thread_raw,
             )
 
@@ -605,26 +624,65 @@ class QualityTestRunner:
                 agent_messages=[],
                 evaluation_results=[],
                 success=False,
+                agent_id=agent_id,
                 error=str(e),
             )
 
-    def _update_sf_auth_json(self, sf_auth_override: SFAuthorizationOverride) -> None:
-        """Update sf-auth.json with the given override."""
+    class _SFAuthOverrideGuard:
+        def __init__(
+            self,
+            runner: "QualityTestRunner",
+            sf_auth_override: SFAuthorizationOverride | None,
+        ) -> None:
+            self._runner = runner
+            self._sf_auth_override = sf_auth_override
+            self._lock_acquired = False
+            self._applied = False
+
+        async def __aenter__(self) -> bool:
+            if self._runner.is_in_github_actions or self._sf_auth_override is None:
+                return False
+
+            await self._runner._sf_auth_lock.acquire()
+            self._lock_acquired = True
+
+            self._applied = self._runner._update_sf_auth_json_locked(self._sf_auth_override)
+
+            if not self._applied:
+                # Release immediately so other agents are not blocked.
+                self._runner._sf_auth_lock.release()
+                self._lock_acquired = False
+
+            return self._applied
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            try:
+                if self._applied:
+                    self._runner._restore_sf_auth_json_locked()
+            finally:
+                if self._lock_acquired and self._runner._sf_auth_lock.locked():
+                    self._runner._sf_auth_lock.release()
+
+    def _sf_auth_override(
+        self, sf_auth_override: SFAuthorizationOverride | None
+    ) -> "QualityTestRunner._SFAuthOverrideGuard":
+        return QualityTestRunner._SFAuthOverrideGuard(self, sf_auth_override)
+
+    def _update_sf_auth_json_locked(self, sf_auth_override: SFAuthorizationOverride) -> bool:
+        """Update sf-auth.json with the given override. Lock must be held."""
         if self.is_in_github_actions:
-            return
+            return False
 
         try:
-            # Create a backup of the current sf-auth.json
-            # (if an existing backup is NOT already present)
+            # Create a backup of the current sf-auth.json if not already present.
             backup_path = Path.home() / ".sema4ai" / "sf-auth-backup.json"
             if not backup_path.exists():
                 shutil.copy(Path.home() / ".sema4ai" / "sf-auth.json", backup_path)
         except Exception as e:
             logger.error(f"Failed to create sf-auth.json backup: {e!s}")
             logger.warning("Will not override sf-auth.json")
-            return
+            return False
 
-        # Create a new sf-auth.json with the override
         try:
             with open(Path.home() / ".sema4ai" / "sf-auth.json", "w") as f:
                 json.dump(
@@ -643,15 +701,15 @@ class QualityTestRunner:
                 )
         except Exception as e:
             logger.error(f"Failed to override sf-auth.json: {e!s}")
-            return
+            return False
 
-    def _restore_sf_auth_json(self) -> None:
-        """Restore sf-auth.json to the original state."""
+        return True
+
+    def _restore_sf_auth_json_locked(self) -> None:
+        """Restore sf-auth.json to the original state. Lock must be held."""
         if self.is_in_github_actions:
             return
 
-        # Look for a sf-auth-backup.json file in the ~/.sema4ai directory
-        # and if it's present, move it back to sf-auth.json
         try:
             backup_path = Path.home() / ".sema4ai" / "sf-auth-backup.json"
             if backup_path.exists():

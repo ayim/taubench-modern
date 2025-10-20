@@ -1,6 +1,8 @@
 name: one-step-browse
 description: 'One step browse'
 
+trials: 2
+
 thread:
   - name: one-step-browse
     description: 'One step browse'

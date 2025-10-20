@@ -22,7 +22,7 @@ class Platform:
                     openai_api_key=SecretString(os.environ["OPENAI_API_KEY"]),
                     # TODO: read this from yaml configs, just trying to run on gpt-5 as a kind
                     # of integration test for now, but should be configurable
-                    models={"openai": ["gpt-5-minimal"]},
+                    models={"openai": ["gpt-5-low"]},
                 ).model_dump()
             case "azure":
                 from agent_platform.core.platforms.azure import AzureOpenAIPlatformParameters
@@ -35,7 +35,7 @@ class Platform:
                     azure_api_version=os.environ["AZURE_API_VERSION"],
                     # We should be upgrading the eval harness, now that we have this filtering
                     # ability, to have explicit models set (instead of taking platform defaults)
-                    models={"openai": ["gpt-4-1"]},
+                    models={"openai": ["o3-high"]},
                 ).model_dump()
             case "bedrock":
                 from agent_platform.core.platforms.bedrock import BedrockPlatformParameters
@@ -441,6 +441,8 @@ class ThreadResult:
     agent_messages: list[Message]
     evaluation_results: list[TestResult]
     success: bool
+    agent_id: str | None = None
+    thread_id: str | None = None
     error: str | None = None
     thread_raw: list[Any] | None = None
 

@@ -1,37 +1,14 @@
 import { useTestResults } from './hooks/useTestResults';
 import { AgentResults } from './components/AgentResults';
 import { AgentsList } from './components/AgentsList';
-import { TestResultsSummary } from './components/TestResultsSummary';
 import { OverallStatsCard } from './components/OverallStatsCard';
 import { RefreshButton } from './components/RefreshButton';
 import { RunTimer } from './components/RunTimer';
 import { AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { TestResultsList } from './components/TestResultsList';
-import { TestResult, TestResultGroup } from './types';
 import { SettingsButton } from './components/SettingsButton';
 import { useState } from 'react';
-
-function groupThreadResults(results: TestResult[]): TestResultGroup[] {
-  const groupMap = new Map<string, TestResultGroup>();
-
-  for (const result of results) {
-    const key = `${result.test_name}::${result.platform}`;
-    if (!groupMap.has(key)) {
-      groupMap.set(key, {
-        test_name: result.test_name,
-        platform: result.platform,
-        test_case: result.test_case,
-        trials: [],
-      });
-    }
-    groupMap.get(key)!.trials.push({
-      trial_id: 'FIXME',
-      ...result,
-    });
-  }
-
-  return Array.from(groupMap.values());
-}
+import { CollapsibleSection } from './components/CollapsibleSection';
 
 function Dashboard() {
   const [settings, setSettings] = useState({
@@ -143,13 +120,13 @@ function Dashboard() {
     }
   };
 
-  const resultsByTest = groupThreadResults(threadResults);
+  // const resultsByTest = groupThreadResults(threadResults);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {getStatusIcon()}
@@ -171,37 +148,39 @@ function Dashboard() {
         </div>
 
         {overallStatus ? (
-          <div className="space-y-8">
+          <div className="space-y-4">
             {/* Overall Stats */}
             <OverallStatsCard stats={overallStatus} isRunning={runStatus === 'running'} />
 
             {/* Agents List - Show all discovered agents */}
             {discoveredAgents && discoveredAgents.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Agents ({discoveredAgents.length})</h2>
+              <CollapsibleSection
+                title={`Agents (${discoveredAgents.length})`}
+                subtitle="All agents discovered for this run."
+              >
                 <AgentsList agents={discoveredAgents} selectedAgent={selectedAgent} onAgentSelect={setSelectedAgent} />
-              </div>
+              </CollapsibleSection>
             )}
 
             {/* Agent Progress - Show only running agents */}
             {agentStatuses.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Agent Progress ({agentStatuses.length} running)
-                </h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <CollapsibleSection
+                title={`Agent Progress (${agentStatuses.length} running)`}
+                subtitle="Live status for currently running agents."
+              >
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                   {agentStatuses.map((agent) => (
                     <AgentResults key={agent.name} agentName={agent.name} agentStatus={agent} />
                   ))}
                 </div>
-              </div>
+              </CollapsibleSection>
             )}
 
-            {resultsByTest.length > 0 && <TestResultsSummary results={resultsByTest} />}
+            {/* {resultsByTest.length > 0 && <TestResultsSummary results={resultsByTest} />} */}
 
             {threadResults.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">
                   Thread Results ({threadResults.length})
                   {selectedAgent && (
                     <span className="text-sm font-normal text-gray-600 ml-2">- Filtered by {selectedAgent}</span>

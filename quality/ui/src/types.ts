@@ -65,6 +65,8 @@ export interface TestResultGroup {
 export interface TrialResult {
   trial_id: string;
   agent_name?: string;
+  agent_id?: string | null;
+  thread_id?: string | null;
   success: boolean;
   started_at?: string;
   completed_at: string;
@@ -76,8 +78,11 @@ export interface TrialResult {
 export interface TestResult {
   test_name: string;
   platform: string;
+  trial_id: string;
   test_case: TestCase;
   agent_name?: string;
+  agent_id?: string | null;
+  thread_id?: string | null;
   success: boolean;
   started_at?: string;
   completed_at: string;
@@ -93,6 +98,8 @@ export interface TestCase {
   metrics: Array<{ name: string; k: number }>;
   file_path: string;
   evaluations: Evaluation[];
+  thread?: SerializedThread | null;
+  workitem?: SerializedWorkitem | null;
 }
 
 export interface Evaluation {
@@ -115,8 +122,8 @@ export interface MessageThoughtContent {
 }
 
 export interface MessageContent {
-  type: 'text' | 'thought' | 'tool_use' | 'unknown';
-  data: MessageTextContent | MessageThoughtContent | ToolUseData;
+  type: 'text' | 'thought' | 'tool_use' | 'attachment' | 'unknown';
+  data: MessageTextContent | MessageThoughtContent | ToolUseData | MessageAttachmentContent;
 }
 
 export interface ToolUseData {
@@ -134,6 +141,24 @@ export interface EvaluationResult {
   passed: boolean;
   actual_value: string;
   error?: string | null;
+}
+
+export interface SerializedThread {
+  name: string;
+  description: string;
+  messages: AgentMessage[];
+}
+
+export interface SerializedWorkitem {
+  messages: AgentMessage[];
+  payload: Record<string, unknown>;
+  is_preview_only: boolean;
+}
+
+export interface MessageAttachmentContent {
+  file_name: string;
+  description: string;
+  mime_type: string;
 }
 
 export interface AgentMetadata {

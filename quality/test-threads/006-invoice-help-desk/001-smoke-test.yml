@@ -19,5 +19,5 @@ target-platforms:
 evaluations:
   - kind: llm-eval-of-last-agent-turn
     expected: |
-      The agent should have sent a message in reply to the simple testing message.
-      The message could mention the agent's capabilities to aid in invoice status/details.
+      The agent should have replied, in some way, to the simple testing message.
+      (Think of this as a kind of end-to-end "smoke test" that just verifies things are running.)

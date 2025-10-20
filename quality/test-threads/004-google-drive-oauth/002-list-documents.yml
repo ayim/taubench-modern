@@ -21,5 +21,5 @@ evaluations:
     expected: |
       The agent should have made at least one tool call to get the list of documents.
       This tool call should show a list of Google documents.
-      the agent should've tried at least one more time.
+      If the tool call fails, the agent should've tried at least one more time.
       The agent should not loop indefinitely if the tool call fails.
