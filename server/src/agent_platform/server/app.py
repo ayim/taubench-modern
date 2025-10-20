@@ -27,6 +27,7 @@ from agent_platform.server.api.private_v2.health import router as health_router
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.lifespan import create_combined_lifespan
+from agent_platform.server.openapi.platform_catalog import inject_platform_model_catalog
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -105,6 +106,9 @@ class _CustomFastAPI(FastAPI):
         # Get the list of architecture names (legacy behavior)
         components: dict = openapi_schema.get("components", {})
         schemas: dict = components.get("schemas", {})
+        _ref_template = REF_PREFIX + "{model}"
+
+        inject_platform_model_catalog(components, schemas, _ref_template)
 
         # Only modify AgentAdvancedConfig if it exists
         agent_advanced_config_schema: dict = schemas.get("AgentAdvancedConfig", {})
@@ -117,9 +121,6 @@ class _CustomFastAPI(FastAPI):
         # ------------------------------------------------------------------
         # 1. Register our custom error schemas in components
         # ------------------------------------------------------------------
-        # Use a ref template that points directly at #/components/schemas/
-        _ref_template = REF_PREFIX + "{model}"
-
         # Register ErrorDetail first so ErrorEnvelope can reference it
         if "ErrorDetail" not in schemas:
             schemas["ErrorDetail"] = ErrorDetail.model_json_schema(ref_template=_ref_template)
