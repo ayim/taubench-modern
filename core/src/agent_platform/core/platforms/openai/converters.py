@@ -478,7 +478,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             tools=tools,
             temperature=prompt.temperature or 0.0,
             top_p=prompt.top_p or 1.0,
-            max_output_tokens=prompt.max_output_tokens or 4096,
+            max_output_tokens=prompt.max_output_tokens,
             reasoning=reasoning,
         )
 

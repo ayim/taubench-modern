@@ -32,7 +32,7 @@ class CortexPrompt(PlatformPrompt):
     """The list of tools for the prompt."""
 
     max_tokens: int = field(
-        default=4096,
+        default=16384,  # 16384 is the default max tokens for Cortex (from their API docs)
         metadata={
             "description": "The maximum number of tokens for the prompt.",
         },

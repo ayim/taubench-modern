@@ -30,7 +30,7 @@ class GooglePrompt(PlatformPrompt):
     """The list of tools for the prompt."""
 
     max_output_tokens: int = field(
-        default=4096,
+        default=4096,  # TODO: Revisit this in our Gemini client overhaul
         metadata={
             "description": "The maximum number of output tokens for the prompt.",
         },

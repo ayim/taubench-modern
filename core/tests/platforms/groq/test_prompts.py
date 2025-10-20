@@ -31,7 +31,6 @@ class TestOpenAIPrompt:
             messages=messages,
             temperature=0.0,
             top_p=1.0,
-            max_tokens=4096,
         )
 
     def test_as_platform_request(self, groq_prompt: GroqPrompt) -> None:
@@ -159,7 +158,7 @@ class TestOpenAIPrompt:
         assert prompt.messages == messages
         assert prompt.temperature == 0.0
         assert prompt.top_p == 1.0
-        assert prompt.max_tokens == 4096
+        assert prompt.max_completion_tokens is None
         assert prompt.tools is None
 
         # Test with custom values
@@ -178,10 +177,10 @@ class TestOpenAIPrompt:
             tools=tools,
             temperature=0.7,
             top_p=0.9,
-            max_tokens=1000,
+            max_completion_tokens=1000,
         )
         assert prompt.messages == messages
         assert prompt.tools == tools
         assert prompt.temperature == 0.7
         assert prompt.top_p == 0.9
-        assert prompt.max_tokens == 1000
+        assert prompt.max_completion_tokens == 1000

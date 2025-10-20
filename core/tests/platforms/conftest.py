@@ -148,7 +148,6 @@ def basic_prompt_no_tools():
         messages=messages,
         tools=[],
         temperature=0.0,
-        max_output_tokens=4096,
     )
 
 
@@ -193,7 +192,6 @@ def basic_prompt_with_system_message():
         messages=messages,
         tools=[],
         temperature=0.0,
-        max_output_tokens=4096,
     )
 
 
@@ -260,7 +258,6 @@ def basic_prompt_with_three_messages():
         messages=messages,
         tools=[],
         temperature=0.0,
-        max_output_tokens=4096,
     )
 
 
@@ -317,7 +314,6 @@ def basic_prompt_with_one_tool():
         messages=messages,
         tools=[ToolDefinition.from_callable(_add_book)],
         temperature=0.0,
-        max_output_tokens=4096,
     )
 
 
@@ -397,7 +393,6 @@ def basic_prompt_tool_no_args():
             ToolDefinition.from_callable(_confirm_request),
         ],
         temperature=0.0,
-        max_output_tokens=4096,
     )
 
 
@@ -465,7 +460,6 @@ def prompt_to_elicit_parallel_tool_calls():
             ToolDefinition.from_callable(_confirm_request),
         ],
         temperature=0.0,
-        max_output_tokens=4096,
     )
 
 

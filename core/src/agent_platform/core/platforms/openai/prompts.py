@@ -42,8 +42,8 @@ class OpenAIPrompt(PlatformPrompt):
     )
     """The instructions for the prompt."""
 
-    max_output_tokens: int = field(
-        default=4096,
+    max_output_tokens: int | None = field(
+        default=None,
         metadata={
             "description": "The maximum number of tokens for the prompt.",
         },
@@ -119,7 +119,6 @@ class OpenAIPrompt(PlatformPrompt):
             "model": model,
             "input": self.input,
             "tools": self.tools or [],
-            "max_output_tokens": self.max_output_tokens,
             "temperature": self.temperature,
             "tool_choice": self.tool_choice,
             "top_p": self.top_p,
@@ -127,6 +126,10 @@ class OpenAIPrompt(PlatformPrompt):
             "include": self.include,
             "store": False,
         }
+
+        # Include max output tokens if provided
+        if self.max_output_tokens is not None:
+            results_dict["max_output_tokens"] = self.max_output_tokens
 
         # Include instructions if provided
         if self.instructions is not None:

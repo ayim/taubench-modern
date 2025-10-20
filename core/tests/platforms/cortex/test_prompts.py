@@ -272,7 +272,7 @@ class TestCortexPrompt:
         ]
         assert request["temperature"] == 0.0
         assert request["top_p"] == 1.0
-        assert request["max_tokens"] == 4096
+        assert request["max_tokens"] == 16384
 
     def test_as_platform_request_with_additional_fields(self) -> None:
         """Test that as_platform_request works correctly with additional
@@ -386,7 +386,7 @@ class TestCortexPrompt:
         assert "tools" not in request
         assert request["temperature"] == 0.0
         assert request["top_p"] == 1.0
-        assert request["max_tokens"] == 4096
+        assert request["max_tokens"] == 16384
 
     def test_as_platform_request_with_tool_use(
         self,

@@ -173,7 +173,6 @@ class TestNoPlatformOrModelFoundError:
                 "requested_capabilities": ["vision", "function_calling"],
                 "available_platforms": ["openai", "anthropic"],
                 "selection_criteria": {
-                    "max_tokens": 4096,
                     "supports_streaming": True,
                 },
                 "fallback_attempted": False,

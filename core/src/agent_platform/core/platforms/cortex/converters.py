@@ -302,5 +302,5 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
             tools=tools,
             temperature=prompt.temperature or 0.0,
             top_p=prompt.top_p or 1.0,
-            max_tokens=prompt.max_output_tokens or 4096,
+            max_tokens=prompt.max_output_tokens or 16384,
         )

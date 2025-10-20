@@ -80,11 +80,16 @@ export function createBalancedContext(): ContextDefinitionBuilder {
 }
 
 export function createCreativeContext(): ContextDefinitionBuilder {
-  return createContext()
-    .setTemperature(0.9)
-    .setTopP(0.9)
-    .setMaxOutputTokens(4096)
-    .setSeed(Math.floor(Math.random() * 1000000));
+  return (
+    createContext()
+      .setTemperature(0.9)
+      .setTopP(0.9)
+      // NOTE: We find that for higher reasoning effort models, 4096 is _not enough_
+      // and are changing server-side to mostly leave output limits _unset_ (where permissible)
+      // or, if required provider-side, to use higher defaults. (FYI @custompointofview)
+      .setMaxOutputTokens(4096)
+      .setSeed(Math.floor(Math.random() * 1000000))
+  );
 }
 
 export type { ContextDefinitionBuilder };

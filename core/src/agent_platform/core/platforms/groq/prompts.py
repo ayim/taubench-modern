@@ -31,13 +31,13 @@ class GroqPrompt(PlatformPrompt):
     )
     """The list of tools for the prompt."""
 
-    max_tokens: int = field(
-        default=4096,
+    max_completion_tokens: int | None = field(
+        default=None,
         metadata={
-            "description": "The maximum number of tokens for the prompt.",
+            "description": "The maximum number of completion tokens for the prompt.",
         },
     )
-    """The maximum number of tokens for the prompt."""
+    """The maximum number of completion tokens for the prompt."""
 
     temperature: float = field(
         default=0.0,

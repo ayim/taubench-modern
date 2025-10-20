@@ -35,7 +35,6 @@ class TestOpenAIPrompt:
             instructions="You are a helpful assistant.",
             temperature=0.0,
             top_p=1.0,
-            max_output_tokens=4096,
         )
 
     def test_as_platform_request(self, openai_prompt: OpenAIPrompt) -> None:
@@ -172,7 +171,7 @@ class TestOpenAIPrompt:
         assert isinstance(prompt.input, list)
         assert prompt.temperature == 0.0
         assert prompt.top_p == 1.0
-        assert prompt.max_output_tokens == 4096
+        assert prompt.max_output_tokens is None
         assert prompt.tools is None
 
         # Test with custom values
