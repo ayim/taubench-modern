@@ -11,7 +11,7 @@ TERMINAL_STATUSES = [TrialStatus.CANCELED, TrialStatus.COMPLETED, TrialStatus.ER
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_evals_e2e(  # noqa: PLR0915
+async def test_evals_e2e(  # noqa: PLR0915, C901
     base_url_agent_server_evals_matrix: str,
     openai_api_key: str,
 ):
@@ -57,10 +57,27 @@ async def test_evals_e2e(  # noqa: PLR0915
                 messages = thread.get("messages", [])
                 if not messages:
                     return False
-                latest_message = messages[-1]
-                return latest_message.get("role") == "agent"
 
-            await _wait_until(_latest_message_from_agent, interval=0.5, timeout=60)
+                for message in reversed(messages):
+                    if message.get("role") != "agent":
+                        continue
+
+                    print(f"Found agent message {message}")
+
+                    if message.get("commited") or message.get("complete"):
+                        return True
+
+                    contents = message.get("content", [])
+                    if any(content.get("complete") for content in contents):
+                        return True
+
+                    print("Agent message is not complete or commited yet")
+
+                return False
+
+            # we wait for an agent message
+            # otherwise we may create a scenario with an incomplete thread
+            await _wait_until(_latest_message_from_agent, interval=1.0, timeout=60 * 5)
 
         evals_url = f"{base_url_agent_server_evals_matrix}/api/v2/evals"
 
