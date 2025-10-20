@@ -36,43 +36,6 @@ export const Header = () => {
     <ThreadHeader>
       {!isMobile && (
         <>
-          <Tooltip text="Files" placement="bottom">
-            <RouterSideNavigationLink
-              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/files', {
-                tenantId,
-                agentId,
-                threadId,
-              })}
-              icon={<IconPaperclip />}
-              round
-            />
-          </Tooltip>
-          {features.agentDetails.enabled && (
-            <Tooltip text="Details" placement="bottom">
-              <RouterSideNavigationLink
-                icon={<IconInformation />}
-                round
-                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/chat-details', {
-                  tenantId,
-                  agentId,
-                  threadId,
-                })}
-              />
-            </Tooltip>
-          )}
-
-          <Tooltip text="Data Frames" placement="bottom">
-            <RouterSideNavigationLink
-              icon={<IconSpreadsheet />}
-              round
-              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/data-frames', {
-                tenantId,
-                agentId,
-                threadId,
-              })}
-            />
-          </Tooltip>
-
           {agent.question_groups && agent.question_groups.length > 0 && (
             <Tooltip text="Conversation Guides" placement="bottom">
               <RouterSideNavigationLink
@@ -93,6 +56,43 @@ export const Header = () => {
                 icon={IconChemicalBottle}
                 round
                 {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/evaluations', {
+                  tenantId,
+                  agentId,
+                  threadId,
+                })}
+              />
+            </Tooltip>
+          )}
+
+          <Tooltip text="Data Frames" placement="bottom">
+            <RouterSideNavigationLink
+              icon={<IconSpreadsheet />}
+              round
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/data-frames', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
+            />
+          </Tooltip>
+
+          <Tooltip text="Files" placement="bottom">
+            <RouterSideNavigationLink
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/files', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
+              icon={<IconPaperclip />}
+              round
+            />
+          </Tooltip>
+          {features.agentDetails.enabled && (
+            <Tooltip text="Details" placement="bottom">
+              <RouterSideNavigationLink
+                icon={<IconInformation />}
+                round
+                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/chat-details', {
                   tenantId,
                   agentId,
                   threadId,

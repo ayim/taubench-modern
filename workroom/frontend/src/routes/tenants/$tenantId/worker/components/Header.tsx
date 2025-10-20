@@ -1,5 +1,5 @@
 import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
-import { IconArrowLeft, IconDotsHorizontal, IconInformation, IconPaperclip, IconPlus, IconPoll } from '@sema4ai/icons';
+import { IconArrowLeft, IconDotsHorizontal, IconInformation, IconPaperclip, IconPoll } from '@sema4ai/icons';
 import { WorkerHeader } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 import { useNavigate, useParams } from '@tanstack/react-router';
@@ -56,20 +56,6 @@ export const Header = () => {
         <>
           {workItemId && threadId && (
             <>
-              {features.agentDetails.enabled && (
-                <Tooltip text="Details" placement="bottom">
-                  <RouterSideNavigationLink
-                    icon={<IconInformation />}
-                    round
-                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
-                      tenantId,
-                      agentId,
-                      workItemId,
-                      threadId,
-                    })}
-                  />
-                </Tooltip>
-              )}
               <Tooltip text="Work Item Details" placement="bottom">
                 <RouterSideNavigationLink
                   icon={<IconPoll />}
@@ -95,6 +81,21 @@ export const Header = () => {
                   })}
                 />
               </Tooltip>
+
+              {features.agentDetails.enabled && (
+                <Tooltip text="Details" placement="bottom">
+                  <RouterSideNavigationLink
+                    icon={<IconInformation />}
+                    round
+                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
+                      tenantId,
+                      agentId,
+                      workItemId,
+                      threadId,
+                    })}
+                  />
+                </Tooltip>
+              )}
             </>
           )}
         </>
@@ -106,13 +107,6 @@ export const Header = () => {
             <Menu.Item icon={IconArrowLeft} onClick={handleBackToWorkItems}>
               Back to Work Items
             </Menu.Item>
-            <RouterMenuLink
-              to="/tenants/$tenantId/worker/$agentId/create"
-              icon={IconPlus}
-              params={{ tenantId, agentId }}
-            >
-              New Work Item
-            </RouterMenuLink>
 
             {workItemId && threadId && (
               <>
