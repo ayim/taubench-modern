@@ -48,4 +48,4 @@ jobs:
         with:
           project-name: team-edition-dev-deployer-team-edition-1
           env-vars-for-codebuild: BRANCH_NAME,OPERATION
-          source-version-override: ${{ github.head_ref }}
+          source-version-override: ${{ github.base_ref }}
