@@ -392,11 +392,82 @@ have unresolved file references and if they have we try to resolve them.
 At this point we'll do it without any caching to try to keep the PR as small as possible
 (which is already quite big).
 
-# Step 13c:
+# Step 13c (this PR):
 
-- Add caches for the inspection metadata when a file is inspected for tabular data (data frames).
-- Add cache associating which file matches which semantic data model when a semantic data model is
-  added to an agent (but the file is only available after it's uploaded to the thread).
+1. Add caches for the inspection metadata when a file is inspected for tabular data (data frames), for
+   the full data frames created from files and for the data frames intermediary results.
+
+To do this we need to:
+
+- Create a new table to hold the cache information.
+
+  - The table must have:
+    - cache_key: str (a way to uniquely identify the cache entry, actual value depends on the kind of cache)
+    - cache_data: bytes (to store the actual cache data as a bytes object)
+    - last_accessed_at: datetime (to store the last time the cache was accessed, this will be used to evict old caches as an LRU cache)
+    - time_to_compute_data_in_seconds: float ("cultural" information about the time saved by accessing this cache)
+    - cache_size_in_bytes: int ("cultural" information about the size of the cache data)
+
+Indexes:
+
+- cache_key (primary key)
+- last_accessed_at
+
+# Step 13d (this PR):
+
+Use the cache in:
+
+`inspect_file_as_data_frame` method from `threads_data_frames.py` file.
+(note that in some cases we create dummy `UploadedFile` instances to return the inspection metadata,
+for which we won't cache anything -- i.e.: if `file_id` is `""`, thread_id is `None` and agent_id is `None`).
+Here we want to cache the inspection metadata so that we don't have to inspect the file again when resolving
+which semantic data model matches a file reference.
+
+```
+cache_key="inspect_"+file_id or file_id+sheet_name
+cache_data=inspection metadata as a bytes object in json format
+```
+
+Some important notes:
+
+- We may receive a sheet name or not, if we don't we load all the sheets, in this case,
+  the cache must cache an entry saying all the sheet names for that file and then
+  it should cache an entry for each sheet.
+  Later when loading we should have a cache hit for individual sheets or for all the sheets.
+- The same way, we may receive a request where the number of samples is 0, in this case we
+  can just load (and store in the cache) the cache metadata for that file/sheet.
+  Now, if the number of samples is different from 0, we should load always 10 samples
+  and store those 10 samples in the cache. If the number of samples is higher, always
+  load all the samples and store the full parquet file in the cache (but then also
+  store the 10 samples in the cache as well).
+  i.e.: we need to store multiple entries (for metadata, for 10 samples and for the full data frame,
+  each under a different key)
+
+# Step 13e:
+
+`create_data_frame_from_file` method from `threads_data_frames.py` file.
+Here we want to cache the full data frame data from file/sheet so that we don't have to download/parse the file again when resolving
+the same file/sheet.
+
+```
+cache_key="full_"+(file_id or file_id+sheet_name)
+cache_data=full data frame data from file/sheet as a bytes object in parquet format
+```
+
+`_resolve_sql_with_connection` method from `data_frames_kernel.py` file.
+Here we want to cache the data frames intermediary results so that we don't have to compute them again when resolving
+the same SQL query with the same connection (note: we can currently only cache results of files, not of data
+connections as files are immutable while data connections are not and can change over time and we don't have
+a way to know if the data connection has changed or a UI which could ask for a refresh of the data connection).
+
+```
+cache_key="data_frame_"+data_frame_id
+cache_data=intermediary data frame result as a bytes object in parquet format
+```
+
+2. Add to information to the DataFrameArchState associating which file matches which semantic data model when a semantic data model is
+   added to an agent and we match that semantic data model with a file in a thread.
+   -- to be used in `_find_file_which_matches_unresolved_file_reference` method from `SemanticDataModelCollector` class.
 
 # Step 14:
 
@@ -436,6 +507,7 @@ when creating a new semantic data model for some other data (if the shape of one
   - Validate if user tries to create a Table with inconsistent column/rows.
   - Accept name and description for a Table.
 - Bug in agent server: only a `Response[Table]` is accepted, but just a `Table` should be accepted too.
+- It seems our reading of csv is not reading server\tests\integration\resources\data_frames\artificial-intelligence-number-training-datapoints.csv correctly to inspect data from it.
 - Verify that errors with proper messages are returned to the LLM.
 - Extract primary keys/uniqueness from the database directly when available.
 - https://sema4ai.slack.com/archives/C07LMU0AQFR/p1758257549592739

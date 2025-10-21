@@ -121,7 +121,11 @@ class LocalFileManager(BaseFileManager):
 
     async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
         file = await self.storage.get_file_by_id(file_id, user_id)
-        if not file:
+        if file is None:
+            logger.debug(
+                f"File not found (LocalFileManager): {file_id}, user_id: {user_id}"
+                f" -- storage: {self.storage}"
+            )
             raise Exception(f"File not found: {file_id}")
         if not file.file_path:
             raise Exception(f"Unable to read file {file_id} (no file path).")
@@ -153,7 +157,11 @@ class LocalFileManager(BaseFileManager):
             Exception: If the file is not found or cannot be accessed
         """
         file = await self.storage.get_file_by_id(file_id, user_id)
-        if not file:
+        if file is None:
+            logger.debug(
+                f"File not found (LocalFileManager): {file_id}, user_id: {user_id}"
+                f" -- storage: {self.storage}"
+            )
             raise Exception(f"File not found: {file_id}")
         if not file.file_path:
             raise Exception(f"Unable to read file {file_id} (no file path).")

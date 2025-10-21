@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import json
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Sequence
@@ -11,6 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import JSON
+from structlog.stdlib import get_logger
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
@@ -35,6 +37,8 @@ from agent_platform.server.storage.errors import (
     TrialNotFoundError,
 )
 from agent_platform.server.storage.types import StaleThreadsResult
+
+logger = get_logger(__name__)
 
 
 @runtime_checkable
@@ -1721,3 +1725,219 @@ class BaseStorage(AbstractStorage, CommonMixin):
             # Convert to list and return
             results = list(models_by_id.values())
             return results
+
+    # -------------------------------------------------------------------------
+    # Methods for Data Frames Cache
+    # -------------------------------------------------------------------------
+
+    @dataclasses.dataclass(frozen=True)
+    class CacheValue:
+        cache_data: bytes
+        time_to_compute_data_in_seconds: float
+        cache_size_in_bytes: int
+
+    async def get_cache_entry(self, cache_key: str) -> CacheValue | None:
+        """Get a cache entry by key."""
+        cache_table = self._get_table("data_cache")
+
+        stmt = sa.select(
+            cache_table.c.cache_data,
+            cache_table.c.time_to_compute_data_in_seconds,
+            cache_table.c.cache_size_in_bytes,
+        ).where(cache_table.c.cache_key == cache_key)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().first()
+
+            if row is None:
+                return None
+
+        await self._update_last_accessed_at(cache_table, cache_key)
+
+        return self.CacheValue(
+            cache_data=row["cache_data"],
+            time_to_compute_data_in_seconds=float(row["time_to_compute_data_in_seconds"]),
+            cache_size_in_bytes=int(row["cache_size_in_bytes"]),
+        )
+
+    async def _update_last_accessed_at(self, cache_table, cache_key: list[str] | str):
+        try:
+            async with self._write_connection() as conn:
+                # Update last_accessed_at
+                if isinstance(cache_key, str):
+                    update_stmt = (
+                        sa.update(cache_table)
+                        .where(cache_table.c.cache_key == cache_key)
+                        .values(last_accessed_at=datetime.now(UTC))
+                    )
+                else:
+                    update_stmt = (
+                        sa.update(cache_table)
+                        .where(cache_table.c.cache_key.in_(cache_key))
+                        .values(last_accessed_at=datetime.now(UTC))
+                    )
+                await conn.execute(update_stmt)
+        except Exception:
+            logger.error(
+                f"Error updating last_accessed_at for cache key {cache_key}", exc_info=True
+            )
+
+    async def get_cache_entries(self, cache_keys: list[str]) -> dict[str, CacheValue]:
+        """Get cache entries by keys."""
+        cache_table = self._get_table("data_cache")
+
+        if not cache_keys:
+            return {}
+
+        stmt = sa.select(
+            cache_table.c.cache_key,
+            cache_table.c.cache_data,
+            cache_table.c.time_to_compute_data_in_seconds,
+            cache_table.c.cache_size_in_bytes,
+        ).where(cache_table.c.cache_key.in_(cache_keys))
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        # Build result dictionary
+        cache_entries = {}
+        for row in rows:
+            cache_key = row["cache_key"]
+            cache_entries[cache_key] = self.CacheValue(
+                cache_data=row["cache_data"],
+                time_to_compute_data_in_seconds=float(row["time_to_compute_data_in_seconds"]),
+                cache_size_in_bytes=int(row["cache_size_in_bytes"]),
+            )
+
+        await self._update_last_accessed_at(cache_table, list(cache_entries.keys()))
+
+        return cache_entries
+
+    async def set_cache_entry(
+        self,
+        cache_key: str,
+        cache_data: bytes,
+        time_to_compute_data_in_seconds: float,
+        *,
+        last_accessed_at: datetime | None = None,
+    ) -> None:
+        """Set a cache entry."""
+        cache_table = self._get_table("data_cache")
+
+        cache_size_in_bytes = len(cache_data)
+
+        # Use dialect-specific insert to support upsert (update on conflict)
+        if self._sa_engine.dialect.name == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert
+        else:
+            from sqlalchemy.dialects.postgresql import insert
+
+        stmt = insert(cache_table).values(
+            cache_key=cache_key,
+            cache_data=cache_data,
+            last_accessed_at=(
+                last_accessed_at if last_accessed_at is not None else datetime.now(UTC)
+            ),
+            time_to_compute_data_in_seconds=time_to_compute_data_in_seconds,
+            cache_size_in_bytes=cache_size_in_bytes,
+        )
+
+        # On conflict of primary key (cache_key), update the stored values
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[cache_table.c.cache_key],
+            set_={
+                "cache_data": stmt.excluded.cache_data,
+                "last_accessed_at": stmt.excluded.last_accessed_at,
+                "time_to_compute_data_in_seconds": stmt.excluded.time_to_compute_data_in_seconds,
+                "cache_size_in_bytes": stmt.excluded.cache_size_in_bytes,
+            },
+        )
+
+        async with self._write_connection() as conn:
+            await conn.execute(stmt)
+
+    async def evict_old_cache_entries_by_size(
+        self, max_cache_size_bytes: int = 100 * 1024 * 1024
+    ) -> None:
+        """Evict old cache entries using LRU strategy."""
+        cache_table = self._get_table("data_cache")
+
+        # Get total cache size
+        size_stmt = sa.select(sa.func.sum(cache_table.c.cache_size_in_bytes))
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(size_stmt)
+            total_size = result.scalar() or 0
+
+            if total_size <= max_cache_size_bytes:
+                return
+
+            # Get entries ordered by last_accessed_at (oldest first)
+            entries_stmt = sa.select(
+                cache_table.c.cache_key, cache_table.c.cache_size_in_bytes
+            ).order_by(cache_table.c.last_accessed_at.asc())
+
+            result = await conn.execute(entries_stmt)
+            entries = result.mappings().fetchall()
+
+            # Calculate how much to evict
+            size_to_evict = total_size - max_cache_size_bytes
+            current_size = 0
+            keys_to_delete = []
+
+            for entry in entries:
+                keys_to_delete.append(entry["cache_key"])
+                current_size += entry["cache_size_in_bytes"]
+                if current_size >= size_to_evict:
+                    break
+
+        # Delete the oldest entries
+        if keys_to_delete:
+            async with self._write_connection() as conn:
+                delete_stmt = cache_table.delete().where(
+                    cache_table.c.cache_key.in_(keys_to_delete)
+                )
+                await conn.execute(delete_stmt)
+
+    async def evict_old_cache_entries_by_date(self, max_age_days: int = 30) -> None:
+        """Evict old cache entries by date."""
+        cache_table = self._get_table("data_cache")
+
+        # Calculate the cutoff date
+        cutoff_date = datetime.now(UTC) - timedelta(days=max_age_days)
+
+        # Delete entries older than the cutoff date
+        # TODO: this seems to work for postgres but not sqlite!
+        if self._sa_engine.dialect.name == "sqlite":
+            delete_stmt = cache_table.delete().where(
+                cache_table.c.last_accessed_at < cutoff_date.isoformat()
+            )
+        else:
+            delete_stmt = cache_table.delete().where(cache_table.c.last_accessed_at < cutoff_date)
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(delete_stmt)
+            logger.info(f"Evicted {result.rowcount} cache entries older than {max_age_days} days")
+
+    async def list_cached_entries(self) -> dict[str, CacheValue]:
+        cache_table = self._get_table("data_cache")
+        stmt = sa.select(
+            cache_table.c.cache_key,
+            cache_table.c.cache_data,
+            cache_table.c.time_to_compute_data_in_seconds,
+            cache_table.c.cache_size_in_bytes,
+        )
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+            return {
+                row["cache_key"]: self.CacheValue(
+                    cache_data=row["cache_data"],
+                    time_to_compute_data_in_seconds=float(row["time_to_compute_data_in_seconds"]),
+                    cache_size_in_bytes=int(row["cache_size_in_bytes"]),
+                )
+                for row in rows
+            }

@@ -240,8 +240,13 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
                 raise UserPermissionError("User does not have access to this file")
             if row:
                 row = {k: v for k, v in dict(row).items() if k != "has_access"}
-        self._logger.debug("File by ID result", found=bool(row))
-        return UploadedFile.model_validate(dict(row)) if row else None
+        ret = UploadedFile.model_validate(dict(row)) if row else None
+        self._logger.debug(
+            f"File by ID result ({self.__class__.__name__})",
+            found=ret is not None,
+            file_path=ret.file_path if ret else None,
+        )
+        return ret
 
     async def _get_file_for_deletion(
         self,

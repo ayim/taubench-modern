@@ -586,6 +586,7 @@ class DataFramesKernel:
         )
         from agent_platform.server.data_frames.data_reader import (
             create_file_data_reader,
+            get_file_metadata,
         )
 
         if data_frame.data_frame_id in self._resolved_data_frames:
@@ -600,13 +601,20 @@ class DataFramesKernel:
                         "type file, but it has no file_id or file_ref!"
                     ),
                 )
+
+            file_metadata = await get_file_metadata(
+                self._user.user_id,
+                self._tid,
+                self._storage,
+                file_id=data_frame.file_id,
+                file_ref=data_frame.file_ref,
+            )
             data_reader = await create_file_data_reader(
                 self._user,
                 self._tid,
                 self._storage,
                 sheet_name=data_frame.sheet_name,
-                file_id=data_frame.file_id,
-                file_ref=data_frame.file_ref,
+                file_metadata=file_metadata,
             )
             if data_reader.has_multiple_sheets():
                 raise PlatformHTTPError(

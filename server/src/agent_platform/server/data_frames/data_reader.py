@@ -1,8 +1,6 @@
-import datetime
 import typing
 from abc import abstractmethod
 from collections.abc import Iterator
-from typing import Any
 
 from structlog.stdlib import get_logger
 
@@ -65,7 +63,7 @@ class DataReaderSheet:
         """
 
     @abstractmethod
-    def to_ibis(self) -> Any:
+    def to_ibis(self) -> "pyarrow.Table":
         """
         The full sheet as required by ibis.
         """
@@ -75,13 +73,6 @@ class FileDataReader:
     """
     A protocol for data readers.
     """
-
-    @property
-    @abstractmethod
-    def file_metadata(self) -> "UploadedFile":
-        """
-        The metadata of the file.
-        """
 
     @abstractmethod
     def has_multiple_sheets(self) -> bool:
@@ -94,18 +85,11 @@ class FileDataReader:
 
 class ExcelDataReader(FileDataReader):
     # Note: may have to fall back to read as csv if reading as excel fails.
-    def __init__(
-        self, file_metadata: "UploadedFile", file_bytes: bytes, sheet_name: str | None = None
-    ):
-        self._file_metadata = file_metadata
+    def __init__(self, file_bytes: bytes, sheet_name: str | None = None):
         self._file_bytes = file_bytes
         self._sheet_name = sheet_name
         self.__excel_reader: fastexcel.ExcelReader | None = None
         self._failed_reading_as_excel = False
-
-    @property
-    def file_metadata(self) -> "UploadedFile":
-        return self._file_metadata
 
     @property
     def _excel_reader(self) -> "fastexcel.ExcelReader":
@@ -140,7 +124,7 @@ class ExcelDataReader(FileDataReader):
         try:
             excel_reader = self._excel_reader
         except Exception:
-            yield from CsvDataReader(self._file_metadata, self._file_bytes).iter_sheets()
+            yield from CsvDataReader(self._file_bytes).iter_sheets()
             return
 
         sheet_names = excel_reader.sheet_names
@@ -193,7 +177,10 @@ class ExcelDataReaderSheet(DataReaderSheet):
             return self._load_samples(loaded_sheet.to_arrow())
 
         loaded_sheet = self._loaded_sheet()
-        return self._load_samples(loaded_sheet.to_arrow()[:num_samples])
+        table = loaded_sheet.to_arrow()
+        if num_samples != -1 and num_samples < table.num_rows:
+            table = table[:num_samples]
+        return self._load_samples(table)
 
     def _load_samples(self, batch) -> "list[Row]":
         from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
@@ -206,7 +193,7 @@ class ExcelDataReaderSheet(DataReaderSheet):
             ],
         )
 
-    def to_ibis(self) -> Any:
+    def to_ibis(self) -> "pyarrow.Table":
         arrow_table = self._loaded_sheet().to_arrow()
         return _convert_null_data_types_to_string(arrow_table)
 
@@ -256,10 +243,16 @@ class CsvDataReaderSheet(DataReaderSheet):
 
         from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
 
+        if num_samples == 0:
+            return []
+
         table = pyarrow.csv.read_csv(
             io.BytesIO(self._file_bytes),
             pyarrow.csv.ReadOptions(),
-        )[:num_samples]
+        )
+        if num_samples != -1 and num_samples < table.num_rows:
+            table = table[:num_samples]
+
         return typing.cast(
             "list[Row]",
             [
@@ -268,7 +261,7 @@ class CsvDataReaderSheet(DataReaderSheet):
             ],
         )
 
-    def to_ibis(self) -> Any:
+    def to_ibis(self) -> "pyarrow.Table":
         import io
 
         import pyarrow.csv
@@ -307,13 +300,8 @@ def _convert_null_data_types_to_string(table: "pyarrow.Table") -> "pyarrow.Table
 
 
 class CsvDataReader(FileDataReader):
-    def __init__(self, file_metadata: "UploadedFile", file_bytes: bytes):
-        self._file_metadata = file_metadata
+    def __init__(self, file_bytes: bytes):
         self._file_bytes = file_bytes
-
-    @property
-    def file_metadata(self) -> "UploadedFile":
-        return self._file_metadata
 
     def has_multiple_sheets(self) -> bool:
         return False
@@ -322,52 +310,64 @@ class CsvDataReader(FileDataReader):
         yield CsvDataReaderSheet(self._file_bytes)
 
 
-async def _get_file(
+async def get_file_metadata(
     user_id: str,
     thread_id: str,
     storage: "BaseStorage",
     *,
     file_id: str | None = None,
     file_ref: str | None = None,
-) -> "tuple[UploadedFile, bytes]":
+) -> "UploadedFile":
+    """Get a file metadata from the storage."""
+    from agent_platform.core.errors.base import PlatformHTTPError
+    from agent_platform.core.errors.responses import ErrorCode
+
+    ret: UploadedFile | None = None
+    if file_id:
+        ret = await storage.get_file_by_id(file_id, user_id)
+        if ret is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND, message=f"File with id {file_id} not found"
+            )
+        return ret
+    elif file_ref:
+        thread = await storage.get_thread(user_id, thread_id)
+        ret = await storage.get_file_by_ref(thread, file_ref, user_id)
+        if ret is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND, message=f"File with ref {file_ref} not found"
+            )
+        return ret
+    else:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.PRECONDITION_FAILED,
+            message="Either file_id or file_ref must be provided",
+        )
+
+
+async def _get_file_contents(
+    user_id: str, thread_id: str, storage: "BaseStorage", file_metadata: "UploadedFile"
+) -> bytes:
     """Get a file from the storage."""
+    from agent_platform.core.errors.base import PlatformHTTPError
+    from agent_platform.core.errors.responses import ErrorCode
     from agent_platform.server.file_manager.base import BaseFileManager
     from agent_platform.server.file_manager.option import FileManagerService
 
     file_manager: BaseFileManager = FileManagerService.get_instance(storage)
 
-    from agent_platform.core.errors.base import PlatformError
-
-    # Get the file metadata
-    file_metadata: UploadedFile | None = None
-    if file_id:
-        file_metadata = await storage.get_file_by_id(file_id, user_id)
-    elif file_ref:
-        # To get by ref we need the actual thread object...
-        thread = await storage.get_thread(user_id, thread_id)
-        file_metadata = await storage.get_file_by_ref(thread, file_ref, user_id)
-    else:
-        raise PlatformError(
-            message="Either file_id or file_ref must be provided",
-        )
-
-    # If we have no metadata, raise
-    if file_metadata is None:
-        raise PlatformError(
-            message=f"File with id {file_id} not found",
-        )
-
     # Check if the file is in the thread
     if file_metadata.thread_id != thread_id:
-        raise PlatformError(
-            message=f"File with id {file_id} is not in thread {thread_id}",
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"File with id {file_metadata.file_id} is not in thread {thread_id}",
         )
 
     # Get the file from the storage
     file_contents = await file_manager.read_file_contents(file_metadata.file_id, user_id)
 
     # Return the file contents
-    return file_metadata, file_contents
+    return file_contents
 
 
 def create_file_data_reader_from_contents(
@@ -375,7 +375,6 @@ def create_file_data_reader_from_contents(
     file_name: str,
     mime_type: str,
     sheet_name: str | None = None,
-    file_metadata: "UploadedFile | None" = None,
 ) -> "FileDataReader":
     """Create a FileDataReader from file contents directly.
 
@@ -384,39 +383,19 @@ def create_file_data_reader_from_contents(
         file_name: The name of the file
         mime_type: The MIME type of the file
         sheet_name: Optional sheet name for Excel files
-        file_metadata: Optional file metadata (if not provided,
-            a mock UploadedFile is created internally)
 
     Returns:
         A FileDataReader instance
     """
-    import uuid
-
     from agent_platform.core.errors.base import PlatformError
-    from agent_platform.core.files import UploadedFile
-
-    if file_metadata is None:
-        # Create a mock UploadedFile for compatibility
-        file_metadata = UploadedFile(
-            file_id=str(uuid.uuid4()),  # No file_id since this is not from storage
-            file_ref=file_name,
-            file_hash="",  # No file_hash since this is not from storage
-            file_size_raw=len(file_contents),
-            mime_type=mime_type,
-            created_at=datetime.datetime.now(datetime.UTC),
-            file_path=None,  # No file_path since this is not from storage
-            thread_id=None,  # No thread_id since this is not from storage
-            user_id=None,  # No user_id since this is not from storage
-            file_path_expiration=None,
-        )
 
     # Make sure it's an appropriate file type (excel or csv)
     data_reader: FileDataReader
     try:
         if mime_type in ("text/csv", "text/tab-separated-values"):
-            data_reader = CsvDataReader(file_metadata, file_contents)
+            data_reader = CsvDataReader(file_contents)
         else:
-            data_reader = ExcelDataReader(file_metadata, file_contents, sheet_name=sheet_name)
+            data_reader = ExcelDataReader(file_contents, sheet_name=sheet_name)
     except Exception as e:
         if mime_type not in _all_mime_types:
             message = (
@@ -433,20 +412,19 @@ def create_file_data_reader_from_contents(
     return data_reader
 
 
-async def create_file_data_reader(  # noqa: PLR0913
+async def create_file_data_reader(
     user: "AuthedUser",
     tid: str,
     storage: "BaseStorage",
     sheet_name: str | None = None,
     *,
-    file_id: str | None = None,
-    file_ref: str | None = None,
+    file_metadata: "UploadedFile",
 ) -> "FileDataReader":
     from agent_platform.server.storage.base import BaseStorage
 
     # Get the file from the storage
-    file_metadata, file_bytes = await _get_file(
-        user.user_id, tid, typing.cast(BaseStorage, storage), file_id=file_id, file_ref=file_ref
+    file_bytes = await _get_file_contents(
+        user.user_id, tid, typing.cast(BaseStorage, storage), file_metadata=file_metadata
     )
 
     # Use the new function to create the data reader
@@ -455,5 +433,4 @@ async def create_file_data_reader(  # noqa: PLR0913
         file_metadata.file_ref,
         file_metadata.mime_type,
         sheet_name=sheet_name,
-        file_metadata=file_metadata,
     )

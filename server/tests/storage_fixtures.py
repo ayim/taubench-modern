@@ -20,9 +20,19 @@ async def sqlite_storage(tmp_path: Path) -> "AsyncGenerator[SQLiteStorage, None]
     Initialize SQLiteStorage with an ephemeral database.
     We'll also seed a system user, just like in Postgres tests.
     """
+    from agent_platform.server.file_manager.option import FileManagerService
+    from agent_platform.server.storage.option import StorageService
+
     storage_instance = await _create_sqlite_storage(tmp_path)
+
+    StorageService.set_for_testing(storage_instance)
+    FileManagerService.reset()
+
     yield storage_instance
     await _teardown_sqlite_storage(tmp_path, storage_instance)
+
+    StorageService.reset()
+    FileManagerService.reset()
 
 
 async def _create_sqlite_storage(tmp_path: Path) -> "SQLiteStorage":
@@ -140,9 +150,19 @@ async def postgres_storage(
     the 'v2' schema (if it exists) and recreating it. This
     pre-truncates any existing state from previous tests.
     """
+    from agent_platform.server.file_manager.option import FileManagerService
+    from agent_platform.server.storage.option import StorageService
+
     try:
         storage_instance = await _create_postgres_storage(postgres_test_db, postgres_testing)
+        StorageService.set_for_testing(storage_instance)
+        FileManagerService.reset()
+
         yield storage_instance
+
+        StorageService.reset()
+        FileManagerService.reset()
+
         # No teardown: trying to keep pool open for the duration of the test session.
         # await storage_instance.teardown()
     except Exception as e:
@@ -170,6 +190,9 @@ async def storage(
     PostgreSQL tests will be skipped when running with -m "not postgresql",
     but SQLite tests will still run.
     """
+    from agent_platform.server.file_manager.option import FileManagerService
+    from agent_platform.server.storage.option import StorageService
+
     if request.param == "postgres":
         if postgres_testing is None:
             raise Exception(
@@ -178,8 +201,19 @@ async def storage(
                 used anyway"""
             )
         storage_instance = await _create_postgres_storage(postgres_test_db, postgres_testing)
+
+        StorageService.set_for_testing(storage_instance)
+        FileManagerService.reset()
+
         yield storage_instance
     else:  # sqlite
         storage_instance = await _create_sqlite_storage(tmp_path)
+
+        StorageService.set_for_testing(storage_instance)
+        FileManagerService.reset()
+
         yield storage_instance
         await _teardown_sqlite_storage(tmp_path, storage_instance)
+
+    StorageService.reset()
+    FileManagerService.reset()

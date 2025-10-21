@@ -1,3 +1,4 @@
+import dataclasses
 import typing
 
 from structlog import get_logger
@@ -37,12 +38,17 @@ class SemanticDataModelCollector:
         self.thread_id = thread_id
         self.user = user
 
+    @dataclasses.dataclass(frozen=True)
+    class _MatchingInfo:
+        uploaded_file: "UploadedFile"
+        sheet_name_to_logical_tables: "dict[str | None, list[LogicalTable]]"
+
     async def _find_file_which_matches_unresolved_file_reference(
         self,
         storage: "BaseStorage",
         references: "References",
         semantic_data_model: "SemanticDataModel",
-    ) -> "tuple[UploadedFile, str | None, LogicalTable] | None":
+    ) -> _MatchingInfo | None:
         from agent_platform.server.api.private_v2.threads_data_frames import (
             inspect_file_as_data_frame,
         )
@@ -50,19 +56,25 @@ class SemanticDataModelCollector:
         tables_with_unresolved_file_references: set[EmptyFileReference] = (
             references.tables_with_unresolved_file_references
         )
+
+        if not tables_with_unresolved_file_references:
+            raise RuntimeError(
+                "Don't call this method unless there are actual unresolved file references!"
+            )
+
         # Load the files in the thread
-        files = await storage.get_thread_files(
+        files_in_thread = await storage.get_thread_files(
             thread_id=self.thread_id,
             user_id=self.user.user_id,
         )
 
-        for uploaded_file in files:
+        for uploaded_file in files_in_thread:
             try:
                 # Note: it's a bit of a brute force approach to have to inspect the files,
                 # but it's the only way to know if the file matches the semantic data model.
                 # We should at least cache this information accordingly (both the result of
                 # the inspection as well as which file matches which semantic data model).
-                # This is a TODO (this PR is already to big for the caches).
+                # At least we cache the inspection metadata for the file!
                 inspected_data_frames: list[
                     _DataFrameInspectionAPI
                 ] = await inspect_file_as_data_frame(
@@ -76,15 +88,26 @@ class SemanticDataModelCollector:
                 )
 
                 # Check if any of the inspected data frames match any of the unresolved references
+                sheet_name_to_logical_tables: dict[str | None, list[LogicalTable]] = {}
+                found_matching = 0
                 for inspected_data_frame in inspected_data_frames:
                     for unresolved_reference in tables_with_unresolved_file_references:
-                        # Match by sheet name and contents of the column
-                        sheet_matches = (
-                            not (
-                                unresolved_reference.sheet_name and inspected_data_frame.sheet_name
+                        # Match by sheet name and columns in the table
+
+                        if len(inspected_data_frames) == 1:
+                            sheet_matches = True  # single sheet, matches by default
+                        else:
+                            sheet_matches = (
+                                not (
+                                    unresolved_reference.sheet_name
+                                    and inspected_data_frame.sheet_name
+                                )
+                                or unresolved_reference.sheet_name
+                                == inspected_data_frame.sheet_name
                             )
-                            or unresolved_reference.sheet_name == inspected_data_frame.sheet_name
-                        )
+
+                        if not sheet_matches:
+                            continue
 
                         logical_table_with_matching_columns = (
                             self._logical_table_with_matching_columns(
@@ -92,15 +115,22 @@ class SemanticDataModelCollector:
                             )
                         )
 
-                        if sheet_matches and logical_table_with_matching_columns:
+                        if not logical_table_with_matching_columns:
+                            continue
+
+                        matching_tables = sheet_name_to_logical_tables.setdefault(
+                            inspected_data_frame.sheet_name, []
+                        )
+                        matching_tables.append(logical_table_with_matching_columns)
+                        found_matching += 1
+                        if found_matching == len(tables_with_unresolved_file_references):
                             logger.info(
                                 f"Found matching file for unresolved reference (file_ref: "
                                 f"{uploaded_file.file_ref})",
                             )
-                            return (
-                                uploaded_file,
-                                inspected_data_frame.sheet_name,
-                                logical_table_with_matching_columns,
+                            return self._MatchingInfo(
+                                uploaded_file=uploaded_file,
+                                sheet_name_to_logical_tables=sheet_name_to_logical_tables,
                             )
 
             except Exception as e:
@@ -244,21 +274,24 @@ class SemanticDataModelCollector:
                 storage, references, semantic_data_model
             )
 
-            if found:
-                uploaded_file, sheet_name, logical_table_with_matching_columns = found
+            if found is not None:
                 # Update the file information in the base_table to match the found file
-                base_table = logical_table_with_matching_columns.get("base_table")
-                if base_table is None:
-                    base_table = logical_table_with_matching_columns["base_table"] = {}
+                for sheet_name, logical_table in found.sheet_name_to_logical_tables.items():
+                    for table in logical_table:
+                        base_table = table.get("base_table")
+                        if base_table is None:
+                            base_table = table["base_table"] = {}
 
-                assert base_table is not None
-                assert uploaded_file.thread_id is not None
-                file_reference: FileReference = {
-                    "thread_id": uploaded_file.thread_id,
-                    "file_ref": uploaded_file.file_ref,
-                    "sheet_name": sheet_name,
-                }
-                base_table["file_reference"] = file_reference
+                        assert base_table is not None
+                        assert found.uploaded_file.thread_id is not None
+                        file_reference: FileReference = {
+                            "thread_id": found.uploaded_file.thread_id,
+                            "file_ref": found.uploaded_file.file_ref,
+                            "sheet_name": sheet_name,
+                        }
+                        base_table["file_reference"] = file_reference
+
+                # We've mutated the semantic data model info in the code above!
                 resolved_semantic_data_model_infos.append(semantic_data_model_info)
 
         return resolved_semantic_data_model_infos

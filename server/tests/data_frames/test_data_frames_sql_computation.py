@@ -313,27 +313,14 @@ async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
 
 def _read_from_excel_as_parquet(file_path: Path) -> bytes:
     import io
-    from datetime import UTC, datetime
 
     import pyarrow
     import pyarrow.parquet as pq
 
-    from agent_platform.core.files.files import UploadedFile
     from agent_platform.server.data_frames.data_reader import ExcelDataReader
 
-    file_metadata = UploadedFile(
-        file_id="123",
-        file_ref="example.ods",
-        file_hash="123",
-        file_size_raw=100,
-        mime_type="application/vnd.oasis.opendocument.spreadsheet",
-        created_at=datetime.now(UTC),
-        file_path=None,
-        file_path_expiration=None,
-        embedded=False,
-    )
     file_bytes = file_path.read_bytes()
-    reader = ExcelDataReader(file_metadata, file_bytes, sheet_name="Sheet1")
+    reader = ExcelDataReader(file_bytes, sheet_name="Sheet1")
     assert reader.has_multiple_sheets() is False
     sheet = next(reader.iter_sheets())
     assert sheet.name == "Sheet1"
@@ -350,27 +337,14 @@ def _read_from_excel_as_parquet(file_path: Path) -> bytes:
 
 def _read_from_csv_as_parquet(file_path: Path) -> bytes:
     import io
-    from datetime import UTC, datetime
 
     import pyarrow
     import pyarrow.parquet as pq
 
-    from agent_platform.core.files.files import UploadedFile
     from agent_platform.server.data_frames.data_reader import CsvDataReader
 
-    file_metadata = UploadedFile(
-        file_id="1234",
-        file_ref="example.csv",
-        file_hash="1234",
-        file_size_raw=100,
-        mime_type="text/csv",
-        created_at=datetime.now(UTC),
-        file_path=None,
-        file_path_expiration=None,
-        embedded=False,
-    )
     file_bytes = file_path.read_bytes()
-    reader = CsvDataReader(file_metadata, file_bytes)
+    reader = CsvDataReader(file_bytes)
     assert reader.has_multiple_sheets() is False
     sheet = next(reader.iter_sheets())
     assert sheet.name is None

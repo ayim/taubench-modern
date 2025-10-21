@@ -1,7 +1,7 @@
 import dataclasses
 import datetime
 import typing
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypedDict
 
 from fastapi import HTTPException, Response
 from fastapi.routing import APIRouter
@@ -12,6 +12,13 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
+from sema4ai.common.callback import Callback
+
+if typing.TYPE_CHECKING:
+    import pyarrow
+    from sema4ai.actions import Row
+
+    from agent_platform.server.storage.base import BaseStorage
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -35,8 +42,352 @@ class _DataFrameInspectionAPI:
     file_ref: Annotated[str | None, "The reference of the file that the data frame is in."]
 
 
+class CacheMissError(Exception):
+    """Raised when a cache miss occurs."""
+
+
+class _CacheMetadataSingleSheet(TypedDict):
+    """
+    Metadata for a single-sheet file.
+
+    Cached under the 'metadata' key for a single sheet.
+    """
+
+    name: str
+    file_id: str
+    file_ref: str
+    sheet_name: str
+    num_rows: int
+    num_columns: int
+    created_at: str
+    column_headers: list[str]
+
+
+class _CacheMetadataMultiSheet(TypedDict):
+    """
+    Metadata for a multi-sheet file.
+
+    Cached under the 'metadata' key when a multi-sheet file is inspected.
+    Individual sheets are cached under the 'metadata' key based on the sheet name.
+    """
+
+    sheet_names: list[str]
+
+
+class _CacheHandler:
+    """
+    Helper class to handle caching of data frame inspection metadata and samples.
+
+    Expected cache structure:
+    1. metadata:
+        For a multi-sheet file we store just the sheet_names (_CacheMetadataMultiSheet)
+        For a single-sheet file (or individual sheets in a multi-sheet file) we store
+          the metadata (_CacheMetadataSingleSheet)
+
+    2. samples_small:
+        Just available for single-sheet or individual sheets in a multi-sheet file.
+        We store directly 20 samples for each data frame.
+
+    3. full_data:
+        Just available for single-sheet or individual sheets in a multi-sheet file.
+        We store the full data frame data from file/sheet as a bytes object in parquet format.
+    """
+
+    max_samples_in_short_samples_cache = 20
+
+    def __init__(
+        self,
+        tid: str,
+        storage: "BaseStorage",
+        sheet_name: str | None,
+        file_id: str,
+    ):
+        self._tid = tid
+        self._storage = storage
+        self._file_id = file_id
+        self._cache_key_metadata = self._generate_cache_key("metadata", self._file_id, sheet_name)
+        self._cached_metadata: BaseStorage.CacheValue | None = None
+        self._is_multi_sheet = False
+
+    def _generate_cache_key(
+        self,
+        kind: Literal["metadata", "samples_small", "full_data"],
+        file_id: str,
+        sheet_name: str | None,
+    ) -> str:
+        """Generate cache key based on the file id and sheet name."""
+        s = f"df_v1,{kind}"
+
+        if kind == "samples_small":
+            s += f",max_samples:{self.max_samples_in_short_samples_cache}"
+
+        if sheet_name:
+            s += f",sheet:{sheet_name}"
+
+        if file_id:
+            s += f",file_id:{file_id}"
+
+        return s
+
+    async def get_cached_metadata(self) -> "BaseStorage.CacheValue | None":
+        """Get the cached metadata for the file."""
+        if self._cached_metadata is None:
+            self._cached_metadata = await self._storage.get_cache_entry(self._cache_key_metadata)
+        return self._cached_metadata
+
+    async def create_data_frames_inspection_api_from_cache(self) -> list[_DataFrameInspectionAPI]:
+        """Create a list of _DataFrameInspectionAPI objects from the cache."""
+        import json
+
+        metadata_json = await self.get_cached_metadata()
+        if metadata_json is None:
+            raise CacheMissError("No cached metadata found")
+
+        metadata = json.loads(metadata_json.cache_data.decode("utf-8"))
+        self._is_multi_sheet = "sheet_names" in metadata
+        if self._is_multi_sheet:  # We're loading a multi-sheet file
+            cache_tracking_callback(CacheHitEvent(event="multi_sheet_names"))
+            multi_sheet_metadata = typing.cast(_CacheMetadataMultiSheet, metadata)
+            sheet_names = multi_sheet_metadata["sheet_names"]
+            ret: list[_DataFrameInspectionAPI] = []
+
+            cache_keys_from_sheet_name: list[str] = []
+            sheet_name_to_cache_key: dict[str, str] = {}
+            for sheet_name in sheet_names:
+                cache_key_sheet_metadata = self._generate_cache_key(
+                    "metadata", self._file_id, sheet_name
+                )
+                cache_keys_from_sheet_name.append(cache_key_sheet_metadata)
+                sheet_name_to_cache_key[sheet_name] = cache_key_sheet_metadata
+
+            cached_entries = await self._storage.get_cache_entries(cache_keys_from_sheet_name)
+
+            if len(cached_entries) != len(sheet_names):
+                raise CacheMissError("Some cached metadata entries are missing")
+
+            for sheet_name in sheet_names:
+                cache_key = sheet_name_to_cache_key[sheet_name]
+                cached_entry = cached_entries[cache_key]
+                metadata_json = json.loads(cached_entry.cache_data.decode("utf-8"))
+                single_sheet_metadata = typing.cast(_CacheMetadataSingleSheet, metadata_json)
+                value = _DataFrameInspectionAPI(
+                    thread_id=self._tid,
+                    name=single_sheet_metadata["name"],
+                    file_id=single_sheet_metadata["file_id"],
+                    file_ref=single_sheet_metadata["file_ref"],
+                    sheet_name=single_sheet_metadata["sheet_name"],
+                    num_rows=single_sheet_metadata["num_rows"],
+                    num_columns=single_sheet_metadata["num_columns"],
+                    created_at=datetime.datetime.fromisoformat(single_sheet_metadata["created_at"]),
+                    column_headers=single_sheet_metadata["column_headers"],
+                    sample_rows=[],
+                )
+                ret.append(value)
+            cache_tracking_callback(
+                CacheHitEvent(
+                    event="multi_sheet",
+                    description=f"{len(ret)} data frames",
+                )
+            )
+            return ret
+        else:
+            # If there's no sheet_names, this is not a multi-sheet cached entry (and thus)
+            # the metadata should contain the info for the single sheet.
+            single_sheet_metadata = typing.cast(_CacheMetadataSingleSheet, metadata)
+            ret: list[_DataFrameInspectionAPI] = [
+                _DataFrameInspectionAPI(
+                    thread_id=self._tid,
+                    name=single_sheet_metadata["name"],
+                    file_id=single_sheet_metadata["file_id"],
+                    file_ref=single_sheet_metadata["file_ref"],
+                    sheet_name=single_sheet_metadata["sheet_name"],
+                    num_rows=single_sheet_metadata["num_rows"],
+                    num_columns=single_sheet_metadata["num_columns"],
+                    created_at=datetime.datetime.fromisoformat(single_sheet_metadata["created_at"]),
+                    column_headers=single_sheet_metadata["column_headers"],
+                    sample_rows=[],
+                )
+            ]
+            cache_tracking_callback(CacheHitEvent(event="single_sheet", description="1 data frame"))
+            return ret
+
+    @dataclasses.dataclass
+    class _LoadedFromCache:
+        cache_hit: Annotated[
+            list[_DataFrameInspectionAPI],
+            "Data frames which were successfully sampled from the cache.",
+        ]
+        cache_miss: Annotated[
+            list[_DataFrameInspectionAPI],
+            "Data frames which we were not able to sample from the cache.",
+        ]
+
+    async def load_samples_from_sample_rows_cache(
+        self,
+        data_frames: list[_DataFrameInspectionAPI],
+        num_samples: int,
+    ) -> _LoadedFromCache:
+        """Load the samples from the samples rows cache."""
+        import json
+
+        ret = self._LoadedFromCache(cache_hit=[], cache_miss=[])
+        for data_frame in data_frames:
+            cache_key_samples = self._generate_cache_key(
+                "samples_small", self._file_id, data_frame.sheet_name
+            )
+            cached_entry = await self._storage.get_cache_entry(cache_key_samples)
+            if cached_entry is None:
+                ret.cache_miss.append(data_frame)
+            else:
+                sample_rows = json.loads(cached_entry.cache_data.decode("utf-8"))
+                data_frame.sample_rows = sample_rows[:num_samples]
+                ret.cache_hit.append(data_frame)
+                logger.info(
+                    f"Loaded {len(data_frame.sample_rows)} samples from samples cache for "
+                    f"data frame {data_frame.name}"
+                )
+                cache_tracking_callback(CacheHitEvent(event="samples_small"))
+        return ret
+
+    async def load_samples_from_full_data_cache(
+        self,
+        data_frames: list[_DataFrameInspectionAPI],
+        num_samples: int,
+    ) -> _LoadedFromCache:
+        """Load the samples from the full data cache."""
+        from agent_platform.server.data_frames.data_node import ParquetHandler
+
+        ret = self._LoadedFromCache(cache_hit=[], cache_miss=[])
+        for data_frame in data_frames:
+            cache_key_full_data = self._generate_cache_key(
+                "full_data", self._file_id, data_frame.sheet_name
+            )
+            cached_entry = await self._storage.get_cache_entry(cache_key_full_data)
+            if cached_entry is None:
+                ret.cache_miss.append(data_frame)
+            else:
+                # The data is a parquet binary file, load it into a ParquetHandler
+                parquet_handler = ParquetHandler(cached_entry.cache_data)
+                data_frame.sample_rows = parquet_handler.list_sample_rows(num_samples)
+                ret.cache_hit.append(data_frame)
+                logger.info(
+                    f"Loaded {len(data_frame.sample_rows)} samples from full data cache for "
+                    f"data frame {data_frame.name}"
+                )
+                cache_tracking_callback(CacheHitEvent(event="full_data"))
+        return ret
+
+    async def load_samples_from_cache(
+        self, found_in_cache: list[_DataFrameInspectionAPI], num_samples: int
+    ) -> _LoadedFromCache:
+        if num_samples > 0 and num_samples <= self.max_samples_in_short_samples_cache:
+            # we can load from the samples cache
+            loaded = await self.load_samples_from_sample_rows_cache(found_in_cache, num_samples)
+            if loaded.cache_miss:
+                # We haven't been able to load all samples from the samples cache
+                # try to load from the full data
+                loaded_full = await self.load_samples_from_full_data_cache(
+                    loaded.cache_miss, num_samples
+                )
+                loaded.cache_hit.extend(loaded_full.cache_hit)
+                loaded.cache_miss = loaded_full.cache_miss
+
+        elif num_samples == -1 or num_samples > self.max_samples_in_short_samples_cache:
+            # We have to load from the full data (we just cache up to 10 samples separately)
+            loaded = await self.load_samples_from_full_data_cache(found_in_cache, num_samples)
+
+        else:
+            raise RuntimeError(
+                f"Invalid number of samples: {num_samples} (should not get here as it's "
+                f"validated above)"
+            )
+
+        return loaded
+
+    async def cache_full_data(
+        self,
+        data_frame: _DataFrameInspectionAPI,
+        full_data: "pyarrow.Table",
+        time_to_compute_data_in_seconds: float,
+    ):
+        """Cache the full and sample data."""
+        from agent_platform.server.data_frames.data_node import convert_pyarrow_slice_to_parquet
+
+        as_parquet = convert_pyarrow_slice_to_parquet(full_data, None, None, None, None)
+        await self._storage.set_cache_entry(
+            self._generate_cache_key("full_data", self._file_id, data_frame.sheet_name),
+            as_parquet,
+            time_to_compute_data_in_seconds=time_to_compute_data_in_seconds,
+        )
+
+    async def cache_sample_data(
+        self,
+        data_frame: _DataFrameInspectionAPI,
+        sampled: "list[Row]",
+        time_to_compute_data_in_seconds: float,
+    ):
+        """Cache the sample data."""
+        import json
+
+        await self._storage.set_cache_entry(
+            self._generate_cache_key("samples_small", self._file_id, data_frame.sheet_name),
+            json.dumps(sampled).encode("utf-8"),
+            time_to_compute_data_in_seconds=time_to_compute_data_in_seconds,
+        )
+
+    async def cache_multiple_sheet_names(
+        self, sheet_names: list[str], time_to_compute_data_in_seconds: float
+    ):
+        import json
+
+        await self._storage.set_cache_entry(
+            self._generate_cache_key("metadata", self._file_id, None),
+            json.dumps({"sheet_names": sheet_names}).encode("utf-8"),
+            time_to_compute_data_in_seconds=time_to_compute_data_in_seconds,
+        )
+
+    async def cache_metadata(
+        self, data_frame: _DataFrameInspectionAPI, time_to_compute_data_in_seconds: float
+    ):
+        import json
+
+        value = {
+            "name": data_frame.name,
+            "file_id": data_frame.file_id,
+            "file_ref": data_frame.file_ref,
+            "sheet_name": data_frame.sheet_name,
+            "num_rows": data_frame.num_rows,
+            "num_columns": data_frame.num_columns,
+            "created_at": data_frame.created_at.isoformat(),
+            "column_headers": data_frame.column_headers,
+        }
+
+        await self._storage.set_cache_entry(
+            self._generate_cache_key("metadata", self._file_id, data_frame.sheet_name),
+            json.dumps(value).encode("utf-8"),
+            time_to_compute_data_in_seconds=time_to_compute_data_in_seconds,
+        )
+
+
+# Helper callback to track cache hits (used for testing)
+cache_tracking_callback = Callback()
+
+
+@dataclasses.dataclass(slots=True)
+class CacheHitEvent:
+    event: Literal["single_sheet", "multi_sheet", "multi_sheet_names", "samples_small", "full_data"]
+    event_type: Literal["cache_hit"] = "cache_hit"
+    description: str | None = None
+
+    def __str__(self):
+        ret = f"{self.event_type}: {self.event}"
+        if self.description:
+            ret += f" - {self.description}"
+        return ret
+
+
 @router.get("/{tid}/inspect-file-as-data-frame")
-async def inspect_file_as_data_frame(  # noqa: PLR0913
+async def inspect_file_as_data_frame(  # noqa: C901, PLR0913, PLR0912,PLR0915
     user: AuthedUser,
     tid: str,
     storage: StorageDependency,
@@ -68,32 +419,126 @@ async def inspect_file_as_data_frame(  # noqa: PLR0913
 
     Note: may return multiple data frames if the file is a multi-sheet excel file."""
 
+    import time
+
+    from agent_platform.core.errors.base import PlatformError
+    from agent_platform.core.errors.responses import ErrorCode
+    from agent_platform.server.data_frames.data_node import convert_pyarrow_slice_to_list_of_rows
     from agent_platform.server.data_frames.data_reader import (
         create_file_data_reader,
+        get_file_metadata,
+    )
+
+    if num_samples < -1:
+        raise PlatformError(
+            ErrorCode.BAD_REQUEST, message="num_samples must be 0, -1 or a positive number"
+        )
+
+    # Don't cache if we have dummy UploadedFile instances
+    # (file_id is empty, thread_id is None, agent_id is None)
+    should_cache = bool(file_id and tid)
+
+    # Get the file metadata to make sure the file exists and the user has access to it.
+    file_metadata = await get_file_metadata(
+        user.user_id, tid, storage, file_id=file_id, file_ref=file_ref
+    )
+
+    # Try to get from cache first if we should cache
+    loaded: _CacheHandler._LoadedFromCache | None = None
+    if should_cache:
+        try:
+            found_in_cache: list[_DataFrameInspectionAPI] = []
+            assert file_id
+            cache_handler = _CacheHandler(tid, storage, sheet_name, file_id)
+            found_in_cache = await cache_handler.create_data_frames_inspection_api_from_cache()
+
+            if num_samples == 0:
+                # We're good to go, no samples to load, full cache hit.
+                return found_in_cache
+
+            loaded = await cache_handler.load_samples_from_cache(found_in_cache, num_samples)
+            if not loaded.cache_miss:
+                # Ok, all matched from the cache.
+                return loaded.cache_hit
+        except CacheMissError:
+            pass
+        except Exception as e:
+            logger.critical(f"Failed to get cached data: {e}", exc_info=True)
+
+    # If we get here, either we shouldn't cache or cache miss occurred
+    start_time = time.monotonic()
+
+    data_reader = await create_file_data_reader(
+        user, tid, storage, sheet_name, file_metadata=file_metadata
     )
 
     ret: list[_DataFrameInspectionAPI] = []
 
-    data_reader = await create_file_data_reader(
-        user, tid, storage, sheet_name, file_id=file_id, file_ref=file_ref
-    )
-    file_metadata = data_reader.file_metadata
+    all_sheets = list(data_reader.iter_sheets())
 
-    for sheet in data_reader.iter_sheets():
-        ret.append(
-            _DataFrameInspectionAPI(
-                thread_id=tid,
-                name=file_metadata.file_ref,
-                file_id=file_metadata.file_id,
-                file_ref=file_metadata.file_ref,
-                sheet_name=sheet.name,
-                num_rows=sheet.num_rows,
-                num_columns=sheet.num_columns,
-                created_at=datetime.datetime.now(),
-                column_headers=sheet.column_headers,
-                sample_rows=sheet.list_sample_rows(num_samples),
+    if should_cache:
+        if len(all_sheets) > 1:
+            await cache_handler.cache_multiple_sheet_names(
+                [(sheet.name or "<unnamed-sheet>") for sheet in all_sheets],
+                start_time - time.monotonic(),
             )
+
+    for sheet in all_sheets:
+        value = _DataFrameInspectionAPI(
+            thread_id=tid,
+            name=file_metadata.file_ref,
+            file_id=file_metadata.file_id,
+            file_ref=file_metadata.file_ref,
+            sheet_name=sheet.name,
+            num_rows=sheet.num_rows,
+            num_columns=sheet.num_columns,
+            created_at=datetime.datetime.now(),
+            column_headers=sheet.column_headers,
+            sample_rows=[],
         )
+
+        if should_cache:
+            await cache_handler.cache_metadata(value, start_time - time.monotonic())
+
+        if num_samples == 0:
+            sample_rows = []
+
+        # i.e.: if we want all samples or if if the number of samples required is greater
+        # than the amount of samples stored in the "short samples" cache we load
+        # the full data and cache both the full data as well as the short samples data.
+        elif num_samples == -1 or (
+            should_cache and num_samples > cache_handler.max_samples_in_short_samples_cache
+        ):
+            full_data: pyarrow.Table = sheet.to_ibis()
+            sample_rows: list[Row] = convert_pyarrow_slice_to_list_of_rows(
+                full_data, None, None, None, None
+            )
+            # Cache the full data and the sample data
+            if should_cache:
+                await cache_handler.cache_full_data(value, full_data, start_time - time.monotonic())
+                sampled_to_cache = sample_rows[: cache_handler.max_samples_in_short_samples_cache]
+                await cache_handler.cache_sample_data(
+                    value, sampled_to_cache, start_time - time.monotonic()
+                )
+
+            if num_samples != -1:
+                sample_rows = sample_rows[:num_samples]
+
+        else:
+            assert num_samples > 0, "num_samples must be 0, -1 or a positive number"
+
+            sample_rows = sheet.list_sample_rows(num_samples)
+
+            if should_cache:
+                # Cache 10 rows
+                sampled_to_cache = sample_rows[: cache_handler.max_samples_in_short_samples_cache]
+                await cache_handler.cache_sample_data(
+                    value, sampled_to_cache, start_time - time.monotonic()
+                )
+
+        value.sample_rows = sample_rows
+
+        ret.append(value)
 
     return ret
 

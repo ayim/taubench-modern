@@ -293,6 +293,7 @@ async def inspect_file_as_data_connection(
     user: AuthedUser,
 ) -> DataConnectionsInspectResponse:
     """Inspect a file to get tables, columns and sample data as if it were a data connection."""
+
     from agent_platform.core.errors.base import PlatformError
     from agent_platform.core.errors.responses import ErrorCode
 

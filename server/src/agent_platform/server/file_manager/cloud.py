@@ -269,7 +269,7 @@ class CloudFileManager(BaseFileManager):
 
     async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
         file = await self.storage.get_file_by_id(file_id, user_id)
-        if not file:
+        if file is None:
             raise Exception(f"File not found: {file_id}")
 
         file_path = file.file_path

@@ -10,6 +10,7 @@ if typing.TYPE_CHECKING:
     )
     from agent_platform.core.files import UploadedFile
     from agent_platform.core.thread import Thread
+    from agent_platform.server.storage.base import BaseStorage
     from agent_platform.server.storage.postgres import PostgresStorage
     from agent_platform.server.storage.sqlite import SQLiteStorage
 
@@ -22,7 +23,7 @@ class SampleModelCreator:
     storage.
     """
 
-    def __init__(self, storage: "PostgresStorage | SQLiteStorage", tmpdir: Path):
+    def __init__(self, storage: "PostgresStorage | SQLiteStorage | BaseStorage", tmpdir: Path):
         from agent_platform.core.files.files import UploadedFile
 
         self.storage = storage
@@ -45,24 +46,30 @@ class SampleModelCreator:
             source_id="external-postgres-connection",
         )
 
-    async def obtain_sample_file(self) -> "UploadedFile":
+    async def obtain_sample_file(
+        self,
+        file_content: bytes = b"test content",
+        file_name: str = "test.txt",
+        mime_type: str = "text/plain",
+    ) -> "UploadedFile":
         """Create a sample file for testing."""
         from hashlib import md5
         from uuid import uuid4
 
         from fastapi import UploadFile
 
+        from sema4ai.common import uris
+
         if self.sample_file is not None:
             return self.sample_file
 
-        file_content = b"test content"
-        file_path = Path(self.tmpdir) / "test.txt"
+        file_path = Path(self.tmpdir) / file_name
         file_path.write_bytes(file_content)
         with file_path.open("rb") as file_stream:
-            sample_file = UploadFile(filename="test.txt", file=file_stream)
+            sample_file = UploadFile(filename=file_name, file=file_stream)
 
         file_id = str(uuid4())
-        orig_path = "path1"
+        orig_path = uris.from_fs_path(str(file_path))
         assert sample_file.filename is not None
         file_hash = md5(sample_file.filename.encode()).hexdigest()
         sample_thread = await self.obtain_sample_thread()
@@ -75,8 +82,8 @@ class SampleModelCreator:
             file_path=orig_path,
             file_ref=sample_file.filename,
             file_hash=file_hash,
-            file_size_raw=0,
-            mime_type="text/plain",
+            file_size_raw=len(file_content),
+            mime_type=mime_type,
             embedded=False,
             embedding_status=None,
             file_path_expiration=None,

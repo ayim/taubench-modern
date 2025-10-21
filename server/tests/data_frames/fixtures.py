@@ -1,9 +1,13 @@
 import typing
 
+from structlog import get_logger
+
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.core.files.files import UploadedFile
     from agent_platform.server.storage.base import BaseStorage
+
+logger = get_logger(__name__)
 
 
 class UserStub:
@@ -44,7 +48,13 @@ class StorageStub:
         return self._files.get(file_ref)
 
     async def get_file_by_id(self, file_id: str, user_id: str) -> "UploadedFile | None":
-        return self._files.get(file_id)
+        ret = self._files.get(file_id)
+        if ret is None:
+            logger.info(
+                f"File not found (mock StorageStub): {file_id}, user_id: {user_id}"
+                f" -- files: {self._files.keys()}"
+            )
+        return ret
 
     def add_file(self, file: "UploadedFile"):
         self._files[file.file_ref] = file
@@ -71,19 +81,16 @@ class StorageStub:
         from uuid import uuid4
 
         import pyarrow.parquet
-        from sema4ai.actions import Table
 
         from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-        from agent_platform.server.data_frames.data_node import _convert_pyarrow_slice_to_format
+        from agent_platform.server.data_frames.data_node import convert_pyarrow_slice_to_table
 
         pyarrow_df = pyarrow.Table.from_pydict(contents)
 
         stream = io.BytesIO()
         pyarrow.parquet.write_table(pyarrow_df, stream)
 
-        table = typing.cast(
-            Table, _convert_pyarrow_slice_to_format(pyarrow_df, None, 10, None, "table", None)
-        )
+        table = convert_pyarrow_slice_to_table(pyarrow_df, None, 10, None, None)
         sample_rows = table.rows[:10]
 
         self.data_frames.append(

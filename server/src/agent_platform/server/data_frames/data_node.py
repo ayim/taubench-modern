@@ -108,9 +108,9 @@ def _convert_pyarrow_slice_to_format(  # noqa: PLR0913
     offset: int | None,
     limit: int | None,
     column_names: list[str] | None,
-    output_format: Literal["json", "parquet", "table"],
+    output_format: Literal["json", "parquet", "table", "list[Row]"],
     order_by: str | None,
-) -> "bytes | Table":
+) -> "bytes | Table | list[Row]":
     available_columns = result.schema.names
 
     # Apply order by
@@ -135,6 +135,69 @@ def _convert_pyarrow_slice_to_format(  # noqa: PLR0913
     return _convert_arrow_to_format(result, output_format)
 
 
+def convert_pyarrow_slice_to_table_json_or_parquet(  # noqa: PLR0913
+    result: "pyarrow.Table",
+    offset: int | None,
+    limit: int | None,
+    column_names: list[str] | None,
+    output_format: Literal["json", "parquet", "table"],
+    order_by: str | None,
+) -> "bytes | Table":
+    from sema4ai.actions import Table
+
+    return typing.cast(
+        bytes | Table,
+        _convert_pyarrow_slice_to_format(
+            result, offset, limit, column_names, output_format, order_by
+        ),
+    )
+
+
+def convert_pyarrow_slice_to_parquet(
+    result: "pyarrow.Table",
+    offset: int | None,
+    limit: int | None,
+    column_names: list[str] | None,
+    order_by: str | None,
+) -> "bytes":
+    return typing.cast(
+        bytes,
+        _convert_pyarrow_slice_to_format(result, offset, limit, column_names, "parquet", order_by),
+    )
+
+
+def convert_pyarrow_slice_to_table(
+    result: "pyarrow.Table",
+    offset: int | None,
+    limit: int | None,
+    column_names: list[str] | None,
+    order_by: str | None,
+) -> "Table":
+    from sema4ai.actions import Table
+
+    return typing.cast(
+        Table,
+        _convert_pyarrow_slice_to_format(result, offset, limit, column_names, "table", order_by),
+    )
+
+
+def convert_pyarrow_slice_to_list_of_rows(
+    result: "pyarrow.Table",
+    offset: int | None,
+    limit: int | None,
+    column_names: list[str] | None,
+    order_by: str | None,
+) -> "list[Row]":
+    from sema4ai.actions import Row
+
+    return typing.cast(
+        list[Row],
+        _convert_pyarrow_slice_to_format(
+            result, offset, limit, column_names, "list[Row]", order_by
+        ),
+    )
+
+
 def _convert_ibis_slice_to_format(  # noqa: PLR0913
     result: Any,
     offset: int,
@@ -142,7 +205,7 @@ def _convert_ibis_slice_to_format(  # noqa: PLR0913
     column_names: list[str] | None,
     output_format: Literal["json", "parquet", "table"],
     order_by: str | None = None,
-) -> "bytes | Table":
+) -> "bytes | Table | list[Row]":
     available_columns = list(result.columns)
     if order_by:
         order_by, desc = _parse_order_by(order_by, available_columns)
@@ -192,8 +255,8 @@ def _parse_order_by(order_by: str, available_columns: list[str]) -> tuple[str, b
 
 def _convert_arrow_to_format(
     table: Any,
-    output_format: Literal["json", "parquet", "table"],
-) -> "bytes | Table":
+    output_format: Literal["json", "parquet", "table", "list[Row]"],
+) -> "bytes | Table | list[Row]":
     import io
     import json
 
@@ -230,6 +293,14 @@ def _convert_arrow_to_format(
             rows=rows,
         )
         return new_table
+    elif output_format == "list[Row]":
+        # pyarrow stores things column-based.
+        rows: list[Row] = []
+        columns = list(table)
+        for row in zip(*columns, strict=True):
+            rows.append(list(convert_to_valid_json_types(v.as_py()) for v in row))
+
+        return rows
     else:
         raise ValueError(f"Unsupported format: {output_format}")
 
@@ -337,7 +408,7 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
     def platform_data_frame(self) -> "PlatformDataFrame":
         return self._platform_data_frame
 
-    def to_ibis(self) -> Any:
+    def to_ibis(self) -> "pyarrow.Table":
         return self._reader_sheet.to_ibis()
 
     def slice(
@@ -351,18 +422,15 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
     ) -> "bytes | Table":
         table: pyarrow.Table = self._reader_sheet.to_ibis()
 
-        return _convert_pyarrow_slice_to_format(
+        return convert_pyarrow_slice_to_table_json_or_parquet(
             table, offset, limit, column_names, output_format, order_by
         )
 
 
-class DataNodeFromInMemoryDataFrame(DataNodeResult):
-    def __init__(self, platform_data_frame: "PlatformDataFrame"):
-        self._platform_data_frame = platform_data_frame
+class ParquetHandler:
+    def __init__(self, parquet_contents: bytes):
+        self._parquet_contents = parquet_contents
         self.__loaded_table: Any | None = None
-        if self._platform_data_frame.parquet_contents is None:
-            raise ValueError("Parquet contents are required for in-memory data frames")
-        self._parquet_contents: bytes = self._platform_data_frame.parquet_contents
 
     def _loaded_table(self) -> "Any":
         if self.__loaded_table is None:
@@ -375,32 +443,60 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
         return self.__loaded_table
 
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
+        if num_samples == 0:
+            return []
         table = self._loaded_table()
         # Get sample rows using pyarrow
-        if num_samples >= table.num_rows:
+        if num_samples == -1 or num_samples >= table.num_rows:
             # Return all rows
-            return [list(row) for row in table.to_pylist()]
+            return convert_pyarrow_slice_to_list_of_rows(table, None, None, None, None)
         else:
-            return [list(row) for row in table.slice(0, num_samples).to_pylist()]
+            assert num_samples > 0, "num_samples must be 0, -1 or a positive number"
+            return convert_pyarrow_slice_to_list_of_rows(table, 0, num_samples, None, None)
 
-    @property
     def num_rows(self) -> int:
         return self._loaded_table().num_rows
 
-    @property
     def num_columns(self) -> int:
         return self._loaded_table().num_columns
 
-    @property
     def column_headers(self) -> list[str]:
         return list(self._loaded_table().column_names)
+
+    def get_table(self) -> "pyarrow.Table":
+        return self._loaded_table()
+
+
+class DataNodeFromInMemoryDataFrame(DataNodeResult):
+    def __init__(self, platform_data_frame: "PlatformDataFrame"):
+        self._platform_data_frame = platform_data_frame
+        self.__loaded_table: Any | None = None
+        if self._platform_data_frame.parquet_contents is None:
+            raise ValueError("Parquet contents are required for in-memory data frames")
+        self._parquet_contents: bytes = self._platform_data_frame.parquet_contents
+        self._parquet_handler = ParquetHandler(self._parquet_contents)
+
+    def list_sample_rows(self, num_samples: int) -> "list[Row]":
+        return self._parquet_handler.list_sample_rows(num_samples)
+
+    @property
+    def num_rows(self) -> int:
+        return self._parquet_handler.num_rows()
+
+    @property
+    def num_columns(self) -> int:
+        return self._parquet_handler.num_columns()
+
+    @property
+    def column_headers(self) -> list[str]:
+        return self._parquet_handler.column_headers()
 
     @property
     def platform_data_frame(self) -> "PlatformDataFrame":
         return self._platform_data_frame
 
-    def to_ibis(self) -> Any:
-        return self._loaded_table()
+    def to_ibis(self) -> "pyarrow.Table":
+        return self._parquet_handler.get_table()
 
     def slice(
         self,
@@ -411,9 +507,9 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
         output_format: SliceOutputFormat = "json",
         order_by: str | None = None,
     ) -> "bytes | Table":
-        table = self._loaded_table()
+        table = self._parquet_handler.get_table()
 
-        return _convert_pyarrow_slice_to_format(
+        return convert_pyarrow_slice_to_table_json_or_parquet(
             table, offset, limit, column_names, output_format, order_by
         )
 
@@ -424,7 +520,12 @@ class DataNodeFromIbisResult(DataNodeResult):
         self._ibis_result = ibis_result
 
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
-        table = self._ibis_result.limit(num_samples).to_pyarrow()
+        if num_samples == 0:
+            return []
+        if num_samples == -1:
+            table = self._ibis_result.to_pyarrow()
+        else:
+            table = self._ibis_result.limit(num_samples).to_pyarrow()
         return [list(row) for row in table.to_pylist()]
 
     @property
@@ -457,6 +558,8 @@ class DataNodeFromIbisResult(DataNodeResult):
     ) -> "bytes | Table":
         import time
 
+        from sema4ai.actions import Table
+
         # Start with the ibis result
         logger.info(
             f"Slicing ibis result with offset: {offset}, limit: {limit}, "
@@ -472,4 +575,4 @@ class DataNodeFromIbisResult(DataNodeResult):
 
         logger.info(f"Sliced ibis result in {time.monotonic() - initial_time:.2f} seconds")
 
-        return ret
+        return typing.cast(bytes | Table, ret)
