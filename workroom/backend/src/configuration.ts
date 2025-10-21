@@ -320,6 +320,7 @@ export const getConfiguration = (): Configuration => {
         settings: sparOnlyFeature,
         agentEvals: sparOnlyFeature,
         documentIntelligence: sparOnlyFeature,
+        semanticDataModels: sparOnlyFeature,
         developerMode: {
           enabled: true,
           reason: null,

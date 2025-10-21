@@ -1,12 +1,14 @@
 import { Box, Button, FileItem, Typography, useSnackbar } from '@sema4ai/components';
 import { IconDocumentIntelligence, IconLoading } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
-import { FC, useState, useMemo, useCallback } from 'react';
+import { FC, useState, useCallback } from 'react';
 
 import { getFileSize, getFileTypeIcon } from '../../../common/helpers';
 import { ThreadFiles, useThreadFilesQuery, useDownloadThreadFileMutation } from '../../../queries/threads';
 import { DocumentData, DocumentIntelligenceDialog } from '../../DocumentIntelligence';
 import { getSnackbarContent } from '../../../queries/shared';
+import { useFeatureFlag } from '../../../hooks/useFeatureFlag';
+import { SparUIFeatureFlag } from '../../../api';
 
 type props = {
   threadId: string;
@@ -21,6 +23,8 @@ const FileListItem = ({
   threadId: string;
   onDocumentIntelligenceClick: (params: { file: File; agentId: string }) => void;
 }) => {
+  const shoulDisplayDocIntelButton = useFeatureFlag(SparUIFeatureFlag.documentIntelligence);
+
   const { mutateAsync: downloadThreadFile, isPending: isDownloadingThreadFile } = useDownloadThreadFileMutation({
     type: 'download',
   });
@@ -37,16 +41,6 @@ const FileListItem = ({
       },
     );
   };
-
-  const shoulDisplayDocIntelButton = useMemo(() => {
-    const lowerCasedFile = file.file_ref.toLowerCase();
-
-    if (lowerCasedFile.startsWith('div2_') && file.mime_type === 'application/pdf') {
-      return true;
-    }
-
-    return false;
-  }, [file.file_ref, file.mime_type]);
 
   const handleDocIntelClick = useCallback(async () => {
     // This entire logic should be moved to the Doc Intel component that should accept:

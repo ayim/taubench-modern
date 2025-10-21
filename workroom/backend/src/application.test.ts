@@ -86,6 +86,10 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         enabled: true,
         reason: null,
       },
+      semanticDataModels: {
+        enabled: true,
+        reason: null,
+      },
     },
   },
 });

@@ -43,7 +43,12 @@ export const createSparAPIClient = (
         return tenantMeta.features.agentAuthoring.enabled;
       case SparUIFeatureFlag.agentDetails:
         return tenantMeta.features.agentDetails.enabled;
+      case SparUIFeatureFlag.documentIntelligence:
+        return tenantMeta.features.documentIntelligence.enabled;
+      case SparUIFeatureFlag.semanticDataModels:
+        return tenantMeta.features.semanticDataModels.enabled;
       default:
+        feature satisfies never;
         return false;
     }
   },

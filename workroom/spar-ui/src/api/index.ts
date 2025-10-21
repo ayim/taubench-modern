@@ -11,9 +11,11 @@ type ApiResponse<Success> = { data: Success; success: true } | { success: false;
 export enum SparUIFeatureFlag {
   showActionLogs = 'showActionLogs',
   showFeedback = 'showFeedback',
-  canEditAgent = "canEditAgent",
+  canEditAgent = 'canEditAgent',
   deploymentWizard = 'deploymentWizard',
   agentDetails = 'agentDetails',
+  documentIntelligence = 'documentIntelligence',
+  semanticDataModels = 'semanticDataModels',
 }
 
 export type NavigationArgs = {

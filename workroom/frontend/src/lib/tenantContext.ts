@@ -39,6 +39,10 @@ export const TenantContext = createContext<TenantMeta>({
       enabled: false,
       reason: '',
     },
+    semanticDataModels: {
+      enabled: false,
+      reason: '',
+    },
   },
 });
 
