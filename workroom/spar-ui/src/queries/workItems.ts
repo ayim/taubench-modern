@@ -198,6 +198,9 @@ export const useCreateWorkItemMutation = createSparMutation<
 
     return createdWorkItem;
   },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['work-items', agentId] });
+  },
 }));
 
 /**

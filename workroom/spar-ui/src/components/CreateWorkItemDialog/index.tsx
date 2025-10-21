@@ -1,11 +1,12 @@
 import { FC, useCallback, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Code, Dialog, Form, Input, Typography, useSnackbar } from '@sema4ai/components';
+import { z } from 'zod';
+import { Box, Button, Dialog, Form, Input, Typography, useSnackbar } from '@sema4ai/components';
 import { IconClose, IconPlus } from '@sema4ai/icons';
 import { IconAnyFile, IconPDF } from '@sema4ai/icons/logos';
 import { FileRejection, useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { Code } from '../../common/code/Code';
 
 import { useCreateWorkItemMutation } from '../../queries/workItems';
 
@@ -156,9 +157,9 @@ export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ agentId, i
               value={form.getValues('payload') || ''}
               onChange={(value) => form.setValue('payload', value)}
               lineNumbers={false}
-              lang="JSON"
+              lang="json"
               rows={6}
-              label="Payload"
+              title=" "
               description="Optional JSON data structure (must be valid JSON if provided)"
               error={form.formState.errors.payload?.message}
             />

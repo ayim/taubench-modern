@@ -12,6 +12,7 @@ import { styled } from '@sema4ai/theme';
 import { ClipboardEvent, FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
+import { ThreadMessage } from '@sema4ai/agent-server-interface';
 
 import { getFileSize, getFileTypeIcon, isImageFile } from '../../common/helpers';
 import { useMessageStream, useQueryDataGuard } from '../../hooks';
@@ -24,6 +25,7 @@ import { MessageRenderer } from './components/renderer/Message';
 type Props = {
   agentId: string;
   threadId: string;
+  agentType: 'conversational' | 'workItem';
 };
 
 const Container = styled.section`
@@ -84,18 +86,32 @@ const ChatInputAttachment: FC<{ file: File; onCloseClick: () => void }> = ({ fil
   );
 };
 
-export const Chat: FC<Props> = ({ agentId, threadId }) => {
+export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
   const { addSnackbar } = useSnackbar();
   const chatRef = useRef<ChatRef>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const { currentMessageIndex } = useThreadSearchStore();
-  const { data: messages = [], ...threadQueryState } = useThreadMessagesQuery({ threadId });
+  const [refetchInterval, setRefetchInterval] = useState<number | undefined>(undefined);
+  const { data: messages = [], ...threadQueryState } = useThreadMessagesQuery(
+    { threadId },
+    {
+      refetchInterval,
+    },
+  );
   const { data: oAuthState = [], ...oauthStateQueryState } = useAgentOAuthStateQuery({ agentId });
   const [attachmentsByThreadId, setAttachmentsByThreadId] = useState<Record<string, File[]>>({});
   const [messageByThreadId, setMessageByThreadId] = useState<Record<string, string>>({});
 
   const attachments = attachmentsByThreadId[threadId] ?? [];
   const draftMessage = messageByThreadId[threadId] ?? '';
+
+  useEffect(() => {
+    // TODO: Refetch thread messages for WorkItems if no agent response has been received yet
+    // This should be removed once we have a way to determine if a stream for a thread is active and listen to it
+    if (agentType === 'workItem') {
+      setRefetchInterval(messages.filter((message) => message.role === 'agent').length === 0 ? 3000 : undefined);
+    }
+  }, [messages]);
 
   const onAddAttachments = (files: File[]) => {
     setAttachmentsByThreadId((prevAttachmentsByThread) => {
@@ -147,9 +163,37 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
     threadId,
   });
 
-  const streamingMessages = allStreamingMessages?.filter(
-    (curr) => !messages.some((message) => message.message_id === curr.message_id),
-  );
+  const streamingMessages = (() => {
+    if (allStreamingMessages) {
+      return allStreamingMessages?.filter(
+        (curr) => !messages.some((message) => message.message_id === curr.message_id),
+      );
+    }
+
+    // TODO: Refetch thread messages for WorkItems if no agent response has been received yet
+    // This should be removed once we have a way to determine if a stream for a thread is active and listen to it
+    if (agentType === 'workItem' && messages.filter((message) => message.role === 'agent').length === 0) {
+      return [
+        {
+          message_id: 'initial-agent-response',
+          role: 'agent',
+          content: [
+            {
+              kind: 'thought',
+              complete: false,
+              thought: '',
+            },
+          ],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          complete: false,
+          commited: false,
+        } satisfies ThreadMessage,
+      ];
+    }
+
+    return undefined;
+  })();
 
   const isStreaming = !!streamingMessages?.length;
 
@@ -243,7 +287,7 @@ export const Chat: FC<Props> = ({ agentId, threadId }) => {
         renderer={MessageRenderer}
       />
       <Footer>
-      {requiresOAuth && <OAuth />}
+        {requiresOAuth && <OAuth />}
         <ChatInput streaming={isStreamingOrUploadingFiles} busy={isChatInputBusy} onSend={onSubmit} onAbort={onAbort}>
           {attachments.length > 0 && (
             <ChatInput.FileList>

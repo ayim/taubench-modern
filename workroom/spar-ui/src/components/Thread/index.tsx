@@ -19,7 +19,7 @@ export const Thread: FC = () => {
   return (
     <>
       <ThreadsList />
-      <Chat agentId={agentId} threadId={threadId} />
+      <Chat agentId={agentId} threadId={threadId} agentType="conversational" />
     </>
   );
 };

@@ -31,7 +31,7 @@ export const Worker: FC = () => {
 
       {!workItemId && <SubView>Select or create a work item</SubView>}
       {workItemId && !threadId && <SubView>Work item doesn&apos;t have a thread yet. Please wait a moment.</SubView>}
-      {workItemId && threadId && <Chat agentId={agentId} threadId={threadId} />}
+      {workItemId && threadId && <Chat agentId={agentId} threadId={threadId} agentType="workItem" />}
     </>
   );
 };
