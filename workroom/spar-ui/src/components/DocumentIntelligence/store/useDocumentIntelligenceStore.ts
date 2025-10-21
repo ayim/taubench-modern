@@ -95,6 +95,9 @@ interface DocumentIntelligenceState {
   isCancelled: boolean;
   flowExecuted: boolean;
 
+  // Parse bounding box display state
+  showingParseBoxes: boolean;
+
   // Actions
   setFileRef: (fileRef: File | null) => void;
   setSelectedFieldId: (fieldId: string | null) => void;
@@ -145,6 +148,9 @@ interface DocumentIntelligenceState {
 
   setFlowExecuted: (executed: boolean) => void;
 
+  // Parse bounding box display actions
+  setShowingParseBoxes: (showing: boolean) => void;
+
   // Reset all state
   reset: () => void;
 }
@@ -190,6 +196,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     activeRequests: new Map<string, AbortController>(),
     isCancelled: false,
     flowExecuted: false,
+    showingParseBoxes: false,
 
     // Actions
     setFileRef: (fileRef: File | null) => {
@@ -372,6 +379,11 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
       set({ flowExecuted: executed });
     },
 
+    // Parse bounding box display actions
+    setShowingParseBoxes: (showing: boolean) => {
+      set({ showingParseBoxes: showing });
+    },
+
     // Reset all state
     reset: () => {
       // Cancel any ongoing requests first
@@ -407,6 +419,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         activeRequests: new Map<string, AbortController>(),
         isCancelled: false,
         flowExecuted: false,
+        showingParseBoxes: false,
       });
     },
   }),

@@ -64,6 +64,7 @@ export const useDocumentLayoutFlow = () => {
     clearProcessingState,
     setCurrentFlowType,
     setOriginalGeneratedSchema,
+    setShowingParseBoxes,
   } = useDocumentIntelligenceStore();
 
   const executeDocumentLayoutFlow = useCallback(async ({
@@ -91,6 +92,9 @@ export const useDocumentLayoutFlow = () => {
       });
 
       setParseData(parseResult);
+
+      // Show parse bounding boxes immediately after parse completes
+      setShowingParseBoxes(true);
 
       // Step 2: Handle different flow types
       let finalDocumentLayout: DocumentLayoutPayload | undefined;
@@ -205,6 +209,9 @@ export const useDocumentLayoutFlow = () => {
 
         setExtractedData(extractedData);
 
+        // Hide parse boxes and show extract citations after extraction completes
+        setShowingParseBoxes(false);
+
         // Convert extracted data to fields and tables for display
         const extractedFields = convertParseResultToFields(extractedData);
         const extractedTables = convertParseResultToTables(extractedData);
@@ -221,6 +228,8 @@ export const useDocumentLayoutFlow = () => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to execute document layout flow';
       setProcessingError(errorMessage);
       setProcessingState(false, '', errorMessage);
+      // Reset parse boxes state on error
+      setShowingParseBoxes(false);
       throw error;
     }
   }, [
@@ -243,6 +252,7 @@ export const useDocumentLayoutFlow = () => {
     clearProcessingState,
     setCurrentFlowType,
     setOriginalGeneratedSchema,
+    setShowingParseBoxes,
   ]);
 
   return {

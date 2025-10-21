@@ -21,6 +21,7 @@ export const useRetryExtract = () => {
     setProcessingState,
     setProcessingError,
     clearProcessingState,
+    setShowingParseBoxes,
   } = useDocumentIntelligenceStore();
 
   const retryExtract = useCallback(async (documentData: DocumentData) => {
@@ -46,6 +47,9 @@ export const useRetryExtract = () => {
 
       // Update store with new extracted data
       setExtractedData(extractedData);
+
+      // Hide parse boxes and show extract citations after retry extraction completes
+      setShowingParseBoxes(false);
 
       // Convert extracted data to fields and tables for display
       const { convertParseResultToFields, convertParseResultToTables } = await import('../utils/dataTransformations');
@@ -89,6 +93,8 @@ export const useRetryExtract = () => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to retry extraction';
       setProcessingError(errorMessage);
       setProcessingState(false, '', errorMessage);
+      // Reset parse boxes state on error
+      setShowingParseBoxes(false);
       addSnackbar({
         message: `Failed to retry extraction: ${errorMessage}`,
         variant: 'danger'
@@ -107,6 +113,7 @@ export const useRetryExtract = () => {
     setProcessingState,
     setProcessingError,
     clearProcessingState,
+    setShowingParseBoxes,
     addSnackbar,
   ]);
 

@@ -1,12 +1,12 @@
-import { Box, Button, Divider, Typography, Tooltip } from '@sema4ai/components';
+import { Box, Button, Divider, Typography, Tooltip, Switch } from '@sema4ai/components';
 import { IconArrowLeft, IconArrowRight, IconMinus, IconPlus } from '@sema4ai/icons';
 import { FC, useState, useEffect, useCallback } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
-import { formatFieldName } from '../utils/dataTransformations';
+import { useDocumentIntelligenceStore, ParseDocumentResponsePayload } from '../store/useDocumentIntelligenceStore';
+import { formatFieldName, convertParseResultToBoundingBoxes } from '../utils/dataTransformations';
 
 export type PDFDocumentProxy = pdfjs.PDFDocumentProxy;
 export type PDFPageProxy = pdfjs.PDFPageProxy;
@@ -95,6 +95,9 @@ interface CitationBoxProps {
   isMatched?: boolean; // Add flag to indicate if this citation matches a result
   isParentBox?: boolean; // Add flag to indicate if this is a parent box
   numericId?: number | null; // Add numeric ID for matching with layoutFields
+  isParseBox?: boolean; // Add flag to indicate if this is a parse bounding box
+  type?: string; // Add type information for parse boxes
+  confidence?: string; // Add confidence information for parse boxes
 }
 
 // Child bounding box component for citations
@@ -109,6 +112,9 @@ const CitationBox: FC<CitationBoxProps> = ({
   isMatched = false,
   isParentBox = false,
   numericId = null,
+  isParseBox = false,
+  type,
+  confidence,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -148,6 +154,9 @@ const CitationBox: FC<CitationBoxProps> = ({
     // Parent boxes are non-interactive
     if (isParentBox) return;
 
+    // Parse boxes are non-clickable (they don't correspond to extracted fields)
+    if (isParseBox) return;
+
     if (!onBoxClick || !fieldId) return;
 
     // Always call onBoxClick with the fieldId - let the parent handle the selection logic
@@ -177,11 +186,26 @@ const CitationBox: FC<CitationBoxProps> = ({
   };
 
   const getTooltipText = () => {
-    // Remove array index indicators like [0] from field names for cleaner tooltips
+    if (isParseBox && type) {
+      // For parse boxes, show type and confidence information
+      return (
+        <span style={{ fontSize: '12px', lineHeight: '1.3' }}>
+          Type: {type}
+          {confidence && confidence !== 'high' && (
+            <><br />Confidence: {confidence}</>
+          )}
+        </span>
+      );
+    }
+
+    // For extract citations, show field name and value, plus confidence if low
     const cleanFieldName = fieldName.replace(/\[\d+\]/g, '');
     return (
       <span style={{ fontSize: '12px', lineHeight: '1.3' }}>
         {cleanFieldName}: {fieldValue}
+        {confidence && confidence !== 'high' && (
+          <><br />Confidence: {confidence}</>
+        )}
       </span>
     );
   };
@@ -190,8 +214,21 @@ const CitationBox: FC<CitationBoxProps> = ({
     // Parent boxes are transparent and non-interactive
     if (isParentBox) return 'transparent';
 
+    // Parse boxes use blue colors, but red for low confidence
+    if (isParseBox) {
+      if (confidence === 'low') {
+        if (isHovered || isActuallySelected) return 'rgb(140, 24, 22)'; // Darker red on hover/selection
+        return 'rgb(140, 24, 22)'; // Red border for low confidence parse boxes
+      }
+      if (isHovered || isActuallySelected) return 'rgb(22, 95, 140)'; // Darker blue on hover/selection
+      return 'rgb(22, 95, 140)'; // Blue border for parse boxes
+    }
+
+    // Extract citations use green colors, but red for low confidence
     // Hover/selection takes highest priority
     if (isHovered || isActuallySelected) return 'rgba(255, 193, 7, 1)'; // Yellow border on hover OR when selected
+    // Low confidence extract citations use red
+    if (confidence === 'low') return 'rgb(140, 24, 22)'; // Red border for low confidence extract citations
     // If matched, use the specified green border
     if (isMatched) return 'rgb(22, 140, 43)'; // Green border for matched citations
     // Default green for unmatched citations
@@ -202,8 +239,21 @@ const CitationBox: FC<CitationBoxProps> = ({
     // Parent boxes are transparent and non-interactive
     if (isParentBox) return 'transparent';
 
+    // Parse boxes use blue colors, but red for low confidence
+    if (isParseBox) {
+      if (confidence === 'low') {
+        if (isHovered || isActuallySelected) return 'rgb(238 59 25 / 40%)'; // Darker red background on hover/selection
+        return 'rgb(238 59 25 / 20%)'; // Light red background for low confidence parse boxes
+      }
+      if (isHovered || isActuallySelected) return 'rgb(25 148 238 / 40%)'; // Darker blue background on hover/selection
+      return 'rgb(25 148 238 / 20%)'; // Light blue background for parse boxes
+    }
+
+    // Extract citations use green colors, but red for low confidence
     // Hover/selection takes highest priority
     if (isHovered || isActuallySelected) return 'rgba(255, 193, 7, 0.4)'; // Yellow background on hover OR when selected
+    // Low confidence extract citations use red
+    if (confidence === 'low') return 'rgb(238 59 25 / 20%)'; // Light red background for low confidence extract citations
     // If matched, use the specified green background
     if (isMatched) return 'rgb(39 214 60 / 20%)'; // Green background for matched citations
     // Default green for unmatched citations
@@ -274,6 +324,7 @@ const CitationBox: FC<CitationBoxProps> = ({
   );
 
   // Only wrap with Tooltip if not a parent box (parent boxes don't need tooltips)
+  // Parse boxes get tooltips with type information
   if (isParentBox) {
     return boxElement;
   }
@@ -386,6 +437,7 @@ interface AnnotationOverlayProps {
   pageHeight: number;
   scale: number;
   extractedData: Record<string, unknown> | null; // Add extractedData for citations
+  parseData: Record<string, unknown> | null; // Add parseData for parse bounding boxes
   selectedFieldId: string | null;
   setSelectedFieldId: (fieldId: string | null) => void;
 }
@@ -396,6 +448,7 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
   pageHeight,
   scale,
   extractedData,
+  parseData,
   selectedFieldId,
   setSelectedFieldId,
 }) => {
@@ -409,8 +462,13 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
       isMatched?: boolean;
       isParentBox?: boolean;
       numericId?: number | null; // Add numeric ID for matching with layoutFields
+      type?: string; // Add type information for parse boxes
+      confidence?: string; // Add confidence information for parse boxes
     }>
   >([]);
+
+  // Get showingParseBoxes state from store
+  const { showingParseBoxes } = useDocumentIntelligenceStore();
 
   // Handle citation box click to select corresponding field in right panel
   const handleCitationClick = (fieldId: string, fieldName: string, numericId?: number | null) => {
@@ -460,7 +518,7 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
     }
   };
 
-  // Calculate citation coordinates from extractedData.citations
+  // Calculate citation coordinates from extractedData.citations or parseData
   useEffect(() => {
     const calculateCitationCoords = () => {
       const newCitationCoords: Array<{
@@ -470,15 +528,44 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
         fieldValue: string;
         isMatched?: boolean; // Add flag to indicate if this citation matches a result
         numericId?: number | null; // Add numeric ID for matching with layoutFields
+        isParentBox?: boolean; // Add flag to indicate if this is a parent box
+        type?: string; // Add type information for parse boxes
+        confidence?: string; // Add confidence information for parse boxes
       }> = [];
 
-      // Get layoutFields to match citations with their citationIds
-      const { layoutFields } = useDocumentIntelligenceStore.getState();
+      // If showing parse boxes and we have parse data, use parse bounding boxes
+      if (showingParseBoxes && parseData) {
+        const parseBoundingBoxes = convertParseResultToBoundingBoxes(parseData as ParseDocumentResponsePayload);
 
-      // Track which citationIds have been used to prevent duplicates
-      const usedCitationIds = new Set<number>();
+        parseBoundingBoxes.forEach((bbox) => {
+          // Convert parse bbox coordinates to screen coordinates
+          const screenCoords = calculateReactPdfCoordinates(
+            bbox.coords,
+            pageWidth,
+            pageHeight,
+            scale,
+          );
 
-      if (extractedData?.citations) {
+          if (screenCoords) {
+            newCitationCoords.push({
+              fieldId: bbox.fieldId,
+              coords: screenCoords,
+              fieldName: bbox.fieldName,
+              fieldValue: bbox.fieldValue,
+              isMatched: false, // Parse boxes don't have extracted values yet
+              numericId: bbox.numericId,
+              isParentBox: false, // Parse boxes are never parent boxes
+              type: bbox.type, // Pass type information for tooltips
+              confidence: bbox.confidence, // Pass confidence information for styling
+            });
+          }
+        });
+      } else if (extractedData?.citations) {
+        // Get layoutFields to match citations with their citationIds
+        const { layoutFields } = useDocumentIntelligenceStore.getState();
+
+        // Track which citationIds have been used to prevent duplicates
+        const usedCitationIds = new Set<number>();
         const citations = extractedData.citations as Record<string, unknown>;
 
         // Helper function to recursively extract all citation objects with bbox data
@@ -568,6 +655,7 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
                 fieldValue: content,
                 isMatched,
                 numericId: matchingNumericId, // Add numeric ID for matching
+                confidence: (citation as { confidence?: string }).confidence || 'high', // Extract confidence from citation, default to 'high'
               });
             }
           }
@@ -612,7 +700,7 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
     };
 
     calculateCitationCoords();
-  }, [pageNumber, pageWidth, pageHeight, scale, extractedData]);
+  }, [pageNumber, pageWidth, pageHeight, scale, extractedData, parseData, showingParseBoxes]);
 
   return (
     <Box
@@ -628,29 +716,34 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
       }}
     >
       {/* Child bounding boxes (from citations) - interactive */}
-      {citationCoords.map(({ fieldId, coords, fieldName, fieldValue, isMatched, isParentBox, numericId }) => (
-        <Box key={`citation-overlay-${fieldId}`} style={{ pointerEvents: 'auto' }}>
-          <CitationBox
-            coords={coords}
-            fieldName={fieldName}
-            fieldValue={fieldValue}
-            fieldId={fieldId}
-            selectedFieldId={selectedFieldId}
-            onBoxClick={(id) => handleCitationClick(id, fieldName, numericId)}
-            onHoverChange={() => {}}
-            isMatched={isMatched}
-            isParentBox={isParentBox}
-            numericId={numericId}
-          />
-        </Box>
-      ))}
+      <Box style={{ transition: 'opacity 0.3s ease-in-out' }}>
+        {citationCoords.map(({ fieldId, coords, fieldName, fieldValue, isMatched, isParentBox, numericId, type, confidence }) => (
+          <Box key={`citation-overlay-${fieldId}`} style={{ pointerEvents: 'auto' }}>
+            <CitationBox
+              coords={coords}
+              fieldName={fieldName}
+              fieldValue={fieldValue}
+              fieldId={fieldId}
+              selectedFieldId={selectedFieldId}
+              onBoxClick={(id) => handleCitationClick(id, fieldName, numericId)}
+              onHoverChange={() => {}}
+              isMatched={isMatched}
+              isParentBox={isParentBox}
+              numericId={numericId}
+              isParseBox={showingParseBoxes}
+              type={type}
+              confidence={confidence}
+            />
+          </Box>
+        ))}
+      </Box>
     </Box>
   );
 };
 
 export const DocumentViewer: FC<DocumentViewerProps> = () => {
   // Get state from minimal Zustand store
-  const { fileRef, extractedData, selectedFieldId, setSelectedFieldId } = useDocumentIntelligenceStore();
+  const { fileRef, extractedData, parseData, selectedFieldId, setSelectedFieldId, showingParseBoxes, setShowingParseBoxes } = useDocumentIntelligenceStore();
 
   // PDF state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -830,6 +923,7 @@ export const DocumentViewer: FC<DocumentViewerProps> = () => {
                 pageHeight={pageHeight}
                 scale={scale}
                 extractedData={extractedData}
+                parseData={parseData}
                 selectedFieldId={selectedFieldId}
                 setSelectedFieldId={setSelectedFieldId}
               />
@@ -882,6 +976,26 @@ export const DocumentViewer: FC<DocumentViewerProps> = () => {
           </Box>
 
           <Divider orientation="vertical" />
+
+          {/* Parse/Extract Toggle - only show when both parse and extract data exist */}
+          {parseData && extractedData && (
+            <>
+              <Box display="flex" alignItems="center" gap="$8" style={{ transition: 'opacity 0.3s ease-in-out' }}>
+                <Typography fontSize="$14">
+                  Parse
+                </Typography>
+                <Switch
+                  checked={!showingParseBoxes}
+                  onChange={(e) => setShowingParseBoxes(!e.target.checked)}
+                  aria-labelledby="parse-extract-toggle"
+                />
+                <Typography fontSize="$14">
+                  Extract
+                </Typography>
+              </Box>
+              <Divider orientation="vertical" />
+            </>
+          )}
 
           {/* Scale Controls */}
           <Box display="flex" alignItems="center">

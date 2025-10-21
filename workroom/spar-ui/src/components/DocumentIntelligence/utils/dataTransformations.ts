@@ -117,6 +117,130 @@ export const removeCitationFromExtractedData = (
   };
 };
 
+// Convert parse result to bounding boxes for display
+export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResponsePayload): Array<{
+  fieldId: string;
+  coords: { left: number; top: number; width: number; height: number };
+  fieldName: string;
+  fieldValue: string;
+  numericId: number;
+  type?: string;
+  confidence?: string;
+}> => {
+  const boundingBoxes: Array<{
+    fieldId: string;
+    coords: { left: number; top: number; width: number; height: number };
+    fieldName: string;
+    fieldValue: string;
+    numericId: number;
+    type?: string;
+    confidence?: string;
+  }> = [];
+
+  if (!parseResult?.chunks || !Array.isArray(parseResult.chunks)) {
+    return boundingBoxes;
+  }
+  let numericIdCounter = 1;
+
+  parseResult.chunks.forEach((chunk, chunkIndex) => {
+    // Use chunk content as the field value
+    const fieldValue = chunk.content || '';
+
+
+    // Skip empty chunks
+    if (!fieldValue.trim()) {
+      return;
+    }
+
+    // Check if chunk itself has a bounding box (for chunks without blocks)
+    if (chunk.bbox && typeof chunk.bbox === 'object') {
+      const chunkBbox = chunk.bbox as { left?: number; top?: number; width?: number; height?: number; page?: number };
+      const coords = {
+        left: chunkBbox.left || 0,
+        top: chunkBbox.top || 0,
+        width: chunkBbox.width || 0,
+        height: chunkBbox.height || 0,
+      };
+
+      // Skip boxes with zero dimensions
+      if (coords.width > 0 && coords.height > 0) {
+        boundingBoxes.push({
+          fieldId: `parse-chunk-${chunkIndex}`,
+          coords,
+          fieldName: formatFieldName(fieldValue.substring(0, 50)),
+          fieldValue: String(fieldValue),
+          numericId: numericIdCounter,
+          type: (chunk as { type?: string }).type || 'Text', // Extract type from chunk, default to 'Text'
+          confidence: (chunk as { confidence?: string }).confidence || 'high', // Extract confidence from chunk, default to 'high'
+        });
+      }
+    }
+
+    // Process each block in the chunk
+    if (chunk.blocks && Array.isArray(chunk.blocks)) {
+      chunk.blocks.forEach((block, blockIndex) => {
+
+        // Check if block has bounding box data
+        if (block.bbox && typeof block.bbox === 'object') {
+          const bbox = block.bbox as { left?: number; top?: number; width?: number; height?: number; page?: number };
+
+          // Extract field name from block content or use chunk content
+          const fieldName = block.content || chunk.content || `parse_field_${chunkIndex}_${blockIndex}`;
+
+          // Skip empty field names
+          if (!fieldName.trim()) {
+            return;
+          }
+
+          // Convert bbox coordinates to screen coordinates
+          // Parse bbox coordinates are typically normalized (0-1) or in PDF points
+          const coords = {
+            left: bbox.left || 0,
+            top: bbox.top || 0,
+            width: bbox.width || 0,
+            height: bbox.height || 0,
+          };
+
+          // Skip boxes with zero dimensions
+          if (coords.width <= 0 || coords.height <= 0) {
+            return;
+          }
+
+          boundingBoxes.push({
+            fieldId: `parse-${chunkIndex}-${blockIndex}`,
+            coords,
+            fieldName: formatFieldName(fieldName),
+            fieldValue: String(fieldValue),
+            numericId: numericIdCounter,
+            type: (block as { type?: string }).type || 'Text', // Extract type from block, default to 'Text'
+            confidence: (block as { confidence?: string }).confidence || 'high', // Extract confidence from block, default to 'high'
+          });
+
+          numericIdCounter += 1;
+        }
+      });
+    } else {
+      // If no blocks, try to use chunk-level bounding box if available
+      // This is a fallback for chunks that might have bbox at the chunk level
+      const fieldName = chunk.content || `parse_chunk_${chunkIndex}`;
+
+      boundingBoxes.push({
+        fieldId: `parse-chunk-${chunkIndex}`,
+        coords: { left: 0, top: 0, width: 100, height: 20 }, // Default fallback coordinates
+        fieldName: formatFieldName(fieldName),
+        fieldValue: String(fieldValue),
+        numericId: numericIdCounter,
+        type: (chunk as { type?: string }).type || 'Text', // Extract type from chunk, default to 'Text'
+        confidence: (chunk as { confidence?: string }).confidence || 'high', // Extract confidence from chunk, default to 'high'
+      });
+
+      numericIdCounter += 1;
+    }
+  });
+
+  return boundingBoxes;
+};
+
 export const formatSqlQuery = (sqlQuery: string): string => {
   if (!sqlQuery) return '';
 
