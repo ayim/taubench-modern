@@ -4,6 +4,7 @@ import { Code } from '../../../common/code';
 import { InteractionComponent } from './interactionComponents';
 import { Chart } from './interactionComponents/chart';
 import { Table } from './markdownComponents/Table';
+import { InlineHTML } from './markdownComponents/InlineHTML';
 
 export const markdownRules: MarkdownParserRules = {
   code: (key, tokens, _, messageId) => {
@@ -30,5 +31,9 @@ export const markdownRules: MarkdownParserRules = {
     });
 
     return <Table key={key} columns={columns} data={data} raw={raw} />;
+  },
+
+  html: (key, { raw }) => {
+    return <InlineHTML key={key} content={raw} />;
   },
 };
