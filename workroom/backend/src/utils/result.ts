@@ -48,12 +48,12 @@ export const asResult = async <ReturnValue, TError = { code: string; message: st
       data: value as ExtractResultValue<ReturnValue>,
     };
   } catch (err) {
-    const error = err as Error;
+    const error = err as Error & { code?: unknown };
 
     return {
       success: false,
       error: {
-        code: options?.errorCode ?? 'unexpected_error',
+        code: (options?.errorCode ?? typeof error.code === 'string') ? error.code : 'unexpected_error',
         message: options?.errorMessage ? `${options.errorMessage}: ${error.message}` : error.message,
       } as TError,
     };

@@ -3,7 +3,7 @@ import type { Configuration } from '../configuration.js';
 
 type LogMethod<Attributes extends LogAttributes> = (text: string, data?: Partial<Attributes>) => void;
 
-interface LogAttributes {
+export interface LogAttributes {
   authMode: Configuration['auth']['type'];
   authSkip: boolean;
   contentDispositionType: string;

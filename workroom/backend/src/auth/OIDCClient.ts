@@ -7,7 +7,7 @@ import type {
 } from 'openid-client';
 import * as oidcClient from 'openid-client';
 import type { Configuration } from '../configuration.js';
-import type { MonitoringContext } from '../monitoring/index.js';
+import type { LogAttributes, MonitoringContext } from '../monitoring/index.js';
 import { safeParseUrl } from '../utils/url.js';
 
 export interface OIDCClientOptions {
@@ -20,6 +20,17 @@ export interface OIDCPKCEChallenge {
   codeChallenge: string;
   codeVerifier: string;
 }
+
+const extractLogDetailsForOIDCError = (
+  err: oidcClient.AuthorizationResponseError | oidcClient.ResponseBodyError,
+): Partial<LogAttributes> => {
+  return {
+    errorCause: err.cause ? err.cause.toString() : undefined,
+    errorMessage: err.error_description ? `${err.message}: ${err.error_description}` : err.message,
+    errorName: err.name,
+    errorStack: err.stack,
+  };
+};
 
 export class OIDCClient {
   private monitoring: MonitoringContext;
@@ -49,13 +60,27 @@ export class OIDCClient {
     redirectUri: string;
     codeVerifier: string;
   }): Promise<TokenEndpointResponse & TokenEndpointResponseHelpers> {
-    const tokenSet = await oidcClient.authorizationCodeGrant(
-      this.oidcClientConfiguration,
-      new URL(`${redirectUri}?code=${code}`),
-      {
-        pkceCodeVerifier: codeVerifier,
-      },
-    );
+    const tokenSet = await (async () => {
+      try {
+        return await oidcClient.authorizationCodeGrant(
+          this.oidcClientConfiguration,
+          new URL(`${redirectUri}?code=${code}`),
+          {
+            pkceCodeVerifier: codeVerifier,
+          },
+        );
+      } catch (err) {
+        if (err instanceof oidcClient.AuthorizationResponseError || err instanceof oidcClient.ResponseBodyError) {
+          this.monitoring.logger.error('OIDC token exchange authorization error', extractLogDetailsForOIDCError(err));
+        } else {
+          this.monitoring.logger.error('OIDC token exchange error', {
+            error: err as Error,
+          });
+        }
+
+        throw err;
+      }
+    })();
 
     const idToken = tokenSet.claims();
     this.monitoring.logger.debug('Exchanged OIDC token', {
@@ -137,7 +162,21 @@ export class OIDCClient {
   }: {
     refreshToken: string;
   }): Promise<TokenEndpointResponse & TokenEndpointResponseHelpers> {
-    const tokenSet = await oidcClient.refreshTokenGrant(this.oidcClientConfiguration, refreshToken);
+    const tokenSet = await (async () => {
+      try {
+        return await oidcClient.refreshTokenGrant(this.oidcClientConfiguration, refreshToken);
+      } catch (err) {
+        if (err instanceof oidcClient.AuthorizationResponseError || err instanceof oidcClient.ResponseBodyError) {
+          this.monitoring.logger.error('OIDC token refresh authorization error', extractLogDetailsForOIDCError(err));
+        } else {
+          this.monitoring.logger.error('OIDC token refresh error', {
+            error: err as Error,
+          });
+        }
+
+        throw err;
+      }
+    })();
 
     const idToken = tokenSet.claims();
     this.monitoring.logger.debug('Refreshed OIDC token', {
