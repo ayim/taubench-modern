@@ -1,49 +1,27 @@
 import { ReactNode, useCallback, useRef, useState } from 'react';
 import { Box, Button, Menu } from '@sema4ai/components';
-import { IconDotsHorizontalCircle } from '@sema4ai/icons';
+import { IconDotsHorizontal } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 
 import { Code } from '../../../../../../common/code';
 
 const Container = styled(Box)<{ $menuOpen: boolean }>`
+  background-color: ${({ theme }) => theme.colors.background.panels.color};
+  border: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
+  border-radius: ${({ theme }) => theme.radii.$16};
+  padding: ${({ theme }) => theme.space.$16};
   position: relative;
-  width: 100%;
 
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -40px;
-    width: 40px;
-    height: 100%;
-  }
-
-  > button {
-    display: ${({ $menuOpen }) => ($menuOpen ? 'block' : 'none')};
-  }
-
-  &:hover {
-    > button {
-      display: block;
-    }
-  }
-
-  ${({ theme }) => theme.screen.m} {
-    &:before {
-      display: none;
-    }
-
-    canvas {
-      width: 100% !important;
-      height: auto !important;
-    }
+  canvas {
+    width: 100% !important;
+    height: auto !important;
   }
 `;
 
 const ChartTriggerMenu = styled(Button)`
   position: absolute;
-  top: 0;
-  left: -${({ theme }) => theme.space.$40};
+  top: ${({ theme }) => theme.space.$8};
+  right: ${({ theme }) => theme.space.$8};
 `;
 
 interface ChartProps {
@@ -80,8 +58,8 @@ export const ChartContainer = ({ children, handleExport, spec, showSource, onTog
           <ChartTriggerMenu
             ref={charContextMenuBtnRef}
             aria-label="chart-context-menu"
-            variant="ghost-subtle"
-            icon={IconDotsHorizontalCircle}
+            variant="ghost"
+            icon={IconDotsHorizontal}
             iconSize={32}
             round
           />

@@ -40,7 +40,7 @@ const Container = styled.section`
 
 const Footer = styled.footer`
   width: 100%;
-  max-width: 780px;
+  max-width: 980px;
   margin: 0 auto;
   padding: 0 ${({ theme }) => theme.space.$20} ${({ theme }) => theme.space.$20};
 `;

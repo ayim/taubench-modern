@@ -11,6 +11,8 @@ import { AgentErrorStreamPayload } from '../../../../lib/AgentServerTypes';
 type Props = {
   message: ThreadMessage | AgentErrorStreamPayload;
   streaming: boolean;
+  isLastMessage?: boolean;
+  isFirstMessage?: boolean;
 };
 
 type ThreadMessageContent = ThreadMessage['content'];
@@ -55,7 +57,12 @@ const getGroupedMessageContent = (messageContent: ThreadMessageContent, messageC
     .map((content) => (Array.isArray(content) && content.length === 1 ? content[0] : content));
 };
 
-const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message, streaming }) => {
+const Renderer: FC<{
+  message: ThreadMessage;
+  streaming: boolean;
+  isLastMessage?: boolean;
+  isFirstMessage?: boolean;
+}> = ({ message, streaming, isLastMessage, isFirstMessage }) => {
   const groupedMessageContent = useMemo(() => {
     const messageContent = message.content ?? [];
     return getGroupedMessageContent(messageContent, message.complete);
@@ -80,6 +87,8 @@ const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message,
               messageContentItem={processedContentItem}
               streaming={streaming}
               platform={platform}
+              isLastMessage={isLastMessage}
+              isFirstMessage={isFirstMessage}
             />
           ))}
         </ToolCallGroup>
@@ -92,18 +101,22 @@ const Renderer: FC<{ message: ThreadMessage; streaming: boolean }> = ({ message,
         messageContentItem={processedContent}
         streaming={streaming}
         platform={platform}
+        isLastMessage={isLastMessage}
+        isFirstMessage={isFirstMessage}
       />
     );
   });
 };
 
-const MessageRendererComponent: FC<Props> = ({ message, streaming }) => {
+const MessageRendererComponent: FC<Props> = ({ message, streaming, isLastMessage, isFirstMessage }) => {
   // TODO-V2: Styling of a stream error
   if ('error_id' in message) {
     return <Banner message="An error occurred" description={message.message} icon={IconAlert} variant="error" />;
   }
 
-  return <Renderer message={message} streaming={streaming} />;
+  return (
+    <Renderer message={message} streaming={streaming} isLastMessage={isLastMessage} isFirstMessage={isFirstMessage} />
+  );
 };
 
 export const MessageRenderer = memo(MessageRendererComponent);

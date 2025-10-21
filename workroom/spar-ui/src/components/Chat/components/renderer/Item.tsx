@@ -2,7 +2,7 @@ import { FC, useEffect, useRef } from 'react';
 import MarkJS from 'mark.js';
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 import { Box, Button, Chat, useClipboard } from '@sema4ai/components';
-import { IconCheck2, IconCopy, IconThumbsDown } from '@sema4ai/icons';
+import { IconCheck2, IconCopy, IconThumbsDown, IconThumbsUp } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 
 import { Attachment } from '../Attachment';
@@ -25,6 +25,8 @@ type Props = {
   messageContentItem: ThreadMessage['content'][number];
   streaming: boolean;
   platform?: string;
+  isLastMessage?: boolean;
+  isFirstMessage?: boolean;
 };
 
 const MessageContainer = styled(Box)`
@@ -34,15 +36,13 @@ const MessageContainer = styled(Box)`
   }
 `;
 
-const MessageActions = styled(Box)`
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.2s ease-in-out,
-    visibility 0.2s ease-in-out;
+const MessageActions = styled(Box)<{ $isLastMessage?: boolean }>`
+  opacity: ${({ $isLastMessage }) => ($isLastMessage ? 1 : 0)};
+  transition: opacity 0.2s ease-in-out 0.4s;
   display: flex;
-  justify-content: flex-end;
-  gap: $4;
+  justify-content: flex-start;
+  gap: ${({ theme }) => theme.space.$4};
+  margin-left: -${({ theme }) => theme.space.$8};
 `;
 
 const TOOL_CALLS_TO_IGNORE: Record<string, boolean> = {
@@ -58,6 +58,8 @@ export const MessageContentItemRenderer: FC<Props> = ({
   messageContentItem: content,
   streaming,
   platform,
+  isLastMessage,
+  isFirstMessage,
 }) => {
   const { query } = useThreadSearchStore();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -114,27 +116,31 @@ export const MessageContentItemRenderer: FC<Props> = ({
           >
             {content.text}
           </Chat.Markdown>
-          <MessageActions className="message-actions">
+          <MessageActions $isLastMessage={isLastMessage && !isFirstMessage && !streaming} className="message-actions">
             <Button
               icon={copiedToClipboard ? IconCheck2 : IconCopy}
               onClick={onCopyToClipboard(content.text)}
               aria-label="Copy to clipboard"
               variant="ghost-subtle"
-              size="small"
             />
             {feedbackEnabled && sparAPIClient.sendFeedback && (
-              <Button
-                icon={IconThumbsDown}
-                onClick={() => openFeedbackDialog()}
-                aria-label="Feedback"
-                variant="ghost-subtle"
-                size="small"
-              />
+              <>
+                <Button
+                  icon={IconThumbsUp}
+                  onClick={() => openFeedbackDialog()}
+                  aria-label="Feedback"
+                  variant="ghost-subtle"
+                />
+                <Button
+                  icon={IconThumbsDown}
+                  onClick={() => openFeedbackDialog()}
+                  aria-label="Feedback"
+                  variant="ghost-subtle"
+                />
+              </>
             )}
           </MessageActions>
-          {isFeedbackDialogOpen && feedbackEnabled && sparAPIClient.sendFeedback && (
-            <FeedbackDialog open={isFeedbackDialogOpen} onClose={closeFeedbackDialog} />
-          )}
+          {isFeedbackDialogOpen && <FeedbackDialog open onClose={closeFeedbackDialog} />}
         </MessageContainer>
       );
     case 'tool_call':

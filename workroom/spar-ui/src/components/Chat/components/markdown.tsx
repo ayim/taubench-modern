@@ -16,7 +16,7 @@ export const markdownRules: MarkdownParserRules = {
       return <Chart key={key} spec={tokens.text} />;
     }
 
-    return <Code key={key} aria-label="Code" lang={tokens.lang} value={tokens.text} />;
+    return <Code key={key} aria-label="Code" lang={tokens.lang} title={tokens.lang} value={tokens.text} />;
   },
   table: (key, { header, rows, raw }, parseContent, messageId, streaming) => {
     const columns = header.map((column) => ({
