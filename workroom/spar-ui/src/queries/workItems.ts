@@ -254,3 +254,32 @@ export const useCompleteWorkItemMutation = createSparMutation<{ workItemId: stri
     },
   }),
 );
+
+/**
+ * Work Items Summary
+ */
+export type AgentWorkItemsSummary = {
+  agent_id: string;
+  agent_name: string;
+  work_items_status_counts: Partial<Record<WorkItemStatus, number>>;
+};
+
+export const workItemsSummaryQueryKey = ['work-items-summary'];
+
+export const workItemsSummaryQueryOptions = createSparQueryOptions()(({ sparAPIClient }) => ({
+  queryKey: workItemsSummaryQueryKey,
+  queryFn: async (): Promise<AgentWorkItemsSummary[]> => {
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/summary', {});
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch work items summary', {
+        code: response.code,
+        resource: ResourceType.WorkItem,
+      });
+    }
+
+    return response.data;
+  },
+}));
+
+export const useWorkItemsSummaryQuery = createSparQuery(workItemsSummaryQueryOptions);

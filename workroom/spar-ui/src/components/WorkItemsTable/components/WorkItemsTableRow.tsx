@@ -6,54 +6,40 @@ import {
   IconLoading,
   IconRefresh,
   IconSearchArea,
-  IconStatusCompleted,
-  IconStatusError,
-  IconStatusIdle,
-  IconStatusNew,
-  IconStatusPending,
 } from '@sema4ai/icons';
 import { FC, useCallback } from 'react';
 
-import { formatDateTime, snakeCaseToCamelCase } from '../../../common/helpers';
+import { formatDateTime } from '../../../common/helpers';
 import { useCompleteWorkItemMutation, useRestartWorkItemMutation } from '../../../queries/workItems';
 import { useNavigate } from '../../../hooks';
 import { WorkItemRowData } from '../types';
 import { workItemsTableColumns } from '../columns';
+import { WORK_ITEM_STATUS_CONFIG, DEFAULT_WORK_ITEM_STATUS_CONFIG } from '../../../constants/workItemStatus';
+import { createWorkItemsNavigationContext } from '../../../utils/navigation';
+import { WorkItemsNavigationContext } from '../../../types/navigation';
 
-type RowProps = { rowData: WorkItemRowData };
+type WithNavigationContext = {
+  setNavigationContext: (value: WorkItemsNavigationContext | null) => void;
+};
+
+type RowProps = { 
+  rowData: WorkItemRowData;
+};
 
 const StatusCell: FC<RowProps> = ({ rowData }) => {
   const { status } = rowData;
-  const statusText = snakeCaseToCamelCase(status);
+  const config = WORK_ITEM_STATUS_CONFIG[status] || DEFAULT_WORK_ITEM_STATUS_CONFIG;
 
-  let badge;
-  switch (status) {
-    case 'COMPLETED':
-      badge = <Badge icon={IconStatusCompleted} iconColor="content.success" label={statusText} variant="green" />;
-      break;
-    case 'PENDING':
-      badge = <Badge icon={IconStatusPending} iconColor="content.subtle" label={statusText} variant="secondary" />;
-      break;
-    case 'EXECUTING':
-      badge = <Badge icon={IconLoading} iconColor="content.subtle" label={statusText} variant="blue" />;
-      break;
-    case 'NEEDS_REVIEW':
-      badge = <Badge icon={IconStatusIdle} iconColor="content.subtle" label={statusText} variant="yellow" />;
-      break;
-    case 'CANCELLED':
-      badge = <Badge icon={IconStatusError} iconColor="content.error" label={statusText} variant="red" />;
-      break;
-    case 'ERROR':
-      badge = <Badge icon={IconStatusError} iconColor="content.error" label={statusText} variant="red" />;
-      break;
-    case 'INDETERMINATE':
-      badge = <Badge icon={IconStatusIdle} iconColor="content.subtle" label={statusText} variant="yellow" />;
-      break;
-    default:
-      badge = <Badge icon={IconStatusNew} iconColor="content.subtle" label={statusText} variant="blue" />;
-  }
-
-  return <Table.Cell>{badge}</Table.Cell>;
+  return (
+    <Table.Cell>
+      <Badge
+        icon={config.icon}
+        iconColor={config.iconColor}
+        label={config.label}
+        variant={config.variant}
+      />
+    </Table.Cell>
+  );
 };
 
 const UpdatedAtCell: FC<RowProps> = ({ rowData }) => {
@@ -67,7 +53,7 @@ const UpdatedAtCell: FC<RowProps> = ({ rowData }) => {
   );
 };
 
-const ActionsCell: FC<RowProps> = ({ rowData }) => {
+const ActionsCell: FC<RowProps & WithNavigationContext> = ({ rowData, setNavigationContext }) => {
   const navigate = useNavigate();
   const { addSnackbar } = useSnackbar();
   const { status, work_item_id, agent_id } = rowData;
@@ -82,11 +68,16 @@ const ActionsCell: FC<RowProps> = ({ rowData }) => {
   const handleViewWorkItemClick = useCallback(() => {
     if (status === 'PENDING' || !work_item_id || !agent_id) return;
     
+    const context = createWorkItemsNavigationContext('workItems', 'all');
+    if (context) {
+      setNavigationContext(context);
+    }
+    
     navigate({ 
       to: '/workItem/$agentId/$workItemId', 
       params: { workItemId: work_item_id, agentId: agent_id } 
     });
-  }, [navigate, work_item_id, agent_id, status]);
+  }, [navigate, work_item_id, agent_id, status, setNavigationContext]);
 
   const handleRestart = useCallback(() => {
     restartWorkItem(
@@ -145,30 +136,36 @@ const ActionsCell: FC<RowProps> = ({ rowData }) => {
   );
 };
 
-const workitemsTableCellComponents: Partial<Record<string, FC<RowProps>>> = {
+const workitemsTableCellComponents: Partial<Record<string, FC<RowProps & WithNavigationContext>>> = {
   status: StatusCell,
   updated_at: UpdatedAtCell,
   actions: ActionsCell,
 };
 
-export const WorkItemsTableRow: FC<TableRowProps<WorkItemRowData, RowProps>> = ({ rowData }) => {
+export const WorkItemsTableRow: FC<TableRowProps<WorkItemRowData, WithNavigationContext>> = ({ rowData, props }) => {
   const navigate = useNavigate();
+  const { setNavigationContext } = props;
 
   const handleRowClick = useCallback(() => {
     const { work_item_id, agent_id, status } = rowData;
     if (status === 'PENDING' || !work_item_id || !agent_id) return;
     
+    const context = createWorkItemsNavigationContext('workItems', 'all');
+    if (context) {
+      setNavigationContext(context);
+    }
+    
     navigate({ 
       to: '/workItem/$agentId/$workItemId', 
       params: { workItemId: work_item_id, agentId: agent_id } 
     });
-  }, [rowData, navigate]);
+  }, [rowData, navigate, setNavigationContext]);
 
   return (
     <Table.Row onClick={handleRowClick} style={{ cursor: rowData.status === 'PENDING' ? 'default' : 'pointer' }}>
       {workItemsTableColumns.map(({ id }) => {
         const CellElement = workitemsTableCellComponents[id];
-        if (CellElement) return <CellElement key={id} rowData={rowData} />;
+        if (CellElement) return <CellElement key={id} rowData={rowData} setNavigationContext={setNavigationContext} />;
 
         return (
           <Table.Cell key={id}>

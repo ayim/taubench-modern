@@ -95,7 +95,12 @@ export const Sidebar: FC = () => {
               </RouterSideNavigationLink>
             )}
 
-            <RouterSideNavigationLink icon={<IconFileText />} to="/tenants/$tenantId/workItems" params={{ tenantId }}>
+            <RouterSideNavigationLink
+              icon={<IconFileText />}
+              to="/tenants/$tenantId/workItems"
+              params={{ tenantId }}
+              search={{ tab: 'all', agent: '', status: '' }}
+            >
               Work Items
             </RouterSideNavigationLink>
 

@@ -1,183 +1,174 @@
-import { Box, Button, FilterGroup, useSnackbar } from '@sema4ai/components';
+import { Box, Button, useLocalStorage, useSnackbar } from '@sema4ai/components';
 import { IconRefresh } from '@sema4ai/icons';
-import { TableWithFilter } from '@sema4ai/layouts';
-import { FC, useCallback, useContext, useMemo, useState } from 'react';
+import { TableWithFilter, QuerySettings } from '@sema4ai/layouts';
+import { FC, useCallback, useContext, useEffect, useMemo, useState, Dispatch, SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { SparUIContext } from '../../api/context';
 import { useAgentsQuery, useWorkItemsQuery, WorkItemStatus } from '../../queries';
-import { WorkItemRowData, workitemStatusValues } from './types';
+import { WorkItemRowData } from './types';
 import { workItemsSortRules, workItemsTableColumns } from './columns';
 import { WorkItemsTableRow } from './components/WorkItemsTableRow';
 import { WorkItemsTableActions } from './components/WorkItemsTableActions';
-import { snakeCaseToCamelCase } from '../../common/helpers';
+import { WorkItemsNavigationContext } from '../../types/navigation';
+import {
+  parseQueryFromURL,
+  serializeQueryToURL,
+  buildAgentMaps,
+  transformWorkItemsWithAgentNames,
+  buildFilterOptions,
+  calculatePagination,
+} from './utils';
 
 const PAGE_SIZE = 50;
 
-export const WorkItemsTable: FC = () => {
+type Props = {
+  onDownloadJSON: (data: unknown, options: { filename: string; addTimestamp?: boolean }) => void;
+}
+
+export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
   const { addSnackbar } = useSnackbar();
   const { sparAPIClient } = useContext(SparUIContext);
   const queryClient = useQueryClient();
-
-  const [filters, setFilters] = useState<Record<'status' | 'agent_name', string[]>>({
-    status: [],
-    agent_name: [],
+  const tenantId = sparAPIClient.getTenantId();
+  
+  const { setStorageValue: setNavigationContext } = useLocalStorage<WorkItemsNavigationContext | null>({
+    key: `workItems.navigationContext${tenantId ? `.${tenantId}` : ''}`,
+    defaultValue: null,
   });
-  const [page, setPage] = useState(0);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [search, setSearch] = useState('');
 
   const { data: agents = [], refetch: refetchAgents } = useAgentsQuery({});
+  const { agentsById, agentsByName } = useMemo(() => buildAgentMaps(agents), [agents]);
 
-  const { agentsById, agentsByName } = useMemo(() => {
-    const byId = new Map<string, string>();
-    const byName = new Map<string, string>();
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [query, setQuery] = useState<Partial<QuerySettings>>({
+    filters: { status: [], agent_name: [] },
+    search: ''
+  });
 
-    agents.forEach((agent) => {
-      if (agent.id && agent.name) {
-        byId.set(agent.id, agent.name);
-        byName.set(agent.name, agent.id);
+  useEffect(() => {
+    if (agents.length > 0) {
+      const urlQuery = parseQueryFromURL(agentsById);
+      
+      if (Object.keys(urlQuery).length > 0) {
+        setQuery((prev) => {
+          const updatedQuery = { ...prev, ...urlQuery };
+          const urlParams = serializeQueryToURL(updatedQuery, agentsByName);
+          const newURL = urlParams ? `${window.location.pathname}?${urlParams}` : window.location.pathname;
+          window.history.replaceState({}, '', newURL);
+          return updatedQuery;
+        });
       }
-    });
+    }
+  }, [agents.length, agentsById, agentsByName]);
 
-    return { agentsById: byId, agentsByName: byName };
-  }, [agents]);
+  useEffect(() => {
+    setSelectedItems([]);
+  }, [query.filters, query.search, query.page]);
 
-  const selectedAgentId = filters.agent_name.length > 0 ? agentsByName.get(filters.agent_name[0]) : undefined;
+  const handleQueryChange: Dispatch<SetStateAction<Partial<QuerySettings>>> = useCallback(
+    (newQueryOrSetter) => {
+      setQuery((prevQuery) => {
+        const newQuery = typeof newQueryOrSetter === 'function' ? newQueryOrSetter(prevQuery) : newQueryOrSetter;
+        const urlParams = serializeQueryToURL(newQuery, agentsByName);
+        const newURL = urlParams ? `${window.location.pathname}?${urlParams}` : window.location.pathname;
+        window.history.replaceState({}, '', newURL);
+        return newQuery;
+      });
+    },
+    [agentsByName]
+  );
+
+  const selectedAgentId = query.filters?.agent_name?.[0] ? agentsByName.get(query.filters.agent_name[0]) : undefined;
+  const selectedStatuses = query.filters?.status?.length ? (query.filters.status as WorkItemStatus[]) : undefined;
 
   const { data: workItemsResponse, refetch: refetchWorkItems } = useWorkItemsQuery({
     agentId: selectedAgentId,
-    workItemStatus: filters.status.length > 0 ? (filters.status as WorkItemStatus[]) : undefined,
-    nameSearch: search || undefined,
+    workItemStatus: selectedStatuses,
+    nameSearch: query.search || undefined,
     limit: PAGE_SIZE,
-    offset: page * PAGE_SIZE,
+    offset: (query.page || 0) * PAGE_SIZE,
   });
 
   const workItems = useMemo<WorkItemRowData[]>(
-    () =>
-      (workItemsResponse?.records ?? []).map((item) => ({
-        work_item_id: item.work_item_id,
-        work_item_name: item.work_item_name,
-        agent_id: item.agent_id,
-        status: item.status,
-        updated_at: item.updated_at,
-        agent_name: item.agent_id ? agentsById.get(item.agent_id) ?? item.agent_id : item.agent_id,
-      })),
-    [workItemsResponse?.records, agentsById],
+    () => transformWorkItemsWithAgentNames(workItemsResponse?.records ?? [], agentsById),
+    [workItemsResponse?.records, agentsById]
   );
 
-  const filterOptions = useMemo<Record<'status' | 'agent_name', FilterGroup>>(
-    () => ({
-      status: {
-        label: 'Status',
-        searchable: true,
-        options: workitemStatusValues.map((status) => ({
-          label: snakeCaseToCamelCase(status),
-          value: status,
-          itemType: 'checkbox',
-        })),
-      },
-      agent_name: {
-        label: 'Agent Name',
-        searchable: true,
-        options: Array.from(agentsByName.keys())
-          .sort()
-          .map((name) => ({
-            label: name,
-            value: name,
-            itemType: 'radio',
-          })),
-      },
-    }),
-    [agentsByName],
+  const filterOptions = useMemo(
+    () => buildFilterOptions(agentsByName),
+    [agentsByName]
   );
 
-  const hasNextPage = workItemsResponse?.next_offset != null;
-  const estimatedTotal = hasNextPage ? page * PAGE_SIZE + PAGE_SIZE + 1 : page * PAGE_SIZE + workItems.length;
+  const { estimatedTotal } = calculatePagination(
+    query.page || 0,
+    PAGE_SIZE,
+    workItems.length,
+    workItemsResponse?.next_offset != null
+  );
 
   const handleRefresh = useCallback(() => {
     refetchAgents();
     refetchWorkItems();
   }, [refetchAgents, refetchWorkItems]);
 
-  const handleSearchChange = useCallback(
-    (searchValue: string) => {
-      setSearch(searchValue);
-      setPage(0);
-      setSelectedItems([]);
-    },
-    [],
-  );
+  useEffect(() => {
+    if (selectedItems.length > 0) {
+      return undefined;
+    }
 
-  const handleFilterChange = useCallback(
-    (newFilters: Record<string, string[]>) => {
-      const typedFilters = newFilters as Record<'status' | 'agent_name', string[]>;
-      setFilters(typedFilters);
-      setPage(0);
-      setSelectedItems([]);
-    },
-    [],
-  );
+    const intervalId = setInterval(() => {
+      refetchWorkItems();
+    }, 2000);
 
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
-    setSelectedItems([]);
-  }, []);
+    return () => clearInterval(intervalId);
+  }, [selectedItems.length, refetchWorkItems]);
 
   const handleDownloadSelected = useCallback(() => {
-    const selectedIndices = selectedItems.map(Number);
-    const selectedWorkItems = workItems.filter((_, index) => selectedIndices.includes(index));
+    const selectedWorkItems = workItems.filter((_, index) => selectedItems.includes(String(index)));
 
     if (selectedWorkItems.length === 0) {
       addSnackbar({ message: 'No items selected', variant: 'danger' });
       return;
     }
 
-    const json = JSON.stringify(selectedWorkItems, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `work-items-${new Date().toISOString()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    onDownloadJSON(selectedWorkItems, {
+      filename: 'work-items',
+      addTimestamp: true,
+    });
 
-    addSnackbar({ message: `Downloaded ${selectedWorkItems.length} work item${selectedWorkItems.length > 1 ? 's' : ''}`, variant: 'success' });
-  }, [workItems, selectedItems, addSnackbar]);
+    const plural = selectedWorkItems.length > 1 ? 's' : '';
+    addSnackbar({ message: `Downloaded ${selectedWorkItems.length} work item${plural}`, variant: 'success' });
+  }, [workItems, selectedItems, onDownloadJSON, addSnackbar]);
 
   const handleReprocessSelected = useCallback(async () => {
-    const selectedIndices = selectedItems.map(Number);
-    const restartableItems = workItems.filter((_, index) => selectedIndices.includes(index));
+    const selectedWorkItems = workItems.filter((_, index) => selectedItems.includes(String(index)));
 
-    if (restartableItems.length === 0) {
+    if (selectedWorkItems.length === 0) {
       addSnackbar({ message: 'No items can be restarted', variant: 'danger' });
       return;
     }
 
-    const results = await Promise.allSettled(
-      restartableItems.map((item) =>
-        sparAPIClient.queryAgentServer('post', '/api/v2/work-items/{work_item_id}/restart', {
-          params: { path: { work_item_id: item.work_item_id ?? '' } },
-        }),
-      ),
+    const restartRequests = selectedWorkItems.map((item) =>
+      sparAPIClient.queryAgentServer('post', '/api/v2/work-items/{work_item_id}/restart', {
+        params: { path: { work_item_id: item.work_item_id ?? '' } },
+      })
     );
 
+    const results = await Promise.allSettled(restartRequests);
     const succeeded = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
     const failed = results.length - succeeded;
 
     queryClient.invalidateQueries({ queryKey: ['work-items'] });
 
     if (succeeded > 0 && failed === 0) {
-      addSnackbar({
-        message: `Successfully restarted ${succeeded} work item${succeeded > 1 ? 's' : ''}`,
-        variant: 'success',
-      });
+      const plural = succeeded > 1 ? 's' : '';
+      addSnackbar({ message: `Successfully restarted ${succeeded} work item${plural}`, variant: 'success' });
     } else if (succeeded > 0 && failed > 0) {
-      addSnackbar({
-        message: `Restarted ${succeeded} work item${succeeded > 1 ? 's' : ''}, ${failed} failed`,
-        variant: 'danger',
+      const plural = succeeded > 1 ? 's' : '';
+      addSnackbar({ 
+        message: `Restarted ${succeeded} work item${plural}, ${failed} failed`, 
+        variant: 'danger' 
       });
     } else {
       addSnackbar({ message: 'Failed to restart work items', variant: 'danger' });
@@ -199,35 +190,34 @@ export const WorkItemsTable: FC = () => {
         </Box>
       )}
       <Box flexGrow={1} overflow="hidden">
-        <TableWithFilter<WorkItemRowData, 'status' | 'agent_name', { rowData: WorkItemRowData }>
-          id="work-items-table"
-          columns={workItemsTableColumns}
-          data={workItems}
-          row={WorkItemsTableRow}
-          filters={filterOptions}
-          filter={filters}
-          label={{ singular: 'work item', plural: 'work items' }}
-          selectable
-          selected={selectedItems}
-          onSelect={setSelectedItems}
-          sortRules={workItemsSortRules}
-          page={page}
-          onSearchChange={handleSearchChange}
-          onFilterChange={handleFilterChange}
-          onPageChange={handlePageChange}
-          totalEntries={estimatedTotal}
-          contentBefore={
-            <Box display="flex" alignItems="center">
-            <Button 
-              aria-label="Refresh" 
-              icon={IconRefresh} 
-              variant="ghost" 
-              size="small" 
-              onClick={handleRefresh}
-            />
-            </Box>
-          }
-        />
+        {agents.length > 0 && (
+          
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          <TableWithFilter<WorkItemRowData, 'status' | 'agent_name', { setNavigationContext: (value: WorkItemsNavigationContext | null) => void }>
+            id="work-items-table"
+            columns={workItemsTableColumns}
+            data={workItems}
+            row={WorkItemsTableRow}
+            rowProps={{ setNavigationContext }}
+            filters={filterOptions}
+            label={{ singular: 'work item', plural: 'work items' }}
+            selectable
+            selected={selectedItems}
+            onSelect={setSelectedItems}
+            sortRules={workItemsSortRules}
+            isServerSide
+            query={query}
+            onQuery={handleQueryChange}
+            totalEntries={estimatedTotal}
+            contentBefore={
+              selectedItems.length > 0 ? (
+                <Box display="flex" alignItems="center">
+                  <Button aria-label="Refresh" icon={IconRefresh} variant="ghost" size="small" onClick={handleRefresh} />
+                </Box>
+              ) : undefined
+            }
+          />
+        )}
       </Box>
     </Box>
   );

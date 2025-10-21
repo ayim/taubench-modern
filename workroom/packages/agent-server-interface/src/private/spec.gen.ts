@@ -5333,6 +5333,31 @@ export const spec = {
         },
       },
     },
+    '/api/v2/work-items/summary': {
+      get: {
+        tags: ['work-items'],
+        summary: 'Get Work Items Summary',
+        description: 'Get work items summary grouped by agent and status.',
+        operationId: 'get_work_items_summary_work_items_summary_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  items: {
+                    $ref: '#/components/schemas/AgentWorkItemsSummaryResponse',
+                  },
+                  type: 'array',
+                  title:
+                    'Response Get Work Items Summary Work Items Summary Get',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/work-items': {
       post: {
         tags: ['work-items'],
@@ -6007,31 +6032,6 @@ export const spec = {
               'application/json': {
                 schema: {
                   $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/v2/work-items/summary': {
-      get: {
-        tags: ['work-items'],
-        summary: 'Get Work Items Summary',
-        description: 'Get work items summary grouped by agent and status.',
-        operationId: 'get_work_items_summary_work_items_summary_get',
-        responses: {
-          '200': {
-            description: 'Successful Response',
-            content: {
-              'application/json': {
-                schema: {
-                  items: {
-                    $ref: '#/components/schemas/AgentWorkItemsSummaryResponse',
-                  },
-                  type: 'array',
-                  title:
-                    'Response Get Work Items Summary Work Items Summary Get',
                 },
               },
             },

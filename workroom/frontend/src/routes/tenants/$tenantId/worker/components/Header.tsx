@@ -1,12 +1,23 @@
-import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
+import { Button, Menu, Tooltip, useLocalStorage, useScreenSize } from '@sema4ai/components';
 import { IconArrowLeft, IconDotsHorizontal, IconInformation, IconPaperclip, IconPoll } from '@sema4ai/icons';
 import { WorkerHeader } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 import { useNavigate, useParams } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
 import { useToggleRoutePath } from '~/hooks/useToggleRoutePath';
 import { useTenantContext } from '~/lib/tenantContext';
+
+type NavigationContext = {
+  from: string;
+  timestamp: number;
+  tab: 'all' | 'overview';
+  agent?: string;
+  status?: string;
+  search?: string;
+  page?: string;
+};
 
 export const Header = () => {
   const { agentId, tenantId } = useParams({ from: '/tenants/$tenantId/worker/$agentId' });
@@ -18,10 +29,40 @@ export const Header = () => {
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
+  const { storageValue: storedContext, setStorageValue: setStoredContext } = useLocalStorage<NavigationContext | null>({
+    key: `workItems.navigationContext${tenantId ? `.${tenantId}` : ''}`,
+    defaultValue: null,
+  });
+
+  const [navigationContext, setNavigationContext] = useState<NavigationContext | null>(null);
+
+  useEffect(() => {
+    if (storedContext && storedContext.timestamp > Date.now() - 3600000) {
+      setNavigationContext(storedContext);
+    }
+  }, [storedContext]);
+
   const handleBackToWorkItems = () => {
+    const tab = navigationContext?.tab || 'all';
+    const agent = navigationContext?.agent;
+    const status = navigationContext?.status;
+    const search = navigationContext?.search;
+    const page = navigationContext?.page;
+
+    setStoredContext(null);
+
+    const searchParams: { tab: 'all' | 'overview'; agent?: string; status?: string; search?: string; page?: number } = {
+      tab,
+    };
+    if (agent) searchParams.agent = agent;
+    if (status) searchParams.status = status;
+    if (search) searchParams.search = search;
+    if (page) searchParams.page = Number(page);
+
     navigate({
       to: '/tenants/$tenantId/workItems',
       params: { tenantId },
+      search: searchParams,
     });
   };
 
@@ -39,7 +80,7 @@ export const Header = () => {
   return (
     <WorkerHeader
       leftAction={
-        !isMobile ? (
+        !isMobile && navigationContext?.from === 'workItems' ? (
           <Tooltip text="Back to Work Items" placement="bottom">
             <Button
               icon={IconArrowLeft}

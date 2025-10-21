@@ -1,4 +1,4 @@
-import { WorkItem, WorkItemStatus } from '../../queries/workItems';
+import { WorkItem } from '../../queries/workItems';
 
 export type WorkItemRowData = Pick<
   WorkItem,
@@ -7,14 +7,4 @@ export type WorkItemRowData = Pick<
   agent_name: string | null | undefined;
 };
 
-export const workitemStatusValues: WorkItemStatus[] = [
-  'CANCELLED',
-  'COMPLETED',
-  'ERROR',
-  'EXECUTING',
-  'NEEDS_REVIEW',
-  'INDETERMINATE',
-  'PENDING',
-  'PRECREATED',
-];
 

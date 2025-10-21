@@ -1847,6 +1847,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/work-items/summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Work Items Summary
+     * @description Get work items summary grouped by agent and status.
+     */
+    get: operations['get_work_items_summary_work_items_summary_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/work-items': {
     parameters: {
       query?: never;
@@ -2005,26 +2025,6 @@ export interface paths {
      * @description Administratively mark a work item as completed.
      */
     post: operations['complete_work_item_work_items__work_item_id__complete_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/work-items/summary': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Work Items Summary
-     * @description Get work items summary grouped by agent and status.
-     */
-    get: operations['get_work_items_summary_work_items_summary_get'];
-    put?: never;
-    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -14300,6 +14300,26 @@ export interface operations {
       };
     };
   };
+  get_work_items_summary_work_items_summary_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentWorkItemsSummaryResponse'][];
+        };
+      };
+    };
+  };
   list_work_items_work_items_get: {
     parameters: {
       query?: {
@@ -14682,26 +14702,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  get_work_items_summary_work_items_summary_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['AgentWorkItemsSummaryResponse'][];
         };
       };
     };

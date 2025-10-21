@@ -64,6 +64,7 @@
   "devDependencies": {
     "@sema4ai/eslint-config-frontend": "^1.1.0",
     "@types/mark.js": "^8.11.12",
+    "@types/qs": "^6.14.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "eslint": "^8.57.0",
@@ -91,6 +92,7 @@
     "mark.js": "^8.11.1",
     "openapi-fetch": "^0.14.0",
     "openapi-typescript-helpers": "^0.0.13",
+    "qs": "^6.14.0",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.62.0",
     "uuid": "^9.0.1",

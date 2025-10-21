@@ -19,7 +19,7 @@ export enum SparUIFeatureFlag {
 }
 
 export type NavigationArgs = {
-  [K in keyof SparUIRoutes]: { to: K; params: SparUIRoutes[K] };
+  [K in keyof SparUIRoutes]: { to: K; params: SparUIRoutes[K]; search?: Record<string, unknown> };
 }[keyof SparUIRoutes];
 
 export interface SparAPIClient {
@@ -51,8 +51,15 @@ export interface SparAPIClient {
 
   /**
    * Navigation helper
+   * Supports optional search params for query strings
    */
   navigate: (args: NavigationArgs) => void;
+
+  /**
+   * Get the tenant ID for the current context
+   * Returns undefined if the platform doesn't have a tenant concept (e.g., desktop app)
+   */
+  getTenantId: () => string | undefined;
 
   /**
    * Get Agent OAuth provider state

@@ -17,6 +17,9 @@ export * from './components/ConversationGuides';
 
 export * from './lib/OAuth';
 export * from './lib/constants';
+export * from './lib/utils';
+
+export * from './types/navigation';
 
 export * from './queries/shared';
 
@@ -38,3 +41,4 @@ export { streamManager } from './hooks';
 export * from './components/ChatDetails/WorkItemAPIUrl';
 
 export * from './components/WorkItemsTable';
+export * from './components/WorkItemsOverview';

@@ -103,13 +103,14 @@ router.include_router(
 
 # Workroom uses the private API, so we need work-items published on the private api, too.
 # Include both public and private work items endpoints
+# IMPORTANT: Include private router first so /summary route is matched before /{work_item_id}
 router.include_router(
-    work_items_public_router,
+    work_items_private_router,
     prefix="/work-items",
     tags=["work-items"],
 )
 router.include_router(
-    work_items_private_router,
+    work_items_public_router,
     prefix="/work-items",
     tags=["work-items"],
 )
