@@ -2,6 +2,7 @@ import { LayoutFieldRow, LayoutTableRow } from '../types';
 import type {
   ParseDocumentResponsePayload,
   ExtractDocumentResponsePayload,
+  ExtractionSchemaPayload,
 } from '../store/useDocumentIntelligenceStore';
 
 // Union type for both parse and extract responses
@@ -17,13 +18,6 @@ interface SchemaProperty {
   items?: SchemaProperty;
 }
 
-interface ExtractionSchema {
-  $schema: string;
-  title: string;
-  type: string;
-  properties: Record<string, SchemaProperty>;
-  required: string[];
-}
 
 // Utility function to generate unique IDs
 export const generateUniqueId = (prefix: string): string => {
@@ -54,6 +48,73 @@ export const toSnakeCase = (s: string): string => {
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '')
     .toLowerCase();
+};
+
+// Remove citation from extracted data by field name
+export const removeCitationFromExtractedData = (
+  extractedData: ExtractDocumentResponsePayload,
+  fieldName: string
+): ExtractDocumentResponsePayload => {
+  if (!extractedData?.citations) {
+    return extractedData;
+  }
+
+
+  // Helper function to recursively remove citations by field name
+  const removeCitationRecursively = (obj: unknown, currentPath: string = ''): unknown => {
+    if (!obj || typeof obj !== 'object') return obj;
+
+    // If this object is a citation (has bbox and content), check if it matches the field name
+    if ('bbox' in obj && 'content' in obj) {
+      const citationFieldName = formatFieldName(currentPath)
+      // Try multiple matching strategies:
+      // 1. Exact match
+      const exactMatch = citationFieldName === fieldName;
+
+      // 2. Case-insensitive match
+      const caseInsensitiveMatch = citationFieldName.toLowerCase() === fieldName.toLowerCase();
+
+      // 3. Match without array index (e.g., "inspection_summary_0" matches "inspection_summary")
+      const withoutArrayIndex = citationFieldName.replace(/_\d+$/, '');
+      const arrayIndexMatch = withoutArrayIndex === fieldName;
+
+      // 4. Match the base path without array notation (e.g., "inspection_summary[0]" matches "inspection_summary")
+      const basePath = currentPath.replace(/\[\d+\]$/, '');
+      const basePathFormatted = formatFieldName(basePath);
+      const basePathMatch = basePathFormatted === fieldName;
+
+      if (exactMatch || caseInsensitiveMatch || arrayIndexMatch || basePathMatch) {
+        return null; // Mark for removal
+      }
+      return obj;
+    }
+
+    // If it's an array, process each item and filter out nulls
+    if (Array.isArray(obj)) {
+      return obj
+        .map((item, index) => removeCitationRecursively(item, `${currentPath}[${index}]`))
+        .filter(item => item !== null);
+    }
+
+    // If it's an object, process each property
+    const result: Record<string, unknown> = {};
+    Object.entries(obj).forEach(([key, value]) => {
+      const newPath = currentPath ? `${currentPath}.${key}` : key;
+      const processedValue = removeCitationRecursively(value, newPath);
+      if (processedValue !== null) {
+        result[key] = processedValue;
+      }
+    });
+
+    return result;
+  };
+
+  const updatedCitations = removeCitationRecursively(extractedData.citations);
+
+  return {
+    ...extractedData,
+    citations: updatedCitations as typeof extractedData.citations,
+  };
 };
 
 export const formatSqlQuery = (sqlQuery: string): string => {
@@ -491,24 +552,6 @@ export const mergeExtractedSchemaProperties = (extractedSchemaProperties: Record
   return mergedSchema;
 };
 
-// Convert layout to extraction schema
-export const convertLayoutToExtractionSchema = (fields: LayoutFieldRow[], tables: LayoutTableRow[]): ExtractionSchema => {
-  const schemaProperties: Record<string, SchemaProperty>[] = [
-    convertFieldsToExtractionSchema(fields),
-    convertTablesToExtractionSchema(tables),
-  ];
-  const mergedSchema = mergeExtractedSchemaProperties(schemaProperties);
-  const requiredFields = Object.entries(mergedSchema || {})
-    .filter(([, property]) => !!property.required)
-    .map(([name]) => name);
-  return {
-    $schema: 'http://json-schema.org/draft-07/schema#',
-    title: 'Document Extraction Schema',
-    type: 'object',
-    properties: mergedSchema,
-    required: requiredFields,
-  };
-};
 
 // Filter fields by selected fields
 export const filterFieldsBySelectedFields = ({
@@ -552,4 +595,132 @@ export const filterTablesBySelectedTableColumns = ({
           };
         })
     : tables;
+};
+
+// Convert UI state to DocumentLayoutPayload for retry functionality
+export const convertUIStateToDocumentLayoutPayload = (
+  layoutFields: LayoutFieldRow[],
+  layoutTables: LayoutTableRow[],
+  documentLayout?: { prompt?: string | null } | null,
+  originalGeneratedSchema?: ExtractionSchemaPayload | null
+): Record<string, unknown> => {
+  // Start with the original generated schema if available, otherwise create a new one
+  let baseSchema: Record<string, unknown>;
+
+  if (originalGeneratedSchema) {
+    // Use the original schema as base, preserving its structure
+    baseSchema = { ...originalGeneratedSchema };
+  } else {
+    // Fallback to creating a basic schema
+    baseSchema = {
+      type: 'object',
+      properties: {},
+      required: [],
+    };
+  }
+
+  // Helper function to get original schema property by path
+  const getOriginalSchemaProperty = (path: string): Record<string, unknown> | null => {
+    if (!originalGeneratedSchema?.properties) return null;
+
+    const pathParts = path.split('.');
+    const current: Record<string, unknown> = originalGeneratedSchema.properties;
+
+    const result = pathParts.reduce<Record<string, unknown> | null>((acc, part) => {
+      if (acc && acc[part] && typeof acc[part] === 'object') {
+        return acc[part] as Record<string, unknown>;
+      }
+      return null;
+    }, current);
+
+    return result;
+  };
+
+  // Create extraction schema from fields and tables
+  const properties: Record<string, Record<string, unknown>> = {};
+  const required: string[] = [];
+
+  // Add fields to schema
+  layoutFields.forEach((field) => {
+    if (field.name && field.name.trim()) {
+      const fieldName = formatFieldName(field.name);
+
+      // Get original schema property to preserve description and layout_description
+      const originalProperty = getOriginalSchemaProperty(fieldName);
+
+      properties[fieldName] = {
+        type: field.type || 'string',
+        description: field.description || originalProperty?.description || '',
+        layout_description: field.layout_description || originalProperty?.layout_description || '',
+      };
+
+      if (field.required) {
+        required.push(fieldName);
+      }
+    }
+  });
+
+  // Add tables to schema
+  layoutTables.forEach((table) => {
+    if (table.name && table.name.trim()) {
+      const tableName = formatFieldName(table.name);
+      const tableProperties: Record<string, Record<string, unknown>> = {};
+      const tableRequired: string[] = [];
+
+      // Get original table schema property
+      const originalTableProperty = getOriginalSchemaProperty(tableName);
+
+      // Add table columns
+      if (table.columnsMeta) {
+        Object.entries(table.columnsMeta).forEach(([columnName, meta]) => {
+          const columnFieldName = formatFieldName(columnName);
+
+          // Get original column property from table items
+          let originalColumnProperty: Record<string, unknown> | null = null;
+          if (originalTableProperty?.items && typeof originalTableProperty.items === 'object') {
+            const items = originalTableProperty.items as Record<string, unknown>;
+            if (items.properties && typeof items.properties === 'object') {
+              const itemsProps = items.properties as Record<string, unknown>;
+              originalColumnProperty = itemsProps[columnFieldName] as Record<string, unknown> || null;
+            }
+          }
+
+          tableProperties[columnFieldName] = {
+            type: meta.type || 'string',
+            description: meta.description || originalColumnProperty?.description || '',
+            layout_description: meta.layout_description || originalColumnProperty?.layout_description || '',
+          };
+
+          if (meta.required) {
+            tableRequired.push(columnFieldName);
+          }
+        });
+      }
+
+      properties[tableName] = {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: tableProperties,
+          required: tableRequired,
+        },
+        description: table.description || originalTableProperty?.description || '',
+        layout_description: table.layout_description || originalTableProperty?.layout_description || '',
+      };
+    }
+  });
+
+  // Update the base schema with our properties and requirements
+  const updatedSchema = {
+    ...baseSchema,
+    properties,
+    required,
+  };
+
+  return {
+    extraction_schema: updatedSchema,
+    prompt: documentLayout?.prompt || null,
+    summary: null,
+    extraction_config: null,
+  };
 };

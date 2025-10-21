@@ -12,6 +12,7 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
     onChange,
     onDelete,
     showAnnotateButtons,
+    showDeleteButton,
     readOnlyFields,
     onBlur,
     onKeyDown,
@@ -21,10 +22,15 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
   const { setSelectedFieldId, selectedFieldId } = useDocumentIntelligenceStore();
 
   const [localValue, setLocalValue] = useState(rowData.name);
+  const [localFieldValue, setLocalFieldValue] = useState(rowData.value);
 
   useEffect(() => {
     setLocalValue(rowData.name);
   }, [rowData.name]);
+
+  useEffect(() => {
+    setLocalFieldValue(rowData.value);
+  }, [rowData.value]);
 
   const handleRowClick = () => {
     const newSelectedId = selectedFieldId === rowData.id ? null : rowData.id;
@@ -50,7 +56,15 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
     >
       <Table.Cell>
         {!showAnnotateButtons || readOnlyFields ? (
-          <Typography fontSize="$16" fontWeight="medium">
+          <Typography
+            fontSize="$16"
+            fontWeight="medium"
+            style={{
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              maxWidth: '300px',
+            }}
+          >
             {rowData.name}
           </Typography>
         ) : (
@@ -68,24 +82,51 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
             onClick={(e) => {
               e.stopPropagation();
             }}
-            className="min-w-[180px]"
+            style={{
+              minWidth: '120px',
+              maxWidth: '180px',
+            }}
             disabled={!showAnnotateButtons}
           />
         )}
       </Table.Cell>
 
       <Table.Cell>
-        <Typography
-          fontSize="$16"
-          fontWeight="medium"
-          style={{
-            wordBreak: 'break-word',
-            overflowWrap: 'break-word',
-            maxWidth: '250px',
-          }}
-        >
-          {rowData.value}
-        </Typography>
+        {!showAnnotateButtons || readOnlyFields ? (
+          <Typography
+            fontSize="$16"
+            fontWeight="medium"
+            style={{
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              maxWidth: '400px',
+              lineHeight: '1.4',
+            }}
+          >
+            {rowData.value}
+          </Typography>
+        ) : (
+          <Input
+            key={`${rowData.id}-value`}
+            aria-label="Field value"
+            placeholder="Field value"
+            value={localFieldValue}
+            onChange={(e) => {
+              setLocalFieldValue(e.target.value);
+              onChange(rowData.id, 'value')(e);
+            }}
+            onBlur={onBlur?.(rowData.id, 'value')}
+            onKeyDown={onKeyDown?.(rowData.id, 'value')}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            style={{
+              minWidth: '200px',
+              maxWidth: '400px',
+            }}
+            disabled={!showAnnotateButtons}
+          />
+        )}
       </Table.Cell>
 
       {showAnnotateButtons && (
@@ -114,7 +155,7 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
         </Table.Cell>
       )}
 
-      {showAnnotateButtons && onDelete && (
+      {showDeleteButton && onDelete && (
         <Table.Cell style={{ textAlign: 'left' }}>
           <StyledDeleteButton
             aria-label="Delete Field"
@@ -125,7 +166,7 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
               e.stopPropagation();
               onDelete(rowData.id);
             }}
-            disabled={!showAnnotateButtons}
+            disabled={!showDeleteButton}
             round
           />
         </Table.Cell>

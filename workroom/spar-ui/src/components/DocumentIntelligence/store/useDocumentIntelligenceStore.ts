@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware';
 import type { components } from '@sema4ai/agent-server-interface';
 import { ServerResponse } from '../../../queries/shared';
 import { LayoutFieldRow, LayoutTableRow, FlowType } from '../types';
+import { removeCitationFromExtractedData } from '../utils/dataTransformations';
 
 
 type ParseDocumentResponsePayload = ServerResponse<'post', '/api/v2/document-intelligence/documents/parse'>;
@@ -12,6 +13,7 @@ type ValidationRule = components['schemas']['ValidationRule'];
 type DataModel = components['schemas']['DataModel'];
 type DataModelPayload = components['schemas']['DataModelPayload'];
 type DocumentLayoutPayload = components['schemas']['DocumentLayoutPayload'];
+type ExtractionSchemaPayload = components['schemas']['_ExtractionSchema'];
 
 export type {
   ParseDocumentResponsePayload,
@@ -21,6 +23,7 @@ export type {
   DataModel,
   DataModelPayload,
   DocumentLayoutPayload,
+  ExtractionSchemaPayload,
 };
 
 
@@ -59,6 +62,9 @@ interface DocumentIntelligenceState {
   // Document layout state (for special handling instructions)
   documentLayout: { prompt?: string | null } | null;
 
+  // Original generated schema from generate-schema endpoint
+  originalGeneratedSchema: ExtractionSchemaPayload | null;
+
 
   layoutFields: LayoutFieldRow[];
   layoutTables: LayoutTableRow[];
@@ -96,6 +102,7 @@ interface DocumentIntelligenceState {
   setParseData: (data: ParseDocumentResponsePayload | null) => void;
   setExtractedData: (data: ExtractDocumentResponsePayload | null) => void;
   setDocumentLayout: (layout: DocumentIntelligenceState['documentLayout']) => void;
+  setOriginalGeneratedSchema: (schema: ExtractionSchemaPayload | null) => void;
 
   setLayoutFields: (fields: LayoutFieldRow[]) => void;
   setLayoutTables: (tables: LayoutTableRow[]) => void;
@@ -161,6 +168,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     parseData: null,
     extractedData: null,
     documentLayout: null,
+    originalGeneratedSchema: null,
     layoutFields: [],
     layoutTables: [],
     selectedFields: [],
@@ -202,6 +210,10 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
 
     setDocumentLayout: (layout: DocumentIntelligenceState['documentLayout']) => {
       set({ documentLayout: layout });
+    },
+
+    setOriginalGeneratedSchema: (schema: ExtractionSchemaPayload | null) => {
+      set({ originalGeneratedSchema: schema });
     },
 
     setLayoutFields: (fields: LayoutFieldRow[]) => {
@@ -330,9 +342,24 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     },
 
     removeField: (id: string) =>
-      set((state) => ({
-        layoutFields: state.layoutFields.filter((field) => field.id !== id),
-      })),
+      set((state) => {
+        // Find the field being removed to get its name
+        const fieldToRemove = state.layoutFields.find((field) => field.id === id);
+
+        // Remove the field from layoutFields
+        const updatedFields = state.layoutFields.filter((field) => field.id !== id);
+
+        // If we have extractedData and the field has a name, remove the corresponding citation
+        let updatedExtractedData = state.extractedData;
+        if (fieldToRemove?.name && state.extractedData) {
+          updatedExtractedData = removeCitationFromExtractedData(state.extractedData, fieldToRemove.name);
+        }
+
+        return {
+          layoutFields: updatedFields,
+          extractedData: updatedExtractedData,
+        };
+      }),
 
     // Table field management actions
     updateTableField: (name: string, updates: Partial<LayoutTableRow>) =>

@@ -48,6 +48,7 @@ export interface StepDataTableProps<TData, TRowProps> {
   onSelect?: (selected: string[] | ((prev: string[]) => string[])) => void;
   layout?: 'auto' | 'fixed';
   rowCount?: 'all' | number;
+  keyId?: (row: TData) => string;
 }
 
 // Main StepDataTable component for editable tables (fields, columns)
@@ -61,18 +62,26 @@ export const StepDataTable = <TData, TRowProps>({
   onSelect,
   layout = 'auto',
   rowCount = 'all',
+  keyId,
 }: StepDataTableProps<TData, TRowProps>) => {
+  const handleSelect = (selectedItems: string[] | ((prev: string[]) => string[])) => {
+    if (onSelect) {
+      onSelect(selectedItems);
+    }
+  };
+
   return (
     <StyledTable
       selectable={selectable}
       selected={selected}
-      onSelect={onSelect || (() => {})}
+      onSelect={handleSelect}
       columns={columns}
       data={data}
       row={row}
       rowProps={rowProps}
       layout={layout}
       rowCount={rowCount}
+      keyId={keyId}
     />
   );
 };

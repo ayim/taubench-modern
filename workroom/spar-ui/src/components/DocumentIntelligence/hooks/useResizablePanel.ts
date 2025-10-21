@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 
 export const useResizablePanel = () => {
-  const [stepperWidth, setStepperWidth] = useState(600);
-  const minStepperWidth = 600;
+  const [stepperWidth, setStepperWidth] = useState(621);
+  const minStepperWidth = 621;
   const maxStepperWidth = 1200;
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

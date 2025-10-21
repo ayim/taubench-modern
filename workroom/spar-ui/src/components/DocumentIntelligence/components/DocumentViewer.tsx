@@ -843,7 +843,6 @@ export const DocumentViewer: FC<DocumentViewerProps> = () => {
           fontSize="$12"
           color="content.subtle"
           backgroundColor="background.primary"
-          padding="$8 $16"
           borderRadius="$4"
           boxShadow="0 1px 2px 0 rgba(0, 0, 0, 0.05)"
           style={{
@@ -852,6 +851,7 @@ export const DocumentViewer: FC<DocumentViewerProps> = () => {
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: '10',
+            padding: '3px 16px',
           }}
         >
           Page {currentPage} of {numPages}

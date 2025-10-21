@@ -47,6 +47,7 @@ export interface FieldRowProps {
   onSaveSpecialHandling: (fieldId: string, instructions: string) => void;
   onDelete?: (id: string) => void;
   showAnnotateButtons?: boolean;
+  showDeleteButton?: boolean;
   readOnlyFields?: boolean;
   onBlur?: (id: string, key: 'name' | 'value') => (e: React.FocusEvent<HTMLInputElement>) => void;
   onKeyDown?: (id: string, key: 'name' | 'value') => (e: React.KeyboardEvent<HTMLInputElement>) => void;

@@ -190,7 +190,7 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
                   ) : (
                     <StepComponent
                       documentData={documentData}
-                      isReadOnly={isParseDocumentFlow}
+                      isReadOnly={isProcessing}
                       isProcessing={isProcessing}
                       processingStep={processingStep}
                     />
@@ -218,6 +218,7 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
                       goToPreviousStep={goToPreviousStep}
                       onComplete={onComplete}
                       onCancel={onCancel}
+                      documentData={documentData}
                     />
                 </Box>
               </Box>

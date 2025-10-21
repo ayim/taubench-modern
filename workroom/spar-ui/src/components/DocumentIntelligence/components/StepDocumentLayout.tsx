@@ -49,16 +49,57 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
     addField,
     removeField,
     setDocumentLayout,
+    setSelectedFields,
+    setSelectedTableColumns,
     flowExecuted,
     setFlowExecuted,
   } = useDocumentIntelligenceStore();
 
   const effectiveFlowType = currentFlowType || flowType;
+  const isParseDocumentFlow = effectiveFlowType === 'parse_current_document';
 
   const { executeDocumentLayoutFlow, isLoading: flowLoading } = useDocumentLayoutFlow();
   const [busy, setBusy] = useState(false);
-  const [cachedSelectedFields, setCachedSelectedFields] = useState<string[]>([]);
-  const [cachedSelectedTableColumns, setCachedSelectedTableColumns] = useState<Record<string, string[]>>({});
+
+  // Initialize cachedSelectedFields based on selectedFields from store
+  const [cachedSelectedFields, setCachedSelectedFields] = useState<string[]>(() => {
+    if (layoutFields.length > 0 && selectedFields.length > 0) {
+      return layoutFields
+        .filter((_, index) => selectedFields.includes(index))
+        .map(field => field.id); // Use field.id to match Table component expectations
+    }
+    // If we're in create_data_model_plus_new_layout flow and have fields but no selectedFields,
+    // auto-select all fields
+    if (layoutFields.length > 0 && effectiveFlowType === 'create_data_model_plus_new_layout' && selectedFields.length === 0) {
+      return layoutFields.map(field => field.id); // Use field.id to match Table component expectations
+    }
+    return [];
+  });
+
+  const [cachedSelectedTableColumns, setCachedSelectedTableColumns] = useState<Record<string, string[]>>(() => {
+    const tableSelections: Record<string, string[]> = {};
+    Object.entries(selectedTableColumns).forEach(([tableName, indices]) => {
+      const table = layoutTables.find(t => t.name === tableName);
+      if (table && table.columnsMeta) {
+        const columnNames = Object.keys(table.columnsMeta);
+        tableSelections[tableName] = indices
+          .map(index => columnNames[index])
+          .filter(Boolean);
+      }
+    });
+
+    // If we're in create_data_model_plus_new_layout flow and have tables but no selectedTableColumns,
+    // auto-select all table columns
+    if (layoutTables.length > 0 && effectiveFlowType === 'create_data_model_plus_new_layout' && Object.keys(selectedTableColumns).length === 0) {
+      layoutTables.forEach(table => {
+        if (table.columnsMeta) {
+          tableSelections[table.name] = Object.keys(table.columnsMeta);
+        }
+      });
+    }
+
+    return tableSelections;
+  });
 
   // Initialize flow when component mounts (only once)
   useEffect(() => {
@@ -77,21 +118,6 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
     }
   }, [fileRef, threadId, agentId, effectiveFlowType, documentData.dataModelName, isProcessing, flowLoading, flowExecuted, setFlowExecuted]);
 
-  // Sync local selection state with store
-  useEffect(() => {
-    setCachedSelectedFields(layoutFields.filter((_, index) => selectedFields.includes(index)).map(field => field.id));
-  }, [layoutFields, selectedFields]);
-
-  useEffect(() => {
-    const tableSelections: Record<string, string[]> = {};
-    Object.entries(selectedTableColumns).forEach(([tableName, indices]) => {
-      const table = layoutTables.find(t => t.name === tableName);
-      if (table) {
-        tableSelections[tableName] = indices.map(index => table.columns[index]).filter(Boolean);
-      }
-    });
-    setCachedSelectedTableColumns(tableSelections);
-  }, [layoutTables, selectedTableColumns]);
 
 
   const handleSaveFieldInstructions = useCallback(
@@ -170,15 +196,26 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
       const currentTable = layoutTables.find(table => table.name === tableName);
       if (!currentTable) return;
 
+      // Validate the new column name
+      const trimmedNewName = newColumnName.trim();
+      if (!trimmedNewName || trimmedNewName === oldColumnName) {
+        return; // Don't update if empty or same as current name
+      }
+
+      // Check if the new name already exists in the table
+      if (currentTable.columns.includes(trimmedNewName)) {
+        return; // Don't update if column name already exists
+      }
+
       // Update columns array - maintain order
       const updatedColumns = currentTable.columns.map(col =>
-        col === oldColumnName ? newColumnName : col
+        col === oldColumnName ? trimmedNewName : col
       );
 
       // Update columnsMeta - preserve metadata but with new key
       const updatedColumnsMeta = { ...currentTable.columnsMeta };
       if (updatedColumnsMeta[oldColumnName]) {
-        updatedColumnsMeta[newColumnName] = updatedColumnsMeta[oldColumnName];
+        updatedColumnsMeta[trimmedNewName] = updatedColumnsMeta[oldColumnName];
         delete updatedColumnsMeta[oldColumnName];
       }
 
@@ -256,27 +293,27 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
   const fieldsColumns: Column[] = useMemo(
     () =>
       [
-        { id: 'field', title: 'Field', sortable: true, width: 200 },
-        { id: 'value', title: 'Value', sortable: true, width: 250 },
-        isReadOnly
+        { id: 'field', title: 'Field', sortable: true, width: 350 },
+        { id: 'value', title: 'Value', sortable: true, width: 400 },
+        isReadOnly || isParseDocumentFlow
           ? undefined
           : { id: 'annotate', title: 'Annotate', sortable: false, className: '!text-left', width: 100 },
         isReadOnly ? undefined : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
       ].filter((column) => column !== undefined),
-    [isReadOnly],
+    [isReadOnly, isParseDocumentFlow],
   );
 
   const tableEditableColumns: Column[] = useMemo(
     () =>
       [
-        { id: 'field', title: 'Column', sortable: true, width: 200 },
-        { id: 'value', title: 'ExampleValue', sortable: true, width: 250 },
-        isReadOnly
+        { id: 'field', title: 'Column', sortable: true, width: 180 },
+        { id: 'value', title: 'ExampleValue', sortable: true, width: 400 },
+        isReadOnly || isParseDocumentFlow
           ? undefined
           : { id: 'annotate', title: 'Annotate', sortable: false, className: '!text-left', width: 100 },
         isReadOnly ? undefined : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
       ].filter((column) => column !== undefined),
-    [isReadOnly],
+    [isReadOnly, isParseDocumentFlow],
   );
 
   const fieldsRowProps = useMemo<FieldRowProps>(
@@ -284,11 +321,12 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
       onChange: handleChangeFieldName,
       onSaveSpecialHandling: handleSaveFieldInstructions,
       onDelete: handleDeleteField,
-      showAnnotateButtons: !isReadOnly,
-      readOnlyFields: isReadOnly,
+      showAnnotateButtons: !isReadOnly && !isParseDocumentFlow,
+      showDeleteButton: !isReadOnly,
+      readOnlyFields: isReadOnly || isParseDocumentFlow,
       label: 'Field',
     }),
-    [handleChangeFieldName, handleSaveFieldInstructions, handleDeleteField, isReadOnly],
+    [handleChangeFieldName, handleSaveFieldInstructions, handleDeleteField, isReadOnly, isParseDocumentFlow],
   );
 
   // Show loading state
@@ -344,29 +382,34 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
 
       <Form busy={busy} onSubmit={onSubmit} gap="$12" display="flex" flexDirection="column">
         <StepDataTable
-          selectable={!isReadOnly}
+          selectable={!isReadOnly && !isParseDocumentFlow}
           selected={cachedSelectedFields}
-          onSelect={setCachedSelectedFields}
+          onSelect={(selectedFieldIds) => {
+            const fieldIds = typeof selectedFieldIds === 'function' ? selectedFieldIds(cachedSelectedFields) : selectedFieldIds;
+            setCachedSelectedFields(fieldIds);
+            // Convert field IDs back to indices for the store
+            const selectedIndices = layoutFields
+              .map((field, index) => fieldIds.includes(field.id) ? index : -1)
+              .filter(index => index !== -1);
+            setSelectedFields(selectedIndices);
+          }}
           columns={fieldsColumns}
           data={layoutFields}
           row={FieldRowItem}
           rowProps={fieldsRowProps}
           layout="auto"
           rowCount="all"
+          keyId={(field) => field.id}
         />
 
-        {!isReadOnly && (
+        {!isParseDocumentFlow && (
           <Box marginTop="$8" display="flex" gap="$8">
             <Button
               type="button"
               icon={IconPlus}
-              variant="ghost"
               onClick={handleAddField}
               round
-              style={{
-                border: '1px solid #DADEE3',
-                backgroundColor: 'white',
-              }}
+              variant="primary"
             >
               Add Field
             </Button>
@@ -413,15 +456,21 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
             },
             onBlur: (columnId: string, key: 'name' | 'value') => (e: React.FocusEvent<HTMLInputElement>) => {
               if (key === 'name') {
-                const newName = e.target.value;
-                handleUpdateColumnName(table.name, columnId, newName);
+                const newName = e.target.value.trim();
+                // Only update if the name is not empty and different from the current name
+                if (newName && newName !== columnId) {
+                  handleUpdateColumnName(table.name, columnId, newName);
+                }
               }
             },
             onKeyDown: (columnId: string, key: 'name' | 'value') => (e: React.KeyboardEvent<HTMLInputElement>) => {
               if (key === 'name') {
                 if (e.key === 'Enter') {
-                  const newName = e.currentTarget.value;
-                  handleUpdateColumnName(table.name, columnId, newName);
+                  const newName = e.currentTarget.value.trim();
+                  // Only update if the name is not empty and different from the current name
+                  if (newName && newName !== columnId) {
+                    handleUpdateColumnName(table.name, columnId, newName);
+                  }
                 }
               }
             },
@@ -432,8 +481,9 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
             onDelete: (columnId: string) => {
               handleDeleteTableColumn(table.name, columnId);
             },
-            showAnnotateButtons: !isReadOnly,
-            readOnlyFields: isReadOnly,
+            showAnnotateButtons: !isReadOnly && !isParseDocumentFlow,
+            showDeleteButton: !isReadOnly,
+            readOnlyFields: isReadOnly || isParseDocumentFlow,
             label: 'Column',
           };
 
@@ -465,7 +515,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
                       />
                     )}
                   </Box>
-                  {!isReadOnly && (
+                  {!isReadOnly && !isParseDocumentFlow && (
                     <SpecialHandlingMenu
                       fieldId={table.name}
                       fieldName={table.name}
@@ -503,16 +553,23 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
                   }
                 >
                   <StepDataTable
-                    selectable={!isReadOnly}
+                    selectable={!isReadOnly && !isParseDocumentFlow}
                     selected={cachedSelectedTableColumns[table.name] || []}
-                    onSelect={(selected) => {
-                      setCachedSelectedTableColumns((prev) => {
-                        const currentSelected = prev[table.name] || [];
-                        const newSelected = typeof selected === 'function' ? selected(currentSelected) : selected;
-                        return {
-                          ...prev,
-                          [table.name]: newSelected,
-                        } as Record<string, string[]>;
+                    onSelect={(selectedColumnNames) => {
+                      const columnNames = typeof selectedColumnNames === 'function'
+                        ? selectedColumnNames(cachedSelectedTableColumns[table.name] || [])
+                        : selectedColumnNames;
+                      setCachedSelectedTableColumns((prev) => ({
+                        ...prev,
+                        [table.name]: columnNames,
+                      }));
+                      // Convert column names back to indices for the store
+                      const selectedIndices = columnsData
+                        .map((column, index) => columnNames.includes(column.name) ? index : -1)
+                        .filter(index => index !== -1);
+                      setSelectedTableColumns({
+                        ...selectedTableColumns,
+                        [table.name]: selectedIndices,
                       });
                     }}
                     columns={tableEditableColumns}
@@ -521,19 +578,17 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
                     rowProps={rowProps}
                     layout="auto"
                     rowCount="all"
+                    keyId={(column) => column.id}
                   />
                   {/* Add Column Button */}
-                  {!isReadOnly && (
+                  {!isParseDocumentFlow && (
                     <Box marginTop="$8" display="flex" gap="$8">
                       <Button
                         type="button"
                         icon={IconPlus}
-                        variant="ghost"
+                        variant="primary"
                         round
-                        style={{
-                          border: '1px solid #DADEE3',
-                          backgroundColor: 'white',
-                        }}
+
                       >
                         Add Column
                       </Button>

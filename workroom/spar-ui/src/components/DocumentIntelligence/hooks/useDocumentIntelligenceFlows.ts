@@ -6,6 +6,7 @@ import type {
   DataModelPayload,
   DocumentLayoutPayload,
   DataModel,
+  ExtractionSchemaPayload,
 } from '../store/useDocumentIntelligenceStore';
 import {
   useParseDocumentMutation,
@@ -62,6 +63,7 @@ export const useDocumentLayoutFlow = () => {
     setProcessingError,
     clearProcessingState,
     setCurrentFlowType,
+    setOriginalGeneratedSchema,
   } = useDocumentIntelligenceStore();
 
   const executeDocumentLayoutFlow = useCallback(async ({
@@ -106,6 +108,9 @@ export const useDocumentLayoutFlow = () => {
 
         const { schema } = schemaResult;
 
+        // Store the original generated schema for later use
+        setOriginalGeneratedSchema(schema as ExtractionSchemaPayload);
+
         // Clear processing state after successful schema generation
         setProcessingState(false, '', null);
 
@@ -115,11 +120,7 @@ export const useDocumentLayoutFlow = () => {
 
         finalDocumentLayout = {
           name: 'default',
-          extraction_schema: {
-            type: 'object',
-            properties: schema,
-            ...schema
-          }
+          extraction_schema: schema as ExtractionSchemaPayload
         };
 
         // Auto-select all fields and table columns
@@ -174,12 +175,11 @@ export const useDocumentLayoutFlow = () => {
         // Extract the schema from the response
         const schema = schemaResult.schema || schemaResult;
 
+        // Store the original generated schema for later use
+        setOriginalGeneratedSchema(schema as ExtractionSchemaPayload);
+
         finalDocumentLayout = {
-          extraction_schema: {
-            type: 'object',
-            properties: schema,
-            ...schema
-          }
+          extraction_schema: schema as ExtractionSchemaPayload
         };
 
         // Don't auto-select fields for parse flow (read-only mode)
@@ -242,6 +242,7 @@ export const useDocumentLayoutFlow = () => {
     setProcessingError,
     clearProcessingState,
     setCurrentFlowType,
+    setOriginalGeneratedSchema,
   ]);
 
   return {

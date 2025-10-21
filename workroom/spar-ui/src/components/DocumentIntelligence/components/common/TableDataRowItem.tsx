@@ -32,7 +32,7 @@ export const TableDataRowItem: FC<TableRowProps<Record<string, string>, never>> 
     >
       {Object.entries(rowData).map(([key, value]) => (
         <Table.Cell key={`cell-${tableRowId}-${key}-${value}`}>
-          <Typography fontSize="$14" style={{ wordBreak: 'break-word', overflowWrap: 'break-word', maxWidth: '250px' }}>
+          <Typography fontSize="$14" style={{ wordBreak: 'break-word', overflowWrap: 'break-word', minWidth: '150px' }}>
             {value}
           </Typography>
         </Table.Cell>
