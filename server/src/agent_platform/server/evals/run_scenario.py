@@ -14,6 +14,7 @@ from agent_platform.architectures.default.thread_conversion import (
     thread_messages_to_prompt_messages,
 )
 from agent_platform.core.agent.agent import Agent
+from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.evals.agent_client import (
     AgentClient,
@@ -118,6 +119,17 @@ def _list_scenario_next_agent_messages(
     next_agent_index = j if j < n and messages[j].role == "agent" else None
 
     return [message.copy_with_new_ids() for message in agents_block], next_agent_index
+
+
+def _get_observability_config(agent: Agent) -> ObservabilityConfig | None:
+    """Return the agent's observability config if available."""
+
+    for config in agent.observability_configs:
+        if config.type == "langsmith":
+            return config
+
+    logger.info("No langsmith observability config: using default")
+    return None
 
 
 def _get_termination_reason(e: Exception) -> str:
@@ -398,10 +410,13 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
             storage, task.trial_id, state, "INVALID_AGENT_CONFIGURATION", configuration_issues
         )
 
+    observability_config = _get_observability_config(agent)
+
     server_context = AgentServerContext.from_request(
         request=Request(scope={"type": "http", "method": "POST"}),
         user=system_user,
         version="2.0.0",
+        observability_config=observability_config,
         agent_id=agent.agent_id,
     )
 
