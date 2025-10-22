@@ -1248,7 +1248,7 @@ async def test_upload_files_to_work_item(
         created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )

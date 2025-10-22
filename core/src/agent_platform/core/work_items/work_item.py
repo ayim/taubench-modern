@@ -38,7 +38,15 @@ class WorkItemStatus(StrEnum):
     """The work item is pending."""
 
     PRECREATED = "PRECREATED"
-    """The work item is is partially created to allow for file attachments."""
+    """
+    .. deprecated::
+        Use :attr:`DRAFT` instead. This status is maintained for backward compatibility only.
+
+    The work item is is partially created to allow for file attachments.
+    """
+
+    DRAFT = "DRAFT"
+    """The work item is partially created and is not yet ready for execution."""
 
 
 class WorkItemStatusUpdatedBy(StrEnum):
@@ -322,13 +330,17 @@ class WorkItem:
     """User-friendly name for the work item. Must be less than 255 characters."""
 
     def model_dump(self) -> dict:
+        # Do not advertise the PRECREATED status to the client.
+        status = (
+            WorkItemStatus.DRAFT.value if self.status == WorkItemStatus.PRECREATED else self.status
+        )
         return {
             "work_item_id": self.work_item_id,
             "user_id": self.user_id,
             "created_by": self.created_by,
             "agent_id": self.agent_id,
             "thread_id": self.thread_id,
-            "status": self.status.value,
+            "status": status,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "completed_by": self.completed_by.value if self.completed_by else None,
@@ -408,6 +420,9 @@ class WorkItem:
         # Parse nested objects
         if "status" in data and isinstance(data["status"], str):
             data["status"] = WorkItemStatus(data["status"])
+            # Automatically convert PRECREATED to DRAFT to roll into the new value.
+            if data["status"] == WorkItemStatus.PRECREATED:
+                data["status"] = WorkItemStatus.DRAFT
         if "created_at" in data and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         if "updated_at" in data and isinstance(data["updated_at"], str):

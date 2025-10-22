@@ -92,11 +92,11 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
             assert upload_resp.status_code == 200
             work_item_id = upload_resp.json()["work_item_id"]
 
-            # Verify work item is in PRECREATED state
+            # Verify work item is in DRAFT state
             get_resp = await client.get(f"/{work_item_id}")
             assert get_resp.status_code == 200
             work_item = get_resp.json()
-            assert work_item["status"] == WorkItemStatus.PRECREATED.value
+            assert work_item["status"] == WorkItemStatus.DRAFT.value
             assert work_item["agent_id"] is None
 
             # 2. Setup multiple callback servers with signature verification

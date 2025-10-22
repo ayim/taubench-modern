@@ -119,6 +119,15 @@ class _CustomFastAPI(FastAPI):
                 architecture_field["enum"] = sorted(["agent", "plan_execute"])
 
         # ------------------------------------------------------------------
+        # Filter out deprecated PRECREATED status from WorkItemStatus enum
+        # ------------------------------------------------------------------
+        work_item_status_schema: dict = schemas.get("WorkItemStatus", {})
+        if work_item_status_schema and "enum" in work_item_status_schema:
+            # Remove PRECREATED from the enum values shown in OpenAPI docs
+            enum_values = work_item_status_schema["enum"]
+            work_item_status_schema["enum"] = [v for v in enum_values if v != "PRECREATED"]
+
+        # ------------------------------------------------------------------
         # 1. Register our custom error schemas in components
         # ------------------------------------------------------------------
         # Register ErrorDetail first so ErrorEnvelope can reference it

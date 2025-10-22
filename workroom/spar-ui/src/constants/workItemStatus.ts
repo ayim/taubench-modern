@@ -65,8 +65,8 @@ export const WORK_ITEM_STATUS_CONFIG: Record<WorkItemStatus, WorkItemStatusConfi
     icon: IconStatusIdle,
     iconColor: 'background.notification',
   },
-  PRECREATED: {
-    label: 'Precreated',
+  DRAFT: {
+    label: 'Draft',
     variant: 'secondary',
     icon: IconStatusPending,
     iconColor: 'content.subtle',

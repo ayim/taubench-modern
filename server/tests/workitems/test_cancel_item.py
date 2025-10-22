@@ -46,6 +46,7 @@ class TestCancelItem:
         "status",
         [
             WorkItemStatus.PRECREATED,
+            WorkItemStatus.DRAFT,
             WorkItemStatus.PENDING,
             WorkItemStatus.EXECUTING,
         ],

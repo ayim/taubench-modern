@@ -8,6 +8,7 @@ class WorkItemStateMachine:
 
     Implements the following state transition rules:
     - PRECREATED -> PENDING, CANCELLED
+    - DRAFT -> PENDING, CANCELLED
     - PENDING -> EXECUTING, CANCELLED
     - EXECUTING -> NEEDS_REVIEW, COMPLETED, ERROR, CANCELLED, INDETERMINATE
     - NEEDS_REVIEW -> COMPLETED, PENDING
@@ -19,6 +20,10 @@ class WorkItemStateMachine:
     # Define allowed transitions from each state
     _TRANSITIONS: ClassVar[dict[WorkItemStatus, set[WorkItemStatus]]] = {
         WorkItemStatus.PRECREATED: {
+            WorkItemStatus.PENDING,
+            WorkItemStatus.CANCELLED,
+        },
+        WorkItemStatus.DRAFT: {
             WorkItemStatus.PENDING,
             WorkItemStatus.CANCELLED,
         },

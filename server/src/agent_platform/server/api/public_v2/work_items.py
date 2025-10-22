@@ -90,10 +90,10 @@ async def create_work_item(
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND.value, detail="Work item not found"
             )
-        if work_item.status != WorkItemStatus.PRECREATED:
+        if work_item.status not in (WorkItemStatus.PRECREATED, WorkItemStatus.DRAFT):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST.value,
-                detail="Work item is not in initializing state",
+                detail=f"Work item has been previously started. Currently in {work_item.status}",
             )
 
         # Ensure the requested callbacks are supported by the WorkItems service
@@ -176,10 +176,10 @@ async def confirm_file(
     if not work_item:
         raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
 
-    if work_item.status != WorkItemStatus.PRECREATED:
+    if work_item.status not in (WorkItemStatus.PRECREATED, WorkItemStatus.DRAFT):
         raise PlatformHTTPError(
             ErrorCode.BAD_REQUEST,
-            f"Files can only be attached to work-items in the PRECREATED state."
+            f"Files can only be attached to work-items in the DRAFT state."
             f" Currently in {work_item.status}",
         )
 
@@ -216,16 +216,16 @@ async def upload_work_item_file(
     if isinstance(file, str):
         # This is a request for presigned URL, not direct upload
         if work_item_id is None:
-            # Create a new work item in PRECREATED state
+            # Create a new work item in DRAFT state
             work_item = await _create_stub_work_item(user.user_id, storage)
         else:
             work_item = await storage.get_work_item(work_item_id)
             if not work_item:
                 raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
-            if work_item.status != WorkItemStatus.PRECREATED:
+            if work_item.status not in (WorkItemStatus.PRECREATED, WorkItemStatus.DRAFT):
                 raise PlatformHTTPError(
                     ErrorCode.BAD_REQUEST,
-                    f"Files can only be attached to work-items in the PRECREATED state."
+                    f"Files can only be attached to work-items in the DRAFT state."
                     f" Currently in {work_item.status}",
                 )
 
@@ -246,10 +246,10 @@ async def upload_work_item_file(
         logger.info(f"Work item ID provided: {work_item_id}")
         if (work_item := await storage.get_work_item(work_item_id)) is None:
             raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
-        if work_item.status != WorkItemStatus.PRECREATED:
+        if work_item.status not in (WorkItemStatus.PRECREATED, WorkItemStatus.DRAFT):
             raise PlatformHTTPError(
                 ErrorCode.BAD_REQUEST,
-                f"Files can only be attached to work-items in the PRECREATED state."
+                f"Files can only be attached to work-items in the DRAFT state."
                 f" Currently in {work_item.status}",
             )
         logger.info(f"Work item ID from work item: {work_item.work_item_id}")
@@ -435,7 +435,7 @@ async def _create_stub_work_item(user_id: str, storage: StorageDependency) -> Wo
         work_item_id=str(uuid4()),
         user_id=system_user.user_id,
         created_by=user_id,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )

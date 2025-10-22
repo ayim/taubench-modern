@@ -193,6 +193,7 @@ class TestContinueWorkItem:
         "valid_status",
         [
             WorkItemStatus.PRECREATED,
+            WorkItemStatus.DRAFT,
             WorkItemStatus.COMPLETED,
             WorkItemStatus.ERROR,
         ],

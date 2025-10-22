@@ -640,9 +640,9 @@ async def test_work_item_file_operations(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
         created_by=sample_user_id,
-        agent_id=None,  # PRECREATED state
+        agent_id=None,
         thread_id=None,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -700,7 +700,7 @@ async def test_work_item_multiple_files_with_different_names(
         created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -762,7 +762,7 @@ async def test_work_item_file_deletion(
         created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -810,14 +810,14 @@ async def test_associate_work_item_file_success(
     # Ensure the agent exists (FK)
     await storage.upsert_agent(sample_user_id, sample_agent)
 
-    # Create work item initially without thread_id (PRECREATED state)
+    # Create work item initially without thread_id (DRAFT state)
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
         created_by=sample_user_id,
         agent_id=None,  # Initially no agent
         thread_id=None,  # Initially no thread
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -883,14 +883,14 @@ async def test_associate_work_item_file_updates_existing_entry(
     # Ensure the agent exists (FK)
     await storage.upsert_agent(sample_user_id, sample_agent)
 
-    # Create work item initially without thread_id (PRECREATED state)
+    # Create work item initially without thread_id (DRAFT state)
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
         created_by=sample_user_id,
         agent_id=None,  # Initially no agent
         thread_id=None,  # Initially no thread
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -953,14 +953,14 @@ async def test_associate_work_item_file_error_handling(
     # Ensure the agent exists (FK)
     await storage.upsert_agent(sample_user_id, sample_agent)
 
-    # Create work item initially without thread_id (PRECREATED state)
+    # Create work item initially without thread_id (DRAFT state)
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
         created_by=sample_user_id,
         agent_id=None,  # Initially no agent
         thread_id=None,  # Initially no thread
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -994,7 +994,7 @@ async def test_associate_work_item_file_error_handling(
         created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -1043,7 +1043,7 @@ async def test_work_item_file_ownership_system_user(
         created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -1099,7 +1099,7 @@ async def test_get_workitem_files_with_system_user(
         created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],
         payload={},
     )
@@ -1151,7 +1151,7 @@ async def test_update_work_item_all_fields(
 ):
     """Test that update_work_item updates all fields including callbacks.
 
-    This test simulates the scenario where a work item is created in PRECREATED state
+    This test simulates the scenario where a work item is created in DRAFT state
     (e.g., after file upload) and then updated with all fields when create_work_item
     is called with the existing work_item_id.
     """
@@ -1160,14 +1160,14 @@ async def test_update_work_item_all_fields(
 
     work_item_id = str(uuid4())
 
-    # Create a work item in PRECREATED state with initial values
+    # Create a work item in DRAFT state with initial values
     initial_work_item = WorkItem(
         work_item_id=work_item_id,
         user_id=sample_user_id,
         created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
-        status=WorkItemStatus.PRECREATED,
+        status=WorkItemStatus.DRAFT,
         messages=[],  # No messages initially
         payload={},  # Empty payload initially
         callbacks=[],  # No callbacks initially
@@ -1179,7 +1179,7 @@ async def test_update_work_item_all_fields(
 
     # Verify initial state
     fetched_initial = await storage.get_work_item(work_item_id)
-    assert fetched_initial.status == WorkItemStatus.PRECREATED
+    assert fetched_initial.status == WorkItemStatus.DRAFT
     assert fetched_initial.agent_id is None
     assert fetched_initial.messages == []
     assert fetched_initial.payload == {}

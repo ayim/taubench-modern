@@ -2655,7 +2655,7 @@ export const spec = {
           'NEEDS_REVIEW',
           'INDETERMINATE',
           'PENDING',
-          'PRECREATED',
+          'DRAFT',
         ],
         title: 'WorkItemStatus',
         description: 'The status of a work item.',

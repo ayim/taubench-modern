@@ -5,6 +5,15 @@ from agent_platform.server.work_items.state_machine import WorkItemStateMachine
 class TestWorkItemStateMachine:
     """Test cases for WorkItemStateMachine."""
 
+    def test_valid_transitions_from_draft(self):
+        """Test valid transitions from PRECREATED state."""
+        assert WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.DRAFT, WorkItemStatus.PENDING
+        )
+        assert WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.DRAFT, WorkItemStatus.CANCELLED
+        )
+
     def test_valid_transitions_from_precreated(self):
         """Test valid transitions from PRECREATED state."""
         assert WorkItemStateMachine.is_valid_transition(
@@ -12,6 +21,21 @@ class TestWorkItemStateMachine:
         )
         assert WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.PRECREATED, WorkItemStatus.CANCELLED
+        )
+
+    def test_invalid_transitions_from_draft(self):
+        """Test invalid transitions from DRAFT state."""
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.DRAFT, WorkItemStatus.EXECUTING
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.DRAFT, WorkItemStatus.COMPLETED
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.DRAFT, WorkItemStatus.ERROR
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.DRAFT, WorkItemStatus.NEEDS_REVIEW
         )
 
     def test_invalid_transitions_from_precreated(self):
@@ -52,6 +76,9 @@ class TestWorkItemStateMachine:
         assert not WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.PENDING, WorkItemStatus.PRECREATED
         )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.PENDING, WorkItemStatus.DRAFT
+        )
 
     def test_valid_transitions_from_executing(self):
         """Test valid transitions from EXECUTING state."""
@@ -78,6 +105,9 @@ class TestWorkItemStateMachine:
         )
         assert not WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.EXECUTING, WorkItemStatus.PRECREATED
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.EXECUTING, WorkItemStatus.DRAFT
         )
 
     def test_valid_transitions_from_needs_review(self):
@@ -145,6 +175,9 @@ class TestWorkItemStateMachine:
         assert not WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.ERROR, WorkItemStatus.PRECREATED
         )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.ERROR, WorkItemStatus.PRECREATED
+        )
 
     def test_terminal_states(self):
         """Test that terminal states have no valid transitions."""
@@ -163,6 +196,9 @@ class TestWorkItemStateMachine:
         )
         assert not WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.COMPLETED, WorkItemStatus.PRECREATED
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.COMPLETED, WorkItemStatus.DRAFT
         )
 
         # CANCELLED is terminal
@@ -183,4 +219,7 @@ class TestWorkItemStateMachine:
         )
         assert not WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.CANCELLED, WorkItemStatus.PRECREATED
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.CANCELLED, WorkItemStatus.DRAFT
         )

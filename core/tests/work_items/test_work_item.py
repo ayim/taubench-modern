@@ -544,3 +544,27 @@ def test_get_thread_name():
     # Test with whitespace-only name (fallback to auto-generated)
     work_item.work_item_name = "   "
     assert work_item.get_thread_name() == f"Work Item {work_item_id}"
+
+
+def test_work_item_precreated_to_draft():
+    """Verifies that the PRECREATED status is automatically converted to the DRAFT status."""
+    data = {
+        "work_item_id": "test-123",
+        "user_id": "system-user-123",
+        "created_by": "user-123",
+        "agent_id": "agent-789",
+        "thread_id": "thread-012",
+        "status": "PRECREATED",
+        "work_item_url": None,
+        "created_at": "2023-01-01T00:00:00Z",
+        "updated_at": "2023-01-01T00:00:00Z",
+        "status_updated_at": "2023-01-01T00:00:00Z",
+        "status_updated_by": "SYSTEM",
+    }
+
+    work_item = WorkItem.model_validate(data)
+    assert work_item.status == WorkItemStatus.DRAFT
+
+    work_item.status = WorkItemStatus.PRECREATED
+    dumped = work_item.model_dump()
+    assert dumped["status"] == WorkItemStatus.DRAFT.value

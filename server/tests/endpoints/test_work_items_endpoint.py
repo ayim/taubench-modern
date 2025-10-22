@@ -454,11 +454,11 @@ async def test_upload_file_to_work_item(
     assert "work_item_id" in data
     work_item_id = data["work_item_id"]
 
-    # Verify work item was created in PRECREATED state
+    # Verify work item was created in DRAFT state
     get_response = client.get(f"/public/v1/work-items/{work_item_id}")
     assert get_response.status_code == 200
     work_item = get_response.json()
-    assert work_item["status"] == WorkItemStatus.PRECREATED.value
+    assert work_item["status"] == WorkItemStatus.DRAFT.value
     assert work_item["agent_id"] is None  # No agent assigned yet
 
 
@@ -468,7 +468,7 @@ async def test_upload_file_to_existing_work_item(
 ):
     """Test uploading a file to an existing work item."""
     manager_type, manager = file_manager_type
-    # First create a work item in PRECREATED state
+    # First create a work item in DRAFT state
     test_file1 = ("file1.txt", BytesIO(b"First file content"), "text/plain")
 
     response = client.post("/public/v1/work-items/upload-file", files={"file": test_file1})
@@ -529,10 +529,10 @@ async def test_upload_file_to_nonexistent_work_item(
 
 
 @pytest.mark.asyncio
-async def test_upload_file_to_non_precreated_work_item(
+async def test_upload_file_to_non_draft_work_item(
     client: TestClient, seed_agents: list[Agent], file_manager_type
 ):
-    """Test uploading a file to a work item not in PRECREATED state should fail."""
+    """Test uploading a file to a work item not in DRAFT state should fail."""
     manager_type, manager = file_manager_type
     # Create a work item with agent (will be in PENDING state)
     payload = {
@@ -554,7 +554,7 @@ async def test_upload_file_to_non_precreated_work_item(
 
     assert response.status_code == 400
     assert (
-        "Files can only be attached to work-items in the PRECREATED state."
+        "Files can only be attached to work-items in the DRAFT state."
         in response.json()["error"]["message"]
     )
 
@@ -799,11 +799,11 @@ async def test_work_item_request_remote_file_upload_new_work_item(
 
     work_item_id = data["work_item_id"]
 
-    # Verify work item was created in PRECREATED state
+    # Verify work item was created in DRAFT state
     get_response = client.get(f"/public/v1/work-items/{work_item_id}")
     assert get_response.status_code == 200
     work_item = get_response.json()
-    assert work_item["status"] == WorkItemStatus.PRECREATED.value
+    assert work_item["status"] == WorkItemStatus.DRAFT.value
     assert work_item["agent_id"] is None
 
 
@@ -857,10 +857,10 @@ async def test_work_item_request_remote_file_upload_invalid_work_item(
 
 
 @pytest.mark.asyncio
-async def test_work_item_request_remote_file_upload_non_precreated_work_item(
+async def test_work_item_request_remote_file_upload_non_draft_work_item(
     client: TestClient, seed_agents: list[Agent], file_manager_type
 ):
-    """Test requesting remote file upload for work item not in PRECREATED state."""
+    """Test requesting remote file upload for work item not in DRAFT state."""
     manager_type, manager = file_manager_type
     skip_if_local_for_remote_tests(manager_type)
 
@@ -882,7 +882,7 @@ async def test_work_item_request_remote_file_upload_non_precreated_work_item(
 
     assert response.status_code == 400
     assert (
-        "Files can only be attached to work-items in the PRECREATED state."
+        "Files can only be attached to work-items in the DRAFT state."
         in response.json()["error"]["message"]
     )
 
@@ -934,10 +934,10 @@ async def test_work_item_confirm_remote_file_upload_missing_work_item(
 
 
 @pytest.mark.asyncio
-async def test_work_item_confirm_remote_file_upload_non_precreated_work_item(
+async def test_work_item_confirm_remote_file_upload_non_draft_work_item(
     client: TestClient, seed_agents: list[Agent], file_manager_type
 ):
-    """Test confirming remote file upload for work item not in PRECREATED state."""
+    """Test confirming remote file upload for work item not in DRAFT state."""
     manager_type, manager = file_manager_type
     skip_if_local_for_remote_tests(manager_type)
 
@@ -961,7 +961,7 @@ async def test_work_item_confirm_remote_file_upload_non_precreated_work_item(
 
     assert response.status_code == 400
     assert (
-        "Files can only be attached to work-items in the PRECREATED state."
+        "Files can only be attached to work-items in the DRAFT state."
         in response.json()["error"]["message"]
     )
 
@@ -976,7 +976,7 @@ async def test_work_item_two_stage_file_upload_workflow(
 
     agent = seed_agents[0]
 
-    # 1. Request remote upload (creates work item in PRECREATED state)
+    # 1. Request remote upload (creates work item in DRAFT state)
     request_payload = {"file": "important-document.pdf"}
     request_response = client.post("/public/v1/work-items/upload-file", data=request_payload)
     assert request_response.status_code == 200
@@ -986,11 +986,11 @@ async def test_work_item_two_stage_file_upload_workflow(
     file_id = request_data["file_id"]
     file_ref = request_data["file_ref"]
 
-    # Verify work item is in PRECREATED state
+    # Verify work item is in DRAFT state
     get_response = client.get(f"/public/v1/work-items/{work_item_id}")
     assert get_response.status_code == 200
     work_item = get_response.json()
-    assert work_item["status"] == WorkItemStatus.PRECREATED.value
+    assert work_item["status"] == WorkItemStatus.DRAFT.value
     assert work_item["agent_id"] is None
 
     # 2. Simulate cloud upload (this would normally be done by client to cloud storage)

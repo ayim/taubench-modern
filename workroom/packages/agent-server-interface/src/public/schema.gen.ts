@@ -1124,7 +1124,7 @@ export interface components {
       | 'NEEDS_REVIEW'
       | 'INDETERMINATE'
       | 'PENDING'
-      | 'PRECREATED';
+      | 'DRAFT';
     /**
      * WorkItemStatusUpdatedBy
      * @description The user who last updated the work item status.
