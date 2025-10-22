@@ -187,25 +187,27 @@ export const useEvalSidebarData = ({
 
   const handleCreateEvaluation = async (data: CreateEvalFormData) => {
     const evaluationCriteria: EvaluationCriterionConfig[] = [];
+    const expectation = data.evaluationCriteria.responseAccuracyExpectation.trim();
 
-    if (data.evaluationCriteria.actionCalling) {
-      const { actionCallingPolicy } = data.evaluationCriteria;
-      evaluationCriteria.push({
-        type: 'action_calling',
-        assert_all_consumed: actionCallingPolicy.assertAllConsumed,
-        allow_llm_arg_validation: actionCallingPolicy.allowLlmArgValidation,
-        allow_llm_interpolation: actionCallingPolicy.allowLlmInterpolation,
-      });
-    }
-    if (data.evaluationCriteria.flowAdherence) {
-      evaluationCriteria.push({ type: 'flow_adherence' });
-    }
-    if (data.evaluationCriteria.responseAccuracy) {
-      const expectation = data.evaluationCriteria.responseAccuracyExpectation.trim();
+    if (data.useLiveExecution) {
       evaluationCriteria.push({
         type: 'response_accuracy',
         expectation,
       });
+    } else {
+      evaluationCriteria.push({
+        type: 'action_calling',
+        assert_all_consumed: true,
+        allow_llm_arg_validation: false,
+        allow_llm_interpolation: false,
+      });
+      evaluationCriteria.push({ type: 'flow_adherence' });
+      if (expectation.length > 0) {
+        evaluationCriteria.push({
+          type: 'response_accuracy',
+          expectation,
+        });
+      }
     }
 
     await createScenarioMutation.mutateAsync({
@@ -232,14 +234,6 @@ export const useEvalSidebarData = ({
         name: suggestion.name,
         description: suggestion.description,
         evaluationCriteria: {
-          actionCalling: true,
-          actionCallingPolicy: {
-            assertAllConsumed: true,
-            allowLlmArgValidation: false,
-            allowLlmInterpolation: false,
-          },
-          flowAdherence: true,
-          responseAccuracy: true,
           responseAccuracyExpectation: suggestion.response_accuracy_expectation ?? '',
         },
       };

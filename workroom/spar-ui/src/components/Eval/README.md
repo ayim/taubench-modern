@@ -66,7 +66,10 @@ function MyComponent() {
 ```tsx
 interface CreateEvalFormData {
   name: string;        // Required, max 100 chars
-  description: string; // Required, max 500 chars
+  description: string; // Optional, populated from suggestions when available
   useLiveExecution: boolean; // When true, execute real tools during evaluation
+  evaluationCriteria: {
+    responseAccuracyExpectation: string; // Required when live actions are enabled
+  };
 }
 ```
