@@ -132,13 +132,6 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
     });
   };
 
-  const {
-    getRootProps,
-    getInputProps,
-    open: onOpenFilePicker,
-    isDragActive,
-  } = useDropzone({ onDrop: onAddAttachments, noClick: true });
-
   const { register, handleSubmit, reset, watch } = useForm<{ message: string }>({
     defaultValues: { message: draftMessage },
     shouldUnregister: true,
@@ -266,10 +259,6 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
     reset({ message: draftMessage });
   }, [threadId, draftMessage, reset]);
 
-  if (queryDataGuard) {
-    return queryDataGuard;
-  }
-
   const requiresOAuth = oAuthState.some((state) => !state.isAuthorized);
 
   const chatInputMessageText = watch('message');
@@ -277,6 +266,19 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
 
   const isStreamingOrUploadingFiles = isStreaming || uploadingFiles;
   const isChatInputBusy = uploadingFiles || (!hasContentToSend && !isStreaming);
+  const isChatInputDisabled = requiresOAuth;
+  const isAttachFileBtnDisabled = isStreamingOrUploadingFiles || isChatInputDisabled;
+
+  const {
+    getRootProps,
+    getInputProps,
+    open: onOpenFilePicker,
+    isDragActive,
+  } = useDropzone({ onDrop: onAddAttachments, noClick: true, disabled: isAttachFileBtnDisabled });
+
+  if (queryDataGuard) {
+    return queryDataGuard;
+  }
 
   return (
     <Container {...getRootProps()}>
@@ -288,7 +290,13 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
       />
       <Footer>
         {requiresOAuth && <OAuth />}
-        <ChatInput streaming={isStreamingOrUploadingFiles} busy={isChatInputBusy} onSend={onSubmit} onAbort={onAbort}>
+        <ChatInput
+          streaming={isStreamingOrUploadingFiles}
+          busy={isChatInputBusy}
+          onSend={onSubmit}
+          onAbort={onAbort}
+          disabled={isChatInputDisabled}
+        >
           {attachments.length > 0 && (
             <ChatInput.FileList>
               {attachments.map((file) => (
@@ -314,7 +322,7 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
               aria-label="Attach file button"
               variant="ghost"
               round
-              disabled={isStreamingOrUploadingFiles}
+              disabled={isAttachFileBtnDisabled}
             />
           </ChatInput.Actions>
         </ChatInput>
