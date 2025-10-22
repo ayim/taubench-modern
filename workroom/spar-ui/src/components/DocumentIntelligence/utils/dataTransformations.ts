@@ -117,8 +117,120 @@ export const removeCitationFromExtractedData = (
   };
 };
 
+// Function to check if two bounding boxes overlap
+const boxesOverlap = (
+  box1: { left: number; top: number; width: number; height: number },
+  box2: { left: number; top: number; width: number; height: number }
+): boolean => {
+  const box1Right = box1.left + box1.width;
+  const box1Bottom = box1.top + box1.height;
+  const box2Right = box2.left + box2.width;
+  const box2Bottom = box2.top + box2.height;
+
+  // More aggressive overlap detection - check if boxes have any intersection
+  // Boxes overlap if they intersect in both X and Y dimensions
+  const xOverlap = !(box1Right <= box2.left || box2Right <= box1.left);
+  const yOverlap = !(box1Bottom <= box2.top || box2Bottom <= box1.top);
+
+  return xOverlap && yOverlap;
+};
+
+// Function to calculate the overlap ratio between two bounding boxes
+const calculateOverlapRatio = (
+  box1: { left: number; top: number; width: number; height: number },
+  box2: { left: number; top: number; width: number; height: number }
+): number => {
+  const box1Right = box1.left + box1.width;
+  const box1Bottom = box1.top + box1.height;
+  const box2Right = box2.left + box2.width;
+  const box2Bottom = box2.top + box2.height;
+
+  // Calculate intersection area
+  const intersectionLeft = Math.max(box1.left, box2.left);
+  const intersectionTop = Math.max(box1.top, box2.top);
+  const intersectionRight = Math.min(box1Right, box2Right);
+  const intersectionBottom = Math.min(box1Bottom, box2Bottom);
+
+  if (intersectionLeft >= intersectionRight || intersectionTop >= intersectionBottom) {
+    return 0; // No overlap
+  }
+
+  const intersectionArea = (intersectionRight - intersectionLeft) * (intersectionBottom - intersectionTop);
+  const box1Area = box1.width * box1.height;
+  const box2Area = box2.width * box2.height;
+  const unionArea = box1Area + box2Area - intersectionArea;
+
+  return intersectionArea / unionArea;
+};
+
+// Function to detect and handle overlapping bounding boxes
+const handleOverlappingBoundingBoxes = (boundingBoxes: Array<{
+  fieldId: string;
+  coords: { left: number; top: number; width: number; height: number };
+  fieldName: string;
+  fieldValue: string;
+  numericId: number;
+  type?: string;
+  confidence?: string;
+}>) => {
+  const result: Array<{
+    fieldId: string;
+    coords: { left: number; top: number; width: number; height: number };
+    fieldName: string;
+    fieldValue: string;
+    numericId: number;
+    type?: string;
+    confidence?: string;
+  }> = [];
+
+  // Sort bounding boxes by area (largest first) to prioritize larger boxes
+  const sortedBoxes = [...boundingBoxes].sort((a, b) => {
+    const areaA = a.coords.width * a.coords.height;
+    const areaB = b.coords.width * b.coords.height;
+    return areaB - areaA; // Largest first
+  });
+
+  sortedBoxes.forEach((currentBox) => {
+    let shouldInclude = true;
+
+
+    // Check if this box overlaps with any already included box
+    result.forEach((includedBox) => {
+      if (boxesOverlap(currentBox.coords, includedBox.coords)) {
+        // Special handling for text boxes - allow side-by-side text boxes to both show
+        if (currentBox.type?.toLowerCase() === 'text' && includedBox.type?.toLowerCase() === 'text') {
+          // For text boxes, check if they're truly overlapping or just adjacent
+          const overlapRatio = calculateOverlapRatio(currentBox.coords, includedBox.coords);
+          // If overlap is less than 20%, consider them side-by-side and allow both
+          if (overlapRatio < 0.2) {
+            return; // Don't exclude this box
+          }
+        }
+
+        // Special handling for different types - allow both to show
+        if (currentBox.type?.toLowerCase() !== includedBox.type?.toLowerCase()) {
+          return; // Don't exclude this box
+        }
+
+        // For same types, use the original logic (hide smaller overlapping boxes)
+        const currentArea = currentBox.coords.width * currentBox.coords.height;
+        const includedArea = includedBox.coords.width * includedBox.coords.height;
+
+        if (currentArea < includedArea) {
+          shouldInclude = false;
+        }
+      }
+    });
+
+    if (shouldInclude) {
+      result.push(currentBox);
+    }
+  });
+  return result;
+};
+
 // Convert parse result to bounding boxes for display
-export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResponsePayload): Array<{
+export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResponsePayload, currentPage: number = 1): Array<{
   fieldId: string;
   coords: { left: number; top: number; width: number; height: number };
   fieldName: string;
@@ -155,6 +267,12 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
     // Check if chunk itself has a bounding box (for chunks without blocks)
     if (chunk.bbox && typeof chunk.bbox === 'object') {
       const chunkBbox = chunk.bbox as { left?: number; top?: number; width?: number; height?: number; page?: number };
+
+      // Filter by current page
+      if (chunkBbox.page !== currentPage) {
+        return;
+      }
+
       const coords = {
         left: chunkBbox.left || 0,
         top: chunkBbox.top || 0,
@@ -180,9 +298,19 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
     if (chunk.blocks && Array.isArray(chunk.blocks)) {
       chunk.blocks.forEach((block, blockIndex) => {
 
+
         // Check if block has bounding box data
         if (block.bbox && typeof block.bbox === 'object') {
           const bbox = block.bbox as { left?: number; top?: number; width?: number; height?: number; page?: number };
+
+          // Use block's page, or inherit from chunk if block doesn't have page
+          const blockPage = bbox.page ?? (chunk.bbox as { page?: number })?.page ?? currentPage;
+
+          // Filter by current page - this is the key fix!
+          if (blockPage !== currentPage) {
+            return;
+          }
+
 
           // Extract field name from block content or use chunk content
           const fieldName = block.content || chunk.content || `parse_field_${chunkIndex}_${blockIndex}`;
@@ -194,12 +322,32 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
 
           // Convert bbox coordinates to screen coordinates
           // Parse bbox coordinates are typically normalized (0-1) or in PDF points
-          const coords = {
+          let coords = {
             left: bbox.left || 0,
             top: bbox.top || 0,
             width: bbox.width || 0,
             height: bbox.height || 0,
           };
+
+          // Add padding to all bounding boxes for better readability
+          const padding = 0.003; // 0.3% padding on all sides (reduced from 0.8%)
+          coords = {
+            left: Math.max(0, coords.left - padding),
+            top: Math.max(0, coords.top - padding),
+            width: Math.min(1, coords.width + (padding * 2)),
+            height: Math.min(1, coords.height + (padding * 2)),
+          };
+
+          // Fine-tune table positioning to eliminate gaps
+          if ((block as { type?: string }).type?.toLowerCase() === 'table') {
+            // Additional padding for tables
+            coords = {
+              left: Math.max(0, coords.left - 0.005), // Extend slightly left
+              top: Math.max(0, coords.top - 0.005),    // Extend slightly up
+              width: Math.min(1, coords.width + 0.01), // Extend slightly right
+              height: Math.min(1, coords.height + 0.01), // Extend slightly down
+            };
+          }
 
           // Skip boxes with zero dimensions
           if (coords.width <= 0 || coords.height <= 0) {
@@ -220,26 +368,18 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
         }
       });
     } else {
-      // If no blocks, try to use chunk-level bounding box if available
-      // This is a fallback for chunks that might have bbox at the chunk level
-      const fieldName = chunk.content || `parse_chunk_${chunkIndex}`;
+      // If no blocks and no chunk-level bbox, skip this chunk
+      // Don't create fallback boxes with default coordinates
 
-      boundingBoxes.push({
-        fieldId: `parse-chunk-${chunkIndex}`,
-        coords: { left: 0, top: 0, width: 100, height: 20 }, // Default fallback coordinates
-        fieldName: formatFieldName(fieldName),
-        fieldValue: String(fieldValue),
-        numericId: numericIdCounter,
-        type: (chunk as { type?: string }).type || 'Text', // Extract type from chunk, default to 'Text'
-        confidence: (chunk as { confidence?: string }).confidence || 'high', // Extract confidence from chunk, default to 'high'
-      });
-
-      numericIdCounter += 1;
     }
   });
 
-  return boundingBoxes;
+  // Handle overlapping bounding boxes by prioritizing larger ones
+  const processedBoundingBoxes = handleOverlappingBoundingBoxes(boundingBoxes);
+
+  return processedBoundingBoxes;
 };
+
 
 export const formatSqlQuery = (sqlQuery: string): string => {
   if (!sqlQuery) return '';

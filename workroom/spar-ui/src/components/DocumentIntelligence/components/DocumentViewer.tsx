@@ -214,19 +214,33 @@ const CitationBox: FC<CitationBoxProps> = ({
     // Parent boxes are transparent and non-interactive
     if (isParentBox) return 'transparent';
 
-    // Parse boxes use blue colors, but red for low confidence
+    // Parse boxes use type-based colors similar to Reducto
     if (isParseBox) {
-      if (confidence === 'low') {
-        if (isHovered || isActuallySelected) return 'rgb(140, 24, 22)'; // Darker red on hover/selection
-        return 'rgb(140, 24, 22)'; // Red border for low confidence parse boxes
+      // Don't override type-based colors for hover/selection - keep border color consistent
+      // Just show confidence in tooltip to avoid confusion with title red color
+
+      // Type-based colors similar to Reducto's UI
+      switch (type?.toLowerCase()) {
+        case 'title':
+          return 'rgb(220, 38, 38)'; // Red for titles
+        case 'header':
+          return 'rgb(234, 88, 12)'; // Orange for headers
+        case 'footer':
+          return 'rgb(107, 114, 128)'; // Gray for footers
+        case 'table':
+          return 'rgb(34, 197, 94)'; // Green for tables
+        case 'figure':
+          return 'rgb(147, 51, 234)'; // Purple for figures/images
+        case 'section header':
+          return 'rgb(245, 158, 11)'; // Amber/orange for section headers
+        case 'text':
+        default:
+          return 'rgb(22, 95, 140)'; // Default blue for text
       }
-      if (isHovered || isActuallySelected) return 'rgb(22, 95, 140)'; // Darker blue on hover/selection
-      return 'rgb(22, 95, 140)'; // Blue border for parse boxes
     }
 
     // Extract citations use green colors, but red for low confidence
-    // Hover/selection takes highest priority
-    if (isHovered || isActuallySelected) return 'rgba(255, 193, 7, 1)'; // Yellow border on hover OR when selected
+    // Don't override border colors on hover - keep consistent like parse boxes
     // Low confidence extract citations use red
     if (confidence === 'low') return 'rgb(140, 24, 22)'; // Red border for low confidence extract citations
     // If matched, use the specified green border
@@ -239,19 +253,39 @@ const CitationBox: FC<CitationBoxProps> = ({
     // Parent boxes are transparent and non-interactive
     if (isParentBox) return 'transparent';
 
-    // Parse boxes use blue colors, but red for low confidence
+    // Parse boxes use type-based colors similar to Reducto
     if (isParseBox) {
-      if (confidence === 'low') {
-        if (isHovered || isActuallySelected) return 'rgb(238 59 25 / 40%)'; // Darker red background on hover/selection
-        return 'rgb(238 59 25 / 20%)'; // Light red background for low confidence parse boxes
+      // On hover, make background transparent while keeping border color consistent
+      if (isHovered || isActuallySelected) {
+        return 'transparent'; // Transparent background on hover
       }
-      if (isHovered || isActuallySelected) return 'rgb(25 148 238 / 40%)'; // Darker blue background on hover/selection
-      return 'rgb(25 148 238 / 20%)'; // Light blue background for parse boxes
+
+      // Don't override type-based colors for low confidence in parse boxes
+      // Just show confidence in tooltip to avoid confusion with title red color
+
+      // Type-based colors similar to Reducto's UI
+      switch (type?.toLowerCase()) {
+        case 'title':
+          return 'rgb(220 38 38 / 20%)'; // Light red for titles
+        case 'header':
+          return 'rgb(234 88 12 / 20%)'; // Light orange for headers
+        case 'footer':
+          return 'rgb(107 114 128 / 20%)'; // Light gray for footers
+        case 'table':
+          return 'rgb(34 197 94 / 20%)'; // Light green for tables
+        case 'figure':
+          return 'rgb(147 51 234 / 20%)'; // Light purple for figures/images
+        case 'section header':
+          return 'rgb(245 158 11 / 20%)'; // Light amber/orange for section headers
+        case 'text':
+        default:
+          return 'rgb(25 148 238 / 20%)'; // Light blue for text
+      }
     }
 
     // Extract citations use green colors, but red for low confidence
-    // Hover/selection takes highest priority
-    if (isHovered || isActuallySelected) return 'rgba(255, 193, 7, 0.4)'; // Yellow background on hover OR when selected
+    // On hover, make background transparent while keeping border color consistent
+    if (isHovered || isActuallySelected) return 'transparent'; // Transparent background on hover
     // Low confidence extract citations use red
     if (confidence === 'low') return 'rgb(238 59 25 / 20%)'; // Light red background for low confidence extract citations
     // If matched, use the specified green background
@@ -305,8 +339,8 @@ const CitationBox: FC<CitationBoxProps> = ({
         cursor: isParentBox ? 'default' : 'pointer', // Parent boxes are not clickable
         left: coords.left,
         top: coords.top,
-        width: Math.max(coords.width, 8), // Minimum width for visibility
-        height: Math.max(coords.height, 8), // Minimum height for visibility
+        width: coords.width, // Use exact width for precise highlighting
+        height: coords.height, // Use exact height for precise highlighting
         zIndex, // Parent boxes have lower z-index
         transition: isParentBox ? 'none' : 'all 0.2s ease-in-out', // No transitions for parent boxes
         background: getBackgroundColor(),
@@ -368,7 +402,7 @@ const findFieldIdByNumericId = (numericId: number | null | undefined): string | 
   return null;
 };
 
-// Advanced coordinate calculation for react-pdf
+// Improved coordinate calculation for react-pdf - more precise like Reducto
 const calculateReactPdfCoordinates = (
   bbox: { left: number; top: number; width?: number; height?: number; page?: number },
   pageWidth: number,
@@ -381,7 +415,14 @@ const calculateReactPdfCoordinates = (
     const pdfWidth = bbox.width || 0;
     const pdfHeight = bbox.height || 0;
 
-    // Determine if coordinates are normalized (0-1) or in PDF points
+
+    // Skip boxes with invalid dimensions
+    if (pdfWidth <= 0 || pdfHeight <= 0) {
+      return null;
+    }
+
+    // Reducto typically uses normalized coordinates (0-1 range)
+    // Check if coordinates are normalized by looking at typical ranges
     const isNormalized = pdfLeft <= 1 && pdfTop <= 1 && pdfWidth <= 1 && pdfHeight <= 1;
 
     let screenLeft: number;
@@ -391,41 +432,30 @@ const calculateReactPdfCoordinates = (
 
     if (isNormalized) {
       // Coordinates are normalized (0-1 range) - scale to page dimensions
+      // pageWidth and pageHeight are already scaled by react-pdf, so don't multiply by scale again
       screenLeft = pdfLeft * pageWidth;
       screenTop = pdfTop * pageHeight;
       screenWidth = pdfWidth * pageWidth;
       screenHeight = pdfHeight * pageHeight;
     } else {
-      // Coordinates are in PDF points - need to handle coordinate system conversion
+      // Coordinates are in PDF points - scale directly
       screenLeft = pdfLeft * scale;
+      screenTop = pdfTop * scale;
       screenWidth = pdfWidth * scale;
       screenHeight = pdfHeight * scale;
-
-      // Handle coordinate system conversion: PDF uses bottom-left origin, screen uses top-left
-      // Convert from PDF coordinates to screen coordinates
-      const pdfPageHeight = pageHeight / scale; // Get original PDF page height
-      screenTop = (pdfPageHeight - pdfTop - pdfHeight) * scale;
-
-      // If the calculated position seems wrong, try alternative conversion
-      if (screenTop < 0 || screenTop > pageHeight) {
-        screenTop = pdfTop * scale;
-      }
     }
 
-    // Minimal padding for precise highlighting (like Reducto)
-    const paddingX = 1; // Minimal padding
-    const paddingY = 1; // Minimal padding
 
+    // No padding for precise highlighting like Reducto
     const result = {
-      left: screenLeft - paddingX,
-      top: screenTop - paddingY,
-      width: screenWidth + paddingX * 2,
-      height: screenHeight + paddingY * 2,
+      left: screenLeft,
+      top: screenTop,
+      width: screenWidth,
+      height: screenHeight,
     };
 
     return result;
   } catch (error) {
-    // Silently handle coordinate calculation errors
     return null;
   }
 };
@@ -535,9 +565,16 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
 
       // If showing parse boxes and we have parse data, use parse bounding boxes
       if (showingParseBoxes && parseData) {
-        const parseBoundingBoxes = convertParseResultToBoundingBoxes(parseData as ParseDocumentResponsePayload);
+        const parseBoundingBoxes = convertParseResultToBoundingBoxes(parseData as ParseDocumentResponsePayload, pageNumber);
 
-        parseBoundingBoxes.forEach((bbox) => {
+        // Sort parse bounding boxes by area (largest first) so larger boxes render behind smaller ones
+        const sortedParseBoxes = [...parseBoundingBoxes].sort((a, b) => {
+          const areaA = a.coords.width * a.coords.height;
+          const areaB = b.coords.width * b.coords.height;
+          return areaB - areaA; // Largest first
+        });
+
+        sortedParseBoxes.forEach((bbox) => {
           // Convert parse bbox coordinates to screen coordinates
           const screenCoords = calculateReactPdfCoordinates(
             bbox.coords,
