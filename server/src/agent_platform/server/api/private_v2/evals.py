@@ -1,12 +1,19 @@
+import io
+import re
+import zipfile
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Literal, Self
 from uuid import uuid4
 
+import yaml
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from structlog import get_logger
 
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.core.evals.replay_executor import ReplayToolExecutor
 from agent_platform.core.evals.types import Scenario, ScenarioRun, Trial, TrialStatus
 from agent_platform.core.thread.thread import Thread
 from agent_platform.server.api.dependencies import StorageDependency
@@ -21,6 +28,117 @@ from agent_platform.server.evals.advisor import (
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+def _safe_filename_fragment(value: str, default: str = "agent") -> str:
+    """Return a filesystem-safe fragment derived from the provided value."""
+
+    fragment = re.sub(r"[^A-Za-z0-9_.-]", "_", value)
+    return fragment or default
+
+
+def _scenario_entry_filename(scenario: Scenario, index: int) -> str:
+    name_fragment = _safe_filename_fragment(scenario.name, default="scenario")
+    identifier = scenario.scenario_id[:8]
+    return f"evals/{index + 1:03d}_{name_fragment}_{identifier}.yaml"
+
+
+def _tools_entry_filename(scenario: Scenario, index: int) -> str:
+    name_fragment = _safe_filename_fragment(scenario.name, default="scenario")
+    identifier = scenario.scenario_id[:8]
+    return f"used_tools/{index + 1:03d}_{name_fragment}_{identifier}.yaml"
+
+
+def _extract_evaluations_from_metadata(metadata: Any) -> list[dict[str, Any]]:
+    if not isinstance(metadata, dict):
+        return []
+
+    raw_evaluations = metadata.get("evaluations")
+    if not isinstance(raw_evaluations, dict):
+        return []
+
+    evaluations: list[dict[str, Any]] = []
+
+    for key, value in raw_evaluations.items():
+        entry: dict[str, Any] = {"kind": key}
+
+        if isinstance(value, dict):
+            for prop, prop_value in value.items():
+                entry[prop] = prop_value
+
+        evaluations.append(entry)
+
+    return evaluations
+
+
+def _build_scenarios_archive(agent_id: str, scenarios: list[Scenario]) -> bytes:
+    """Pack all scenarios into an in-memory zip archive ready for download."""
+
+    buffer = io.BytesIO()
+    metadata = {
+        "agent_id": agent_id,
+        "exported_at": datetime.now(UTC).isoformat(),
+        "files": [],
+    }
+
+    def _remove_metadata(data: dict) -> dict:
+        return {k: v for k, v in data.items() if k not in {"complete", "content_id", "category"}}
+
+    with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for index, scenario in enumerate(scenarios):
+            scenario_path = _scenario_entry_filename(scenario, index)
+            tools_path = _tools_entry_filename(scenario, index)
+            metadata_dict = scenario.metadata if isinstance(scenario.metadata, dict) else {}
+            drift_policy = (
+                metadata_dict.get("drift_policy", {}) if isinstance(metadata_dict, dict) else {}
+            )
+            tool_execution_mode = (
+                drift_policy.get("tool_execution_mode") if isinstance(drift_policy, dict) else None
+            )
+
+            scenario_payload = {
+                "name": scenario.name,
+                "description": scenario.description,
+                "tool_execution_mode": tool_execution_mode or "replay",
+                "evaluations": _extract_evaluations_from_metadata(metadata_dict),
+                "thread": {
+                    "messages": [
+                        {
+                            "role": message.role,
+                            "content": [
+                                _remove_metadata(content.model_dump())
+                                for content in message.content
+                            ],
+                        }
+                        for message in scenario.messages
+                    ],
+                },
+            }
+
+            conversation_analysis = ReplayToolExecutor.from_conversation(scenario.messages)
+            tool_defs = [
+                _remove_metadata(tool.model_dump()) for tool in conversation_analysis.tools
+            ]
+
+            archive.writestr(tools_path, yaml.safe_dump(tool_defs, sort_keys=False))
+            archive.writestr(scenario_path, yaml.safe_dump(scenario_payload, sort_keys=False))
+            metadata["files"].append(
+                {
+                    "scenario_id": scenario.scenario_id,
+                    "scenario_name": scenario.name,
+                    "path": scenario_path,
+                    "tools_path": tools_path,
+                }
+            )
+
+        archive.writestr("metadata.yaml", yaml.dump(metadata))
+
+    return buffer.getvalue()
+
+
+def _scenarios_export_filename(agent_id: str) -> str:
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return f"agent_{_safe_filename_fragment(agent_id)}_scenarios_{timestamp}.zip"
 
 
 @dataclass(frozen=True)
@@ -169,6 +287,21 @@ async def list_scenarios(
     agent_id: str | None = None,
 ):
     return await storage.list_scenarios(limit=limit, agent_id=agent_id)
+
+
+@router.get("/scenarios/export", response_class=StreamingResponse)
+async def export_agent_scenarios(
+    agent_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> StreamingResponse:
+    await storage.get_agent(user.user_id, agent_id)
+    scenarios = await storage.list_scenarios(limit=None, agent_id=agent_id)
+    archive_bytes = _build_scenarios_archive(agent_id, scenarios)
+    headers = {
+        "Content-Disposition": f'attachment; filename="{_scenarios_export_filename(agent_id)}"'
+    }
+    return StreamingResponse(iter([archive_bytes]), media_type="application/zip", headers=headers)
 
 
 @router.get("/scenarios/{scenario_id}", response_model=Scenario)

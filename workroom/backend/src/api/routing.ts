@@ -50,6 +50,7 @@ function getRouteMap(): {
     'get /api/v2/evals/scenarios/{scenario_id}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'get /api/v2/evals/scenarios/{scenario_id}/runs': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'get /api/v2/evals/scenarios/{scenario_id}/runs/latest': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
+    'get /api/v2/evals/scenarios/export': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'get /api/v2/evals/scenarios/{scenario_id}/runs/{scenario_run_id}': [
       ALLOWED,
       SIGN_WITH_TENANT,

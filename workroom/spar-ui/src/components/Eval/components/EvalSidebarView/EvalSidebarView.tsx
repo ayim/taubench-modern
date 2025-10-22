@@ -81,7 +81,13 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId, onDownloadJ
   return (
     <>
       <Box display="flex" flexDirection="column" gap="$16" padding="$16" height="100%" overflow="hidden">
-        <EvalHeader hasMessages={hasMessages} onAddEvaluation={sidebar.handleAddEvaluation} />
+        <EvalHeader
+          hasMessages={hasMessages}
+          hasEvaluations={sidebar.evaluations.length > 0}
+          onAddEvaluation={sidebar.handleAddEvaluation}
+          onExportScenarios={sidebar.handleExportScenarios}
+          isExporting={sidebar.exportScenariosMutation.isPending}
+        />
 
         <Box display="flex" flexDirection="column" gap="$12" flex="1" overflow="auto" minHeight="0">
           {sidebar.evaluations.map(({ scenario, allRuns, currentRun, isRunning }) => {

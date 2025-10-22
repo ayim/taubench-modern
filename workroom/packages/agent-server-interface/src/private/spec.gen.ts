@@ -6842,6 +6842,39 @@ export const spec = {
         },
       },
     },
+    '/api/v2/evals/scenarios/export': {
+      get: {
+        tags: ['evals'],
+        summary: 'Export Agent Scenarios',
+        operationId: 'export_agent_scenarios_evals_scenarios_export_get',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/evals/scenarios/{scenario_id}': {
       get: {
         tags: ['evals'],

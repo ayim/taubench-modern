@@ -1,15 +1,21 @@
 import { FC } from 'react';
 import { Box, Button, Typography, Tooltip, Divider } from '@sema4ai/components';
-import { IconInformation, IconPlus, IconLightBulb } from '@sema4ai/icons';
+import { IconInformation, IconPlus, IconLightBulb, IconDownload } from '@sema4ai/icons';
 
 export interface EvalHeaderProps {
   hasMessages: boolean;
+  hasEvaluations: boolean;
   onAddEvaluation: () => void;
+  onExportScenarios: () => void;
+  isExporting: boolean;
 }
 
 export const EvalHeader: FC<EvalHeaderProps> = ({
   hasMessages,
+  hasEvaluations,
   onAddEvaluation,
+  onExportScenarios,
+  isExporting,
 }) => {
   return (
     <Box display="flex" flexDirection="column" gap="$8" flexShrink="0">
@@ -24,14 +30,14 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
         All evaluation runs will be shown here.
       </Typography>
       
-      <Box display="flex" justifyContent="flex-start" paddingTop="$8" mb="$8">
+      <Box display="flex" justifyContent="space-between" alignItems="center" paddingTop="$8" mb="$8" gap="$12" flexWrap="wrap">
         {!hasMessages ? (
-          <Box 
-            backgroundColor="yellow20" 
-            padding="$20" 
-            borderRadius="$12" 
-            display="flex" 
-            alignItems="center" 
+          <Box
+            backgroundColor="yellow20"
+            padding="$20"
+            borderRadius="$12"
+            display="flex"
+            alignItems="center"
             gap="$8"
           >
             <IconLightBulb size={24} />
@@ -40,15 +46,22 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
             </Typography>
           </Box>
         ) : (
-          <Button 
-            variant="outline" 
-            round 
-            onClick={onAddEvaluation}
-          >
+          <Button variant="outline" round onClick={onAddEvaluation}>
             <IconPlus size="16" />
             Add Evaluation
           </Button>
         )}
+
+        <Button
+          variant="outline"
+          round
+          onClick={onExportScenarios}
+          disabled={!hasEvaluations || isExporting}
+          loading={isExporting}
+        >
+          <IconDownload size="16" />
+          Export Scenarios
+        </Button>
       </Box>
       
       <Divider />

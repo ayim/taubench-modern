@@ -1,4 +1,5 @@
 import { useSnackbar } from '@sema4ai/components';
+import type { UseMutationResult } from '@tanstack/react-query';
 import { useNavigate } from '../../../../../hooks';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
 import type { DeleteTarget } from './useEvalSidebarState';
@@ -13,6 +14,7 @@ export interface UseEvalSidebarActionsProps {
   handleRunTest: (scenario: Scenario, numTrials: number) => Promise<void>;
   handleDeleteScenario: (scenarioId: string) => Promise<void>;
   handleCancelScenarioRun: (scenarioId: string, scenarioRunId: string) => Promise<void>;
+  exportScenariosMutation: UseMutationResult<{ blob: Blob; filename: string }, unknown, { agentId: string }, unknown>;
   setCreateDialogOpen: (open: boolean) => void;
   setSuggestedValues: (values: Partial<CreateEvalFormData> | undefined) => void;
   setIsFetchingSuggestion: (fetching: boolean) => void;
@@ -29,6 +31,7 @@ export const useEvalSidebarActions = ({
   handleRunTest,
   handleDeleteScenario,
   handleCancelScenarioRun,
+  exportScenariosMutation,
   setCreateDialogOpen,
   setSuggestedValues,
   setIsFetchingSuggestion,
@@ -122,6 +125,31 @@ export const useEvalSidebarActions = ({
     };
   };
 
+  const handleExportScenarios = async () => {
+    try {
+      const { blob, filename } = await exportScenariosMutation.mutateAsync({ agentId });
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      URL.revokeObjectURL(url);
+      anchor.remove();
+
+      addSnackbar({
+        message: 'Scenarios exported successfully',
+        variant: 'success',
+      });
+    } catch (error) {
+      addSnackbar({
+        message: 'Failed to export scenarios',
+        variant: 'danger',
+      });
+    }
+  };
+
   return {
     handleAddEvaluation,
     handleCreateEvaluationWithCleanup,
@@ -130,5 +158,6 @@ export const useEvalSidebarActions = ({
     handleDownloadScenario,
     handleViewResults,
     handleCancelTest,
+    handleExportScenarios,
   };
 };

@@ -29,6 +29,7 @@ export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSid
     handleRunTest: data.handleRunTest,
     handleDeleteScenario: data.handleDeleteScenario,
     handleCancelScenarioRun: data.handleCancelScenarioRun,
+    exportScenariosMutation: data.exportScenariosMutation,
     setCreateDialogOpen: state.setCreateDialogOpen,
     setSuggestedValues: state.setSuggestedValues,
     setIsFetchingSuggestion: state.setIsFetchingSuggestion,
@@ -74,6 +75,7 @@ export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSid
     isAnyTestRunning: data.isAnyTestRunning,
     createScenarioMutation: data.createScenarioMutation,
     deleteScenarioMutation: data.deleteScenarioMutation,
+    exportScenariosMutation: data.exportScenariosMutation,
 
     // Data handlers (business logic)
     handleRunTest: data.handleRunTest,
@@ -89,5 +91,6 @@ export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSid
     handleDownloadScenario: actions.handleDownloadScenario,
     handleViewResults: actions.handleViewResults,
     handleCancelTest: actions.handleCancelTest,
+    handleExportScenarios: actions.handleExportScenarios,
   };
 };

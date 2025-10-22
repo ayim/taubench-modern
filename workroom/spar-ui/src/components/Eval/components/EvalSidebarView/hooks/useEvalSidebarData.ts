@@ -2,17 +2,18 @@ import { useMemo, useEffect } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from '@sema4ai/components';
 import type { components } from '@sema4ai/agent-server-interface';
-import { 
-  latestScenarioRunQueryOptions, 
-  scenarioRunsQueryOptions, 
-  scenarioRunQueryOptions, 
-  useCreateScenarioMutation, 
-  useCreateScenarioRunMutation, 
-  useDeleteScenarioMutation, 
-  useListScenariosQuery, 
-  usePollScenarioRun, 
+import {
+  latestScenarioRunQueryOptions,
+  scenarioRunsQueryOptions,
+  scenarioRunQueryOptions,
+  useCreateScenarioMutation,
+  useCreateScenarioRunMutation,
+  useDeleteScenarioMutation,
+  useListScenariosQuery,
+  usePollScenarioRun,
   useSuggestScenarioMutation,
-  useCancelScenarioRunMutation 
+  useCancelScenarioRunMutation,
+  useExportScenariosMutation,
 } from '../../../../../queries/evals';
 import { useSparUIContext } from '../../../../../api/context';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
@@ -49,6 +50,7 @@ export const useEvalSidebarData = ({
   const createScenarioMutation = useCreateScenarioMutation({});
   const suggestScenarioMutation = useSuggestScenarioMutation({});
   const cancelScenarioRunMutation = useCancelScenarioRunMutation({});
+  const exportScenariosMutation = useExportScenariosMutation({});
   const { pollForCompletion } = usePollScenarioRun();
 
   const { data: scenarios = [], isLoading: scenariosLoading } = useListScenariosQuery({
@@ -316,6 +318,7 @@ export const useEvalSidebarData = ({
     deleteScenarioMutation,
     suggestScenarioMutation,
     cancelScenarioRunMutation,
+    exportScenariosMutation,
 
     // Business logic functions
     handleCreateEvaluation,
