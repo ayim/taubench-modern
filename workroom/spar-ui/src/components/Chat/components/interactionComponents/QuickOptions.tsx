@@ -1,6 +1,6 @@
-import { FC } from 'react';
 import { Box, Button, Tooltip } from '@sema4ai/components';
 import * as Icons from '@sema4ai/icons';
+import { FC, useMemo } from 'react';
 
 import { useMessageStream, useParams } from '../../../../hooks';
 import { useThreadMessagesQuery } from '../../../../queries/threads';
@@ -28,12 +28,12 @@ type OptionProps = {
 };
 
 const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunning }) => {
-  const getIconComponent = (iconName?: string) => {
-    const IconComponent = Object.keys(Icons).includes(iconName ?? '')
-      ? Icons[iconName as keyof IconsType]
-      : Icons.IconReply;
-    return <IconComponent size={24} className="mr-1" />;
-  };
+  const IconComponent = useMemo(() => {
+    if (choice.iconName !== undefined && Object.keys(Icons).includes(choice.iconName))
+      return Icons[choice.iconName as keyof IconsType];
+
+    return Icons.IconReply;
+  }, [choice.iconName]);
 
   return (
     <Tooltip text={!disabled ? choice.message : undefined}>
@@ -43,8 +43,9 @@ const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunn
         variant={choice.primary ? 'primary' : 'outline'}
         disabled={disabled}
         onClick={() => onSelect(choice.message, [])}
+        icon={IconComponent}
+        truncate
       >
-        {getIconComponent(choice.iconName)}
         {choice.title}
       </Button>
     </Tooltip>
@@ -77,7 +78,7 @@ export const QuickOptions: InteractionComponent<QuickOptionsPayload> = ({ payloa
   };
 
   return (
-    <Box display="flex" gap="$8" className="flex-wrap">
+    <Box display="flex" gap="$8" flexWrap="wrap">
       {choices.map((choice) => (
         <QuickOptionButton
           key={choice.title}
