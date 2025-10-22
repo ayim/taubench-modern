@@ -12,6 +12,7 @@ from agent_platform.core.agent_architectures.special_commands import (
     handle_special_command,
     parse_special_command,
 )
+from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.mcp.mcp_server import MCPServer
 
 if TYPE_CHECKING:
@@ -30,7 +31,6 @@ from datetime import UTC, datetime
 from agent_platform.architectures.default.state import ArchState
 from agent_platform.core import Kernel
 from agent_platform.core import agent_architectures as aa
-from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.prompts import select_prompt
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
@@ -44,6 +44,9 @@ OUTPUT_FORMAT_REGEX = re.compile(
     r"^\s*<formatting>\s*<thinking>.*\S.*</thinking>\s*<response>.*\S.*</response>\s*<step>.*\S.*</step>\s*</formatting>\s*$",
     re.DOTALL,
 )
+
+# Let's create a new global message for the agent thread
+message = None
 
 
 def _add_model_usage_to_metadata(
@@ -99,16 +102,20 @@ async def entrypoint(kernel: Kernel, state: ArchState) -> ArchState:
     state.processing_start_time = datetime.now(UTC).isoformat(
         timespec="milliseconds",
     )
+    message = (
+        await kernel.thread_state.new_agent_message()
+    )  # Create a new message for this entrypoint
+
     while True:
         state.current_iteration += 1
         if state.current_iteration > MAX_ITERATIONS:
-            state = await _handle_max_iterations(kernel, state)
+            state = await _handle_max_iterations(state, message)
             break
 
         # Process the conversation step
         if state.step in ("processing", "initial"):
             try:
-                state = await _process_conversation_step(kernel, state)
+                state = await _process_conversation_step(kernel, state, message)
             except Exception as e:
                 logger.error(
                     "Error processing conversation step: %s",
@@ -123,15 +130,22 @@ async def entrypoint(kernel: Kernel, state: ArchState) -> ArchState:
     return state
 
 
-async def _handle_max_iterations(kernel: Kernel, state: ArchState) -> ArchState:
-    message = await kernel.thread_state.new_agent_message()
-    message.append_thought(
-        "I've reached my limit of iterations. By default, I'm limited to 25 "
-        "autonomous iterations before requiring input from the user. I should "
-        "let the user know that I've reached this limit and that, if they'd like "
-        "to continue, they should just respond with 'continue'."
-    )
-    await message.stream_delta()
+async def _commit_message(message: ThreadMessageWithThreadState, state: ArchState):
+    """Commit the message, ignoring websocket errors if tools were called."""
+    if state.called_tools:
+        # If we had tools, ignore websocket errors since tools might be long-running
+        await message.commit(ignore_websocket_errors=True)
+    else:
+        # No tools were called, use normal commit
+        await message.commit()
+
+
+async def _handle_max_iterations(
+    state: ArchState, message: ThreadMessageWithThreadState
+) -> ArchState:
+    """Append iteration-limit notice to the current turn message and commit it."""
+
+    # Add the user-facing content with a quick-option to continue
     message.append_content(
         "I've reached my iteration limit. By default, I'm limited to 25 "
         "autonomous iterations before requiring human input.\n\n```sema4-json\n"
@@ -139,7 +153,9 @@ async def _handle_max_iterations(kernel: Kernel, state: ArchState) -> ArchState:
         '"title": "Continue", "iconName": "IconContinueIcon" }]}\n```'
     )
     await message.stream_delta()
-    await message.commit()
+
+    # Commit with long-running tools behavior
+    await _commit_message(message, state)
 
     return state
 
@@ -186,7 +202,9 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 
 @aa.step
-async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:  # noqa: C901, PLR0912, PLR0915
+async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
+    kernel: Kernel, state: ArchState, message: ThreadMessageWithThreadState
+) -> ArchState:
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
         thread_messages_to_prompt_messages,
@@ -271,9 +289,6 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     # And let's add the tools to the prompt
     conversation_prompt = conversation_prompt.with_tools(*tools)
 
-    # Let's create a new message in the thread
-    message = await kernel.thread_state.new_agent_message()
-
     message.agent_metadata["platform"] = platform.name
     message.agent_metadata["model"] = model  # Keep for backward compatibility
     message.agent_metadata["tools"] = [tool.model_dump() for tool in tools]
@@ -288,83 +303,36 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         "reasoning_tokens": 0,
     }
 
-    message.append_thought("Thinking... ")
-    message.append_content("")
+    await message.stream_delta()
 
     # And use the formatted prompt, model, and message to receive a stream
     # of output from the model as it processes the conversation
     async with platform.stream_response(conversation_prompt, model) as stream:
-        content_sink = message.sinks.content
-
-        # Pipe the stream to the message
+        # Pipe thinking, tool calls, and step (no early user-visible content)
         await stream.pipe_to(
-            # Sink thoughts / content / tool calls to message
             message.sinks.thoughts,
             message.sinks.tool_calls(),
-            content_sink,
-            # Sink pending tool calls and step
-            # to state (so we can execute tools later)
             state.sinks.pending_tool_calls,
             state.sinks.step,
         )
 
-        # Add usage information to agent metadata if available
-        if stream.reassembled_response and stream.reassembled_response.usage:
-            usage = stream.reassembled_response.usage
-            # Add to new multi-model tracking
-            _add_model_usage_to_metadata(message, platform.name, model, usage, "main")
-        else:
-            # Even if no usage info, record that this model was used
-            _add_model_usage_to_metadata(message, platform.name, model, None, "main")
+        # Safely get usage info and add it to metadata if available, or add none if none
+        usage = getattr(getattr(stream, "reassembled_response", None), "usage", None)
+        _add_model_usage_to_metadata(message, platform.name, model, usage, "main")
 
         if stream.raw_response_matches(OUTPUT_FORMAT_REGEX):
             logger.info("Raw response matches output format regex")
         elif stream.raw_response_matches_with_postfix(
             OUTPUT_FORMAT_REGEX, "</response><step>processing</step></formatting>"
         ):
-            # Okay, a model didn't close out the response, fine
-            # we can force close the content sink and set the step
-            # to processing
-            await content_sink.force_close()
+            # The model omitted some closing tags; treat as processing and continue.
             state.step = "processing"
         elif stream.raw_response_matches_with_postfix(OUTPUT_FORMAT_REGEX, "</step></formatting>"):
-            # Okay, we just left off the step and close formatting tag,
-            # we can live with that with no issues
+            # Missing only trailing tags; no action required.
             pass
-        elif stream.reassembled_response:
-            # We have a response, it doesn't match the output format,
-            # so we need to try and fix it
-            state.agent_last_response_text = "\n".join(
-                [text.text for text in stream.reassembled_response.content if text.kind == "text"]
-            )
-            state.agent_last_response_tools_str = "\n".join(
-                [
-                    f"{tool.tool_name}: {tool.tool_input_raw}"
-                    for tool in stream.reassembled_response.content
-                    if tool.kind == "tool_use"
-                ]
-            )
 
-            state, message = await _backup_prompt_for_invalid_format(
-                kernel,
-                state,
-                message,
-                [
-                    *action_tools,
-                    *mcp_tools,
-                    *kernel.client_tools,
-                    *data_frames_tools,
-                    *work_item_tools,
-                ],
-            )
-
-    # If somehow we got here with no message content, add "Processing..."
-    message_text_content = message.get_text_content()
-    if not message_text_content:
-        message.append_content("Processing...")
-        await message.stream_delta()
-
-    # Update the message to show that the tool calls are running in the chat
+    # UI updates for pending tool calls (tool statuses are streamed live)
+    await message.stream_delta()
     for _, tool_call in state.pending_tool_calls:
         message.update_tool_running(tool_call.tool_call_id)
         await message.stream_delta()
@@ -381,61 +349,53 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     ):
         state.called_tools = True
 
-    # Final commit - if we had tools, ignore websocket errors since tools might be long-running
-    if state.called_tools:
-        await message.commit(ignore_websocket_errors=True)
-    else:
-        # No tools were called, use normal commit
-        await message.commit()
+    # If the model indicated it's ready to reply, produce a final reply now.
+    if state.step == "done":
+        try:
+            # Curated status before final user-facing reply
+            message.new_thought("Synthesizing final answer…", complete=True)
+            await message.stream_delta()
+
+            # Following the experimental architecture final-reply prompt pattern in default
+            final_unformatted_prompt = select_prompt(
+                prompt_paths=["prompts/final-reply"],
+                package="agent_platform.architectures.default",
+                model_family=model_family,
+            )
+            final_prompt = await kernel.prompts.format_prompt(
+                final_unformatted_prompt,
+                state=state,
+            )
+            final_prompt = final_prompt.with_tools(*tools).with_minimized_reasoning()
+
+            async with platform.stream_response(final_prompt, model) as final_stream:
+                # Stream the response content
+                await final_stream.pipe_to(message.sinks.raw_content)
+
+                # Get the reassembled response once; it may be None
+                reassembled_response = final_stream.reassembled_response
+
+                # Safely get usage info and add it to metadata
+                usage = getattr(reassembled_response, "usage", None)
+                _add_model_usage_to_metadata(message, platform.name, model, usage, "final-reply")
+
+                # get the content list, defaulting to an empty list
+                content = getattr(reassembled_response, "content", []) or []
+
+                # Check for any non-empty text in the reassembled response
+                has_reassembled_text = any(
+                    getattr(part, "kind", "") == "text" and getattr(part, "text", "").strip()
+                    for part in content
+                )
+
+                # If no text found in the reassembled response, append a default reply
+                if not has_reassembled_text:
+                    message.append_content("No final reply was provided.")
+                    await message.stream_delta()
+        except Exception:
+            logger.error("Final reply generation failed", exc_info=True)
+
+        # Final commit
+        await _commit_message(message, state)
 
     return state
-
-
-async def _backup_prompt_for_invalid_format(
-    kernel: Kernel,
-    state: ArchState,
-    message: ThreadMessageWithThreadState,
-    tools: list[ToolDefinition],
-) -> tuple[ArchState, ThreadMessageWithThreadState]:
-    # If we're here, we failed to follow the output format, but we _may_
-    # have produced tool calls. Claude like to tool call and just trail off
-    # not finishing the format
-    unformatted_backup_prompt = select_prompt(
-        prompt_paths=["prompts/fix-output"],
-        package=__package__,
-    )
-
-    formatted_backup_prompt = await kernel.prompts.format_prompt(
-        unformatted_backup_prompt,
-        state=state,
-    )
-
-    # Some platforms (Cortex) require the tools to be added to the prompt
-    # lest we get a 400 error
-    formatted_backup_prompt = formatted_backup_prompt.with_tools(*tools)
-
-    # Get a platform and it's default LLM
-    platform, model = await kernel.get_platform_and_model(model_type="llm")
-
-    async with platform.stream_response(formatted_backup_prompt, model) as stream:
-        # Reset message thoughts and content
-        message.clear_thoughts()
-        message.clear_content()
-        await message.stream_delta()
-
-        await stream.pipe_to(
-            message.sinks.thoughts,
-            message.sinks.content,
-            state.sinks.step,
-        )
-
-        # Track backup prompt model usage
-        if stream.reassembled_response and stream.reassembled_response.usage:
-            _add_model_usage_to_metadata(
-                message, platform.name, model, stream.reassembled_response.usage, "backup"
-            )
-        else:
-            # Even if no usage info, record that this model was used for backup
-            _add_model_usage_to_metadata(message, platform.name, model, None, "backup")
-
-    return state, message

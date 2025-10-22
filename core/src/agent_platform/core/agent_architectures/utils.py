@@ -10,17 +10,24 @@ from agent_platform.core.storage import ScopedStorage
 def validate_2param_async(func, param_names=("kernel", "state")):
     """
     Validates that the function:
-      - has exactly as many parameters as provided in param_names,
+      - has at least the parameters provided in param_names (in order),
       - is an async function.
 
     Returns the function signature.
     """
     sig = signature(func)
     parameters = list(sig.parameters.values())
-    if len(parameters) != len(param_names):
+    if len(parameters) < len(param_names):
         raise ValueError(
-            f"Function must have exactly {len(param_names)} parameters: {', '.join(param_names)}",
+            f"Function must have at least {len(param_names)} parameters: {', '.join(param_names)}",
         )
+    for index, expected_name in enumerate(param_names):
+        param = parameters[index]
+        if param.name != expected_name:
+            raise ValueError(
+                f"Parameter {index + 1} must be named '{expected_name}', "
+                f"found '{param.name}' instead.",
+            )
     if not iscoroutinefunction(func):
         raise ValueError("Function must be an async function.")
     return sig

@@ -17,7 +17,8 @@ def step(func):
 
     Ensures that the function:
       - takes a Kernel instance as its first argument,
-      - takes a dataclass state as its second argument.
+      - takes a dataclass state as its second argument,
+      - and transparently forwards any additional args/kwargs
 
     It automatically restores state (before executing the function)
     and updates/saves state (after executing the function).
@@ -29,6 +30,10 @@ def step(func):
     async def wrapper(*args, **kwargs):
         # Extract and validate kernel and state.
         kernel, state = extract_kernel_and_create_or_get_state(sig, *args, **kwargs)
+        extra_args = args[2:]
+        extra_kwargs = {
+            key: value for key, value in kwargs.items() if key not in {"kernel", "state"}
+        }
 
         # Extract step name from function
         step_name = func.__name__
@@ -54,7 +59,7 @@ def step(func):
 
             try:
                 # Execute the step.
-                result = await func(kernel, state)
+                result = await func(kernel, state, *extra_args, **extra_kwargs)
 
                 # Record success information if span exists
                 try:
