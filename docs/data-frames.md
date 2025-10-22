@@ -445,6 +445,13 @@ Some important notes:
 
 # Step 13e:
 
+Actually evict the caches periodically using the `evict_old_cache_entries_by_size` method from `BaseStorage` class.
+
+- The size of the cache should be configurable (in the quotas.py configuration) and should be set to 100MB by default.
+- When we add things to the cache we should schedule a task to call the eviction in the background.
+
+# Step 13f:
+
 `create_data_frame_from_file` method from `threads_data_frames.py` file.
 Here we want to cache the full data frame data from file/sheet so that we don't have to download/parse the file again when resolving
 the same file/sheet.

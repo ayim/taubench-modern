@@ -110,6 +110,10 @@ class WorkQueue(Generic[T]):
 
     async def worker_loop(self) -> None:
         """Continuously polls for work and processes it in batches."""
+        shutdown_task = ShutdownManager.get_shutdown_task(WORKER_NAME)
+        if shutdown_task is None:
+            raise RuntimeError(f"Shutdown task not found for {WORKER_NAME} worker")
+
         while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
             logger.debug("searching for eval tasks to process")
             try:
@@ -117,7 +121,7 @@ class WorkQueue(Generic[T]):
             except Exception as exc:
                 logger.error("Error processing tasks: %s", exc, exc_info=exc)
 
-            await asyncio.sleep(self.settings.worker_interval)
+            await asyncio.wait([shutdown_task], timeout=self.settings.worker_interval)
 
         logger.debug("finished eval worker loop")
 

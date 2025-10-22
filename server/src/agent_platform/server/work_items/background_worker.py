@@ -270,6 +270,10 @@ async def worker_loop(
     """
     Runs a loop which processes work items, sleeping the configured amount between iterations.
     """
+    shutdown_task = ShutdownManager.get_shutdown_task(WORKER_NAME)
+    if shutdown_task is None:
+        raise RuntimeError(f"Shutdown task not found for {WORKER_NAME} worker")
+
     while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
         logger.debug("searching for work items to process")
         try:
@@ -277,7 +281,7 @@ async def worker_loop(
         except Exception as exc:
             logger.error(f"Error processing work items: {exc}", exc_info=exc)
 
-        await asyncio.sleep(WORK_ITEMS_SETTINGS.worker_interval)
+        await asyncio.wait([shutdown_task], timeout=WORK_ITEMS_SETTINGS.worker_interval)
 
     logger.debug("finished work-items worker loop")
 

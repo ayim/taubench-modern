@@ -26,6 +26,7 @@ class ShutdownManager:
     _state: ShutdownState = ShutdownState.HEALTHY
     _drainable_background_tasks: dict[str, asyncio.Task]
     _shutdown_events: dict[str, asyncio.Event]
+    _shutdown_tasks: dict[str, asyncio.Task]
 
     def __init__(self):
         """Private constructor. Use get_instance() to get the singleton instance."""
@@ -44,6 +45,7 @@ class ShutdownManager:
         instance._state = ShutdownState.HEALTHY
         instance._drainable_background_tasks = {}
         instance._shutdown_events = {}
+        instance._shutdown_tasks = {}
 
         logger.info(f"ShutdownManager initialized in {instance._state.value} state")
         return instance
@@ -72,6 +74,46 @@ class ShutdownManager:
         return cls.get_instance()._state == ShutdownState.DRAINING
 
     @classmethod
+    def _get_shutdown_event(cls, worker_name: str) -> asyncio.Event | None:
+        """Get the shutdown event for a specific worker.
+
+        Args:
+            worker_name: Name of the worker to get the shutdown task for
+        """
+        instance = cls.get_instance()
+        ev = instance._shutdown_events.get(worker_name)
+        if ev is None:
+            logger.warning(
+                f"Shutdown event requested for unknown (or finished) worker: {worker_name}"
+            )
+
+        return ev
+
+    @classmethod
+    def get_shutdown_task(cls, worker_name: str) -> asyncio.Task | None:
+        """Get the shutdown task for a specific worker. Useful
+        for waiting on a worker to shutdown.
+
+        Args:
+            worker_name: Name of the worker to get the shutdown task for
+        """
+        instance = cls.get_instance()
+        shutdown_task = instance._shutdown_tasks.get(worker_name)
+        if shutdown_task is not None:
+            return shutdown_task
+
+        # It's not there, create it now based on the shutdown event
+        shutdown_event = instance._get_shutdown_event(worker_name)
+        if shutdown_event is None:
+            logger.warning(
+                f"Shutdown task requested for unknown (or finished) worker: {worker_name}"
+            )
+            return None
+        shutdown_task = asyncio.create_task(shutdown_event.wait())
+        instance._shutdown_tasks[worker_name] = shutdown_task
+        return shutdown_task
+
+    @classmethod
     def should_worker_shutdown(cls, worker_name: str) -> bool:
         """Check if a specific worker should shutdown.
 
@@ -81,10 +123,10 @@ class ShutdownManager:
         Returns:
             True if the worker should shutdown, False otherwise
         """
-        instance = cls.get_instance()
-        if worker_name in instance._shutdown_events:
-            return instance._shutdown_events[worker_name].is_set()
-        return False
+        shutdown_event = cls._get_shutdown_event(worker_name)
+        if shutdown_event is None:
+            return False
+        return shutdown_event.is_set()
 
     @classmethod
     def register_drainable_background_worker(
@@ -120,10 +162,9 @@ class ShutdownManager:
             name: Name of the worker to unregister
         """
         instance = cls.get_instance()
-        if name in instance._drainable_background_tasks:
-            del instance._drainable_background_tasks[name]
-        if name in instance._shutdown_events:
-            del instance._shutdown_events[name]
+        instance._drainable_background_tasks.pop(name, None)
+        instance._shutdown_events.pop(name, None)
+        instance._shutdown_tasks.pop(name, None)
         logger.debug(f"Unregistered background worker: {name}")
 
     @classmethod
@@ -200,4 +241,5 @@ class ShutdownManager:
         self._state = ShutdownState.HEALTHY
         self._drainable_background_tasks.clear()
         self._shutdown_events.clear()
+        self._shutdown_tasks.clear()
         logger.info("ShutdownManager reset to HEALTHY state")

@@ -53,6 +53,7 @@ async def pool_monitor_loop(shutdown_event: asyncio.Event) -> None:
     )
 
     storage = StorageService.get_instance()
+    event_wait_task = asyncio.create_task(shutdown_event.wait())
     while not shutdown_event.is_set():
         try:
             # psycopg pool
@@ -71,4 +72,6 @@ async def pool_monitor_loop(shutdown_event: asyncio.Event) -> None:
         except Exception as e:
             logger.error(f"Error in pool monitor loop: {e}", exc_info=e)
 
-        await asyncio.sleep(PoolMonitorSettings.check_interval)
+        # In a timeout we'll unblock instead of waiting for the event (otherwise, if
+        # the event is set we'll unblock right away).
+        await asyncio.wait([event_wait_task], timeout=PoolMonitorSettings.check_interval)

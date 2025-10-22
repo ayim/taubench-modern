@@ -1,6 +1,7 @@
 import asyncio
 import dataclasses
 import json
+import typing
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
@@ -36,7 +37,10 @@ from agent_platform.server.storage.errors import (
     TrialAlreadyCanceledError,
     TrialNotFoundError,
 )
-from agent_platform.server.storage.types import StaleThreadsResult
+
+if typing.TYPE_CHECKING:
+    from agent_platform.server.storage.types import StaleThreadsResult
+
 
 logger = get_logger(__name__)
 
@@ -498,11 +502,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def clean_up_stale_threads(
         self, default_retention_period: timedelta
-    ) -> list[StaleThreadsResult]:
+    ) -> "list[StaleThreadsResult]":
         """
         Returns:
             list[StaleThreadsResult]: A list of thread_ids that were cleaned up.
         """
+        from agent_platform.server.storage.types import StaleThreadsResult
+
         now = datetime.now(UTC)
 
         default_retention_datetime = now - default_retention_period
@@ -1864,42 +1870,38 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Evict old cache entries using LRU strategy."""
         cache_table = self._get_table("data_cache")
 
-        # Get total cache size
-        size_stmt = sa.select(sa.func.sum(cache_table.c.cache_size_in_bytes))
+        # Compute cumulative sum ordered by last_accessed_at descending (oldest first)
+        running_sum = sa.func.sum(cache_table.c.cache_size_in_bytes).over(
+            order_by=cache_table.c.last_accessed_at.desc()
+        )
 
+        # Subquery that includes running sum for each row
+        subq = (
+            sa.select(
+                cache_table.c.cache_key,
+                cache_table.c.cache_size_in_bytes,
+                cache_table.c.last_accessed_at,
+                running_sum.label("running_sum"),
+            )
+            .order_by(cache_table.c.last_accessed_at.desc())
+            .subquery()
+        )
+
+        # Delete the rows that exceed the max cache size
+        stmt = sa.select(subq).where(subq.c.running_sum > max_cache_size_bytes)
         async with self._read_connection() as conn:
-            result = await conn.execute(size_stmt)
-            total_size = result.scalar() or 0
-
-            if total_size <= max_cache_size_bytes:
-                return
-
-            # Get entries ordered by last_accessed_at (oldest first)
-            entries_stmt = sa.select(
-                cache_table.c.cache_key, cache_table.c.cache_size_in_bytes
-            ).order_by(cache_table.c.last_accessed_at.asc())
-
-            result = await conn.execute(entries_stmt)
+            result = await conn.execute(stmt)
             entries = result.mappings().fetchall()
+            keys_to_delete = [entry["cache_key"] for entry in entries]
 
-            # Calculate how much to evict
-            size_to_evict = total_size - max_cache_size_bytes
-            current_size = 0
-            keys_to_delete = []
-
-            for entry in entries:
-                keys_to_delete.append(entry["cache_key"])
-                current_size += entry["cache_size_in_bytes"]
-                if current_size >= size_to_evict:
-                    break
-
-        # Delete the oldest entries
         if keys_to_delete:
             async with self._write_connection() as conn:
                 delete_stmt = cache_table.delete().where(
                     cache_table.c.cache_key.in_(keys_to_delete)
                 )
-                await conn.execute(delete_stmt)
+                result = await conn.execute(delete_stmt)
+                if result.rowcount > 0:
+                    logger.info(f"Evicted {result.rowcount} cache entries")
 
     async def evict_old_cache_entries_by_date(self, max_age_days: int = 30) -> None:
         """Evict old cache entries by date."""
@@ -1909,7 +1911,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
         cutoff_date = datetime.now(UTC) - timedelta(days=max_age_days)
 
         # Delete entries older than the cutoff date
-        # TODO: this seems to work for postgres but not sqlite!
         if self._sa_engine.dialect.name == "sqlite":
             delete_stmt = cache_table.delete().where(
                 cache_table.c.last_accessed_at < cutoff_date.isoformat()
@@ -1919,7 +1920,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self._write_connection() as conn:
             result = await conn.execute(delete_stmt)
-            logger.info(f"Evicted {result.rowcount} cache entries older than {max_age_days} days")
+            if result.rowcount > 0:
+                logger.info(
+                    f"Evicted {result.rowcount} cache entries older than {max_age_days} days"
+                )
 
     async def list_cached_entries(self) -> dict[str, CacheValue]:
         cache_table = self._get_table("data_cache")

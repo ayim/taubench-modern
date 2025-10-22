@@ -56,8 +56,8 @@ async def test_cache_storage_crud(
     result_1_after_eviction = await storage.get_cache_entry(cache_key)
     result_2_after_eviction = await storage.get_cache_entry(cache_key_2)
 
-    assert result_1_after_eviction is None
     assert result_2_after_eviction is not None
+    assert result_1_after_eviction is None
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,6 @@ from agent_platform.core.configurations.config_validation import (
     validate_config_type,
     validate_config_value,
 )
-from agent_platform.server.storage import StorageService
 
 logger = structlog.get_logger(__name__)
 
@@ -39,6 +38,7 @@ class QuotasService:
     MCP_SERVERS_PER_AGENT = ConfigType.MAX_MCP_SERVERS
     AGENT_THREAD_RETENTION_PERIOD_DAYS = ConfigType.AGENT_THREAD_RETENTION_PERIOD
     POSTGRES_POOL_MAX_SIZE = ConfigType.POSTGRES_POOL_MAX_SIZE
+    MAX_CACHE_SIZE = ConfigType.MAX_CACHE_SIZE
 
     # Storage key constants imported from config_validation (single source of truth)
 
@@ -86,6 +86,12 @@ class QuotasService:
             description="Maximum PostgreSQL connection pool size (applies to Psycopg/SQLAlchemy)",
             env_vars=["SEMA4AI_AGENT_SERVER_POSTGRES_POOL_MAX_SIZE", "POSTGRES_POOL_MAX_SIZE"],
         ),
+        MAX_CACHE_SIZE: QuotaConfig(
+            storage_key=ConfigType.MAX_CACHE_SIZE,
+            default_value=100 * 1024 * 1024,  # 100 MB in bytes
+            description="Maximum cache size in bytes",
+            env_vars=["SEMA4AI_AGENT_SERVER_MAX_CACHE_SIZE_IN_BYTES"],
+        ),
     }
 
     def __init__(self):
@@ -129,6 +135,8 @@ class QuotasService:
         Raises:
             Exception: If storage is unavailable or other critical infrastructure errors occur
         """
+        from agent_platform.server.storage import StorageService
+
         # Let storage/database connection errors propagate - these are critical
         config_list = await StorageService.get_instance().list_all_configs()
         storage_key_to_config_type = {
@@ -233,6 +241,8 @@ class QuotasService:
         Raises:
             PlatformHTTPError: If the value is invalid for the given config type
         """
+        from agent_platform.server.storage import StorageService
+
         # Validate both config type and value - this will raise PlatformHTTPError if invalid
         int_value = validate_config_value(config_type, new_value)
 
@@ -245,6 +255,8 @@ class QuotasService:
 
     async def _validate_and_apply_postgres_pool_max_size(self, new_value: int) -> None:
         """Validate and apply the postgres pool max size."""
+        from agent_platform.server.storage import StorageService
+
         storage = StorageService.get_instance()
 
         await storage.apply_pool_size(new_value)
@@ -306,6 +318,14 @@ class QuotasService:
     async def set_postgres_pool_max_size(self, new_value: str) -> None:
         """Set maximum PostgreSQL/Postgres SQLAlchemy connection pool size."""
         await self._set_config_value(self.POSTGRES_POOL_MAX_SIZE, new_value)
+
+    def get_max_cache_size(self) -> int:
+        """Get maximum cache size in bytes."""
+        return self._get_config_value(self.MAX_CACHE_SIZE)
+
+    async def set_max_cache_size(self, new_value: int | str) -> None:
+        """Set maximum cache size in bytes."""
+        await self._set_config_value(self.MAX_CACHE_SIZE, str(new_value))
 
     def get_all_configs(self) -> dict[str, dict[str, Any]]:
         """Get all config values with their configurations."""
