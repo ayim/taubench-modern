@@ -9,6 +9,7 @@ from agent_platform.core.platforms.cortex.connect import (
     SnowflakeAuthenticationError,
     SPCSConnnectionConfig,
     get_connection_details,
+    get_snowflake_connection_details_from_file,
 )
 from agent_platform.server.configuration_manager import ConfigurationService
 
@@ -73,6 +74,12 @@ def _write_sf_auth(tmp_path: Path, payload: dict) -> Path:
     return fp
 
 
+def _write_oauth_token(tmp_path: Path, token: str) -> Path:
+    fp = tmp_path / "oauth-token"
+    fp.write_text(token)
+    return fp
+
+
 def _patch_home(monkeypatch, new_home: Path):
     """Force Path.home() --> tmp dir so code reads our fake auth file."""
     monkeypatch.setattr(Path, "home", staticmethod(lambda: new_home), raising=False)
@@ -134,6 +141,109 @@ def test_spcs_auth_success(monkeypatch):
     # Port / protocol are pinned
     assert cfg["port"] == 443
     assert cfg["protocol"] == "https"
+
+
+def test_get_details_old_config_without_type(tmp_path):
+    """Legacy config without a type defaults to private key auth."""
+    config = {
+        "linkingDetails": {
+            "account": "MYACCT",
+            "user": "MYUSER",
+            "role": "MYROLE",
+            "applicationUrl": "https://app",
+            "privateKeyPath": "/keys/key.p8",
+            "privateKeyPassphrase": "hunter2",
+            "authenticator": "SNOWFLAKE_JWT",
+        }
+    }
+    config_path = _write_sf_auth(tmp_path, config)
+    cfg = get_snowflake_connection_details_from_file(config_path)
+    assert cfg["account"] == "MYACCT"
+    assert cfg["user"] == "MYUSER"
+    assert cfg["role"] == "MYROLE"
+    assert cfg["authenticator"] == "SNOWFLAKE_JWT"
+    assert cfg["warehouse"] is None
+    assert cfg["database"] is None
+    assert cfg["schema"] is None
+    assert cfg["private_key_file"] == "/keys/key.p8"
+    assert cfg["private_key_file_pwd"] == "hunter2"
+    assert cfg["client_session_keep_alive"] is True
+
+
+def test_get_details_explicit_private_key_config(tmp_path):
+    """Explicit private key config returns the expected fields."""
+    config = {
+        "type": "SNOWFLAKE_PRIVATE_KEY",
+        "linkingDetails": {
+            "account": "MYACCT",
+            "user": "MYUSER",
+            "role": "MYROLE",
+            "applicationUrl": "https://app",
+            "privateKeyPath": "/keys/key.p8",
+            "privateKeyPassphrase": "hunter2",
+            "authenticator": "SNOWFLAKE_JWT",
+        },
+    }
+    config_path = _write_sf_auth(tmp_path, config)
+    cfg = get_snowflake_connection_details_from_file(config_path)
+    assert cfg["account"] == "MYACCT"
+    assert cfg["user"] == "MYUSER"
+    assert cfg["role"] == "MYROLE"
+    assert cfg["authenticator"] == "SNOWFLAKE_JWT"
+    assert cfg["warehouse"] is None
+    assert cfg["database"] is None
+    assert cfg["schema"] is None
+    assert cfg["private_key_file"] == "/keys/key.p8"
+    assert cfg["private_key_file_pwd"] == "hunter2"
+    assert cfg["client_session_keep_alive"] is True
+
+
+def test_get_details_explicit_oauth_partner_config(tmp_path):
+    """Partner OAuth config reads the token file and returns OAuth settings."""
+    token_path = _write_oauth_token(tmp_path, "token-contents")
+    config = {
+        "type": "SNOWFLAKE_OAUTH_PARTNER",
+        "linkingDetails": {
+            "account": "MYACCT",
+            "role": "MYROLE",
+            "tokenPath": f"{token_path!s}",
+            "authenticator": "OAUTH",
+        },
+    }
+    config_path = _write_sf_auth(tmp_path, config)
+    cfg = get_snowflake_connection_details_from_file(config_path)
+    assert cfg["account"] == "MYACCT"
+    assert cfg["role"] == "MYROLE"
+    assert cfg["authenticator"] == "OAUTH"
+    assert cfg["token"] == "token-contents"
+    assert cfg["warehouse"] is None
+    assert cfg["database"] is None
+    assert cfg["schema"] is None
+    assert cfg["client_session_keep_alive"] is True
+
+
+def test_get_details_explicit_oauth_custom_config(tmp_path):
+    """Custom OAuth config mirrors the partner branch behaviour."""
+    token_path = _write_oauth_token(tmp_path, "token-contents")
+    config = {
+        "type": "SNOWFLAKE_OAUTH_CUSTOM",
+        "linkingDetails": {
+            "account": "MYACCT",
+            "role": "MYROLE",
+            "tokenPath": f"{token_path!s}",
+            "authenticator": "OAUTH",
+        },
+    }
+    config_path = _write_sf_auth(tmp_path, config)
+    cfg = get_snowflake_connection_details_from_file(config_path)
+    assert cfg["account"] == "MYACCT"
+    assert cfg["role"] == "MYROLE"
+    assert cfg["authenticator"] == "OAUTH"
+    assert cfg["token"] == "token-contents"
+    assert cfg["warehouse"] is None
+    assert cfg["database"] is None
+    assert cfg["schema"] is None
+    assert cfg["client_session_keep_alive"] is True
 
 
 def test_spcs_auth_missing_account_raises(monkeypatch):

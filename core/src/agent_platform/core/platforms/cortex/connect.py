@@ -1,8 +1,6 @@
-import json
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
 
 import structlog
 
@@ -71,115 +69,124 @@ class SPCSConnnectionConfig(Configuration):
         ),
     )
 
-    # Preset fields
-    authenticator: Literal["OAUTH"] = field(default="OAUTH", init=False)
-    protocol: Literal["https"] = field(default="https", init=False)
-    client_session_keep_alive: bool = field(default=True, init=False)
 
+class SnowflakeConfigurationError(Exception):
+    """Raised when there are configuration-related issues with Snowflake connection."""
 
-@dataclass
-class LinkingDetails:
-    account: str
-    user: str
-    role: str
-    application_url: str
-    private_key_path: str
-    private_key_passphrase: str | None = None
-
-    def model_dump(self) -> dict:
-        return {
-            "account": self.account,
-            "user": self.user,
-            "role": self.role,
-            "application_url": self.application_url,
-        }
-
-
-@dataclass
-class AuthDetails:
-    authenticator: Literal["ID_TOKEN", "OAUTH", "SNOWFLAKE_JWT"] = "SNOWFLAKE_JWT"
-    token: str | None = None
-
-    def model_dump(self) -> dict:
-        return {
-            "authenticator": self.authenticator,
-            "token": self.token,
-        }
-
-
-@dataclass
-class SnowflakeAuth:
-    linking_details: LinkingDetails = field()
-    version: str = field(default="1.0.0")
-    auth_details: AuthDetails = field(default_factory=AuthDetails)
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "SnowflakeAuth":
-        if (
-            "linkingDetails" not in data
-            or data["linkingDetails"] is None
-            or not isinstance(data["linkingDetails"], dict)
-        ):
-            logger.error(f"Invalid linkingDetails: {json.dumps(data, indent=2)}")
-            raise ValueError("linkingDetails is required to be present and a dict")
-
-        authenticator = data["linkingDetails"].get("authenticator", "SNOWFLAKE_JWT")
-        if authenticator not in ["ID_TOKEN", "OAUTH", "SNOWFLAKE_JWT"]:
-            logger.error(f"Invalid authenticator: {authenticator}")
-            raise ValueError(f"Invalid authenticator: {authenticator}")
-
-        # Remove the authenticator from the linkingDetails dict
-        if "authenticator" in data["linkingDetails"]:
-            del data["linkingDetails"]["authenticator"]
-
-        linking_details = LinkingDetails(
-            account=data["linkingDetails"]["account"],
-            user=data["linkingDetails"]["user"],
-            role=data["linkingDetails"]["role"],
-            application_url=data["linkingDetails"].get("applicationUrl", ""),
-            private_key_path=data["linkingDetails"]["privateKeyPath"],
-            private_key_passphrase=(
-                data["linkingDetails"]["privateKeyPassphrase"]
-                if "privateKeyPassphrase" in data["linkingDetails"]
-                else None
-            ),
-        )
-
-        ld_as_dict = linking_details.model_dump()
-        if ld_as_dict.get("private_key_passphrase"):
-            ld_as_dict["private_key_passphrase"] = "REDACTED"
-        ld_as_json = json.dumps(ld_as_dict, indent=2)
-        logger.info(f"Parsed SnowflakeAuth LinkingDetails: {ld_as_json}")
-
-        auth_details = AuthDetails(
-            authenticator=authenticator,
-            token=(
-                data["authDetails"]["token"] if "token" in data.get("authDetails", {}) else None
-            ),
-        )
-
-        ad_as_dict = auth_details.model_dump()
-        if (
-            "token" in ad_as_dict
-            # Careful, still want to know in log if it's empty or none
-            and ad_as_dict["token"] is not None
-            and ad_as_dict["token"] != ""
-        ):
-            ad_as_dict["token"] = "REDACTED"
-        ad_as_json = json.dumps(ad_as_dict, indent=2)
-        logger.info(f"Parsed SnowflakeAuth AuthDetails: {ad_as_json}")
-
-        return cls(
-            version=data["version"] if "version" in data else "1.0.0",
-            linking_details=linking_details,
-            auth_details=auth_details,
-        )
+    pass
 
 
 class SnowflakeAuthenticationError(Exception):
     """Raised when there are authentication-related issues with Snowflake connection."""
 
     pass
+
+
+def _get_dict_value(source: dict, key: str, default_value):
+    return source.get(key) or default_value
+
+
+def _get_mandatory_dict_value(source: dict, key: str):
+    value = _get_dict_value(source, key, None)
+    if value is None:
+        raise SnowflakeConfigurationError(f'Required configuration attribute "{key}" not found')
+    return value
+
+
+def _parse_snowflake_oauth_connection_details(
+    linking_details: dict,
+    role: str | None = None,
+    warehouse: str | None = None,
+    database: str | None = None,
+    schema: str | None = None,
+) -> dict:
+    token_path = _get_mandatory_dict_value(linking_details, "tokenPath")
+    try:
+        token = Path(token_path).read_text().strip()
+    except Exception as e:
+        raise SnowflakeConfigurationError(
+            f'Failed to read OAuth token from file "{token_path!s}": {e!s}'
+        ) from e
+    authenticator = _get_mandatory_dict_value(linking_details, "authenticator")
+    if authenticator != "OAUTH":
+        raise SnowflakeConfigurationError(
+            f'Unsupported authenticator "{authenticator}" for OAuth based configuration'
+        )
+    config = {
+        "authenticator": authenticator,
+        "account": _get_mandatory_dict_value(linking_details, "account"),
+        "role": role or _get_mandatory_dict_value(linking_details, "role"),
+        "warehouse": warehouse or _get_dict_value(linking_details, "warehouse", None),
+        "database": database,
+        "schema": schema,
+        "client_session_keep_alive": True,
+        "token": token,
+    }
+    return config
+
+
+def _parse_snowflake_private_key_connection_details(
+    linking_details: dict,
+    role: str | None = None,
+    warehouse: str | None = None,
+    database: str | None = None,
+    schema: str | None = None,
+) -> dict:
+    authenticator = _get_dict_value(linking_details, "authenticator", "SNOWFLAKE_JWT")
+    if authenticator != "SNOWFLAKE_JWT":
+        raise SnowflakeConfigurationError(
+            f'Unsupported authenticator "{authenticator}" for private key based configuration'
+        )
+    config = {
+        "authenticator": authenticator,
+        "account": _get_mandatory_dict_value(linking_details, "account"),
+        "user": _get_mandatory_dict_value(linking_details, "user"),
+        "private_key_file": _get_mandatory_dict_value(linking_details, "privateKeyPath"),
+        "role": role or _get_dict_value(linking_details, "role", None),
+        "warehouse": warehouse or _get_dict_value(linking_details, "warehouse", None),
+        "database": database,
+        "schema": schema,
+        "client_session_keep_alive": True,
+    }
+    private_key_file_pwd = _get_dict_value(linking_details, "privateKeyPassphrase", None)
+    if private_key_file_pwd is not None:
+        config["private_key_file_pwd"] = private_key_file_pwd
+    return config
+
+
+def get_snowflake_connection_details_from_file(
+    config_file_path: Path,
+    role: str | None = None,
+    warehouse: str | None = None,
+    database: str | None = None,
+    schema: str | None = None,
+) -> dict:
+    if not config_file_path.exists():
+        raise SnowflakeConfigurationError(f"Configuration file {config_file_path} not found")
+
+    try:
+        import json
+
+        config_json = json.loads(config_file_path.read_text())
+    except Exception as e:
+        raise SnowflakeConfigurationError(
+            f"Failed to read authentication config as JSON from {config_file_path!s}: {e!s}"
+        ) from e
+
+    # Default to SNOWFLAKE_PRIVATE_KEY as old SPACE/Studio did not specify the "type" at all
+    auth_type = _get_dict_value(config_json, "type", "SNOWFLAKE_PRIVATE_KEY")
+    linking_details = _get_mandatory_dict_value(config_json, "linkingDetails")
+
+    if auth_type in ("SNOWFLAKE_OAUTH_PARTNER", "SNOWFLAKE_OAUTH_CUSTOM"):
+        return _parse_snowflake_oauth_connection_details(
+            linking_details, role, warehouse, database, schema
+        )
+    if auth_type == "SNOWFLAKE_PRIVATE_KEY":
+        return _parse_snowflake_private_key_connection_details(
+            linking_details, role, warehouse, database, schema
+        )
+
+    raise SnowflakeConfigurationError(f'Configuration type "{auth_type}" not supported')
 
 
 _snowpark_create_lock = threading.Lock()
@@ -286,15 +293,14 @@ def get_connection_details(  # noqa: PLR0913
     # Fall back to local config-based authentication
     try:
         logger.info("Reading local auth file")
-        auth_data = json.loads(
-            # DO NOT TOUCH THIS PATH. It's not configurable, it's a contract
-            # between us, Studio, space-client, ACE, etc. And it's baked into
-            # each of those as Path.home() / ".sema4ai" / "sf-auth.json". If it
-            # ever _were_ to change, it'd be a big discussion.
-            (Path.home() / ".sema4ai" / "sf-auth.json").read_text()
+        # DO NOT TOUCH THIS PATH. It's not configurable, it's a contract
+        # between us, Studio, space-client, ACE, etc. And it's baked into
+        # each of those as Path.home() / ".sema4ai" / "sf-auth.json". If it
+        # ever _were_ to change, it'd be a big discussion.
+        config_file_path = Path.home() / ".sema4ai" / "sf-auth.json"
+        return get_snowflake_connection_details_from_file(
+            config_file_path, role, warehouse, database, schema
         )
-        logger.info("Parsing local auth file")
-        sf_auth = SnowflakeAuth.from_dict(auth_data)
     except Exception as e:
         logger.error(
             f"Failed to read authentication config: {e!s}",
@@ -302,34 +308,3 @@ def get_connection_details(  # noqa: PLR0913
         raise SnowflakeAuthenticationError(
             f"Failed to read authentication config: {e!s}",
         ) from e
-
-    config = {
-        "account": account or sf_auth.linking_details.account,
-        "user": username or sf_auth.linking_details.user,
-        "role": role or sf_auth.linking_details.role,
-        "authenticator": sf_auth.auth_details.authenticator,
-        "warehouse": warehouse,
-        "database": database,
-        "schema": schema,
-        "client_session_keep_alive": True,
-    }
-
-    if sf_auth.auth_details.authenticator == "SNOWFLAKE_JWT":
-        logger.info("SNOWFLAKE_JWT mode set")
-        config["private_key_file"] = sf_auth.linking_details.private_key_path
-        if (
-            sf_auth.linking_details.private_key_passphrase is not None
-            and sf_auth.linking_details.private_key_passphrase != ""
-        ):
-            logger.info("Setting private key file passphrase")
-            config["private_key_file_pwd"] = sf_auth.linking_details.private_key_passphrase
-    else:
-        logger.error(
-            f"Unsupported authenticator: {sf_auth.auth_details.authenticator}",
-        )
-        raise SnowflakeAuthenticationError(
-            f"Unsupported authenticator: {sf_auth.auth_details.authenticator}",
-        )
-
-    logger.info("Successfully built connection config")
-    return config

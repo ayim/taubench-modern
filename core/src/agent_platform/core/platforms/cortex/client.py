@@ -378,21 +378,8 @@ class CortexClient(
 
     def _build_authorization_value(self, session: "Session", token: str) -> str:
         """Format the Authorization header to mirror Snowflake's client behaviour."""
-        connection = getattr(session, "connection", None)
-        auth_class = getattr(connection, "auth_class", None) if connection else None
-
-        auth_class_str: str = ""
-        if isinstance(auth_class, str):
-            auth_class_str = auth_class
-        elif isinstance(auth_class, type):
-            auth_class_str = auth_class.__name__
-        elif auth_class is not None:
-            auth_class_str = auth_class.__class__.__name__
-
-        if "OAuth" in auth_class_str:
-            return f"Bearer {token}"
-
-        # Default to session-token semantics used by Snowflake's REST clients
+        # This has been such a pain... we were seeing 500s, moved to Bearer token,
+        # now with OAuth linking it really seems like we need to use Snowflake Token prefix.
         return f'Snowflake Token="{token}"'
 
     async def _build_url(self) -> str:

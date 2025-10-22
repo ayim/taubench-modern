@@ -227,7 +227,7 @@ async def test_build_headers_oauth(
     cortex_client: CortexClient,
     mock_snowpark_session: MagicMock,
 ) -> None:
-    """Ensure OAuth/key-pair auth uses Bearer tokens."""
+    """Ensure OAuth/key-pair auth uses Snowflake Token prefix."""
     mock_snowpark_session.connection.rest.token = "DUMMY_TOKEN_VALUE"
 
     class AuthByOAuth:  # mimic connector OAuth auth class name
@@ -236,7 +236,7 @@ async def test_build_headers_oauth(
     mock_snowpark_session.connection.auth_class = AuthByOAuth
 
     headers = await cortex_client._build_headers(streaming=False)
-    assert headers["Authorization"] == "Bearer DUMMY_TOKEN_VALUE"
+    assert headers["Authorization"] == 'Snowflake Token="DUMMY_TOKEN_VALUE"'
 
 
 @pytest.mark.usefixtures("_mock_snowpark_init_session")
@@ -245,7 +245,7 @@ async def test_build_headers_auth_instance(
     cortex_client: CortexClient,
     mock_snowpark_session: MagicMock,
 ) -> None:
-    """Ensure auth class instances are handled."""
+    """Ensure OAuth/key-pair auth uses Snowflake Token prefix."""
 
     class AuthByOAuth:
         pass
@@ -254,7 +254,7 @@ async def test_build_headers_auth_instance(
     mock_snowpark_session.connection.auth_class = AuthByOAuth()
 
     headers = await cortex_client._build_headers(streaming=False)
-    assert headers["Authorization"] == "Bearer DUMMY_TOKEN_VALUE"
+    assert headers["Authorization"] == 'Snowflake Token="DUMMY_TOKEN_VALUE"'
 
 
 # -----------------------------------------------------------------------------
