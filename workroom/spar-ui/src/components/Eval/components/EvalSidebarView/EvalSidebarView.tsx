@@ -8,23 +8,15 @@ import { EvalHeader, EvalFooter, EvalEmptyState, ScenarioCard, ScenarioResults }
 
 export interface EvalSidebarViewProps {
   agentId: string;
-  onDownloadJSON: (
-    data: unknown,
-    options: {
-      filename: string;
-      addTimestamp?: boolean;
-    },
-  ) => void;
 }
 
-export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId, onDownloadJSON }) => {
+export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
   const { threadId } = useParams('/thread/$agentId/$threadId');
   const { data: messages = [] } = useThreadMessagesQuery({ threadId });
 
   const sidebar = useEvalSidebar({
     agentId,
     threadId,
-    onDownloadJSON,
   });
 
   const hasMessages = messages.length >= 2;
@@ -106,7 +98,6 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId, onDownloadJ
                 expandedResults={expandedResults}
                 onRunTest={(numTrials) => sidebar.handleRunTest(scenario, numTrials)}
                 onToggleResults={() => sidebar.toggleResults(scenario.scenario_id)}
-                onDownloadScenario={() => sidebar.handleDownloadScenario(scenario)}
                 onDeleteScenario={() =>
                   sidebar.setDeleteTarget({
                     scenario_id: scenario.scenario_id,

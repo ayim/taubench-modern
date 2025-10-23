@@ -8,7 +8,6 @@ import type { EvaluationItem, Scenario } from '../types';
 export interface UseEvalSidebarActionsProps {
   agentId: string;
   evaluations: EvaluationItem[];
-  onDownloadJSON: (data: unknown, options: { filename: string; addTimestamp?: boolean }) => void;
   handleCreateEvaluation: (data: CreateEvalFormData) => Promise<void>;
   handleSuggestEvaluation: () => Promise<Partial<CreateEvalFormData> | null>;
   handleRunTest: (scenario: Scenario, numTrials: number) => Promise<void>;
@@ -25,7 +24,6 @@ export interface UseEvalSidebarActionsProps {
 export const useEvalSidebarActions = ({
   agentId,
   evaluations,
-  onDownloadJSON,
   handleCreateEvaluation,
   handleSuggestEvaluation,
   handleRunTest,
@@ -65,38 +63,6 @@ export const useEvalSidebarActions = ({
 
     await handleDeleteScenario(deleteTarget.scenario_id);
     setDeleteTarget(null);
-  };
-
-  const handleDownloadScenario = (scenario: Scenario) => {
-    const evaluation = evaluations.find(
-      (evaluationItem) => evaluationItem.scenario.scenario_id === scenario.scenario_id
-    );
-
-    if (!evaluation) {
-      addSnackbar({
-        message: 'Scenario data not found',
-        variant: 'danger',
-      });
-      return;
-    }
-
-    const scenarioData = {
-      scenario: evaluation.scenario,
-      allRuns: evaluation.allRuns,
-      latestRun: evaluation.latestRun,
-      totalRuns: evaluation.allRuns.length,
-    };
-    const filename = `${scenario.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_scenario`
-
-    onDownloadJSON(scenarioData, {
-      filename,
-      addTimestamp: true,
-    });
-
-    addSnackbar({
-      message: `Scenario "${scenario.name}" downloaded successfully`,
-      variant: 'success',
-    });
   };
 
   const handleViewResults = (trial: { threadId: string }) => {
@@ -155,7 +121,6 @@ export const useEvalSidebarActions = ({
     handleCreateEvaluationWithCleanup,
     handleRunAll,
     handleDeleteConfirm,
-    handleDownloadScenario,
     handleViewResults,
     handleCancelTest,
     handleExportScenarios,

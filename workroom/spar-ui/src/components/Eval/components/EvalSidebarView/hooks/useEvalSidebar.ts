@@ -5,10 +5,9 @@ import { useEvalSidebarActions } from './useEvalSidebarActions';
 export interface UseEvalSidebarProps {
   agentId: string;
   threadId: string;
-  onDownloadJSON: (data: unknown, options: { filename: string; addTimestamp?: boolean }) => void;
 }
 
-export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSidebarProps) => {
+export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
   const state = useEvalSidebarState();
   
   const data = useEvalSidebarData({
@@ -23,7 +22,6 @@ export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSid
   const actions = useEvalSidebarActions({
     agentId,
     evaluations: data.evaluations,
-    onDownloadJSON,
     handleCreateEvaluation: data.handleCreateEvaluation,
     handleSuggestEvaluation: data.handleSuggestEvaluation,
     handleRunTest: data.handleRunTest,
@@ -88,7 +86,6 @@ export const useEvalSidebar = ({ agentId, threadId, onDownloadJSON }: UseEvalSid
     handleCreateEvaluationWithCleanup: actions.handleCreateEvaluationWithCleanup,
     handleRunAll: actions.handleRunAll,
     handleDeleteConfirm: actions.handleDeleteConfirm,
-    handleDownloadScenario: actions.handleDownloadScenario,
     handleViewResults: actions.handleViewResults,
     handleCancelTest: actions.handleCancelTest,
     handleExportScenarios: actions.handleExportScenarios,

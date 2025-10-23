@@ -7,7 +7,6 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconInformation,
-  IconDownload,
   IconStatusCompleted,
   IconStatusError,
   IconStatusPending,
@@ -29,7 +28,6 @@ export interface ScenarioCardProps {
   expandedResults: boolean;
   onRunTest: (numTrials: number) => void;
   onToggleResults: () => void;
-  onDownloadScenario: () => void;
   onDeleteScenario: () => void;
   onSetSelectedTrials: (numTrials: number) => void;
   onCancelTest: () => void;
@@ -45,7 +43,6 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
   expandedResults,
   onRunTest,
   onToggleResults,
-  onDownloadScenario,
   onDeleteScenario,
   onSetSelectedTrials,
   onCancelTest,
@@ -171,12 +168,6 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
                   </Menu.Item>
                 </Tooltip>
               )}
-              <Menu.Item 
-                icon={IconDownload}
-                onClick={onDownloadScenario}
-              >
-                Download JSON
-              </Menu.Item>
               <Menu.Item 
                 icon={IconTrash} 
                 onClick={onDeleteScenario}
