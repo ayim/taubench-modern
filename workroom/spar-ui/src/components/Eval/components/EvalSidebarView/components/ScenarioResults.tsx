@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { Box, Button, Typography, Menu, Badge } from '@sema4ai/components';
 import {
   IconChevronLeft,
@@ -11,7 +11,12 @@ import {
 import type { components } from '@sema4ai/agent-server-interface';
 import { TrialResults } from './TrialResults';
 import type { Trial, ScenarioRun } from '../types';
-import { getPassFailCounts } from '../helpers/evalHelpers';
+import {
+  formatDuration,
+  getPassFailCounts,
+  getRunAverageTrialDuration,
+  isRunTerminated,
+} from '../helpers/evalHelpers';
 
 export interface ScenarioResultsProps {
   scenarioId: string;
@@ -48,7 +53,16 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
   onToggleEvaluationDetails,
   onViewResults,
 }) => {
-  if (trials.length === 0) {
+  const hasTrials = trials.length > 0;
+
+  const runTerminated = useMemo(() => isRunTerminated(trials), [trials]);
+  const averageDurationMs = useMemo(() => getRunAverageTrialDuration(trials), [trials]);
+  const averageDurationLabel = useMemo(
+    () => (averageDurationMs !== null ? formatDuration(averageDurationMs) : 'N/A'),
+    [averageDurationMs],
+  );
+
+  if (!hasTrials) {
     return null;
   }
 
@@ -66,6 +80,11 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
             <Typography variant="body-small">
             • Arch: {String(configuration?.architecture_version || 'N/A')}
             </Typography>
+            {runTerminated && (
+              <Typography variant="body-small">
+              • Average duration: {averageDurationLabel}
+              </Typography>
+            )}
           </Box>
         </Box>
         {totalRuns > 1 && (
