@@ -174,10 +174,6 @@ class PlatformModelConfigs(Configuration):
             "bedrock/anthropic/claude-4-opus",
             "bedrock/anthropic/claude-3-7-sonnet",
             "bedrock/anthropic/claude-3-5-sonnet",
-            "bedrock/anthropic/claude-3-5-haiku",
-            "bedrock/meta/llama-4-scout",
-            "bedrock/meta/llama-4-maverick",
-            "bedrock/cohere/command-r-plus",
             # Snowflake Cortex
             "cortex/anthropic/claude-3-5-sonnet",
             "cortex/anthropic/claude-3-7-sonnet",
