@@ -24,6 +24,7 @@ import {
 import {
   convertParseResultToFields,
   convertParseResultToTables,
+  convertUIStateToDocumentLayoutPayload,
   toSnakeCase,
 } from '../utils/dataTransformations';
 
@@ -589,6 +590,10 @@ export const useDataModelNameDialogSave = () => {
     closeDataModelNameDialog,
     setDataModel,
     setIngestedDocument,
+    originalGeneratedSchema,
+    layoutFields,
+    layoutTables,
+    documentLayout,
   } = useDocumentIntelligenceStore();
 
   const checkModelExists = useCallback(async (name: string) => {
@@ -610,15 +615,32 @@ export const useDataModelNameDialogSave = () => {
   const createDataModel = useCallback(async (name: string, description: string, fileRef: File, threadId: string, agentId: string) => {
     setProcessingState(true, 'Creating data model...', null);
 
-    const generatedModel = await generateDataModelMutation.mutateAsync({
-      threadId,
-      agentId,
-      formData: fileRef,
-    });
+    let schema: Record<string, unknown>;
 
-    const schema = generatedModel.model_schema;
-    if (!schema) {
-      throw new Error('Failed to generate data model schema');
+    // Check if we have an existing schema from the user's work
+    if (originalGeneratedSchema || layoutFields.length > 0 || layoutTables.length > 0) {
+      // Use the existing schema that the user has authored/modified
+      const documentLayoutPayload = convertUIStateToDocumentLayoutPayload(
+        layoutFields,
+        layoutTables,
+        documentLayout,
+        originalGeneratedSchema
+      );
+
+      // Use the extraction schema directly as an object
+      schema = documentLayoutPayload.extraction_schema as Record<string, unknown>;
+    } else {
+      // Fallback: generate a new schema if no existing schema is available
+      const generatedModel = await generateDataModelMutation.mutateAsync({
+        threadId,
+        agentId,
+        formData: fileRef,
+      });
+
+      schema = generatedModel.model_schema as Record<string, unknown>;
+      if (!schema) {
+        throw new Error('Failed to generate data model schema');
+      }
     }
 
     const dataModelResult = await createDataModelMutation.mutateAsync({
@@ -635,7 +657,7 @@ export const useDataModelNameDialogSave = () => {
     const parsedDataModel = parseDataModelFields(dataModelResult.data_model);
     setDataModel(parsedDataModel);
     return dataModelResult;
-  }, [generateDataModelMutation, createDataModelMutation, setProcessingState, setDataModel]);
+  }, [generateDataModelMutation, createDataModelMutation, setProcessingState, setDataModel, originalGeneratedSchema, layoutFields, layoutTables, documentLayout]);
 
   const ingestDocument = useCallback(async (name: string, fileRef: File, threadId: string, agentId: string) => {
     const ingestResult = await ingestDocumentMutation.mutateAsync({
