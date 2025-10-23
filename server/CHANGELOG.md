@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.1.14 (2025-10-23)
+
+- [CLOUD-5455] Pass headers of type Secret to Generic MCP Server as request headers (#1373)
+- [CLOUD-5455] Reduce logging of MCP server configuration (#1370)
+
 # Sema4.ai Agent Server 2.1.13 (2025-10-22)
 
 - Cloud 5512 old arch init (#1335)
