@@ -5,11 +5,16 @@ from uuid import uuid4
 
 import pytest
 import yaml
+from fastapi import UploadFile
 
 from agent_platform.core.evals.types import Scenario
+from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.attachment import ThreadAttachmentContent
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
+from agent_platform.core.thread.thread import Thread
+from agent_platform.server.file_manager import FileManagerService
 
 
 @pytest.fixture
@@ -61,11 +66,89 @@ async def test_export_agent_scenarios_returns_zip_with_payload(
         assert len(scenario_files) == 1
 
         metadata = yaml.safe_load(archive.read("metadata.yaml"))
+        assert "agent_id" not in metadata
         payload = yaml.safe_load(archive.read(scenario_files[0]))
 
     assert metadata["files"][0]["path"] == scenario_files[0]
     assert payload["name"] == "Greeting"
     assert payload["evaluations"] == []
+    assert metadata["files"][0]["attachments"] == []
+    assert "scenario_id" not in metadata["files"][0]
+
+
+async def test_export_agent_scenarios_includes_thread_files(
+    client, storage, seed_agents, stub_user
+):
+    agent = seed_agents[0]
+    thread = Thread(
+        user_id=stub_user.user_id,
+        agent_id=agent.agent_id,
+        name="Source thread",
+    )
+    await storage.upsert_thread(stub_user.user_id, thread)
+
+    file_manager = FileManagerService.get_instance(storage)
+    file_bytes = b"id,name\n1,Alice\n"
+    upload = UploadFile(filename="data.csv", file=io.BytesIO(file_bytes))
+    try:
+        uploaded_files = await file_manager.upload(
+            [UploadFilePayload(file=upload)],
+            thread,
+            stub_user.user_id,
+        )
+    finally:
+        await upload.close()
+
+    uploaded_file = uploaded_files[0]
+
+    attachment_message = ThreadMessage(
+        role="user",
+        content=[
+            ThreadAttachmentContent(
+                name=uploaded_file.file_ref,
+                mime_type=uploaded_file.mime_type,
+                uri=f"agent-server-file://{uploaded_file.file_id}",
+            )
+        ],
+        complete=True,
+    )
+
+    scenario = Scenario(
+        scenario_id=str(uuid4()),
+        name="With attachment",
+        description="Scenario with thread file",
+        thread_id=thread.thread_id,
+        agent_id=agent.agent_id,
+        user_id=stub_user.user_id,
+        messages=[attachment_message],
+        metadata={},
+    )
+    await storage.create_scenario(scenario)
+
+    response = client.get(
+        "/api/v2/evals/scenarios/export",
+        params={"agent_id": agent.agent_id},
+    )
+
+    assert response.status_code == 200
+
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        namelist = archive.namelist()
+        metadata = yaml.safe_load(archive.read("metadata.yaml"))
+        assert "agent_id" not in metadata
+        attachment_entries = [name for name in namelist if name.startswith("thread_files/")]
+        assert attachment_entries
+        exported_bytes = archive.read(attachment_entries[0])
+
+    assert exported_bytes == file_bytes
+
+    metadata_entry = metadata["files"][0]
+    assert metadata_entry["attachments"]
+    assert "scenario_id" not in metadata_entry
+    attachment_meta = metadata_entry["attachments"][0]
+    assert attachment_meta["path"] == attachment_entries[0]
+    assert attachment_meta["file_ref"] == uploaded_file.file_ref
+    assert "file_id" not in attachment_meta
 
 
 async def test_export_agent_scenarios_handles_empty_set(client, seed_agents):
@@ -82,6 +165,7 @@ async def test_export_agent_scenarios_handles_empty_set(client, seed_agents):
         assert "metadata.yaml" in namelist
         scenario_files = [name for name in namelist if name.startswith("evals/")]
         metadata = yaml.safe_load(archive.read("metadata.yaml"))
+        assert "agent_id" not in metadata
 
     assert scenario_files == []
     assert metadata["files"] == []

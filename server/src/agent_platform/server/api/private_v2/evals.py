@@ -4,6 +4,7 @@ import zipfile
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, Literal, Self
 from uuid import uuid4
 
@@ -28,6 +29,8 @@ from agent_platform.server.evals.advisor import (
 from agent_platform.server.evals.advisor import (
     suggest_scenario_from_thread as _suggest_scenario_from_thread,
 )
+from agent_platform.server.file_manager import FileManagerService
+from agent_platform.server.file_manager.base import BaseFileManager
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -37,6 +40,16 @@ logger = get_logger(__name__)
 class ScenarioArchiveEntry:
     path: str
     tools_path: str | None = None
+
+
+@dataclass(frozen=True)
+class ScenarioFileExport:
+    file_id: str
+    file_ref: str
+    archive_path: str
+    mime_type: str | None
+    size: int
+    content: bytes
 
 
 def _safe_filename_fragment(value: str, default: str = "agent") -> str:
@@ -56,6 +69,29 @@ def _tools_entry_filename(scenario: Scenario, index: int) -> str:
     name_fragment = _safe_filename_fragment(scenario.name, default="scenario")
     identifier = scenario.scenario_id[:8]
     return f"used_tools/{index + 1:03d}_{name_fragment}_{identifier}.yaml"
+
+
+def _scenario_files_dirname(scenario: Scenario, index: int) -> str:
+    name_fragment = _safe_filename_fragment(scenario.name, default="scenario")
+    identifier = scenario.scenario_id[:8]
+    return f"thread_files/{index + 1:03d}_{name_fragment}_{identifier}"
+
+
+def _sanitize_export_file_name(file_ref: str, used_names: set[str]) -> str:
+    original_name = Path(file_ref).name or "file"
+    sanitized = _safe_filename_fragment(original_name, default="file")
+
+    base = Path(sanitized).stem or "file"
+    suffix = Path(sanitized).suffix
+
+    candidate = sanitized if sanitized not in {"", "."} else "file"
+    counter = 1
+    while candidate in used_names:
+        candidate = f"{base}_{counter}{suffix}"
+        counter += 1
+
+    used_names.add(candidate)
+    return candidate
 
 
 def _extract_evaluations_from_metadata(metadata: Any) -> list[dict[str, Any]]:
@@ -80,18 +116,82 @@ def _extract_evaluations_from_metadata(metadata: Any) -> list[dict[str, Any]]:
     return evaluations
 
 
-def _build_scenarios_archive(agent_id: str, scenarios: list[Scenario]) -> bytes:
+async def _collect_scenario_files(
+    *,
+    scenario: Scenario,
+    storage: StorageDependency,
+    file_manager: BaseFileManager,
+    requester_user_id: str,
+    index: int,
+) -> list[ScenarioFileExport]:
+    if not scenario.thread_id:
+        return []
+
+    try:
+        uploaded_files = await storage.get_thread_files(scenario.thread_id, requester_user_id)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.warning(
+            "Skipping file export for scenario due to thread files lookup failure",
+            scenario_id=scenario.scenario_id,
+            thread_id=scenario.thread_id,
+            error=str(exc),
+        )
+        return []
+
+    if not uploaded_files:
+        return []
+
+    used_names: set[str] = set()
+    directory = _scenario_files_dirname(scenario, index)
+    exports: list[ScenarioFileExport] = []
+
+    for uploaded in uploaded_files:
+        try:
+            file_bytes = await file_manager.read_file_contents(uploaded.file_id, requester_user_id)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.warning(
+                "Unable to read thread file for scenario export",
+                scenario_id=scenario.scenario_id,
+                thread_id=scenario.thread_id,
+                file_id=uploaded.file_id,
+                error=str(exc),
+            )
+            continue
+
+        archive_name = _sanitize_export_file_name(uploaded.file_ref, used_names)
+        archive_path = f"{directory}/{archive_name}"
+        exports.append(
+            ScenarioFileExport(
+                file_id=uploaded.file_id,
+                file_ref=uploaded.file_ref,
+                archive_path=archive_path,
+                mime_type=uploaded.mime_type,
+                size=len(file_bytes),
+                content=file_bytes,
+            )
+        )
+
+    return exports
+
+
+async def _build_scenarios_archive(
+    agent_id: str,
+    scenarios: list[Scenario],
+    storage: StorageDependency,
+    requester_user_id: str,
+) -> bytes:
     """Pack all scenarios into an in-memory zip archive ready for download."""
 
     buffer = io.BytesIO()
     metadata = {
-        "agent_id": agent_id,
         "exported_at": datetime.now(UTC).isoformat(),
         "files": [],
     }
 
     def _remove_metadata(data: dict) -> dict:
         return {k: v for k, v in data.items() if k not in {"complete", "content_id", "category"}}
+
+    file_manager = FileManagerService.get_instance(storage)
 
     with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
         for index, scenario in enumerate(scenarios):
@@ -131,12 +231,33 @@ def _build_scenarios_archive(agent_id: str, scenarios: list[Scenario]) -> bytes:
 
             archive.writestr(tools_path, yaml.safe_dump(tool_defs, sort_keys=False))
             archive.writestr(scenario_path, yaml.safe_dump(scenario_payload, sort_keys=False))
+
+            scenario_files = await _collect_scenario_files(
+                scenario=scenario,
+                storage=storage,
+                file_manager=file_manager,
+                requester_user_id=requester_user_id,
+                index=index,
+            )
+
+            attachments_metadata: list[dict[str, Any]] = []
+            for export in scenario_files:
+                archive.writestr(export.archive_path, export.content)
+                attachments_metadata.append(
+                    {
+                        "file_ref": export.file_ref,
+                        "path": export.archive_path,
+                        "mime_type": export.mime_type,
+                        "size": export.size,
+                    }
+                )
+
             metadata["files"].append(
                 {
-                    "scenario_id": scenario.scenario_id,
                     "scenario_name": scenario.name,
                     "path": scenario_path,
                     "tools_path": tools_path,
+                    "attachments": attachments_metadata,
                 }
             )
 
@@ -526,7 +647,12 @@ async def export_agent_scenarios(
 ) -> StreamingResponse:
     await storage.get_agent(user.user_id, agent_id)
     scenarios = await storage.list_scenarios(limit=None, agent_id=agent_id)
-    archive_bytes = _build_scenarios_archive(agent_id, scenarios)
+    archive_bytes = await _build_scenarios_archive(
+        agent_id,
+        scenarios,
+        storage,
+        user.user_id,
+    )
     headers = {
         "Content-Disposition": f'attachment; filename="{_scenarios_export_filename(agent_id)}"'
     }
