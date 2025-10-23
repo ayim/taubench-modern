@@ -1,10 +1,21 @@
+from agent_platform.server.api.private_v2 import PRIVATE_V2_PREFIX
 from agent_platform.server.app import create_app
+from agent_platform.server.cli.openapi import find_mounted_app
 
 
 def test_openapi_exposes_platform_model_catalog() -> None:
-    app = create_app()
-    schema = app.openapi()
+    def _error_with_schema(reason: str, schema: dict) -> str:
+        return f"{reason}\nOpenAPI Schema: {schema}"
 
+    app = create_app()
+    private_v2_app = find_mounted_app(app, PRIVATE_V2_PREFIX)
+    assert private_v2_app is not None, "Private v2 app not found"
+    schema = private_v2_app.openapi()
+
+    assert "components" in schema, _error_with_schema("'components' not found in schema", schema)
+    assert "schemas" in schema["components"], _error_with_schema(
+        "'schemas' not found in components", schema
+    )
     components = schema["components"]["schemas"]
 
     platform_configs_schema = components["PlatformModelConfigs"]

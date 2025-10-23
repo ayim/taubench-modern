@@ -2,7 +2,9 @@ import sys
 from pathlib import Path
 
 import structlog
+from fastapi import FastAPI
 from fastapi.routing import Mount
+from starlette.types import ASGIApp
 
 from agent_platform.server.api.private_v2 import PRIVATE_V2_PREFIX
 from agent_platform.server.api.public_v2 import PUBLIC_V2_PREFIX
@@ -10,7 +12,7 @@ from agent_platform.server.api.public_v2 import PUBLIC_V2_PREFIX
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-def find_mounted_app(root, mount_path: str):
+def find_mounted_app(root: FastAPI, mount_path: str) -> ASGIApp | None:
     for r in root.router.routes:
         if isinstance(r, Mount) and r.path.rstrip("/") == mount_path.rstrip("/"):
             return r.app

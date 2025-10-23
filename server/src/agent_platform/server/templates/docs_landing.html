@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Sema4.ai Agent Server API Documentation</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      h1 {
+        color: #333;
+      }
+      .api-section {
+        background: #f5f5f5;
+        border-left: 4px solid #4caf50;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+      .api-section h2 {
+        margin-top: 0;
+        color: #2196f3;
+      }
+      .api-section p {
+        color: #666;
+        margin: 10px 0;
+      }
+      a {
+        color: #2196f3;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .links {
+        display: flex;
+        gap: 15px;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sema4.ai Agent Server API Documentation</h1>
+    <p>Welcome to the Agent Server API (version {{version}}). Choose the documentation for your use case:</p>
+
+    <div class="api-section">
+      <h2><a href="/api/v2/docs">Private API (v2)</a></h2>
+      <p>Full-featured internal API with all endpoints for managing agents, threads, runs, and configurations.</p>
+      <div class="links">
+        <a href="/api/v2/docs">📖 Swagger UI</a>
+        <a href="/api/v2/openapi.json">📄 OpenAPI JSON</a>
+      </div>
+    </div>
+
+    <div class="api-section">
+      <h2><a href="/api/public/v1/docs">Public API (v1)</a></h2>
+      <p>Public-facing API for external integrations. Includes agent execution and work item management.</p>
+      <div class="links">
+        <a href="/api/public/v1/docs">📖 Swagger UI</a>
+        <a href="/api/public/v1/openapi.json">📄 OpenAPI JSON</a>
+      </div>
+    </div>
+  </body>
+</html>

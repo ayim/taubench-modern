@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.agents import router as agents_router
 from agent_platform.server.api.private_v2.capabilities import (
     router as capabilities_router,
@@ -138,3 +139,14 @@ router.include_router(
     prefix="/semantic-data-models",
     tags=["semantic-data-models"],
 )
+
+
+@router.get("/metrics")
+async def metrics(storage: StorageDependency) -> dict:
+    return {
+        "agentCount": await storage.count_agents(),
+        "threadCount": await storage.count_threads(),
+        "conversationalAgentCount": await storage.count_agents_by_mode("conversational"),
+        "workerAgentCount": await storage.count_agents_by_mode("worker"),
+        "messageCount": await storage.count_messages(),
+    }

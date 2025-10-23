@@ -1,10 +1,11 @@
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.openapi.constants import REF_PREFIX
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import HTMLResponse, ORJSONResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
@@ -21,7 +22,6 @@ from agent_platform.server.api.agent_mcp import (
     AGENT_MCP_OPENAPI_SCHEMA_PATHS,
     build_agent_mcp_app,
 )
-from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
 from agent_platform.server.api.private_v2.health import router as health_router
 from agent_platform.server.constants import SystemConfig
@@ -80,12 +80,16 @@ class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
 
 
 class _CustomFastAPI(FastAPI):
-    def __init__(self, title="Sema4.ai Agent Server API") -> None:
+    def __init__(
+        self,
+        title="Sema4.ai Agent Server API",
+        docs_url: str | None = "/docs",  # use the openapi generated landed page by default.
+    ) -> None:
         self._custom_openapi_schema: dict | None = None
         super().__init__(
             title=title,
             version=__version__,
-            # TODO: now the only place we use ORJSON I think? Does it _really_ help?
+            docs_url=docs_url,
             default_response_class=ORJSONResponse,
             separate_input_output_schemas=False,
         )
@@ -204,6 +208,9 @@ class _PublicAgentServerApp(_CustomFastAPI):
 
 
 def create_app() -> FastAPI:
+    app = _agent_server_app()
+
+    # /api/v2
     app_private_v2 = _CustomFastAPI(
         title="Sema4.ai Agent Server Private API Version 2",
     )
@@ -214,38 +221,43 @@ def create_app() -> FastAPI:
     )
     add_exception_handlers(app_private_v2)
 
+    # /api/public/v1
     app_public_v2 = _PublicAgentServerApp(
         title="Sema4.ai Agent Server Public API Version 2",
     )
     app_public_v2.include_router(public_v2_router)
     add_exception_handlers(app_public_v2)
 
-    @app_private_v2.get("/metrics")
-    async def metrics(storage: StorageDependency) -> dict:
-        return {
-            "agentCount": await storage.count_agents(),
-            "threadCount": await storage.count_threads(),
-            "conversationalAgentCount": await storage.count_agents_by_mode("conversational"),
-            "workerAgentCount": await storage.count_agents_by_mode("worker"),
-            "messageCount": await storage.count_messages(),
-        }
-
+    # Create the FastMCP Apps (agent server as MCP and agent as MCP)
     mcp_app = mcp.streamable_http_app()
     agent_mcp = build_agent_mcp_app()
-
-    apps_to_lifespans = [mcp_app, agent_mcp]
-
-    # Main FastAPI app to include both versions
-
-    app = _CustomFastAPI(
-        title="Sema4.ai Agent Server API",
-    )
-    app.router.lifespan_context = create_combined_lifespan(*apps_to_lifespans)
-
     # Add authentication middleware to the MCP app to enable user-based authentication
     mcp_app.add_middleware(MCPAuthenticationMiddleware)
+
+    # Attach the MCP apps to the agent server App
+    apps_to_lifespans = [mcp_app, agent_mcp]
+    app.router.lifespan_context = create_combined_lifespan(*apps_to_lifespans)
+
+    # Mount all of the sub-apps. This _must_ be the last step, else the combined lifespan
+    # is overwritten.
+    # Each mounted sub-application has its own independent lifecycle, including its own
+    # lifespan. We need to mount all of the apps after the combined lifespan is applied.
     app.mount("/api/v2/public-mcp/", mcp_app)
     app.mount(f"{PUBLIC_V2_PREFIX}/agent-mcp/", agent_mcp)
+    app.mount(PRIVATE_V2_PREFIX, app_private_v2)
+    app.mount(PUBLIC_V2_PREFIX, app_public_v2)
+
+    return app
+
+
+def _agent_server_app() -> FastAPI:
+    """
+    Creates the top level agent server FastAPI app.
+    """
+    app = _CustomFastAPI(
+        title="Sema4.ai Agent Server API",
+        docs_url=None,  # We provide our own custom docs landing page.
+    )
 
     # CORS middleware (completely configurable via SystemConfig)
     if SystemConfig.cors_mode == "all":
@@ -258,20 +270,8 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
 
+    # Ensure all requests have known prefixes.
     app.add_middleware(EnsureAPIPrefixMiddleware)
-    app.include_router(private_v2_router)
-    app.include_router(public_v2_router)
-    # Mount the API versions under their respective prefixes
-    app.mount(PRIVATE_V2_PREFIX, app_private_v2)
-    app.mount(PUBLIC_V2_PREFIX, app_public_v2)
-
-    # TODO: remove this once we're able
-    app_private_v1 = _CustomFastAPI(
-        title="Sema4.ai Agent Server Private API Version 1",
-    )
-    app_private_v1.include_router(private_v2_router)
-    add_exception_handlers(app_private_v1)
-    app.mount("/api/v1", app_private_v1)  # Backwards compatibility
 
     # Ignore requests for favicon.ico
     @app.middleware("http")
@@ -279,6 +279,14 @@ def create_app() -> FastAPI:
         if request.url.path == "/favicon.ico":
             return Response(content="", media_type="image/x-icon")
         return await call_next(request)
+
+    # Custom docs landing page
+    @app.get("/docs", response_class=HTMLResponse, include_in_schema=False)
+    async def custom_docs_page():
+        template_path = Path(__file__).parent / "templates" / "docs_landing.html"
+        template_content = template_path.read_text(encoding="utf-8")
+        # Replace template variables
+        return template_content.replace("{{version}}", __version__)
 
     # Add exception handles to the root app as well (handles endpoint 404s and 405s)
     add_exception_handlers(app)

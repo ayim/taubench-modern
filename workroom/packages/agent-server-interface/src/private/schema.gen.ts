@@ -2382,6 +2382,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/metrics': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Metrics */
+    get: operations['metrics_metrics_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/health': {
     parameters: {
       query?: never;
@@ -2418,23 +2435,6 @@ export interface paths {
      *         503 Service Unavailable if server is DRAINING
      */
     get: operations['ready_ready_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/metrics': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Metrics */
-    get: operations['metrics_metrics_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -15662,6 +15662,28 @@ export interface operations {
       };
     };
   };
+  metrics_metrics_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
+        };
+      };
+    };
+  };
   health_health_get: {
     parameters: {
       query?: never;
@@ -15698,28 +15720,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ReadyResponse'];
-        };
-      };
-    };
-  };
-  metrics_metrics_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
         };
       };
     };

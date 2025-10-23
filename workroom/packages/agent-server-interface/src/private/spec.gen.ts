@@ -7486,6 +7486,26 @@ export const spec = {
         },
       },
     },
+    '/api/v2/metrics': {
+      get: {
+        summary: 'Metrics',
+        operationId: 'metrics_metrics_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  additionalProperties: true,
+                  type: 'object',
+                  title: 'Response Metrics Metrics Get',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/health': {
       get: {
         tags: ['health'],
@@ -7521,26 +7541,6 @@ export const spec = {
               'application/json': {
                 schema: {
                   $ref: '#/components/schemas/ReadyResponse',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/v2/metrics': {
-      get: {
-        summary: 'Metrics',
-        operationId: 'metrics_metrics_get',
-        responses: {
-          '200': {
-            description: 'Successful Response',
-            content: {
-              'application/json': {
-                schema: {
-                  additionalProperties: true,
-                  type: 'object',
-                  title: 'Response Metrics Metrics Get',
                 },
               },
             },

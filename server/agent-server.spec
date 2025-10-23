@@ -171,6 +171,10 @@ ALL_DATAS = [
         "src/agent_platform/server/work_items",
         "agent_platform/server/work_items",
     ),
+    (
+        "src/agent_platform/server/templates",
+        "agent_platform/server/templates",
+    ),
     *di_datas,
     *di_binaries,
     *ibis_metadata,
