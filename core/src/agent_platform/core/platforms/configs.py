@@ -51,6 +51,9 @@ def _normalize_model_slug_for_lookup(slug: str) -> str:
         # Note: claude-3-5-haiku exists as-is in llms.json so no mapping needed
         # Gemini models: our config uses simplified names but llms.json has versioned slugs
         "gemini-2-0-flash-lite": "gemini-2-0-flash-lite-001",
+        # llms.json uses "-thinking" suffix for some Claude models and "-reasoning" for others
+        # keeping sema4 config naming convention as "thinking", and mapping to llms.json
+        "claude-4-5-haiku-thinking": "claude-4-5-haiku-reasoning",
     }
 
     return slug_mappings.get(slug, slug)
@@ -156,6 +159,10 @@ class PlatformModelConfigs(Configuration):
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
             "bedrock/anthropic/claude-4-5-sonnet",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low",
+            "bedrock/anthropic/claude-4-5-haiku",
             "bedrock/anthropic/claude-4-sonnet-thinking-high",
             "bedrock/anthropic/claude-4-sonnet-thinking-medium",
             "bedrock/anthropic/claude-4-sonnet-thinking-low",
@@ -245,6 +252,16 @@ class PlatformModelConfigs(Configuration):
                 "anthropic.claude-sonnet-4-5-20250929-v1:0"
             ),
             "bedrock/anthropic/claude-4-5-sonnet": "anthropic.claude-sonnet-4-5-20250929-v1:0",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": (
+                "anthropic.claude-haiku-4-5-20251001-v1:0"
+            ),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": (
+                "anthropic.claude-haiku-4-5-20251001-v1:0"
+            ),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low": (
+                "anthropic.claude-haiku-4-5-20251001-v1:0"
+            ),
+            "bedrock/anthropic/claude-4-5-haiku": "anthropic.claude-haiku-4-5-20251001-v1:0",
             "bedrock/anthropic/claude-4-sonnet-thinking-high": (
                 "anthropic.claude-sonnet-4-20250514-v1:0"
             ),
@@ -375,6 +392,10 @@ class PlatformModelConfigs(Configuration):
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "claude",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "claude",
             "bedrock/anthropic/claude-4-5-sonnet": "claude",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": "claude",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": "claude",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low": "claude",
+            "bedrock/anthropic/claude-4-5-haiku": "claude",
             "bedrock/anthropic/claude-4-sonnet-thinking-high": "claude",
             "bedrock/anthropic/claude-4-sonnet-thinking-medium": "claude",
             "bedrock/anthropic/claude-4-sonnet-thinking-low": "claude",
@@ -492,6 +513,11 @@ class PlatformModelConfigs(Configuration):
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "llm",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "llm",
             "bedrock/anthropic/claude-4-5-sonnet": "llm",
+            # Claude 4.5 Haiku (missing entries added)
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": "llm",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": "llm",
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low": "llm",
+            "bedrock/anthropic/claude-4-5-haiku": "llm",
             "bedrock/anthropic/claude-4-sonnet-thinking-high": "llm",
             "bedrock/anthropic/claude-4-sonnet-thinking-medium": "llm",
             "bedrock/anthropic/claude-4-sonnet-thinking-low": "llm",
@@ -613,6 +639,11 @@ class PlatformModelConfigs(Configuration):
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": 200_000,
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low": 200_000,
             "bedrock/anthropic/claude-4-5-sonnet": 200_000,
+            # Claude 4.5 Haiku (assume same context window as other Bedrock Claude models)
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": 200_000,
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": 200_000,
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low": 200_000,
+            "bedrock/anthropic/claude-4-5-haiku": 200_000,
             "bedrock/anthropic/claude-4-sonnet-thinking-high": 200_000,
             "bedrock/anthropic/claude-4-sonnet-thinking-medium": 200_000,
             "bedrock/anthropic/claude-4-sonnet-thinking-low": 200_000,
@@ -724,6 +755,10 @@ class PlatformModelConfigs(Configuration):
             "openai/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0],
             "openai/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0],
             # Bedrock
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-5-haiku": [EXPERIMENTAL_ARCH_2_0_0],
             "bedrock/anthropic/claude-4-5-sonnet-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],

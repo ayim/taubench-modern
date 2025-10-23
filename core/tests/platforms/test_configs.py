@@ -401,6 +401,7 @@ class TestPlatformModelConfigs:
             "openai/openai/gpt-4-1",
             "google/google/gemini-2-5-pro",
             "bedrock/anthropic/claude-4-sonnet",
+            "bedrock/anthropic/claude-4-5-haiku",
         ]
 
         for model_id in test_models:
