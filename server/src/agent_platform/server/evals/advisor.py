@@ -19,6 +19,8 @@ from agent_platform.core.user import User
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
+from agent_platform.server.evals.json import parse_json_object
+from agent_platform.server.evals.retry import RetryExceededError, retry_async
 
 logger = logging.getLogger(__name__)
 
@@ -28,16 +30,6 @@ class ScenarioSuggestion:
     name: str
     description: str
     response_accuracy_expectation: str = ""
-
-
-def _extract_suggestion_from_model_response(text: str) -> dict | None:
-    import json
-
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError as e:
-        logger.debug(f"Cannot parse JSON: {e}")
-        return None
 
 
 async def suggest_scenario_from_thread(user: User, thread: Thread, storage: StorageDependency):  # noqa: C901
@@ -105,40 +97,45 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
         exemplar_thread=formatted_conversation_thread,
     )
 
-    prompt = Prompt(
-        system_instruction=system_message,
-        messages=[PromptUserMessage(content=[PromptTextContent(text=user_prompt_msg)])],
-        temperature=0.0,
-    )
-    response = await prompt_generate(
-        prompt,
-        user=user,
-        storage=storage,
-        request=Request(scope={"type": "http", "method": "POST"}),
-        agent_id=thread.agent_id,
-    )
+    async def _generate_once() -> ScenarioSuggestion:
+        prompt = Prompt(
+            system_instruction=system_message,
+            messages=[PromptUserMessage(content=[PromptTextContent(text=user_prompt_msg)])],
+            temperature=0.0,
+        )
+        response = await prompt_generate(
+            prompt,
+            user=user,
+            storage=storage,
+            request=Request(scope={"type": "http", "method": "POST"}),
+            agent_id=thread.agent_id,
+        )
 
-    if content := response.content:
-        if text_content := [c.text for c in content if isinstance(c, ResponseTextContent)]:
-            response_text = text_content[-1]
-            logger.debug(f"Suggest scenario response: {response_text}")
+        if not response.content:
+            raise ValueError("No content returned by model")
 
-            parsed_result = _extract_suggestion_from_model_response(response_text)
-            if parsed_result is None:
-                logger.error("Scenario suggestion cannot be parsed from agent response")
-                return None
+        text_chunks = [c.text for c in response.content if isinstance(c, ResponseTextContent)]
+        if not text_chunks:
+            raise ValueError("No textual content returned by model")
 
-            try:
-                if "response_accuracy_expectation" not in parsed_result:
-                    parsed_result["response_accuracy_expectation"] = ""
+        response_text = text_chunks[-1]
+        logger.debug(f"Suggest scenario response: {response_text}")
 
-                return ScenarioSuggestion(**parsed_result)
-            except Exception as e:
-                if isinstance(e, TypeError):
-                    logger.error("Parsed JSON is not ScenarioSuggestion")
-                    return None
+        parsed_result = parse_json_object(response_text)
+        parsed_result.setdefault("response_accuracy_expectation", "")
 
-                raise
+        try:
+            return ScenarioSuggestion(**parsed_result)
+        except TypeError as e:
+            logger.debug(f"Parsed keys: {list(parsed_result.keys())}")
+            raise ValueError("Parsed JSON does not match ScenarioSuggestion schema") from e
 
-    logger.error("Scenario suggestion is not in agent response")
-    return None
+    def _on_error(exc: BaseException, attempt: int) -> None:
+        logger.warning(f"Scenario suggestion attempt {attempt} failed: {exc}")
+
+    try:
+        suggestion = await retry_async(_generate_once, on_error=_on_error)
+        return suggestion
+    except RetryExceededError:
+        logger.error("Scenario suggestion could not be parsed after retries")
+        return None

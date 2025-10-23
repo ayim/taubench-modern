@@ -3,16 +3,12 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from tempfile import SpooledTemporaryFile
-from textwrap import dedent
 from typing import Any, BinaryIO, cast
 from uuid import uuid4
 
 from fastapi import Request, UploadFile
 from starlette.datastructures import Headers
 
-from agent_platform.architectures.default.thread_conversion import (
-    thread_messages_to_prompt_messages,
-)
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.context import AgentServerContext
@@ -32,27 +28,21 @@ from agent_platform.core.evals.types import (
     ActionCallingResult,
     EvaluationResult,
     ExecutionState,
-    FlowAdherenceResult,
-    ResponseAccuracyResult,
     Scenario,
     Trial,
     TrialStatus,
 )
 from agent_platform.core.payloads import UploadFilePayload
-from agent_platform.core.prompts import Prompt
-from agent_platform.core.prompts.content.text import PromptTextContent
-from agent_platform.core.prompts.messages import PromptUserMessage
-from agent_platform.core.responses.content import ResponseTextContent
 from agent_platform.core.runs.run import Run
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.thread import Thread
 from agent_platform.core.tools.tool_definition import ToolDefinition
-from agent_platform.core.user import User
 from agent_platform.server.agent_architectures.arch_manager import AgentArchManager
 from agent_platform.server.api.dependencies import StorageDependency
-from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
+from agent_platform.server.evals.evaluations.flow_adherence import evaluate_flow_adherence
+from agent_platform.server.evals.evaluations.response_accuracy import evaluate_response_accuracy
 from agent_platform.server.file_manager import FileManagerService
 from agent_platform.server.kernel.kernel import AgentServerKernel
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
@@ -619,198 +609,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
             await storage.upsert_thread(system_user.user_id, new_thread)
 
 
-async def _evaluate_flow_adherence(
-    thread: Thread, scenario: Scenario, user: User, storage: StorageDependency
-) -> EvaluationResult | None:
-    logger.info("evaluating flow adherence")
-    system_message = dedent("""
-        You are an expert evaluator of LLM conversations. \
-        Your role is to analyse the conversation history between the agent and user. \
-        Provide accurate, objective evaluations.
-    """)
-
-    judge_prompt_msg = dedent("""
-        Please evaluate if the target conversation is CONSISTENT with the. \
-        benchmark according to the given criteria. \
-        CRITERIA: \
-        - Allow natural variation in wording, but not in intent or outcomes.
-        TARGET CONVERSATION: \
-        {target_conversation} \
-        BENCHMARK CONVERSATION: \
-        {benchmark_conversation} \
-        Please respond with a JSON object containing (in this order): \
-        - "explanation": a brief explanation of your thoughts/evaluation \
-        - "score": a number from 0-10 indicating quality (10 = perfect match) \
-        - "passed": true/false indicating if the response meets the criteria (score >= 6) \
-        Output RAW JSON only. Do not use code fences, markdown, or language tags. \
-        The first character must be "{{" and the last must be "}}".
-    """)
-
-    mock_request = Request(scope={"type": "http", "method": "POST"})
-    ctx = AgentServerContext.from_request(
-        request=mock_request,
-        user=user,
-        version="2.0.0",
-    )
-    kernel = create_minimal_kernel(ctx)
-    kernel.converters.set_thread_message_conversion_function(
-        thread_messages_to_prompt_messages,
-    )
-
-    async def format_conversation(messages: list[ThreadMessage]):
-        converted_messages = await kernel.converters.thread_messages_to_prompt_messages(messages)
-        temp_prompt = Prompt(messages=cast(list, converted_messages))
-        return temp_prompt.to_pretty_yaml(include=["messages"])
-
-    formatted_target_conversation_thread = await format_conversation(thread.messages)
-    formatted_benchmark_conversation = await format_conversation(scenario.messages)
-
-    judge_prompt_msg = judge_prompt_msg.format(
-        target_conversation=formatted_target_conversation_thread,
-        benchmark_conversation=formatted_benchmark_conversation,
-    )
-
-    prompt = Prompt(
-        system_instruction=system_message,
-        messages=[PromptUserMessage(content=[PromptTextContent(text=judge_prompt_msg)])],
-        temperature=0.0,
-    )
-    response = await prompt_generate(
-        prompt,
-        user=user,
-        storage=storage,
-        request=Request(scope={"type": "http", "method": "POST"}),
-        agent_id=scenario.agent_id,
-    )
-
-    if content := response.content:
-        if text_content := [c.text for c in content if isinstance(c, ResponseTextContent)]:
-            response_text = text_content[-1]
-            logger.debug(f"Flow Adherence response: {response_text}")
-
-            parsed_result = _extract_evaluation_from_model_response(response_text)
-            if parsed_result is None:
-                logger.error("Flow adherence cannot be parsed from agent response")
-                return FlowAdherenceResult(
-                    passed=False,
-                    explanation="Unexpected error: cannot evaluate flow adherence",
-                    score=0,
-                )
-
-            try:
-                return FlowAdherenceResult(**parsed_result)
-            except Exception as e:
-                if isinstance(e, TypeError):
-                    logger.error("Parsed JSON is not Flow Adherence")
-                    return FlowAdherenceResult(
-                        passed=False,
-                        explanation="Unexpected error: cannot evaluate flow adherence",
-                        score=0,
-                    )
-
-                raise
-
-    logger.error("Flow Adherence is not in agent response")
-    return FlowAdherenceResult(
-        passed=False, explanation="Unexpected error: cannot evaluate flow adherence", score=0
-    )
-
-
-async def _evaluate_response_accuracy(
-    thread: Thread,
-    scenario: Scenario,
-    user: User,
-    storage: StorageDependency,
-    criteria: str,
-) -> EvaluationResult | None:
-    system_message = dedent("""
-        You are an expert evaluator of LLM conversations. \
-        Your role is to analyse the conversation history between the agent and user. \
-        Provide accurate, objective evaluations.
-    """)
-
-    judge_prompt_msg = dedent("""
-        Please evaluate if the target conversation is accurate based on CRITERIA. \
-        CRITERIA: \
-        {criteria} \
-        CONVERSATION: \
-        {target_conversation} \
-        Please respond with a JSON object containing (in this order): \
-        - "explanation": a brief explanation of your thoughts/evaluation \
-        - "score": a number from 0-10 indicating quality (10 = perfect match) \
-        - "passed": true/false indicating if the response meets the criteria (score >= 6) \
-        Output RAW JSON only. Do not use code fences, markdown, or language tags. \
-        The first character must be "{{" and the last must be "}}".
-    """)
-
-    mock_request = Request(scope={"type": "http", "method": "POST"})
-    ctx = AgentServerContext.from_request(
-        request=mock_request,
-        user=user,
-        version="2.0.0",
-    )
-    kernel = create_minimal_kernel(ctx)
-    kernel.converters.set_thread_message_conversion_function(
-        thread_messages_to_prompt_messages,
-    )
-
-    async def format_conversation(messages: list[ThreadMessage]):
-        converted_messages = await kernel.converters.thread_messages_to_prompt_messages(messages)
-        temp_prompt = Prompt(messages=cast(list, converted_messages))
-        return temp_prompt.to_pretty_yaml(include=["messages"])
-
-    formatted_target_conversation_thread = await format_conversation(thread.messages)
-
-    judge_prompt_msg = judge_prompt_msg.format(
-        target_conversation=formatted_target_conversation_thread,
-        criteria=criteria,
-    )
-
-    prompt = Prompt(
-        system_instruction=system_message,
-        messages=[PromptUserMessage(content=[PromptTextContent(text=judge_prompt_msg)])],
-        temperature=0.0,
-    )
-    response = await prompt_generate(
-        prompt,
-        user=user,
-        storage=storage,
-        request=Request(scope={"type": "http", "method": "POST"}),
-        agent_id=scenario.agent_id,
-    )
-
-    if content := response.content:
-        if text_content := [c.text for c in content if isinstance(c, ResponseTextContent)]:
-            response_text = text_content[-1]
-            logger.debug(f"Response accuracy response: {response_text}")
-
-            parsed_result = _extract_evaluation_from_model_response(response_text)
-            if parsed_result is None:
-                logger.error("Response accuracy cannot be parsed from agent response")
-                return ResponseAccuracyResult(
-                    passed=False, explanation="Unexpected error: cannot evaluate accuracy", score=0
-                )
-
-            try:
-                return ResponseAccuracyResult(**parsed_result)
-            except Exception as e:
-                if isinstance(e, TypeError):
-                    logger.error("Parsed JSON is not Response accuracy")
-                    return ResponseAccuracyResult(
-                        passed=False,
-                        explanation="Unexpected error: cannot evaluate accuracy",
-                        score=0,
-                    )
-
-                raise
-
-    logger.error("Response accuracy is not in agent response")
-    return ResponseAccuracyResult(
-        passed=False, explanation="Unexpected error: cannot evaluate accuracy", score=0
-    )
-
-
-async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str | None]:  # noqa: C901
+async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str | None]:
     storage = StorageService.get_instance()
 
     if (
@@ -855,20 +654,18 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str
         evaluations.append(action_calling)
 
     if preferences.flow_adherence:
-        flow_adherence = await _evaluate_flow_adherence(thread, scenario, system_user, storage)
-        if flow_adherence is not None:
-            evaluations.append(flow_adherence)
+        flow_adherence = await evaluate_flow_adherence(thread, scenario, system_user, storage)
+        evaluations.append(flow_adherence)
 
     if preferences.response_accuracy:
-        response_accuracy = await _evaluate_response_accuracy(
+        response_accuracy = await evaluate_response_accuracy(
             thread,
             scenario,
             system_user,
             storage,
             preferences.response_accuracy_expectation,
         )
-        if response_accuracy is not None:
-            evaluations.append(response_accuracy)
+        evaluations.append(response_accuracy)
 
     await storage.update_trial_evaluation_results(task.trial_id, evaluations)
 
