@@ -47,20 +47,24 @@ export class EphemeralAgentClient {
 
     // Convert HTTP URL to WebSocket URL or use existing WebSocket URL
     let wsUrl: string;
-    if (this.config.baseUrl.startsWith('ws://') || this.config.baseUrl.startsWith('wss://')) {
+    const baseUrl = this.config.baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+
+    if (baseUrl.startsWith('ws://') || baseUrl.startsWith('wss://')) {
       // Already a WebSocket URL
-      wsUrl = this.config.baseUrl;
-    } else if (this.config.baseUrl.startsWith('https://')) {
+      wsUrl = baseUrl;
+    } else if (baseUrl.startsWith('https://')) {
       // Convert HTTPS to WSS
-      wsUrl = this.config.baseUrl.replace(/^https:\/\//, 'wss://');
-    } else if (this.config.baseUrl.startsWith('http://')) {
+      wsUrl = baseUrl.replace(/^https:\/\//, 'wss://');
+    } else if (baseUrl.startsWith('http://')) {
       // Convert HTTP to WS
-      wsUrl = this.config.baseUrl.replace(/^http:\/\//, 'ws://');
+      wsUrl = baseUrl.replace(/^http:\/\//, 'ws://');
     } else {
       // Assume it's a hostname without protocol, default to ws://
-      wsUrl = `ws://${this.config.baseUrl}`;
+      wsUrl = `ws://${baseUrl}`;
     }
     wsUrl += '/api/v2/runs/ephemeral/stream';
+
+    logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Connecting to WebSocket URL: ${wsUrl}`);
 
     return new Promise((resolve, reject) => {
       let websocket: WebSocket;
@@ -85,6 +89,7 @@ export class EphemeralAgentClient {
 
         // Set up event listeners
         websocket.onopen = () => {
+          logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] WebSocket connection opened`);
           // Send the ephemeral stream request
           const payload: EphemeralStreamRequest = {
             agent,
@@ -92,6 +97,7 @@ export class EphemeralAgentClient {
             client_tools,
           };
 
+          logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Sending initial payload:`, payload);
           websocket.send(JSON.stringify(payload));
 
           handlers.onOpen?.();
@@ -114,7 +120,10 @@ export class EphemeralAgentClient {
                 logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Agent ready:`, readyEvent);
 
                 // Resolve the Promise only when agent is ready
-                resolve(createStreamResult());
+                if (!isResolved) {
+                  isResolved = true;
+                  resolve(createStreamResult());
+                }
                 break;
 
               case 'agent_finished':
@@ -128,6 +137,7 @@ export class EphemeralAgentClient {
                 handlers.onAgentError?.(errorEvent);
 
                 if (!isResolved) {
+                  isResolved = true;
                   reject(
                     new EphemeralAgentStreamError(errorEvent.error_message, errorEvent.error_code, errorEvent.details),
                   );
@@ -198,6 +208,7 @@ export class EphemeralAgentClient {
 
           // Only reject if Promise hasn't been resolved yet
           if (!isResolved) {
+            isResolved = true;
             reject(
               new EphemeralAgentStreamError('Connection closed before agent ready', 'CONNECTION_CLOSED', {
                 code: event.code,
@@ -210,12 +221,14 @@ export class EphemeralAgentClient {
         websocket.onerror = (error) => {
           logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Connection error:`, error);
           if (!isResolved) {
+            isResolved = true;
             reject(new EphemeralAgentStreamError('WebSocket connection error', 'CONNECTION_ERROR', { error }));
           }
         };
       } catch (error) {
         logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Connection error:`, error);
         if (!isResolved) {
+          isResolved = true;
           reject(
             new EphemeralAgentStreamError('Failed to create WebSocket connection', 'CONNECTION_FAILED', { error }),
           );

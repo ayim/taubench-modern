@@ -20,7 +20,12 @@ export class PromptEndpointClient {
   private verbose: boolean;
 
   constructor(config: PromptEndpointClientConfig) {
-    this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    // If baseUrl is empty, use current origin (for proxy usage in browser)
+    this.baseUrl = config.baseUrl
+      ? config.baseUrl.replace(/\/$/, '') // Remove trailing slash
+      : typeof window !== 'undefined'
+        ? window.location.origin
+        : '';
     this.fetchFn = config.fetch || fetch.bind(globalThis);
     this.verbose = config.verbose || false;
   }

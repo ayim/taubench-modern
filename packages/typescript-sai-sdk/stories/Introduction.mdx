@@ -1,0 +1,144 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Introduction" />
+
+# SAI SDK Storybook
+
+Welcome to the **Sema4.ai SDK** interactive documentation and testing environment!
+
+This Storybook provides hands-on demos of the three main SDK features:
+
+## 🎯 Features
+
+### 1. **Agent Prompt**
+
+Send prompts to AI agents and receive responses synchronously or via streaming.
+
+- Simple request/response pattern
+- Streaming support for real-time updates
+- Full control over model parameters
+- System instruction customization
+
+[View Agent Prompt Demo →](?path=/story/sai-sdk-agent-prompt--default)
+
+---
+
+### 2. **Scenarios**
+
+Build structured AI interactions with custom tools and context.
+
+- Define reusable AI scenarios
+- Integrate custom tools with callbacks
+- Stream execution with tool call tracking
+- Configure temperature, tokens, and more
+
+[View Scenarios Demo →](?path=/story/sai-sdk-scenarios--weather-scenario)
+
+---
+
+### 3. **Ephemeral Agent Chat**
+
+Create conversational agents with real-time WebSocket communication.
+
+- Multi-turn conversations
+- Real-time streaming responses
+- Client-side tool execution
+- Configurable agent behavior
+
+[View Ephemeral Agent Chat Demo →](?path=/story/sai-sdk-ephemeral-agent-chat--weather-assistant)
+
+---
+
+## 🚀 Quick Start
+
+1. **Select a demo** from the sidebar
+2. **Configure** your API settings in the Controls panel:
+   - Base URL (e.g., `https://api.sema4.ai`)
+   - API Key (your OpenAI API key)
+   - Model (default: `gpt-4o`)
+3. **Interact** with the demo
+4. **View** responses and debug information
+
+## 🔑 Configuration
+
+All demos require:
+
+- **Base URL**: Your SAI platform endpoint
+- **API Key**: Your OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+- **Model**: Optional model selection (default: `gpt-4o`)
+
+## 📚 Example Use Cases
+
+### Weather Assistant
+
+Pre-configured in all demos - ask about weather in any city and watch the tool execute!
+
+```
+"What's the weather like in Tokyo?"
+"Compare weather in Paris and London"
+"Is it raining in New York?"
+```
+
+### Custom Tools
+
+Each demo includes a weather tool as an example. You can:
+
+- See how tools are defined
+- Watch tool callbacks execute
+- View tool inputs and outputs
+- Chain multiple tools together
+
+## 💡 Pro Tips
+
+1. **Start with streaming** - It's more interactive and shows real-time progress
+2. **Check the console** - Detailed logs help debug issues
+3. **Try different models** - `gpt-4o-mini` is faster and cheaper for testing
+4. **Experiment with temperature** - Lower = more focused, Higher = more creative
+
+## 🛠️ Development
+
+### Running Locally
+
+```bash
+# Install dependencies
+npm install
+
+# Start Storybook
+npm run storybook
+
+# Build static Storybook
+npm run build-storybook
+```
+
+### Project Structure
+
+```
+stories/
+  ├── components/           # React components
+  │   ├── AgentPrompt.tsx
+  │   ├── ScenarioDemo.tsx
+  │   ├── EphemeralAgentChat.tsx
+  │   └── tailwind.css
+  ├── AgentPrompt.stories.tsx
+  ├── ScenarioDemo.stories.tsx
+  ├── EphemeralAgentChat.stories.tsx
+  └── README.md
+```
+
+## 📖 Documentation
+
+- [Agent Prompt](../src/agent-prompt/README.md)
+- [Scenarios](../src/sdk/README.md)
+- [Ephemeral Agents](../src/agent-ephemeral/README.md)
+
+## 🤝 Support
+
+Need help? Check:
+
+- The README in each demo
+- Browser console for errors
+- API response details in the UI
+
+---
+
+**Ready to get started?** Choose a demo from the sidebar! 👈

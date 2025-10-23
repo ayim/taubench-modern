@@ -148,3 +148,6 @@ dependencies/rcc-org-profile.yaml
 manifest.json
 rcc
 ht/*
+
+# Storybook
+storybook-static/

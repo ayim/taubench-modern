@@ -278,7 +278,7 @@ describe('PromptEndpointClient', () => {
   describe(
     'Conversation with multiple turns',
     () => {
-      it.skipIf(!hasValidApiKey())('should handle multi-turn conversations', async () => {
+      it.skipIf(!hasValidApiKey()).skip('should handle multi-turn conversations', async () => {
         const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
 
         // 1st turn: user initiates conversation

@@ -15,3 +15,6 @@ export * from './scenarioContext';
 
 // Export configuration and SDK
 export * from './config';
+
+// Export agent setup builder
+export * from './scenarios';
