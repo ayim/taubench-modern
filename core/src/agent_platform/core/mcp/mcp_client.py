@@ -231,11 +231,20 @@ class MCPClient:
         # Merge headers from server config and additional headers
         self._headers: dict[str, str] = {}
         if target_server.headers:
-            target_headers: dict[str, str] = {
-                key: value if isinstance(value, str) else value.value or ""
-                for key, value in target_server.headers.items()
-                if not isinstance(value, MCPVariableTypeSecret | MCPVariableTypeOAuth2Secret)
-            }
+            # For Sema4AI Action Servers, filter out secrets (they go in X-Action-Context)
+            # For Generic MCP Servers, send all headers including secrets
+            if target_server.type == "sema4ai_action_server":
+                target_headers: dict[str, str] = {
+                    key: value if isinstance(value, str) else value.value or ""
+                    for key, value in target_server.headers.items()
+                    if not isinstance(value, MCPVariableTypeSecret | MCPVariableTypeOAuth2Secret)
+                }
+            else:
+                # Generic MCP Servers get all headers, including secrets
+                target_headers: dict[str, str] = {
+                    key: value if isinstance(value, str) else value.value or ""
+                    for key, value in target_server.headers.items()
+                }
             self._headers.update(target_headers)
         if additional_headers:
             self._headers.update(additional_headers)

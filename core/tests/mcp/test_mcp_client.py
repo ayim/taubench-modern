@@ -1110,8 +1110,8 @@ async def test_ensure_action_context_header_creates_header_when_not_present():
 @pytest.mark.asyncio
 async def test_no_action_context_header_when_type_generic_mcp():
     """
-    Test that _ensure_action_context_header creates X-Action-Context header
-    when it doesn't already exist and there are MCP secret type headers to process.
+    Test that Generic MCP Servers get secret headers directly (not in X-Action-Context)
+    and don't get the X-Action-Context header.
     """
     from agent_platform.core.mcp.mcp_types import MCPVariableTypeOAuth2Secret, MCPVariableTypeSecret
 
@@ -1119,15 +1119,28 @@ async def test_no_action_context_header_when_type_generic_mcp():
         name="test-server",
         url="https://api.example.com/mcp",
         headers={
-            "X-API-Key": MCPVariableTypeSecret(value="api-key-value", description="API key"),
-            "X-OAuth-Token": MCPVariableTypeOAuth2Secret(
-                provider="google", scopes=["read"], value="oauth-token", description="OAuth token"
+            "Authorization": MCPVariableTypeSecret(
+                value="gh-token-value", description="GitHub token"
+            ),
+            "X-Custom-Auth": MCPVariableTypeOAuth2Secret(
+                provider="github",
+                scopes=["repo"],
+                value="custom-oauth-token",
+                description="Custom OAuth token",
             ),
             "Content-Type": "application/json",
         },
     )
     client = MCPClient(target_server=server)
     assert "X-Action-Context" not in client._headers
+
+    # But they SHOULD get secret headers directly
+    assert "Authorization" in client._headers
+    assert client._headers["Authorization"] == "gh-token-value"
+    assert "X-Custom-Auth" in client._headers
+    assert client._headers["X-Custom-Auth"] == "custom-oauth-token"
+    assert "Content-Type" in client._headers
+    assert client._headers["Content-Type"] == "application/json"
 
 
 @pytest.mark.asyncio
