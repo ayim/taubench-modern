@@ -236,7 +236,7 @@ class ToolDefinitionCache:
         for url_or_key in urls_or_keys:
             self._success_cache.pop(url_or_key, None)
             self._negative_cache.pop(url_or_key, None)
-        logger.info(f"Cleared tool cache for URLs: {', '.join(urls_or_keys)}")
+        logger.info(f"Cleared tool cache for {len(urls_or_keys)} URLs/keys")
 
     def clear_for_agent(self, agent: Agent) -> None:
         removed_action_server_urls = []
@@ -249,12 +249,10 @@ class ToolDefinitionCache:
             self._success_cache.pop(url, None)
             self._negative_cache.pop(url, None)
             removed_mcp_server_urls.append(url)
-        action_servers_str = "\n".join(removed_action_server_urls)
-        mcp_servers_str = "\n".join(removed_mcp_server_urls)
         logger.info(
-            f"Cleared tool cache for agent {agent.agent_id}; removed action"
-            f"servers:\n{action_servers_str} and "
-            f"MCP servers:\n{mcp_servers_str}"
+            f"Cleared tool cache for agent {agent.agent_id}; removed "
+            f"{len(removed_action_server_urls)} action servers and "
+            f"{len(removed_mcp_server_urls)} MCP servers"
         )
 
     def report(self) -> CachedToolDefinitionsReport:
