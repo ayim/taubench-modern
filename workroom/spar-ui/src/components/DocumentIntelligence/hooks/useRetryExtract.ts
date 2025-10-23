@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useSnackbar } from '@sema4ai/components';
 import { useExtractDocumentMutation } from '../../../queries/documentIntelligence';
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
-import { convertUIStateToDocumentLayoutPayload } from '../utils/dataTransformations';
+import { convertParseResultToFields, convertParseResultToTables, convertUIStateToDocumentLayoutPayload } from '../utils/dataTransformations';
 import { DocumentData } from '../types';
 import type { ExtractionSchemaPayload } from '../store/useDocumentIntelligenceStore';
 
@@ -52,7 +52,6 @@ export const useRetryExtract = () => {
       setShowingParseBoxes(false);
 
       // Convert extracted data to fields and tables for display
-      const { convertParseResultToFields, convertParseResultToTables } = await import('../utils/dataTransformations');
       const extractedFields = convertParseResultToFields(extractedData);
       const extractedTables = convertParseResultToTables(extractedData);
 
