@@ -180,9 +180,9 @@ run-server-hot-reload: sync  ## Run the agent server with hot reloading (uvicorn
 		--host 127.0.0.1 \
 		--port $${PORT:-8000} \
 		--reload \
-		--reload-include server/src/**/*.py \
-		--reload-include core/src/**/*.py \
-		--reload-include architectures/*/src/**/*.py
+		--reload-dir server/src/ \
+		--reload-dir core/src/ \
+		--reload-dir architectures/
 
 
 test:  sync check-env-or-no-env ## Run all tests with pytest (VCR playback only)
