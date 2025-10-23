@@ -66,7 +66,36 @@ export const TableTree = () => {
               </>
             }
           >
-            {table.dimensions.map((dimension, dimensionIndex) => {
+            {table.dimensions?.map((dimension, dimensionIndex) => {
+              return (
+                <TreeList.Item
+                  key={dimension.name}
+                  label={dimension.name}
+                  icon={IconDbColumn}
+                  description={`${dimension.data_type.replace('!', '')}`}
+                  columns={
+                    <>
+                      <Cell>
+                        <InputControlled
+                          fieldName={`tables.${tableIndex}.dimensions.${dimensionIndex}.description`}
+                          aria-label="Description"
+                          variant="ghost"
+                          autoGrow={8}
+                        />
+                      </Cell>
+                      <Cell>
+                        <SynonymField
+                          tableIndex={tableIndex}
+                          dimensionIndex={dimensionIndex}
+                          initialValue={dimension.synonyms}
+                        />
+                      </Cell>
+                    </>
+                  }
+                />
+              );
+            })}
+            {table.time_dimensions?.map((dimension, dimensionIndex) => {
               return (
                 <TreeList.Item
                   key={dimension.name}

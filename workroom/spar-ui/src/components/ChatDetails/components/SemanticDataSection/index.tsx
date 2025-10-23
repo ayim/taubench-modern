@@ -26,7 +26,7 @@ export const SemanticDataSection = () => {
         <Typography variant="body-medium" fontWeight="bold">
           Data Models
         </Typography>
-        {semanticDataModels?.length === 0 && canEditAgent && (
+        {canEditAgent && (
           <Button
             onClick={onToggleEditModel}
             variant="outline"

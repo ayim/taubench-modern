@@ -55,7 +55,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
         dataSelection: semanticModel.tables.map((table) => {
           return {
             name: table.name,
-            columns: table.dimensions.map((dimension) => {
+            columns: (table.dimensions || []).concat(table.time_dimensions || []).map((dimension) => {
               return {
                 name: dimension.name,
                 data_type: dimension.data_type,

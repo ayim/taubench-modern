@@ -4,6 +4,16 @@ import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError
 import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/form';
 
 // TODO: This model is not complete, update once agent-server-interface is updated and returns correct shape of SemanticModel
+
+export const Dimension = z.object({
+  name: z.string(),
+  expr: z.string(),
+  data_type: z.string(),
+  description: z.string().optional(),
+  synonyms: z.array(z.string()).optional(),
+  sample_values: z.array(z.any()).optional(),
+});
+
 export const SemanticModel = z.object({
   id: z.string(),
   name: z.string(),
@@ -25,16 +35,8 @@ export const SemanticModel = z.object({
           .optional(),
       }),
       description: z.string().nullable().optional(),
-      dimensions: z.array(
-        z.object({
-          name: z.string(),
-          expr: z.string(),
-          data_type: z.string(),
-          description: z.string().optional(),
-          synonyms: z.array(z.string()).optional(),
-          sample_values: z.array(z.any()).optional(),
-        }),
-      ),
+      dimensions: z.array(Dimension).optional(),
+      time_dimensions: z.array(Dimension).optional(),
     }),
   ),
 });
@@ -159,9 +161,24 @@ export const useCreateSemanticDataMutation = createSparMutation<
       });
     }
 
+    const existingModels = await sparAPIClient.queryAgentServer('get', '/api/v2/agents/{aid}/semantic-data-models', {
+      params: { path: { aid: payload.agentId } },
+    });
+
+    if (!existingModels.success) {
+      throw new QueryError(existingModels.message || 'Failed to get existing Semantic Data models', {
+        code: existingModels.code,
+        resource: ResourceType.SemanticData,
+      });
+    }
+
+    const existingModelIds = existingModels.data.flatMap((curr) => {
+      return Object.entries<SemanticModel>(curr as Record<string, SemanticModel>).map(([id]) => id);
+    });
+
     const attachResponse = await sparAPIClient.queryAgentServer('put', '/api/v2/agents/{aid}/semantic-data-models', {
       body: {
-        semantic_data_model_ids: [createResponse.data.semantic_data_model_id],
+        semantic_data_model_ids: [...existingModelIds, createResponse.data.semantic_data_model_id],
       },
       params: { path: { aid: payload.agentId } },
     });
