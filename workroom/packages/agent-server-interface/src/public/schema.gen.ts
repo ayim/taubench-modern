@@ -138,10 +138,16 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List Work Items */
+    /**
+     * List Work Items
+     * @description Lists all work items.
+     */
     get: operations['list_work_items_work_items_get'];
     put?: never;
-    /** Create Work Item */
+    /**
+     * Create Work Item
+     * @description Creates a new work item.
+     */
     post: operations['create_work_item_work_items_post'];
     delete?: never;
     options?: never;
@@ -156,10 +162,16 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List Work Items */
+    /**
+     * List Work Items
+     * @description Lists all work items.
+     */
     get: operations['list_work_items_work_items__get'];
     put?: never;
-    /** Create Work Item */
+    /**
+     * Create Work Item
+     * @description Creates a new work item.
+     */
     post: operations['create_work_item_work_items__post'];
     delete?: never;
     options?: never;
@@ -174,7 +186,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get Work Item */
+    /**
+     * Get Work Item
+     * @description Gets a specific work item by ID.
+     */
     get: operations['get_work_item_work_items__work_item_id__get'];
     put?: never;
     post?: never;
@@ -233,7 +248,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Continue Work Item */
+    /**
+     * Continue Work Item
+     * @description Continues a specific work item.
+     */
     post: operations['continue_work_item_work_items__work_item_id__continue_post'];
     delete?: never;
     options?: never;
@@ -250,7 +268,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Restart Work Item */
+    /**
+     * Restart Work Item
+     * @description Restarts a specific work item.
+     */
     post: operations['restart_work_item_work_items__work_item_id__restart_post'];
     delete?: never;
     options?: never;
@@ -267,7 +288,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Cancel Item */
+    /**
+     * Cancel Item
+     * @description Cancels a specific work item.
+     */
     post: operations['cancel_item_work_items__work_item_id__cancel_post'];
     delete?: never;
     options?: never;

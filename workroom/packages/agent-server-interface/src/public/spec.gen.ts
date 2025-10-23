@@ -602,6 +602,7 @@ export const spec = {
       post: {
         tags: ['work-items'],
         summary: 'Create Work Item',
+        description: 'Creates a new work item.',
         operationId: 'create_work_item_work_items_post',
         requestBody: {
           required: true,
@@ -639,6 +640,7 @@ export const spec = {
       get: {
         tags: ['work-items'],
         summary: 'List Work Items',
+        description: 'Lists all work items.',
         operationId: 'list_work_items_work_items_get',
         parameters: [
           {
@@ -773,6 +775,7 @@ export const spec = {
       post: {
         tags: ['work-items'],
         summary: 'Create Work Item',
+        description: 'Creates a new work item.',
         operationId: 'create_work_item_work_items__post',
         requestBody: {
           required: true,
@@ -810,6 +813,7 @@ export const spec = {
       get: {
         tags: ['work-items'],
         summary: 'List Work Items',
+        description: 'Lists all work items.',
         operationId: 'list_work_items_work_items__get',
         parameters: [
           {
@@ -944,6 +948,7 @@ export const spec = {
       get: {
         tags: ['work-items'],
         summary: 'Get Work Item',
+        description: 'Gets a specific work item by ID.',
         operationId: 'get_work_item_work_items__work_item_id__get',
         parameters: [
           {
@@ -1124,6 +1129,7 @@ export const spec = {
       post: {
         tags: ['work-items'],
         summary: 'Continue Work Item',
+        description: 'Continues a specific work item.',
         operationId:
           'continue_work_item_work_items__work_item_id__continue_post',
         parameters: [
@@ -1165,6 +1171,7 @@ export const spec = {
       post: {
         tags: ['work-items'],
         summary: 'Restart Work Item',
+        description: 'Restarts a specific work item.',
         operationId: 'restart_work_item_work_items__work_item_id__restart_post',
         parameters: [
           {
@@ -1205,6 +1212,7 @@ export const spec = {
       post: {
         tags: ['work-items'],
         summary: 'Cancel Item',
+        description: 'Cancels a specific work item.',
         operationId: 'cancel_item_work_items__work_item_id__cancel_post',
         parameters: [
           {

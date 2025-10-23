@@ -1,10 +1,3 @@
-"""
-Public API v2 work items router.
-
-This router exposes work items endpoints through the public API.
-All endpoint handlers are imported from the shared handlers module.
-"""
-
 from fastapi import APIRouter, Depends, Query, UploadFile
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
@@ -20,7 +13,10 @@ from agent_platform.server.api.private_v2.threads import ConfirmRemoteFileUpload
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.work_items import rest
-from agent_platform.server.work_items.rest import WorkItemsListResponse
+from agent_platform.server.work_items.rest import (
+    AgentWorkItemsSummaryResponse,
+    WorkItemsListResponse,
+)
 
 
 def _require_workitems_enabled():
@@ -32,6 +28,37 @@ def _require_workitems_enabled():
 # Attach the dependency to all routes in this router. If the feature is disabled,
 # every request will immediately raise the above error.
 router = APIRouter(dependencies=[Depends(_require_workitems_enabled)])
+
+
+# Preview work item endpoint (internal use only)
+@router.post(
+    "/preview",
+    include_in_schema=False,  # used only by internal tools (e.g. quality)
+)
+async def preview_work_item(
+    payload: CreateWorkItemPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    """Preview the status of a work item during a dry run."""
+    return await rest.preview_work_item(payload, user, storage)
+
+
+# Important to register this (top-down) before the GET endpoint (else it will take precedence and
+# answer the request).
+@router.get("/summary", response_model=list[AgentWorkItemsSummaryResponse])
+async def get_work_items_summary(
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[AgentWorkItemsSummaryResponse]:
+    """Get work items summary grouped by agent and status."""
+    # Get summary data from storage (already grouped, counted, and converted to response models)
+    return await storage.get_work_items_summary(user.user_id)
+
+
+##
+# Public endpoint
+##
 
 
 # Create work item endpoints

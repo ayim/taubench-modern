@@ -25,10 +25,9 @@ from agent_platform.server.api.private_v2.threads import router as threads_route
 from agent_platform.server.api.private_v2.threads_data_frames import (
     router as threads_data_frames_router,
 )
-from agent_platform.server.api.private_v2.work_items_private import (
-    router as work_items_private_router,
+from agent_platform.server.api.private_v2.work_items import (
+    router as work_items_router,
 )
-from agent_platform.server.api.public_v2.work_items import router as work_items_public_router
 
 PRIVATE_V2_PREFIX = "/api/v2"
 
@@ -102,16 +101,8 @@ router.include_router(
     tags=["platforms"],
 )
 
-# Workroom uses the private API, so we need work-items published on the private api, too.
-# Include both public and private work items endpoints
-# IMPORTANT: Include private router first so /summary route is matched before /{work_item_id}
 router.include_router(
-    work_items_private_router,
-    prefix="/work-items",
-    tags=["work-items"],
-)
-router.include_router(
-    work_items_public_router,
+    work_items_router,
     prefix="/work-items",
     tags=["work-items"],
 )
