@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useRef, ChangeEventHandler } from 'react';
 import { Box, Progress, Dialog, Button } from '@sema4ai/components';
 import { useThreadMessagesQuery } from '../../../../queries';
 import { useParams } from '../../../../hooks';
@@ -19,6 +19,23 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
     threadId,
   });
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange: ChangeEventHandler<HTMLInputElement> = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    sidebar.handleImportScenarios(file);
+    // eslint-disable-next-line no-param-reassign
+    event.target.value = '';
+  };
+
   const hasMessages = messages.length >= 2;
 
   if (sidebar.loading) {
@@ -34,7 +51,20 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
   if (sidebar.evaluations.length === 0) {
     return (
       <>
-        <EvalEmptyState hasMessages={hasMessages} onAddEvaluation={sidebar.handleAddEvaluation} />
+        <EvalEmptyState
+          hasMessages={hasMessages}
+          onAddEvaluation={sidebar.handleAddEvaluation}
+          onImportScenarios={handleImportClick}
+          isImporting={sidebar.importScenariosMutation.isPending}
+        />
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip,application/zip"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
 
         {sidebar.deleteTarget && (
           <Dialog open onClose={() => sidebar.setDeleteTarget(null)}>
@@ -79,6 +109,8 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           onAddEvaluation={sidebar.handleAddEvaluation}
           onExportScenarios={sidebar.handleExportScenarios}
           isExporting={sidebar.exportScenariosMutation.isPending}
+          onImportScenarios={handleImportClick}
+          isImporting={sidebar.importScenariosMutation.isPending}
         />
 
         <Box display="flex" flexDirection="column" gap="$12" flex="1" overflow="auto" minHeight="0">
@@ -171,6 +203,14 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
         isLoading={sidebar.createScenarioMutation.isPending}
         initialValues={sidebar.suggestedValues}
         isFetchingSuggestion={sidebar.isFetchingSuggestion}
+      />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".zip,application/zip"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
       />
     </>
   );

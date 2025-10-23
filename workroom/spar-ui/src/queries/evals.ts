@@ -289,6 +289,39 @@ export const useExportScenariosMutation = createSparMutation<
   },
 }));
 
+export const useImportScenariosMutation = createSparMutation<
+  Record<string, never>,
+  { agentId: string; file: File }
+>()(({ sparAPIClient, queryClient }) => ({
+  mutationFn: async ({ agentId, file }): Promise<Scenario[]> => {
+    const response = await sparAPIClient.queryAgentServer(
+      'post',
+      '/api/v2/evals/scenarios/import',
+      {
+        params: { query: { agent_id: agentId } },
+        body: { file },
+        bodySerializer(body: {file: string}) {
+          const formData = new FormData();
+          formData.append('file', body.file);
+          return formData;
+        },
+      } as never,
+    );
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to import scenarios', {
+        code: response.code,
+        resource: ResourceType.Evaluation,
+      });
+    }
+
+    return response.data as Scenario[];
+  },
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: ['scenarios'] });
+  },
+}));
+
 export const usePollScenarioRun = () => {
   const { sparAPIClient } = useSparUIContext();
   const queryClient = useQueryClient();

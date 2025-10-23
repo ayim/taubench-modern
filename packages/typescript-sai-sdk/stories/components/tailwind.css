@@ -7,7 +7,7 @@
   *:focus-visible {
     @apply outline-none ring-2 ring-green-500 ring-offset-2;
   }
-  
+
   /* Ensure inputs, textareas, and buttons have green focus rings */
   input:focus,
   textarea:focus,
@@ -15,12 +15,11 @@
   button:focus-visible {
     @apply outline-none ring-2 ring-green-500 ring-offset-2;
   }
-  
+
   /* Set default accent color for range inputs and checkboxes */
-  input[type="range"],
-  input[type="checkbox"],
-  input[type="radio"] {
+  input[type='range'],
+  input[type='checkbox'],
+  input[type='radio'] {
     @apply accent-green-600;
   }
 }
-

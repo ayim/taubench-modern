@@ -14,6 +14,7 @@ import {
   useSuggestScenarioMutation,
   useCancelScenarioRunMutation,
   useExportScenariosMutation,
+  useImportScenariosMutation,
 } from '../../../../../queries/evals';
 import { useSparUIContext } from '../../../../../api/context';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
@@ -51,6 +52,7 @@ export const useEvalSidebarData = ({
   const suggestScenarioMutation = useSuggestScenarioMutation({});
   const cancelScenarioRunMutation = useCancelScenarioRunMutation({});
   const exportScenariosMutation = useExportScenariosMutation({});
+  const importScenariosMutation = useImportScenariosMutation({});
   const { pollForCompletion } = usePollScenarioRun();
 
   const { data: scenarios = [], isLoading: scenariosLoading } = useListScenariosQuery({
@@ -319,6 +321,7 @@ export const useEvalSidebarData = ({
     suggestScenarioMutation,
     cancelScenarioRunMutation,
     exportScenariosMutation,
+    importScenariosMutation,
 
     // Business logic functions
     handleCreateEvaluation,

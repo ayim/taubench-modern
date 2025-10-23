@@ -6875,6 +6875,61 @@ export const spec = {
         },
       },
     },
+    '/api/v2/evals/scenarios/import': {
+      post: {
+        tags: ['evals'],
+        summary: 'Import Agent Scenarios',
+        operationId: 'import_agent_scenarios_evals_scenarios_import_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_import_agent_scenarios_evals_scenarios_import_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/Scenario',
+                  },
+                  title:
+                    'Response Import Agent Scenarios Evals Scenarios Import Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/evals/scenarios/{scenario_id}': {
       get: {
         tags: ['evals'],
@@ -9020,6 +9075,18 @@ export const spec = {
           title:
             'Body_generate_layout_from_file_document_intelligence_layouts_generate_post',
         },
+      Body_import_agent_scenarios_evals_scenarios_import_post: {
+        properties: {
+          file: {
+            type: 'string',
+            format: 'binary',
+            title: 'File',
+          },
+        },
+        type: 'object',
+        required: ['file'],
+        title: 'Body_import_agent_scenarios_evals_scenarios_import_post',
+      },
       Body_ingest_document_document_intelligence_documents_ingest_post: {
         properties: {
           file: {

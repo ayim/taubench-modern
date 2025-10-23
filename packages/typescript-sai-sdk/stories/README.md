@@ -74,11 +74,13 @@ Test the Ephemeral Agent feature with:
 All demos require:
 
 1. **Base URL**: Your SAI platform endpoint
+
    - Production: `https://api.sema4.ai`
    - Local dev: `http://localhost:8080`
    - WebSocket: `wss://api.sema4.ai` (auto-converted for Ephemeral Agent)
 
 2. **API Key**: Your OpenAI API key
+
    - Get one from: https://platform.openai.com/api-keys
 
 3. **Model** (optional):

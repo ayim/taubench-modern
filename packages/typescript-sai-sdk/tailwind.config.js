@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./stories/**/*.{js,ts,jsx,tsx}",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./stories/**/*.{js,ts,jsx,tsx}', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -23,7 +20,7 @@ export default {
       },
       animation: {
         'pulse-slow': 'pulse 2s infinite',
-        'typing': 'typing 1.4s infinite',
+        typing: 'typing 1.4s infinite',
       },
       keyframes: {
         pulse: {
@@ -44,5 +41,4 @@ export default {
     },
   },
   plugins: [],
-}
-
+};

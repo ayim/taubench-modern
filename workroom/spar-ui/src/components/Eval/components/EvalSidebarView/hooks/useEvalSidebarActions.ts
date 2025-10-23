@@ -14,6 +14,7 @@ export interface UseEvalSidebarActionsProps {
   handleDeleteScenario: (scenarioId: string) => Promise<void>;
   handleCancelScenarioRun: (scenarioId: string, scenarioRunId: string) => Promise<void>;
   exportScenariosMutation: UseMutationResult<{ blob: Blob; filename: string }, unknown, { agentId: string }, unknown>;
+  importScenariosMutation: UseMutationResult<Scenario[], unknown, { agentId: string; file: File }, unknown>;
   setCreateDialogOpen: (open: boolean) => void;
   setSuggestedValues: (values: Partial<CreateEvalFormData> | undefined) => void;
   setIsFetchingSuggestion: (fetching: boolean) => void;
@@ -30,6 +31,7 @@ export const useEvalSidebarActions = ({
   handleDeleteScenario,
   handleCancelScenarioRun,
   exportScenariosMutation,
+  importScenariosMutation,
   setCreateDialogOpen,
   setSuggestedValues,
   setIsFetchingSuggestion,
@@ -116,6 +118,26 @@ export const useEvalSidebarActions = ({
     }
   };
 
+  const handleImportScenarios = async (file: File) => {
+    try {
+      const scenarios = await importScenariosMutation.mutateAsync({ agentId, file });
+      const importedCount = scenarios.length;
+
+      addSnackbar({
+        message:
+          importedCount > 0
+            ? `Imported ${importedCount} scenario${importedCount === 1 ? '' : 's'} successfully`
+            : 'Imported scenarios successfully',
+        variant: 'success',
+      });
+    } catch (error) {
+      addSnackbar({
+        message: 'Failed to import scenarios',
+        variant: 'danger',
+      });
+    }
+  };
+
   return {
     handleAddEvaluation,
     handleCreateEvaluationWithCleanup,
@@ -124,5 +146,6 @@ export const useEvalSidebarActions = ({
     handleViewResults,
     handleCancelTest,
     handleExportScenarios,
+    handleImportScenarios,
   };
 };

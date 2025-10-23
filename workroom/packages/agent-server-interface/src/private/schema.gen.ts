@@ -2235,6 +2235,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/evals/scenarios/import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Import Agent Scenarios */
+    post: operations['import_agent_scenarios_evals_scenarios_import_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/evals/scenarios/{scenario_id}': {
     parameters: {
       query?: never;
@@ -3192,6 +3209,14 @@ export interface components {
       file: string;
       /** Instructions */
       instructions?: string | null;
+    };
+    /** Body_import_agent_scenarios_evals_scenarios_import_post */
+    Body_import_agent_scenarios_evals_scenarios_import_post: {
+      /**
+       * File
+       * Format: binary
+       */
+      file: string;
     };
     /** Body_ingest_document_document_intelligence_documents_ingest_post */
     Body_ingest_document_document_intelligence_documents_ingest_post: {
@@ -15228,6 +15253,41 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  import_agent_scenarios_evals_scenarios_import_post: {
+    parameters: {
+      query: {
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_import_agent_scenarios_evals_scenarios_import_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Scenario'][];
+        };
       };
       /** @description Validation Error */
       422: {

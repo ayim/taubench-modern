@@ -1,13 +1,14 @@
 import io
 import re
 import zipfile
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal, Self
 from uuid import uuid4
 
 import yaml
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from structlog import get_logger
 
@@ -15,6 +16,8 @@ from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.evals.replay_executor import ReplayToolExecutor
 from agent_platform.core.evals.types import Scenario, ScenarioRun, Trial, TrialStatus
+from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.thread.thread import Thread
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth.handlers import AuthedUser
@@ -28,6 +31,12 @@ from agent_platform.server.evals.advisor import (
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class ScenarioArchiveEntry:
+    path: str
+    tools_path: str | None = None
 
 
 def _safe_filename_fragment(value: str, default: str = "agent") -> str:
@@ -139,6 +148,226 @@ def _build_scenarios_archive(agent_id: str, scenarios: list[Scenario]) -> bytes:
 def _scenarios_export_filename(agent_id: str) -> str:
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return f"agent_{_safe_filename_fragment(agent_id)}_scenarios_{timestamp}.zip"
+
+
+class ScenarioImportError(Exception):
+    """Raised when a scenario archive cannot be imported."""
+
+
+def _load_archive_metadata(archive: zipfile.ZipFile) -> dict[str, Any]:
+    try:
+        metadata_bytes = archive.read("metadata.yaml")
+    except KeyError as exc:
+        raise ScenarioImportError("Missing metadata.yaml in archive") from exc
+
+    try:
+        metadata = yaml.safe_load(metadata_bytes) or {}
+    except yaml.YAMLError as exc:
+        raise ScenarioImportError("Unable to parse metadata.yaml") from exc
+
+    if not isinstance(metadata, dict):
+        raise ScenarioImportError("metadata.yaml must define a mapping")
+
+    return metadata
+
+
+def _list_scenario_entries(metadata: dict[str, Any]) -> list[ScenarioArchiveEntry]:
+    entries: list[ScenarioArchiveEntry] = []
+    files_entry = metadata.get("files")
+
+    if isinstance(files_entry, list):
+        seen_paths: set[str] = set()
+        for entry in files_entry:
+            if not isinstance(entry, dict):
+                continue
+            path = entry.get("path")
+            if not isinstance(path, str) or path in seen_paths:
+                continue
+            tools_path = entry.get("tools_path")
+            if not isinstance(tools_path, str):
+                tools_path = None
+            entries.append(ScenarioArchiveEntry(path=path, tools_path=tools_path))
+            seen_paths.add(path)
+
+    if not entries:
+        raise ScenarioImportError("No scenario definitions found in archive")
+
+    return entries
+
+
+def _load_scenario_payload(archive: zipfile.ZipFile, path: str) -> dict[str, Any]:
+    try:
+        payload_bytes = archive.read(path)
+    except KeyError as exc:
+        raise ScenarioImportError(f"Scenario file '{path}' is missing from archive") from exc
+
+    try:
+        payload = yaml.safe_load(payload_bytes) or {}
+    except yaml.YAMLError as exc:
+        raise ScenarioImportError(f"Unable to parse scenario file '{path}'") from exc
+
+    if not isinstance(payload, dict):
+        raise ScenarioImportError(f"Scenario file '{path}' must define a mapping")
+
+    return payload
+
+
+def _load_used_tools(
+    archive: zipfile.ZipFile, tools_path: str, scenario_path: str
+) -> list[dict[str, Any]]:
+    try:
+        payload_bytes = archive.read(tools_path)
+    except KeyError as exc:
+        error_message = (
+            f"Used tools file '{tools_path}' referenced by {scenario_path}' is missing from archive"
+        )
+        raise ScenarioImportError(error_message) from exc
+
+    try:
+        payload = yaml.safe_load(payload_bytes) or []
+    except yaml.YAMLError as exc:
+        raise ScenarioImportError(
+            f"Unable to parse used tools file '{tools_path}' referenced by '{scenario_path}'"
+        ) from exc
+
+    if not isinstance(payload, list):
+        raise ScenarioImportError(f"Used tools file '{tools_path}' must define a list of tools")
+
+    tools: list[dict[str, Any]] = []
+    for index, entry in enumerate(payload):
+        if not isinstance(entry, dict):
+            raise ScenarioImportError(
+                f"Used tools file '{tools_path}' entry at index {index} must be a mapping"
+            )
+        tool_name = entry.get("name")
+        if not isinstance(tool_name, str) or not tool_name.strip():
+            raise ScenarioImportError(
+                f"Used tools file '{tools_path}' entry at index {index} is missing a valid name"
+            )
+        tools.append(entry)
+
+    return tools
+
+
+def _extract_tool_categories(messages: list[ThreadMessage]) -> dict[str, str]:
+    categories: dict[str, str] = {}
+
+    for message in messages:
+        for content in message.content:
+            if isinstance(content, ThreadToolUsageContent):
+                if content.sub_type == "mcp-external":
+                    categories.setdefault(content.name, "mcp-tool")
+                elif content.sub_type == "action-external":
+                    categories.setdefault(content.name, "action-tool")
+
+    return categories
+
+
+def _apply_used_tools_to_messages(
+    messages: list[ThreadMessage], used_tools: list[dict[str, Any]] | None
+) -> None:
+    if not used_tools:
+        return
+
+    categories = _extract_tool_categories(messages)
+    normalized_tools: list[dict[str, Any]] = []
+
+    for entry in used_tools:
+        tool_copy = deepcopy(entry)
+        tool_name = tool_copy.get("name")
+        if isinstance(tool_name, str):
+            category = tool_copy.get("category")
+            if not isinstance(category, str) or not category:
+                inferred_category = categories.get(tool_name)
+                tool_copy["category"] = inferred_category or "action-tool"
+        normalized_tools.append(tool_copy)
+
+    for message in messages:
+        if message.role != "agent":
+            continue
+        message.agent_metadata["tools"] = [deepcopy(tool) for tool in normalized_tools]
+
+
+def _build_metadata_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    metadata: dict[str, Any] = {}
+
+    evaluations = payload.get("evaluations")
+    if isinstance(evaluations, list):
+        evaluations_config: dict[str, Any] = {}
+        for entry in evaluations:
+            if not isinstance(entry, dict):
+                continue
+            kind = entry.get("kind")
+            if not isinstance(kind, str):
+                continue
+            config = {k: v for k, v in entry.items() if k != "kind"}
+            if not config:
+                config = {"enabled": True}
+            evaluations_config[kind] = config
+
+        if evaluations_config:
+            metadata["evaluations"] = evaluations_config
+
+    tool_execution_mode = payload.get("tool_execution_mode")
+    if isinstance(tool_execution_mode, str) and tool_execution_mode:
+        metadata.setdefault("drift_policy", {})["tool_execution_mode"] = tool_execution_mode
+
+    return metadata
+
+
+def _scenario_from_payload(
+    *,
+    payload: dict[str, Any],
+    path: str,
+    user_id: str,
+    agent_id: str,
+    used_tools: list[dict[str, Any]] | None = None,
+) -> Scenario:
+    name = payload.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ScenarioImportError(f"Scenario '{path}' is missing a valid name")
+
+    description = payload.get("description", "")
+    if not isinstance(description, str):
+        raise ScenarioImportError(f"Scenario '{path}' has an invalid description")
+
+    thread_payload = payload.get("thread")
+    if not isinstance(thread_payload, dict):
+        raise ScenarioImportError(f"Scenario '{path}' is missing thread data")
+
+    raw_messages = thread_payload.get("messages")
+    if not isinstance(raw_messages, list):
+        raise ScenarioImportError(f"Scenario '{path}' thread messages must be a list")
+
+    messages: list[ThreadMessage] = []
+    for index, raw_message in enumerate(raw_messages):
+        if not isinstance(raw_message, dict):
+            raise ScenarioImportError(
+                f"Scenario '{path}' message at index {index} must be a mapping"
+            )
+        try:
+            message = ThreadMessage.model_validate(raw_message)
+        except Exception as exc:
+            raise ScenarioImportError(
+                f"Scenario '{path}' message at index {index} is invalid: {exc}"
+            ) from exc
+        message.mark_complete()
+        messages.append(message)
+
+    _apply_used_tools_to_messages(messages, used_tools)
+
+    metadata = _build_metadata_from_payload(payload)
+
+    return Scenario(
+        scenario_id=str(uuid4()),
+        name=name,
+        description=description,
+        thread_id=None,
+        agent_id=agent_id,
+        user_id=user_id,
+        messages=messages,
+        metadata=metadata,
+    )
 
 
 @dataclass(frozen=True)
@@ -302,6 +531,60 @@ async def export_agent_scenarios(
         "Content-Disposition": f'attachment; filename="{_scenarios_export_filename(agent_id)}"'
     }
     return StreamingResponse(iter([archive_bytes]), media_type="application/zip", headers=headers)
+
+
+@router.post("/scenarios/import", response_model=list[Scenario])
+async def import_agent_scenarios(
+    agent_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    file: UploadFile,
+) -> list[Scenario]:
+    agent = await storage.get_agent(user.user_id, agent_id)
+
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    content = await file.read()
+    await file.close()
+
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded archive is empty")
+
+    try:
+        scenarios_to_create: list[Scenario] = []
+
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            metadata = _load_archive_metadata(archive)
+
+            for entry in _list_scenario_entries(metadata):
+                payload = _load_scenario_payload(archive, entry.path)
+                used_tools = (
+                    _load_used_tools(archive, entry.tools_path, entry.path)
+                    if entry.tools_path is not None
+                    else None
+                )
+                scenarios_to_create.append(
+                    _scenario_from_payload(
+                        payload=payload,
+                        path=entry.path,
+                        user_id=user.user_id,
+                        agent_id=agent_id,
+                        used_tools=used_tools,
+                    )
+                )
+    except ScenarioImportError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except zipfile.BadZipFile as exc:
+        raise HTTPException(
+            status_code=400, detail="Uploaded file is not a valid ZIP archive"
+        ) from exc
+
+    created: list[Scenario] = []
+    for scenario in scenarios_to_create:
+        created.append(await storage.create_scenario(scenario))
+
+    return created
 
 
 @router.get("/scenarios/{scenario_id}", response_model=Scenario)

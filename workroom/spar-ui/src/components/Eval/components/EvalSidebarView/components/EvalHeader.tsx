@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { Box, Button, Typography, Tooltip, Divider } from '@sema4ai/components';
-import { IconInformation, IconPlus, IconLightBulb, IconDownload } from '@sema4ai/icons';
+import { IconInformation, IconPlus, IconLightBulb, IconDownload, IconUpload } from '@sema4ai/icons';
 
 export interface EvalHeaderProps {
   hasMessages: boolean;
@@ -8,6 +8,8 @@ export interface EvalHeaderProps {
   onAddEvaluation: () => void;
   onExportScenarios: () => void;
   isExporting: boolean;
+  onImportScenarios: () => void;
+  isImporting: boolean;
 }
 
 export const EvalHeader: FC<EvalHeaderProps> = ({
@@ -16,6 +18,8 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
   onAddEvaluation,
   onExportScenarios,
   isExporting,
+  onImportScenarios,
+  isImporting,
 }) => {
   return (
     <Box display="flex" flexDirection="column" gap="$8" flexShrink="0">
@@ -52,16 +56,29 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
           </Button>
         )}
 
-        <Button
-          variant="outline"
-          round
-          onClick={onExportScenarios}
-          disabled={!hasEvaluations || isExporting}
-          loading={isExporting}
-        >
-          <IconDownload size="16" />
-          Export Scenarios
-        </Button>
+        <Box display="flex" alignItems="center" gap="$8">
+          <Button
+            variant="outline"
+            round
+            onClick={onImportScenarios}
+            disabled={isImporting}
+            loading={isImporting}
+          >
+            <IconUpload size="16" />
+            Import Evaluations
+          </Button>
+
+          <Button
+            variant="outline"
+            round
+            onClick={onExportScenarios}
+            disabled={!hasEvaluations || isExporting}
+            loading={isExporting}
+          >
+            <IconDownload size="16" />
+            Export Evaluations
+          </Button>
+        </Box>
       </Box>
       
       <Divider />
