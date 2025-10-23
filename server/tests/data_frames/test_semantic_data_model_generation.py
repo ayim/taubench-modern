@@ -299,3 +299,186 @@ def test_output_schema_format(file_regression):
     )
 
     file_regression.check(OUTPUT_SCHEMA_FORMAT, basename="output_schema_format")
+
+
+@pytest.mark.asyncio
+async def test_enhance_semantic_data_model_with_invalid_json_retry():
+    """Test enhancing a semantic data model when LLM first returns invalid JSON.
+
+    This unit test verifies that invalid JSON responses are handled correctly through
+    retry logic. It mocks prompt_generate to return:
+    1. First call: improperly formatted JSON response (missing closing brace)
+    2. Second call: valid JSON response
+
+    The system should:
+    - Detect invalid JSON parsing
+    - Request correction by adding error message to the prompt
+    - Parse the corrected JSON response successfully
+    - Successfully enhance the model
+    """
+    from unittest.mock import MagicMock, patch
+
+    from agent_platform.core.responses.content.text import ResponseTextContent
+    from agent_platform.core.responses.response import ResponseMessage
+    from agent_platform.core.user import User
+
+    # Create a simple semantic model to enhance
+    generator = SemanticDataModelGenerator()
+
+    column_info = ColumnInfo(
+        name="system_name",
+        data_type="TEXT",
+        sample_values=["GPT-4", "Claude-2", "Gemini"],
+    )
+
+    table_info = TableInfo(
+        name="ai_systems",
+        database="test_db",
+        schema="public",
+        columns=[column_info],
+    )
+
+    data_connection_info = DataConnectionInfo(
+        data_connection_id="conn_123",
+        tables_info=[table_info],
+    )
+
+    semantic_model = await generator.generate_semantic_data_model(
+        name="test_model",
+        description="Test semantic model",
+        data_connections_info=[data_connection_info],
+        files_info=[],
+    )
+    # Save the original table name for later comparison
+    original_table_name = semantic_model["tables"][0].get("name")  # type: ignore[index]
+    assert original_table_name is not None
+    assert original_table_name == "ai_systems"
+
+    # First response: improperly formatted JSON (missing closing braces)
+    invalid_json_response = """<semantic-data-model>
+{
+  "name": "test_model",
+  "description": "Enhanced test semantic model",
+  "tables": [
+    {
+      "name": "ai_systems_enhanced",
+      "base_table": {
+        "table": "ai_systems",
+        "schema": "public"
+      },
+      "columns": [
+        {
+          "name": "system_name",
+          "expr": "system_name",
+          "data_type": "TEXT",
+          "category": "dimension",
+          "description": "Name of the AI system"
+        }
+      ]
+    }
+</semantic-data-model>"""
+
+    # Second response: valid JSON response
+    valid_json_response = """<semantic-data-model>
+{
+  "name": "test_model",
+  "description": "Enhanced test semantic model",
+  "tables": [
+    {
+      "name": "ai_systems_enhanced",
+      "base_table": {
+        "table": "ai_systems",
+        "schema": "public"
+      },
+      "columns": [
+        {
+          "name": "system_name",
+          "expr": "system_name",
+          "data_type": "TEXT",
+          "category": "dimension",
+          "description": "Name of the AI system",
+          "synonyms": ["ai_name", "model_name"]
+        }
+      ]
+    }
+  ]
+}
+</semantic-data-model>"""
+
+    # Track which call we're on
+    call_count = [0]
+
+    async def mock_prompt_generate(*args, **kwargs):
+        """Mock that returns invalid JSON first, then valid JSON."""
+        call_count[0] += 1
+        if call_count[0] == 1:
+            # First call: return invalid JSON response
+            return ResponseMessage(
+                role="agent",
+                content=[ResponseTextContent(text=invalid_json_response)],
+            )
+        elif call_count[0] == 2:
+            # Second call: return valid JSON response
+            return ResponseMessage(
+                role="agent",
+                content=[ResponseTextContent(text=valid_json_response)],
+            )
+        else:
+            pytest.fail(f"Unexpected call {call_count[0]} to prompt_generate")
+            return None  # Type hint satisfaction
+
+    # Mock the storage and user dependencies
+    mock_storage = MagicMock()
+    mock_user = User(user_id="test_user", sub="test_user")
+
+    # Patch prompt_generate at the module where it's imported
+    with patch(
+        "agent_platform.server.kernel.semantic_data_model_generator.prompt_generate",
+        new=mock_prompt_generate,
+    ):
+        # Call enhance_semantic_data_model with invalid JSON that should trigger retry
+        enhanced_model = await generator.enhance_semantic_data_model(
+            semantic_model=semantic_model,
+            user=mock_user,
+            storage=mock_storage,
+            agent_id="test_agent_id",
+        )
+
+        # Verify we got two calls (initial + retry)
+        assert call_count[0] == 2, f"Expected 2 calls to prompt_generate, got {call_count[0]}"
+
+        # Check if the model was actually enhanced
+        # Original has table name "ai_systems", enhanced should have "ai_systems_enhanced"
+        assert semantic_model.get("tables") is not None
+        assert enhanced_model.get("tables") is not None
+
+        enhanced_table_name = enhanced_model["tables"][0].get("name")  # type: ignore[index]
+
+        if original_table_name == enhanced_table_name:
+            # The model was NOT enhanced - the retry didn't work
+            pytest.fail(
+                f"Enhancement failed - invalid JSON was not retried correctly. "
+                f"Model unchanged (table name still '{original_table_name}'). "
+                f"Expected: 'ai_systems_enhanced', Got: '{enhanced_table_name}'"
+            )
+
+        # Enhancement worked! Verify the valid response was parsed correctly
+        assert enhanced_table_name == "ai_systems_enhanced", (
+            f"Expected table name 'ai_systems_enhanced', got '{enhanced_table_name}'"
+        )
+
+        # Verify column was enhanced with description/synonyms from valid response
+        dimensions = enhanced_model["tables"][0].get("dimensions")  # type: ignore[index]
+        assert dimensions is not None
+        assert len(dimensions) > 0
+        enhanced_column = dimensions[0]
+
+        description = enhanced_column.get("description")
+        assert description == "Name of the AI system", (
+            f"Expected description from valid response, got: {description}"
+        )
+
+        synonyms = enhanced_column.get("synonyms", [])
+        assert synonyms is not None
+        assert "ai_name" in synonyms, "Expected 'ai_name' synonym from valid response"
+        assert "model_name" in synonyms, "Expected 'model_name' synonym from valid response"

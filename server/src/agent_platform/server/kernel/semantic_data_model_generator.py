@@ -4,13 +4,13 @@
 Semantic data model generator for converting table/column information to semantic models.
 """
 
+import json
 import time
 import typing
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
 from fastapi import Request
 from structlog import get_logger
 
@@ -58,42 +58,6 @@ DEFAULT_OUTPUT_DIR: Path | None = None  # Path("c:/temp/semantic_data_model_gene
 class _EnhancementQualityCheckResult:
     passed: bool
     explanation: str | None = None
-
-
-def dump_to_generate_format(semantic_data_model: SemanticDataModel) -> str | None:
-    import copy
-
-    # We create a copy because there's some information that we don't want to include
-    # in the LLM model or want to modify it.
-    model: dict = typing.cast(dict, copy.deepcopy(semantic_data_model))
-
-    # We don't want the full semantic data model, rather we extract the information
-    # that we want the LLM to work with and then dump it to a string.
-    tables = model.get("tables", [])
-    if not tables:
-        return None
-
-    # Drop the model base_table.data_connection_id/file_reference/schema/database.
-    for table in model.get("tables", []):
-        base_table = table.get("base_table")
-        if base_table:
-            base_table.pop("data_connection_id", None)
-            base_table.pop("file_reference", None)
-            base_table.pop("schema", None)
-            base_table.pop("database", None)
-
-        # Also we want to change `dimensions`/`facts`/`time_dimensions`/'metrics' to be attributes
-        # of the table instead of being a separate object.
-        all_columns = []
-        for group in ["dimensions", "facts", "time_dimensions", "metrics"]:
-            columns_info = table.pop(group, [])
-            if columns_info:
-                for column_info in columns_info:
-                    column_info["category"] = group
-                    all_columns.append(column_info)
-        table["columns"] = all_columns
-
-    return yaml.dump(model, default_flow_style=False, sort_keys=False)
 
 
 def _create_enhancement_system_prompt() -> str:
@@ -152,8 +116,8 @@ def _create_enhancement_user_prompt(current_llm_model: "SemanticDataModelForLLM"
 Please improve the following semantic data model by improving table and column information:
 
 **Current Semantic Data Model:**
-```yaml
-{yaml.dump(current_llm_model.model_dump(), default_flow_style=False, sort_keys=False)}
+```json
+{json.dumps(current_llm_model.model_dump(), indent=2)}
 ```
 
 **Enhancement Requirements:**
@@ -171,7 +135,7 @@ Please improve the following semantic data model by improving table and column i
      (the initial categorization should be treated as a hint)
 
 3. **Output Format:**
-   Return the enhanced model in YAML structure, but with improved:
+   Return the enhanced model in JSON structure, but with improved:
    - `name` fields (better logical names)
    - `description` fields (clear, descriptive and concise descriptions)
    - `synonyms` fields (relevant alternative terms to improve discoverability,
@@ -183,9 +147,9 @@ Please improve the following semantic data model by improving table and column i
 **Important:**
 - Ensure all synonyms are unique across the model
 - Make names SQL-safe (no spaces, special characters)
-- Ouput the YAML in the following format: <semantic-data-model>{{yaml-output}}</semantic-data-model>.
-- Do not include any other text except the <semantic-data-model>{{yaml-output}}</semantic-data-model> block.
-- The {{yaml-output}} MUST be the semantic data model in YAML format and MUST match the YAML schema below:
+- Output the JSON in the following format: <semantic-data-model>...</semantic-data-model>.
+- Do not include any other text except the <semantic-data-model>...</semantic-data-model> block.
+- The output MUST be the semantic data model in JSON format and MUST match the JSON schema below:
 
 {OUTPUT_SCHEMA_FORMAT}
 """
@@ -232,19 +196,19 @@ def _create_full_enhancement_prompt(
 
 
 def _extract_response_text(response_text: str) -> str:
-    """Extract the yaml from the <semantic-data-model>{{yaml-output}}</semantic-data-model> block."""
+    """Extract the json from the <semantic-data-model>...</semantic-data-model> block."""
     i = response_text.find("<semantic-data-model>")
     j = response_text.rfind("</semantic-data-model>")
     if i == -1 or j == -1:
-        # We couldn't find the <semantic-data-model>{{yaml-output}}</semantic-data-model> block.
+        # We couldn't find the <semantic-data-model>...</semantic-data-model> block.
         logger.warning(
-            f"Couldn't find the <semantic-data-model>{{yaml-output}}</semantic-data-model> block"
+            f"Couldn't find the <semantic-data-model>...</semantic-data-model> block"
             f" in the response text: {response_text}"
         )
         raise ValueError(
-            "Couldn't find the <semantic-data-model>{{yaml-output}}</semantic-data-model> block"
+            "Couldn't find the <semantic-data-model>...</semantic-data-model> block"
             " in the response. Please fix the response text and try again. Please pay extra attention"
-            " to the output format and the YAML schema."
+            " to the output format and the JSON schema."
         )
     response_text = response_text[i + len("<semantic-data-model>") : j]
     response_text = response_text.strip()
@@ -582,24 +546,24 @@ class SemanticDataModelGenerator:
 
                 # Parse the enhanced model
                 try:
-                    enhanced_model_dict = yaml.safe_load(response_text)
+                    enhanced_model_dict = json.loads(response_text)
                     logger.info(
-                        f"Successfully parsed yaml enhanced model for iteration {iteration}."
+                        f"Successfully parsed json enhanced model for iteration {iteration}."
                     )
-                except yaml.YAMLError as e:
+                except json.JSONDecodeError as e:
                     prompt.messages.append(
                         PromptUserMessage(
                             content=[
                                 PromptTextContent(
                                     text=f"Please retry fixing the following error: failed"
-                                    f" to parse YAML response. Error: {e}"
+                                    f" to parse JSON response. Error: {e}"
                                 )
                             ]
                         )
                     )
 
                     logger.error(
-                        f"Failed to parse YAML response for iteration {iteration}: {e}\n"
+                        f"Failed to parse JSON response for iteration {iteration}: {e}\n"
                         f"Response from LLM: {response_text}"
                     )
                     if max_iterations <= 1:
@@ -623,7 +587,7 @@ class SemanticDataModelGenerator:
                     )
 
                     logger.error(
-                        f"Failed to parse load yaml as SemanticDataModelForLLM for iteration"
+                        f"Failed to parse load json as SemanticDataModelForLLM for iteration"
                         f" {iteration}: {e}\n"
                         f"Found response: {enhanced_model_dict}"
                     )
@@ -702,8 +666,8 @@ All selected tables and columns should be kept (just the names can be changed).
 Please review this enhanced semantic data model and determine if there are additional
 improvements needed:
 
-```yaml
-{yaml.dump(enhanced_model, default_flow_style=False, sort_keys=False)}
+```json
+{json.dumps(enhanced_model, indent=2)}
 ```
 
 Respond with only "PASSED" if the enhancements are good enough.

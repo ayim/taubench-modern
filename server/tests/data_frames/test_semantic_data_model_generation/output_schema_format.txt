@@ -1,143 +1,249 @@
-$defs:
-  BaseTable:
-    description: 'A base table represents represents the actual table in the database.
-
-      MUST NOT be changed.'
-    properties:
-      schema:
-        anyOf:
-        - type: string
-        - type: 'null'
-        default: null
-        description: Name of the schema. MUST NOT be changed.
-        title: Schema
-      table:
-        title: Table
-        type: string
-    required:
-    - table
-    title: BaseTable
-    type: object
-  Column:
-    description: A column in a table.
-    properties:
-      name:
-        title: Name
-        type: string
-      expr:
-        title: Expr
-        type: string
-      data_type:
-        anyOf:
-        - type: string
-        - type: 'null'
-        default: null
-        title: Data Type
-      category:
-        anyOf:
-        - enum:
-          - dimension
-          - fact
-          - metric
-          - time_dimension
-          type: string
-        - type: 'null'
-        default: null
-        title: Category
-      synonyms:
-        anyOf:
-        - items:
-            type: string
-          type: array
-        - type: 'null'
-        default: null
-        title: Synonyms
-      description:
-        anyOf:
-        - type: string
-        - type: 'null'
-        default: null
-        title: Description
-      unique:
-        anyOf:
-        - type: boolean
-        - type: 'null'
-        default: null
-        title: Unique
-      sample_values:
-        anyOf:
-        - items:
-            anyOf:
-            - type: string
-            - type: integer
-            - type: number
-            - type: boolean
-            - type: 'null'
-          type: array
-        - type: 'null'
-        default: null
-        title: Sample Values
-    required:
-    - name
-    - expr
-    title: Column
-    type: object
-  LogicalTable:
-    description: A logical table represents a view over a physical database table
-      or view.
-    properties:
-      name:
-        title: Name
-        type: string
-      base_table:
-        $ref: '#/$defs/BaseTable'
-      synonyms:
-        anyOf:
-        - items:
-            type: string
-          type: array
-        - type: 'null'
-        default: null
-        title: Synonyms
-      description:
-        anyOf:
-        - type: string
-        - type: 'null'
-        default: null
-        title: Description
-      columns:
-        anyOf:
-        - items:
-            $ref: '#/$defs/Column'
-          type: array
-        - type: 'null'
-        default: null
-        title: Columns
-    required:
-    - name
-    - base_table
-    title: LogicalTable
-    type: object
-description: A semantic model represents a collection of tables with their relationships.
-properties:
-  name:
-    title: Name
-    type: string
-  description:
-    anyOf:
-    - type: string
-    - type: 'null'
-    default: null
-    title: Description
-  tables:
-    anyOf:
-    - items:
-        $ref: '#/$defs/LogicalTable'
-      type: array
-    - type: 'null'
-    title: Tables
-required:
-- name
-- tables
-title: SemanticDataModelForLLM
-type: object
+{
+  "$defs": {
+    "BaseTable": {
+      "description": "A base table represents represents the actual table in the database.\nMUST NOT be changed.",
+      "properties": {
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the schema. MUST NOT be changed.",
+          "title": "Schema"
+        },
+        "table": {
+          "title": "Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "table"
+      ],
+      "title": "BaseTable",
+      "type": "object"
+    },
+    "Column": {
+      "description": "A column in a table.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "expr": {
+          "title": "Expr",
+          "type": "string"
+        },
+        "data_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Type"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "enum": [
+                "dimension",
+                "fact",
+                "metric",
+                "time_dimension"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category"
+        },
+        "synonyms": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Synonyms"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "unique": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unique"
+        },
+        "sample_values": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sample Values"
+        }
+      },
+      "required": [
+        "name",
+        "expr"
+      ],
+      "title": "Column",
+      "type": "object"
+    },
+    "LogicalTable": {
+      "description": "A logical table represents a view over a physical database table or view.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "base_table": {
+          "$ref": "#/$defs/BaseTable"
+        },
+        "synonyms": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Synonyms"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Column"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Columns"
+        }
+      },
+      "required": [
+        "name",
+        "base_table"
+      ],
+      "title": "LogicalTable",
+      "type": "object"
+    }
+  },
+  "description": "A semantic model represents a collection of tables with their relationships.",
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "tables": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/LogicalTable"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Tables"
+    }
+  },
+  "required": [
+    "name",
+    "tables"
+  ],
+  "title": "SemanticDataModelForLLM",
+  "type": "object"
+}

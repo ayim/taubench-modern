@@ -1,10 +1,10 @@
 """Semantic model data structures for as we want the LLM generator to see it."""
 
+import json
 import warnings
 from types import NoneType
 from typing import Annotated, Literal
 
-import yaml
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 
@@ -423,8 +423,7 @@ def _get_target_group_for_category(category: str | None) -> str:
     return category_to_group.get(category, "dimensions")
 
 
-OUTPUT_SCHEMA_FORMAT: str = yaml.dump(
+OUTPUT_SCHEMA_FORMAT: str = json.dumps(
     SemanticDataModelForLLM.model_json_schema(mode="serialization"),
-    default_flow_style=False,
-    sort_keys=False,
+    indent=2,
 )
