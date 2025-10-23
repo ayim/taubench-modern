@@ -464,18 +464,18 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
 
     await storage.set_trial_thread(trial_id=task.trial_id, thread_id=new_thread.thread_id)
 
-    # files are scoped by thread
-    # in live mode we may need to access files
-    # where tool calls are not stored
-    # so we need to copy over the file
-    if execution_mode == "live":
-        await _copy_thread_files_to_run_thread(
-            storage=storage,
-            source_thread_id=scenario.thread_id,
-            source_user_id=scenario.user_id,
-            destination_thread=new_thread,
-            destination_user_id=system_user.user_id,
-        )
+    # files are scoped by thread, so we need to copy them over
+    # this is required in live mode for every action using files
+    # but also in replay mode for internal tools
+    # indeed, we don't replay internal tools,
+    # hence we cannot reuse stored information
+    await _copy_thread_files_to_run_thread(
+        storage=storage,
+        source_thread_id=scenario.thread_id,
+        source_user_id=scenario.user_id,
+        destination_thread=new_thread,
+        destination_user_id=system_user.user_id,
+    )
 
     current_user_message_index = len(initial_agent_messages)
     current_turn = 1
