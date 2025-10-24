@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { FlowType } from '../types';
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
 import type {
@@ -361,6 +361,7 @@ export const useDataModelFlow = () => {
 export const useDataQualityFlow = () => {
   const generateQualityChecksMutation = useGenerateQualityChecksMutation({});
   const executeQualityChecksMutation = useExecuteQualityChecksMutation({});
+  const [isSkippingGlobalLoading, setIsSkippingGlobalLoading] = useState(false);
 
   const {
     setDataQualityChecks,
@@ -370,21 +371,37 @@ export const useDataQualityFlow = () => {
     setProcessingError,
   } = useDocumentIntelligenceStore();
 
+  // Reset isSkippingGlobalLoading when mutation completes
+  useEffect(() => {
+    if (!generateQualityChecksMutation.isPending && isSkippingGlobalLoading) {
+      setIsSkippingGlobalLoading(false);
+    }
+  }, [generateQualityChecksMutation.isPending, isSkippingGlobalLoading]);
+
   const executeDataQualityFlow = useCallback(async ({
     agentId,
     dataModelName,
     threadId,
     description,
     limit = 3,
+    skipGlobalLoading = false,
   }: {
     agentId: string;
     dataModelName: string;
     threadId?: string;
     description?: string;
     limit?: number;
+    skipGlobalLoading?: boolean;
   }) => {
+    // Set isSkippingGlobalLoading BEFORE starting the mutation to prevent race condition
+    if (skipGlobalLoading) {
+      setIsSkippingGlobalLoading(true);
+    }
+
     try {
-      setProcessingState(true, 'Generating data quality checks...', null);
+      if (!skipGlobalLoading) {
+        setProcessingState(true, 'Generating data quality checks...', null);
+      }
 
       // Generate quality checks
       const qualityChecksResult = await generateQualityChecksMutation.mutateAsync({
@@ -404,15 +421,21 @@ export const useDataQualityFlow = () => {
       }));
 
       setDataQualityChecks(transformedChecks);
-      setProcessingState(false, '', null);
+      if (!skipGlobalLoading) {
+        setProcessingState(false, '', null);
+      }
+      // Don't set isSkippingGlobalLoading to false here - let it stay true until the mutation completes
 
       return { success: true, qualityChecks: qualityChecksResult.quality_checks };
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to execute data quality flow';
       setDataQualityChecksError(errorMessage);
-      setProcessingError(errorMessage);
-      setProcessingState(false, '', errorMessage);
+      if (!skipGlobalLoading) {
+        setProcessingError(errorMessage);
+        setProcessingState(false, '', errorMessage);
+      }
+      // Don't set isSkippingGlobalLoading to false here - let useEffect handle it
       throw error;
     }
   }, [
@@ -463,7 +486,7 @@ export const useDataQualityFlow = () => {
   return {
     executeDataQualityFlow,
     executeQualityChecks,
-    isLoading: generateQualityChecksMutation.isPending,
+    isLoading: generateQualityChecksMutation.isPending && !isSkippingGlobalLoading,
     error: generateQualityChecksMutation.error || executeQualityChecksMutation.error,
   };
 };

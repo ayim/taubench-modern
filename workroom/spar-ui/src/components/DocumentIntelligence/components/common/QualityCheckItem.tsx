@@ -1,4 +1,4 @@
-import { Box, Typography, Input, Badge, Button, Code, EditorView } from '@sema4ai/components';
+import { Box, Typography, Input, Badge, Button, Code, EditorView, Tooltip } from '@sema4ai/components';
 import { sql } from '@codemirror/lang-sql';
 import {
   IconChemicalTube,
@@ -10,7 +10,6 @@ import {
   IconChevronUp,
   IconCopy,
   IconCloseCircle,
-  IconRefresh,
 } from '@sema4ai/icons';
 import { FC, useMemo } from 'react';
 
@@ -86,8 +85,10 @@ const ActionButtons: FC<ActionButtonsProps> = ({
   const isExpanded = expandedSqlSections.has(ruleName);
 
   const getButtonText = () => {
-    if (isRegenerating) return 'Regenerating...';
-    if (regenerateRule) return 'Regenerate';
+    if (isRegenerating) {
+      // For new quality checks without SQL, show "Running Test..." instead of "Regenerating..."
+      return hasSqlQuery ? 'Regenerating...' : 'Running Test...';
+    }
     if (isRunning) return 'Running Test...';
     if (result) return 'Re-run Test';
     return 'Run Test';
@@ -95,7 +96,6 @@ const ActionButtons: FC<ActionButtonsProps> = ({
 
   const getButtonIcon = () => {
     if (isRunning) return undefined;
-    if (regenerateRule) return IconRefresh;
     return IconChemicalTube;
   };
 
@@ -130,17 +130,19 @@ const ActionButtons: FC<ActionButtonsProps> = ({
 
       {/* SQL button - inline with other buttons */}
       {hasSqlQuery && !isReadOnly && (
-        <Button
-          onClick={() => onToggleSqlExpansion(ruleName)}
-          variant="ghost"
-          size="small"
-          round
-          icon={isRegenerating || isRunning ? IconLoading : IconDatabase}
-          iconAfter={isExpanded ? IconChevronDown : IconChevronUp}
-          disabled={isRegenerating || isRunning}
-        >
-          SQL
-        </Button>
+        <Tooltip text="Show SQL">
+          <Button
+            onClick={() => onToggleSqlExpansion(ruleName)}
+            variant="ghost"
+            size="small"
+            round
+            icon={isRegenerating || isRunning ? IconLoading : IconDatabase}
+            iconAfter={isExpanded ? IconChevronDown : IconChevronUp}
+            disabled={isRegenerating || isRunning}
+          >
+            SQL
+          </Button>
+        </Tooltip>
       )}
 
       {/* Trash button */}
@@ -156,7 +158,7 @@ const ActionButtons: FC<ActionButtonsProps> = ({
         />
       )}
 
-      {/* Run Test button */}
+      {/* Run Test button - smart: regenerates if description edited, otherwise runs test */}
       <Button
         onClick={regenerateRule ? () => onRegenerateRule(check) : () => onRunTest(check)}
         icon={getButtonIcon()}
@@ -307,6 +309,7 @@ export const QualityCheckItem: FC<QualityCheckItemProps> = ({
               className="w-full"
               rows={3}
               style={{ fontSize: '14px', lineHeight: '1.5' }}
+              disabled={isRegenerating}
             />
           ) : (
             <Typography fontSize="$16" marginTop="$8">

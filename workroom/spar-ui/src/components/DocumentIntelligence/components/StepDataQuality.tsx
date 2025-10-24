@@ -136,65 +136,9 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
     setQualityCheckResult(ruleName, null);
   };
 
-  // Handle regenerating a quality check
-  const handleRegenerateRule = useCallback(
-    async (check: (typeof dataQualityChecks)[0]) => {
-      const ruleName = check.rule_name as string;
-      setRegeneratingRule(ruleName);
-      setRegenerateRules((prev) => ({ ...prev, [ruleName]: false }));
-      setQualityCheckResult(ruleName, null);
-
-      if (!dataModel) {
-        addSnackbar({ message: 'Missing required data - dataModel', close: true });
-        setRegeneratingRule(null);
-        return;
-      }
-
-      try {
-
-        const currentChecks = [...dataQualityChecks];
-
-        const result = await executeDataQualityFlow({
-          agentId,
-          dataModelName: dataModel.name,
-          threadId,
-          description: check.rule_description as string,
-          limit: 1,
-        });
-
-        const newChecks = result.qualityChecks || [];
-        const newCheck = newChecks[0];
-
-        if (newCheck) {
-          setDataQualityChecks(
-            currentChecks.map((c) =>
-              c.rule_name === check.rule_name
-                ? {
-                    ...c,
-                    ...newCheck,
-                    sql_query: newCheck.sql_query || c.sql_query,
-                    rule_description: newCheck.rule_description || c.rule_description,
-                  }
-                : c
-            )
-          );
-        }
-      } catch (error) {
-        addSnackbar({
-          message: `Failed to regenerate quality check: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          close: true,
-        });
-      } finally {
-        setRegeneratingRule(null);
-      }
-    },
-    [executeDataQualityFlow, dataModel, agentId, threadId, dataQualityChecks, setDataQualityChecks, setQualityCheckResult, addSnackbar],
-  );
-
   // Handle running a specific quality check
   const handleRunTest = useCallback(
     async (check: (typeof dataQualityChecks)[0]) => {
-
       setRunningTests((prev) => new Set([...prev, check.rule_name as string]));
 
       // Get document_id from ingestedDocument
@@ -242,6 +186,70 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
       }
     },
     [executeQualityChecks, ingestedDocument, addSnackbar],
+  );
+
+  // Handle regenerating a quality check
+  const handleRegenerateRule = useCallback(
+    async (check: (typeof dataQualityChecks)[0]) => {
+      const ruleName = check.rule_name as string;
+      setRegeneratingRule(ruleName);
+      setRegenerateRules((prev) => ({ ...prev, [ruleName]: false }));
+      setQualityCheckResult(ruleName, null);
+
+      if (!dataModel) {
+        addSnackbar({ message: 'Missing required data - dataModel', close: true });
+        setRegeneratingRule(null);
+        return;
+      }
+
+      try {
+
+        const currentChecks = [...dataQualityChecks];
+
+        const result = await executeDataQualityFlow({
+          agentId,
+          dataModelName: dataModel.name,
+          threadId,
+          description: checkDescriptions[ruleName] || check.rule_description as string,
+          limit: 1,
+          skipGlobalLoading: true,
+        });
+
+        const newChecks = result.qualityChecks || [];
+        const newCheck = newChecks[0];
+
+        if (newCheck) {
+          const updatedChecks = currentChecks.map((c) =>
+            c.rule_name === check.rule_name
+              ? {
+                  ...c,
+                  ...newCheck,
+                  rule_name: c.rule_name, // Preserve the original rule_name
+                  sql_query: newCheck.sql_query || '',
+                  rule_description: newCheck.rule_description || checkDescriptions[ruleName] || c.rule_description,
+                }
+              : c
+          );
+
+          setDataQualityChecks(updatedChecks);
+
+          // Auto-run the test with the new SQL
+          // Use the original check.rule_name to find the updated check, since the API might return a different rule_name
+          const updatedCheck = updatedChecks.find(c => c.rule_name === check.rule_name);
+          if (updatedCheck) {
+            await handleRunTest(updatedCheck);
+          }
+        }
+      } catch (error) {
+        addSnackbar({
+          message: `Failed to regenerate quality check: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          close: true,
+        });
+      } finally {
+        setRegeneratingRule(null);
+      }
+    },
+    [executeDataQualityFlow, dataModel, agentId, threadId, dataQualityChecks, setDataQualityChecks, setQualityCheckResult, addSnackbar, handleRunTest],
   );
 
   const handleInit = useCallback(async () => {
@@ -296,7 +304,12 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
   const memoizedQualityCheckResults = useMemo(() => qualityCheckResults, [qualityCheckResults]);
 
 
-  if (isProcessing || flowLoading) {
+  // Only show full-screen loading for initial generation or global operations
+  // Don't show it for individual quality check regeneration when we already have checks
+  const shouldShowFullScreenLoading = (isProcessing && dataQualityChecks.length === 0) ||
+                                    (flowLoading && dataQualityChecks.length === 0);
+
+  if (shouldShowFullScreenLoading) {
     return (
       <Box className="h-full">
         <Box display="flex" alignItems="center" gap="$8" marginBottom="$8">
@@ -391,7 +404,7 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
               key={ruleName || check.id}
               check={check}
               index={index}
-              isReadOnly={isReadOnly}
+              isReadOnly={false}
               result={result}
               isRunning={isRunning}
               isRegenerating={isRegenerating}
