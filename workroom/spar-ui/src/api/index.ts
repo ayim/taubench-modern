@@ -10,12 +10,13 @@ type ApiResponse<Success> = { data: Success; success: true } | { success: false;
 
 export enum SparUIFeatureFlag {
   showActionLogs = 'showActionLogs',
-  showFeedback = 'showFeedback',
   canEditAgent = 'canEditAgent',
   deploymentWizard = 'deploymentWizard',
   agentDetails = 'agentDetails',
   documentIntelligence = 'documentIntelligence',
   semanticDataModels = 'semanticDataModels',
+  agentFeedback = 'agentFeedback',
+  agentChatInput = 'agentChatInput',
 }
 
 export type NavigationArgs = {
@@ -26,7 +27,7 @@ export interface SparAPIClient {
   /**
    * Request for enabled feature at target application
    */
-  getFeatureFlag: (feature: SparUIFeatureFlag) => boolean;
+  useFeatureFlag: (feature: SparUIFeatureFlag) => { enabled: true } | { enabled: false; message?: string };
 
   /**
    * Agent Server API client

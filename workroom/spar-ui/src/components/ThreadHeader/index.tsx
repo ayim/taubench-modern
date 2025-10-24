@@ -4,11 +4,12 @@ import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
 
-import { useNavigate, useParams } from '../../hooks';
+import { useFeatureFlag, useNavigate, useParams } from '../../hooks';
 import { useCreateThread } from '../../hooks/useCreateThread';
 import { useAgentQuery } from '../../queries/agents';
 import { ThreadSearch } from '../ThreadSearch';
 import { AgentContextMenu } from '../Agents';
+import { SparUIFeatureFlag } from '../../api';
 
 type Props = {
   children: ReactNode;
@@ -40,6 +41,7 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
   const { triggerProps, triggerRef } = useSidebarMenu('threads-list');
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const { onNewThread, isCreatingThread } = useCreateThread();
+  const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
@@ -51,6 +53,7 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
     return null;
   }
 
+  const isNewThreadDisabled = isCreatingThread || !isChatInteractive;
   return (
     <Container $sidebarExpanded={mainMenuExpanded}>
       <ThreadsToggle
@@ -73,7 +76,7 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
         <Tooltip text="New Chat" placement="bottom">
           <SideNavigation.Item
             icon={IconPlus}
-            disabled={isCreatingThread}
+            disabled={isNewThreadDisabled}
             round
             aria-label="New Chat"
             onClick={onNewThread}

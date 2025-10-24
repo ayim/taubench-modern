@@ -13,6 +13,7 @@ export const SemanticDataSection = () => {
   const { agentId } = useParams('/thread/$agentId');
   const { data: semanticDataModels } = useAgentSemanticDataQuery({ agentId });
   const canEditAgent = useFeatureFlag(SparUIFeatureFlag.canEditAgent);
+  const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
   const onToggleEditModel = () => {
     setIsConfigurationOpen(!isConfigurationOpen);
@@ -28,6 +29,7 @@ export const SemanticDataSection = () => {
         </Typography>
         {canEditAgent && (
           <Button
+            disabled={!isChatInteractive}
             onClick={onToggleEditModel}
             variant="outline"
             size="small"

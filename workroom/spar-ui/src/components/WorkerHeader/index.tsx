@@ -4,9 +4,10 @@ import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
 import { useLinkProps } from '../../common/link';
-import { useParams } from '../../hooks';
+import { useFeatureFlag, useParams } from '../../hooks';
 import { useAgentQuery } from '../../queries';
 import { Container as HeaderContainer } from '../ThreadHeader';
+import { SparUIFeatureFlag } from '../../api';
 
 type Props = {
   children: ReactNode;
@@ -27,6 +28,7 @@ export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
   const createWorkItemLinkProps = useLinkProps('/workItem/$agentId/create', { agentId });
+  const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
   if (isLoading || !agent) {
     return null;
@@ -52,7 +54,11 @@ export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
       {leftAction}
       <Box display="flex" alignItems="center" gap="$8" ml="auto">
         <Tooltip text="New Work Item" placement="bottom">
-          <SideNavigation.Item as="a" icon={IconPlus} round aria-label="New Work Item" {...createWorkItemLinkProps} />
+          {isChatInteractive ? (
+            <SideNavigation.Item as="a" icon={IconPlus} round aria-label="New Work Item" {...createWorkItemLinkProps} />
+          ) : (
+            <SideNavigation.Item as="button" icon={IconPlus} round aria-label="New Work Item" disabled />
+          )}
         </Tooltip>
         {children}
       </Box>

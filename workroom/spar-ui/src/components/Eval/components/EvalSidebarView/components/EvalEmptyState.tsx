@@ -2,6 +2,9 @@ import { FC } from 'react';
 import { Box, Button, EmptyState, Link } from '@sema4ai/components';
 import { IconInformation, IconArrowUpRight } from '@sema4ai/icons';
 
+import { useFeatureFlag } from '../../../../../hooks';
+import { SparUIFeatureFlag } from '../../../../../api';
+
 export interface EvalEmptyStateProps {
   hasMessages: boolean;
   onAddEvaluation: () => void;
@@ -15,25 +18,24 @@ export const EvalEmptyState: FC<EvalEmptyStateProps> = ({
   onImportScenarios,
   isImporting,
 }) => {
+  const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
+
+  const isCreateEvaluationDisabled = !hasMessages || !isChatInteractive;
+  const isImportEvaluationsDisabled = isImporting || !isChatInteractive;
   return (
     <EmptyState
       title="Evaluations"
       description='All evaluation runs will be shown here. Create an Evaluation by clicking "Add Evaluation"'
       action={
         <Box display="flex" gap="$8" flexWrap="wrap">
-          <Button 
-            variant="primary" 
-            round 
-            onClick={onAddEvaluation} 
-            disabled={!hasMessages}
-          >
+          <Button variant="primary" round onClick={onAddEvaluation} disabled={isCreateEvaluationDisabled}>
             Create Evaluation from Current Thread
           </Button>
           <Button
             variant="outline"
             round
             onClick={onImportScenarios}
-            disabled={isImporting}
+            disabled={isImportEvaluationsDisabled}
             loading={isImporting}
           >
             Import Evaluations

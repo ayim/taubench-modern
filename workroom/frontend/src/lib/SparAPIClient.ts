@@ -27,30 +27,30 @@ export const createSparAPIClient = (
   agentAPIClient: AgentAPIClient,
   routerInstance: typeof router,
 ): SparAPIClient => ({
-  getFeatureFlag: (feature: SparUIFeatureFlag) => {
+  useFeatureFlag: (feature: SparUIFeatureFlag) => {
     const agentMeta = useAgentMetaContext();
+    const featureFlagFallback = { enabled: false };
 
     switch (feature) {
       case SparUIFeatureFlag.showActionLogs:
-        return tenantMeta.features.developerMode.enabled;
+        return { enabled: tenantMeta.features.developerMode.enabled };
       case SparUIFeatureFlag.deploymentWizard:
-        return tenantMeta.features.deploymentWizard.enabled;
-      case SparUIFeatureFlag.showFeedback:
-        if (!agentMeta) {
-          return false;
-        }
-        return agentMeta.workroomUi?.feedback?.enabled ?? false;
+        return { enabled: tenantMeta.features.deploymentWizard.enabled };
       case SparUIFeatureFlag.canEditAgent:
-        return tenantMeta.features.agentAuthoring.enabled;
+        return { enabled: tenantMeta.features.agentAuthoring.enabled };
       case SparUIFeatureFlag.agentDetails:
-        return tenantMeta.features.agentDetails.enabled;
+        return { enabled: tenantMeta.features.agentDetails.enabled };
       case SparUIFeatureFlag.documentIntelligence:
-        return tenantMeta.features.documentIntelligence.enabled;
+        return { enabled: tenantMeta.features.documentIntelligence.enabled };
       case SparUIFeatureFlag.semanticDataModels:
-        return tenantMeta.features.semanticDataModels.enabled;
+        return { enabled: tenantMeta.features.semanticDataModels.enabled };
+      case SparUIFeatureFlag.agentFeedback:
+        return agentMeta?.workroomUi?.feedback ?? featureFlagFallback;
+      case SparUIFeatureFlag.agentChatInput:
+        return agentMeta?.workroomUi?.chatInput ?? featureFlagFallback;
       default:
         feature satisfies never;
-        return false;
+        return featureFlagFallback;
     }
   },
 

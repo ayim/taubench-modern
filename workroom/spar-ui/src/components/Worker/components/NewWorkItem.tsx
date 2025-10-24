@@ -1,7 +1,8 @@
 import { IconPlus } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useLinkProps } from '../../../common/link';
-import { useParams } from '../../../hooks';
+import { useFeatureFlag, useParams } from '../../../hooks';
+import { SparUIFeatureFlag } from '../../../api';
 
 const Container = styled.a`
   padding: 0 ${({ theme }) => theme.space.$8};
@@ -26,6 +27,17 @@ const Container = styled.a`
 export const NewWorkItem = () => {
   const { agentId } = useParams('/workItem/$agentId');
   const linkProps = useLinkProps('/workItem/$agentId/create', { agentId });
+
+  const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
+
+  if (!isChatInteractive) {
+    return (
+      <Container as="button" disabled>
+        <IconPlus />
+        New Work Item
+      </Container>
+    );
+  }
 
   return (
     <Container {...linkProps}>

@@ -66,7 +66,7 @@ export const MessageContentItemRenderer: FC<Props> = ({
   const { onCopyToClipboard, copiedToClipboard } = useClipboard();
   const { val: isFeedbackDialogOpen, setTrue: openFeedbackDialog, setFalse: closeFeedbackDialog } = useToggle();
   const { sparAPIClient } = useSparUIContext();
-  const feedbackEnabled = useFeatureFlag(SparUIFeatureFlag.showFeedback);
+  const { enabled: feedbackEnabled } = useFeatureFlag(SparUIFeatureFlag.agentFeedback);
   useEffect(() => {
     if (!containerRef.current) {
       return;

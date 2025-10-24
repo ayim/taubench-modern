@@ -15,12 +15,14 @@ import { useForm } from 'react-hook-form';
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 
 import { getFileSize, getFileTypeIcon, isImageFile } from '../../common/helpers';
-import { useMessageStream, useQueryDataGuard } from '../../hooks';
+import { useFeatureFlag, useMessageStream, useQueryDataGuard } from '../../hooks';
 import { useAgentOAuthStateQuery } from '../../queries/agents';
 import { useThreadMessagesQuery } from '../../queries/threads';
 import { useThreadSearchStore } from '../../state/useThreadSearchStore';
 import { OAuth } from './components/OAuth';
 import { MessageRenderer } from './components/renderer/Message';
+import { ConversationDisabledMessage } from './components/message/ConversationDisabled';
+import { SparUIFeatureFlag } from '../../api';
 
 type Props = {
   agentId: string;
@@ -101,6 +103,8 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
   const { data: oAuthState = [], ...oauthStateQueryState } = useAgentOAuthStateQuery({ agentId });
   const [attachmentsByThreadId, setAttachmentsByThreadId] = useState<Record<string, File[]>>({});
   const [messageByThreadId, setMessageByThreadId] = useState<Record<string, string>>({});
+
+  const chatInputMeta = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
   const attachments = attachmentsByThreadId[threadId] ?? [];
   const draftMessage = messageByThreadId[threadId] ?? '';
@@ -266,7 +270,7 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
 
   const isStreamingOrUploadingFiles = isStreaming || uploadingFiles;
   const isChatInputBusy = uploadingFiles || (!hasContentToSend && !isStreaming);
-  const isChatInputDisabled = requiresOAuth;
+  const isChatInputDisabled = requiresOAuth || !chatInputMeta.enabled;
   const isAttachFileBtnDisabled = isStreamingOrUploadingFiles || isChatInputDisabled;
 
   const {
@@ -290,6 +294,7 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
       />
       <Footer>
         {requiresOAuth && <OAuth />}
+        {!chatInputMeta.enabled && <ConversationDisabledMessage reason={chatInputMeta.message} />}
         <ChatInput
           streaming={isStreamingOrUploadingFiles}
           busy={isChatInputBusy}

@@ -7,9 +7,10 @@ import { styled } from '@sema4ai/theme';
 import { RenameDialog } from '../../../common/dialogs/RenameDialog';
 import { formatDateTime } from '../../../common/helpers';
 import { SidebarLink } from '../../../common/link';
-import { useNavigate, useParams } from '../../../hooks';
+import { useFeatureFlag, useNavigate, useParams } from '../../../hooks';
 import { ServerResponse } from '../../../queries/shared';
 import { useDeleteThreadMutation, useUpdateThreadMutation } from '../../../queries/threads';
+import { SparUIFeatureFlag } from '../../../api';
 
 type ThreadItemProps = {
   item: ServerResponse<'get', '/api/v2/threads/'>[number] & {
@@ -64,10 +65,10 @@ const ToolTipContent: FC<{ name: string; createdAt?: string }> = ({ name, create
           </Typography>
         </Box>
       )}
-      {/* 
+      {/*
       TODO: add last message time when info is available
       right now we don't have information on last message time
-      https://linear.app/sema4ai/issue/CLOUD-5343/feat-last-message-sent 
+      https://linear.app/sema4ai/issue/CLOUD-5343/feat-last-message-sent
        */}
       {/* {updatedAt && (
         <Box display="flex">
@@ -88,6 +89,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const [isRenaming, setIsRenaming] = useState(false);
+  const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
   const onDeleteConfirm = useDeleteConfirm(
     {
@@ -148,7 +150,15 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
         </SidebarLink>
 
         <Menu
-          trigger={<Button variant="ghost-subtle" size="small" icon={IconDotsHorizontal} aria-label="Thread actions" />}
+          trigger={
+            <Button
+              variant="ghost-subtle"
+              size="small"
+              icon={IconDotsHorizontal}
+              aria-label="Thread actions"
+              disabled={!isChatInteractive}
+            />
+          }
         >
           <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
           <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>

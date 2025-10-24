@@ -2,8 +2,10 @@ import { Dropzone, DropzoneConfig } from '@sema4ai/components';
 import { styled } from '@sema4ai/theme';
 import { FC, useCallback } from 'react';
 
+import { useFeatureFlag } from '../../../hooks';
 import { useMessageStream } from '../../../hooks/useMessageStream';
 import { useThreadFilesRefetch } from '../../../queries/threads';
+import { SparUIFeatureFlag } from '../../../api';
 
 type props = {
   agentId: string;
@@ -18,9 +20,11 @@ const AccentText = styled.span<{ disabled: boolean }>`
 
 export const AddFiles: FC<props> = ({ threadId, agentId, dropzoneOptions }) => {
   const refetchFiles = useThreadFilesRefetch({ threadId });
+  const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
+
   const { streamingMessages, uploadingFiles, sendMessage } = useMessageStream({ agentId, threadId });
   const isStreaming = !!streamingMessages;
-  const isDisabled = isStreaming || uploadingFiles;
+  const isDisabled = isStreaming || uploadingFiles || !isChatInteractive;
 
   const onAddAttachements = useCallback(
     async (files: File[]) => {
