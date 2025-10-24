@@ -152,6 +152,10 @@ export const EphemeralAgentChat: React.FC<EphemeralAgentChatProps> = ({
               const toolCallMsg = `set_conversation_guide called with conversation guide: ${conversationGuide.map((questionGroup) => questionGroup.title).join(', ')}`;
               setToolCalls((prev) => [...prev, toolCallMsg]);
             },
+            callbackOnComplete: () => {
+              const toolCallMsg = `on_complete called`;
+              setToolCalls((prev) => [...prev, toolCallMsg]);
+            },
           });
           break;
       }
