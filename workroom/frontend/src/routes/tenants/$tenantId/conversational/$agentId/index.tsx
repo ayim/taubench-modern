@@ -50,6 +50,9 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       return withBearerTokenAuth ? new WebSocket(url, ['Bearer', token]) : new WebSocket(url);
     };
 
+    const oAuthState = await agentAPIClient.getAgentPermissions({ agentId, tenantId });
+    const hasUnauthorizedProviders = oAuthState.some((provider) => !provider.isAuthorized);
+
     if (initialThreadMessage) {
       const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
         body: {
@@ -122,8 +125,11 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     /**
      * 4. If no threads exist, create a new one
      */
-    const text = (agent?.extra?.conversation_starter as string | undefined) ?? NEW_CHAT_STARTING_MSG;
-    const role = agent?.extra?.conversation_starter ? 'user' : 'agent';
+
+    // Only send a user message if agent has conversation starter AND OAuth permissions are authorized
+    const shouldSendUserMessage = !!agent?.extra?.conversation_starter && !hasUnauthorizedProviders;
+    const role = shouldSendUserMessage ? 'user' : 'agent';
+    const text = shouldSendUserMessage ? (agent?.extra?.conversation_starter as string) : NEW_CHAT_STARTING_MSG;
 
     const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
       body: {
@@ -148,7 +154,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       });
     }
 
-    if (role == 'user') {
+    if (shouldSendUserMessage) {
       streamManager.initiateStream({
         content: [],
         agentId,
