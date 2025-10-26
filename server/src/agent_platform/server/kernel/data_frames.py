@@ -708,6 +708,5 @@ class _DataFrameTools:
             }
         except Exception as e:
             return {
-                "error_code": "unable_to_create_data_frame",
-                "error": f"Unable to create data frame from SQL query. Error: {e!r}",
+                "error": f"Unable to create data frame from SQL query. Error: {e}",
             }

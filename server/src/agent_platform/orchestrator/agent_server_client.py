@@ -91,12 +91,14 @@ class ToolCallMessage:
     tool_call_id: str
     input_data: dict
     result: dict
+    error: str | None
 
     def print_info(self):
         print_info(f"Tool Call: {self.tool_name}")
         print_info(f"  Call ID: {self.tool_call_id}")
         for key, value in self.input_data.items():
             print_info(f"  {key}: {value}")
+        print_info(f"  Error: {self.error}")
         print_info(f"  Result: {self.result}")
 
 
@@ -237,6 +239,7 @@ def _send_message_collect_all_responses(
                         tool_call_id=content["tool_call_id"],
                         input_data=input_data,
                         result=result,
+                        error=content.get("error", None),
                     )
                 )
 

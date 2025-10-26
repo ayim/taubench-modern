@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
 
 @pytest.fixture
@@ -288,6 +289,93 @@ def test_api_interaction_with_action_server(
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
+def test_action_error_handling(
+    base_url_agent_server,
+    openai_api_key,
+    action_server_process,
+    logs_dir,
+    resources_dir,
+):
+    """Verify a sync action returns result on success and error on failure."""
+    from agent_platform.orchestrator.agent_server_client import (
+        ActionPackage,
+        AgentServerClient,
+        SecretKey,
+    )
+
+    cwd = resources_dir / "simple_action_package"
+    api_key = "test"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,
+        additional_args=["--api-key", api_key],
+        logs_dir=logs_dir,
+    )
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[
+                ActionPackage(
+                    name="ActionPackage",
+                    organization="Organization",
+                    version="0.0.1",
+                    url=url,
+                    api_key=SecretKey(value=api_key),
+                    whitelist="",
+                    allowed_actions=[
+                        "always_error_action_action_response",
+                        "always_error_action_internal_error",
+                    ],
+                )
+            ],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-5-low"]},
+                },
+            ],
+        )
+
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        # Error case via custom action that always returns an error
+        _, tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            "Please call the always_error_action with message=Test error",
+        )
+        tool_call = tool_calls[0] if tool_calls else None
+        assert tool_call is not None, "No tool calls returned for error case"
+        assert tool_call.tool_name == "always_error_action_action_response"
+        assert "result" in tool_call.result
+        assert "error" in tool_call.result
+        assert tool_call.result["result"] is None
+        assert "Test error" in tool_call.result["error"]
+
+        # Error case via custom action that always errors out internally
+        _, tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            "Please call the always_error_action_internal_error action",
+        )
+        tool_call = tool_calls[0] if tool_calls else None
+        assert tool_call is not None, "No tool calls returned for error case"
+        assert tool_call.tool_name == "always_error_action_internal_error"
+        assert "error_code" in tool_call.result
+        assert "message" in tool_call.result
+        assert tool_call.result["error_code"] == "internal-error"
+        assert tool_call.result["message"] == "Unexpected error (ValueError)"
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
     """Test that trying to start a server on a port that's already in use
     fails with the expected error message.
@@ -449,232 +537,259 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_async_action_polling_with_fast_retry_interval(
-    base_url_agent_server_with_async_actions,
+    base_url_agent_server_sync_and_async_actions_and_sync_mode,
     openai_api_key,
     action_server_process,
     logs_dir,
     resources_dir,
 ):
+    import functools
+    from concurrent.futures.thread import ThreadPoolExecutor
+    from textwrap import dedent
+
+    from agent_platform.orchestrator.agent_server_client import (
+        ActionPackage,
+        SecretKey,
+    )
+
+    cwd = resources_dir / "simple_action_package"
+    api_key = "test"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,  # Can be slow (time to bootstrap env)
+        additional_args=["--api-key", api_key],
+        logs_dir=logs_dir,
+    )
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
+
+    agent_server_url = base_url_agent_server_sync_and_async_actions_and_sync_mode["url"]
+    sync_mode = base_url_agent_server_sync_and_async_actions_and_sync_mode["sync_mode"]
+
+    if sync_mode == "async":
+        assert os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION") == "true", (
+            "Async actions must be enabled"
+        )
+    else:
+        assert os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION") == "false", (
+            "Async actions must NOT be enabled"
+        )
+
+    with AgentServerClient(agent_server_url) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            runbook=dedent("""
+            You're a test agent which is used to test action/tool error handling.
+            The user will ask you to call a tool with some input. Call the tool
+            as requested and return the result.
+            The tool MUST only be called once. Make sure you call the which matches
+            exactly the one requested by the user (there may be more than one tool
+            with similar names, you MUST call the one that matches the user request).
+            """),
+            action_packages=[
+                ActionPackage(
+                    name="ActionPackage",
+                    organization="Organization",
+                    version="0.0.1",
+                    url=url,
+                    api_key=SecretKey(value=api_key),
+                    whitelist="",
+                    # Only allow our test actions
+                    allowed_actions=[
+                        "sleep_action",
+                        "sleep_then_error_action",
+                        "raise_unexpected_action_error",
+                        "raise_unexpected_value_error",
+                    ],
+                )
+            ],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-5-low"]},
+                },
+            ],
+        )
+
+        functions = [
+            functools.partial(check_async_action_happy_path, agent_client, agent_id),
+            functools.partial(check_async_action_error, agent_client, agent_id),
+            functools.partial(check_unexpected_action_error, agent_client, agent_id),
+            functools.partial(check_unexpected_value_error, agent_client, agent_id),
+        ]
+
+        # for func in functions:
+        #     func()
+        # return
+
+        # Execute the functions in parallel using regular threading (futures)
+        with ThreadPoolExecutor(max_workers=len(functions)) as executor:
+            results = [executor.submit(func) for func in functions]
+
+            for future in results:
+                future.result()
+
+
+def check_async_action_happy_path(agent_client: AgentServerClient, agent_id: str):
     """
     Integration test for async action polling with fast retry intervals.
 
     This test:
     1. Sets the retry interval environment variable to 0.1 seconds
     2. Calls the test_sleep_action that takes 0.5 seconds to complete
-    3. Tests happy path where the action eventually succeeds after multiple fast polling attempts
+    3. Tests happy path where the action eventually succeeds after multiple
+       fast polling attempts
 
-    This verifies that async polling mechanism works correctly with configurable retry intervals.
+    This verifies that async polling mechanism works correctly with configurable retry
+    intervals.
     Note: This is an end-to-end test that includes LLM processing time, so timing assertions
     are focused on successful completion rather than precise timing measurements.
     """
-    from agent_platform.orchestrator.agent_server_client import (
-        ActionPackage,
-        AgentServerClient,
-        SecretKey,
+
+    thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+    # Record the start time
+    start_time = time.time()
+
+    # Call the sleep action with a duration that will require multiple polling attempts
+    # We'll use 0.5 seconds, which with 0.1 second intervals should result
+    # in ~5 polling attempts.
+
+    result, tool_calls = agent_client.send_message_to_agent_thread(
+        agent_id, thread_id, "Please call the sleep_action with duration_seconds=0.5"
     )
 
-    assert os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION") == "true", (
-        "Async actions must be enabled"
+    tool_call = tool_calls[0] if tool_calls else None
+    assert tool_call is not None, f"No tool calls returned. Result: {result}"
+    assert tool_call.tool_name == "sleep_action", (
+        f"Expected sleep action but got: {tool_call.tool_name}"
     )
+    assert tool_call.result == {
+        "result": "Action completed after sleeping for 0.5 seconds",
+        "error": None,
+    }
+    assert not tool_call.error, f"Tool call should not have an error. Got: {tool_call.error}"
+    assert tool_call.input_data.get("duration_seconds") == 0.5, "Expected duration 0.5"
 
-    cwd = resources_dir / "simple_action_package"
-    api_key = "test"
-    action_server_process.start(
-        cwd=cwd,
-        actions_sync=True,
-        min_processes=1,
-        max_processes=1,
-        reuse_processes=True,
-        lint=True,
-        timeout=500,  # Can be slow (time to bootstrap env)
-        additional_args=["--api-key", api_key],
-        logs_dir=logs_dir,
-    )
-    url = f"http://{action_server_process.host}:{action_server_process.port}"
+    end_time = time.time()
+    elapsed_time = end_time - start_time
 
-    with AgentServerClient(base_url_agent_server_with_async_actions) as agent_client:
-        agent_id = agent_client.create_agent_and_return_agent_id(
-            action_packages=[
-                ActionPackage(
-                    name="ActionPackage",
-                    organization="Organization",
-                    version="0.0.1",
-                    url=url,
-                    api_key=SecretKey(value=api_key),
-                    whitelist="",
-                    allowed_actions=["sleep_action"],  # Only allow our test action
-                )
-            ],
-            platform_configs=[
-                {
-                    "kind": "openai",
-                    "openai_api_key": openai_api_key,
-                    "models": {"openai": ["gpt-5-low"]},
-                },
-            ],
+    # Verify the timing - this is an end-to-end test that includes LLM processing time,
+    # so we need to account for the full latency including:
+    # - LLM processing the request and deciding to call the action (1-3 seconds)
+    # - The 0.5 second sleep action itself
+    # - Agent/action server communication overhead
+    # The main goal is to verify the action completes successfully, not strict timing
+    if elapsed_time < 0.4:
+        raise AssertionError(
+            f"Action completed too quickly ({elapsed_time:.2f}s). "
+            f"Expected at least 0.4 seconds for a 0.5s sleep action."
         )
 
-        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
-        # First, verify the agent has access to the sleep action
-        result, _ = agent_client.send_message_to_agent_thread(
-            agent_id, thread_id, "What actions can you call? List them."
-        )
-
-        result = result.lower()
-
-        if "sleep" not in result:
-            raise AssertionError(
-                f"Agent did not report having access to test_sleep_action. Found result: {result!r}"
-            )
-
-        # Record the start time
-        start_time = time.time()
-
-        # Call the sleep action with a duration that will require multiple polling attempts
-        # We'll use 0.5 seconds, which with 0.1 second intervals should result
-        # in ~5 polling attempts.
-
-        result, tool_calls = agent_client.send_message_to_agent_thread(
-            agent_id, thread_id, "Please call the sleep_action with duration_seconds=0.5"
-        )
-
-        tool_call = tool_calls[0] if tool_calls else None
-        assert tool_call is not None, "No tool calls returned."
-        assert tool_call.tool_name == "sleep_action", (
-            f"Expected sleep action but got: {tool_call.tool_name}"
-        )
-        assert "result" in tool_call.result
-        assert "error" in tool_call.result
-        assert tool_call.result["result"] == "Action completed after sleeping for 0.5 seconds"
-        assert tool_call.result["error"] is None
-        assert tool_call.input_data.get("duration_seconds") == 0.5, "Expected duration 0.5"
-
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-
-        # Verify the timing - this is an end-to-end test that includes LLM processing time,
-        # so we need to account for the full latency including:
-        # - LLM processing the request and deciding to call the action (1-3 seconds)
-        # - The 0.5 second sleep action itself
-        # - Agent/action server communication overhead
-        # The main goal is to verify the action completes successfully, not strict timing
-        if elapsed_time < 0.4:
-            raise AssertionError(
-                f"Action completed too quickly ({elapsed_time:.2f}s). "
-                f"Expected at least 0.4 seconds for a 0.5s sleep action."
-            )
-
-
-@pytest.mark.integration
-@pytest.mark.usefixtures("copy_tmpdir_on_failure")
-def test_async_action_error_handling(
-    base_url_agent_server_with_async_actions,
-    openai_api_key,
-    action_server_process,
-    logs_dir,
-    resources_dir,
-):
+def check_async_action_error(agent_client: AgentServerClient, agent_id: str):
     """
-    Integration test for async action error handling.
+    Now, test for async action error handling.
 
     This test:
-    1. Calls the test_sleep_then_error_action that sleeps for 3 seconds then raises an ActionError
+    1. Calls the test_sleep_then_error_action that sleeps for 1 seconds then
+       raises an ActionError
     2. Forces the action into async mode due to the sleep duration
     3. Tests that the error is properly propagated through the async polling flow
     4. Verifies that our enhanced error handling works correctly in async mode
 
     This verifies that async error handling works correctly.
     """
-    from agent_platform.orchestrator.agent_server_client import (
-        ActionPackage,
-        AgentServerClient,
-        SecretKey,
+
+    thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+    # Call the slow error action
+    result, tool_calls = agent_client.send_message_to_agent_thread(
+        agent_id,
+        thread_id,
+        "Please call the sleep_then_error_action with sleep_seconds=1.0",
     )
 
-    assert os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION") == "true", (
-        "Async actions must be enabled"
+    tool_call = tool_calls[0] if tool_calls else None
+    assert tool_call is not None, f"No tool calls returned. Result: {result}"
+    assert tool_call.tool_name == "sleep_then_error_action", (
+        f"Expected slow error action but got: {tool_call.tool_name}"
     )
-    cwd = resources_dir / "simple_action_package"
-    api_key = "test"
-    action_server_process.start(
-        cwd=cwd,
-        actions_sync=True,
-        min_processes=1,
-        max_processes=1,
-        reuse_processes=True,
-        lint=True,
-        timeout=500,  # Can be slow (time to bootstrap env)
-        additional_args=["--api-key", api_key],
-        logs_dir=logs_dir,
+
+    assert set(tool_call.result.keys()) == {"result", "error"}
+    assert tool_call.error, f"Tool result should contain error field. Got: {tool_call}"
+
+    error_message = tool_call.error
+    assert error_message, "Error field should not be empty"
+    assert "error after sleeping for 1" in error_message, (
+        f"Error message should contain the sleep duration error message. Got: {error_message}"
     )
-    url = f"http://{action_server_process.host}:{action_server_process.port}"
 
-    with AgentServerClient(base_url_agent_server_with_async_actions) as agent_client:
-        agent_id = agent_client.create_agent_and_return_agent_id(
-            action_packages=[
-                ActionPackage(
-                    name="ActionPackage",
-                    organization="Organization",
-                    version="0.0.1",
-                    url=url,
-                    api_key=SecretKey(value=api_key),
-                    whitelist="",
-                    allowed_actions=["sleep_then_error_action"],  # Only allow our slow error action
-                )
-            ],
-            platform_configs=[
-                {
-                    "kind": "openai",
-                    "openai_api_key": openai_api_key,
-                    "models": {"openai": ["gpt-5-low"]},
-                },
-            ],
-        )
 
-        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+def check_unexpected_action_error(agent_client: AgentServerClient, agent_id: str):
+    """
+    Now, test for an unexpected action error without the `Response[T]` shape.
+    """
 
-        # Record the start time
-        start_time = time.time()
+    thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
-        # Call the slow error action
-        result, tool_calls = agent_client.send_message_to_agent_thread(
-            agent_id,
-            thread_id,
-            "Please call the sleep_then_error_action with sleep_seconds=3.0",
-        )
+    # Call the unexpected action error
+    result, tool_calls = agent_client.send_message_to_agent_thread(
+        agent_id,
+        thread_id,
+        "Please call the raise_unexpected_action_error action",
+    )
 
-        tool_call = tool_calls[0] if tool_calls else None
-        assert tool_call is not None, "No tool calls returned."
-        assert tool_call.tool_name == "sleep_then_error_action", (
-            f"Expected slow error action but got: {tool_call.tool_name}"
-        )
+    tool_call = tool_calls[0] if tool_calls else None
+    assert tool_call is not None, f"No tool calls returned. Result: {result}"
+    assert tool_call.tool_name == "raise_unexpected_action_error", (
+        f"Expected unexpected action error but got: {tool_call.tool_name}"
+    )
 
-        end_time = time.time()
-        elapsed_time = end_time - start_time
+    error_message = tool_call.error
+    assert error_message, "Error field should not be empty"
+    assert "UNEXPECTED ACTION ERROR IS RAISED" in error_message, (
+        f"Error message should contain the unexpected error message "
+        f"'UNEXPECTED ACTION ERROR IS RAISED'. Got: {error_message}"
+    )
 
-        # Verify the tool call result shows proper error handling
-        # The tool call should have error information from our enhanced error handling
-        tool_result = tool_call.result
-        if not tool_result:
-            raise AssertionError(f"Tool result is empty. Tool call: {tool_call}")
 
-        # Check if the tool result contains error information
-        # Should have error field from our _handle_status_check function
-        assert "error" in tool_result, f"Tool result should contain error field. Got: {tool_result}"
+def check_unexpected_value_error(agent_client: AgentServerClient, agent_id: str):
+    """
+    Now, test for an unexpected value error without the `Response[T]` shape.
+    """
 
-        error_message = tool_result.get("error", "")
-        assert error_message, "Error field should not be empty"
-        assert "error after sleeping for 3" in error_message, (
-            f"Error message should contain the sleep duration error message. Got: {error_message}"
-        )
+    thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
-        # Verify reasonable timing - should take at least 3 seconds (sleep time) but not too long
-        if elapsed_time < 2.5:  # Should take at least close to 3 seconds
-            raise AssertionError(
-                f"Error action completed too quickly ({elapsed_time:.2f}s). "
-                f"Expected at least ~3 seconds due to sleep."
-            )
+    # Call the unexpected action error
+    result, tool_calls = agent_client.send_message_to_agent_thread(
+        agent_id,
+        thread_id,
+        "Please call the raise_unexpected_value_error action",
+    )
+
+    tool_call = tool_calls[0] if tool_calls else None
+    assert tool_call is not None, f"No tool calls returned. Result: {result}"
+    assert tool_call.tool_name == "raise_unexpected_value_error", (
+        f"Expected unexpected value error but got: {tool_call.tool_name}.\n"
+        f"Result: {result}.\nTool call: {tool_call}"
+    )
+
+    assert tool_call.error, f"Tool call should contain error field. Got: {tool_call}"
+
+    error_message = tool_call.error
+    assert error_message, "Error field should not be empty"
+    assert "UNEXPECTED VALUE ERROR IS RAISED" not in error_message, (
+        f"Error message should NOT contain the unexpected error message "
+        f"'UNEXPECTED VALUE ERROR IS RAISED'. Got: {error_message}"
+    )
+    assert "ValueError" in error_message, (
+        f"Error message should contain the ValueError message. Got: {error_message}"
+    )
 
 
 @pytest.mark.integration

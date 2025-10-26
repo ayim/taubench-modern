@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
+from agent_platform.core.actions.action_utils import ActionResponse
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
@@ -122,6 +123,35 @@ async def test_result_with_error_handling(tools_interface: AgentServerToolsInter
     }
     assert result.definition == tool_def
     assert result.tool_call_id == "call_789"
+
+
+@pytest.mark.asyncio
+async def test_action_response_inline_error_result_error_pattern(
+    tools_interface: AgentServerToolsInterface,
+):
+    """ActionResponse with {"result": None, "error": "..."} should elevate error."""
+
+    async def tool_func(**kwargs):
+        return ActionResponse(result=None, error="Boom")
+
+    tool_def = ToolDefinition(
+        name="action_response_error_result_pattern",
+        description="Tool returns ActionResponse with inline error in result/error pattern",
+        input_schema={"type": "object", "properties": {}},
+        function=tool_func,
+    )
+
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_ar_err_pattern",
+        tool_name="action_response_error_result_pattern",
+        tool_input_raw="{}",
+    )
+
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use)
+
+    assert result.error == "Boom"
+    assert result.output_raw is None
+    assert result.tool_call_id == "call_ar_err_pattern"
 
 
 @pytest.mark.asyncio

@@ -95,6 +95,30 @@ def sleep_then_error_action(sleep_seconds: float = 2.0) -> Response[str]:
 
 
 @action
+def raise_unexpected_action_error() -> str:
+    """
+    A test action that raises an unexpected ActionError.
+
+    Returns:
+        Always raises an ActionError.
+    """
+    raise ActionError("UNEXPECTED ACTION ERROR IS RAISED")
+    return ""
+
+
+@action
+def raise_unexpected_value_error() -> str:
+    """
+    A test action that raises an unexpected ValueError.
+
+    Returns:
+        Always raises a ValueError.
+    """
+    raise ValueError("UNEXPECTED VALUE ERROR IS RAISED")
+    return ""
+
+
+@action
 def update_contact_email(contact_id: str, new_email: str) -> Response[str]:
     """
     Updates the email address of an existing contact.
@@ -113,6 +137,33 @@ def update_contact_email(contact_id: str, new_email: str) -> Response[str]:
     else:
         print(f"Contact {contact_id} not found")
         return Response(error=f"Contact {contact_id} not found")
+
+
+@action
+def always_error_action_action_response(
+    message: str = "This action always errors for testing",
+) -> Response[str]:
+    """
+    A test action that always returns an error.
+
+    Args:
+        message: Optional custom error message to return.
+
+    Returns:
+        A Response with the error field populated.
+    """
+    return Response(error=message)
+
+
+@action
+def always_error_action_internal_error() -> str:
+    """
+    A test action that always errors out internally.
+    """
+    raise ValueError("This is an error")
+    # unreachable, but returning a string
+    # to satisfy the type checker
+    return "Unreachable"
 
 
 @action

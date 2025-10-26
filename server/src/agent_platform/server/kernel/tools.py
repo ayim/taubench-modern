@@ -37,7 +37,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
     # ------------------------------------------------------ tool execution methods
 
-    async def _safe_execute_tool(  # noqa: PLR0912, C901
+    async def _safe_execute_tool(  # noqa: C901, PLR0912
         self,
         tool_def: ToolDefinition,
         tool_use: ResponseToolUseContent,
@@ -82,31 +82,23 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
                 # Handling of various result types...
                 if isinstance(result, ActionResponse):
+                    # sema4ai.actions should always be handled here.
+                    # The construction of the ActionResponse is responsible for
+                    # filling in the result and error fields as we expect already.
                     logger.info("Result is an ActionResponse.")
                     result_output = result.result
                     error_message = result.error
+                    # At this point, the action has run successfully.
                     # Store the action_run_id directly in the result
                     if result.action_server_run_id:
                         tool_result_args["action_server_run_id"] = result.action_server_run_id
+
+                # Below here we handle the result from non sema4ai.actions tools
+                # (mcp-tools, internal-tools, etc.)
                 elif isinstance(result, dict):
-                    logger.info("Result is a dict.")
-                    # Check for error_code format
-                    if "error_code" in result and result["error_code"] != "":
-                        error_code = result["error_code"]
-                        error_message = result.get("message", "Unknown error")
-                        error_message = f"{error_code}: {error_message}"
-                        result_output = result
-                    # Check for {"result": None, "error": "error-message"} format
-                    elif (
-                        "result" in result
-                        and result["result"] is None
-                        and "error" in result
-                        and result["error"]
-                    ):
-                        error_message = result["error"]
-                        result_output = result
-                    else:
-                        result_output = result
+                    error_and_result = ActionResponse.extract_error_and_result_from_dict(result)
+                    error_message = error_and_result.error
+                    result_output = error_and_result.result
 
                 # Handles all primitive types that action servers can return
                 elif result is None or isinstance(result, str | int | float | bool):
@@ -387,7 +379,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             # Yield results as they complete
             for completed_task in as_completed(execution_tasks):
                 try:
-                    result = await completed_task
+                    result: ToolExecutionResult = await completed_task
                 except asyncio.CancelledError:
                     # Task was cancelled (e.g., due to websocket disconnect)
                     # We can't yield a result for this task, so just continue

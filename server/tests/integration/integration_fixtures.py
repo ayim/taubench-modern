@@ -87,26 +87,47 @@ def base_url_agent_server_with_data_frames(tmpdir, logs_dir, files_location):
         yield url
 
 
-@pytest.fixture
-def base_url_agent_server_with_async_actions(tmpdir, logs_dir, files_location):
+@pytest.fixture(
+    params=[
+        "async",
+        "sync",
+    ]
+)
+def base_url_agent_server_sync_and_async_actions_and_sync_mode(
+    tmpdir, logs_dir, files_location, request
+):
     """Fixture that starts agent server with async actions enabled."""
+
+    sync_mode = request.param
 
     start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
     if start_server == "true":
-        env_vars = {
-            "SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION": "true",
-            "ACTIONS_ASYNC_RETRY_INTERVAL": "0.1",
-            "ACTIONS_ASYNC_MAX_RETRIES": "100",
-            "ACTIONS_ASYNC_TIMEOUT": "0.1",  # 0.1 seconds - forces async mode
-        }
+        if sync_mode == "async":
+            env_vars = {
+                "SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION": "true",
+                "ACTIONS_ASYNC_RETRY_INTERVAL": "0.1",
+                "ACTIONS_ASYNC_MAX_RETRIES": "100",
+                "ACTIONS_ASYNC_TIMEOUT": "0",  # force async mode
+            }
+        else:
+            env_vars = {
+                "SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION": "false",
+            }
 
         with patch.dict(os.environ, env_vars):
             with start_agent_server(tmpdir, logs_dir, env=env_vars) as url:
-                yield url
-    else:
-        host = os.getenv("API_HOST", "localhost")
-        port = os.getenv("API_PORT", "8000")
-        yield f"http://{host}:{port}"
+                yield {"url": url, "sync_mode": sync_mode}
+
+    else:  # noqa
+        if sync_mode == "async":
+            host = os.getenv("API_HOST", "localhost")
+            port = os.getenv("API_PORT", "8000")
+            yield {"url": f"http://{host}:{port}", "sync_mode": sync_mode}
+
+        else:
+            # devs can tweak this manually if neededed, but given async is the default
+            # only test for it.
+            pytest.skip("Only async mode is supported when starting the server manually.")
 
 
 @pytest.fixture

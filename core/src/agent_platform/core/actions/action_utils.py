@@ -6,7 +6,7 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from enum import IntEnum
 from http import HTTPStatus
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import httpx
 from httpx_retries import Retry, RetryTransport
@@ -16,6 +16,9 @@ from structlog import get_logger
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.utils.url import safe_urljoin
+
+if TYPE_CHECKING:
+    from agent_platform.server.storage.types import JSONValue
 
 logger = get_logger(__name__)
 
@@ -80,18 +83,73 @@ class ActionRunStatus(IntEnum):
 class ActionStatusResponse(TypedDict, total=False):
     """Response from action server status check."""
 
+    # 0=not run, 1=running, 2=passed, 3=failed, 4=cancelled,
+    # -1 is used internally to indicate an unexpected error
     status: int
-    result: Any
-    error_message: str
+
+    # In async use case, this is the json content of the output that the run generated
+    # If sync use case, this is the actual result (so, no need to json load it)
+    result: "str | JSONValue | None"
+    error_message: str | None  # If the status=failed, this may have an error message
+
+    # Note: it's possible for the status to be "2" (passed) but have the result
+    # be in a `Response[T]` shape, in this case the error should be gotten from the
+    # result['error'] field.
+
+
+@dataclass(frozen=True)
+class ErrorAndResult:
+    error: str | None
+    result: "JSONValue | None"
 
 
 @dataclass
 class ActionResponse:
     """Response from action server."""
 
-    result: Any | None
+    result: "JSONValue | None"
     error: str | None
     action_server_run_id: str | None = None
+
+    @classmethod
+    def extract_error_and_result_from_dict(cls, result: dict) -> ErrorAndResult:
+        """Extract the error and result from a dictionary.
+
+        Args:
+            result: The initial result from the action server
+
+        Returns:
+            ErrorAndResult: A named tuple containing the error and result
+        """
+
+        error: str | None = None
+
+        # Handle ErrorResponse shape
+        result_keys = set(result.keys())
+
+        # Handle Response[T] shape
+        if result_keys == {"error", "result"}:
+            error = result.get("error")
+            if error and not isinstance(error, str):
+                error = str(error)
+
+        # Just the error, no result
+        elif result_keys == {"error"}:
+            error = result.get("error")
+            if error and not isinstance(error, str):
+                error = str(error)
+
+        # error_code and message
+        elif result_keys == {"error_code", "message"} and result["error_code"] != "":
+            msg = result["message"] or "Unknown error"
+            error = f"{result['error_code']}: {msg}"
+
+        # error_code and error
+        elif result_keys == {"error_code", "error"} and result["error_code"] != "":
+            msg = result["error"] or "Unknown error"
+            error = f"{result['error_code']}: {msg}"
+
+        return ErrorAndResult(error=error, result=result)
 
 
 def _dereference_refs_recursive(item: Any, full_schema: dict) -> Any:
@@ -261,44 +319,65 @@ async def _check_action_status(
         return {"status": -1}
 
 
-def _handle_status_check(
-    status_result: ActionStatusResponse, action_server_run_id: str | None = None
+def _handle_status_check(  # noqa
+    status_result: ActionStatusResponse,
+    action_server_run_id: str | None,
+    result_is_json_string: bool,
 ) -> ActionResponse | None:
     """Handle the status check response from an async action.
 
     Args:
         status_result: The full status response from the action server
         action_server_run_id: The action run ID from the action server
+        result_is_json_string: Whether the result is a JSON object or a string
 
     Returns:
         dict: Response with error and result keys, or None if action is still running
     """
     status = status_result.get("status")
-    if status == ActionRunStatus.PASSED:
-        return ActionResponse(
-            result=status_result.get("result"),
-            error=status_result.get("error_message"),
-            action_server_run_id=action_server_run_id,
-        )
-    elif status == ActionRunStatus.FAILED:
-        error = status_result.get("error_message")
+    if status in [ActionRunStatus.PASSED, ActionRunStatus.FAILED]:
         result = status_result.get("result")
-        if not error:
-            if isinstance(result, str):
+        error = None
+        if result_is_json_string and result:
+            if not isinstance(result, str):
+                # Action Server API not what we expected, log as critical
+                # (but don't break the flow).
+                logger.critical(
+                    f"Expected Action Server run result to be a (json) string, got: {type(result)}"
+                )
+            else:
                 try:
                     result = json.loads(result)
                 except Exception:
-                    pass  # Not json
-            if isinstance(result, dict):
-                error = result.get("error")
-                if error and not isinstance(error, str):
-                    error = str(error)
+                    # This is not what we expected, log as critical (but don't break the flow).
+                    logger.critical(f"Failed to parse Action Server run result as JSON: {result}")
+
+        if isinstance(result, dict):
+            error_and_result = ActionResponse.extract_error_and_result_from_dict(result)
+            error = error_and_result.error
+            result = error_and_result.result
+
+        # If status is Passed, no need to do anything else.
+
+        if status == ActionRunStatus.FAILED:
+            # If error, make sure we set the error (and the result may be an error too).
+            if not error:
+                error = status_result.get("error_message")
+
+            if not error:
+                if result:
+                    error = str(result)
+                    result = None
+
+                if not error:
+                    error = "Action failed"
 
         return ActionResponse(
-            result=status_result.get("result"),
-            error=error or "Action failed",
+            result=result,
+            error=error,
             action_server_run_id=action_server_run_id,
         )
+
     elif status == ActionRunStatus.CANCELLED:
         return ActionResponse(
             result=None,
@@ -310,14 +389,14 @@ def _handle_status_check(
         return None
 
 
-def _build_post_async_function(
+def _build_post_async_function(  # noqa
     action_url: str,
     api_key: str,
     # Extra headers to be added to the request at
     # tool definition time
     additional_headers: dict | None = None,
 ) -> Callable[..., Coroutine[Any, Any, ActionResponse]]:
-    async def _post_async_function(
+    async def _post_async_function(  # noqa
         # Extra headers to be added to the request at
         # tool invocation time
         extra_headers: dict | None = None,
@@ -342,6 +421,14 @@ def _build_post_async_function(
         if os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true").lower() == "true":
             # The timeout can be a float (like 0.1 seconds), so handle it properly
             timeout_seconds = os.getenv("ACTIONS_ASYNC_TIMEOUT", "20")
+            try:
+                float(timeout_seconds)
+            except Exception:
+                logger.warning(
+                    f"Invalid timeout value: {timeout_seconds}. Using default 20 seconds."
+                )
+                timeout_seconds = "20"
+
             headers.update(
                 {
                     "x-actions-request-id": str(uuid.uuid4()),
@@ -401,7 +488,9 @@ def _build_post_async_function(
                                 )
                                 # Handle different status codes
                                 status_response = _handle_status_check(
-                                    status_result, action_server_run_id
+                                    status_result,
+                                    action_server_run_id,
+                                    result_is_json_string=True,
                                 )
                                 if status_response is not None:
                                     if status_response.error:
@@ -429,13 +518,26 @@ def _build_post_async_function(
                         error="Async action did not complete after timeout",
                         action_server_run_id=action_server_run_id,
                     )
-            else:
-                logger.info("Action completed synchronously")
-                return ActionResponse(
-                    result=result,
-                    error=None,
-                    action_server_run_id=action_server_run_id,
-                )
+            else:  # not async action
+                if response.status_code not in (200, 201):
+                    logger.info(
+                        "Action completed synchronously with error "
+                        f"(status code: {response.status_code})"
+                    )
+
+                    status_response = _handle_status_check(
+                        {"status": ActionRunStatus.FAILED, "result": result},
+                        action_server_run_id,
+                        result_is_json_string=False,
+                    )
+                else:
+                    logger.info("Action completed synchronously with success")
+                    status_response = _handle_status_check(
+                        {"status": ActionRunStatus.PASSED, "result": result},
+                        action_server_run_id,
+                        result_is_json_string=False,
+                    )
+                return status_response
 
     return _post_async_function
 
