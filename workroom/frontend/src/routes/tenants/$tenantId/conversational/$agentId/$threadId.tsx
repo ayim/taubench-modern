@@ -22,7 +22,17 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       }),
     );
 
-    setUserPreferenceId(getPreferenceKey({ agentId }), threadId);
+    // Fetch thread data to check if it's an evaluation thread
+    const threadResult = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/{tid}', {
+      params: { path: { tid: threadId } },
+    });
+
+    // Only save non-evaluation threads as preferred threads
+    // Evaluation threads are identified by having a scenario_id in metadata
+    const isEvaluationThread = threadResult.success && threadResult.data.metadata?.scenario_id;
+    if (!isEvaluationThread) {
+      setUserPreferenceId(getPreferenceKey({ agentId }), threadId);
+    }
 
     return { agentMeta };
   },

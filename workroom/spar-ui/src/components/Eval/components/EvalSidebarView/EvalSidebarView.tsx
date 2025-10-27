@@ -55,6 +55,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           hasMessages={hasMessages}
           onAddEvaluation={sidebar.handleAddEvaluation}
           onImportScenarios={handleImportClick}
+          isFetchingSuggestion={sidebar.isFetchingSuggestion}
           isImporting={sidebar.importScenariosMutation.isPending}
         />
 
@@ -94,7 +95,6 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           onSubmit={sidebar.handleCreateEvaluationWithCleanup}
           isLoading={sidebar.createScenarioMutation.isPending}
           initialValues={sidebar.suggestedValues}
-          isFetchingSuggestion={sidebar.isFetchingSuggestion}
         />
       </>
     );
@@ -109,6 +109,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           onAddEvaluation={sidebar.handleAddEvaluation}
           onExportScenarios={sidebar.handleExportScenarios}
           isExporting={sidebar.exportScenariosMutation.isPending}
+          isFetchingSuggestion={sidebar.isFetchingSuggestion}
           onImportScenarios={handleImportClick}
           isImporting={sidebar.importScenariosMutation.isPending}
         />
@@ -202,7 +203,6 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
         onSubmit={sidebar.handleCreateEvaluationWithCleanup}
         isLoading={sidebar.createScenarioMutation.isPending}
         initialValues={sidebar.suggestedValues}
-        isFetchingSuggestion={sidebar.isFetchingSuggestion}
       />
 
       <input

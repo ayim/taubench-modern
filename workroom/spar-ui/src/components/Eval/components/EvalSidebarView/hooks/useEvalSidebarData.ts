@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from '@sema4ai/components';
 import type { components } from '@sema4ai/agent-server-interface';
@@ -188,6 +188,25 @@ export const useEvalSidebarData = ({
   }, [scenarios, latestRunsData, allRunsData, selectedRunIndices, historicalRunQueries, expandedResults]);
 
   const isAnyTestRunning = evaluations.some(evaluation => evaluation.isRunning);
+
+  // Track which scenarios we've auto-expanded to avoid expanding on every render
+  const autoExpandedRef = useRef<Set<string>>(new Set());
+
+  // Auto-expand scenarios that are currently running (e.g., when user navigates back to sidebar)
+  useEffect(() => {
+    if (!loading) {
+      evaluations.forEach(({ scenario, isRunning }) => {
+        if (isRunning && !autoExpandedRef.current.has(scenario.scenario_id)) {
+          expandResults(scenario.scenario_id);
+          autoExpandedRef.current.add(scenario.scenario_id);
+        }
+        // Clean up tracking when test completes
+        if (!isRunning && autoExpandedRef.current.has(scenario.scenario_id)) {
+          autoExpandedRef.current.delete(scenario.scenario_id);
+        }
+      });
+    }
+  }, [evaluations, loading, expandResults, expandedResults]);
 
   const handleCreateEvaluation = async (data: CreateEvalFormData) => {
     const evaluationCriteria: EvaluationCriterionConfig[] = [];

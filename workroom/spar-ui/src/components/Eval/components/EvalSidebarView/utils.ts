@@ -6,15 +6,15 @@ import { Trial, EvaluationResult } from './types';
 export const getIconColor = (status: Trial['status']): Color => {
     switch (status) {
       case 'COMPLETED':
-        return 'green80';
+        return 'content.success';
       case 'ERROR':
-        return 'red80';
+        return 'content.error';
       case 'EXECUTING':
       case 'PENDING':
         return 'yellow80';
       case 'CANCELED':
       default:
-        return 'red80';
+        return 'content.error';
     }
   };
   
@@ -81,7 +81,7 @@ export const getIconColor = (status: Trial['status']): Color => {
   };
 
   export const getEvaluationResultColor = (result: EvaluationResult): Color => {
-    return result.passed ? 'green80' : 'red80';
+    return result.passed ? 'content.success' : 'content.error';
   };
 
   export const getEvaluationResultBadgeColor = (result: EvaluationResult): BadgeVariant => {

@@ -435,7 +435,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
 
     new_thread = Thread(
         name=(
-            f'Simulation "{scenario.name}" - '
+            f'"{scenario.name}" - '
             f"Run {scenario_run.scenario_run_id[:8]}: "
             f"{task.index_in_run + 1} out of {scenario_run.num_trials}"
         ),

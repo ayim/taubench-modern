@@ -7,6 +7,7 @@ import { FC, ReactNode } from 'react';
 import { useFeatureFlag, useNavigate, useParams } from '../../hooks';
 import { useCreateThread } from '../../hooks/useCreateThread';
 import { useAgentQuery } from '../../queries/agents';
+import { useThreadQuery } from '../../queries/threads';
 import { ThreadSearch } from '../ThreadSearch';
 import { AgentContextMenu } from '../Agents';
 import { SparUIFeatureFlag } from '../../api';
@@ -37,13 +38,17 @@ export const Container = styled.header<{ $sidebarExpanded: boolean }>`
 
 export const ThreadHeader: FC<Props> = ({ children }) => {
   const navigate = useNavigate();
-  const { agentId } = useParams('/thread/$agentId/$threadId');
+  const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const { triggerProps, triggerRef } = useSidebarMenu('threads-list');
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const { onNewThread, isCreatingThread } = useCreateThread();
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
+  const { data: thread } = useThreadQuery({ threadId });
+
+  // Check if this is an evaluation thread (has scenario_id in metadata)
+  const isEvaluationThread = Boolean(thread?.metadata?.scenario_id);
 
   const onAgentDelete = () => {
     navigate({ to: '/home', params: {} });
@@ -56,13 +61,16 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
   const isNewThreadDisabled = isCreatingThread || !isChatInteractive;
   return (
     <Container $sidebarExpanded={mainMenuExpanded}>
-      <ThreadsToggle
-        variant="ghost-subtle"
-        icon={IconLayoutRight}
-        aria-label="Toggle thread view"
-        {...triggerProps}
-        ref={triggerRef}
-      />
+      {/* Hide threads list toggle for evaluation threads - navigation only through eval sidebar */}
+      {!isEvaluationThread && (
+        <ThreadsToggle
+          variant="ghost-subtle"
+          icon={IconLayoutRight}
+          aria-label="Toggle thread view"
+          {...triggerProps}
+          ref={triggerRef}
+        />
+      )}
       <Box display="flex" alignItems="center" gap="$12" minWidth={0}>
         <AgentIcon mode="conversational" size="s" identifier={agent.id || ''} />
         <Box maxWidth="100%" overflow="hidden">
@@ -73,7 +81,9 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
         <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
       </Box>
       <Box display="flex" alignItems="center" gap="$8" ml="auto">
-        <Tooltip text="New Chat" placement="bottom">
+        {/* Hide new chat button for evaluation threads */}
+        {!isEvaluationThread && (
+          <Tooltip text="New Chat" placement="bottom">
           <SideNavigation.Item
             icon={IconPlus}
             disabled={isNewThreadDisabled}
@@ -82,6 +92,7 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
             onClick={onNewThread}
           />
         </Tooltip>
+        )}
         {children}
         <ThreadSearch />
       </Box>

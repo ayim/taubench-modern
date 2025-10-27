@@ -149,7 +149,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                       statusBadge = (
                         <Badge
                           icon={IconStatusError}
-                          iconColor="red80"
+                          iconColor="content.error"
                           variant="red"
                           size="small"
                           label=""
@@ -159,7 +159,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                       statusBadge = (
                         <Badge
                           icon={IconStatusCompleted}
-                          iconColor="green80"
+                          iconColor="content.success"
                           variant="green"
                           size="small"
                           label=""

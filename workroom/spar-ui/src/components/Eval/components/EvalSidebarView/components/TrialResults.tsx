@@ -9,8 +9,23 @@ import {
   IconInformation,
   IconStatusProcessing,
 } from '@sema4ai/icons';
+import { styled } from '@sema4ai/theme';
 import { getEvaluationResultColor, getEvaluationResultLabel, getEvaluationResultIcon, isTrialTerminal } from '../utils';
 import type { Trial } from '../types';
+
+const ErrorMessageBox = styled.pre`
+  margin: 0;
+  padding: ${({ theme }) => theme.space.$8};
+  background-color: #fee2e2;
+  border-radius: ${({ theme }) => theme.radii.$4};
+  font-size: ${({ theme }) => theme.fontSizes.$12};
+  font-family: ${({ theme }) => theme.fonts.code};
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #991b1b;
+  user-select: text;
+  cursor: text;
+`;
 
 export interface TrialResultsProps {
   scenarioId: string;
@@ -79,7 +94,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
       return (
         <Badge
           icon={IconStatusError}
-          iconColor="red80"
+          iconColor="content.error"
           variant="red"
           size="small"
           label="Error"
@@ -98,7 +113,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
           <Badge
             key="passed"
             icon={IconStatusCompleted}
-            iconColor="green80"
+            iconColor="content.success"
             variant="green"
             size="small"
             label={`${passedCount}`}
@@ -111,7 +126,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
           <Badge
             key="failed"
             icon={IconStatusError}
-            iconColor="red80"
+            iconColor="content.error"
             variant="red"
             size="small"
             label={`${failedCount}`}
@@ -123,7 +138,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
         return (
           <Badge
             icon={IconStatusError}
-            iconColor="red80"
+            iconColor="content.error"
             variant="red"
             size="small"
             label="No Results"
@@ -137,22 +152,6 @@ export const TrialResults: FC<TrialResultsProps> = ({
     return null;
   };
 
-  const renderTrialTitle = () => {
-    let titleText = `Test ${trialIndex + 1} results`;
-    
-    if (trial.status === 'ERROR') {
-      if (trial.error_message) {
-        titleText += ` - Error`;
-      } else if (!trial.evaluation_results || trial.evaluation_results.length === 0) {
-        titleText += ` - Error (No Results)`;
-      } else {
-        titleText += ` - Error`;
-      }
-    }
-    
-    return titleText;
-  };
-
   const hasTrialError = trial.status === 'ERROR' && trial.error_message;
   const hasExpandableContent = hasEvaluationResults || hasTrialError;
 
@@ -160,7 +159,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
     <Box display="flex" flexDirection="column" gap="$4">
       <Box display="flex" alignItems="center" gap="$8">
         <Typography variant="body-small" fontWeight="medium">
-          {renderTrialTitle()}
+          {`Test ${trialIndex + 1} results`}
         </Typography>
         <Box display="flex" gap="$4">
           {getTrialStatusBadges()}
@@ -191,16 +190,14 @@ export const TrialResults: FC<TrialResultsProps> = ({
           {hasTrialError && (
             <Box display="flex" flexDirection="column" gap="$4">
               <Box display="flex" alignItems="center" gap="$8">
-                <IconStatusError size={16} color="red80" />
+                <IconStatusError size={16} color="content.error" />
                 <Typography variant="body-small" fontWeight="medium" color="content.error">
                   Trial Error
                 </Typography>
               </Box>
-              <Box paddingLeft="$20">
-                <Typography variant="body-small" color="content.error">
-                  {trial.error_message}
-                </Typography>
-              </Box>
+              <ErrorMessageBox>
+                {trial.error_message}
+              </ErrorMessageBox>
             </Box>
           )}
 
@@ -230,16 +227,16 @@ export const TrialResults: FC<TrialResultsProps> = ({
                     />
                   </Box>
                   {isExpanded && hasDetails && (
-                    <Box paddingLeft="$14" display="flex" flexDirection="column" gap="$4">
+                    <Box paddingLeft="$14" display="flex" flexDirection="column" gap="$4" style={{ userSelect: 'text', cursor: 'text' }}>
                       {'explanation' in result && result.explanation && (
-                        <Typography variant="body-small" color="content.subtle">
+                        <Typography variant="body-small" color="content.subtle" style={{ userSelect: 'text' }}>
                           {result.explanation}
                         </Typography>
                       )}
                       {'issues' in result && result.issues && result.issues.length > 0 && (
-                        <Box display="flex" flexDirection="column" gap="$2">
+                        <Box display="flex" flexDirection="column" gap="$2" style={{ userSelect: 'text' }}>
                           {result.issues.map((issue: string) => (
-                            <Typography variant="body-small" color="content.error">
+                            <Typography variant="body-small" color="content.error" style={{ userSelect: 'text' }}>
                               • {issue}
                             </Typography>
                           ))}

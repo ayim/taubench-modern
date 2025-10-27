@@ -35,7 +35,6 @@ export interface CreateEvalDialogProps {
   onSubmit: (data: CreateEvalFormData) => Promise<void>;
   isLoading: boolean;
   initialValues?: Partial<CreateEvalFormData>;
-  isFetchingSuggestion?: boolean;
 }
 
 export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
@@ -44,7 +43,6 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
   onSubmit,
   isLoading = false,
   initialValues,
-  isFetchingSuggestion = false,
 }) => {
   const form = useForm<CreateEvalFormData>({
     resolver: zodResolver(createEvalFormSchema),
@@ -157,32 +155,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
             variant="secondary" 
             onClick={handleClose}
             disabled
-          >
-            Cancel
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-    );
-  }
-
-  if (isFetchingSuggestion) {
-    return (
-      <Dialog width={800} open={open} onClose={handleClose}>
-        <Dialog.Header>
-          <Dialog.Header.Title title="" />
-        </Dialog.Header>
-        
-        <Dialog.Content>
-          <Box display="flex" flexDirection="column" alignItems="center" gap="$16" padding="$32">
-            <Progress size="large" />
-          </Box>
-        </Dialog.Content>
-        
-        <Dialog.Actions>
-          <Button 
-            variant="secondary" 
-            onClick={handleClose}
-            disabled
+            round
           >
             Cancel
           </Button>
@@ -197,7 +170,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
         <Dialog.Header.Title title={
           <Box display="flex" alignItems="center" gap="$8">
             <IconChemicalBottle />
-            <Typography variant='display-small'>Add to Evaluations</Typography>
+            <Typography variant='display-small'>Create Evaluation Scenario</Typography>
           </Box>
         } />
       </Dialog.Header>
@@ -292,13 +265,15 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
           onClick={handleFormSubmit}
           disabled={!isValid || isLoading}
           loading={isLoading}
+          round
         >
-          Add Evaluation
+          Create
         </Button>
         <Button 
           variant="secondary" 
           onClick={handleClose}
           disabled={isLoading}
+          round
         >
           Cancel
         </Button>

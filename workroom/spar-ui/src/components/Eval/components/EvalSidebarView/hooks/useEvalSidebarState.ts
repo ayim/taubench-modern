@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
 
 export interface DeleteTarget {
@@ -12,30 +12,50 @@ export const useEvalSidebarState = () => {
   const [suggestedValues, setSuggestedValues] = useState<Partial<CreateEvalFormData> | undefined>(undefined);
   const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
 
-  const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
+  const [expandedResultsOrder, setExpandedResultsOrder] = useState<string[]>([]);
   const [expandedTrials, setExpandedTrials] = useState<Set<string>>(new Set());
   const [expandedEvaluations, setExpandedEvaluations] = useState<Set<string>>(new Set());
+
+  const expandedResults = new Set(expandedResultsOrder);
 
   const [selectedTrials, setSelectedTrials] = useState<Map<string, number>>(new Map());
   const [selectedTrialsForAll, setSelectedTrialsForAll] = useState<number>(1);
   const [selectedRunIndices, setSelectedRunIndices] = useState<Map<string, number>>(new Map());
 
   const toggleResults = (scenarioId: string) => {
-    setExpandedResults((prev) => {
-      if (prev.has(scenarioId)) {
-        const next = new Set(prev);
-        next.delete(scenarioId);
-        return next;
+    setExpandedResultsOrder((prev) => {
+      // If already expanded, collapse it
+      if (prev.includes(scenarioId)) {
+        return prev.filter(id => id !== scenarioId);
       }
-      return new Set([...prev, scenarioId]);
+      
+      // If expanding and already have 2, remove the oldest (first in array)
+      if (prev.length >= 2) {
+        return [...prev.slice(1), scenarioId];
+      }
+      
+      // Otherwise just add it
+      return [...prev, scenarioId];
     });
   };
 
   const expandResults = (scenarioId: string) => {
-    setExpandedResults((prev) => new Set([...prev, scenarioId]));
+    setExpandedResultsOrder((prev) => {
+      // Don't add if already expanded
+      if (prev.includes(scenarioId)) {
+        return prev;
+      }
+      
+      // If already have 2, remove the oldest
+      if (prev.length >= 2) {
+        return [...prev.slice(1), scenarioId];
+      }
+      
+      return [...prev, scenarioId];
+    });
   };
 
-  const toggleTrialDetails = (trialKey: string) => {
+  const toggleTrialDetails = useCallback((trialKey: string) => {
     setExpandedTrials((prev) => {
       if (prev.has(trialKey)) {
         const next = new Set(prev);
@@ -44,9 +64,9 @@ export const useEvalSidebarState = () => {
       }
       return new Set([...prev, trialKey]);
     });
-  };
+  }, []);
 
-  const toggleEvaluationDetails = (evaluationKey: string) => {
+  const toggleEvaluationDetails = useCallback((evaluationKey: string) => {
     setExpandedEvaluations((prev) => {
       if (prev.has(evaluationKey)) {
         const next = new Set(prev);
@@ -55,7 +75,7 @@ export const useEvalSidebarState = () => {
       }
       return new Set([...prev, evaluationKey]);
     });
-  };
+  }, []);
 
   const getSelectedTrialsForScenario = (scenarioId: string) => 
     selectedTrials.get(scenarioId) || 1;
@@ -63,7 +83,6 @@ export const useEvalSidebarState = () => {
   const resetCreateDialogState = () => {
     setCreateDialogOpen(false);
     setSuggestedValues(undefined);
-    setIsFetchingSuggestion(false);
   };
 
   const handlePreviousRun = (scenarioId: string) => {

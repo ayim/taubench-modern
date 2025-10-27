@@ -31,7 +31,6 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     importScenariosMutation: data.importScenariosMutation,
     setCreateDialogOpen: state.setCreateDialogOpen,
     setSuggestedValues: state.setSuggestedValues,
-    setIsFetchingSuggestion: state.setIsFetchingSuggestion,
     setDeleteTarget: state.setDeleteTarget,
     resetCreateDialogState: state.resetCreateDialogState,
   });
@@ -41,7 +40,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     deleteTarget: state.deleteTarget,
     createDialogOpen: state.createDialogOpen,
     suggestedValues: state.suggestedValues,
-    isFetchingSuggestion: state.isFetchingSuggestion,
+    isFetchingSuggestion: data.suggestScenarioMutation.isPending,
     expandedResults: state.expandedResults,
     expandedTrials: state.expandedTrials,
     expandedEvaluations: state.expandedEvaluations,
@@ -74,6 +73,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     isAnyTestRunning: data.isAnyTestRunning,
     createScenarioMutation: data.createScenarioMutation,
     deleteScenarioMutation: data.deleteScenarioMutation,
+    suggestScenarioMutation: data.suggestScenarioMutation,
     exportScenariosMutation: data.exportScenariosMutation,
     importScenariosMutation: data.importScenariosMutation,
 

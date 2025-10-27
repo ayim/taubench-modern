@@ -6,6 +6,7 @@ export interface EvalHeaderProps {
   hasMessages: boolean;
   hasEvaluations: boolean;
   onAddEvaluation: () => void;
+  isFetchingSuggestion: boolean;
   onExportScenarios: () => void;
   isExporting: boolean;
   onImportScenarios: () => void;
@@ -16,6 +17,7 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
   hasMessages,
   hasEvaluations,
   onAddEvaluation,
+  isFetchingSuggestion,
   onExportScenarios,
   isExporting,
   onImportScenarios,
@@ -36,12 +38,12 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
       
       <Box display="flex" justifyContent="space-between" alignItems="center" paddingTop="$8" mb="$8" gap="$12" flexWrap="wrap">
         {!hasMessages ? (
-          <Box
-            backgroundColor="yellow20"
-            padding="$20"
-            borderRadius="$12"
-            display="flex"
-            alignItems="center"
+          <Box 
+            backgroundColor="background.notification.light" 
+            padding="$20" 
+            borderRadius="$12" 
+            display="flex" 
+            alignItems="center" 
             gap="$8"
           >
             <IconLightBulb size={24} />
@@ -50,9 +52,20 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
             </Typography>
           </Box>
         ) : (
-          <Button variant="outline" round onClick={onAddEvaluation}>
-            <IconPlus size="16" />
-            Add Evaluation
+          <Button 
+            variant="outline" 
+            round 
+            onClick={onAddEvaluation}
+            loading={isFetchingSuggestion}
+            disabled={isFetchingSuggestion}
+          >
+            {!isFetchingSuggestion && (
+              <>
+              <IconPlus size="16" />
+              Add Evaluation
+              </>
+            )}
+            {isFetchingSuggestion && 'Generating Evaluation...'}
           </Button>
         )}
 

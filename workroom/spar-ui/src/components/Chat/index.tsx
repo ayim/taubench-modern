@@ -1,4 +1,6 @@
 import {
+  Banner,
+  Box,
   Button,
   Chat as ChatComponent,
   ChatInput,
@@ -7,15 +9,15 @@ import {
   FileItem,
   useSnackbar,
 } from '@sema4ai/components';
-import { IconPaperclip } from '@sema4ai/icons';
+import { IconInformation, IconPaperclip } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { ClipboardEvent, FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
-import { ThreadMessage } from '@sema4ai/agent-server-interface';
+import { components, ThreadMessage } from '@sema4ai/agent-server-interface';
 
 import { getFileSize, getFileTypeIcon, isImageFile } from '../../common/helpers';
-import { useFeatureFlag, useMessageStream, useQueryDataGuard } from '../../hooks';
+import { useFeatureFlag, useMessageStream, useQueryDataGuard, useNavigate } from '../../hooks';
 import { useAgentOAuthStateQuery } from '../../queries/agents';
 import { useThreadMessagesQuery } from '../../queries/threads';
 import { useThreadSearchStore } from '../../state/useThreadSearchStore';
@@ -28,16 +30,22 @@ type Props = {
   agentId: string;
   threadId: string;
   agentType: 'conversational' | 'workItem';
+  thread?: components['schemas']['Thread'];
 };
 
-const Container = styled.section`
+const Container = styled.section<{ $hasEvalBanner: boolean }>`
   position: relative;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: ${({ $hasEvalBanner }) => 
+    $hasEvalBanner ? 'auto 1fr auto' : '1fr auto'};
   height: 100%;
   min-height: 0;
   flex: 1;
   overflow: hidden;
+`;
+
+const BannerWrapper = styled.div`
+  padding: ${({ theme }) => theme.space.$16};
 `;
 
 const Footer = styled.footer`
@@ -88,8 +96,9 @@ const ChatInputAttachment: FC<{ file: File; onCloseClick: () => void }> = ({ fil
   );
 };
 
-export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
+export const Chat: FC<Props> = ({ agentId, agentType, threadId, thread }) => {
   const { addSnackbar } = useSnackbar();
+  const navigate = useNavigate();
   const chatRef = useRef<ChatRef>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const { currentMessageIndex } = useThreadSearchStore();
@@ -265,6 +274,17 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
 
   const requiresOAuth = oAuthState.some((state) => !state.isAuthorized);
 
+  const handleExitEvaluation = () => {
+    // Clear the preferred thread preference so we don't come back to this eval thread
+    const preferenceKey = `preffered-thread-or-work-item-${agentId}`;
+    localStorage.removeItem(preferenceKey);
+
+    navigate({
+      to: '/thread/$agentId',
+      params: { agentId },
+    });
+  };
+
   const chatInputMessageText = watch('message');
   const hasContentToSend = chatInputMessageText.trim().length > 0 || attachments.length > 0;
 
@@ -284,8 +304,26 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId }) => {
     return queryDataGuard;
   }
 
+  const isEvaluationThread = Boolean(thread?.metadata?.scenario_id);
+
   return (
-    <Container {...getRootProps()}>
+    <Container {...getRootProps()} $hasEvalBanner={isEvaluationThread}>
+      {isEvaluationThread && (
+        <BannerWrapper>
+          <Banner
+            message={thread?.name || 'Evaluation Results'}
+            description="This is a saved evaluation thread with agent responses and tool usage."
+            icon={IconInformation}
+            variant="info"
+          >
+            <Box display="flex" alignItems="center">
+              <Button size="small" variant="outline" onClick={handleExitEvaluation}>
+                Exit Evaluation
+              </Button>
+            </Box>
+          </Banner>
+        </BannerWrapper>
+      )}
       <ChatComponent
         ref={chatRef}
         messages={messages}

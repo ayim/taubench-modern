@@ -28,7 +28,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     }
 
     const threadsResult = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/', {
-      params: { query: { aid: agentId, limit: 1 } },
+      params: { query: { aid: agentId, limit: 100 } },
     });
 
     if (!threadsResult.success) {
@@ -39,6 +39,11 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     }
 
     const threads = threadsResult.data;
+
+    // Filter out evaluation threads (threads with scenario_id in metadata)
+    // Note: We check the first 100 threads for user-initiated threads.
+    // If none are found, we'll create a new thread below.
+    const userInitiatedThreads = threads?.filter((thread) => !thread.metadata?.scenario_id);
 
     /**
      * 1. If initial thread message is provided, redirect to a new thread with the message
@@ -89,7 +94,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     }
 
     /*
-     * 2. Redirect to user preferred thread, if it exists
+     * 2. Redirect to user preferred thread, if it exists and is not an evaluation thread
      */
     const preferedThreadId = getUserPreferenceId(getPreferenceKey({ agentId }));
 
@@ -99,26 +104,35 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       });
 
       if (thread.success) {
-        throw redirect({
-          to: '/tenants/$tenantId/conversational/$agentId/$threadId',
-          params: {
-            tenantId,
-            agentId,
-            threadId: preferedThreadId,
-          },
-        });
+        // Check if this is an evaluation thread (has scenario_id in metadata)
+        const isEvaluationThread = Boolean(thread.data.metadata?.scenario_id);
+
+        if (isEvaluationThread) {
+          // Evaluation threads should not be used as preferred threads
+          // Remove the preference and continue to next step (first user thread)
+          removeUserPreferenceId(getPreferenceKey({ agentId }));
+        } else {
+          throw redirect({
+            to: '/tenants/$tenantId/conversational/$agentId/$threadId',
+            params: {
+              tenantId,
+              agentId,
+              threadId: preferedThreadId,
+            },
+          });
+        }
       } else {
         removeUserPreferenceId(getPreferenceKey({ agentId }));
       }
     }
 
     /**
-     * 3. If no prefered thread set, redirect to the first thread in list
+     * 3. If no prefered thread set, redirect to the first user-initiated thread in list
      */
-    if (threads?.length) {
+    if (userInitiatedThreads?.length) {
       throw redirect({
         to: '/tenants/$tenantId/conversational/$agentId/$threadId',
-        params: { tenantId, agentId, threadId: threads[0].thread_id ?? '' }, // TODO-V2: integration, remove this nullish coalescing
+        params: { tenantId, agentId, threadId: userInitiatedThreads[0].thread_id ?? '' }, // TODO-V2: integration, remove this nullish coalescing
       });
     }
 

@@ -17,7 +17,6 @@ export interface UseEvalSidebarActionsProps {
   importScenariosMutation: UseMutationResult<Scenario[], unknown, { agentId: string; file: File }, unknown>;
   setCreateDialogOpen: (open: boolean) => void;
   setSuggestedValues: (values: Partial<CreateEvalFormData> | undefined) => void;
-  setIsFetchingSuggestion: (fetching: boolean) => void;
   setDeleteTarget: (target: DeleteTarget | null) => void;
   resetCreateDialogState: () => void;
 }
@@ -34,7 +33,6 @@ export const useEvalSidebarActions = ({
   importScenariosMutation,
   setCreateDialogOpen,
   setSuggestedValues,
-  setIsFetchingSuggestion,
   setDeleteTarget,
   resetCreateDialogState,
 }: UseEvalSidebarActionsProps) => {
@@ -42,13 +40,11 @@ export const useEvalSidebarActions = ({
   const navigate = useNavigate();
 
   const handleAddEvaluation = async () => {
-    setCreateDialogOpen(true);
-    setIsFetchingSuggestion(true);
     setSuggestedValues(undefined);
 
     const suggestion = await handleSuggestEvaluation();
     setSuggestedValues(suggestion || undefined);
-    setIsFetchingSuggestion(false);
+    setCreateDialogOpen(true);
   };
 
   const handleCreateEvaluationWithCleanup = async (data: CreateEvalFormData) => {
@@ -69,8 +65,9 @@ export const useEvalSidebarActions = ({
 
   const handleViewResults = (trial: { threadId: string }) => {
     if (trial.threadId) {
+      // Navigate to evaluations route to keep eval sidebar open
       navigate({
-        to: '/thread/$agentId/$threadId',
+        to: '/thread/$agentId/$threadId/evaluations',
         params: {
           agentId,
           threadId: trial.threadId,
@@ -107,12 +104,12 @@ export const useEvalSidebarActions = ({
       anchor.remove();
 
       addSnackbar({
-        message: 'Scenarios exported successfully',
+        message: 'Evaluations exported successfully',
         variant: 'success',
       });
     } catch (error) {
       addSnackbar({
-        message: 'Failed to export scenarios',
+        message: 'Failed to export evaluations',
         variant: 'danger',
       });
     }

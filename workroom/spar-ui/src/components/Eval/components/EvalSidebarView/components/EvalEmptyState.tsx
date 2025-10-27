@@ -8,6 +8,7 @@ import { SparUIFeatureFlag } from '../../../../../api';
 export interface EvalEmptyStateProps {
   hasMessages: boolean;
   onAddEvaluation: () => void;
+  isFetchingSuggestion: boolean;
   onImportScenarios: () => void;
   isImporting: boolean;
 }
@@ -15,12 +16,12 @@ export interface EvalEmptyStateProps {
 export const EvalEmptyState: FC<EvalEmptyStateProps> = ({
   hasMessages,
   onAddEvaluation,
+  isFetchingSuggestion,
   onImportScenarios,
   isImporting,
 }) => {
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
-  const isCreateEvaluationDisabled = !hasMessages || !isChatInteractive;
   const isImportEvaluationsDisabled = isImporting || !isChatInteractive;
   return (
     <EmptyState
@@ -28,8 +29,15 @@ export const EvalEmptyState: FC<EvalEmptyStateProps> = ({
       description='All evaluation runs will be shown here. Create an Evaluation by clicking "Add Evaluation"'
       action={
         <Box display="flex" gap="$8" flexWrap="wrap">
-          <Button variant="primary" round onClick={onAddEvaluation} disabled={isCreateEvaluationDisabled}>
-            Create Evaluation from Current Thread
+          <Button 
+            variant="primary" 
+            round 
+            onClick={onAddEvaluation} 
+            disabled={!hasMessages || isFetchingSuggestion}
+            loading={isFetchingSuggestion}
+          >
+            {!isFetchingSuggestion && 'Create Evaluation from Current Thread'}
+            {isFetchingSuggestion && 'Generating Evaluation...'}
           </Button>
           <Button
             variant="outline"

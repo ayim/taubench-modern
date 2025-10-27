@@ -9,6 +9,10 @@ export type SparUIRoutes = {
     agentId: string;
     threadId: string;
   };
+  '/thread/$agentId/$threadId/evaluations': {
+    agentId: string;
+    threadId: string;
+  };
   '/thread/$agentId': {
     agentId: string;
   };
