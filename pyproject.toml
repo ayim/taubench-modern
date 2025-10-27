@@ -82,6 +82,8 @@ markers = [
     "cloud: marks tests that require cloud storage (deselect with '-m \"not cloud\"')",
     "spar: marks tests that run against an active spar-no-auth docker SPAR profile (deselect with '-m \"not spar\"')",
     "real_selector: run with the real DefaultModelSelector implementation",
+    "semantic_data_models: marks tests that run against semantic data models (deselect with '-m \"not semantic_data_models\"')",
+    "semantic_data_models_edge_cases: marks tests that run against semantic data models edge cases (deselect with '-m \"not semantic_data_models_edge_cases\"')",
 ]
 filterwarnings = [
     # Ignore pkg_resources/declare_namespace deprecation warnings from snowflake-snowpark-python

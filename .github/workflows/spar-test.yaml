@@ -85,8 +85,9 @@ jobs:
 
       - name: Run SPAR integration tests
         run: |
-          # Run tests marked with spar
-          uv run pytest -v -m spar
+          # Run tests marked with spar but exclude semantic data models edge cases
+          # as those are not yet ready.
+          uv run pytest -v -m "spar and not semantic_data_models_edge_cases"
         env:
           # API keys for external services (tests will be skipped if not available)
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

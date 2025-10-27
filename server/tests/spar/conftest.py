@@ -5,11 +5,13 @@ from typing import Any
 from urllib.parse import urlparse
 
 import pytest
-from agent_platform.orchestrator.agent_server_client import AgentServerClient
+from agent_platform.orchestrator.agent_server_client import ActionPackage, AgentServerClient
 from requests.exceptions import RequestException
 
 from agent_platform.core.data_connections import DataConnection
-from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+from agent_platform.core.payloads.data_connection import (
+    PostgresDataConnectionConfiguration,
+)
 from agent_platform.core.payloads.document_intelligence_config import (
     DataServerConfig,
     DocumentIntelligenceConfigPayload,
@@ -27,7 +29,7 @@ SPAR_RESOURCES_PATH = Path(__file__).parent / "resources"
 
 
 # TODO: Should we warn/error harder?
-@pytest.fixture
+@pytest.fixture(scope="session")
 def openai_api_key() -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -35,7 +37,7 @@ def openai_api_key() -> str:
     return api_key
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def reducto_api_key() -> str:
     api_key = os.getenv("REDUCTO_API_KEY")
     if not api_key:
@@ -43,18 +45,18 @@ def reducto_api_key() -> str:
     return api_key
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def reducto_endpoint() -> str:
     return os.getenv("REDUCTO_ENDPOINT", "https://backend.sema4.ai/reducto")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def spar_agent_server_base_url() -> str:
     # TODO: Should this read the compose file and just get it from there just to be safe?
     return os.getenv("SEMA4AI_WORKROOM_AGENT_SERVER_URL", "http://localhost:8000/api/v2")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def agent_server_client(spar_agent_server_base_url: str) -> Generator[AgentServerClient, Any, Any]:
     with AgentServerClient(spar_agent_server_base_url) as client:
         # Following this pattern, the AgentServerClient will automatically remove all
@@ -62,7 +64,7 @@ def agent_server_client(spar_agent_server_base_url: str) -> Generator[AgentServe
         yield client
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def agent_server_client_with_doc_int(
     agent_server_client: AgentServerClient,
     reducto_api_key: str,
@@ -183,20 +185,26 @@ def agent_server_client_with_doc_int(
     return agent_server_client
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def agent_factory(agent_server_client: AgentServerClient, openai_api_key: str) -> Callable[[], str]:
     agents = []
 
     def _create_agent(
         runbook: str = "You are a helpful assistant.",
         platform_configs: list[dict[str, Any]] | None = None,
+        action_packages: list[ActionPackage] | None = None,
+        description: str = "This is a test agent",
     ) -> str:
+        if action_packages is None:
+            action_packages = []
         if platform_configs is None:
             platform_configs = [{"kind": "openai", "openai_api_key": openai_api_key}]
         agent_id = agent_server_client.create_agent_and_return_agent_id(
+            action_packages=action_packages,
             platform_configs=platform_configs,
             runbook=runbook,
             document_intelligence="v2",
+            description=description,
         )
         agents.append((agent_server_client, agent_id))
         return agent_id
@@ -204,17 +212,17 @@ def agent_factory(agent_server_client: AgentServerClient, openai_api_key: str) -
     return _create_agent
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def spar_resources_path() -> Path:
     return SPAR_RESOURCES_PATH
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def spar_postgres_url() -> str:
     return os.getenv("POSTGRES_URL", "postgresql://agents:agents@localhost:5432/agents")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def secret_service() -> BaseSecretManager:
     return SecretService.get_instance()
 
