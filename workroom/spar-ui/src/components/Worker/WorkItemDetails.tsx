@@ -126,7 +126,7 @@ const PayloadSection: FC<{ workItem: WorkItem }> = memo(({ workItem }) => {
       <Typography variant="body-medium" fontWeight="bold" marginBottom={4} id="payload-section">
         Payload
       </Typography>
-      <Code theme="light" readOnly lineNumbers={false} value={payloadContent} aria-labelledby="payload-section" />
+      <Code theme="light" readOnly lineNumbers={false} value={payloadContent} aria-labelledby="payload-section" title="JSON" />
     </Box>
   );
 });
@@ -135,7 +135,7 @@ const IdSection: FC<{ workItem: WorkItem }> = ({ workItem }) => {
   if (!workItem.work_item_id) {
     return null
   };
-  
+
   return (
     <Box as="section">
       <Typography variant="body-medium" fontWeight="bold" marginBottom="$4">

@@ -154,12 +154,13 @@ export const CreateWorkItemDialog: FC<CreateWorkItemDialogProps> = ({ agentId, i
             />
             <Code
               aria-label="Payload"
+              label="Payload"
               value={form.getValues('payload') || ''}
               onChange={(value) => form.setValue('payload', value)}
               lineNumbers={false}
               lang="json"
               rows={6}
-              title=" "
+              title="JSON"
               description="Optional JSON data structure (must be valid JSON if provided)"
               error={form.formState.errors.payload?.message}
             />
