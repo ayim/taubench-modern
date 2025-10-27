@@ -164,3 +164,78 @@ class SemanticDataModelWithAssociations:
     file_references: list[FileReference]
     errors_in_semantic_data_model: list[str]
     empty_file_references: list[EmptyFileReference]
+
+
+@dataclass(frozen=True)
+class ImportSemanticDataModelPayload:
+    """Payload for importing a semantic data model.
+
+    The semantic_model should contain data_connection_name instead of data_connection_id.
+    These names will be resolved to IDs in the target environment.
+
+    If agent_id is provided, deduplication will check for existing SDMs linked to that agent.
+    If a matching SDM is found (same name and content), it will be reused instead of creating
+    a duplicate.
+    """
+
+    semantic_model: SemanticDataModel | dict | str = field(
+        metadata={
+            "description": (
+                "The semantic data model with data_connection_name (can be dict or YAML string)."
+            )
+        },
+    )
+    """The semantic data model with data_connection_name instead of data_connection_id.
+    Can be provided as a dict/object or as a YAML string."""
+
+    agent_id: str | None = field(
+        default=None,
+        metadata={"description": "Optional agent ID for deduplication check."},
+    )
+    """If provided, checks for duplicate SDMs linked to this agent before creating new."""
+
+    thread_id: str | None = field(
+        default=None,
+        metadata={"description": "Optional thread ID for file reference resolution."},
+    )
+    """If provided, enables resolution of file references during import."""
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "ImportSemanticDataModelPayload":
+        """Validate and create payload from dict data.
+
+        If semantic_model is provided as a string, it will be parsed as YAML.
+        """
+        import yaml
+
+        semantic_model_data = data.get("semantic_model", {})
+
+        # Parse YAML string if provided
+        if isinstance(semantic_model_data, str):
+            try:
+                semantic_model_data = yaml.safe_load(semantic_model_data)
+            except yaml.YAMLError as e:
+                raise ValueError(f"Invalid YAML in semantic_model: {e}") from e
+
+        return ImportSemanticDataModelPayload(
+            semantic_model=semantic_model_data,
+            agent_id=data.get("agent_id"),
+            thread_id=data.get("thread_id"),
+        )
+
+
+@dataclass(frozen=True)
+class ImportSemanticDataModel:
+    """Response for importing a semantic data model."""
+
+    semantic_data_model_id: str
+    """The ID of the created or reused semantic data model."""
+
+    resolved_data_connections: dict[str, str]
+    """Mapping of data_connection_name to data_connection_id that were resolved."""
+
+    is_duplicate: bool = False
+    """True if an existing SDM was reused (duplicate found), False if new SDM was created."""
+
+    warnings: list[str] = field(default_factory=list)
+    """Any warnings encountered during import."""

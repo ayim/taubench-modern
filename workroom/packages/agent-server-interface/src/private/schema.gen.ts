@@ -2423,6 +2423,75 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/semantic-data-models/{semantic_data_model_id}/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Export Semantic Data Model
+     * @description Export a semantic data model in YAML format.
+     *
+     *     This endpoint returns the semantic data model as a YAML file with data_connection_name
+     *     instead of data_connection_id, making it portable across environments.
+     *     The semantic_data_model_id is not included in the response.
+     */
+    get: operations['export_semantic_data_model_semantic_data_models__semantic_data_model_id__export_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/semantic-data-models/import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Import Semantic Data Model
+     * @description Import a semantic data model from a portable format (JSON or YAML).
+     *
+     *     This endpoint accepts a semantic data model with data_connection_name and resolves
+     *     those names to data_connection_id values in the target environment. A new semantic
+     *     data model is created with a generated ID.
+     *
+     *     The semantic_model can be provided as either:
+     *     - JSON object (dict) in the request body
+     *     - YAML string that will be parsed automatically
+     *
+     *     Parameters:
+     *     - semantic_model: The SDM with data_connection_name (dict or YAML string)
+     *     - agent_id (optional): Enables deduplication check for this agent
+     *     - thread_id (optional): Enables file reference resolution via SemanticDataModelCollector
+     *
+     *     Prerequisites:
+     *     - All data connections referenced in the SDM must already exist in the target environment
+     *     - Connection names are matched case-insensitively
+     *     - If any connections cannot be resolved, the import fails with a detailed error message
+     *
+     *     Returns:
+     *     - semantic_data_model_id: ID of the newly created or reused SDM
+     *     - resolved_data_connections: Map of connection names to their resolved IDs
+     *     - unresolved_data_connections: Empty list (will fail before this if any are unresolved)
+     *     - is_duplicate: True if an existing SDM was reused
+     *     - warnings: Any non-fatal issues encountered during import
+     */
+    post: operations['import_semantic_data_model_semantic_data_models_import_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/metrics': {
     parameters: {
       query?: never;
@@ -3075,6 +3144,8 @@ export interface components {
       table?: string;
       /** Data Connection Id */
       data_connection_id?: string | null;
+      /** Data Connection Name */
+      data_connection_name?: string | null;
       file_reference?:
         | components['schemas']['agent_platform__core__data_frames__semantic_data_model_types__FileReference']
         | null;
@@ -4343,6 +4414,45 @@ export interface components {
     HealthResponse: {
       /** Status */
       status: string;
+    };
+    /** ImportSemanticDataModel */
+    ImportSemanticDataModel: {
+      /** Semantic Data Model Id */
+      semantic_data_model_id: string;
+      /** Resolved Data Connections */
+      resolved_data_connections: {
+        [key: string]: string;
+      };
+      /**
+       * Is Duplicate
+       * @default false
+       */
+      is_duplicate: boolean;
+      /** Warnings */
+      warnings?: string[];
+    };
+    /** ImportSemanticDataModelPayload */
+    ImportSemanticDataModelPayload: {
+      /**
+       * Semantic Model
+       * @description The semantic data model with data_connection_name (can be dict or YAML string).
+       */
+      semantic_model:
+        | components['schemas']['SemanticDataModel']
+        | {
+            [key: string]: unknown;
+          }
+        | string;
+      /**
+       * Agent Id
+       * @description Optional agent ID for deduplication check.
+       */
+      agent_id?: string | null;
+      /**
+       * Thread Id
+       * @description Optional thread ID for file reference resolution.
+       */
+      thread_id?: string | null;
     };
     /** IngestDocumentResponse */
     IngestDocumentResponse: {
@@ -15825,6 +15935,70 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['GenerateSemanticDataModelResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  export_semantic_data_model_semantic_data_models__semantic_data_model_id__export_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        semantic_data_model_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  import_semantic_data_model_semantic_data_models_import_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ImportSemanticDataModelPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ImportSemanticDataModel'];
         };
       };
       /** @description Validation Error */

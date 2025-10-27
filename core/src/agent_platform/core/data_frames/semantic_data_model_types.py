@@ -283,6 +283,10 @@ class BaseTable(TypedDict, total=False):
 
     # For data connections the data_connection_id is required
     data_connection_id: Annotated[str | None, "ID of the data connection"]
+    # For portable exports, data_connection_name is used instead of ID
+    data_connection_name: Annotated[
+        str | None, "Name of the data connection (portable export/import)"
+    ]
     file_reference: Annotated[
         FileReference | None, "File reference (thread_id, file_ref, sheet_name) for a file"
     ]

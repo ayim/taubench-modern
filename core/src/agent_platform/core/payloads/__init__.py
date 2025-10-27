@@ -25,6 +25,8 @@ from agent_platform.core.payloads.semantic_data_model_payloads import (
     GenerateSemanticDataModelResponse,
     GetSemanticDataModelPayload,
     GetSemanticDataModelsPayload,
+    ImportSemanticDataModel,
+    ImportSemanticDataModelPayload,
     SemanticDataModelWithAssociations,
     SetSemanticDataModelPayload,
 )
@@ -59,6 +61,8 @@ __all__ = [
     "GetAgentDataConnectionsPayload",
     "GetSemanticDataModelPayload",
     "GetSemanticDataModelsPayload",
+    "ImportSemanticDataModel",
+    "ImportSemanticDataModelPayload",
     "InitiateStreamPayload",
     "MCPServerResponse",
     "PatchAgentPayload",

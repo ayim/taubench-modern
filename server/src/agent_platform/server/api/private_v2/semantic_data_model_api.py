@@ -1,24 +1,141 @@
 """API endpoints for semantic data models."""
 
+import copy
 import typing
 from typing import TypedDict
 
+import yaml
 from fastapi import APIRouter
+from fastapi.responses import Response
 from structlog import get_logger
 
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads import (
     GenerateSemanticDataModelPayload,
     GenerateSemanticDataModelResponse,
+    ImportSemanticDataModel,
+    ImportSemanticDataModelPayload,
     SemanticDataModelWithAssociations,
     SetSemanticDataModelPayload,
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
+from sema4ai.common.text import slugify
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+async def _replace_data_connection_id_with_name(
+    semantic_model: SemanticDataModel,
+    storage: StorageDependency,
+    connection_cache: dict[str, str] | None = None,
+) -> tuple[SemanticDataModel, dict[str, str]]:
+    """Replace data_connection_id with data_connection_name in semantic model for export.
+
+    Args:
+        semantic_model: The semantic data model
+        storage: The storage instance
+        connection_cache: Optional cache of data_connection_id -> name mappings
+
+    Returns:
+        Tuple of (modified semantic model, connection_cache)
+    """
+    if connection_cache is None:
+        connection_cache = {}
+
+    # Work with dict for manipulation (semantic_model is a dict at runtime)
+    # Cast to Any to allow dynamic manipulation while preserving type safety at boundaries
+    modified_model: typing.Any = copy.deepcopy(semantic_model)
+
+    if "tables" in modified_model:
+        for table in modified_model["tables"]:
+            if "base_table" in table and isinstance(table["base_table"], dict):
+                base_table = table["base_table"]
+
+                if base_table.get("data_connection_id"):
+                    dc_id = base_table["data_connection_id"]
+
+                    # Check cache first
+                    if dc_id not in connection_cache:
+                        try:
+                            # Fetch data connection to get name
+                            dc = await storage.get_data_connection(dc_id)
+                            connection_cache[dc_id] = dc.name
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to fetch data connection for export: {e}",
+                                data_connection_id=dc_id,
+                                error=str(e),
+                            )
+                            # Keep the ID if we can't fetch the name
+                            connection_cache[dc_id] = dc_id
+
+                    # Replace ID with name
+                    if dc_id in connection_cache:
+                        base_table["data_connection_name"] = connection_cache[dc_id]
+                        del base_table["data_connection_id"]
+
+    return modified_model, connection_cache
+
+
+async def _replace_data_connection_name_with_id(
+    semantic_model: SemanticDataModel, storage: StorageDependency
+) -> tuple[SemanticDataModel, dict[str, str], list[str]]:
+    """Replace data_connection_name with data_connection_id in semantic model for import.
+
+    Args:
+        semantic_model: The semantic data model with data_connection_name
+        storage: The storage instance
+
+    Returns:
+        Tuple of (modified semantic model, resolved_connections dict,
+        unresolved_connections list)
+    """
+    # Work with dict for manipulation (semantic_model is a dict at runtime)
+    # Cast to Any to allow dynamic manipulation while preserving type safety at boundaries
+    modified_model: typing.Any = copy.deepcopy(semantic_model)
+    resolved_connections: dict[str, str] = {}
+    unresolved_connections: list[str] = []
+
+    if "tables" in modified_model:
+        for table in modified_model["tables"]:
+            if "base_table" in table and isinstance(table["base_table"], dict):
+                base_table = table["base_table"]
+
+                # Only resolve if data_connection_name is present AND data_connection_id is not
+                if "data_connection_name" in base_table and not base_table.get(
+                    "data_connection_id"
+                ):
+                    dc_name = base_table["data_connection_name"]
+
+                    # Check if already resolved
+                    if dc_name in resolved_connections:
+                        base_table["data_connection_id"] = resolved_connections[dc_name]
+                        del base_table["data_connection_name"]
+                    else:
+                        try:
+                            # Resolve name to ID (case-insensitive)
+                            dc = await storage.get_data_connection_by_name(dc_name)
+                            if dc:
+                                resolved_connections[dc_name] = dc.id
+                                base_table["data_connection_id"] = dc.id
+                                del base_table["data_connection_name"]
+                                logger.info(
+                                    f"Resolved data connection name to ID: {dc_name} -> {dc.id}"
+                                )
+                            else:
+                                unresolved_connections.append(dc_name)
+                                logger.warning(
+                                    f"Data connection not found during import: {dc_name}"
+                                )
+                        except Exception as e:
+                            unresolved_connections.append(dc_name)
+                            logger.error(f"Error resolving data connection name '{dc_name}': {e}")
+
+    return modified_model, resolved_connections, unresolved_connections
 
 
 class _SetSemanticDataModeFileReference(TypedDict):
@@ -156,7 +273,7 @@ async def get_semantic_data_model(
     except ValueError as e:
         raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=str(e)) from e
     except Exception as e:
-        logger.error("Error getting semantic data model", error=str(e))
+        logger.error(f"Error getting semantic data model: {e}")
         raise PlatformHTTPError(
             error_code=ErrorCode.UNEXPECTED, message="Error getting semantic data model"
         ) from e
@@ -299,7 +416,263 @@ async def list_semantic_data_models(
 
         return semantic_data_models_with_associations
     except Exception as e:
-        logger.error("Error listing semantic data models", error=str(e))
+        logger.error(f"Error listing semantic data models: {e}")
         raise PlatformHTTPError(
             error_code=ErrorCode.UNEXPECTED, message="Error listing semantic data models"
         ) from e
+
+
+@router.get("/{semantic_data_model_id}/export")
+async def export_semantic_data_model(
+    semantic_data_model_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> Response:
+    """Export a semantic data model in YAML format.
+
+    This endpoint returns the semantic data model as a YAML file with data_connection_name
+    instead of data_connection_id, making it portable across environments.
+    The semantic_data_model_id is not included in the response.
+    """
+    try:
+        # Get the semantic data model
+        semantic_model_dict = await storage.get_semantic_data_model(semantic_data_model_id)
+
+        # Replace data_connection_id with data_connection_name
+        # Cast to SemanticDataModel for type safety
+        portable_model, _ = await _replace_data_connection_id_with_name(
+            typing.cast(SemanticDataModel, semantic_model_dict), storage
+        )
+
+        # Convert to YAML
+        yaml_content = yaml.dump(
+            portable_model,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False,
+        )
+
+        logger.info(
+            f"Exported semantic data model {semantic_data_model_id} for user {user.user_id}"
+        )
+
+        # Return YAML content with appropriate content type
+        # Use the model name for the filename if available, slugify for safety
+        base_name = portable_model.get("name", semantic_data_model_id)
+        filename = f"{slugify(base_name)}.yaml"
+
+        return Response(
+            content=yaml_content,
+            media_type="application/x-yaml",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    except ValueError as e:
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=str(e)) from e
+    except Exception as e:
+        logger.error(f"Error exporting semantic data model {semantic_data_model_id}: {e}")
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED, message="Error exporting semantic data model"
+        ) from e
+
+
+def _normalize_sdm_for_comparison(sdm: SemanticDataModel) -> SemanticDataModel:
+    """
+    Normalize SDM for comparison.
+
+    Strips environment-specific fields (data_connection_id, data_connection_name, file)
+    to enable comparison of semantic structure only.
+    """
+    # Cast to Any to allow dynamic manipulation while preserving type safety at boundaries
+    sdm_clean: typing.Any = copy.deepcopy(sdm)
+
+    # Remove environment-specific fields from base_table
+    for table in sdm_clean.get("tables", []):
+        if "base_table" in table:
+            table["base_table"].pop("data_connection_id", None)
+            table["base_table"].pop("data_connection_name", None)
+        # Remove file references (environment-specific)
+        if "file" in table:
+            table.pop("file", None)
+
+    return sdm_clean
+
+
+def _find_matching_sdm(
+    new_sdm: SemanticDataModel,
+    existing_sdms: list[dict],
+) -> str | None:
+    """
+    Find existing SDM that matches the new SDM being imported.
+
+    Matching criteria:
+    1. Same name (case-insensitive)
+    2. Same content (after normalizing both)
+
+    Args:
+        new_sdm: New SDM content from import
+        existing_sdms: List of existing SDMs in format [{sdm_id: sdm_content}, ...]
+
+    Returns:
+        Existing SDM ID if match found, None otherwise
+    """
+    new_name = new_sdm.get("name", "").lower()
+    new_normalized = _normalize_sdm_for_comparison(new_sdm)
+
+    for existing_sdm_entry in existing_sdms:
+        # existing_sdm_entry format: {sdm_id: sdm_content}
+        for sdm_id, existing_sdm in existing_sdm_entry.items():
+            existing_name = existing_sdm.get("name", "").lower()
+
+            # Check name match
+            if new_name == existing_name:
+                existing_normalized = _normalize_sdm_for_comparison(
+                    typing.cast(SemanticDataModel, existing_sdm)
+                )
+
+                # Check content match
+                if new_normalized == existing_normalized:
+                    logger.info(
+                        f"Found matching SDM for deduplication: {sdm_id} (name: {new_name})"
+                    )
+                    return sdm_id  # Perfect match - reuse this SDM
+
+    return None  # No match found - need to create new
+
+
+@router.post("/import")
+async def import_semantic_data_model(
+    payload: ImportSemanticDataModelPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> ImportSemanticDataModel:
+    """Import a semantic data model from a portable format (JSON or YAML).
+
+    This endpoint accepts a semantic data model with data_connection_name and resolves
+    those names to data_connection_id values in the target environment. A new semantic
+    data model is created with a generated ID.
+
+    The semantic_model can be provided as either:
+    - JSON object (dict) in the request body
+    - YAML string that will be parsed automatically
+
+    Parameters:
+    - semantic_model: The SDM with data_connection_name (dict or YAML string)
+    - agent_id (optional): Enables deduplication check for this agent
+    - thread_id (optional): Enables file reference resolution via SemanticDataModelCollector
+
+    Prerequisites:
+    - All data connections referenced in the SDM must already exist in the target environment
+    - Connection names are matched case-insensitively
+    - If any connections cannot be resolved, the import fails with a detailed error message
+
+    Returns:
+    - semantic_data_model_id: ID of the newly created or reused SDM
+    - resolved_data_connections: Map of connection names to their resolved IDs
+    - unresolved_data_connections: Empty list (will fail before this if any are unresolved)
+    - is_duplicate: True if an existing SDM was reused
+    - warnings: Any non-fatal issues encountered during import
+    """
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    # Parse YAML string if provided (handled by model_validate in the payload)
+    # At this point, semantic_model should be a dict - cast to SemanticDataModel for type safety
+    semantic_model = typing.cast(SemanticDataModel, payload.semantic_model)
+
+    # Replace data_connection_name with data_connection_id
+    (
+        resolved_model,
+        resolved_connections,
+        unresolved_connections,
+    ) = await _replace_data_connection_name_with_id(semantic_model, storage)
+
+    # Fail immediately if any connections couldn't be resolved
+    # This must happen BEFORE deduplication check to ensure we don't reuse an existing SDM
+    # when the new import has unresolved connections
+    if unresolved_connections:
+        # Get list of available connections to help user
+        available_connections = []
+        try:
+            # Query for some connection names to show in error
+            all_connections = await storage.get_data_connections()
+            available_connections = [dc.name for dc in all_connections[:10]]  # Show first 10
+        except Exception:
+            pass
+
+        error_msg = (
+            f"Cannot import SDM: {len(unresolved_connections)} data connection(s) not found:\n"
+            f"  - {', '.join(unresolved_connections)}\n\n"
+            "Please create these data connections in the target environment "
+            "before importing.\n"
+        )
+        if available_connections:
+            error_msg += f"Available connections: {', '.join(available_connections)}"
+
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=error_msg,
+        )
+
+    # Validate the resolved semantic model (cast to SemanticDataModel for validation)
+    # This must also happen BEFORE deduplication to ensure the imported SDM is valid
+    references = validate_semantic_model_payload_and_extract_references(
+        typing.cast(SemanticDataModel, resolved_model)
+    )
+    if references.errors:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="The semantic data model is invalid: \n" + "\n".join(references.errors),
+        )
+
+    # Prepare warnings (will be empty unless other issues arise)
+    warnings = []
+
+    # Check for duplicate SDMs if agent_id is provided
+    # This happens AFTER validation to ensure we only deduplicate valid imports
+    is_duplicate = False
+    model_id = None
+
+    # TODO: Use payload.thread_id with SemanticDataModelCollector to resolve file references
+    # during import. This would enable importing SDMs that reference files in a thread context.
+
+    if payload.agent_id:
+        # Get existing SDMs linked to this agent
+        existing_sdms = await storage.get_agent_semantic_data_models(payload.agent_id)
+
+        # Check if a matching SDM already exists
+        matching_id = _find_matching_sdm(resolved_model, existing_sdms)
+
+        if matching_id:
+            model_id = matching_id
+            is_duplicate = True
+            logger.info(
+                f"Reusing existing SDM (duplicate found): {model_id} "
+                f"for agent {payload.agent_id}, name: {resolved_model.get('name')}"
+            )
+
+    # Create new SDM if no duplicate was found
+    if not model_id:
+        # Convert file_references from list of dicts to list of tuples
+        file_references = [(ref.thread_id, ref.file_ref) for ref in references.file_references]
+
+        # Create the semantic data model (ID will be generated)
+        model_id = await storage.set_semantic_data_model(
+            semantic_data_model_id=None,
+            semantic_model=resolved_model,
+            data_connection_ids=list(references.data_connection_ids),
+            file_references=file_references,
+        )
+
+        logger.info(
+            f"Created new semantic data model {model_id} for user {user.user_id} "
+            f"(resolved: {len(resolved_connections)})"
+        )
+
+    return ImportSemanticDataModel(
+        semantic_data_model_id=model_id,
+        resolved_data_connections=resolved_connections,
+        is_duplicate=is_duplicate,
+        warnings=warnings,
+    )

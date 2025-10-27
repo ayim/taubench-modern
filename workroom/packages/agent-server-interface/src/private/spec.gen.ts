@@ -7549,6 +7549,89 @@ export const spec = {
         },
       },
     },
+    '/api/v2/semantic-data-models/{semantic_data_model_id}/export': {
+      get: {
+        tags: ['semantic-data-models'],
+        summary: 'Export Semantic Data Model',
+        description:
+          'Export a semantic data model in YAML format.\n\nThis endpoint returns the semantic data model as a YAML file with data_connection_name\ninstead of data_connection_id, making it portable across environments.\nThe semantic_data_model_id is not included in the response.',
+        operationId:
+          'export_semantic_data_model_semantic_data_models__semantic_data_model_id__export_get',
+        parameters: [
+          {
+            name: 'semantic_data_model_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Semantic Data Model Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/semantic-data-models/import': {
+      post: {
+        tags: ['semantic-data-models'],
+        summary: 'Import Semantic Data Model',
+        description:
+          'Import a semantic data model from a portable format (JSON or YAML).\n\nThis endpoint accepts a semantic data model with data_connection_name and resolves\nthose names to data_connection_id values in the target environment. A new semantic\ndata model is created with a generated ID.\n\nThe semantic_model can be provided as either:\n- JSON object (dict) in the request body\n- YAML string that will be parsed automatically\n\nParameters:\n- semantic_model: The SDM with data_connection_name (dict or YAML string)\n- agent_id (optional): Enables deduplication check for this agent\n- thread_id (optional): Enables file reference resolution via SemanticDataModelCollector\n\nPrerequisites:\n- All data connections referenced in the SDM must already exist in the target environment\n- Connection names are matched case-insensitively\n- If any connections cannot be resolved, the import fails with a detailed error message\n\nReturns:\n- semantic_data_model_id: ID of the newly created or reused SDM\n- resolved_data_connections: Map of connection names to their resolved IDs\n- unresolved_data_connections: Empty list (will fail before this if any are unresolved)\n- is_duplicate: True if an existing SDM was reused\n- warnings: Any non-fatal issues encountered during import',
+        operationId:
+          'import_semantic_data_model_semantic_data_models_import_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ImportSemanticDataModelPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ImportSemanticDataModel',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/metrics': {
       get: {
         summary: 'Metrics',
@@ -8674,6 +8757,17 @@ export const spec = {
               },
             ],
             title: 'Data Connection Id',
+          },
+          data_connection_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Data Connection Name',
           },
           file_reference: {
             anyOf: [
@@ -11800,6 +11894,84 @@ export const spec = {
         type: 'object',
         required: ['status'],
         title: 'HealthResponse',
+      },
+      ImportSemanticDataModel: {
+        properties: {
+          semantic_data_model_id: {
+            type: 'string',
+            title: 'Semantic Data Model Id',
+          },
+          resolved_data_connections: {
+            additionalProperties: {
+              type: 'string',
+            },
+            type: 'object',
+            title: 'Resolved Data Connections',
+          },
+          is_duplicate: {
+            type: 'boolean',
+            title: 'Is Duplicate',
+            default: false,
+          },
+          warnings: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Warnings',
+          },
+        },
+        type: 'object',
+        required: ['semantic_data_model_id', 'resolved_data_connections'],
+        title: 'ImportSemanticDataModel',
+      },
+      ImportSemanticDataModelPayload: {
+        properties: {
+          semantic_model: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SemanticDataModel',
+              },
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'string',
+              },
+            ],
+            title: 'Semantic Model',
+            description:
+              'The semantic data model with data_connection_name (can be dict or YAML string).',
+          },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+            description: 'Optional agent ID for deduplication check.',
+          },
+          thread_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Thread Id',
+            description: 'Optional thread ID for file reference resolution.',
+          },
+        },
+        type: 'object',
+        required: ['semantic_model'],
+        title: 'ImportSemanticDataModelPayload',
       },
       IngestDocumentResponse: {
         properties: {
