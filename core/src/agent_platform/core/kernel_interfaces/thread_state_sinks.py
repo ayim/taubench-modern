@@ -8,6 +8,7 @@ from agent_platform.core.responses.content.tool_use import ResponseToolUseConten
 from agent_platform.core.responses.response import TokenUsage
 from agent_platform.core.responses.streaming import (
     ReasoningResponseStreamSink,
+    StopReasonGuardSink,
     TextResponseStreamSink,
     ToolUseResponseStreamSink,
     UsageResponseStreamSink,
@@ -190,3 +191,8 @@ class ThreadStateSinks:
         return UsageResponseStreamSink(
             on_usage_received=_append_usage,
         )
+
+    @property
+    def stop_reason_guard(self) -> StopReasonGuardSink:
+        """A sink that raises immediately when stop reason == 'max_tokens'."""
+        return StopReasonGuardSink()

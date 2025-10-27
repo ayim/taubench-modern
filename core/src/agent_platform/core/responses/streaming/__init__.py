@@ -8,6 +8,9 @@ from agent_platform.core.responses.streaming.stream_sink_noop import (
 from agent_platform.core.responses.streaming.stream_sink_reasoning import (
     ReasoningResponseStreamSink,
 )
+from agent_platform.core.responses.streaming.stream_sink_stop_reason_guard import (
+    StopReasonGuardSink,
+)
 from agent_platform.core.responses.streaming.stream_sink_text import (
     TextResponseStreamSink,
 )
@@ -26,6 +29,7 @@ __all__ = [
     "ReasoningResponseStreamSink",
     "ResponseStreamPipe",
     "ResponseStreamSinkBase",
+    "StopReasonGuardSink",
     "TextResponseStreamSink",
     "ToolUseResponseStreamSink",
     "UsageResponseStreamSink",

@@ -12,6 +12,7 @@ from agent_platform.core.agent_architectures.special_commands import (
     handle_special_command,
     parse_special_command,
 )
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.mcp.mcp_server import MCPServer
 
@@ -310,6 +311,7 @@ async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
     async with platform.stream_response(conversation_prompt, model) as stream:
         # Pipe thinking, tool calls, and step (no early user-visible content)
         await stream.pipe_to(
+            message.sinks.stop_reason_guard,
             message.sinks.thoughts,
             message.sinks.tool_calls(),
             state.sinks.pending_tool_calls,
@@ -370,7 +372,10 @@ async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
 
             async with platform.stream_response(final_prompt, model) as final_stream:
                 # Stream the response content
-                await final_stream.pipe_to(message.sinks.raw_content)
+                await final_stream.pipe_to(
+                    message.sinks.stop_reason_guard,
+                    message.sinks.raw_content,
+                )
 
                 # Get the reassembled response once; it may be None
                 reassembled_response = final_stream.reassembled_response
@@ -392,6 +397,9 @@ async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
                 if not has_reassembled_text:
                     message.append_content("No final reply was provided.")
                     await message.stream_delta()
+        except StreamingError:
+            logger.error("Final reply generation failed", exc_info=True)
+            raise
         except Exception:
             logger.error("Final reply generation failed", exc_info=True)
 

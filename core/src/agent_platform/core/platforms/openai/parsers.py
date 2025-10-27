@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         ResponseCompletedEvent,
         ResponseFunctionCallArgumentsDeltaEvent,
         ResponseFunctionToolCall,
+        ResponseIncompleteEvent,
         ResponseInProgressEvent,
         ResponseOutputItemAddedEvent,
         ResponseOutputText,
@@ -239,6 +240,7 @@ class OpenAIParsers(PlatformParsers):
         from openai.types.responses import (
             ResponseCompletedEvent,
             ResponseFunctionCallArgumentsDeltaEvent,
+            ResponseIncompleteEvent,
             ResponseInProgressEvent,
             ResponseOutputItemAddedEvent,
             ResponseOutputItemDoneEvent,
@@ -270,6 +272,9 @@ class OpenAIParsers(PlatformParsers):
             case ResponseInProgressEvent() as e:
                 self._process_event_metadata(e, message)
             case ResponseCompletedEvent() as e:
+                self._process_event_metadata(e, message)
+            case ResponseIncompleteEvent() as e:
+                # Incomplete terminal event (e.g., max_output_tokens)
                 self._process_event_metadata(e, message)
             case ResponseReasoningSummaryTextDeltaEvent() as e:
                 self._process_reasoning_summary_delta_or_done(e, message)
@@ -516,16 +521,24 @@ class OpenAIParsers(PlatformParsers):
 
     def _process_event_metadata(
         self,
-        event: "ResponseInProgressEvent | ResponseCompletedEvent",
+        event: "ResponseInProgressEvent | ResponseCompletedEvent | ResponseIncompleteEvent",
         message: dict[str, Any],
     ) -> None:
-        """Processes metadata (id, model, usage) from in-progress or completed events."""
-        # Both in_progress and completed events include a .response object
+        """Processes metadata (id, model, usage)
+        from in-progress, completed, or incomplete events."""
+        # These terminal/progress events include a .response object
         response_obj = event.response
 
         # Basic identifiers
         message["additional_response_fields"]["id"] = response_obj.id
         message["additional_response_fields"]["model"] = response_obj.model
+
+        # Normalize stop reason when the response is incomplete due to token cap
+        if (
+            response_obj.incomplete_details
+            and response_obj.incomplete_details.reason == "max_output_tokens"
+        ):
+            message["stop_reason"] = "max_tokens"
 
         # Token usage (typically present on completed)
         if response_obj.usage is not None:

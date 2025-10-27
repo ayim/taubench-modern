@@ -4,14 +4,16 @@ from typing import Any
 import pytest
 
 from agent_platform.core.delta.base import GenericDelta
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.prompts.prompt import Prompt
 from agent_platform.core.responses.content import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
+from agent_platform.core.responses.streaming import (
+    ResponseStreamSinkBase,
+    StopReasonGuardSink,
+)
 from agent_platform.core.responses.streaming.stream_pipe import (
     ResponseStreamPipe,
-)
-from agent_platform.core.responses.streaming.stream_sink_base import (
-    ResponseStreamSinkBase,
 )
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
@@ -174,6 +176,35 @@ async def test_stream_pipe_happy_path() -> None:
     # The sink should have received callbacks for the text content
     assert "on_text_content_begin" in event_names
     assert "on_text_content_end" in event_names
+
+
+@pytest.mark.asyncio
+async def test_stop_reason_guard_raises_and_aborts_stream() -> None:
+    """StopReasonGuardSink should raise on max tokens and abort the stream (propagated)."""
+
+    text_content = ResponseTextContent(text="partial")
+    base_msg = ResponseMessage(content=[text_content], role="agent")
+
+    # First delta: initial message without stop reason
+    delta1 = GenericDelta(op="replace", path="", value=base_msg.model_dump())
+
+    # Second delta: same message plus stop_reason indicating max tokens
+    msg_with_stop = base_msg.model_copy(stop_reason="max_tokens")
+    delta2 = GenericDelta(op="replace", path="", value=msg_with_stop.model_dump())
+
+    async def delta_stream():
+        yield delta1
+        yield delta2
+
+    prompt = Prompt(system_instruction="stop reason guard test")
+
+    guard = StopReasonGuardSink()
+    collector = CollectingStreamSink()
+
+    pipe = ResponseStreamPipe(stream=delta_stream(), prompt=prompt, flush_interval=0.01)
+
+    with pytest.raises(StreamingError, match="maximum output tokens"):
+        await pipe.pipe_to(guard, collector)
 
 
 @pytest.mark.asyncio

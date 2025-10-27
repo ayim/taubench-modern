@@ -10,6 +10,7 @@ import structlog
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.prompts.prompt import Prompt
 from agent_platform.core.responses.content import (
     ResponseAudioContent,
@@ -530,6 +531,9 @@ class ResponseStreamPipe:
                     timeout=self._sink_timeout,
                 )
             except Exception as exc:
+                # Propagate StreamingError to abort the stream; mute all others
+                if isinstance(exc, StreamingError):
+                    raise
                 logger.warning(
                     "Sink %s failed in %s (muted for rest of stream): %s",
                     type(sink).__name__,

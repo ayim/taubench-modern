@@ -482,6 +482,7 @@ async def _stream_tool_loop_with_retry(
         try:
             async with platform.stream_response(prompt, model) as stream:
                 await stream.pipe_to(
+                    message.sinks.stop_reason_guard,
                     message.sinks.reasoning,
                     message.sinks.tool_calls(
                         forward_to_content="quick_reply",
@@ -673,6 +674,7 @@ async def _stream_final_reply_with_retry(
             async with platform.stream_response(prompt, model) as s:
                 stream = s  # capture for caller's inspection
                 await s.pipe_to(
+                    message.sinks.stop_reason_guard,
                     message.sinks.reasoning,
                     message.sinks.raw_content,
                     message.sinks.usage,
