@@ -16,10 +16,12 @@ function View() {
     {
       label: 'LLMs',
       to: '/tenants/$tenantId/configuration/llm',
+      hidden: !features.deploymentWizard.enabled,
     },
     {
       label: 'Settings',
       to: '/tenants/$tenantId/configuration/settings',
+      hidden: !features.settings.enabled,
     },
     {
       label: 'Document Intelligence',

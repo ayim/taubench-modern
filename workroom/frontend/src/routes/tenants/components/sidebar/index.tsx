@@ -19,7 +19,7 @@ import { RouterSideNavigationLink } from '~/components/RouterLink';
 
 import { AgentsMenu } from './components/AgentsMenu';
 import { UserMenu } from './components/UserMenu';
-import { useTenantContext } from '~/lib/tenantContext';
+import { useTenantContext, shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
 
 const MenuOuterToggle = styled(Button)<{ $expanded?: boolean }>`
   display: block;
@@ -104,13 +104,15 @@ export const Sidebar: FC = () => {
               Work Items
             </RouterSideNavigationLink>
 
-            <RouterSideNavigationLink
-              icon={<IconSettings2 />}
-              to="/tenants/$tenantId/configuration"
-              params={{ tenantId }}
-            >
-              Configuration
-            </RouterSideNavigationLink>
+            {shouldDisplayConfigurationSidebarLink({ features }) && (
+              <RouterSideNavigationLink
+                icon={<IconSettings2 />}
+                to="/tenants/$tenantId/configuration"
+                params={{ tenantId }}
+              >
+                Configuration
+              </RouterSideNavigationLink>
+            )}
           </Box>
 
           <AgentsMenu />

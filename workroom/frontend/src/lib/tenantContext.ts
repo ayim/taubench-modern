@@ -49,3 +49,8 @@ export const TenantContext = createContext<TenantMeta>({
 export const useTenantContext = () => {
   return useContext(TenantContext);
 };
+
+export const shouldDisplayConfigurationSidebarLink = (tenantMeta: TenantMeta) =>
+  tenantMeta.features.deploymentWizard.enabled ||
+  tenantMeta.features.settings.enabled ||
+  tenantMeta.features.documentIntelligence.enabled;
