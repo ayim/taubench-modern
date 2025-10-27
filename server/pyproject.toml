@@ -28,10 +28,14 @@ dependencies = [
     "sema4ai-docint[memory]>=0.11.0,<0.12.0",
     "siphash==0.0.1",
     "reductoai>=0.9.0",
+    "pyjaq>=0.1.0,<1.0.0",
 ]
 
 [project.scripts]
 agent-server = "agent_platform.server.main:main"
+
+[tool.uv.sources]
+pyjaq = { path = "wheels/pyjaq-0.1.0-py3-none-any.whl" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_platform"]
