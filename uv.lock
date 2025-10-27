@@ -257,7 +257,7 @@ requires-dist = [
 
 [[package]]
 name = "agent-platform-server"
-version = "2.1.14"
+version = "2.1.15"
 source = { editable = "server" }
 dependencies = [
     { name = "agent-platform-architectures-default" },

@@ -1,3 +1,21 @@
+# Sema4.ai Agent Server 2.1.15 (2025-10-27)
+
+- GPT-1386 Clean up FastAPI routes (#1363)
+- Use reload-dir instead of reload-include (#1347)
+- When running evals, copy over files even in `replay` mode (required by data frames) (#1372)
+- GPT-1404 remove download json from evals (#1355)
+- GPT-1424 Retry logic for evaluations (#1374)
+- GPT-1418 Eval Run Average Run Time (#1323)
+- GPT-1414 include files in evals export (#1359)
+- Claude 4.5 Haiku Support (#1367)
+- Fix Cassettes (And Unit Tests on Main) (#1385)
+- GPT-1421 Separate public and private routes for work-items  (#1366)
+- Fix inconsistencies when extracting error from an action run (#1386)
+- GPT-1438 Add pyjaq into server (#1403)
+- SDM - 46: Add new API endpoints for SDM export and import (#1390)
+- [GPT-1433] Propagate max token errors through the stack (#1384)
+- Add Semantic Data Model Integration Test Suite (#1231)
+
 # Sema4.ai Agent Server 2.1.14 (2025-10-23)
 
 - [CLOUD-5455] Pass headers of type Secret to Generic MCP Server as request headers (#1373)
