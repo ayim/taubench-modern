@@ -8,7 +8,7 @@ import { downloadJSON } from '~/lib/utils';
 type WorkItemsSearch = {
   tab: 'all' | 'overview';
   agent?: string;
-  status?: string;
+  status?: string | string[];
   search?: string;
   page?: number;
 };
@@ -19,7 +19,7 @@ export const Route = createFileRoute('/tenants/$tenantId/workItems/')({
     return {
       tab: (search.tab as 'all' | 'overview') || 'all',
       agent: search.agent as string | undefined,
-      status: search.status as string | undefined,
+      status: search.status as string | string[] | undefined,
       search: search.search as string | undefined,
       page: search.page ? Number(search.page) : undefined,
     };

@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { Badge, Box, EmptyState, Progress, Table, TableRowProps, Typography, useLocalStorage } from '@sema4ai/components';
+import { Badge, Box, EmptyState, Progress, Table, TableRowProps, Typography } from '@sema4ai/components';
 import { TableWithFilter } from '@sema4ai/layouts';
 import { SortRules } from '@sema4ai/layouts/dist/helpers/search';
 import { FC, useCallback, useMemo } from 'react';
@@ -9,34 +9,22 @@ import { ButtonLink } from '../../common/link/ButtonLink';
 import { AgentWorkItemsSummary, useWorkItemsSummaryQuery, WorkItemStatus } from '../../queries/workItems';
 import { useSparUIContext } from '../../api/context';
 import { WORK_ITEM_STATUS_CONFIG, STATUS_ORDER } from '../../constants/workItemStatus';
-import { createWorkItemsNavigationContext } from '../../utils/navigation';
-import { WorkItemsNavigationContext } from '../../types/navigation';
 
 type WorkItemsOverviewRowData = AgentWorkItemsSummary & {
   total: number;
 };
 
-type WithNavigationContext = { 
-  setNavigationContext: (value: WorkItemsNavigationContext | null) => void;
-};
-
-const WorkItemsOverviewRow: FC<TableRowProps<WorkItemsOverviewRowData, WithNavigationContext>> = ({ rowData, props }) => {
+const WorkItemsOverviewRow: FC<TableRowProps<WorkItemsOverviewRowData>> = ({ rowData }) => {
   const { sparAPIClient } = useSparUIContext();
-  const { setNavigationContext } = props;
 
   const handleAgentClick = useCallback(() => {
     const { agent_id } = rowData;
-
-    const context = createWorkItemsNavigationContext('workItems', 'overview');
-    if (context) {
-      setNavigationContext(context);
-    }
 
     sparAPIClient.navigate({
       to: '/workItem/$agentId',
       params: { agentId: agent_id },
     });
-  }, [sparAPIClient, rowData, setNavigationContext]);
+  }, [sparAPIClient, rowData]);
 
   const handleStatusClick = useCallback(
     (status: WorkItemStatus) => {
@@ -93,14 +81,7 @@ const WorkItemsOverviewRow: FC<TableRowProps<WorkItemsOverviewRowData, WithNavig
 };
 
 export const WorkItemsOverview: FC = () => {
-  const { sparAPIClient } = useSparUIContext();
-  const tenantId = sparAPIClient.getTenantId();
   const { data: summaryData = [], isLoading } = useWorkItemsSummaryQuery({}, { refetchInterval: 2000 });
-
-  const { setStorageValue: setNavigationContext } = useLocalStorage<WorkItemsNavigationContext | null>({
-    key: `workItems.navigationContext${tenantId ? `.${tenantId}` : ''}`,
-    defaultValue: null,
-  });
 
   const tableData = useMemo<WorkItemsOverviewRowData[]>(
     () =>
@@ -198,12 +179,11 @@ export const WorkItemsOverview: FC = () => {
   return (
     <Box flexGrow={1} display="flex" flexDirection="column" gap={4} overflow="hidden" height="100%" pt="$20">
       <Box flexGrow={1} overflow="hidden">
-        <TableWithFilter<WorkItemsOverviewRowData, never, WithNavigationContext>
+        <TableWithFilter<WorkItemsOverviewRowData, never>
           id="work-items-overview-table"
           columns={columns}
           data={tableData}
           row={WorkItemsOverviewRow}
-          rowProps={{ setNavigationContext }}
           searchRules={searchRules}
           sortRules={sortRules}
           label={{ singular: 'agent', plural: 'agents' }}

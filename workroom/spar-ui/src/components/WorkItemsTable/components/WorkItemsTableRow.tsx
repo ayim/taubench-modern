@@ -15,12 +15,6 @@ import { useNavigate } from '../../../hooks';
 import { WorkItemRowData } from '../types';
 import { workItemsTableColumns } from '../columns';
 import { WORK_ITEM_STATUS_CONFIG, DEFAULT_WORK_ITEM_STATUS_CONFIG } from '../../../constants/workItemStatus';
-import { createWorkItemsNavigationContext } from '../../../utils/navigation';
-import { WorkItemsNavigationContext } from '../../../types/navigation';
-
-type WithNavigationContext = {
-  setNavigationContext: (value: WorkItemsNavigationContext | null) => void;
-};
 
 type RowProps = { 
   rowData: WorkItemRowData;
@@ -53,7 +47,7 @@ const UpdatedAtCell: FC<RowProps> = ({ rowData }) => {
   );
 };
 
-const ActionsCell: FC<RowProps & WithNavigationContext> = ({ rowData, setNavigationContext }) => {
+const ActionsCell: FC<RowProps> = ({ rowData }) => {
   const navigate = useNavigate();
   const { addSnackbar } = useSnackbar();
   const { status, work_item_id, agent_id } = rowData;
@@ -68,16 +62,11 @@ const ActionsCell: FC<RowProps & WithNavigationContext> = ({ rowData, setNavigat
   const handleViewWorkItemClick = useCallback(() => {
     if (status === 'PENDING' || !work_item_id || !agent_id) return;
     
-    const context = createWorkItemsNavigationContext('workItems', 'all');
-    if (context) {
-      setNavigationContext(context);
-    }
-    
     navigate({ 
       to: '/workItem/$agentId/$workItemId', 
       params: { workItemId: work_item_id, agentId: agent_id } 
     });
-  }, [navigate, work_item_id, agent_id, status, setNavigationContext]);
+  }, [navigate, work_item_id, agent_id, status]);
 
   const handleRestart = useCallback(() => {
     restartWorkItem(
@@ -136,36 +125,30 @@ const ActionsCell: FC<RowProps & WithNavigationContext> = ({ rowData, setNavigat
   );
 };
 
-const workitemsTableCellComponents: Partial<Record<string, FC<RowProps & WithNavigationContext>>> = {
+const workitemsTableCellComponents: Partial<Record<string, FC<RowProps>>> = {
   status: StatusCell,
   updated_at: UpdatedAtCell,
   actions: ActionsCell,
 };
 
-export const WorkItemsTableRow: FC<TableRowProps<WorkItemRowData, WithNavigationContext>> = ({ rowData, props }) => {
+export const WorkItemsTableRow: FC<TableRowProps<WorkItemRowData>> = ({ rowData }) => {
   const navigate = useNavigate();
-  const { setNavigationContext } = props;
 
   const handleRowClick = useCallback(() => {
     const { work_item_id, agent_id, status } = rowData;
     if (status === 'PENDING' || !work_item_id || !agent_id) return;
     
-    const context = createWorkItemsNavigationContext('workItems', 'all');
-    if (context) {
-      setNavigationContext(context);
-    }
-    
     navigate({ 
       to: '/workItem/$agentId/$workItemId', 
       params: { workItemId: work_item_id, agentId: agent_id } 
     });
-  }, [rowData, navigate, setNavigationContext]);
+  }, [rowData, navigate]);
 
   return (
     <Table.Row onClick={handleRowClick} style={{ cursor: rowData.status === 'PENDING' ? 'default' : 'pointer' }}>
       {workItemsTableColumns.map(({ id }) => {
         const CellElement = workitemsTableCellComponents[id];
-        if (CellElement) return <CellElement key={id} rowData={rowData} setNavigationContext={setNavigationContext} />;
+        if (CellElement) return <CellElement key={id} rowData={rowData} />;
 
         return (
           <Table.Cell key={id}>

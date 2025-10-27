@@ -1,69 +1,27 @@
-import { Button, Menu, Tooltip, useLocalStorage, useScreenSize } from '@sema4ai/components';
+import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
 import { IconArrowLeft, IconDotsHorizontal, IconInformation, IconPaperclip, IconPoll } from '@sema4ai/icons';
 import { WorkerHeader } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
-import { useNavigate, useParams } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useParams, useRouter } from '@tanstack/react-router';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
 import { useToggleRoutePath } from '~/hooks/useToggleRoutePath';
 import { useTenantContext } from '~/lib/tenantContext';
 
-type NavigationContext = {
-  from: string;
-  timestamp: number;
-  tab: 'all' | 'overview';
-  agent?: string;
-  status?: string;
-  search?: string;
-  page?: string;
-};
-
 export const Header = () => {
   const { agentId, tenantId } = useParams({ from: '/tenants/$tenantId/worker/$agentId' });
   const { workItemId, threadId } = useParams({ strict: false });
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const { features } = useTenantContext();
   const isMobile = useScreenSize('m');
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
-  const { storageValue: storedContext, setStorageValue: setStoredContext } = useLocalStorage<NavigationContext | null>({
-    key: `workItems.navigationContext${tenantId ? `.${tenantId}` : ''}`,
-    defaultValue: null,
-  });
+  const hasHistory = router.history.length > 1;
 
-  const [navigationContext, setNavigationContext] = useState<NavigationContext | null>(null);
-
-  useEffect(() => {
-    if (storedContext && storedContext.timestamp > Date.now() - 3600000) {
-      setNavigationContext(storedContext);
-    }
-  }, [storedContext]);
-
-  const handleBackToWorkItems = () => {
-    const tab = navigationContext?.tab || 'all';
-    const agent = navigationContext?.agent;
-    const status = navigationContext?.status;
-    const search = navigationContext?.search;
-    const page = navigationContext?.page;
-
-    setStoredContext(null);
-
-    const searchParams: { tab: 'all' | 'overview'; agent?: string; status?: string; search?: string; page?: number } = {
-      tab,
-    };
-    if (agent) searchParams.agent = agent;
-    if (status) searchParams.status = status;
-    if (search) searchParams.search = search;
-    if (page) searchParams.page = Number(page);
-
-    navigate({
-      to: '/tenants/$tenantId/workItems',
-      params: { tenantId },
-      search: searchParams,
-    });
+  const handleBack = () => {
+    router.history.back();
   };
 
   const defaultLink = {
@@ -80,15 +38,9 @@ export const Header = () => {
   return (
     <WorkerHeader
       leftAction={
-        !isMobile && navigationContext?.from === 'workItems' ? (
-          <Tooltip text="Back to Work Items" placement="bottom">
-            <Button
-              icon={IconArrowLeft}
-              variant="ghost-subtle"
-              round
-              onClick={handleBackToWorkItems}
-              aria-label="Back to Work Items"
-            />
+        !isMobile && hasHistory ? (
+          <Tooltip text="Back" placement="bottom">
+            <Button icon={IconArrowLeft} variant="ghost-subtle" round onClick={handleBack} aria-label="Back" />
           </Tooltip>
         ) : undefined
       }
@@ -145,9 +97,11 @@ export const Header = () => {
       {isMobile && (
         <>
           <Menu trigger={<Button icon={IconDotsHorizontal} variant="ghost" aria-label="Chat Actions" />}>
-            <Menu.Item icon={IconArrowLeft} onClick={handleBackToWorkItems}>
-              Back to Work Items
-            </Menu.Item>
+            {hasHistory && (
+              <Menu.Item icon={IconArrowLeft} onClick={handleBack}>
+                Back
+              </Menu.Item>
+            )}
 
             {workItemId && threadId && (
               <>

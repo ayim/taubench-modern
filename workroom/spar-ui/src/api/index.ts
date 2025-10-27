@@ -57,12 +57,6 @@ export interface SparAPIClient {
   navigate: (args: NavigationArgs) => void;
 
   /**
-   * Get the tenant ID for the current context
-   * Returns undefined if the platform doesn't have a tenant concept (e.g., desktop app)
-   */
-  getTenantId: () => string | undefined;
-
-  /**
    * Get Agent OAuth provider state
    */
   getAgentOAuthState: (props: { agentId: string }) => Promise<AgentOAuthProviderState[]>;
@@ -94,6 +88,16 @@ export interface SparAPIClient {
     href: string;
     current: boolean;
   };
+
+  /**
+   * Get current search params
+   */
+  useSearchParamsFn: () => Record<string, unknown>;
+
+  /**
+   * Get current pathname
+   */
+  usePathnameFn: () => string;
 
   /**
    * Retrieve the URL for the Work Item API

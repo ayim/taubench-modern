@@ -1,7 +1,7 @@
-import { Box, Button, useLocalStorage, useSnackbar } from '@sema4ai/components';
+import { Box, Button, useSnackbar } from '@sema4ai/components';
 import { IconRefresh } from '@sema4ai/icons';
-import { TableWithFilter, QuerySettings } from '@sema4ai/layouts';
-import { FC, useCallback, useContext, useEffect, useMemo, useState, Dispatch, SetStateAction } from 'react';
+import { TableWithFilter } from '@sema4ai/layouts';
+import { FC, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { SparUIContext } from '../../api/context';
@@ -10,15 +10,14 @@ import { WorkItemRowData } from './types';
 import { workItemsSortRules, workItemsTableColumns } from './columns';
 import { WorkItemsTableRow } from './components/WorkItemsTableRow';
 import { WorkItemsTableActions } from './components/WorkItemsTableActions';
-import { WorkItemsNavigationContext } from '../../types/navigation';
+import { createWorkItemsStorageKey, getStoragePrefixFromPathname } from '../../constants/workItemsStorage';
 import {
-  parseQueryFromURL,
-  serializeQueryToURL,
   buildAgentMaps,
   transformWorkItemsWithAgentNames,
   buildFilterOptions,
   calculatePagination,
 } from './utils';
+import { usePersistedQuery } from './usePersistedQuery';
 
 const PAGE_SIZE = 50;
 
@@ -30,54 +29,24 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
   const { addSnackbar } = useSnackbar();
   const { sparAPIClient } = useContext(SparUIContext);
   const queryClient = useQueryClient();
-  const tenantId = sparAPIClient.getTenantId();
   
-  const { setStorageValue: setNavigationContext } = useLocalStorage<WorkItemsNavigationContext | null>({
-    key: `workItems.navigationContext${tenantId ? `.${tenantId}` : ''}`,
-    defaultValue: null,
-  });
-
+  const pathname = sparAPIClient.usePathnameFn();
+  const storageKeyPrefix = getStoragePrefixFromPathname(pathname);
+  
   const { data: agents = [], refetch: refetchAgents } = useAgentsQuery({});
   const { agentsById, agentsByName } = useMemo(() => buildAgentMaps(agents), [agents]);
-
+  
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [query, setQuery] = useState<Partial<QuerySettings>>({
-    filters: { status: [], agent_name: [] },
-    search: ''
+  
+  const { query, setQuery } = usePersistedQuery({
+    storageKey: createWorkItemsStorageKey(storageKeyPrefix, 'QUERY_SETTINGS'),
+    agentsById,
+    agentsByName,
   });
-
-  useEffect(() => {
-    if (agents.length > 0) {
-      const urlQuery = parseQueryFromURL(agentsById);
-      
-      if (Object.keys(urlQuery).length > 0) {
-        setQuery((prev) => {
-          const updatedQuery = { ...prev, ...urlQuery };
-          const urlParams = serializeQueryToURL(updatedQuery, agentsByName);
-          const newURL = urlParams ? `${window.location.pathname}?${urlParams}` : window.location.pathname;
-          window.history.replaceState({}, '', newURL);
-          return updatedQuery;
-        });
-      }
-    }
-  }, [agents.length, agentsById, agentsByName]);
 
   useEffect(() => {
     setSelectedItems([]);
   }, [query.filters, query.search, query.page]);
-
-  const handleQueryChange: Dispatch<SetStateAction<Partial<QuerySettings>>> = useCallback(
-    (newQueryOrSetter) => {
-      setQuery((prevQuery) => {
-        const newQuery = typeof newQueryOrSetter === 'function' ? newQueryOrSetter(prevQuery) : newQueryOrSetter;
-        const urlParams = serializeQueryToURL(newQuery, agentsByName);
-        const newURL = urlParams ? `${window.location.pathname}?${urlParams}` : window.location.pathname;
-        window.history.replaceState({}, '', newURL);
-        return newQuery;
-      });
-    },
-    [agentsByName]
-  );
 
   const selectedAgentId = query.filters?.agent_name?.[0] ? agentsByName.get(query.filters.agent_name[0]) : undefined;
   const selectedStatuses = query.filters?.status?.length ? (query.filters.status as WorkItemStatus[]) : undefined;
@@ -191,14 +160,11 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
       )}
       <Box flexGrow={1} overflow="hidden">
         {agents.length > 0 && (
-          
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          <TableWithFilter<WorkItemRowData, 'status' | 'agent_name', { setNavigationContext: (value: WorkItemsNavigationContext | null) => void }>
+          <TableWithFilter<WorkItemRowData, 'status' | 'agent_name'>
             id="work-items-table"
             columns={workItemsTableColumns}
             data={workItems}
             row={WorkItemsTableRow}
-            rowProps={{ setNavigationContext }}
             filters={filterOptions}
             label={{ singular: 'work item', plural: 'work items' }}
             selectable
@@ -207,7 +173,7 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
             sortRules={workItemsSortRules}
             isServerSide
             query={query}
-            onQuery={handleQueryChange}
+            onQuery={setQuery}
             totalEntries={estimatedTotal}
             contentBefore={
               selectedItems.length > 0 ? (

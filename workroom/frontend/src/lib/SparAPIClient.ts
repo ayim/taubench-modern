@@ -1,5 +1,5 @@
 import { AgentOAuthProviderState, SparAPIClient, SparUIFeatureFlag, SparUIRoutes } from '@sema4ai/spar-ui';
-import { useParams, useRouter } from '@tanstack/react-router';
+import { useParams, useRouter, useSearch } from '@tanstack/react-router';
 
 import { FileRouteTypes } from '~/routeTree.gen';
 import { router } from '~/components/providers/Router';
@@ -77,8 +77,6 @@ export const createSparAPIClient = (
     });
   },
 
-  getTenantId: () => tenantId,
-
   openActionLogs: async (params) => {
     const response = await agentAPIClient.getActionLogHtml({ tenantId, ...params });
 
@@ -132,6 +130,15 @@ export const createSparAPIClient = (
       href,
       current,
     };
+  },
+
+  useSearchParamsFn: () => {
+    return useSearch({ strict: false });
+  },
+
+  usePathnameFn: () => {
+    const router = useRouter();
+    return router.state.location.pathname;
   },
 
   getWorkItemAPIURL: async () => {
