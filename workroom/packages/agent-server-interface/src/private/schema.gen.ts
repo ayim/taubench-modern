@@ -2432,11 +2432,20 @@ export interface paths {
     };
     /**
      * Export Semantic Data Model
-     * @description Export a semantic data model in YAML format.
+     * @description Export a semantic data model as YAML.
      *
-     *     This endpoint returns the semantic data model as a YAML file with data_connection_name
-     *     instead of data_connection_id, making it portable across environments.
-     *     The semantic_data_model_id is not included in the response.
+     *     This endpoint returns a JSON response containing the semantic data model as a YAML string
+     *     with data_connection_name instead of data_connection_id, making it portable across
+     *     environments.
+     *
+     *     The YAML content can be saved to a file or passed directly to the /import endpoint
+     *     (which accepts both YAML strings and JSON objects).
+     *
+     *     Returns:
+     *         JSON response with:
+     *         - content: The YAML-formatted semantic data model with data_connection_name
+     *         - filename: Suggested filename for saving (e.g., "model-name.yaml")
+     *         - format: The format of the content ("yaml")
      */
     get: operations['export_semantic_data_model_semantic_data_models__semantic_data_model_id__export_get'];
     put?: never;
@@ -2460,23 +2469,38 @@ export interface paths {
      * Import Semantic Data Model
      * @description Import a semantic data model from a portable format (JSON or YAML).
      *
-     *     This endpoint accepts a semantic data model with data_connection_name and resolves
-     *     those names to data_connection_id values in the target environment. A new semantic
-     *     data model is created with a generated ID.
+     *     This endpoint accepts a semantic data model and creates/reuses an SDM in the target environment.
      *
      *     The semantic_model can be provided as either:
      *     - JSON object (dict) in the request body
      *     - YAML string that will be parsed automatically
      *
+     *     **Data Connection Handling:**
+     *     The endpoint accepts BOTH data_connection_name and data_connection_id:
+     *     - If `data_connection_id` is provided: Validates the connection exists
+     *     - If `data_connection_name` is provided: Resolves name to ID (case-insensitive)
+     *     - If both are provided: Uses `data_connection_id` (ID takes precedence)
+     *
+     *     **Using with /export endpoint:**
+     *     ```json
+     *     {
+     *       "semantic_model": "<export_response.content>",
+     *       "agent_id": "optional"
+     *     }
+     *     ```
+     *     Export provides `data_connection_name` for portability. The UI can:
+     *     1. Let users map connection names to specific connection IDs
+     *     2. Replace connection names with IDs before import
+     *     3. Let import resolve names automatically (if names match)
+     *
      *     Parameters:
-     *     - semantic_model: The SDM with data_connection_name (dict or YAML string)
+     *     - semantic_model: The SDM with data_connection_name or data_connection_id (dict or YAML string)
      *     - agent_id (optional): Enables deduplication check for this agent
      *     - thread_id (optional): Enables file reference resolution via SemanticDataModelCollector
      *
      *     Prerequisites:
-     *     - All data connections referenced in the SDM must already exist in the target environment
-     *     - Connection names are matched case-insensitively
-     *     - If any connections cannot be resolved, the import fails with a detailed error message
+     *     - All data connections referenced in the SDM must exist in the target environment
+     *     - If any connections cannot be resolved/validated, the import fails with detailed error
      *
      *     Returns:
      *     - semantic_data_model_id: ID of the newly created or reused SDM
@@ -4116,6 +4140,18 @@ export interface components {
       started_at?: string;
       /** Finished At */
       finished_at?: string | null;
+    };
+    /**
+     * ExportSemanticDataModelResponse
+     * @description Response for exporting a semantic data model.
+     */
+    ExportSemanticDataModelResponse: {
+      /** Content */
+      content: string;
+      /** Filename */
+      filename: string;
+      /** Format */
+      format: string;
     };
     /** ExtractDocumentPayload */
     ExtractDocumentPayload: {
@@ -15965,7 +16001,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['ExportSemanticDataModelResponse'];
         };
       };
       /** @description Validation Error */

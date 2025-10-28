@@ -7554,7 +7554,7 @@ export const spec = {
         tags: ['semantic-data-models'],
         summary: 'Export Semantic Data Model',
         description:
-          'Export a semantic data model in YAML format.\n\nThis endpoint returns the semantic data model as a YAML file with data_connection_name\ninstead of data_connection_id, making it portable across environments.\nThe semantic_data_model_id is not included in the response.',
+          'Export a semantic data model as YAML.\n\nThis endpoint returns a JSON response containing the semantic data model as a YAML string\nwith data_connection_name instead of data_connection_id, making it portable across\nenvironments.\n\nThe YAML content can be saved to a file or passed directly to the /import endpoint\n(which accepts both YAML strings and JSON objects).\n\nReturns:\n    JSON response with:\n    - content: The YAML-formatted semantic data model with data_connection_name\n    - filename: Suggested filename for saving (e.g., "model-name.yaml")\n    - format: The format of the content ("yaml")',
         operationId:
           'export_semantic_data_model_semantic_data_models__semantic_data_model_id__export_get',
         parameters: [
@@ -7573,7 +7573,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/ExportSemanticDataModelResponse',
+                },
               },
             },
           },
@@ -7595,7 +7597,7 @@ export const spec = {
         tags: ['semantic-data-models'],
         summary: 'Import Semantic Data Model',
         description:
-          'Import a semantic data model from a portable format (JSON or YAML).\n\nThis endpoint accepts a semantic data model with data_connection_name and resolves\nthose names to data_connection_id values in the target environment. A new semantic\ndata model is created with a generated ID.\n\nThe semantic_model can be provided as either:\n- JSON object (dict) in the request body\n- YAML string that will be parsed automatically\n\nParameters:\n- semantic_model: The SDM with data_connection_name (dict or YAML string)\n- agent_id (optional): Enables deduplication check for this agent\n- thread_id (optional): Enables file reference resolution via SemanticDataModelCollector\n\nPrerequisites:\n- All data connections referenced in the SDM must already exist in the target environment\n- Connection names are matched case-insensitively\n- If any connections cannot be resolved, the import fails with a detailed error message\n\nReturns:\n- semantic_data_model_id: ID of the newly created or reused SDM\n- resolved_data_connections: Map of connection names to their resolved IDs\n- unresolved_data_connections: Empty list (will fail before this if any are unresolved)\n- is_duplicate: True if an existing SDM was reused\n- warnings: Any non-fatal issues encountered during import',
+          'Import a semantic data model from a portable format (JSON or YAML).\n\nThis endpoint accepts a semantic data model and creates/reuses an SDM in the target environment.\n\nThe semantic_model can be provided as either:\n- JSON object (dict) in the request body\n- YAML string that will be parsed automatically\n\n**Data Connection Handling:**\nThe endpoint accepts BOTH data_connection_name and data_connection_id:\n- If `data_connection_id` is provided: Validates the connection exists\n- If `data_connection_name` is provided: Resolves name to ID (case-insensitive)\n- If both are provided: Uses `data_connection_id` (ID takes precedence)\n\n**Using with /export endpoint:**\n```json\n{\n  "semantic_model": "<export_response.content>",\n  "agent_id": "optional"\n}\n```\nExport provides `data_connection_name` for portability. The UI can:\n1. Let users map connection names to specific connection IDs\n2. Replace connection names with IDs before import\n3. Let import resolve names automatically (if names match)\n\nParameters:\n- semantic_model: The SDM with data_connection_name or data_connection_id (dict or YAML string)\n- agent_id (optional): Enables deduplication check for this agent\n- thread_id (optional): Enables file reference resolution via SemanticDataModelCollector\n\nPrerequisites:\n- All data connections referenced in the SDM must exist in the target environment\n- If any connections cannot be resolved/validated, the import fails with detailed error\n\nReturns:\n- semantic_data_model_id: ID of the newly created or reused SDM\n- resolved_data_connections: Map of connection names to their resolved IDs\n- unresolved_data_connections: Empty list (will fail before this if any are unresolved)\n- is_duplicate: True if an existing SDM was reused\n- warnings: Any non-fatal issues encountered during import',
         operationId:
           'import_semantic_data_model_semantic_data_models_import_post',
         requestBody: {
@@ -11187,6 +11189,26 @@ export const spec = {
         },
         type: 'object',
         title: 'ExecutionState',
+      },
+      ExportSemanticDataModelResponse: {
+        properties: {
+          content: {
+            type: 'string',
+            title: 'Content',
+          },
+          filename: {
+            type: 'string',
+            title: 'Filename',
+          },
+          format: {
+            type: 'string',
+            title: 'Format',
+          },
+        },
+        type: 'object',
+        required: ['content', 'filename', 'format'],
+        title: 'ExportSemanticDataModelResponse',
+        description: 'Response for exporting a semantic data model.',
       },
       ExtractDocumentPayload: {
         properties: {
