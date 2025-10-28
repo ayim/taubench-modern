@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, UploadFile
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.payloads.create_work_item import CreateWorkItemPayload
+from agent_platform.core.payloads.update_work_item import UpdateWorkItemPayload
 from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
 from agent_platform.server.api.dependencies import (
     FileManagerDependency,
@@ -155,3 +156,15 @@ async def complete_work_item(
 ):
     """Administratively mark a work item as completed."""
     return await rest.complete_work_item(work_item_id, user, storage)
+
+
+# Update work item endpoint
+@router.patch("/{work_item_id}", response_model=WorkItem)
+async def update_work_item(
+    work_item_id: str,
+    payload: UpdateWorkItemPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> WorkItem:
+    """Update a work item's properties."""
+    return await rest.update_work_item(work_item_id, payload.work_item_name, user, storage)

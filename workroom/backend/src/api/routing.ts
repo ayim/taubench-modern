@@ -86,6 +86,7 @@ function getRouteMap(): {
     'get /api/v2/work-items/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/work-items/summary': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/work-items/{work_item_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'patch /api/v2/work-items/{work_item_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/work-items': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'post /api/v2/work-items/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'post /api/v2/work-items/upload-file': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],

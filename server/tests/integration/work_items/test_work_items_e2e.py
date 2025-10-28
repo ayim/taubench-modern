@@ -1,3 +1,4 @@
+import dataclasses
 import json
 from io import BytesIO
 
@@ -5,6 +6,7 @@ import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from httpx import AsyncClient
 
+from agent_platform.core.payloads.update_work_item import UpdateWorkItemPayload
 from agent_platform.core.thread.thread import Thread
 from agent_platform.core.work_items.work_item import WorkItemStatus
 from agent_platform.server.work_items.callbacks import _compute_signature
@@ -360,6 +362,16 @@ async def test_work_items_e2e(
             # Verify payload made it into thread messages after completion
             thread_id = final_work_item["thread_id"]
             assert thread_id is not None, "Thread ID should not be None after completion"
+
+            # Verify updating the name of a work item is successful
+            new_name = "Updated Work Item Name"
+            update_resp = await client.patch(
+                f"/{work_item_id}",
+                json=dataclasses.asdict(UpdateWorkItemPayload(work_item_name=new_name)),
+            )
+            assert update_resp.status_code == 200
+            updated_work_item = update_resp.json()
+            assert updated_work_item["work_item_name"] == new_name
 
         # Verify that the payload made it into the thread messages
         expected_payload_data = {"task": "simple_math", "test_type": "e2e_comprehensive"}

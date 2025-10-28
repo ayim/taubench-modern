@@ -479,3 +479,28 @@ async def preview_work_item(
     status = await _validate_success(work_item)
 
     return {"status": status}
+
+
+async def update_work_item(
+    work_item_id: str,
+    work_item_name: str | None,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> WorkItem:
+    """Update a work item's properties and return the updated work item."""
+    work_item = await storage.get_work_item(work_item_id)
+    if not work_item:
+        raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
+
+    # Update work item name if provided
+    if work_item_name is not None:
+        new_name = WorkItem.normalize_work_item_name(work_item_name)
+        if not new_name:
+            raise PlatformHTTPError(ErrorCode.BAD_REQUEST, "Work item name cannot be empty")
+
+        work_item.work_item_name = new_name
+
+    # Save changes to storage
+    await storage.update_work_item(work_item)
+
+    return work_item
