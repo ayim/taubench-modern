@@ -363,16 +363,6 @@ async def test_work_items_e2e(
             thread_id = final_work_item["thread_id"]
             assert thread_id is not None, "Thread ID should not be None after completion"
 
-            # Verify updating the name of a work item is successful
-            new_name = "Updated Work Item Name"
-            update_resp = await client.patch(
-                f"/{work_item_id}",
-                json=dataclasses.asdict(UpdateWorkItemPayload(work_item_name=new_name)),
-            )
-            assert update_resp.status_code == 200
-            updated_work_item = update_resp.json()
-            assert updated_work_item["work_item_name"] == new_name
-
         # Verify that the payload made it into the thread messages
         expected_payload_data = {"task": "simple_math", "test_type": "e2e_comprehensive"}
         await _verify_payload_in_thread_messages(
@@ -385,10 +375,20 @@ async def test_work_items_e2e(
 
         # Make sure the private v2 work-items endpoint is working:
         async with AsyncClient(
-            base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
+            base_url=f"{base_url_agent_server_workitems_matrix}/api/v2/work-items"
         ) as client:
-            v2_list_resp = await client.get("/work-items/")
+            v2_list_resp = await client.get("/")
             assert v2_list_resp.status_code == 200
             v2_listed_items = v2_list_resp.json()["records"]
             v2_work_item_ids = [wi["work_item_id"] for wi in v2_listed_items]
             assert work_item_id in v2_work_item_ids
+
+            # Verify updating the name of a work item is successful
+            new_name = "Updated Work Item Name"
+            update_resp = await client.patch(
+                f"/{work_item_id}",
+                json=dataclasses.asdict(UpdateWorkItemPayload(work_item_name=new_name)),
+            )
+            assert update_resp.status_code == 200
+            updated_work_item = update_resp.json()
+            assert updated_work_item["work_item_name"] == new_name

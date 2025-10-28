@@ -196,11 +196,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /**
-     * Update Work Item
-     * @description Update a work item's properties.
-     */
-    patch: operations['update_work_item_work_items__work_item_id__patch'];
+    patch?: never;
     trace?: never;
   };
   '/api/public/v1/work-items/{work_item_id}/confirm-file': {
@@ -1012,14 +1008,6 @@ export interface components {
       _chart_spec?: {
         [key: string]: unknown;
       } | null;
-    };
-    /** UpdateWorkItemPayload */
-    UpdateWorkItemPayload: {
-      /**
-       * Work Item Name
-       * @description The new name for the work item.
-       */
-      work_item_name?: string | null;
     };
     /** WorkItem */
     WorkItem: {
@@ -4575,41 +4563,6 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['WorkItem'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  update_work_item_work_items__work_item_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        work_item_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UpdateWorkItemPayload'];
-      };
-    };
     responses: {
       /** @description Successful Response */
       200: {

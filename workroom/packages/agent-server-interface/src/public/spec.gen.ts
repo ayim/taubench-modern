@@ -996,55 +996,6 @@ export const spec = {
           },
         },
       },
-      patch: {
-        tags: ['work-items'],
-        summary: 'Update Work Item',
-        description: "Update a work item's properties.",
-        operationId: 'update_work_item_work_items__work_item_id__patch',
-        parameters: [
-          {
-            name: 'work_item_id',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Work Item Id',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/UpdateWorkItemPayload',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Successful Response',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/WorkItem',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
     },
     '/api/public/v1/work-items/{work_item_id}/confirm-file': {
       post: {
@@ -2499,24 +2450,6 @@ export const spec = {
         type: 'object',
         required: ['chart_spec_raw'],
         title: 'ThreadVegaChartContent',
-      },
-      UpdateWorkItemPayload: {
-        properties: {
-          work_item_name: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Work Item Name',
-            description: 'The new name for the work item.',
-          },
-        },
-        type: 'object',
-        title: 'UpdateWorkItemPayload',
       },
       WorkItem: {
         properties: {
