@@ -22,9 +22,6 @@ export const DataConnectionFormContext = createContext<{
   databaseInspectionState: DatabaseInspectionState;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setDatabaseInspectionState: (state: DatabaseInspectionState) => void;
-  importErrors: string[];
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setImportErrors: (errors: string[]) => void;
   onSubmit: () => void;
 }>({
   databaseInspectionState: {
@@ -33,8 +30,6 @@ export const DataConnectionFormContext = createContext<{
     dataTables: [],
   },
   setDatabaseInspectionState: () => {},
-  importErrors: [],
-  setImportErrors: () => {},
   onSubmit: () => {},
 });
 

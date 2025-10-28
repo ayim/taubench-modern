@@ -38,7 +38,6 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
     error: undefined,
     dataTables: [],
   });
-  const [importErrors, setImportErrors] = useState<string[]>([]);
   const [dataSourceType, setDataSourceType] = useState<DataSourceType | undefined>(undefined);
 
   const { data: semanticModel, isLoading: isLoadingSemanticModel } = useSemanticModelQuery(
@@ -94,16 +93,12 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
       await importSemanticDataModel(
         { ...values, agentId },
         {
-          onSuccess: (data) => {
-            if ('import_errors' in data) {
-              setImportErrors(data.import_errors);
-            } else {
-              addSnackbar({
-                message: `Semantic data model imported successfully`,
-                variant: 'success',
-              });
-              onClose();
-            }
+          onSuccess: () => {
+            addSnackbar({
+              message: `Semantic data model imported successfully`,
+              variant: 'success',
+            });
+            onClose();
           },
           onError: (error) => {
             addSnackbar({ message: error.message, variant: 'danger' });
@@ -130,8 +125,8 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
   });
 
   const formContextValue = useMemo(
-    () => ({ databaseInspectionState, setDatabaseInspectionState, importErrors, setImportErrors, onSubmit }),
-    [databaseInspectionState, importErrors, onSubmit],
+    () => ({ databaseInspectionState, setDatabaseInspectionState, onSubmit }),
+    [databaseInspectionState, onSubmit],
   );
 
   const { fileRefId, dataConnectionId, dataSelection, tables } = formMethods.watch();
@@ -178,7 +173,6 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
       dataSelection: [],
       description: '',
     });
-    setImportErrors([]);
   };
 
   const [step1Status, step2Status, step3Status] = (() => {

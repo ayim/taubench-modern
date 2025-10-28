@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { Box, Button, Dialog, Dropzone, Link, Typography, useSnackbar } from '@sema4ai/components';
+import { Button, Dialog, Dropzone, Link, Typography, useSnackbar } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 import { parse as yamlParse } from 'yaml';
 
@@ -15,12 +15,11 @@ import { DataConnectionSelect } from './DataConnectionSelect';
 export const ImportSource: ConfigurationStepView = ({ onClose }) => {
   const { addSnackbar } = useSnackbar();
   const { reset, watch } = useFormContext<DataConnectionFormSchema>();
-  const { importErrors, setImportErrors, onSubmit } = useContext(DataConnectionFormContext);
+  const { onSubmit } = useContext(DataConnectionFormContext);
   const state = watch();
 
   const onDrop = async (files: File[]) => {
     const file = files[0];
-    setImportErrors([]);
     try {
       const text = await file.text();
       const model = yamlParse(text);
@@ -93,16 +92,6 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
             </Typography>
             <DataConnectionSelect />
           </>
-        )}
-        {importErrors.length > 0 && (
-          <Box pt="$32">
-            <Typography mb="$8">Import errors</Typography>
-            {importErrors.map((error) => (
-              <Typography variant="body-large" color="content.error" mb="$4">
-                - {error}
-              </Typography>
-            ))}
-          </Box>
         )}
       </Dialog.Content>
 

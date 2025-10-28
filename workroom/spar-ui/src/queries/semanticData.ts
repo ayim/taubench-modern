@@ -295,7 +295,7 @@ export const useImportSemanticDataModelMutation = createSparMutation<
   DataConnectionFormSchema & { agentId: string }
 >()(({ sparAPIClient, queryClient }) => ({
   mutationFn: async (payload) => {
-    const importResponse = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/import', {
+    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/import', {
       params: {},
       body: {
         semantic_model: {
@@ -314,55 +314,14 @@ export const useImportSemanticDataModelMutation = createSparMutation<
       },
     });
 
-    if (!importResponse.success) {
-      throw new QueryError(importResponse.message || 'Failed to update Semantic Data model', {
-        code: importResponse.code,
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to update Semantic Data model', {
+        code: response.code,
         resource: ResourceType.SemanticData,
       });
     }
 
-    if (importResponse.data.is_duplicate) {
-      return {
-        import_errors: ['Duplicate semantic data model found'],
-      };
-    }
-
-    if (importResponse.data.warnings && importResponse.data.warnings.length > 0) {
-      return {
-        import_errors: importResponse.data.warnings,
-      };
-    }
-
-    const existingModels = await sparAPIClient.queryAgentServer('get', '/api/v2/agents/{aid}/semantic-data-models', {
-      params: { path: { aid: payload.agentId } },
-    });
-
-    if (!existingModels.success) {
-      throw new QueryError(existingModels.message || 'Failed to get existing Semantic Data models', {
-        code: existingModels.code,
-        resource: ResourceType.SemanticData,
-      });
-    }
-
-    const existingModelIds = existingModels.data.flatMap((curr) => {
-      return Object.entries<SemanticModel>(curr as Record<string, SemanticModel>).map(([id]) => id);
-    });
-
-    const attachResponse = await sparAPIClient.queryAgentServer('put', '/api/v2/agents/{aid}/semantic-data-models', {
-      body: {
-        semantic_data_model_ids: [...existingModelIds, importResponse.data.semantic_data_model_id],
-      },
-      params: { path: { aid: payload.agentId } },
-    });
-
-    if (!attachResponse.success) {
-      throw new QueryError(attachResponse.message || 'Failed to attach Semantic Data model to Agent', {
-        code: attachResponse.code,
-        resource: ResourceType.SemanticData,
-      });
-    }
-
-    return attachResponse.data;
+    return response.data;
   },
   onSuccess: (_, { agentId }) => {
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
