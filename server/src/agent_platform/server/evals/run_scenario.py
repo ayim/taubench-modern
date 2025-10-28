@@ -41,6 +41,7 @@ from agent_platform.server.agent_architectures.arch_manager import AgentArchMana
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
+from agent_platform.server.evals.errors import log_and_format_error
 from agent_platform.server.evals.evaluations.flow_adherence import evaluate_flow_adherence
 from agent_platform.server.evals.evaluations.response_accuracy import evaluate_response_accuracy
 from agent_platform.server.file_manager import FileManagerService
@@ -571,7 +572,16 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 logger.info(f"Turn {current_turn}: {e}.")
                 state.termination = _get_termination_reason(e)
                 state.status = "ERROR"
-                state.error_message = str(e)
+                state.error_message = log_and_format_error(
+                    log_message=(
+                        f"Unexpected error during scenario turn {current_turn} "
+                        f"for trial {task.trial_id}"
+                    ),
+                    user_message=(
+                        f"An unexpected error occurred while executing turn {current_turn} "
+                        "of the scenario."
+                    ),
+                )
                 additional_drifts = (
                     _collect_tool_executor_drifts(tool_executor)
                     if tool_executor is not None
@@ -589,7 +599,12 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
     except Exception as e:
         logger.error(f"Unexpected error when processing evals: {e}.")
         state.termination = _get_termination_reason(e)
-        state.error_message = str(e)
+        state.error_message = log_and_format_error(
+            log_message=(
+                f"Unexpected error when processing scenario run for trial {task.trial_id}"
+            ),
+            user_message="An unexpected error occurred while running the evaluation scenario.",
+        )
         state.drift_events = drifts
         state.status = "ERROR"
         state.finished_at = datetime.now()
