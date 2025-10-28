@@ -5,9 +5,8 @@ This router exposes work items endpoints through the public API.
 All endpoint handlers are imported from the shared handlers module.
 """
 
-from fastapi import APIRouter, Depends, Query, UploadFile
+from fastapi import APIRouter, Query, UploadFile
 
-from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.payloads.create_work_item import CreateWorkItemPayload
 from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
 from agent_platform.server.api.dependencies import (
@@ -18,20 +17,10 @@ from agent_platform.server.api.dependencies import (
 )
 from agent_platform.server.api.private_v2.threads import ConfirmRemoteFileUploadPayload
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.constants import SystemConfig
 from agent_platform.server.work_items import rest
 from agent_platform.server.work_items.rest import WorkItemsListResponse
 
-
-def _require_workitems_enabled():
-    """Raise an error if work items are disabled in configuration."""
-    if not SystemConfig.enable_workitems:
-        raise PlatformHTTPError(ErrorCode.FORBIDDEN, "Work items feature is disabled")
-
-
-# Attach the dependency to all routes in this router. If the feature is disabled,
-# every request will immediately raise the above error.
-router = APIRouter(dependencies=[Depends(_require_workitems_enabled)])
+router = APIRouter()
 
 
 # Create work item endpoints

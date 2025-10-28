@@ -46,9 +46,6 @@ class TestLifespan:
                 ),
                 start_data_retention_worker=MagicMock(return_value=MagicMock(cancel=MagicMock())),
                 ResponseStreamPipe=MagicMock(_DIFF_POOL=MagicMock(shutdown=MagicMock())),
-                SystemConfig=MagicMock(
-                    enable_workitems=enable_workers,
-                ),
                 SystemPaths=MagicMock(upload_dir=MagicMock()),
                 run_automatic_migration=AsyncMock(return_value=True),
             ),

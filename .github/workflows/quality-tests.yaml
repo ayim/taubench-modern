@@ -148,7 +148,7 @@ jobs:
       - name: Run quality tests
         run: |
           uv run quality-test init
-          SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO=1 SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true uv run quality-test run --agent-server-version ${{ env.AGENT_SERVER_VERSION }} --selected-agents "${{ env.TESTS_TO_RUN }}"
+          SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO=1 uv run quality-test run --agent-server-version ${{ env.AGENT_SERVER_VERSION }} --selected-agents "${{ env.TESTS_TO_RUN }}"
 
       - name: Upload test artifacts
         if: always() # even on failures

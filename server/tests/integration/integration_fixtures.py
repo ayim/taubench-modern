@@ -135,7 +135,6 @@ def base_url_agent_server_with_work_items(tmpdir, logs_dir):
     start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
     if start_server == "true":
         env_vars = {
-            "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
             "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "local",  # Explicitly use local file manager
         }
 
@@ -160,7 +159,6 @@ def _get_work_items_server_url(
     if start_server == "true":
         # Build environment variables based on configuration
         env_vars = {
-            "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
             # We need to set the Work Item URL,
             # so that the tests related to building work item URL succeed.
             "SEMA4AI_AGENT_SERVER_WORK_ITEM_URL": "https://localhost:8000/tenants/123/worker/{agent_id}/{work_item_id}/{thread_id}",

@@ -133,10 +133,7 @@ async def lifespan(app: FastAPI):
         pool_monitor_task, pool_monitor_shutdown_event = _start_pool_monitor()
 
     # Start the work-items background worker only if enabled in configuration
-    if SystemConfig.enable_workitems:
-        _start_work_items_background_worker()
-    else:
-        logger.info("Work-items feature disabled; background worker will not start")
+    _start_work_items_background_worker()
 
     _start_evals_background_worker()
 

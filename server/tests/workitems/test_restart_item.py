@@ -16,21 +16,10 @@ from agent_platform.core.work_items.work_item import (
 )
 from agent_platform.server.api.public_v2.work_items import router as work_items_router
 from agent_platform.server.auth.handlers import auth_user
-from agent_platform.server.constants import SystemConfig
 from agent_platform.server.error_handlers import platform_http_error_handler
 from agent_platform.server.storage.option import StorageService
 
 from .mock_storage import MockStorage
-
-
-@pytest.fixture(autouse=True)
-def _enable_work_items():
-    """Enable work items for the duration of the test."""
-    original_instance = SystemConfig._instances.get(SystemConfig)
-    SystemConfig.set_instance(SystemConfig(enable_workitems=True))
-    yield
-    if original_instance is not None:
-        SystemConfig.set_instance(original_instance)
 
 
 @pytest.fixture

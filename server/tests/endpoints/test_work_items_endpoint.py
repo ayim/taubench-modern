@@ -8,22 +8,11 @@ from fastapi.testclient import TestClient
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.work_items.work_item import WorkItemStatus
-from agent_platform.server.constants import SystemConfig
 from agent_platform.server.file_manager import (
     FileManagerService,
 )
 from agent_platform.server.storage.option import StorageService
 from agent_platform.server.work_items.rest import WorkItemsListResponse
-
-
-@pytest.fixture(autouse=True)
-def _enable_work_items():
-    """Enable work items for the duration of the test."""
-    original_instance = SystemConfig._instances.get(SystemConfig)
-    SystemConfig.set_instance(SystemConfig(enable_workitems=True))
-    yield
-    if original_instance is not None:
-        SystemConfig.set_instance(original_instance)
 
 
 @pytest.fixture
