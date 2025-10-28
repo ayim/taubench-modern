@@ -107,6 +107,11 @@ class ArchState(aa.StateBase):
     """The state of the data frames tools. Note that after enabled we cannot go back to
     disabling it (tools cannot be removed from the context)"""
 
+    empty_file_cache_key_to_matching_info: dict[str, dict] = field(
+        default_factory=dict,
+    )
+    """Maps an unresolved file reference (from a semantic data model) to the matching info."""
+
     work_item_tools_state: Literal["enabled", ""] = field(
         default="",
     )

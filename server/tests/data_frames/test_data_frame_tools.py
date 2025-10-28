@@ -1,7 +1,6 @@
 import typing
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal
 
 import pytest
 
@@ -12,7 +11,9 @@ if typing.TYPE_CHECKING:
 
 
 class _DefaultDataFrameArchState(DataFrameArchState):
-    data_frames_tools_state: Literal["enabled", ""] = ""
+    def __init__(self):
+        self.data_frames_tools_state = ""
+        self.empty_file_cache_key_to_matching_info = {}
 
 
 def find_tool(name: str, tools: Sequence["ToolDefinition"]) -> "ToolDefinition":
@@ -107,6 +108,7 @@ async def test_data_frames_interface(file_regression):
             "semantic_data_model_id": "test_semantic_model_id",
             "agent_ids": {storage_stub.thread.agent_id},
             "thread_ids": {storage_stub.thread.tid},
+            "updated_at": "2024-01-01T00:00:00.000Z",
         }
     ]
 

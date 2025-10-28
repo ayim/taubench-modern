@@ -1,6 +1,6 @@
-import dataclasses
 import typing
 
+from pydantic import BaseModel
 from structlog import get_logger
 
 if typing.TYPE_CHECKING:
@@ -13,12 +13,18 @@ if typing.TYPE_CHECKING:
         EmptyFileReference,
         References,
     )
-    from agent_platform.core.files.files import UploadedFile
+    from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.server.api.private_v2.threads_data_frames import _DataFrameInspectionAPI
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.storage.base import BaseStorage
 
 logger = get_logger(__name__)
+
+
+class MatchingInfo(BaseModel):
+    uploaded_file_thread_id: str
+    uploaded_file_file_ref: str
+    sheet_name_to_logical_table_names: "dict[str | None, list[str]]"
 
 
 class SemanticDataModelCollector:
@@ -33,22 +39,28 @@ class SemanticDataModelCollector:
     resulting list.
     """
 
-    def __init__(self, agent_id: str, thread_id: str, user: "AuthedUser"):
+    def __init__(
+        self,
+        agent_id: str,
+        thread_id: str,
+        user: "AuthedUser",
+        state: "DataFrameArchState | None",
+    ):
+        from sema4ai.common.callback import Callback
+
         self.agent_id = agent_id
         self.thread_id = thread_id
         self.user = user
+        self.state = state
+        self.on_cache_hit = Callback()
 
-    @dataclasses.dataclass(frozen=True)
-    class _MatchingInfo:
-        uploaded_file: "UploadedFile"
-        sheet_name_to_logical_tables: "dict[str | None, list[LogicalTable]]"
-
-    async def _find_file_which_matches_unresolved_file_reference(
+    async def _find_file_which_matches_unresolved_file_reference(  # noqa
         self,
         storage: "BaseStorage",
         references: "References",
         semantic_data_model: "SemanticDataModel",
-    ) -> _MatchingInfo | None:
+        updated_at: str,
+    ) -> MatchingInfo | None:
         from agent_platform.server.api.private_v2.threads_data_frames import (
             inspect_file_as_data_frame,
         )
@@ -67,6 +79,35 @@ class SemanticDataModelCollector:
             thread_id=self.thread_id,
             user_id=self.user.user_id,
         )
+
+        if self.state is not None:
+            cache_key_lst = [f"{self.thread_id}:{updated_at}"]
+            for empty_file_reference in tables_with_unresolved_file_references:
+                cache_key_lst.append(
+                    f"{empty_file_reference.base_table_table}:{empty_file_reference.sheet_name}"
+                )
+            cache_key = ";".join(cache_key_lst)
+
+            matching_info = self.state.empty_file_cache_key_to_matching_info.get(cache_key)
+            if matching_info:
+                try:
+                    ret = MatchingInfo(**matching_info)
+                    existing_file = next(
+                        (
+                            file
+                            for file in files_in_thread
+                            if file.file_ref == ret.uploaded_file_file_ref
+                        ),
+                        None,
+                    )
+                    if existing_file is not None:
+                        self.on_cache_hit(ret)
+                        return ret
+                except Exception:
+                    logger.error(
+                        f"Error parsing matching info for cache key {cache_key}: {matching_info}",
+                        exc_info=True,
+                    )
 
         for uploaded_file in files_in_thread:
             try:
@@ -88,9 +129,12 @@ class SemanticDataModelCollector:
                 )
 
                 # Check if any of the inspected data frames match any of the unresolved references
-                sheet_name_to_logical_tables: dict[str | None, list[LogicalTable]] = {}
+                sheet_name_to_logical_table_names: dict[str | None, list[str]] = {}
                 found_matching = 0
                 for inspected_data_frame in inspected_data_frames:
+                    assert inspected_data_frame.file_ref is not None, (
+                        "File ref is expected in data frame inspected from file."
+                    )
                     for unresolved_reference in tables_with_unresolved_file_references:
                         # Match by sheet name and columns in the table
 
@@ -118,21 +162,35 @@ class SemanticDataModelCollector:
                         if not logical_table_with_matching_columns:
                             continue
 
-                        matching_tables = sheet_name_to_logical_tables.setdefault(
-                            inspected_data_frame.sheet_name, []
+                        matching_table_names: list[str] = (
+                            sheet_name_to_logical_table_names.setdefault(
+                                inspected_data_frame.sheet_name, []
+                            )
                         )
-                        matching_tables.append(logical_table_with_matching_columns)
+                        name = logical_table_with_matching_columns.get("name")
+                        if not name:
+                            logger.error(
+                                f"Logical table with matching columns has no name: "
+                                f"{logical_table_with_matching_columns}",
+                            )
+                            continue
+                        matching_table_names.append(name)
                         found_matching += 1
                         if found_matching == len(tables_with_unresolved_file_references):
                             logger.info(
                                 f"Found matching file for unresolved reference (file_ref: "
                                 f"{uploaded_file.file_ref})",
                             )
-                            return self._MatchingInfo(
-                                uploaded_file=uploaded_file,
-                                sheet_name_to_logical_tables=sheet_name_to_logical_tables,
+                            matching_info = MatchingInfo(
+                                uploaded_file_thread_id=inspected_data_frame.thread_id,
+                                uploaded_file_file_ref=inspected_data_frame.file_ref,
+                                sheet_name_to_logical_table_names=sheet_name_to_logical_table_names,
                             )
-
+                            if self.state is not None:
+                                self.state.empty_file_cache_key_to_matching_info[cache_key] = (
+                                    matching_info.model_dump()
+                                )
+                            return matching_info
             except Exception as e:
                 logger.error(
                     f"Error inspecting file {uploaded_file.file_ref} for unresolved "
@@ -230,7 +288,7 @@ class SemanticDataModelCollector:
             logger.exception("Error collecting semantic data models")
             return []
 
-    async def _collect_semantic_data_models(
+    async def _collect_semantic_data_models(  # noqa
         self, storage: "BaseStorage"
     ) -> "list[BaseStorage.SemanticDataModelInfo]":
         from agent_platform.core.data_frames.semantic_data_model_validation import (
@@ -271,27 +329,44 @@ class SemanticDataModelCollector:
             # semantic data model info with the proper file references.
 
             found = await self._find_file_which_matches_unresolved_file_reference(
-                storage, references, semantic_data_model
+                storage, references, semantic_data_model, semantic_data_model_info["updated_at"]
             )
 
             if found is not None:
+                logical_table_name_to_logical_table: dict[str, LogicalTable] = {}
+                for logical_table in semantic_data_model.get("tables") or []:
+                    name = logical_table.get("name")
+                    if not name:
+                        continue
+                    logical_table_name_to_logical_table[name] = logical_table
+
                 # Update the file information in the base_table to match the found file
-                for sheet_name, logical_table in found.sheet_name_to_logical_tables.items():
-                    for table in logical_table:
-                        base_table = table.get("base_table")
+                matched_all = True
+                for (
+                    sheet_name,
+                    logical_table_names,
+                ) in found.sheet_name_to_logical_table_names.items():
+                    for logical_table_name in logical_table_names:
+                        logical_table = logical_table_name_to_logical_table.get(logical_table_name)
+                        if not logical_table:
+                            matched_all = False
+                            break
+
+                        base_table = logical_table.get("base_table")
                         if base_table is None:
-                            base_table = table["base_table"] = {}
+                            base_table = logical_table["base_table"] = {}
 
                         assert base_table is not None
-                        assert found.uploaded_file.thread_id is not None
+                        assert found.uploaded_file_thread_id is not None
                         file_reference: FileReference = {
-                            "thread_id": found.uploaded_file.thread_id,
-                            "file_ref": found.uploaded_file.file_ref,
+                            "thread_id": found.uploaded_file_thread_id,
+                            "file_ref": found.uploaded_file_file_ref,
                             "sheet_name": sheet_name,
                         }
                         base_table["file_reference"] = file_reference
 
-                # We've mutated the semantic data model info in the code above!
-                resolved_semantic_data_model_infos.append(semantic_data_model_info)
+                if matched_all:
+                    # We've mutated the semantic data model info in the code above!
+                    resolved_semantic_data_model_infos.append(semantic_data_model_info)
 
         return resolved_semantic_data_model_infos

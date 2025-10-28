@@ -427,6 +427,7 @@ class DataFramesKernel:
                 agent_id=await self.get_agent_id(),
                 thread_id=self._tid,
                 user=self._user,
+                state=None,  # No state available in this context
             )
             self._semantic_data_models = await collector.collect_semantic_data_models(self._storage)
         assert self._semantic_data_models is not None

@@ -1652,6 +1652,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         semantic_data_model_id: str
         agent_ids: set[str]
         thread_ids: set[str]
+        updated_at: str
 
     async def list_semantic_data_models(
         self, agent_id: str | None = None, thread_id: str | None = None
@@ -1713,11 +1714,16 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     if isinstance(semantic_model, str):
                         semantic_model = json.loads(semantic_model)
 
+                    updated_at = row["updated_at"]
+                    if isinstance(updated_at, datetime):
+                        updated_at = updated_at.isoformat()
+
                     models_by_id[model_id] = {
                         "semantic_data_model": semantic_model,
                         "semantic_data_model_id": model_id,
                         "agent_ids": set(),
                         "thread_ids": set(),
+                        "updated_at": updated_at,
                     }
 
                 # Collect agent_id if present

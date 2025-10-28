@@ -392,7 +392,7 @@ have unresolved file references and if they have we try to resolve them.
 At this point we'll do it without any caching to try to keep the PR as small as possible
 (which is already quite big).
 
-# Step 13c (this PR):
+# Step 13c (done):
 
 1. Add caches for the inspection metadata when a file is inspected for tabular data (data frames), for
    the full data frames created from files and for the data frames intermediary results.
@@ -413,7 +413,7 @@ Indexes:
 - cache_key (primary key)
 - last_accessed_at
 
-# Step 13d (this PR):
+# Step 13d (done):
 
 Use the cache in:
 
@@ -443,38 +443,18 @@ Some important notes:
   i.e.: we need to store multiple entries (for metadata, for 10 samples and for the full data frame,
   each under a different key)
 
-# Step 13e:
+# Step 13e (done):
 
 Actually evict the caches periodically using the `evict_old_cache_entries_by_size` method from `BaseStorage` class.
 
 - The size of the cache should be configurable (in the quotas.py configuration) and should be set to 100MB by default.
 - When we add things to the cache we should schedule a task to call the eviction in the background.
 
-# Step 13f:
+# Step 13f (this PR):
 
-`create_data_frame_from_file` method from `threads_data_frames.py` file.
-Here we want to cache the full data frame data from file/sheet so that we don't have to download/parse the file again when resolving
-the same file/sheet.
-
-```
-cache_key="full_"+(file_id or file_id+sheet_name)
-cache_data=full data frame data from file/sheet as a bytes object in parquet format
-```
-
-`_resolve_sql_with_connection` method from `data_frames_kernel.py` file.
-Here we want to cache the data frames intermediary results so that we don't have to compute them again when resolving
-the same SQL query with the same connection (note: we can currently only cache results of files, not of data
-connections as files are immutable while data connections are not and can change over time and we don't have
-a way to know if the data connection has changed or a UI which could ask for a refresh of the data connection).
-
-```
-cache_key="data_frame_"+data_frame_id
-cache_data=intermediary data frame result as a bytes object in parquet format
-```
-
-2. Add to information to the DataFrameArchState associating which file matches which semantic data model when a semantic data model is
-   added to an agent and we match that semantic data model with a file in a thread.
-   -- to be used in `_find_file_which_matches_unresolved_file_reference` method from `SemanticDataModelCollector` class.
+Add to information to the DataFrameArchState associating which file matches which semantic data model when a semantic data model is
+added to an agent and we match that semantic data model with a file in a thread.
+-- to be used in `_find_file_which_matches_unresolved_file_reference` method from `SemanticDataModelCollector` class.
 
 # Step 14:
 
@@ -509,13 +489,34 @@ when creating a new semantic data model for some other data (if the shape of one
 
 # Future work (not right now):
 
+- Cache results from SQL computations.
+
+  `create_data_frame_from_file` method from `threads_data_frames.py` file.
+  Here we want to cache the full data frame data from file/sheet so that we don't have to download/parse the file again when resolving
+  the same file/sheet.
+
+  ```
+  cache_key="full_"+(file_id or file_id+sheet_name)
+  cache_data=full data frame data from file/sheet as a bytes object in parquet format
+  ```
+
+  `_resolve_sql_with_connection` method from `data_frames_kernel.py` file.
+  Here we want to cache the data frames intermediary results so that we don't have to compute them again when resolving
+  the same SQL query with the same connection (note: we can currently only cache results of files, not of data
+  connections as files are immutable while data connections are not and can change over time and we don't have
+  a way to know if the data connection has changed or a UI which could ask for a refresh of the data connection).
+
+  ```
+  cache_key="data_frame_"+data_frame_id
+  cache_data=intermediary data frame result as a bytes object in parquet format
+  ```
+
 - sema4ai.actions improvements:
   - Consume data frames directly from actions/tools.
   - Validate if user tries to create a Table with inconsistent column/rows.
   - Accept name and description for a Table.
 - Bug in agent server: only a `Response[Table]` is accepted, but just a `Table` should be accepted too.
 - It seems our reading of csv is not reading server\tests\integration\resources\data_frames\artificial-intelligence-number-training-datapoints.csv correctly to inspect data from it.
-- Verify that errors with proper messages are returned to the LLM.
 - Extract primary keys/uniqueness from the database directly when available.
 - https://sema4ai.slack.com/archives/C07LMU0AQFR/p1758257549592739
   - make is so that the agent understands an existing data frame cannot be overwritten.

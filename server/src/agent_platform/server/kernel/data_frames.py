@@ -147,6 +147,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             agent_id=self.kernel.thread.agent_id,
             thread_id=self.kernel.thread.thread_id,
             user=self.kernel.user,
+            state=state,
         )
         self._semantic_data_models = await collector.collect_semantic_data_models(storage)
 

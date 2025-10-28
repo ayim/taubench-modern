@@ -12,6 +12,9 @@ class DataFrameArchState(Protocol):
     # Note: it's a string not a boolean so that we can easily add more states in the future.
     data_frames_tools_state: Literal["enabled", ""]
 
+    # Maps an unresolved file reference (from a semantic data model) to the matching info.
+    empty_file_cache_key_to_matching_info: dict[str, dict]
+
 
 class DataFramesInterface(ABC):
     """Interface for data frames."""

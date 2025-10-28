@@ -83,6 +83,7 @@ class Exp1State(aa.StateBase):
     mcp_issues: list[str]
     data_frames_tools_state: Literal["enabled", ""] = ""
     work_item_tools_state: Literal["enabled", ""] = ""
+    empty_file_cache_key_to_matching_info: dict[str, dict] = field(default_factory=dict)
     selected_platform: str
     selected_model: str
     selected_model_provider: str
