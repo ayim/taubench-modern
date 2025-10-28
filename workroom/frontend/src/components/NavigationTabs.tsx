@@ -12,23 +12,26 @@ type Props = {
 export const NavigationTabs: FC<Props> = ({ tabs, actions }) => {
   const state = useRouterState();
 
-  const activeTab = tabs.findIndex((tab) => state.matches.findIndex((match) => match.routeId === tab.to) > -1);
+  const visibleTabs = tabs.filter((tab) => !tab.hidden);
+
+  const activeTabIndex = visibleTabs.findIndex(
+    (tab) => state.matches.findIndex((match) => match.routeId === tab.to) > -1,
+  );
+  const activeTab = activeTabIndex === -1 ? undefined : activeTabIndex;
 
   return (
     <Tabs activeTab={activeTab} setActiveTab={() => null} actions={actions}>
-      {tabs.map((tab) => {
+      {visibleTabs.map((tab) => {
         return (
-          !tab.hidden && (
-            <Tabs.Tab
-              key={tab.to}
-              forwardedAs={Link}
-              to={tab.to}
-              activeOptions={{ exact: true, includeSearch: false }}
-              badgeLabel={tab.count}
-            >
-              {tab.label}
-            </Tabs.Tab>
-          )
+          <Tabs.Tab
+            key={tab.to}
+            forwardedAs={Link}
+            to={tab.to}
+            activeOptions={{ exact: true, includeSearch: false }}
+            badgeLabel={tab.count}
+          >
+            {tab.label}
+          </Tabs.Tab>
         );
       })}
     </Tabs>

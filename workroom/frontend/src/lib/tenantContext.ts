@@ -50,7 +50,8 @@ export const useTenantContext = () => {
   return useContext(TenantContext);
 };
 
-export const shouldDisplayConfigurationSidebarLink = (tenantMeta: TenantMeta) =>
-  tenantMeta.features.deploymentWizard.enabled ||
-  tenantMeta.features.settings.enabled ||
-  tenantMeta.features.documentIntelligence.enabled;
+export const shouldDisplayConfigurationSidebarLink = (tenantMeta: TenantMeta) => {
+  // This must be kept in sync with the flags used for showing / hidding tabs here:
+  // https://github.com/Sema4AI/agent-platform/blob/670ae292abb300d205b8f437b6caa4cba63ac5b0/workroom/frontend/src/routes/tenants/%24tenantId/configuration.tsx#L15
+  return tenantMeta.features.deploymentWizard.enabled || tenantMeta.features.settings.enabled;
+};

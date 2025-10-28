@@ -26,7 +26,9 @@ function View() {
     {
       label: 'Document Intelligence',
       to: '/tenants/$tenantId/configuration/documentIntelligence',
-      hidden: !features.documentIntelligence.enabled,
+      // Using "deploymentWizard" is intentional: the documentIntelligence feature flag is used for the customer facing usage of DocumentIntelligence.
+      // This setting view is only meant to be used for the full SPAR experience (we're using deploymentWizard as a proxy)
+      hidden: !features.deploymentWizard.enabled,
     },
   ] satisfies NavigationTab[];
 
