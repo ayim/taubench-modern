@@ -47,7 +47,11 @@ dimensions_example: list[Dimension] = [
     dimension_example_3,
 ]
 
-base_table_example: BaseTable = {"database": "sales", "schema": "public", "table": "sd_data"}
+base_table_example: BaseTable = {
+    "database": "sales",
+    "schema": "public",
+    "table": "sd_data",
+}
 
 time_dimensions_example: list[TimeDimension] = [
     {
@@ -178,6 +182,226 @@ def test_semantic_model_validation_with_empty_file_reference():
     assert not references.errors  # no errors are expected
     assert references.tables_with_unresolved_file_references == {
         EmptyFileReference(
-            logical_table_name="sales_data", sheet_name="", base_table_table="sales_data"
+            logical_table_name="sales_data",
+            sheet_name="",
+            base_table_table="sales_data",
         )
     }
+
+
+def test_semantic_model_validation_missing_name():
+    """Test validation when 'name' field is missing."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "description": "Missing name",
+        "tables": [
+            {
+                "name": "sales_data",
+                "base_table": {"table": "sales_data", "data_connection_id": "conn-1"},
+                "dimensions": [],
+            }
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert len(references.errors) == 1
+    assert "'name' must be specified" in references.errors[0]
+
+
+def test_semantic_model_validation_missing_tables():
+    """Test validation when 'tables' field is missing."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "description": "Missing tables",
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert len(references.errors) == 1
+    assert "'tables' must be specified" in references.errors[0]
+
+
+def test_semantic_model_validation_empty_tables():
+    """Test validation when 'tables' is an empty list."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "description": "Empty tables",
+        "tables": [],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert len(references.errors) == 1
+    assert "'tables' must be specified (and not empty)" in references.errors[0]
+
+
+def test_semantic_model_validation_missing_table_name():
+    """Test validation when a table is missing 'name' field."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "tables": [
+            {
+                "description": "Missing name",
+                "base_table": {"table": "sales_data", "data_connection_id": "conn-1"},
+                "dimensions": [],
+            }
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert len(references.errors) == 1
+    assert "'name' must be specified in a semantic data model table" in references.errors[0]
+
+
+def test_semantic_model_validation_missing_base_table():
+    """Test validation when a table is missing 'base_table' field."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "tables": [
+            {
+                "name": "sales_data",
+                "description": "Missing base_table",
+                "dimensions": [],
+            }
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert len(references.errors) == 1
+    assert "'base_table' must be specified" in references.errors[0]
+
+
+def test_semantic_model_validation_missing_base_table_table():
+    """Test validation when base_table is missing 'table' field."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "tables": [
+            {
+                "name": "sales_data",
+                "base_table": {"data_connection_id": "conn-1"},
+                "dimensions": [],
+            }
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert len(references.errors) == 1
+    assert "'table' must be specified" in references.errors[0]
+
+
+def test_semantic_model_validation_duplicate_logical_table_names():
+    """Test validation when duplicate logical table names are present."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "tables": [
+            {
+                "name": "sales_data",
+                "base_table": {"table": "real_table_1", "data_connection_id": "conn-1"},
+                "dimensions": [],
+            },
+            {
+                "name": "sales_data",  # Duplicate name
+                "base_table": {"table": "real_table_2", "data_connection_id": "conn-1"},
+                "dimensions": [],
+            },
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert len(references.errors) == 1
+    assert "referenced more than once" in references.errors[0]
+    assert "sales_data" in references.errors[0]
+
+
+def test_semantic_model_validation_mixed_references():
+    """Test validation with mixed data connection and file references."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "tables": [
+            {
+                "name": "sales_data_db",
+                "base_table": {
+                    "table": "sales_table",
+                    "data_connection_id": "conn-1",
+                    "database": "mydb",
+                    "schema": "public",
+                },
+                "dimensions": [{"name": "product", "expr": "product_col", "data_type": "TEXT"}],
+            },
+            {
+                "name": "sales_data_file",
+                "base_table": {
+                    "table": "sales_file_table",
+                    "file_reference": {
+                        "thread_id": "thread-123",
+                        "file_ref": "sales.csv",
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [{"name": "amount", "expr": "amount_col", "data_type": "NUMBER"}],
+            },
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert not references.errors  # Should be valid
+    assert len(references.data_connection_ids) == 1
+    assert "conn-1" in references.data_connection_ids
+    assert len(references.file_references) == 1
+    assert len(references.logical_table_name_to_connection_info) == 2
+
+
+def test_semantic_model_validation_missing_data_connection_and_file_reference():
+    """Test validation when base_table has neither data_connection_id nor file_reference."""
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "tables": [
+            {
+                "name": "sales_data",
+                "base_table": {
+                    "table": "sales_table",
+                    # Missing both data_connection_id and file_reference
+                },
+                "dimensions": [],
+            }
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    assert len(references.errors) == 1
+    assert (
+        "Either 'data_connection_id' or 'file_reference' must be specified" in references.errors[0]
+    )

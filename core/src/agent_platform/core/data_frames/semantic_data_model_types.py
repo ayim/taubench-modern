@@ -5,7 +5,12 @@ which describe collections of tables with their relationships and metadata.
 """
 
 from types import NoneType
-from typing import Annotated, TypedDict
+from typing import Annotated, Literal, TypedDict
+
+
+class ValidationMessage(TypedDict):
+    message: str
+    level: Literal["error", "warning"]
 
 
 class CortexSearchService(TypedDict, total=False):
@@ -79,6 +84,9 @@ class Dimension(TypedDict, total=False):
         the full list of possible values, and the model only chooses from those values when
         filtering on that column""",
     ]
+    errors: Annotated[
+        list[ValidationMessage] | None, "Validation errors for this dimension, if any"
+    ]
 
 
 class TimeDimension(TypedDict, total=False):
@@ -126,6 +134,9 @@ class TimeDimension(TypedDict, total=False):
         """Sample values of this column, if any. Add any values that are likely to be
         referenced in the user questions. This field is optional""",
     ]
+    errors: Annotated[
+        list[ValidationMessage] | None, "Validation errors for this time dimension, if any"
+    ]
 
 
 class Fact(TypedDict, total=False):
@@ -172,6 +183,7 @@ class Fact(TypedDict, total=False):
         """Sample values of this column, if any. Add any values that are likely to be
         referenced in the user questions. This field is optional""",
     ]
+    errors: Annotated[list[ValidationMessage] | None, "Validation errors for this fact, if any"]
 
 
 class Filter(TypedDict, total=False):
@@ -192,6 +204,7 @@ class Filter(TypedDict, total=False):
         "A brief description about this filter, including details of what this filter is "
         "typically used for",
     ]
+    errors: Annotated[list[ValidationMessage] | None, "Validation errors for this filter, if any"]
 
 
 class Metric(TypedDict, total=False):
@@ -237,6 +250,7 @@ class Metric(TypedDict, total=False):
         "Sample values of this column, if any. Add any values that are likely to be "
         "referenced in the user questions",
     ]
+    errors: Annotated[list[ValidationMessage] | None, "Validation errors for this metric, if any"]
 
 
 class FileReference(TypedDict, total=False):
@@ -362,6 +376,7 @@ class LogicalTable(TypedDict, total=False):
     facts: Annotated[list[Fact] | None, "A list of fact columns in this table"]
     metrics: Annotated[list[Metric] | None, "A list of metrics in this table"]
     filters: Annotated[list[Filter] | None, "Predefined filters on this table, if any"]
+    errors: Annotated[list[ValidationMessage] | None, "Validation errors for this table, if any"]
 
 
 class SemanticDataModel(TypedDict, total=False):
@@ -383,3 +398,6 @@ class SemanticDataModel(TypedDict, total=False):
     ]
     tables: Annotated[list[LogicalTable] | None, "A list of logical tables in this semantic model"]
     relationships: Annotated[list[Relationship] | None, "A list of joins between logical tables"]
+    errors: Annotated[
+        list[ValidationMessage] | None, "Validation errors for this semantic data model, if any"
+    ]

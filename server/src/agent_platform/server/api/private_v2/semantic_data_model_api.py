@@ -19,6 +19,10 @@ from agent_platform.core.payloads import (
     SemanticDataModelWithAssociations,
     SetSemanticDataModelPayload,
 )
+from agent_platform.core.payloads.semantic_data_model_payloads import (
+    ValidateSemanticDataModelPayload,
+    ValidateSemanticDataModelResult,
+)
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
 from sema4ai.common.text import slugify
@@ -774,3 +778,40 @@ async def import_semantic_data_model(  # noqa: C901
         is_duplicate=is_duplicate,
         warnings=warnings,
     )
+
+
+@router.post("/validate")
+async def validate_semantic_data_model(
+    payload: ValidateSemanticDataModelPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> ValidateSemanticDataModelResult:
+    """Validate a semantic data model."""
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.server.data_frames.semantic_data_model_validator import (
+        SemanticDataModelValidator,
+    )
+
+    semantic_data_model = typing.cast(SemanticDataModel, payload.semantic_data_model)
+
+    thread = await storage.get_thread(user.user_id, payload.thread_id)
+
+    validator = SemanticDataModelValidator(
+        semantic_data_model=semantic_data_model,
+        thread_id=thread.thread_id,
+        storage=storage,
+        user=user,
+    )
+    validated_semantic_data_model = await validator.validate()
+    if validator.errors:
+        return ValidateSemanticDataModelResult(
+            semantic_data_model_id=None,
+            semantic_data_model=validated_semantic_data_model,
+            errors=validator.errors,
+        )
+    else:
+        return ValidateSemanticDataModelResult(
+            semantic_data_model_id=None,
+            semantic_data_model=semantic_data_model,
+            errors=[],
+        )

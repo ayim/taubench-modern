@@ -2130,6 +2130,54 @@ export const spec = {
         },
       },
     },
+    '/api/v2/threads/{tid}/semantic-data-models/validate': {
+      post: {
+        tags: ['threads'],
+        summary: 'Validate Thread Semantic Data Models',
+        description:
+          'Validate all semantic data models associated with a thread, returning\nthe validated semantic data models with errors attached. If there are no errors,\nreturns the original semantic data models.',
+        operationId:
+          'validate_thread_semantic_data_models_threads__tid__semantic_data_models_validate_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/ValidateSemanticDataModelResult',
+                  },
+                  title:
+                    'Response Validate Thread Semantic Data Models Threads  Tid  Semantic Data Models Validate Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/threads/{tid}/inspect-file-as-data-frame': {
       get: {
         tags: ['threads'],
@@ -7634,6 +7682,47 @@ export const spec = {
         },
       },
     },
+    '/api/v2/semantic-data-models/validate': {
+      post: {
+        tags: ['semantic-data-models'],
+        summary: 'Validate Semantic Data Model',
+        description: 'Validate a semantic data model.',
+        operationId:
+          'validate_semantic_data_model_semantic_data_models_validate_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ValidateSemanticDataModelPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ValidateSemanticDataModelResult',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/metrics': {
       get: {
         summary: 'Metrics',
@@ -10685,6 +10774,20 @@ export const spec = {
             ],
             title: 'Is Enum',
           },
+          errors: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Errors',
+          },
         },
         type: 'object',
         title: 'Dimension',
@@ -11414,6 +11517,20 @@ export const spec = {
             ],
             title: 'Sample Values',
           },
+          errors: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Errors',
+          },
         },
         type: 'object',
         title: 'Fact',
@@ -11487,6 +11604,20 @@ export const spec = {
               },
             ],
             title: 'Description',
+          },
+          errors: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Errors',
           },
         },
         type: 'object',
@@ -12330,6 +12461,20 @@ export const spec = {
               },
             ],
             title: 'Filters',
+          },
+          errors: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Errors',
           },
         },
         type: 'object',
@@ -13229,6 +13374,20 @@ export const spec = {
               },
             ],
             title: 'Sample Values',
+          },
+          errors: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Errors',
           },
         },
         type: 'object',
@@ -16523,6 +16682,20 @@ export const spec = {
             ],
             title: 'Relationships',
           },
+          errors: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Errors',
+          },
         },
         type: 'object',
         title: 'SemanticDataModel',
@@ -17951,6 +18124,20 @@ export const spec = {
             ],
             title: 'Sample Values',
           },
+          errors: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Errors',
+          },
         },
         type: 'object',
         title: 'TimeDimension',
@@ -18733,6 +18920,82 @@ export const spec = {
         type: 'object',
         required: ['agent_id', 'name'],
         title: 'UpsertThreadPayload',
+      },
+      ValidateSemanticDataModelPayload: {
+        properties: {
+          semantic_data_model: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SemanticDataModel',
+              },
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+            ],
+            title: 'Semantic Data Model',
+          },
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+          },
+        },
+        type: 'object',
+        required: ['semantic_data_model', 'thread_id'],
+        title: 'ValidateSemanticDataModelPayload',
+      },
+      ValidateSemanticDataModelResult: {
+        properties: {
+          semantic_data_model_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Semantic Data Model Id',
+          },
+          semantic_data_model: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SemanticDataModel',
+              },
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+            ],
+            title: 'Semantic Data Model',
+          },
+          errors: {
+            items: {
+              $ref: '#/components/schemas/ValidationMessage',
+            },
+            type: 'array',
+            title: 'Errors',
+          },
+        },
+        type: 'object',
+        required: ['semantic_data_model_id', 'semantic_data_model', 'errors'],
+        title: 'ValidateSemanticDataModelResult',
+      },
+      ValidationMessage: {
+        properties: {
+          message: {
+            type: 'string',
+            title: 'Message',
+          },
+          level: {
+            type: 'string',
+            enum: ['error', 'warning'],
+            title: 'Level',
+          },
+        },
+        type: 'object',
+        required: ['message', 'level'],
+        title: 'ValidationMessage',
       },
       ValidationResult: {
         properties: {

@@ -5,6 +5,7 @@ from structlog import get_logger
 
 if typing.TYPE_CHECKING:
     import pyarrow
+    from ibis import Table
 
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.payloads.data_connection import (
@@ -21,13 +22,41 @@ if typing.TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Sentinel key used to indicate a table-level error (as opposed to column-level errors)
+# in the validation results dictionary
+TABLE_VALIDATION_ERROR_KEY = "__TABLE_VALIDATION_ERROR__"
+
+
+class DataConnectionInspectorError(Exception):
+    """Base error raised when an error occurs in the data connection inspector."""
+
+
+class TableNotFoundError(DataConnectionInspectorError):
+    """Error raised when a table is not found in the connection."""
+
+    def __init__(self, table_name: str, details: str):
+        super().__init__(f"Table {table_name} not found: {details}")
+        self.table_name = table_name
+        self.details = details
+
 
 class DataConnectionInspector:
     """Inspector for extracting metadata from data connections using ibis."""
 
-    def __init__(self, data_connection: "DataConnection", request: "DataConnectionsInspectRequest"):
+    def __init__(
+        self,
+        data_connection: "DataConnection",
+        request: "DataConnectionsInspectRequest",
+    ):
         self.data_connection = data_connection
         self.request = request
+        self._connection: Any | None = None
+
+    @property
+    async def connection(self) -> Any:
+        if self._connection is None:
+            self._connection = await self.create_ibis_connection(self.data_connection)
+        return self._connection
 
     async def inspect_connection(
         self,
@@ -44,8 +73,7 @@ class DataConnectionInspector:
             DataConnectionsInspectResponse,
         )
 
-        # Create ibis connection based on engine type
-        connection = await self.create_ibis_connection(self.data_connection)
+        connection = await self.connection
 
         # Get all tables if none specified
         if not self.request.tables_to_inspect:
@@ -71,6 +99,133 @@ class DataConnectionInspector:
                 table_infos.append(table_info)
 
         return DataConnectionsInspectResponse(tables=table_infos)
+
+    async def _get_table(self, table_spec: "TableToInspect") -> "Table":
+        """
+        Get a table from the connection.
+
+        Returns:
+            Table: Table object if the table is found.
+
+        Raises:
+
+        """
+        import ibis
+
+        connection = await self.connection
+        try:
+            # Try to get the table
+            table = connection.table(table_spec.name)
+        except Exception as e:
+            raise TableNotFoundError(table_spec.name, str(e)) from e
+        return typing.cast(ibis.Table, table)
+
+    async def _validate_table(
+        self, table_spec: "TableToInspect", table: "Table | None" = None
+    ) -> str | None:
+        """
+        Validate a table and return an error message if it is not found or an error
+        occurs accessing it. If a table is provided, it will be used instead of
+        getting it from the connection.
+        """
+        try:
+            if table is None:
+                table = await self._get_table(table_spec)
+            # We try to get the schema to verify the table is accessible.
+            # TODO: Is this enough or should we call `info()`, `describe()` or `head(1)`?
+            table.schema()
+        except TableNotFoundError as e:
+            return str(e)
+        except Exception as e:
+            return f"Error accessing table: {e!s}"
+        return None
+
+    async def validate_tables_exist(self) -> dict[str, str]:
+        """
+        Validate that tables specified in the request exist in the connection.
+
+        Returns:
+            Dictionary mapping table names to error messages.
+        """
+        # Check if tables are specified in the request
+        if not self.request.tables_to_inspect:
+            raise ValueError("No tables specified in request for validation")
+
+        errors: dict[str, str] = {}
+        # Validate each table in the request
+        for table_spec in self.request.tables_to_inspect:
+            error = await self._validate_table(table_spec)
+            if error:
+                errors[table_spec.name] = error
+
+        return errors
+
+    async def _validate_column_expression(
+        self, table: "Table", column_expression: str
+    ) -> str | None:
+        """Extracted for testing purposes."""
+        try:
+            table.select(column_expression).limit(0).execute()
+        except Exception as e:
+            return f"Invalid column expression: {e!s}"
+        return None
+
+    async def validate_column_expressions(self) -> dict[str, dict[str, str]]:
+        """
+        Validate that column expressions specified in the request can be evaluated.
+
+        All tables in the request must have columns_to_inspect specified, otherwise
+        a ValueError is raised (columns from the schema are always valid, so there's
+        nothing to validate).
+
+        Returns:
+            Dictionary mapping table names to a dict of column names to error messages.
+            Empty dict if all columns are valid. If a table is not found, the
+            error message will be stored in the `_table` key and columns
+            will not be validated.
+        """
+        # Check if tables are specified in the request
+        if not self.request.tables_to_inspect:
+            raise ValueError("No tables specified in request for validation")
+
+        # Ensure all tables have columns to validate
+        for table_spec in self.request.tables_to_inspect:
+            if table_spec.columns_to_inspect is None:
+                raise ValueError(
+                    f"Table '{table_spec.name}' has no columns_to_inspect specified for validation"
+                )
+
+        errors: dict[str, dict[str, str]] = {}
+
+        # Validate columns for each table in the request
+        for table_spec in self.request.tables_to_inspect:
+            table_errors: dict[str, str] = {}
+            columns_to_validate = table_spec.columns_to_inspect
+            assert columns_to_validate is not None  # Already checked above
+
+            error = await self._validate_table(table_spec)
+            if error:
+                errors[table_spec.name] = {TABLE_VALIDATION_ERROR_KEY: error}
+                continue
+
+            table = await self._get_table(table_spec)  # already validated above
+
+            # Validate each column expression
+            for column_expr in columns_to_validate:
+                # Check if it's a simple column name first
+                if column_expr in table.columns:
+                    continue
+
+                # Try to evaluate the expression by selecting it
+                error = await self._validate_column_expression(table, column_expr)
+                if error:
+                    table_errors[column_expr] = error
+
+            # Only add to errors dict if there are column errors
+            if table_errors:
+                errors[table_spec.name] = table_errors
+
+        return errors
 
     @classmethod
     async def create_ibis_connection(cls, data_connection: "DataConnection") -> Any:
@@ -318,7 +473,9 @@ class DataConnectionInspector:
     ) -> "ColumnInfo":
         """Inspect a specific column and return its metadata."""
         from agent_platform.core.payloads.data_connection import ColumnInfo
-        from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
+        from agent_platform.server.data_frames.data_node import (
+            convert_to_valid_json_types,
+        )
 
         # Get column type
         column_type = str(table[column_name].type())

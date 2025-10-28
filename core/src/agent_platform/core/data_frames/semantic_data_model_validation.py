@@ -1,9 +1,12 @@
 import typing
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Literal
 
 if typing.TYPE_CHECKING:
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        SemanticDataModel,
+    )
 
 
 _ThreadId = str
@@ -53,12 +56,14 @@ class References:
     logical_table_name_to_connection_info: dict[str, DataConnectionInfo | FileConnectionInfo]
     errors: list[str]
     tables_with_unresolved_file_references: set[EmptyFileReference]
+    semantic_data_model_with_errors: "SemanticDataModel | None"
 
 
-def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR0912
+def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR0912, PLR0915
     semantic_data_model: "SemanticDataModel",
 ) -> References:
     """Validate the semantic model payload."""
+    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessage
 
     references = References(
         data_connection_ids=set(),
@@ -68,44 +73,65 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
         logical_table_name_to_connection_info=dict(),
         errors=[],
         tables_with_unresolved_file_references=set(),
+        semantic_data_model_with_errors=None,
     )
+    # We work on a copy so we can add errors as we walk the tree.
+    semantic_data_model = deepcopy(semantic_data_model)
 
     def add_error(error: str):
         references.errors.append(error)
 
     if not semantic_data_model.get("name"):
-        add_error("'name' must be specified in the semantic data model.")
+        msg = "'name' must be specified in the semantic data model."
+        add_error(msg)
+        semantic_data_model.setdefault("errors", []).append(  # type: ignore
+            ValidationMessage(message=msg, level="error")
+        )
         return references
 
-    if not semantic_data_model.get("tables"):
-        add_error("'tables' must be specified in the semantic data model.")
+    if "tables" not in semantic_data_model or semantic_data_model.get("tables") is None:
+        msg = "'tables' must be specified in the semantic data model."
+        add_error(msg)
+        semantic_data_model.setdefault("errors", []).append(  # type: ignore
+            ValidationMessage(message=msg, level="error")
+        )
         return references
 
     semantic_data_model_tables = semantic_data_model.get("tables", [])
     if not semantic_data_model_tables:
-        add_error("'tables' must be specified (and not empty) in the semantic data model.")
+        msg = "'tables' must be specified (and not empty) in the semantic data model."
+        add_error(msg)
+        semantic_data_model.setdefault("errors", []).append(  # type: ignore
+            ValidationMessage(message=msg, level="error")
+        )
         return references
 
     for index, table in enumerate(semantic_data_model_tables):
         logical_table_name = table.get("name")
         if not logical_table_name:
-            add_error(f"'name' must be specified in a semantic data model table. Index: {index}")
+            msg = f"'name' must be specified in a semantic data model table. Index: {index}"
+            add_error(msg)
+            table.setdefault("errors", []).append(ValidationMessage(message=msg, level="error"))  # type: ignore
             continue
 
         base_table = table.get("base_table")
         if not base_table:
-            add_error(
+            msg = (
                 f"'base_table' must be specified in a semantic data model table"
                 f" (table: {logical_table_name})."
             )
+            add_error(msg)
+            table.setdefault("errors", []).append(ValidationMessage(message=msg, level="error"))  # type: ignore
             continue
 
         base_table_table = base_table.get("table")
         if not base_table_table:
-            add_error(
+            msg = (
                 f"'table' must be specified in a semantic data model base table"
                 f" (table: {logical_table_name})."
             )
+            add_error(msg)
+            table.setdefault("errors", []).append(ValidationMessage(message=msg, level="error"))  # type: ignore
             continue
 
         base_table_data_connection_id = base_table.get("data_connection_id")
@@ -113,10 +139,12 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
             # We're dealing with a file reference
             base_table_file_reference = base_table.get("file_reference")
             if not base_table_file_reference:
-                add_error(
+                msg = (
                     f"Either 'data_connection_id' or 'file_reference' must be specified in a "
                     f"semantic data model base table (table: {logical_table_name})."
                 )
+                add_error(msg)
+                table.setdefault("errors", []).append(ValidationMessage(message=msg, level="error"))  # type: ignore
                 continue
 
             thread_id = base_table_file_reference.get("thread_id")
@@ -132,9 +160,13 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                     file_reference, set()
                 ).add(logical_table_name)
                 if references.logical_table_name_to_connection_info.get(logical_table_name):
-                    add_error(
+                    msg = (
                         f"Logical table name {logical_table_name} is referenced more than once in "
                         "the semantic data model."
+                    )
+                    add_error(msg)
+                    table.setdefault("errors", []).append(  # type: ignore
+                        ValidationMessage(message=msg, level="error")
                     )
                     continue
 
@@ -165,10 +197,12 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                 base_table_data_connection_id, set()
             ).add(logical_table_name)
             if references.logical_table_name_to_connection_info.get(logical_table_name):
-                add_error(
+                msg = (
                     f"Logical table name {logical_table_name} is referenced more than once in "
                     "the semantic data model."
                 )
+                add_error(msg)
+                table.setdefault("errors", []).append(ValidationMessage(message=msg, level="error"))  # type: ignore
                 continue
 
             references.logical_table_name_to_connection_info[logical_table_name] = (
@@ -181,5 +215,9 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                     real_table=base_table_table,
                 )
             )
+
+    # Set the semantic data model with errors if any were found
+    if references.errors:
+        references.semantic_data_model_with_errors = semantic_data_model
 
     return references

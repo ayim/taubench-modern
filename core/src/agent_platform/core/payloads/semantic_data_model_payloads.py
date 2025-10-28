@@ -3,7 +3,10 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.data_frames.semantic_data_model_types import (
+    SemanticDataModel,
+    ValidationMessage,
+)
 
 
 @dataclass(frozen=True)
@@ -239,3 +242,20 @@ class ImportSemanticDataModel:
 
     warnings: list[str] = field(default_factory=list)
     """Any warnings encountered during import."""
+
+
+@dataclass(frozen=True)
+class ValidateSemanticDataModelPayload:
+    """Payload for validating a semantic data model."""
+
+    semantic_data_model: SemanticDataModel | dict
+    thread_id: str
+
+
+@dataclass(frozen=True)
+class ValidateSemanticDataModelResult:
+    """Result of validating a semantic data model."""
+
+    semantic_data_model_id: str | None
+    semantic_data_model: SemanticDataModel | dict
+    errors: list[ValidationMessage]

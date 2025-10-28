@@ -620,6 +620,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/semantic-data-models/validate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Validate Thread Semantic Data Models
+     * @description Validate all semantic data models associated with a thread, returning
+     *     the validated semantic data models with errors attached. If there are no errors,
+     *     returns the original semantic data models.
+     */
+    post: operations['validate_thread_semantic_data_models_threads__tid__semantic_data_models_validate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/threads/{tid}/inspect-file-as-data-frame': {
     parameters: {
       query?: never;
@@ -2516,6 +2538,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/semantic-data-models/validate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Validate Semantic Data Model
+     * @description Validate a semantic data model.
+     */
+    post: operations['validate_semantic_data_model_semantic_data_models_validate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/metrics': {
     parameters: {
       query?: never;
@@ -3957,6 +3999,8 @@ export interface components {
         | null;
       /** Is Enum */
       is_enum?: boolean | null;
+      /** Errors */
+      errors?: components['schemas']['ValidationMessage'][] | null;
     };
     /** DocumentIntelligenceConfigPayload */
     DocumentIntelligenceConfigPayload: {
@@ -4224,6 +4268,8 @@ export interface components {
       unique?: boolean | null;
       /** Sample Values */
       sample_values?: (string | number | boolean | null)[] | null;
+      /** Errors */
+      errors?: components['schemas']['ValidationMessage'][] | null;
     };
     /** FileInfo */
     FileInfo: {
@@ -4249,6 +4295,8 @@ export interface components {
       synonyms?: string[] | null;
       /** Description */
       description?: string | null;
+      /** Errors */
+      errors?: components['schemas']['ValidationMessage'][] | null;
     };
     /** FlowAdherence */
     FlowAdherence: {
@@ -4613,6 +4661,8 @@ export interface components {
       metrics?: components['schemas']['Metric'][] | null;
       /** Filters */
       filters?: components['schemas']['Filter'][] | null;
+      /** Errors */
+      errors?: components['schemas']['ValidationMessage'][] | null;
     };
     /** MCPServer */
     MCPServer: {
@@ -4963,6 +5013,8 @@ export interface components {
       description?: string | null;
       /** Sample Values */
       sample_values?: (string | number | boolean | null)[] | null;
+      /** Errors */
+      errors?: components['schemas']['ValidationMessage'][] | null;
     };
     /** ModifySchemaRequestPayload */
     ModifySchemaRequestPayload: {
@@ -6604,6 +6656,8 @@ export interface components {
       tables?: components['schemas']['LogicalTable'][] | null;
       /** Relationships */
       relationships?: components['schemas']['Relationship'][] | null;
+      /** Errors */
+      errors?: components['schemas']['ValidationMessage'][] | null;
     };
     /** SemanticDataModelWithAssociations */
     SemanticDataModelWithAssociations: {
@@ -7389,6 +7443,8 @@ export interface components {
       unique?: boolean | null;
       /** Sample Values */
       sample_values?: (string | number | boolean | null)[] | null;
+      /** Errors */
+      errors?: components['schemas']['ValidationMessage'][] | null;
     };
     /** TimescaleDBDataConnection */
     TimescaleDBDataConnection: {
@@ -7802,6 +7858,40 @@ export interface components {
        * @description The work item ID associated with this thread.
        */
       work_item_id?: string | null;
+    };
+    /** ValidateSemanticDataModelPayload */
+    ValidateSemanticDataModelPayload: {
+      /** Semantic Data Model */
+      semantic_data_model:
+        | components['schemas']['SemanticDataModel']
+        | {
+            [key: string]: unknown;
+          };
+      /** Thread Id */
+      thread_id: string;
+    };
+    /** ValidateSemanticDataModelResult */
+    ValidateSemanticDataModelResult: {
+      /** Semantic Data Model Id */
+      semantic_data_model_id: string | null;
+      /** Semantic Data Model */
+      semantic_data_model:
+        | components['schemas']['SemanticDataModel']
+        | {
+            [key: string]: unknown;
+          };
+      /** Errors */
+      errors: components['schemas']['ValidationMessage'][];
+    };
+    /** ValidationMessage */
+    ValidationMessage: {
+      /** Message */
+      message: string;
+      /**
+       * Level
+       * @enum {string}
+       */
+      level: 'error' | 'warning';
     };
     /**
      * ValidationResult
@@ -12639,6 +12729,37 @@ export interface operations {
       };
     };
   };
+  validate_thread_semantic_data_models_threads__tid__semantic_data_models_validate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ValidateSemanticDataModelResult'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   inspect_file_as_data_frame_threads__tid__inspect_file_as_data_frame_get: {
     parameters: {
       query?: {
@@ -16035,6 +16156,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ImportSemanticDataModel'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  validate_semantic_data_model_semantic_data_models_validate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ValidateSemanticDataModelPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ValidateSemanticDataModelResult'];
         };
       };
       /** @description Validation Error */

@@ -1,12 +1,14 @@
 import dataclasses
 import hashlib
 from mimetypes import guess_type
+from typing import cast
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from structlog import get_logger
 
 from agent_platform.core.context import AgentServerContext
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.files import (
     UploadedFile,
 )
@@ -18,6 +20,9 @@ from agent_platform.core.payloads import (
     UpsertThreadPayload,
 )
 from agent_platform.core.payloads.patch_thread import PatchThreadPayload
+from agent_platform.core.payloads.semantic_data_model_payloads import (
+    ValidateSemanticDataModelResult,
+)
 from agent_platform.core.thread import Thread
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
@@ -673,3 +678,71 @@ async def get_thread_semantic_data_models(
 
     # Return the semantic data models
     return await storage.get_thread_semantic_data_models(tid)
+
+
+@router.post("/{tid}/semantic-data-models/validate")
+async def validate_thread_semantic_data_models(
+    tid: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[ValidateSemanticDataModelResult]:
+    """Validate all semantic data models associated with a thread, returning
+    the validated semantic data models with errors attached. If there are no errors,
+    returns the original semantic data models."""
+    thread = await storage.get_thread(user.user_id, tid)
+    semantic_data_models = await storage.get_thread_semantic_data_models(thread.thread_id)
+    if not semantic_data_models:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND, message="No semantic data models found for thread"
+        )
+
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        SemanticDataModel,
+        ValidationMessage,
+    )
+    from agent_platform.server.data_frames.semantic_data_model_validator import (
+        SemanticDataModelValidator,
+    )
+
+    results: list[ValidateSemanticDataModelResult] = []
+    for semantic_data_model_info in semantic_data_models:
+        semantic_data_model_id = semantic_data_model_info["semantic_data_model_id"]
+        semantic_data_model = cast(
+            SemanticDataModel, semantic_data_model_info["semantic_data_model"]
+        )
+        try:
+            validator = SemanticDataModelValidator(
+                semantic_data_model=cast(SemanticDataModel, semantic_data_model),
+                thread_id=thread.thread_id,
+                storage=storage,
+                user=user,
+            )
+            validated_semantic_data_model = await validator.validate()
+        except Exception as e:
+            logger.error(f"Error validating semantic data model: {e!s}", error=str(e))
+            results.append(
+                ValidateSemanticDataModelResult(
+                    semantic_data_model_id=semantic_data_model_id,
+                    semantic_data_model={},
+                    errors=[ValidationMessage(message=str(e), level="error")],
+                )
+            )
+            continue
+        if validator.errors:
+            results.append(
+                ValidateSemanticDataModelResult(
+                    semantic_data_model_id=semantic_data_model_id,
+                    semantic_data_model=validated_semantic_data_model,
+                    errors=validator.errors,
+                )
+            )
+        else:
+            results.append(
+                ValidateSemanticDataModelResult(
+                    semantic_data_model_id=semantic_data_model_id,
+                    semantic_data_model=semantic_data_model,
+                    errors=[],
+                )
+            )
+
+    return results
