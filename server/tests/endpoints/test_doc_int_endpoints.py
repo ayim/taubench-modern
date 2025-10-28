@@ -3578,7 +3578,7 @@ class TestParseDocumentEndpoints:
         expected_chunks = [chunk.model_dump(mode="json") for chunk in parse_response.result.chunks]
         assert body == {"chunks": expected_chunks}
 
-    def test_parse_with_upload_success(self, client: TestClient, parse_response: ParseResponse):
+    def test_parse_with_upload_success(self, client: TestClient, parse_response: "ParseResponse"):
         storage_instance = StorageService.get_instance()
 
         # Fakes

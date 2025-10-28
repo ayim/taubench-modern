@@ -16,3 +16,14 @@ should be written using `asyncio`.
 - **Execute scripts:** Use `uv run --project agent_platform_server <script_name>.py` to run Python scripts within the project's virtual environment.
 - **Interactive Python:** Use `uv run --project agent_platform_server python` to launch an interactive Python shell within the project's environment.
 - **Testing instructions:** Run all tests using `make test-unit` or specific tests via `uv run --project agent_platform_server pytest`."
+
+- **IMPORTANT**: Tests MUST always be run from the root of the `agent-platform` monorepo
+- **IMPORTANT**: NEVER run `uv` or `make` from a subdirectory (running `uv` from `server/` or `core/` is NOT supported and commands will fail).
+
+## Python imports coding standard
+
+Whenever possible, add imports inside of methods instead of importing in the top-level.
+Alternatively, if the tokens of the imported module need to be used in the top-level just for type-checking, add
+the import inside of a `typing.TYPE_CHECKING` block and use top-level references as strings.
+Note: add the imports inside of the method at the start of the method (right after the docstring if there's one).
+Note: if the token must be resolved in the top-level to be used in runtime (for FastAPI, Pydantic), top-level imports are still required.

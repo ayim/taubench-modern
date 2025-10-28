@@ -21,7 +21,15 @@ from agent_platform.server.log_config import setup_logging
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-def main():
+def main(run_server: bool = True) -> None:
+    """Run the server.
+
+    Args:
+        run_server: Whether to run the server (otherwise just return after setup)
+
+    Raises:
+        SystemExit: With the exit code from the server lifecycle manager
+    """
     # Set up basic logging with environment variables before any configuration
     setup_logging(default_mode=True)
 
@@ -87,5 +95,5 @@ def main():
 
     # Create and run the server lifecycle manager
     lifecycle_manager = ServerLifecycleManager(args)
-    exit_code = lifecycle_manager.run()
+    exit_code = lifecycle_manager.run(run_server=run_server)
     sys.exit(exit_code)

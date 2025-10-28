@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-from google.genai.types import GenerateContentResponse
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.platforms.google.parsers import GoogleParsers
@@ -46,6 +45,8 @@ class TestGoogleParsers:
     def test_parse_response(self, parsers: GoogleParsers) -> None:
         """Test parsing a response."""
         # Mock a GenerateContentResponse
+        from google.genai.types import GenerateContentResponse
+
         mock_response = MagicMock(spec=GenerateContentResponse)
 
         # Set up the candidates
@@ -88,6 +89,8 @@ class TestGoogleParsers:
 
     def test_parse_response_with_tool_call(self, parsers: GoogleParsers) -> None:
         """Test parsing a response with tool call."""
+        from google.genai.types import GenerateContentResponse
+
         # Mock a GenerateContentResponse with function call
         mock_response = MagicMock(spec=GenerateContentResponse)
 
@@ -293,6 +296,8 @@ class TestGoogleParsers:
     def test_extract_token_usage(self, parsers: GoogleParsers) -> None:
         """Test extracting token usage from a response."""
         # Create a mock response with token usage metadata
+        from google.genai.types import GenerateContentResponse
+
         mock_response = MagicMock(spec=GenerateContentResponse)
 
         # Set up usage_metadata with different token count values
@@ -326,6 +331,8 @@ class TestGoogleParsers:
     ) -> None:
         """Test extracting token usage when some values are None."""
         # Create a mock response with None values
+        from google.genai.types import GenerateContentResponse
+
         mock_response = MagicMock(spec=GenerateContentResponse)
 
         # Set up usage_metadata with None values

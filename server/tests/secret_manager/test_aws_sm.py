@@ -4,7 +4,6 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-from botocore.exceptions import ClientError
 
 from agent_platform.server.secret_manager.aws_sm.aws_sm import AwsKmsConstants, AwsSecretManager
 
@@ -50,6 +49,8 @@ class TestAwsSecretManager:
     @patch("boto3.client")
     def test_setup_key_not_found_error(self, mock_boto_client):
         """Test setup fails when KMS key is not found."""
+        from botocore.exceptions import ClientError
+
         mock_client = MagicMock()
         mock_boto_client.return_value = mock_client
         mock_client.describe_key.side_effect = ClientError(
@@ -99,6 +100,8 @@ class TestAwsSecretManager:
     @patch("boto3.client")
     def test_store_kms_access_denied(self, mock_boto_client):
         """Test store fails when KMS access is denied."""
+        from botocore.exceptions import ClientError
+
         mock_client = MagicMock()
         mock_boto_client.return_value = mock_client
         mock_client.generate_data_key.side_effect = ClientError(

@@ -1055,7 +1055,7 @@ class AgentServerClient:
         return result
 
     # Job status and result
-    def get_job_status(self, job_id: str, job_type: JobType) -> dict:
+    def get_job_status(self, job_id: str, job_type: "JobType") -> dict:
         url = urljoin(
             self.base_url + "/",
             f"document-intelligence/jobs/{job_id}/status?job_type={job_type.value}",
@@ -1069,7 +1069,7 @@ class AgentServerClient:
             ) from e
         return response.json()
 
-    def get_job_result(self, job_id: str, job_type: JobType) -> dict:
+    def get_job_result(self, job_id: str, job_type: "JobType") -> dict:
         url = urljoin(
             self.base_url + "/",
             f"document-intelligence/jobs/{job_id}/result?job_type={job_type.value}",

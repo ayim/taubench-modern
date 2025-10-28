@@ -1,14 +1,15 @@
 """Unit tests for the Google platform prompts."""
 
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
-from google.genai import types
-from google.genai.types import Content, Part, Schema
 
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.google.prompts import GooglePrompt
+
+if TYPE_CHECKING:
+    from google.genai.types import Content
 
 
 class TestGooglePrompt:
@@ -20,8 +21,10 @@ class TestGooglePrompt:
         return MagicMock(spec=Kernel)
 
     @pytest.fixture
-    def contents(self) -> list[Content]:
+    def contents(self) -> list["Content"]:
         """Create a list of content items for testing."""
+        from google.genai.types import Content, Part
+
         # Create proper Content objects instead of dictionaries
         content1 = MagicMock(spec=Content)
         content1.role = "user"
@@ -38,7 +41,7 @@ class TestGooglePrompt:
         return [content1, content2]
 
     @pytest.fixture
-    def google_prompt(self, contents: list[Content]) -> GooglePrompt:
+    def google_prompt(self, contents: "list[Content]") -> GooglePrompt:
         """Create a Google prompt for testing."""
         return GooglePrompt(
             contents=contents,
@@ -49,6 +52,9 @@ class TestGooglePrompt:
 
     def test_as_platform_request(self, google_prompt: GooglePrompt) -> None:
         """Test converting to platform request."""
+        from google.genai import types
+        from google.genai.types import Content
+
         request = google_prompt.as_platform_request(model="gemini-1.5-pro")
 
         assert isinstance(request, dict)
@@ -72,6 +78,9 @@ class TestGooglePrompt:
 
     def test_as_platform_request_with_stream(self, google_prompt: GooglePrompt) -> None:
         """Test converting to platform request with streaming enabled."""
+        from google.genai import types
+        from google.genai.types import Content
+
         request = google_prompt.as_platform_request(model="gemini-1.5-pro", stream=True)
 
         assert isinstance(request, dict)
@@ -89,8 +98,11 @@ class TestGooglePrompt:
         assert request["config"].top_p == 1.0
         assert request["config"].max_output_tokens == 4096
 
-    def test_as_platform_request_no_tools(self, contents: list[Content]) -> None:
+    def test_as_platform_request_no_tools(self, contents: "list[Content]") -> None:
         """Test converting to platform request with no tools."""
+        from google.genai import types
+        from google.genai.types import Content
+
         google_prompt = GooglePrompt(
             contents=contents,
             temperature=0.5,
@@ -120,9 +132,12 @@ class TestGooglePrompt:
 
     def test_as_platform_request_with_tools(
         self,
-        contents: list[Content],
+        contents: "list[Content]",
     ) -> None:
         """Test converting to platform request with tools."""
+        from google.genai import types
+        from google.genai.types import Content, Schema
+
         # Create empty schema for function declaration
         empty_schema = cast(Schema, {"type": "object", "properties": {}})
 
@@ -168,8 +183,11 @@ class TestGooglePrompt:
         assert tools is not None
         assert tools == mock_tools
 
-    def test_prompt_properties(self, contents: list[Content]) -> None:
+    def test_prompt_properties(self, contents: "list[Content]") -> None:
         """Test prompt properties and defaults."""
+        from google.genai import types
+        from google.genai.types import Schema
+
         # Test with defaults
         prompt = GooglePrompt(contents=contents)
         assert prompt.contents == contents
@@ -211,9 +229,11 @@ class TestGooglePrompt:
 
     def test_thinking_config_for_gemini_2_5(
         self,
-        contents: list[Content],
+        contents: "list[Content]",
     ) -> None:
         """Test thinking config is added for Gemini 2.5 models."""
+        from google.genai import types
+
         google_prompt = GooglePrompt(
             contents=contents,
         )

@@ -11,12 +11,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from groq.types.chat import ChatCompletion
-from groq.types.chat.chat_completion import Choice
-from groq.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceDelta
-from groq.types.chat.chat_completion_chunk import Choice as ChunkChoice
-from groq.types.chat.chat_completion_message import ChatCompletionMessage
-from groq.types.completion_usage import CompletionUsage
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
@@ -335,6 +329,13 @@ class TestGroqClient:
 
         # Set up chat completions response for non-streaming
         async def mock_chat_response(**kwargs):
+            from groq.types.chat import ChatCompletion
+            from groq.types.chat.chat_completion import Choice
+            from groq.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceDelta
+            from groq.types.chat.chat_completion_chunk import Choice as ChunkChoice
+            from groq.types.chat.chat_completion_message import ChatCompletionMessage
+            from groq.types.completion_usage import CompletionUsage
+
             if kwargs.get("stream", False):
                 chunks = [
                     ChatCompletionChunk(

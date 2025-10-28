@@ -3,7 +3,6 @@ from collections import defaultdict
 from http import HTTPStatus
 from typing import TypedDict
 
-from aiohttp import ClientSession
 from fastapi import APIRouter, HTTPException
 from structlog import get_logger
 
@@ -65,6 +64,7 @@ def _to_human_friendly_name(name: str) -> str:
 
 async def _fetch_action_packages_data(url: str, api_key: str) -> dict[str, ActionPackageData]:
     """Fetch action packages data directly from /api/actionPackages endpoint."""
+    from aiohttp import ClientSession
 
     http_url = "http://" + url if not url.startswith("http") else url
     action_packages_url = safe_urljoin(http_url, "api/actionPackages")

@@ -2,14 +2,7 @@ import json
 import uuid
 from collections.abc import AsyncGenerator
 from logging import getLogger
-from typing import Any
-
-from google.genai.types import (
-    Content,
-    FunctionCall,
-    GenerateContentResponse,
-    GenerateContentResponseUsageMetadata,
-)
+from typing import TYPE_CHECKING, Any
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
@@ -20,6 +13,15 @@ from agent_platform.core.responses.content.image import ResponseImageContent
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.responses.response import ResponseMessage, TokenUsage
+
+if TYPE_CHECKING:
+    from google.genai.types import (
+        Content,
+        FunctionCall,
+        GenerateContentResponse,
+        GenerateContentResponseUsageMetadata,
+    )
+
 
 logger = getLogger(__name__)
 
@@ -102,7 +104,7 @@ class GoogleParsers(PlatformParsers):
             tool_input_raw=json.dumps(args) if isinstance(args, dict) else args,
         )
 
-    def parse_response(self, response: GenerateContentResponse) -> ResponseMessage:
+    def parse_response(self, response: "GenerateContentResponse") -> ResponseMessage:
         """Parses a Google response to an agent-server response.
 
         Args:
@@ -163,7 +165,7 @@ class GoogleParsers(PlatformParsers):
 
     def _extract_token_usage(
         self,
-        response: GenerateContentResponse,
+        response: "GenerateContentResponse",
     ) -> tuple[TokenUsage, int]:
         """Extracts token usage from a response.
 
@@ -215,7 +217,7 @@ class GoogleParsers(PlatformParsers):
         output_tokens: int,
         total_tokens: int,
         thinking_tokens: int,
-        usage_metadata: GenerateContentResponseUsageMetadata,
+        usage_metadata: "GenerateContentResponseUsageMetadata",
     ) -> None:
         """Log token usage details.
 
@@ -238,7 +240,7 @@ class GoogleParsers(PlatformParsers):
 
     def _log_input_token_details(
         self,
-        usage_metadata: GenerateContentResponseUsageMetadata,
+        usage_metadata: "GenerateContentResponseUsageMetadata",
     ) -> None:
         """Log input token details by modality.
 
@@ -257,7 +259,7 @@ class GoogleParsers(PlatformParsers):
 
     def _log_output_token_details(
         self,
-        usage_metadata: GenerateContentResponseUsageMetadata,
+        usage_metadata: "GenerateContentResponseUsageMetadata",
     ) -> None:
         """Log output token details by modality.
 
@@ -276,7 +278,7 @@ class GoogleParsers(PlatformParsers):
 
     async def parse_stream_event(
         self,
-        event: GenerateContentResponse,
+        event: "GenerateContentResponse",
         message: dict[str, Any],
         last_message: dict[str, Any],
     ) -> AsyncGenerator[GenericDelta, None]:
@@ -322,7 +324,7 @@ class GoogleParsers(PlatformParsers):
         if "additional_response_fields" not in message:
             message["additional_response_fields"] = {}
 
-    def _process_content(self, content: Content, message: dict[str, Any]) -> None:
+    def _process_content(self, content: "Content", message: dict[str, Any]) -> None:
         """Processes content from a candidate."""
         if not content.parts:
             return
@@ -338,7 +340,7 @@ class GoogleParsers(PlatformParsers):
         if function_calls:
             self._add_function_calls_to_message(message, function_calls)
 
-    def _collect_content_parts(self, content: Content) -> tuple[str, list[Any]]:
+    def _collect_content_parts(self, content: "Content") -> tuple[str, list[Any]]:
         """Collect text and function call content parts.
 
         Args:
@@ -407,7 +409,7 @@ class GoogleParsers(PlatformParsers):
             if not self._function_exists_in_message(message, function_details):
                 self._add_function_to_message(message, function_details)
 
-    def _extract_function_details(self, function_call: FunctionCall) -> dict[str, Any]:
+    def _extract_function_details(self, function_call: "FunctionCall") -> dict[str, Any]:
         """Extract function details.
 
         Args:
@@ -491,7 +493,7 @@ class GoogleParsers(PlatformParsers):
 
     def _process_event_metadata(
         self,
-        event: GenerateContentResponse,
+        event: "GenerateContentResponse",
         message: dict[str, Any],
     ) -> None:
         """Processes metadata from the event."""
@@ -500,7 +502,7 @@ class GoogleParsers(PlatformParsers):
 
     def _process_usage_metadata(
         self,
-        usage_metadata: GenerateContentResponseUsageMetadata,
+        usage_metadata: "GenerateContentResponseUsageMetadata",
         message: dict[str, Any],
     ) -> None:
         """Process usage metadata.
@@ -591,7 +593,7 @@ class GoogleParsers(PlatformParsers):
 
     def _process_token_details(
         self,
-        usage_metadata: GenerateContentResponseUsageMetadata,
+        usage_metadata: "GenerateContentResponseUsageMetadata",
         message: dict[str, Any],
     ) -> None:
         """Process detailed token information.

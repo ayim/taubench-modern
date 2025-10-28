@@ -4,9 +4,6 @@ from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
-from groq.types.chat import (
-    ChatCompletionMessageToolCall,
-)
 
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.groq.converters import GroqConverters
@@ -47,6 +44,8 @@ class TestGroqConverters:
     @pytest.mark.asyncio
     async def test_convert_tool_use_content(self, converters: GroqConverters) -> None:
         """Test converting tool use content."""
+        from groq.types.chat import ChatCompletionMessageToolCall
+
         content = PromptToolUseContent(
             tool_call_id="test-tool-call-id",
             tool_name="test-tool",

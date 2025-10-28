@@ -1,10 +1,7 @@
 import json
 import logging
 from collections.abc import Sequence
-from typing import Any, Literal, Union, cast
-
-from google.genai import types
-from google.genai.types import Content, Part, Schema
+from typing import TYPE_CHECKING, Any, Literal, Union, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
@@ -25,6 +22,10 @@ from agent_platform.core.prompts.content.document import PromptDocumentContent
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from google.genai import types
+    from google.genai.types import Content, Part
 
 
 class GoogleConverters(PlatformConverters, UsesKernelMixin):
@@ -127,7 +128,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _process_message_content(
         self,
         content_list: Sequence[PromptMessageContent],
-    ) -> list[Part]:
+    ) -> "list[Part]":
         """Process prompt message content and organize into parts.
 
         Args:
@@ -136,6 +137,8 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             A list of content parts for Google API.
         """
+        from google.genai.types import Part
+
         parts = []
 
         for content in content_list:
@@ -159,7 +162,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_system_instruction(
         self,
         system_instruction: str | None,
-    ) -> Content | None:
+    ) -> "Content | None":
         """Convert system instruction to Google format.
 
         Args:
@@ -168,6 +171,8 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The converted system instruction.
         """
+        from google.genai.types import Content, Part
+
         if system_instruction is None:
             return None
 
@@ -179,7 +184,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_messages(
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
-    ) -> list[Content]:
+    ) -> "list[Content]":
         """Convert prompt messages to Google message format.
 
         Args:
@@ -188,6 +193,8 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The list of Google message parameters.
         """
+        from google.genai.types import Content
+
         converted_messages = []
 
         for message in messages:
@@ -431,7 +438,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_tools(
         self,
         tools: list[ToolDefinition],
-    ) -> list[types.Tool]:
+    ) -> "list[types.Tool]":
         """Convert tool definitions to Google tool parameters.
 
         Args:
@@ -590,7 +597,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         self,
         tool: ToolDefinition,
         schema: dict[str, Any],
-    ) -> types.Tool | None:
+    ) -> "types.Tool | None":
         """Create function declaration for tool.
 
         Args:
@@ -600,6 +607,9 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The converted tool, or None if conversion failed.
         """
+        from google.genai import types
+        from google.genai.types import Schema
+
         try:
             # Create function declaration
             function_declaration = types.FunctionDeclaration(
@@ -626,7 +636,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _create_tool_with_minimal_schema(
         self,
         tool: ToolDefinition,
-    ) -> types.Tool | None:
+    ) -> "types.Tool | None":
         """Create tool with minimal schema as fallback.
 
         Args:
@@ -635,6 +645,9 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The converted tool, or None if conversion failed.
         """
+        from google.genai import types
+        from google.genai.types import Schema
+
         try:
             # Try with a minimal schema
             minimal_schema = {"type": "object", "properties": {}}

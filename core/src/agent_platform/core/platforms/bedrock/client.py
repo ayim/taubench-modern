@@ -5,10 +5,6 @@ from collections.abc import AsyncGenerator
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, ClassVar, ParamSpec, TypeVar
 
-import aiobotocore.session
-from aiobotocore.config import AioConfig
-from botocore.exceptions import ClientError
-
 from agent_platform.core.delta import GenericDelta, compute_generic_deltas
 from agent_platform.core.errors import ErrorCode
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
@@ -59,6 +55,9 @@ class BedrockClient(
         parameters: BedrockPlatformParameters | None = None,
         **overrides: Any,
     ):
+        import aiobotocore.session
+        from aiobotocore.config import AioConfig
+
         super().__init__(kernel=kernel, parameters=parameters, **overrides)
 
         # 1. Build one global aiobotocore session
@@ -369,6 +368,7 @@ class BedrockClient(
     ) -> PlatformError:
         from botocore.exceptions import (
             BotoCoreError,
+            ClientError,
             EndpointConnectionError,
             NoCredentialsError,
             ReadTimeoutError,

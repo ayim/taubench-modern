@@ -2,8 +2,6 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-import boto3
-from botocore.exceptions import ClientError
 from structlog import get_logger
 
 from agent_platform.core.utils.encryption.aes_gcm import AESGCM2
@@ -108,6 +106,9 @@ class AwsSecretManager(BaseSecretManager):
 
         Initializes the boto3 KMS client and validates the KMS key ID.
         """
+        import boto3
+        from botocore.exceptions import ClientError
+
         try:
             try:
                 self._client = boto3.client(
@@ -164,6 +165,8 @@ class AwsSecretManager(BaseSecretManager):
         Raises:
             RuntimeError: If the client is not initialized or encryption fails
         """
+        from botocore.exceptions import ClientError
+
         if self._client is None:
             raise RuntimeError("AWS KMS client not initialized. Call setup() first.")
 
@@ -263,6 +266,8 @@ class AwsSecretManager(BaseSecretManager):
 
     def _decrypt_data_key(self, envelope_result: EnvelopeEncryptionResult) -> bytes:
         """Decrypt the data key using AWS KMS."""
+        from botocore.exceptions import ClientError
+
         if self._client is None:
             raise RuntimeError("AWS KMS client not initialized. Call setup() first.")
 

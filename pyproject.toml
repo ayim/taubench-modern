@@ -120,19 +120,21 @@ select = [
     "RUF",
     "W",
     "C90",
+    "TID253",
 ]
 fixable = ["ALL"]
 unfixable = []
 ignore = ["COM812"]
 
 [tool.ruff.lint.per-file-ignores]
-"core/examples/**/*.ipynb" = ["PLE1142"]
+"core/examples/**/*.ipynb" = ["PLE1142", "TID253"]
 "core/tests/**/*.py" = ["PLR2004"]
 "architectures/*/examples/**/*.ipynb" = ["PLE1142"]
 "architectures/*/tests/**/*.py" = ["PLR2004"]
 "server/examples/**/*.ipynb" = ["PLE1142"]
 "server/tests/**/*.py" = ["PLR2004"]
 "quality/tests/**/*.py" = ["PLR2004"]
+"server/tests/endpoints/test_doc_int_endpoints.py" = ["TID253"]
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -146,6 +148,24 @@ known-first-party = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Ban certain modules from being imported at module level, instead requiring
+# that they're imported lazily (e.g., within a function definition).
+banned-module-level-imports = [
+    "pandas",
+    "ibis",
+    "numpy",
+    "sqlglot",
+    "pyarrow",
+    "openai",
+    "google",
+    "groq",
+    "types_boto3_bedrock_runtime",
+    "botocore",
+    "aiobotocore",
+    "boto3",
+]
 
 [tool.pyright]
 exclude = [

@@ -4,12 +4,6 @@ from copy import deepcopy
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from fastapi import status
-from google import genai
-from google.genai.types import (
-    ContentListUnion,
-    GenerateContentConfig,
-    GenerateContentResponse,
-)
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
@@ -32,6 +26,11 @@ from agent_platform.core.platforms.google.prompts import GooglePrompt
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
+    from google import genai
+    from google.genai.types import (
+        GenerateContentResponse,
+    )
+
     from agent_platform.core.kernel import Kernel
 
 logger = logging.getLogger(__name__)
@@ -65,7 +64,7 @@ class GoogleClient(
         )
         self._google_client = self._init_client(self._parameters)
 
-    def _init_client(self, parameters: GooglePlatformParameters) -> genai.Client:
+    def _init_client(self, parameters: GooglePlatformParameters) -> "genai.Client":
         """Initialize the Google GenAI client.
 
         Args:
@@ -78,6 +77,7 @@ class GoogleClient(
             ValueError: If API key is not provided.
         """
         import httpx
+        from google import genai
         from google.genai import types as genai_types
 
         if parameters.google_api_key is None:
@@ -289,6 +289,11 @@ class GoogleClient(
         Returns:
             The response message.
         """
+        from google.genai.types import (
+            ContentListUnion,
+            GenerateContentConfig,
+        )
+
         request = prompt.as_platform_request(model)
         logger.info(f"Sending request to Google model: {model}")
 
@@ -344,6 +349,11 @@ class GoogleClient(
         Yields:
             GenericDeltas that update the ResponseMessage.
         """
+        from google.genai.types import (
+            ContentListUnion,
+            GenerateContentConfig,
+        )
+
         logger.info(f"Streaming with Google model: {model}")
 
         request = prompt.as_platform_request(model, stream=True)
@@ -417,7 +427,7 @@ class GoogleClient(
 
     def _update_token_counters_from_chunk(
         self,
-        chunk: GenerateContentResponse,
+        chunk: "GenerateContentResponse",
         token_counters: dict[str, int],
     ) -> None:
         """Update token counters from chunk metadata.
@@ -464,7 +474,7 @@ class GoogleClient(
             0 if chunk_thinking_tokens is None else chunk_thinking_tokens,
         )
 
-    def _log_chunk_debug_info(self, chunk: GenerateContentResponse) -> None:
+    def _log_chunk_debug_info(self, chunk: "GenerateContentResponse") -> None:
         """Log debug information about a chunk.
 
         Args:

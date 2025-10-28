@@ -213,8 +213,11 @@ class ServerLifecycleManager:
         for sig in [signal.SIGINT, signal.SIGTERM]:
             signal.signal(sig, signal_handler)
 
-    def start(self) -> int:
+    def start(self, run_server: bool = True) -> int:
         """Start the server and run it.
+
+        Args:
+            run_server: Whether to run the server (otherwise just return after setup)
 
         Returns:
             int: Exit code (0 for success, 1 for failure)
@@ -225,7 +228,12 @@ class ServerLifecycleManager:
 
         try:
             logger.debug("Starting Uvicorn server with pre-bound socket")
-            self.server.run(sockets=[self.socket])
+            if run_server:
+                self.server.run(sockets=[self.socket])
+            else:
+                logger.info(
+                    "'run_server' is False, skipping server run (only expected in testing)!"
+                )
             logger.debug("Uvicorn server completed normally")
             return 0
         except KeyboardInterrupt:
@@ -248,8 +256,11 @@ class ServerLifecycleManager:
         # Mutex will be automatically released when the object is destroyed
         self.mutex = None
 
-    def run(self) -> int:
+    def run(self, run_server: bool = True) -> int:
         """Run the complete server lifecycle.
+
+        Args:
+            run_server: Whether to run the server (otherwise just return after setup)
 
         Returns:
             int: Exit code (0 for success, non-zero for failure)
@@ -269,7 +280,7 @@ class ServerLifecycleManager:
 
             load_full_config()
 
-            return self.start()
+            return self.start(run_server=run_server)
         except Exception as e:
             logger.exception(f"Error during server lifecycle: {e}")
             return 1

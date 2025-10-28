@@ -4,8 +4,6 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
-from google.genai import types
-from google.genai.types import Content, Part, Schema
 
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.google.converters import GoogleConverters
@@ -130,6 +128,8 @@ class TestGoogleConverters:
         kernel: Kernel,
     ) -> None:
         """Test converting a prompt."""
+        from google.genai.types import Content, Part
+
         prompt = Prompt(
             system_instruction="You are a helpful assistant.",
             messages=[
@@ -191,6 +191,9 @@ class TestGoogleConverters:
         kernel: Kernel,
     ) -> None:
         """Test converting a prompt with tools."""
+        from google.genai import types
+        from google.genai.types import Content, Part, Schema
+
         # Create empty schema for function declaration
         empty_schema = cast(Schema, {"type": "object", "properties": {}})
 

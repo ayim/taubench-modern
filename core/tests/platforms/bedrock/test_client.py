@@ -4,16 +4,6 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from botocore.exceptions import (
-    BotoCoreError,
-    ClientError,
-    EndpointConnectionError,
-    NoCredentialsError,
-    ReadTimeoutError,
-)
-from botocore.exceptions import (
-    ConnectionError as BotocoreConnectionError,
-)
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
@@ -174,6 +164,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_throttling_exception(self, bedrock_client: BedrockClient) -> None:
         """Test handling of ThrottlingException."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -195,6 +189,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_access_denied(self, bedrock_client: BedrockClient) -> None:
         """Test handling of AccessDeniedException."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -215,6 +213,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_validation_exception(self, bedrock_client: BedrockClient) -> None:
         """Test handling of ValidationException."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -234,6 +236,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_resource_not_found(self, bedrock_client: BedrockClient) -> None:
         """Test handling of ResourceNotFoundException."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -255,6 +261,10 @@ class TestBedrockErrorHandling:
         self, bedrock_client: BedrockClient
     ) -> None:
         """Test handling of ServiceQuotaExceededException."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -274,6 +284,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_model_timeout(self, bedrock_client: BedrockClient) -> None:
         """Test handling of ModelTimeoutException."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -295,6 +309,10 @@ class TestBedrockErrorHandling:
         self, bedrock_client: BedrockClient
     ) -> None:
         """Test handling of InternalServerException."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -314,6 +332,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_service_unavailable(self, bedrock_client: BedrockClient) -> None:
         """Test handling of ServiceUnavailableException."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -332,6 +354,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_unknown_client_error(self, bedrock_client: BedrockClient) -> None:
         """Test handling of unknown ClientError codes."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -351,6 +377,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_no_credentials(self, bedrock_client: BedrockClient) -> None:
         """Test handling of NoCredentialsError."""
+        from botocore.exceptions import (
+            NoCredentialsError,
+        )
+
         error = NoCredentialsError()
 
         result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
@@ -361,6 +391,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_connection_error(self, bedrock_client: BedrockClient) -> None:
         """Test handling of EndpointConnectionError."""
+        from botocore.exceptions import (
+            EndpointConnectionError,
+        )
+
         error = EndpointConnectionError(endpoint_url="https://bedrock.us-west-2.amazonaws.com")
 
         result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
@@ -371,6 +405,10 @@ class TestBedrockErrorHandling:
 
     def test_handle_bedrock_error_read_timeout(self, bedrock_client: BedrockClient) -> None:
         """Test handling of ReadTimeoutError."""
+        from botocore.exceptions import (
+            ReadTimeoutError,
+        )
+
         error = ReadTimeoutError(endpoint_url="https://bedrock.us-west-2.amazonaws.com")
 
         result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
@@ -383,6 +421,10 @@ class TestBedrockErrorHandling:
         self, bedrock_client: BedrockClient
     ) -> None:
         """Test handling of botocore ConnectionError."""
+        from botocore.exceptions import (
+            ConnectionError as BotocoreConnectionError,
+        )
+
         error = BotocoreConnectionError(error=Exception("Connection failed"))
 
         result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
@@ -395,6 +437,10 @@ class TestBedrockErrorHandling:
         self, bedrock_client: BedrockClient
     ) -> None:
         """Test handling of generic BotoCoreError."""
+        from botocore.exceptions import (
+            BotoCoreError,
+        )
+
         error = BotoCoreError()
 
         result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
@@ -414,6 +460,10 @@ class TestBedrockErrorHandling:
         self, bedrock_client: BedrockClient
     ) -> None:
         """Test that custom error types are respected."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {
@@ -434,6 +484,10 @@ class TestBedrockErrorHandling:
     @pytest.mark.asyncio
     async def test_generate_response_error_handling(self, bedrock_client: BedrockClient) -> None:
         """Test error handling in generate_response method."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         bedrock_prompt = BedrockPrompt()
 
         # Mock the boto3 client to raise an exception
@@ -461,6 +515,10 @@ class TestBedrockErrorHandling:
         self, bedrock_client: BedrockClient
     ) -> None:
         """Test error handling in generate_stream_response method."""
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         bedrock_prompt = BedrockPrompt()
 
         # Mock the boto3 client to raise an exception
@@ -490,6 +548,10 @@ class TestBedrockErrorHandling:
     async def test_create_embeddings_error_handling(self, bedrock_client: BedrockClient) -> None:
         """Test error handling in create_embeddings method."""
         # Mock the boto3 client to raise an exception
+        from botocore.exceptions import (
+            ClientError,
+        )
+
         client_error = ClientError(
             error_response={
                 "Error": {

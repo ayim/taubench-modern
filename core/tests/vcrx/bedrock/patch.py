@@ -1,17 +1,17 @@
 import contextlib
 from collections.abc import AsyncIterator, Callable, Generator
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import vcr.patch
-from aiobotocore.awsrequest import AioAWSResponse
-from aiobotocore.httpsession import AIOHTTPSession
-from botocore.compat import HTTPHeaders
 from vcr.record_mode import RecordMode
 from vcr.request import Request as VcrRequest
 
 from core.tests.vcrx.env import debug, get_vcr_record_mode
 from core.tests.vcrx.util import byteslike, serialize_aiobotocore_headers, should_skip_record
+
+if TYPE_CHECKING:
+    from aiobotocore.awsrequest import AioAWSResponse
 
 
 # The record for a streaming response remains the same.
@@ -110,7 +110,10 @@ class _BedrockPatcher:
             body_s, headers = "", {}
         return VcrRequest(request.method, str(request.url), body_s, headers)
 
-    async def _handle_replay(self, vcr_request: VcrRequest) -> AioAWSResponse:
+    async def _handle_replay(self, vcr_request: VcrRequest) -> "AioAWSResponse":
+        from aiobotocore.awsrequest import AioAWSResponse
+        from botocore.compat import HTTPHeaders
+
         vcr_response = self.cassette.play_response(vcr_request)
         status = vcr_response.get("status", {}).get("code") or vcr_response.get("status_code", 200)
         headers = {
@@ -166,7 +169,7 @@ class _BedrockPatcher:
         except Exception as e:
             debug(f"[VCR][bedrock] Error recording JSON response: {e}")
 
-    async def _handle_record(self, session: Any, request: Any) -> AioAWSResponse:
+    async def _handle_record(self, session: Any, request: Any) -> "AioAWSResponse":
         assert self.original_send is not None, "Original send method not patched correctly."
         resp = await self.original_send(session, request)
         url_str = str(getattr(request, "url", ""))
@@ -184,7 +187,7 @@ class _BedrockPatcher:
             debug(f"[VCR][bedrock] Failed to capture response for {url_str}: {e}")
         return resp
 
-    async def _patched_send_logic(self, session: Any, request: Any) -> AioAWSResponse:
+    async def _patched_send_logic(self, session: Any, request: Any) -> "AioAWSResponse":
         vcr_request = self._make_vcr_request(request)
         mode = get_vcr_record_mode()
 
@@ -313,6 +316,9 @@ def _suppress_vcr_aiohttp_patchers():
 @contextlib.contextmanager
 def patch_bedrock(cassette_path: str, cassette: Any):
     """Context manager to patch aiobotocore for recording/replaying Bedrock interactions."""
+    from aiobotocore.awsrequest import AioAWSResponse
+    from aiobotocore.httpsession import AIOHTTPSession
+
     if not str(cassette_path).startswith("platforms/bedrock/"):
         yield
         return

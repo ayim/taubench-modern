@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 from fastapi import status
-from google.genai.types import Content, HttpOptions, Part
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
@@ -514,6 +513,8 @@ class TestGoogleClient:
     def google_prompt(self) -> GooglePrompt:
         """Create a Google prompt for testing."""
         # Create proper Content objects instead of dictionaries
+        from google.genai.types import Content, Part
+
         content1 = MagicMock(spec=Content)
         content1.role = "user"
         part1 = MagicMock(spec=Part)
@@ -537,6 +538,8 @@ class TestGoogleClient:
 
     def test_init(self, parameters: GooglePlatformParameters) -> None:
         """Test client initialization."""
+        from google.genai.types import HttpOptions
+
         with patch("google.genai.Client") as mock_client:
             client = GoogleClient(parameters=parameters)
             assert client.name == "google"

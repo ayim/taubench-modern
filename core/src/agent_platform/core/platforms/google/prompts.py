@@ -1,10 +1,12 @@
 import logging
 from dataclasses import dataclass, field
-
-from google.genai.types import Content, GenerateContentConfig, ThinkingConfig, Tool
+from typing import TYPE_CHECKING
 
 from agent_platform.core.platforms.base import PlatformPrompt
 from agent_platform.core.platforms.google.configs import GoogleModelMap
+
+if TYPE_CHECKING:
+    from google.genai.types import Content, GenerateContentConfig, Tool
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +15,7 @@ logger = logging.getLogger(__name__)
 class GooglePrompt(PlatformPrompt):
     """A prompt for the Google Gemini platform."""
 
-    contents: list[Content] = field(
+    contents: "list[Content]" = field(
         default_factory=list,
         metadata={
             "description": "The contents for the prompt (including role and parts).",
@@ -21,7 +23,7 @@ class GooglePrompt(PlatformPrompt):
     )
     """The contents for the prompt (including role and parts)."""
 
-    tools: list[Tool] | None = field(
+    tools: "list[Tool] | None" = field(
         default=None,
         metadata={
             "description": "The list of tools for the prompt.",
@@ -57,7 +59,7 @@ class GooglePrompt(PlatformPrompt):
         self,
         model: str,
         stream: bool = False,
-    ) -> dict[str, str | list[Content] | GenerateContentConfig]:
+    ) -> "dict[str, str | list[Content] | GenerateContentConfig]":
         """Convert the prompt to a Google Gemini request.
 
         Args:
@@ -66,6 +68,8 @@ class GooglePrompt(PlatformPrompt):
 
         Returns:
             A Google Gemini request."""
+        from google.genai.types import Content, GenerateContentConfig, ThinkingConfig
+
         model_id = GoogleModelMap.model_aliases[model]
         logger.info(f"Using Google model: {model} (model_id: {model_id})")
 
