@@ -43,6 +43,19 @@ const getGroupedMessageContent = (messageContent: ThreadMessageContent, messageC
       if (['thought', 'tool_call'].includes(content.kind)) {
         const previousContent = acc[acc.length - 1];
         if (Array.isArray(previousContent)) {
+          const lastGroupedContentItem = previousContent[previousContent.length - 1];
+
+          // Replace consecutive empty thoughts with latest empty thought only
+          if (
+            content.kind === 'thought' &&
+            content.thought === '' &&
+            lastGroupedContentItem?.kind === 'thought' &&
+            lastGroupedContentItem.thought === ''
+          ) {
+            previousContent[previousContent.length - 1] = content;
+            return acc;
+          }
+
           previousContent.push(content);
           return acc;
         }

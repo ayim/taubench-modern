@@ -92,6 +92,8 @@ const getActionGroupStateDetails = ({
   platform?: string;
 }): { state: ActionState; title: string } => {
   const groupedContent = getGroupedActions(messageContent);
+  const lastThinkingItem = groupedContent.thinking[groupedContent.thinking.length - 1];
+  const lastContentItem = messageContent[messageContent.length - 1];
 
   /**
    * To avoid group going from "in progress" to "done" and back to "in progress" when new item is added wait for message to be completed
@@ -99,18 +101,19 @@ const getActionGroupStateDetails = ({
    */
   const isStreamingFinished = messageComplete && groupedContent.complete;
 
-  // Group only contains thinking items
-  if (groupedContent.thinking.length === messageContent.length) {
-    const lastThinkingItem = groupedContent.thinking[groupedContent.thinking.length - 1];
+  const areActionsInProgress = groupedContent.inProgress.length > 0 && !isStreamingFinished;
+  const shouldShowThinking = !areActionsInProgress && !isStreamingFinished && lastContentItem?.kind === 'thought';
+
+  if (groupedContent.thinking.length === messageContent.length || shouldShowThinking) {
     return {
       state: isStreamingFinished ? 'done' : 'in_progress',
       title: formatThoughtTitle({ text: lastThinkingItem.thought, platform, complete: lastThinkingItem.complete }),
     };
   }
 
-  if (groupedContent.inProgress.length > 0 && !isStreamingFinished) {
+  if (areActionsInProgress || (!isStreamingFinished && lastContentItem?.kind === 'tool_call')) {
     const runningGroupTitleDetails = formatGroupTitleDetails(
-      groupedContent.inProgress[0],
+      groupedContent.inProgress[0] || lastContentItem,
       groupedContent.inProgress.length,
     );
     return {
