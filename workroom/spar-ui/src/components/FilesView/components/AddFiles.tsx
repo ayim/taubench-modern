@@ -6,6 +6,7 @@ import { useFeatureFlag } from '../../../hooks';
 import { useMessageStream } from '../../../hooks/useMessageStream';
 import { useThreadFilesRefetch } from '../../../queries/threads';
 import { SparUIFeatureFlag } from '../../../api';
+import { useAgentOAuthStateQuery } from '../../../queries/agents';
 
 type props = {
   agentId: string;
@@ -24,7 +25,10 @@ export const AddFiles: FC<props> = ({ threadId, agentId, dropzoneOptions }) => {
 
   const { streamingMessages, uploadingFiles, sendMessage } = useMessageStream({ agentId, threadId });
   const isStreaming = !!streamingMessages;
-  const isDisabled = isStreaming || uploadingFiles || !isChatInteractive;
+  const { data: oAuthState = [] } = useAgentOAuthStateQuery({ agentId });
+  const requiresOAuth = oAuthState.some((state) => !state.isAuthorized);
+
+  const isDisabled = isStreaming || uploadingFiles || !isChatInteractive || requiresOAuth;
 
   const onAddAttachements = useCallback(
     async (files: File[]) => {
