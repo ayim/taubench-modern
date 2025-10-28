@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { SparUIContext } from '../../api/context';
 import { useAgentsQuery, useWorkItemsQuery, WorkItemStatus } from '../../queries';
 import { WorkItemRowData } from './types';
-import { workItemsSortRules, workItemsTableColumns } from './columns';
+import { workItemsTableColumns } from './columns';
 import { WorkItemsTableRow } from './components/WorkItemsTableRow';
 import { WorkItemsTableActions } from './components/WorkItemsTableActions';
 import { createWorkItemsStorageKey, getStoragePrefixFromPathname } from '../../constants/workItemsStorage';
@@ -170,7 +170,6 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
             selectable
             selected={selectedItems}
             onSelect={setSelectedItems}
-            sortRules={workItemsSortRules}
             isServerSide
             query={query}
             onQuery={setQuery}
