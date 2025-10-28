@@ -1,8 +1,8 @@
 import { useContext, useState } from 'react';
-import { Box, Button, Dialog, Dropzone, Link, Typography, useSnackbar } from '@sema4ai/components';
-import { IconCloseSmall, IconDbSchema } from '@sema4ai/icons';
+import { Button, Dialog, Dropzone, Link, Typography, useSnackbar } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 
+import { FileList } from './FileList';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 import { useDataConnectionFileInspectMutation } from '../../../../../../queries/dataConnections';
 import {
@@ -14,7 +14,7 @@ import {
 
 export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
   const { addSnackbar } = useSnackbar();
-  const { setInspectedDataTables, inspectedDataTables } = useContext(DataConnectionFormContext);
+  const { setDatabaseInspectionState, databaseInspectionState } = useContext(DataConnectionFormContext);
   const { mutateAsync: inspectFile } = useDataConnectionFileInspectMutation({
     onError: (error: unknown) => {
       addSnackbar({ message: error instanceof Error ? error.message : 'Failed to inspect file', variant: 'danger' });
@@ -27,7 +27,11 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
     const file = files[0];
     try {
       const result = await inspectFile({ fileName: file.name, fileContent: file });
-      setInspectedDataTables(result.tables);
+      setDatabaseInspectionState({
+        isLoading: false,
+        error: undefined,
+        dataTables: result.tables,
+      });
       setAddedFiles([file.name]);
       setValue('fileRefId', file.name);
     } catch (error) {
@@ -37,7 +41,11 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
 
   const onRemoveFile = () => {
     setAddedFiles([]);
-    setInspectedDataTables([]);
+    setDatabaseInspectionState({
+      isLoading: false,
+      error: undefined,
+      dataTables: [],
+    });
     setValue('fileRefId', undefined);
   };
 
@@ -69,44 +77,12 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
           dropTitle="Drop your files here"
           description="Supports .xlsx, .xls, .csv files • Max size: 20MB"
         />
-
-        {addedFiles.length > 0 && (
-          <Box py="$24">
-            <Typography fontWeight="medium" mb="$8">
-              Added files
-            </Typography>
-            <Box
-              display="flex"
-              flexDirection="row"
-              borderRadius={8}
-              borderWidth={1}
-              borderColor="border.subtle"
-              backgroundColor="background.panels"
-              p={8}
-            >
-              {addedFiles.map((file) => (
-                <Box flex="1" key={file} display="flex" alignItems="center" gap="$8" px="$8">
-                  <IconDbSchema />
-                  <Typography>{file}</Typography>
-                  <Box ml="auto">
-                    <Button
-                      aria-label="Remove file"
-                      variant="ghost-subtle"
-                      size="small"
-                      icon={IconCloseSmall}
-                      onClick={onRemoveFile}
-                    />
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        )}
+        <FileList files={addedFiles} onRemoveFile={onRemoveFile} />
       </Dialog.Content>
 
       <Dialog.Actions>
         <Button
-          disabled={addedFiles.length === 0 || inspectedDataTables.length === 0}
+          disabled={addedFiles.length === 0 || databaseInspectionState.dataTables.length === 0}
           round
           onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
         >

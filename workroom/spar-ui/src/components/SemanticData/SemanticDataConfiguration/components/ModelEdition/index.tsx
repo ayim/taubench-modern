@@ -7,6 +7,7 @@ import { ConfigurationStepView, DataConnectionFormSchema } from '../form';
 import { RenameDialog } from '../../../../../common/dialogs/RenameDialog';
 import { EXTERNAL_LINKS } from '../../../../../lib/constants';
 import { TableTree } from './components/TableTree';
+import { ModelScore } from './components/ModelScore';
 
 export const ModelEdition: ConfigurationStepView = ({ onClose }) => {
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
@@ -58,6 +59,9 @@ export const ModelEdition: ConfigurationStepView = ({ onClose }) => {
                 </Link>
               </Typography>
             </Box>
+          </Box>
+          <Box ml="auto">
+            <ModelScore />
           </Box>
         </Box>
         <Box display="flex" gap="$8" mb="$16">

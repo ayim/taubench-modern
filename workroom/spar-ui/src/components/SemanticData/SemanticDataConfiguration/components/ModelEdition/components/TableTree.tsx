@@ -1,12 +1,12 @@
 import { Box, Typography } from '@sema4ai/components';
 import { TreeList } from '@sema4ai/layouts';
-import { IconDbColumn, IconDbDatabase } from '@sema4ai/icons';
+import { IconDbDatabase } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useFormContext } from 'react-hook-form';
 
 import { DataConnectionFormSchema } from '../../form';
 import { InputControlled } from '../../../../../../common/form/InputControlled';
-import { SynonymField } from './SynonymField';
+import { TableTreeItem } from './TableTreeItem';
 
 const columns = [
   'Description',
@@ -50,6 +50,7 @@ export const TableTree = () => {
             label={table.name}
             icon={IconDbDatabase}
             open
+            description={table.base_table.table}
             columns={
               <>
                 <Cell>
@@ -68,59 +69,41 @@ export const TableTree = () => {
           >
             {table.dimensions?.map((dimension, dimensionIndex) => {
               return (
-                <TreeList.Item
-                  key={dimension.name}
-                  label={dimension.name}
-                  icon={IconDbColumn}
-                  description={`${dimension.data_type.replace('!', '')}`}
-                  columns={
-                    <>
-                      <Cell>
-                        <InputControlled
-                          fieldName={`tables.${tableIndex}.dimensions.${dimensionIndex}.description`}
-                          aria-label="Description"
-                          variant="ghost"
-                          autoGrow={8}
-                        />
-                      </Cell>
-                      <Cell>
-                        <SynonymField
-                          tableIndex={tableIndex}
-                          dimensionIndex={dimensionIndex}
-                          initialValue={dimension.synonyms}
-                        />
-                      </Cell>
-                    </>
-                  }
+                <TableTreeItem
+                  type="dimensions"
+                  dimension={dimension}
+                  dimensionIndex={dimensionIndex}
+                  tableIndex={tableIndex}
                 />
               );
             })}
             {table.time_dimensions?.map((dimension, dimensionIndex) => {
               return (
-                <TreeList.Item
-                  key={dimension.name}
-                  label={dimension.name}
-                  icon={IconDbColumn}
-                  description={`${dimension.data_type.replace('!', '')}`}
-                  columns={
-                    <>
-                      <Cell>
-                        <InputControlled
-                          fieldName={`tables.${tableIndex}.dimensions.${dimensionIndex}.description`}
-                          aria-label="Description"
-                          variant="ghost"
-                          autoGrow={8}
-                        />
-                      </Cell>
-                      <Cell>
-                        <SynonymField
-                          tableIndex={tableIndex}
-                          dimensionIndex={dimensionIndex}
-                          initialValue={dimension.synonyms}
-                        />
-                      </Cell>
-                    </>
-                  }
+                <TableTreeItem
+                  type="time_dimensions"
+                  dimension={dimension}
+                  dimensionIndex={dimensionIndex}
+                  tableIndex={tableIndex}
+                />
+              );
+            })}
+            {table.facts?.map((dimension, dimensionIndex) => {
+              return (
+                <TableTreeItem
+                  type="facts"
+                  dimension={dimension}
+                  dimensionIndex={dimensionIndex}
+                  tableIndex={tableIndex}
+                />
+              );
+            })}
+            {table.metrics?.map((dimension, dimensionIndex) => {
+              return (
+                <TableTreeItem
+                  type="metrics"
+                  dimension={dimension}
+                  dimensionIndex={dimensionIndex}
+                  tableIndex={tableIndex}
                 />
               );
             })}

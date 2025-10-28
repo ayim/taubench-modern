@@ -13,6 +13,7 @@ export const Dimension = z.object({
   synonyms: z.array(z.string()).optional(),
   sample_values: z.array(z.any()).optional(),
 });
+export type Dimension = z.infer<typeof Dimension>;
 
 export const SemanticModel = z.object({
   id: z.string(),
@@ -37,6 +38,8 @@ export const SemanticModel = z.object({
       description: z.string().nullable().optional(),
       dimensions: z.array(Dimension).optional(),
       time_dimensions: z.array(Dimension).optional(),
+      facts: z.array(Dimension).optional(),
+      metrics: z.array(Dimension).optional(),
     }),
   ),
 });
@@ -263,3 +266,105 @@ export const useDeleteSemanticDataModelMutation = createSparMutation<object, { a
     },
   }),
 );
+
+export const useExportSemanticDataModelQuery = createSparMutation<object, { modelId: string }>()(
+  ({ sparAPIClient }) => ({
+    mutationFn: async ({ modelId }) => {
+      const response = await sparAPIClient.queryAgentServer(
+        'get',
+        '/api/v2/semantic-data-models/{semantic_data_model_id}/export',
+        {
+          params: { path: { semantic_data_model_id: modelId } },
+        },
+      );
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to export Semantic Data model', {
+          code: response.code,
+          resource: ResourceType.SemanticData,
+        });
+      }
+
+      return response.data;
+    },
+  }),
+);
+
+export const useImportSemanticDataModelMutation = createSparMutation<
+  object,
+  DataConnectionFormSchema & { agentId: string }
+>()(({ sparAPIClient, queryClient }) => ({
+  mutationFn: async (payload) => {
+    const importResponse = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/import', {
+      params: {},
+      body: {
+        semantic_model: {
+          name: payload.name,
+          description: payload.description,
+          tables:
+            payload.tables?.map((table) => ({
+              ...table,
+              base_table: {
+                ...table.base_table,
+                data_connection_id: payload.dataConnectionId,
+              },
+            })) || [],
+        },
+        agent_id: payload.agentId,
+      },
+    });
+
+    if (!importResponse.success) {
+      throw new QueryError(importResponse.message || 'Failed to update Semantic Data model', {
+        code: importResponse.code,
+        resource: ResourceType.SemanticData,
+      });
+    }
+
+    if (importResponse.data.is_duplicate) {
+      return {
+        import_errors: ['Duplicate semantic data model found'],
+      };
+    }
+
+    if (importResponse.data.warnings && importResponse.data.warnings.length > 0) {
+      return {
+        import_errors: importResponse.data.warnings,
+      };
+    }
+
+    const existingModels = await sparAPIClient.queryAgentServer('get', '/api/v2/agents/{aid}/semantic-data-models', {
+      params: { path: { aid: payload.agentId } },
+    });
+
+    if (!existingModels.success) {
+      throw new QueryError(existingModels.message || 'Failed to get existing Semantic Data models', {
+        code: existingModels.code,
+        resource: ResourceType.SemanticData,
+      });
+    }
+
+    const existingModelIds = existingModels.data.flatMap((curr) => {
+      return Object.entries<SemanticModel>(curr as Record<string, SemanticModel>).map(([id]) => id);
+    });
+
+    const attachResponse = await sparAPIClient.queryAgentServer('put', '/api/v2/agents/{aid}/semantic-data-models', {
+      body: {
+        semantic_data_model_ids: [...existingModelIds, importResponse.data.semantic_data_model_id],
+      },
+      params: { path: { aid: payload.agentId } },
+    });
+
+    if (!attachResponse.success) {
+      throw new QueryError(attachResponse.message || 'Failed to attach Semantic Data model to Agent', {
+        code: attachResponse.code,
+        resource: ResourceType.SemanticData,
+      });
+    }
+
+    return attachResponse.data;
+  },
+  onSuccess: (_, { agentId }) => {
+    queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
+  },
+}));

@@ -46,3 +46,20 @@ export function fuzzyDataSearcher<T>(searchRules: SearchRules<T>, data: T[]) {
   };
 }
 
+export const sanitizeFileName = (fileName: string) => {
+  return fileName.replace(/[^A-Za-z0-9_.-]/g, '_');
+};
+
+export const downloadFile = (data: Blob, fileName: string) => {
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};

@@ -5,8 +5,13 @@ import { styled } from '@sema4ai/theme';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 
 import { SemanticDataConfiguration } from '../../../../SemanticData/SemanticDataConfiguration';
-import { SemanticModel, useDeleteSemanticDataModelMutation } from '../../../../../queries/semanticData';
+import {
+  SemanticModel,
+  useDeleteSemanticDataModelMutation,
+  useExportSemanticDataModelQuery,
+} from '../../../../../queries/semanticData';
 import { useParams } from '../../../../../hooks';
+import { downloadFile } from '../../../../../lib/utils';
 
 type Props = {
   model: SemanticModel;
@@ -42,6 +47,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
   const { agentId } = useParams('/thread/$agentId');
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { mutate: deleteSemanticDataModel } = useDeleteSemanticDataModelMutation({});
+  const { mutateAsync: exportSemanticDataModel } = useExportSemanticDataModelQuery({});
   const { addSnackbar } = useSnackbar();
 
   const onDeleteConfirm = useDeleteConfirm(
@@ -76,6 +82,19 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
     );
   });
 
+  const onExportModel = async () => {
+    const yamlData = await exportSemanticDataModel({ modelId: model.id });
+
+    const blob = new Blob([yamlData.content], { type: 'text/yaml' });
+    const fileName = yamlData.filename;
+    downloadFile(blob, fileName);
+
+    addSnackbar({
+      message: `Semantic Data Model "${model.name}" exported successfully`,
+      variant: 'success',
+    });
+  };
+
   return (
     <Item>
       <Menu
@@ -91,6 +110,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
         }
       >
         <Menu.Item onClick={onToggleEditModel}>Edit</Menu.Item>
+        <Menu.Item onClick={onExportModel}>Export</Menu.Item>
         <Menu.Item onClick={onDelete}>Delete</Menu.Item>
       </Menu>
       {isConfigurationOpen && <SemanticDataConfiguration onClose={onToggleEditModel} modelId={model.id} />}

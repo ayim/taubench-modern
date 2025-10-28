@@ -4,3 +4,4 @@ export * from './queries/threads';
 export * from './queries/workItems';
 export * from './queries/conversationGuides';
 export * from './queries/dataConnections';
+export * from './queries/semanticData';

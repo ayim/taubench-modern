@@ -8,7 +8,9 @@ import { ConfigurationStepView, DataConnectionFormContext, DataConnectionFormSch
 import { DataSelector } from './DataSelector';
 
 export const DataSelection: ConfigurationStepView = ({ onClose }) => {
-  const { inspectedDataTables } = useContext(DataConnectionFormContext);
+  const {
+    databaseInspectionState: { dataTables },
+  } = useContext(DataConnectionFormContext);
   const { watch } = useFormContext<DataConnectionFormSchema>();
 
   const { dataSelection } = watch();
@@ -37,7 +39,7 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
           />
 
           <Typography my="$16">Select data</Typography>
-          <DataSelector data={inspectedDataTables} />
+          <DataSelector data={dataTables} />
         </Box>
       </Dialog.Content>
 

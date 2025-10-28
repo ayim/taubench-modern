@@ -10,6 +10,7 @@ import { useCallback } from 'react';
 import { getFileSize } from '../common/helpers';
 import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 import { streamManager } from '../hooks/useMessageStream';
+import { downloadFile } from '../lib/utils';
 
 /**
  * List Threads
@@ -329,20 +330,7 @@ export const useDownloadThreadFileMutation = <TType extends 'download' | 'inline
         return { file } as DownloadThreadFileMutationResult<TType>;
       }
 
-      const downloadFileAndCleanUp = () => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-
-        a.href = url;
-        a.download = name;
-
-        document.body.appendChild(a);
-        a.click();
-        URL.revokeObjectURL(url);
-        a.remove();
-      };
-
-      downloadFileAndCleanUp();
+      downloadFile(blob, name);
 
       return undefined as DownloadThreadFileMutationResult<TType>;
     },

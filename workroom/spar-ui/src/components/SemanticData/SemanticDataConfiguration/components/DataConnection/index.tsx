@@ -1,22 +1,33 @@
-import { useState } from 'react';
 import { Button, Card, Dialog, Grid, Link, Typography } from '@sema4ai/components';
-import { IconDataAccess } from '@sema4ai/icons/logos';
-import { IconFile } from '@sema4ai/icons';
+import { IconDataAccess, IconDataModelImport, IconFileBrand } from '@sema4ai/icons/logos';
 
 import { EXTERNAL_LINKS } from '../../../../../lib/constants';
-import { ConfigurationStepView } from '../form';
+import { ConfigurationStepView, DataSourceType } from '../form';
 import { DatabaseSource } from './components/DatabaseSource';
 import { FileSource } from './components/FileSource';
+import { ImportSource } from './components/ImportSource';
 
-export const DataConnection: ConfigurationStepView = ({ onClose, setActiveStep }) => {
-  const [dataSourceType, setDataSourceType] = useState<'file' | 'database' | undefined>(undefined);
+type Props = {
+  setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
+  dataSourceType: DataSourceType | undefined;
+};
 
-  if (dataSourceType === 'database') {
+export const DataConnection: ConfigurationStepView<Props> = ({
+  onClose,
+  setActiveStep,
+  setDataSourceType,
+  dataSourceType,
+}) => {
+  if (dataSourceType === DataSourceType.Database) {
     return <DatabaseSource onClose={onClose} setActiveStep={setActiveStep} />;
   }
 
-  if (dataSourceType === 'file') {
+  if (dataSourceType === DataSourceType.File) {
     return <FileSource onClose={onClose} setActiveStep={setActiveStep} />;
+  }
+
+  if (dataSourceType === DataSourceType.Import) {
+    return <ImportSource onClose={onClose} setActiveStep={setActiveStep} />;
   }
 
   return (
@@ -32,19 +43,26 @@ export const DataConnection: ConfigurationStepView = ({ onClose, setActiveStep }
             Learn more
           </Link>
         </Typography>
-        <Grid columns={[1, 1, 2]} gap="$32">
+        <Grid columns={[1, 1, 3]} gap="$16">
           <Card
-            onClick={() => setDataSourceType('database')}
+            onClick={() => setDataSourceType(DataSourceType.Database)}
             title="Connect to Database"
             icon={IconDataAccess}
             description="Link your agent directly to data from a database. Select the tables and columns to include in your model."
             as="button"
           />
           <Card
-            onClick={() => setDataSourceType('file')}
+            onClick={() => setDataSourceType(DataSourceType.File)}
             title="Upload Files"
-            icon={IconFile}
+            icon={IconFileBrand}
             description="Build a data model based on spreadsheets or CSV files. Choose the data your agent should understand when you upload similar files later."
+            as="button"
+          />
+          <Card
+            onClick={() => setDataSourceType(DataSourceType.Import)}
+            title="Import Data Model"
+            icon={IconDataModelImport}
+            description="Integrate an existing data model from Snowflake or another platform to extend your agent’s capabilities."
             as="button"
           />
         </Grid>
