@@ -602,7 +602,7 @@ def _find_matching_sdm(
 
 
 @router.post("/import")
-async def import_semantic_data_model(  # noqa: C901
+async def import_semantic_data_model(
     payload: ImportSemanticDataModelPayload,
     user: AuthedUser,
     storage: StorageDependency,
@@ -716,30 +716,24 @@ async def import_semantic_data_model(  # noqa: C901
     # Prepare warnings (will be empty unless other issues arise)
     warnings = []
 
-    # Check for duplicate SDMs if agent_id is provided
-    # This happens AFTER validation to ensure we only deduplicate valid imports
+    # Duplicate checking disabled - always create new SDM
     is_duplicate = False
     model_id = None
 
     # TODO: Use payload.thread_id with SemanticDataModelCollector to resolve file references
     # during import. This would enable importing SDMs that reference files in a thread context.
 
-    if payload.agent_id:
-        # Get existing SDMs linked to this agent
-        existing_sdms = await storage.get_agent_semantic_data_models(payload.agent_id)
+    # Note: Duplicate check logic has been removed. Every import creates a new SDM.
+    # if payload.agent_id:
+    #     # Get existing SDMs linked to this agent
+    #     existing_sdms = await storage.get_agent_semantic_data_models(payload.agent_id)
+    #     # Check if a matching SDM already exists
+    #     matching_id = _find_matching_sdm(resolved_model, existing_sdms)
+    #     if matching_id:
+    #         model_id = matching_id
+    #         is_duplicate = True
 
-        # Check if a matching SDM already exists
-        matching_id = _find_matching_sdm(resolved_model, existing_sdms)
-
-        if matching_id:
-            model_id = matching_id
-            is_duplicate = True
-            logger.info(
-                f"Reusing existing SDM (duplicate found): {model_id} "
-                f"for agent {payload.agent_id}, name: {resolved_model.get('name')}"
-            )
-
-    # Create new SDM if no duplicate was found
+    # Always create new SDM
     if not model_id:
         # Convert file_references from list of dicts to list of tuples
         file_references = [(ref.thread_id, ref.file_ref) for ref in references.file_references]
