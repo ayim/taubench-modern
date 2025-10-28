@@ -23,7 +23,7 @@ const FileListItem = ({
   threadId: string;
   onDocumentIntelligenceClick: (params: { file: File; agentId: string }) => void;
 }) => {
-  const shoulDisplayDocIntelButton = useFeatureFlag(SparUIFeatureFlag.documentIntelligence);
+  const { enabled: shoulDisplayDocIntelButton } = useFeatureFlag(SparUIFeatureFlag.documentIntelligence);
 
   const { mutateAsync: downloadThreadFile, isPending: isDownloadingThreadFile } = useDownloadThreadFileMutation({
     type: 'download',

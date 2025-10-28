@@ -12,14 +12,16 @@ export const SemanticDataSection = () => {
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { agentId } = useParams('/thread/$agentId');
   const { data: semanticDataModels } = useAgentSemanticDataQuery({ agentId });
-  const canEditAgent = useFeatureFlag(SparUIFeatureFlag.canEditAgent);
+  const { enabled: isSemanticDataModelsAvailable } = useFeatureFlag(SparUIFeatureFlag.semanticDataModels);
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
   const onToggleEditModel = () => {
     setIsConfigurationOpen(!isConfigurationOpen);
   };
 
-  if (!canEditAgent && semanticDataModels?.length === 0) return null;
+  if (!isSemanticDataModelsAvailable) {
+    return null;
+  }
 
   return (
     <Box>
@@ -27,17 +29,15 @@ export const SemanticDataSection = () => {
         <Typography variant="body-medium" fontWeight="bold">
           Data Models
         </Typography>
-        {canEditAgent && (
-          <Button
-            disabled={!isChatInteractive}
-            onClick={onToggleEditModel}
-            variant="outline"
-            size="small"
-            aria-label="Configure Data Models"
-            icon={IconPlusSmall}
-            round
-          />
-        )}
+        <Button
+          disabled={!isChatInteractive}
+          onClick={onToggleEditModel}
+          variant="outline"
+          size="small"
+          aria-label="Configure Data Models"
+          icon={IconPlusSmall}
+          round
+        />
       </Box>
       {semanticDataModels?.length ? (
         semanticDataModels.map((model) => {

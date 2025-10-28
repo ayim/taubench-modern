@@ -18,7 +18,7 @@ type Props = {
 export const AgentContextMenu = ({ agent, onAgentDelete }: Props) => {
   const deleteAgentMutation = useDeleteAgentMutation({});
   const { addSnackbar } = useSnackbar();
-  const isDeploymentWizardEnabled = useFeatureFlag(SparUIFeatureFlag.deploymentWizard);
+  const { enabled: isDeploymentWizardEnabled } = useFeatureFlag(SparUIFeatureFlag.deploymentWizard);
 
   const onDeleteConfirm = useDeleteConfirm(
     {

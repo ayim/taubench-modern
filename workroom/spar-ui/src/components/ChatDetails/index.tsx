@@ -19,7 +19,7 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
   const { data: agentDetails, isLoading: isAgentDetailsLoading } = useAgentDetailsQuery({ agentId });
   const { data: agent, isLoading: isAgentLoading } = useAgentQuery({ agentId });
   const { data: agentOAuthState, isLoading: isAgentOAuthStateLoading } = useAgentOAuthStateQuery({ agentId });
-  const isAgentDetailsEnabled = useFeatureFlag(SparUIFeatureFlag.agentDetails);
+  const { enabled: isAgentDetailsEnabled } = useFeatureFlag(SparUIFeatureFlag.agentDetails);
 
   if (!isAgentDetailsEnabled) return null;
 
