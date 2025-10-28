@@ -265,7 +265,7 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId, thread }) => {
     if (!queryDataGuard) {
       chatInputRef.current?.focus();
     }
-  }, [threadId, queryDataGuard]);
+  }, [threadId, queryDataGuard, attachments]);
 
   useEffect(() => {
     // Ensure the text input reflects the draft for the active thread
