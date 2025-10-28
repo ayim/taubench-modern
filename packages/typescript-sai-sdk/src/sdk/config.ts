@@ -9,7 +9,7 @@ import {
   McpServer,
   UpsertAgentPayload,
 } from '../agent-ephemeral';
-import { createSaiAgentSetupConfig } from '../agent-ephemeral/agents/agent-setup';
+import { createSaiAgentSetupConfig } from '../agent-ephemeral/agents/agentSetup';
 
 /**
  * Configuration interface for the SAI SDK

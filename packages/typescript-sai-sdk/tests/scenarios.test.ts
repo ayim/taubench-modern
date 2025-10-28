@@ -530,11 +530,11 @@ describe('Scenario Tests', () => {
       expect(validateScenario(scenario)).toBe(true);
       expect(scenario.context.temperature).toBe(0.9);
       expect(scenario.context.top_p).toBe(0.9);
-      expect(scenario.context.max_output_tokens).toBe(4096);
+      expect(scenario.context.max_output_tokens).toBe(16384);
 
       const summary = getScenarioSummary(scenario);
       expect(summary.temperature).toBe(0.9);
-      expect(summary.maxOutputTokens).toBe(4096);
+      expect(summary.maxOutputTokens).toBe(16384);
     });
 
     it.skipIf(!hasValidApiKey())('should execute creative writing scenario', async () => {

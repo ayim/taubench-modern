@@ -1,2 +1,2 @@
-export * from './agent-setup';
+export * from './agentSetup';
 export * from './generic';

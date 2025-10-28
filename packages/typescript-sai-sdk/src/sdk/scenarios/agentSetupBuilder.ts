@@ -3,40 +3,23 @@
 
 import { ContextDefinitionBuilder } from '../context';
 import { ScenarioContextBuilder, ScenarioContextType } from '../scenarioContext';
+import { AGENT_SETUP_GENERATE_CONVERSATION_STARTER_INSTRUCTIONS } from './agentSetupGenConvStarter';
+import { AGENT_SETUP_GENERATE_DESCRIPTION_INSTRUCTIONS } from './agentSetupGenDescription';
+import { AGENT_SETUP_GENERATE_NAME_INSTRUCTIONS } from './agentSetupGenName';
+import { AGENT_SETUP_GENERATE_CONVERSATION_GUIDE_INSTRUCTIONS } from './agentSetupGenConvGuide';
+import { AGENT_SETUP_GENERATE_RUNBOOK_INSTRUCTIONS } from './agentSetupGenRunbook';
+import { AGENT_SETUP_GENERATE_RUNBOOK_IMPROVEMENT_INSTRUCTIONS } from './agentSetupGenRunbookImprov';
+import { AGENT_SETUP_GENERATE_RUNBOOK_SAI_WRITE_INSTRUCTIONS } from './agentSetupGenRunbookSaiWrite';
+import { AGENT_SETUP_GENERATE_RUNBOOK_SAI_REWRITE_INSTRUCTIONS } from './agentSetupGenRunbookSaiRewrite';
 
 // System Instructions
-
 const AGENT_SETUP_GENERAL_INSTRUCTIONS = [
   `Do not think too much, be quick in your suggestions.`,
   `Focus on quality over quantity.`,
   `Follow this priority order: Agent Name, Agent Description, Agent Runbook, Agent Action Packages, Agent MCP Servers, Agent Conversation Starter, Agent Question Groups, Agent Conversation Guide.`,
 ];
-const AGENT_SETUP_RUNBOOK_INSTRUCTIONS = [
-  `The Runbook should be a string in Markdown format that contains these sections: Objectives, Context, Steps, Guardrails, Example Responses.`,
-  `The Runbook is the key to the Agent's functionality, so it needs to contain lots of details per section, explaining to the Agent how it should behave, what it should execute and how it should return responses. `,
-  `In terms of Objectives: Describe the agent's purpose and context, consider who the agent will work with, what work they're accomplishing, expected Outcome. `,
-  `In terms of Context: Include unique business context or non-public domain knowledge, this enhances the agent's accuracy and relevance. `,
-  `In terms of Steps: outline the agent's tasks with step-by-step instructions - include user interaction details; tips for Steps: clear Instructions (Ensure each step is clear and specific, and avoid ambiguity), Break Down Tasks (Divide complex tasks into smaller, manageable steps), Consistent Terminology (Use consistent terms and phrases to avoid confusion), Highlight Key Points (Use bold, italics, and headlines to focus on key points). `,
-  `In terms of Guardrails: Be specific about what the agent should avoid. `,
-  `In terms of Example Responses: Provide examples to improve interaction accuracy and quality.`,
-];
-
-const AGENT_SETUP_RUNBOOK_IMPROVEMENT_INSTRUCTIONS = [
-  `You will find the runbook within the agent context as a string in Markdown format.`,
-  `Split the runbook into paragraphs. Always split based on new lines (\\n) or whitespaces (\\s).`,
-  `Avoid titles, headings in your improvements - select only paragraphs & improve the text within the paragraphs.`,
-  `The original string is the extracted snippet of text from the runbook that needs to be replaced.`,
-  `The improvement is a string that is a replacement for the original string.`,
-  `The improvement should be a string in Markdown format.`,
-  `The improvement should target the agent's specific capabilities, its use cases and its intended purpose.`,
-  `Each improvement should be unique and not very similar to the original string.`,
-  `Generate a set of improvements.`,
-  `Strive for quality over quantity.`,
-  `Call the tool set_improvements to set the improvements for the runbook.`,
-];
 
 // Prompts
-
 export const AGENT_SETUP_PROMPTS = {
   generateName: [
     'Pick a business domain that the Agent can function in and a goal for the Agent.',
@@ -44,7 +27,7 @@ export const AGENT_SETUP_PROMPTS = {
     'Use the set_name tool to set the name of the agent.',
   ].join('\n'),
   generateDescription: [
-    'Write a description for an agent.',
+    'Write a description for the agent.',
     'The description is a brief description of the work this agent performs.',
     'Use the set_description tool to set the description of the agent.',
   ].join('\n'),
@@ -64,11 +47,14 @@ export const AGENT_SETUP_PROMPTS = {
     'Use the set_question_groups tool to set the question groups of the agent.',
   ].join('\n'),
   generateActionSuggestions: [
-    'Generate action suggestions for the agent.',
+    'Pick action packages and MCP servers (which are tools) based on Agent context',
     'The action suggestions are a list of actions that the agent can perform.',
-    'Use the set_action_suggestions tool to set the action suggestions of the agent.',
+    'Use the set_tools tool to set the tools for the agent.',
   ].join('\n'),
-  generateRunbookImprovements: [`Generate a set of improvements for the current runbook.`].join('\n'),
+  generateRunbookImprovements: [
+    `Generate a set of improvements for the current runbook.`,
+    'Call the set_improvements tool to set the improvements for the runbook.',
+  ].join('\n'),
 };
 
 /**
@@ -103,7 +89,7 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   /**
    * Add agent-specific context information
    */
-  addAgentContext(): this {
+  createAgentContext(): this {
     const context: Record<string, any> = {};
 
     if (this.agentData.agentName) {
@@ -200,18 +186,9 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   static forAgentNameGeneration(agentData: AgentContextData): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
-      .addAgentSetupObjectives([
-        ...AGENT_SETUP_GENERAL_INSTRUCTIONS,
-        `Generate a name for an agent based on the provided context`,
-      ])
-      .addAgentContext()
-      .addAgentSetupGuardrails([
-        'Be really creative and generate a name for an that doimain and goal.',
-        'Always add a dash after the name and after it 5 word description of the Agent.',
-        'Call the tool and set the name of the agent to the name you generated.',
-      ]);
-
-    return builder.buildContextBuilder('creative');
+      .setRawSystemInstructions(AGENT_SETUP_GENERATE_NAME_INSTRUCTIONS)
+      .createAgentContext();
+    return builder.buildContextBuilder('balanced');
   }
   /**
    * Create a context builder specifically for runbook generation
@@ -219,16 +196,8 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   static forAgentDescriptionGeneration(agentData: AgentContextData): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
-      .addAgentSetupObjectives([
-        ...AGENT_SETUP_GENERAL_INSTRUCTIONS,
-        `Generate a description for an agent based on the provided context`,
-      ])
-      .addAgentContext()
-      .addAgentSetupGuardrails([
-        'The description should be concise and to the point.',
-        'The description should be no more than 100 words.',
-      ]);
-
+      .setRawSystemInstructions(AGENT_SETUP_GENERATE_DESCRIPTION_INSTRUCTIONS)
+      .createAgentContext();
     return builder.buildContextBuilder('balanced');
   }
 
@@ -237,23 +206,12 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
    */
   static forRunbookGeneration(
     agentData: AgentContextData,
-    type: ScenarioContextType = 'balanced',
+    type: ScenarioContextType = 'creative',
   ): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
-      .addAgentSetupObjectives([
-        ...AGENT_SETUP_GENERAL_INSTRUCTIONS,
-        `Generate a runbook for an agent that can ${agentData.agentDescription || 'assist users'}`,
-      ])
-      .addAgentContext()
-      .addSteps(AGENT_SETUP_RUNBOOK_INSTRUCTIONS)
-      .addAgentSetupGuardrails([
-        'The runbook should be concise and to the point.',
-        type === 'creative'
-          ? 'The runbook should be no more than 1000 words.'
-          : 'The runbook should be no more than 500 words.',
-        "Focus on the agent's specific capabilities and use cases.",
-      ]);
+      .setRawSystemInstructions(AGENT_SETUP_GENERATE_RUNBOOK_INSTRUCTIONS)
+      .createAgentContext();
 
     return builder.buildContextBuilder(type);
   }
@@ -267,8 +225,8 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   ): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
-      .addAgentSetupObjectives(AGENT_SETUP_RUNBOOK_IMPROVEMENT_INSTRUCTIONS)
-      .addAgentContext();
+      .createAgentContext()
+      .setRawSystemInstructions(AGENT_SETUP_GENERATE_RUNBOOK_IMPROVEMENT_INSTRUCTIONS);
 
     return builder.buildContextBuilder(type);
   }
@@ -279,23 +237,9 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   static forRunbookWriteWithSai(agentData: AgentContextData): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
-      .addAgentContext()
-      .addAgentSetupObjectives([
-        ...AGENT_SETUP_RUNBOOK_INSTRUCTIONS,
-        'You are an AI assistant that writes runbook content based on user requests.',
-        `Always generate the specific content the user asks for.`,
-        `Your response will be inserted directly into the runbook document.`,
-        `Write clear, actionable content that fits the user's request exactly.`,
-      ])
-      .addGuardrails([
-        'Always provide the content the user requests - do not refuse to generate content.',
-        'Generate only the specific content requested - not an entire runbook or additional sections.',
-        'Your response must be ready for direct insertion into the runbook without modification.',
-        'Do not include explanations about what you are doing - only provide the requested content.',
-        'Use proper Markdown formatting when appropriate for the content type.',
-      ]);
-
-    return builder.buildContextBuilder('balanced');
+      .setRawSystemInstructions(AGENT_SETUP_GENERATE_RUNBOOK_SAI_WRITE_INSTRUCTIONS)
+      .createAgentContext();
+    return builder.buildContextBuilder('creative');
   }
 
   /**
@@ -304,13 +248,10 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   static forRunbookRewriteWithSai(agentData: AgentContextData, selectedText?: string): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
-      .addAgentContext()
-      .addAgentSetupObjectives([
-        `Your primary objective is to rewrite the selected text: ${selectedText || ''} within the runbook`,
-        `Only generate the text that should replace the selected text, nothing else.`,
-      ]);
-
-    return builder.buildContextBuilder('balanced');
+      .setRawSystemInstructions(AGENT_SETUP_GENERATE_RUNBOOK_SAI_REWRITE_INSTRUCTIONS)
+      .addSection('Selected Text', selectedText || '')
+      .createAgentContext();
+    return builder.buildContextBuilder('creative');
   }
 
   /**
@@ -324,8 +265,8 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
         'Suggest relevant action packages for the agent based on the provided context',
         'Suggest relevant MCP servers for the agent based on the provided context',
         "Consider the agent's functionality and recommend appropriate tools and integrations.",
+        'Always call the set_tools tool to set the tools for the agent.',
       ])
-      .addAgentContext()
       .addSteps([
         'Analyze the agent description and runbook and suggest action packages that would be useful.',
         'Analyze the available action packages and suggest the ones that are most relevant to the agent.',
@@ -342,12 +283,13 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
         'Never pick action packages that have the same functionality, similar descriptions or actions.',
         'Prioritize quality over quantity in suggestions.',
         "Ensure suggested packages are practical for the agent's functionality",
-        'Always pick at most 5 action packages.',
-        'Always pick at most 5 MCP servers.',
+        'Always pick at maximum 5 action packages.',
+        'Always pick at maximum 5 MCP servers.',
         'Always respond with the action packages in the format of organization, name and version.',
-      ]);
-
-    return builder.buildContextBuilder('balanced');
+        'Always call the set_tools tool to set the tools for the agent.',
+      ])
+      .createAgentContext();
+    return builder.buildContextBuilder('creative');
   }
 
   /**
@@ -356,23 +298,8 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   static forConversationStarter(agentData: AgentContextData): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
-      .addAgentSetupObjectives([
-        ...AGENT_SETUP_GENERAL_INSTRUCTIONS,
-        'Generate an engaging conversation starter for the agent.',
-        "Create a welcoming and informative first message that explains the agent's capabilities.",
-      ])
-      .addAgentContext()
-      .addSteps([
-        'Create a friendly and professional conversation starter.',
-        "Mention the agent's key capabilities and how it can help users.",
-        'Keep the message concise but informative.',
-        "Use a tone that matches the agent's intended purpose.",
-      ])
-      .addAgentSetupGuardrails([
-        'The conversation starter should be welcoming and professional.',
-        'Keep the message under 50 words.',
-        "Focus on the agent's most important capabilities.",
-      ]);
+      .setRawSystemInstructions(AGENT_SETUP_GENERATE_CONVERSATION_STARTER_INSTRUCTIONS)
+      .createAgentContext();
 
     return builder.buildContextBuilder('balanced');
   }
@@ -383,16 +310,10 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   static forConversationGuide(agentData: AgentContextData): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
-      .addAgentSetupObjectives([
-        ...AGENT_SETUP_GENERAL_INSTRUCTIONS,
-        'Generate a conversation guide for the agent.',
-        'Create a list of questions that will set the context and guide the agent to correct and intended responses.',
-        'The conversation guide should be a list of questions that are no more than 100 words.',
-        'The conversation guide should be a list of questions to the Agent.',
-      ])
-      .addAgentContext();
+      .setRawSystemInstructions(AGENT_SETUP_GENERATE_CONVERSATION_GUIDE_INSTRUCTIONS)
+      .createAgentContext();
 
-    return builder.buildContextBuilder('balanced');
+    return builder.buildContextBuilder('creative');
   }
 }
 

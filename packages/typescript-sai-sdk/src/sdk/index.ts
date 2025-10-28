@@ -18,3 +18,6 @@ export * from './config';
 
 // Export agent setup builder
 export * from './scenarios';
+
+// Export agent setup builder
+export * from './scenarios/agentSetupBuilder';

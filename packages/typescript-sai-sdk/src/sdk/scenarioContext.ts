@@ -69,14 +69,18 @@ export class ScenarioContextBuilder implements IScenarioContextBuilder {
   private contextData: Record<string, any> = {};
   private guardrails: string[] = [];
   private exampleResponses: string[] = [];
+
+  private rawSystemInstructions: string = '';
   /**
    * Add a section with a title and content
    */
   addSection(title: string, content: string | string[]): this {
     const contentArray = Array.isArray(content) ? content : [content];
+    this.sections.push('========================================');
     this.sections.push(`# ${title}`);
     this.sections.push(...contentArray);
     this.sections.push(''); // Add empty line for spacing
+    this.sections.push('========================================');
     return this;
   }
 
@@ -125,58 +129,108 @@ export class ScenarioContextBuilder implements IScenarioContextBuilder {
   }
 
   /**
+   * Set raw system instruction
+   */
+  setRawSystemInstructions(instructions: string): this {
+    this.rawSystemInstructions = instructions;
+    return this;
+  }
+
+  /**
    * Build the final system instruction string
    */
   buildContextInstructions(): string {
+    // Define helpers
+    const addContextData = (parts: string[]) => {
+      if (Object.keys(this.contextData).length > 0) {
+        parts.push(`========================================`);
+        parts.push('# Context');
+        Object.entries(this.contextData).forEach(([key, value]) => {
+          const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+          parts.push(`--------------------------------`);
+          if (typeof value === 'object') {
+            parts.push(`## ${formattedKey}:`);
+            parts.push(`${JSON.stringify(value)}`);
+          } else {
+            parts.push(`## ${formattedKey}:`);
+            parts.push(`${value}`);
+          }
+          parts.push(`--------------------------------`);
+        });
+        parts.push('========================================');
+        parts.push(''); // Add empty line for spacing
+      }
+    };
+
+    const addSections = (parts: string[]) => {
+      if (this.sections.length > 0) {
+        parts.push('========================================');
+        parts.push(...this.sections);
+        parts.push('========================================');
+      }
+    };
+
+    // Define parts
     const parts: string[] = [];
+
+    // If raw system instructions are set
+    if (this.rawSystemInstructions) {
+      // Add raw system instructions
+      parts.push(this.rawSystemInstructions);
+
+      // Add context data
+      addContextData(parts);
+
+      // Add sections
+      addSections(parts);
+
+      // Return the final system instruction
+      return parts.join('\n').trim();
+    }
 
     // Add raw objectives
     if (this.objectives.length > 0) {
+      parts.push('========================================');
       parts.push('# Objectives');
       parts.push(...this.objectives);
       parts.push(''); // Add empty line for spacing
+      parts.push('========================================');
     }
 
     // Add context data
-    if (Object.keys(this.contextData).length > 0) {
-      parts.push('# Context');
-      Object.entries(this.contextData).forEach(([key, value]) => {
-        const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
-        if (typeof value === 'object') {
-          parts.push(`${formattedKey}: ${JSON.stringify(value)}`);
-        } else {
-          parts.push(`${formattedKey}: ${value}`);
-        }
-      });
-      parts.push(''); // Add empty line for spacing
-    }
+    addContextData(parts);
 
     // Add steps
     if (this.steps.length > 0) {
+      parts.push('========================================');
       parts.push('# Steps');
       parts.push(...this.steps);
       parts.push(''); // Add empty line for spacing
+      parts.push('========================================');
     }
 
     // Add guardrails
     if (this.guardrails.length > 0) {
+      parts.push('========================================');
       parts.push('# Guardrails');
       parts.push(...this.guardrails);
       parts.push(''); // Add empty line for spacing
+      parts.push('========================================');
     }
 
     // Add example responses
     if (this.exampleResponses.length > 0) {
+      parts.push('========================================');
       parts.push('# Example Responses');
       parts.push(...this.exampleResponses);
       parts.push(''); // Add empty line for spacing
+      parts.push('========================================');
     }
 
     // Add sections
-    if (this.sections.length > 0) {
-      parts.push(...this.sections);
-    }
+    addSections(parts);
 
+    // Return the final system instruction
     return parts.join('\n').trim();
   }
 
@@ -217,6 +271,7 @@ export class ScenarioContextBuilder implements IScenarioContextBuilder {
     this.contextData = {};
     this.guardrails = [];
     this.exampleResponses = [];
+    this.rawSystemInstructions = '';
     return this;
   }
 
@@ -231,6 +286,7 @@ export class ScenarioContextBuilder implements IScenarioContextBuilder {
     cloned.contextData = { ...this.contextData };
     cloned.guardrails = [...this.guardrails];
     cloned.exampleResponses = [...this.exampleResponses];
+    cloned.rawSystemInstructions = this.rawSystemInstructions;
     return cloned;
   }
 }
