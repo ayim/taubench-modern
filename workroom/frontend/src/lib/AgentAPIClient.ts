@@ -110,7 +110,7 @@ export class AgentAPIClient {
       throw new RequestError(401, 'Authorization failed');
     }
 
-    const response: WorkroomToken = await fetch(metaContent.workroomTokenExchangeUrl, {
+    const response = await fetch(metaContent.workroomTokenExchangeUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${userToken}`,
@@ -119,11 +119,15 @@ export class AgentAPIClient {
       body: JSON.stringify({
         tenantId,
       }),
-    }).then((res) => res.json());
+    });
 
-    this.workroomToken = response;
+    if (!response.ok) {
+      throw new RequestError(response.status, 'Authorization failed');
+    }
 
-    return response.token;
+    this.workroomToken = await response.json();
+
+    return this.workroomToken!.token;
   }
 
   public async getTenant(tenantId: string): Promise<UserTenant | undefined> {
