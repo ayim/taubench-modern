@@ -47,6 +47,17 @@ const UpdatedAtCell: FC<RowProps> = ({ rowData }) => {
   );
 };
 
+const WorkItemNameCell: FC<RowProps> = ({ rowData }) => {
+  const displayName = rowData.work_item_name || rowData.work_item_id || '';
+  return (
+    <Table.Cell>
+      <Typography truncate $nowrap>
+        {displayName}
+      </Typography>
+    </Table.Cell>
+  );
+};
+
 const ActionsCell: FC<RowProps> = ({ rowData }) => {
   const navigate = useNavigate();
   const { addSnackbar } = useSnackbar();
@@ -126,6 +137,7 @@ const ActionsCell: FC<RowProps> = ({ rowData }) => {
 };
 
 const workitemsTableCellComponents: Partial<Record<string, FC<RowProps>>> = {
+  work_item_name: WorkItemNameCell,
   status: StatusCell,
   updated_at: UpdatedAtCell,
   actions: ActionsCell,

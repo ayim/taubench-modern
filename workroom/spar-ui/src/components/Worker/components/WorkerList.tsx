@@ -58,7 +58,7 @@ export const WorkerList: FC = () => {
               Work Items
             </Typography>
           </Box>
-          {!filteringWorkItem && (
+          {!filteringWorkItem && filteredWorkItems && filteredWorkItems.length > 0 && (
             <WorkItemSearchButton
               $expanded={workItemsListExpanded}
               variant="ghost-subtle"
@@ -93,13 +93,6 @@ export const WorkerList: FC = () => {
         </Box>
         <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
           {filteredWorkItems && <VirtualList items={filteredWorkItems} renderComponent={WorkerItem} itemHeight={36} />}
-          {filteredWorkItems?.length === 0 && (
-            <Box p="$12">
-              <Typography variant="body-small">
-                {filteringWorkItem ? 'No work items found' : 'No work items yet'}
-              </Typography>
-            </Box>
-          )}
         </Box>
       </Box>
     </SidebarMenu>

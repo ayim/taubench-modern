@@ -2,7 +2,7 @@ import { Box, Typography } from '@sema4ai/components';
 import { AgentIcon } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { useParams } from '@tanstack/react-router';
-import { AgentContextMenu } from '@sema4ai/spar-ui';
+import { AgentContextMenu, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 
 import { RouterSideNavigationLink } from '~/components/RouterLink';
@@ -22,8 +22,9 @@ export const AgentsMenu = () => {
     return null;
   }
 
-  const conversationalAgents = agents.filter(isConversationalAgent);
-  const workerAgents = agents.filter(isWorkerAgent);
+  const conversationalAgents = agents.filter(isConversationalAgent).sort(sortByCreatedAtDesc);
+
+  const workerAgents = agents.filter(isWorkerAgent).sort(sortByCreatedAtDesc);
 
   return (
     <Box display="flex" flexDirection="column" pt="$8">

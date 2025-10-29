@@ -77,6 +77,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: initialData }) => {
   const { sparAPIClient } = useSparUIContext();
 
   const threadId = workItem?.thread_id;
+  const displayName = workItem.work_item_name || workItem.work_item_id || '';
 
   /**
    * When new workitem is created, it doesn't have threadId,
@@ -106,7 +107,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: initialData }) => {
       >
         <Box flex={1}>
           <Typography $nowrap truncate={1}>
-            {workItem.work_item_name}
+            {displayName}
           </Typography>
         </Box>
         <IconLoading />
@@ -118,7 +119,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: initialData }) => {
     <Tooltip
       text={
         <ToolTipContent
-          name={workItem.work_item_name}
+          name={displayName}
           created_at={workItem?.created_at}
           updated_at={workItem?.updated_at}
           status={workItem?.status}
@@ -132,7 +133,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: initialData }) => {
           to="/workItem/$agentId/$workItemId/$threadId"
           params={{ agentId, workItemId: workItem.work_item_id, threadId }}
         >
-          {workItem.work_item_name}
+          {displayName}
         </SidebarLink>
       </Container>
     </Tooltip>

@@ -46,6 +46,15 @@ export function fuzzyDataSearcher<T>(searchRules: SearchRules<T>, data: T[]) {
   };
 }
 
+/**
+ * Comparator function to sort items by created_at date in descending order (newest first)
+ * @example
+ * const sortedItems = items.sort(sortByCreatedAtDesc);
+ */
+export const sortByCreatedAtDesc = <T extends { created_at?: string | null }>(a: T, b: T): number => {
+  return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+};
+
 export const sanitizeFileName = (fileName: string) => {
   return fileName.replace(/[^A-Za-z0-9_.-]/g, '_');
 };

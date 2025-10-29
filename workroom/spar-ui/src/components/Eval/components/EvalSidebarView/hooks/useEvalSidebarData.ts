@@ -17,6 +17,7 @@ import {
   useImportScenariosMutation,
 } from '../../../../../queries/evals';
 import { useSparUIContext } from '../../../../../api/context';
+import { sortByCreatedAtDesc } from '../../../../../lib/utils';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
 import type { EvaluationItem, ScenarioRun, Scenario } from '../types';
 
@@ -152,9 +153,7 @@ export const useEvalSidebarData = ({
       ) ?? false;
 
       // Sort runs by creation date (newest first)
-      const sortedRuns = [...allRuns].sort((a, b) => 
-        new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
-      );
+      const sortedRuns = [...allRuns].sort(sortByCreatedAtDesc);
 
       const getCurrentRun = (): ScenarioRun | null => {
         if (currentRunIndex === 0 && latestRun) {

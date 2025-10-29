@@ -12,7 +12,7 @@ import {
 } from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
 import { IconArrowRight, IconSearch } from '@sema4ai/icons';
-import { AgentContextMenu } from '@sema4ai/spar-ui';
+import { AgentContextMenu, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
 import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 import { components } from '@sema4ai/agent-server-interface';
@@ -80,13 +80,15 @@ function HomePage() {
   }, []);
 
   const filteredAgents = useMemo(() => {
-    return onAgentSearch(search).filter((agent) => {
-      return (
-        filters.type.length === 0 ||
-        (filters.type.includes('conversational') && isConversationalAgent(agent)) ||
-        (filters.type.includes('worker') && isWorkerAgent(agent))
-      );
-    });
+    return onAgentSearch(search)
+      .filter((agent) => {
+        return (
+          filters.type.length === 0 ||
+          (filters.type.includes('conversational') && isConversationalAgent(agent)) ||
+          (filters.type.includes('worker') && isWorkerAgent(agent))
+        );
+      })
+      .sort(sortByCreatedAtDesc);
   }, [search, filters, onAgentSearch]);
 
   if (isLoading) {
