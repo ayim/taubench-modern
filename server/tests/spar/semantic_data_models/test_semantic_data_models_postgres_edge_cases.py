@@ -26,6 +26,18 @@ pytestmark = [
     pytest.mark.semantic_data_models_edge_cases,
 ]
 
+
+# Override the engine fixture to only use postgres for these edge case tests
+@pytest.fixture(scope="module")
+def engine(request: pytest.FixtureRequest):
+    """
+    Override engine fixture to only test Postgres edge cases.
+
+    Snowflake edge cases are not yet implemented.
+    """
+    return "postgres"
+
+
 # Edge case tables with special column types
 EDGE_CASE_TABLES = [
     "products_with_json",  # JSON, JSONB, TEXT[], UUID

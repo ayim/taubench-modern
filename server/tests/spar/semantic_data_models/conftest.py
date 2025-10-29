@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         DataConnectionConfiguration,
         DataConnectionEngine,
         PostgresDataConnectionConfiguration,
+        SnowflakeDataConnectionConfiguration,
     )
 
 
@@ -24,7 +25,7 @@ def semantic_data_model_resources_path(spar_resources_path: Path) -> Path:
     return spar_resources_path / "semantic_data_models"
 
 
-@pytest.fixture(scope="module", params=["postgres"])
+@pytest.fixture(scope="module", params=["postgres", "snowflake"])
 def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
     """
     Parametrized fixture that provides the database engine to test against.
@@ -34,8 +35,33 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
 
     All tests that use this fixture (or fixtures that depend on it) will run
     once for each engine in the params list.
+
+    Note: Snowflake tests are automatically skipped if credentials are not available.
+    PostgreSQL tests always run (using Docker Compose with hardcoded test credentials).
     """
-    return request.param
+    engine_name = request.param
+
+    # Skip Snowflake tests if credentials are not configured
+    # PostgreSQL uses local Docker with hardcoded credentials, so it always works
+    if engine_name == "snowflake":
+        required_env_vars = [
+            "SNOWFLAKE_ACCOUNT",
+            "SNOWFLAKE_USER",
+            "SNOWFLAKE_PASSWORD",
+            "SNOWFLAKE_WAREHOUSE",
+        ]
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+
+        if missing_vars:
+            missing = ", ".join(missing_vars)
+            pytest.skip(
+                f"Snowflake tests skipped: missing environment variables: {missing}. "
+                "Snowflake requires cloud credentials. "
+                "Set these environment variables to run Snowflake tests. "
+                "PostgreSQL tests will still run using local Docker."
+            )
+
+    return engine_name
 
 
 @pytest.fixture(scope="module")
@@ -55,7 +81,10 @@ def sdm_seed_data_connection_configuration(
     """
     from dataclasses import fields
 
-    from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+    from agent_platform.core.payloads.data_connection import (
+        PostgresDataConnectionConfiguration,
+        SnowflakeDataConnectionConfiguration,
+    )
 
     attributes_to_collect: list[str] = []
     attributes_to_apply: dict[str, Any] = {}
@@ -63,6 +92,8 @@ def sdm_seed_data_connection_configuration(
     match engine:
         case "postgres":
             fields_to_collect = fields(PostgresDataConnectionConfiguration)
+        case "snowflake":
+            fields_to_collect = fields(SnowflakeDataConnectionConfiguration)
         case _:
             raise ValueError(f"Unsupported engine: {engine}")
 
@@ -86,6 +117,19 @@ def sdm_seed_data_connection_configuration(
             }
             config = {**defaults, **attributes_to_apply}
             return PostgresDataConnectionConfiguration(**config)
+        case "snowflake":
+            defaults = {
+                "credential_type": "user_password",
+                "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+                "user": os.getenv("SNOWFLAKE_USER"),
+                "password": os.getenv("SNOWFLAKE_PASSWORD"),
+                "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH"),
+                "database": "SNOWFLAKE_SAMPLE_DATA",  # Placeholder, will be replaced by test DB
+                "schema": "PUBLIC",  # Placeholder, will be replaced by test schema
+                "role": os.getenv("SNOWFLAKE_ROLE", "SYSADMIN"),
+            }
+            config = {**defaults, **attributes_to_apply}
+            return SnowflakeDataConnectionConfiguration(**config)
 
 
 def _load_sql_files(
@@ -106,7 +150,12 @@ def _load_sql_files(
         FileNotFoundError: If required SQL files are not found
     """
     schema_file = resources_path / engine / "schema.sql"
-    data_file = resources_path / "shared" / "data.sql"
+
+    # Try engine-specific data file first, fall back to shared
+    engine_data_file = resources_path / engine / "data.sql"
+    shared_data_file = resources_path / "shared" / "data.sql"
+
+    data_file = engine_data_file if engine_data_file.exists() else shared_data_file
 
     if not schema_file.exists():
         raise FileNotFoundError(
@@ -200,6 +249,122 @@ def _initialize_postgres_database(
             sa_engine.dispose()
 
 
+@contextmanager
+def _initialize_snowflake_database(  # noqa: C901, PLR0912, PLR0915
+    config: "SnowflakeDataConnectionConfiguration",
+    resources_path: Path,
+) -> "Generator[str, Any, Any]":
+    """
+    Context manager that initializes a Snowflake database for testing.
+
+    Creates a unique database, loads the DDL and DML, then cleans up on exit.
+
+    Args:
+        config: Snowflake connection configuration
+        resources_path: Path to semantic data model resources
+
+    Yields:
+        str: The test database name that was created
+    """
+    import snowflake.connector
+
+    # Generate unique database name
+    test_database = f"TEST_SDM_{uuid.uuid4().hex[:8].upper()}"
+
+    # Connect to Snowflake
+    conn_params = {
+        "user": config.user,
+        "password": config.password,
+        "account": config.account,
+        "warehouse": config.warehouse,
+    }
+    if config.role:
+        conn_params["role"] = config.role
+
+    conn = snowflake.connector.connect(**conn_params)
+
+    try:
+        cursor = conn.cursor()
+
+        # Create test database (PUBLIC schema is created automatically)
+        cursor.execute(f"CREATE DATABASE {test_database}")
+        cursor.execute(f"USE DATABASE {test_database}")
+        cursor.execute("USE SCHEMA PUBLIC")  # PUBLIC schema exists by default
+        # Explicitly set warehouse again after database switch (Snowflake deactivates it)
+        cursor.execute(f"USE WAREHOUSE {config.warehouse}")
+
+        # Load schema and data
+        schema_sql, data_sql = _load_sql_files(resources_path, "snowflake")
+
+        # Split SQL into statements, filtering out empty ones and comments-only
+        def clean_statements(sql: str) -> list[str]:
+            statements = []
+            for raw_stmt in sql.split(";"):
+                # Remove leading/trailing whitespace
+                stmt = raw_stmt.strip()
+                # Remove lines that are only comments
+                lines = [
+                    line
+                    for line in stmt.split("\n")
+                    if line.strip() and not line.strip().startswith("--")
+                ]
+                cleaned = "\n".join(lines).strip()
+                if cleaned:
+                    statements.append(cleaned)
+            return statements
+
+        # Execute DDL (tables, then indexes separately)
+        ddl_statements = clean_statements(schema_sql)
+
+        # Separate table creates from other statements
+        table_statements = [s for s in ddl_statements if "CREATE TABLE" in s.upper()]
+        comment_statements = [s for s in ddl_statements if "COMMENT ON" in s.upper()]
+
+        # Create tables
+        for statement in table_statements:
+            cursor.execute(statement)
+
+        # Add comments (optional, failures are OK)
+        for statement in comment_statements:
+            try:
+                cursor.execute(statement)
+            except Exception:
+                # Comments are nice-to-have but not critical
+                pass
+
+        # Execute DML (load data)
+        dml_statements = clean_statements(data_sql)
+        for statement in dml_statements:
+            cursor.execute(statement)
+
+        # Load edge cases if they exist
+        edge_case_schema_file = resources_path / "snowflake" / "edge_cases_schema.sql"
+        if edge_case_schema_file.exists():
+            edge_case_schema_sql = edge_case_schema_file.read_text()
+            for statement in edge_case_schema_sql.split(";"):
+                if statement.strip():
+                    cursor.execute(statement)
+
+        edge_case_data_file = resources_path / "snowflake" / "edge_cases_data.sql"
+        if edge_case_data_file.exists():
+            edge_case_data_sql = edge_case_data_file.read_text()
+            for statement in edge_case_data_sql.split(";"):
+                if statement.strip():
+                    cursor.execute(statement)
+
+        yield test_database
+
+    finally:
+        # Cleanup
+        try:
+            cursor.execute(f"DROP DATABASE IF EXISTS {test_database}")
+        except Exception as e:
+            print(f"Warning: Failed to drop test database {test_database}: {e}")
+        finally:
+            cursor.close()
+            conn.close()
+
+
 @pytest.fixture(scope="module")
 def initialize_data_base(
     engine: "DataConnectionEngine",
@@ -221,7 +386,10 @@ def initialize_data_base(
     Yields:
         str: The schema name (for Postgres) or database name (for other engines) that was created
     """
-    from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+    from agent_platform.core.payloads.data_connection import (
+        PostgresDataConnectionConfiguration,
+        SnowflakeDataConnectionConfiguration,
+    )
 
     # Select the appropriate context manager based on the engine
     match engine:
@@ -230,6 +398,14 @@ def initialize_data_base(
                 sdm_seed_data_connection_configuration, PostgresDataConnectionConfiguration
             )
             ctx = _initialize_postgres_database(
+                sdm_seed_data_connection_configuration,
+                semantic_data_model_resources_path,
+            )
+        case "snowflake":
+            assert isinstance(
+                sdm_seed_data_connection_configuration, SnowflakeDataConnectionConfiguration
+            )
+            ctx = _initialize_snowflake_database(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
             )
@@ -268,7 +444,10 @@ def sdm_data_connection_configuration(
     """  # noqa: E501
     from dataclasses import fields
 
-    from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+    from agent_platform.core.payloads.data_connection import (
+        PostgresDataConnectionConfiguration,
+        SnowflakeDataConnectionConfiguration,
+    )
 
     attributes_to_collect: list[str] = []
     attributes_to_apply: dict[str, Any] = {}
@@ -276,6 +455,8 @@ def sdm_data_connection_configuration(
     match engine:
         case "postgres":
             fields_to_collect = fields(PostgresDataConnectionConfiguration)
+        case "snowflake":
+            fields_to_collect = fields(SnowflakeDataConnectionConfiguration)
         case _:
             raise ValueError(f"Unsupported engine: {engine}")
 
@@ -301,6 +482,21 @@ def sdm_data_connection_configuration(
             attributes_to_apply.pop("schema", None)
             config = {**defaults, **attributes_to_apply}
             return PostgresDataConnectionConfiguration(**config)
+        case "snowflake":
+            defaults = {
+                "credential_type": "user_password",
+                "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+                "user": os.getenv("SNOWFLAKE_USER"),
+                "password": os.getenv("SNOWFLAKE_PASSWORD"),
+                "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH"),
+                "database": initialize_data_base,  # Uses test database from fixture
+                "schema": "PUBLIC",
+            }
+            if os.getenv("SNOWFLAKE_ROLE"):
+                defaults["role"] = os.getenv("SNOWFLAKE_ROLE")
+            attributes_to_apply.pop("database", None)  # Don't allow override
+            config = {**defaults, **attributes_to_apply}
+            return SnowflakeDataConnectionConfiguration(**config)
 
 
 @pytest.fixture(scope="module")
@@ -328,7 +524,7 @@ def sdm_data_connection(
 def agent_server_client_with_data_connection(
     agent_server_client: "AgentServerClient",
     sdm_data_connection: "DataConnection",
-) -> tuple["AgentServerClient", "DataConnection"]:
+) -> "Generator[tuple[AgentServerClient, DataConnection], Any, Any]":
     """
     Provides an AgentServerClient with a data connection already created for testing.
 
@@ -352,4 +548,12 @@ def agent_server_client_with_data_connection(
 
     data_connection = DataConnection.model_validate(result)
 
-    return agent_server_client, data_connection
+    try:
+        yield agent_server_client, data_connection
+    finally:
+        # Cleanup: delete the data connection
+        if data_connection.id:
+            try:
+                agent_server_client.delete_data_connection(data_connection.id)
+            except Exception as e:
+                print(f"Warning: Failed to delete data connection {data_connection.id}: {e}")

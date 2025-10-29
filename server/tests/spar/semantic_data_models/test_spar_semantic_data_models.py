@@ -20,6 +20,7 @@ def test_generate_semantic_data_model_basic(
     openai_api_key: str,
 ):
     """Test generating a semantic data model from the e-commerce schema."""
+    import uuid
     from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
@@ -28,15 +29,20 @@ def test_generate_semantic_data_model_basic(
     )
 
     client, data_connection = agent_server_client_with_data_connection
-    agent_factory_with_params: Callable[..., str] = agent_factory
-    agent_id = agent_factory_with_params(
+    # Create agent directly with unique name to avoid conflicts
+    agent_id = client.create_agent_and_return_agent_id(
+        name=f"Basic Test Agent {uuid.uuid4().hex[:8]}",
+        action_packages=[],
         platform_configs=[
             {
                 "kind": "openai",
                 "openai_api_key": openai_api_key,
                 "models": {"openai": ["gpt-5"]},
             }
-        ]
+        ],
+        runbook="You are a helpful assistant.",
+        description="This is a test agent",
+        document_intelligence="v2",
     )
 
     # Inspect the data connection with selected tables before generating the model
@@ -113,11 +119,16 @@ def test_generate_semantic_data_model_basic(
 
 @pytest.fixture(scope="module")
 def agent_for_full_model(
-    agent_factory: Callable[..., str],
+    agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     openai_api_key: str,
 ) -> str:
     """Create an agent for the full model."""
-    return agent_factory(
+    import uuid
+
+    client, _ = agent_server_client_with_data_connection
+
+    return client.create_agent_and_return_agent_id(
+        name=f"Full Model Test Agent {uuid.uuid4().hex[:8]}",
         action_packages=[],
         platform_configs=[
             {
@@ -132,6 +143,7 @@ def agent_for_full_model(
             "that has been provided to answer user's questions."
         ),
         description="Agent for testing the full semantic data model",
+        document_intelligence="v2",
     )
 
 
@@ -148,7 +160,6 @@ def generated_semantic_data_model(
     """
     from dataclasses import asdict
 
-    from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
         GenerateSemanticDataModelPayload,
@@ -160,7 +171,7 @@ def generated_semantic_data_model(
     # Inspect the data connection with all tables
     assert data_connection.id is not None
     assert data_connection.configuration is not None
-    assert isinstance(data_connection.configuration, PostgresDataConnectionConfiguration)
+    # Configuration type varies by engine (Postgres, Snowflake, etc.)
     inspect_response = client.inspect_data_connection(
         connection_id=data_connection.id,
         # Assume defaults

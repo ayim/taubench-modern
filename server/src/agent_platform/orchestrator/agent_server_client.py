@@ -1102,6 +1102,16 @@ class AgentServerClient:
             ) from e
         return response.json()
 
+    def delete_data_connection(self, connection_id: str) -> None:
+        url = urljoin(self.base_url + "/", f"/api/v2/data-connections/{connection_id}")
+        response = requests.delete(url)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error deleting data connection: {response.status_code} {response.text}",
+            ) from e
+
     def set_agent_data_connections(self, agent_id: str, data_connection_ids: list[str]) -> None:
         url = urljoin(self.base_url + "/", f"agents/{agent_id}/data-connections")
         payload = {
