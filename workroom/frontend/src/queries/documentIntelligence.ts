@@ -21,7 +21,11 @@ export const useUpsertDocumentIntelligenceConfigMutation = () => {
       configuration,
     }: {
       tenantId: string;
-      configuration: { reductoApiKey: string; reductoEndpoint: string; dataConnectionId: string };
+      configuration: {
+        documentIntelligenceApiKey: string;
+        documentIntelligenceEndpoint: string;
+        dataConnectionId: string;
+      };
     }) => {
       await agentAPIClient.SPAR_upsertDocumentIntelligenceConfiguration({ tenantId, configuration });
     },

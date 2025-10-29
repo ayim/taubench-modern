@@ -728,8 +728,8 @@ export class AgentAPIClient {
   }: {
     tenantId: string;
     configuration: {
-      reductoApiKey: string;
-      reductoEndpoint: string;
+      documentIntelligenceApiKey: string;
+      documentIntelligenceEndpoint: string;
       dataConnectionId: string;
     };
   }): Promise<null> {
@@ -752,7 +752,11 @@ export class AgentAPIClient {
       body: JSON.stringify({
         dataConnectionId: configuration.dataConnectionId,
         integrations: [
-          { type: 'reducto', api_key: configuration.reductoApiKey, endpoint: configuration.reductoEndpoint },
+          {
+            type: 'reducto',
+            api_key: configuration.documentIntelligenceApiKey,
+            endpoint: configuration.documentIntelligenceEndpoint,
+          },
         ],
       } satisfies SPAR_upsertDocumentIntelligenceConfigurationPayload),
     });

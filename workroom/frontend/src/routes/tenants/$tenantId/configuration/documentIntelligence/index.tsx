@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, EmptyState, Form, Input, Select, useSnackbar } from '@sema4ai/components';
+import { useDeleteConfirm } from '@sema4ai/layouts';
 import { useDataConnectionsQuery } from '@sema4ai/spar-ui/queries';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { useCallback } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import z from 'zod';
 
@@ -17,12 +17,12 @@ import {
   useUpsertDocumentIntelligenceConfigMutation,
 } from '~/queries/documentIntelligence';
 
-const SEMA4_HOSTED_REDUCTO_ENDPOINT = 'https://backend.sema4.ai/reducto';
+const SEMA4_HOSTED_DOCUMENT_INTELLIGENCE_ENDPOINT = 'https://backend.sema4.ai/reducto';
 
 type Configuration = z.infer<typeof Configuration>;
 const Configuration = z.object({
-  reductoEndpoint: z.string().min(1),
-  reductoApiKey: z.string().min(1, 'The API key must be specified'),
+  documentIntelligenceEndpoint: z.string().min(1),
+  documentIntelligenceApiKey: z.string().min(1, 'The API key must be specified'),
   dataConnectionId: z.string().uuid('Please select a data connection'),
 });
 
@@ -56,8 +56,9 @@ function View() {
 
   const formProps = useForm<Configuration>({
     defaultValues: {
-      reductoEndpoint: currentConfig?.integrations?.[0]?.endpoint ?? SEMA4_HOSTED_REDUCTO_ENDPOINT,
-      reductoApiKey: getApiKeyValue(currentConfig?.integrations?.[0]?.api_key),
+      documentIntelligenceEndpoint:
+        currentConfig?.integrations?.[0]?.endpoint ?? SEMA4_HOSTED_DOCUMENT_INTELLIGENCE_ENDPOINT,
+      documentIntelligenceApiKey: getApiKeyValue(currentConfig?.integrations?.[0]?.api_key),
       dataConnectionId: currentConfig?.data_connection_id ?? '',
     },
     resolver: zodResolver(Configuration),
@@ -97,7 +98,14 @@ function View() {
     );
   });
 
-  const handleClearConfig = useCallback(async () => {
+  const onClearConfirm = useDeleteConfirm(
+    {
+      entityType: 'the document intelligence configuration',
+    },
+    [],
+  );
+
+  const handleClearConfig = onClearConfirm(async () => {
     await clearDocumentIntelligenceConfiguration(
       { tenantId },
       {
@@ -107,8 +115,8 @@ function View() {
             variant: 'success',
           });
           formProps.reset({
-            reductoEndpoint: SEMA4_HOSTED_REDUCTO_ENDPOINT,
-            reductoApiKey: '',
+            documentIntelligenceEndpoint: SEMA4_HOSTED_DOCUMENT_INTELLIGENCE_ENDPOINT,
+            documentIntelligenceApiKey: '',
             dataConnectionId: '',
           });
         },
@@ -120,7 +128,7 @@ function View() {
         },
       },
     );
-  }, [tenantId, clearDocumentIntelligenceConfiguration, addSnackbar, formProps]);
+  });
 
   if (!features.documentIntelligence.enabled) {
     return (
@@ -148,23 +156,23 @@ function View() {
   return (
     <Form key={formKey} onSubmit={onSubmit} busy={isProcessingRequest}>
       <FormProvider {...formProps}>
-        <Form.Fieldset key={'reducto_endpoint'}>
+        <Form.Fieldset key={'document_intelligence_endpoint'}>
           <Input
-            label="Reducto Endpoint"
-            placeholder="Reducto endpoint"
-            {...formProps.register('reductoEndpoint')}
-            error={formProps.formState.errors.reductoEndpoint?.message}
+            label="Document Intelligence Endpoint"
+            placeholder="Document Intelligence Endpoint"
+            {...formProps.register('documentIntelligenceEndpoint')}
+            error={formProps.formState.errors.documentIntelligenceEndpoint?.message}
             disabled={isConfigured}
           />
         </Form.Fieldset>
-        <Form.Fieldset key={'reducto_api_key'}>
+        <Form.Fieldset key={'document_intelligence_api_key'}>
           <InputControlled
-            fieldName="reductoApiKey"
+            fieldName="documentIntelligenceApiKey"
             type="password"
-            label="Reducto API Key"
+            label="Document Intelligence API Key"
             placeholder="Your API Key"
-            {...formProps.register('reductoApiKey')}
-            error={formProps.formState.errors.reductoApiKey?.message}
+            {...formProps.register('documentIntelligenceApiKey')}
+            error={formProps.formState.errors.documentIntelligenceApiKey?.message}
           />
         </Form.Fieldset>
         <Form.Fieldset key={'postgres_connection_details'}>
