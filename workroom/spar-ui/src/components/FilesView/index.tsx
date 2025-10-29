@@ -32,7 +32,7 @@ const Container = styled.div`
 export const FilesView: FC<props> = ({ threadId, agentId, dropzoneOptions }) => {
   return (
     <Container>
-      <FilesList threadId={threadId} />
+      <FilesList agentId={agentId} threadId={threadId} />
       <AddFiles threadId={threadId} agentId={agentId} dropzoneOptions={dropzoneOptions} />
     </Container>
   );

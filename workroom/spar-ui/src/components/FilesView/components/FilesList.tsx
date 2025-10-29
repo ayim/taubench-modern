@@ -9,27 +9,34 @@ import { DocumentData, DocumentIntelligenceDialog } from '../../DocumentIntellig
 import { getSnackbarContent } from '../../../queries/shared';
 import { useFeatureFlag } from '../../../hooks/useFeatureFlag';
 import { SparUIFeatureFlag } from '../../../api';
+import { useAgentQuery } from '../../../queries/agents';
 
 type props = {
+  agentId: string;
   threadId: string;
 };
 
 const FileListItem = ({
   file,
+  agentId,
   threadId,
   onDocumentIntelligenceClick,
 }: {
   file: ThreadFiles[number];
+  agentId: string;
   threadId: string;
   onDocumentIntelligenceClick: (params: { file: File; agentId: string }) => void;
 }) => {
-  const { enabled: shoulDisplayDocIntelButton } = useFeatureFlag(SparUIFeatureFlag.documentIntelligence);
+  const { enabled: docIntelFeatureEnabled } = useFeatureFlag(SparUIFeatureFlag.documentIntelligence);
+  const { data: agent } = useAgentQuery({ agentId });
 
   const { mutateAsync: downloadThreadFile, isPending: isDownloadingThreadFile } = useDownloadThreadFileMutation({
     type: 'download',
   });
   const { mutateAsync: getFileForDocumentIntelligence } = useDownloadThreadFileMutation({ type: 'inline' });
   const { addSnackbar } = useSnackbar();
+
+  const shouldDisplayDocIntelButton = docIntelFeatureEnabled && agent?.extra?.document_intelligence === 'v2';
 
   const onDownload = async () => {
     await downloadThreadFile(
@@ -57,12 +64,12 @@ const FileListItem = ({
       },
     );
 
-    const agentId = file.agent_id;
-    if (!agentId) {
+    const fileAgentId = file.agent_id;
+    if (!fileAgentId) {
       return;
     }
 
-    onDocumentIntelligenceClick({ file: downloadedFileResult.file, agentId });
+    onDocumentIntelligenceClick({ file: downloadedFileResult.file, agentId: fileAgentId });
   }, [
     threadId,
     file.file_ref,
@@ -82,11 +89,25 @@ const FileListItem = ({
         downloading={isDownloadingThreadFile}
         onDownloadClick={onDownload}
       />
-      {shoulDisplayDocIntelButton && (
-        <Box ml="$8">
-          <Button variant="ghost" onClick={handleDocIntelClick}>
-            <IconDocumentIntelligence />
-          </Button>
+      {shouldDisplayDocIntelButton && (
+        <Box
+          pl="32px"
+          backgroundColor="background.panels"
+          borderRadius="32px"
+          borderColor="border.subtle"
+          height="46px"
+          minHeight="46px"
+          marginLeft="-32px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Button
+            aria-label="Document Intelligence"
+            variant="ghost-subtle"
+            onClick={handleDocIntelClick}
+            icon={IconDocumentIntelligence}
+          />
         </Box>
       )}
     </Box>
@@ -105,9 +126,11 @@ const FilesListContent = styled.div`
   flex-direction: column;
   gap: ${({ theme }) => theme.space.$12};
   overflow-y: scroll;
+  padding-bottom: ${({ theme }) => theme.space.$8};
+  padding-top: ${({ theme }) => theme.space.$8};
 `;
 
-export const FilesList: FC<props> = ({ threadId }) => {
+export const FilesList: FC<props> = ({ agentId, threadId }) => {
   const { data: files, isLoading: isFilesLoading } = useThreadFilesQuery({ threadId });
 
   const [docIntelDialogData, setDocIntelDialogData] = useState<DocumentData | null>(null);
@@ -158,6 +181,7 @@ export const FilesList: FC<props> = ({ threadId }) => {
             {workItemFiles.map((file) => (
               <FileListItem
                 file={file}
+                agentId={agentId}
                 threadId={threadId}
                 key={file.file_id}
                 onDocumentIntelligenceClick={handleOpenDocIntelDialog}
@@ -177,6 +201,7 @@ export const FilesList: FC<props> = ({ threadId }) => {
             {conversationFiles.map((file) => (
               <FileListItem
                 file={file}
+                agentId={agentId}
                 threadId={threadId}
                 key={file.file_id}
                 onDocumentIntelligenceClick={handleOpenDocIntelDialog}
