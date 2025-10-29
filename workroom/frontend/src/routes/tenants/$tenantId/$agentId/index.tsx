@@ -28,17 +28,24 @@ export const Route = createFileRoute('/tenants/$tenantId/$agentId/')({
 
     const agentMode = agentResult.data.mode;
 
+    const searchParams = new URLSearchParams(location.search);
+    const params = Object.fromEntries(searchParams);
+
     switch (agentMode) {
       case 'worker':
         throw redirect({
           to: '/tenants/$tenantId/worker/$agentId',
+          search: params,
           params: { tenantId, agentId },
         });
+
       case 'conversational':
         throw redirect({
           to: '/tenants/$tenantId/conversational/$agentId',
+          search: params,
           params: { tenantId, agentId },
         });
+
       default:
         exhaustiveCheck(agentMode);
     }
