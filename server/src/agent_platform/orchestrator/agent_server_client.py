@@ -9,7 +9,13 @@ from urllib.parse import urljoin
 import requests
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
-from agent_platform.core.payloads.document_intelligence import ExtractDocumentPayload
+from agent_platform.core.payloads.document_intelligence import (
+    ExtractDocumentPayload,
+    ExtractJobResult,
+    JobStartResponsePayload,
+    ParseJobResult,
+    SplitJobResult,
+)
 from agent_platform.core.payloads.document_intelligence_config import (
     DocumentIntelligenceConfigPayload,
 )
@@ -962,7 +968,7 @@ class AgentServerClient:
         print_success("Extraction schema generated successfully")
         return result
 
-    def parse_document(self, file_ref: str, thread_id: str) -> dict:
+    def parse_document(self, file_ref: str, thread_id: str) -> ParseJobResult:
         """Parse a document using Document Intelligence.
 
         Args:
@@ -987,11 +993,9 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error parsing document: {response.status_code} {response.text}",
             ) from e
-        result = response.json()
-        print_success("Document parsed successfully")
-        return result
+        return ParseJobResult.model_validate(response.json())
 
-    def start_async_document_parse(self, file_ref: str, thread_id: str) -> dict:
+    def start_async_document_parse(self, file_ref: str, thread_id: str) -> JobStartResponsePayload:
         url = urljoin(
             self.base_url + "/",
             f"document-intelligence/documents/parse/async?thread_id={thread_id}",
@@ -1006,9 +1010,7 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error starting document parse job: {response.status_code} {response.text}",
             ) from e
-        result = response.json()
-        print_success("Document parse job started successfully")
-        return result
+        return JobStartResponsePayload.model_validate(response.json())
 
     def extract_document(self, extract_request: ExtractDocumentPayload) -> dict:
         url = urljoin(
@@ -1069,7 +1071,9 @@ class AgentServerClient:
             ) from e
         return response.json()
 
-    def get_job_result(self, job_id: str, job_type: "JobType") -> dict:
+    def get_job_result(
+        self, job_id: str, job_type: "JobType"
+    ) -> ParseJobResult | ExtractJobResult | SplitJobResult:
         url = urljoin(
             self.base_url + "/",
             f"document-intelligence/jobs/{job_id}/result?job_type={job_type.value}",
@@ -1081,7 +1085,16 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error getting job result: {response.status_code} {response.text}",
             ) from e
-        return response.json()
+
+        match job_type:
+            case JobType.PARSE:
+                return ParseJobResult.model_validate(response.json())
+            case JobType.EXTRACT:
+                return ExtractJobResult.model_validate(response.json())
+            case JobType.SPLIT:
+                return SplitJobResult.model_validate(response.json())
+            case _:
+                raise ValueError(f"Invalid job type: {job_type}")
 
     def create_data_connection(
         self, name: str, description: str, engine: str, configuration: dict

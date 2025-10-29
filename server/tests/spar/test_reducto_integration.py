@@ -5,12 +5,12 @@ from typing import TypedDict
 
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
-from reducto.types.shared.parse_response import ResultFullResultChunk
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
 from agent_platform.core.payloads.document_intelligence import (
     DocumentLayoutPayload,
     ExtractDocumentPayload,
+    ParseJobResult,
 )
 from agent_platform.core.payloads.upsert_document_layout import _ExtractionSchema
 
@@ -25,15 +25,15 @@ class ExtractionSchemaResult(TypedDict):
 
 @pytest.mark.spar
 class TestReductoIntegration:
-    def _assert_tables_pdf_parse_result(self, parse_result_json: dict) -> None:
+    def _assert_tables_pdf_parse_result(self, parse_result: ParseJobResult) -> None:
         """Helper function to assert the parse result for tables.pdf matches expected structure."""
         # The API now returns {"chunks": [...]}, validate chunks directly
-        assert "chunks" in parse_result_json, "Expected 'chunks' key in parse result"
-        chunks_data = parse_result_json["chunks"]
-        assert len(chunks_data) > 0, "Expected at least one chunk in parse result"
+        assert parse_result.result is not None
+        assert parse_result.result.chunks is not None, "Expected chunks in parse result"
+        assert len(parse_result.result.chunks) > 0, "Expected at least one chunk in parse result"
 
         # Validate the first chunk structure
-        first_chunk = ResultFullResultChunk.model_validate(chunks_data[0])
+        first_chunk = parse_result.result.chunks[0]
         blocks = first_chunk.blocks
 
         # Should have multiple blocks (around 17-20 based on the sample)
@@ -140,33 +140,34 @@ class TestReductoIntegration:
         )
 
         # Assert the job result matches expected structure
-        assert "job_id" in job_result
-        job_id = job_result["job_id"]
-        assert isinstance(job_id, str)
-        assert "job_type" in job_result
-        assert job_result["job_type"] == JobType.PARSE.value
+        assert job_result.job_id is not None
+        assert job_result.job_type == JobType.PARSE
 
         # check status
-        status_result = agent_server_client_with_doc_int.get_job_status(job_id, JobType.PARSE)
-        assert "status" in status_result
+        result = agent_server_client_with_doc_int.get_job_status(job_result.job_id, JobType.PARSE)
+        assert "status" in result
         # To avoid race condition, we will access "Completed" on first poll
-        assert status_result["status"] in ["Pending", "Completed"]
+        assert result["status"] in ["Pending", "Completed"]
 
-        result_url = status_result["result_url"]
+        result_url = result["result_url"]
         while result_url is None:
             sleep(1)
-            status_result = agent_server_client_with_doc_int.get_job_status(job_id, JobType.PARSE)
-            result_url = status_result["result_url"]
+            result = agent_server_client_with_doc_int.get_job_status(
+                job_result.job_id, JobType.PARSE
+            )
+            result_url = result["result_url"]
 
         # check result url is the expected one
-        assert job_id in result_url, f"result_url {result_url!r} does not contain job_id {job_id!r}"
+        assert job_result.job_id in result_url, (
+            f"result_url {result_url!r} does not contain job_id {job_result.job_id!r}"
+        )
 
         # get the result
-        result_result = agent_server_client_with_doc_int.get_job_result(job_id, JobType.PARSE)
-        assert "result" in result_result
-        assert "job_type" in result_result
-        assert result_result["job_type"] == JobType.PARSE.value
-        self._assert_tables_pdf_parse_result(result_result["result"])
+        job_result = agent_server_client_with_doc_int.get_job_result(
+            job_result.job_id, JobType.PARSE
+        )
+        assert isinstance(job_result, ParseJobResult)
+        self._assert_tables_pdf_parse_result(job_result)
 
     @pytest.fixture
     def extraction_schema_result(

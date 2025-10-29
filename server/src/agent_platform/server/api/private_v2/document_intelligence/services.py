@@ -255,13 +255,16 @@ async def _resolve_extract_request(
 
     thread_id = valid_payload.thread_id
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
-    file, _ = await _get_or_upload_file(
-        valid_payload.file_name,
-        thread=thread,
-        user_id=user.user_id,
-        storage=storage,
-        file_manager=file_manager,
-    )
+    if valid_payload.file_name:
+        file, _ = await _get_or_upload_file(
+            valid_payload.file_name,
+            thread=thread,
+            user_id=user.user_id,
+            storage=storage,
+            file_manager=file_manager,
+        )
+    else:
+        file = None
 
     # Get the data model prompt and document layout (handles both new and legacy approaches)
     data_model_prompt, document_layout = await _get_data_model_prompt_and_document_layout(
@@ -283,6 +286,7 @@ async def _resolve_extract_request(
     return ResolvedExtractRequest(
         thread_id=thread_id,
         uploaded_file=file,
+        job_id=valid_payload.job_id,
         extraction_schema=extraction_schema,
         extraction_system_prompt=extraction_system_prompt,
         extraction_config=extraction_config,
@@ -308,11 +312,11 @@ async def _upload_and_start_extract(
         extraction_client: Async extraction client instance
     """
     try:
-        file_contents = await file_manager.read_file_contents(
-            request.uploaded_file.file_id, user_id
-        )
-        reducto_doc_id = await extraction_client.upload(
-            file_contents, content_length=len(file_contents)
+        reducto_doc_id = await _resolve_reducto_doc_id_for_extract(
+            request=request,
+            user_id=user_id,
+            file_manager=file_manager,
+            extraction_client=extraction_client,
         )
 
         # Figure out prompt
@@ -349,7 +353,34 @@ async def _upload_and_start_extract(
         _raise_mapped_reducto_error(e)
 
 
-def _create_job_result(result: Any) -> JobResult:
+async def _resolve_reducto_doc_id_for_extract(
+    *,
+    request: ResolvedExtractRequest,
+    user_id: str,
+    file_manager: FileManagerDependency,
+    extraction_client: AsyncExtractionClient,
+) -> str:
+    """Resolve the Reducto document id for an extract request.
+
+    Uses an uploaded platform file if present or a provided job id; otherwise raises.
+    """
+    if request.job_id:
+        logger.info(f"Using provided job id {request.job_id} for extract")
+        return request.job_id
+    elif request.uploaded_file:
+        logger.info(f"Uploading file {request.uploaded_file.file_id} for extract")
+        file_contents = await file_manager.read_file_contents(
+            request.uploaded_file.file_id, user_id
+        )
+        return await extraction_client.upload(file_contents, content_length=len(file_contents))
+
+    raise PlatformHTTPError(
+        error_code=ErrorCode.BAD_REQUEST,
+        message="Must provide one of uploaded_file or job_id",
+    )
+
+
+def _create_job_result(result: Any, job_id: str) -> JobResult:
     """Create the appropriate JobResult type based on the result object type.
 
     Args:
@@ -362,9 +393,15 @@ def _create_job_result(result: Any) -> JobResult:
     Raises:
         PlatformHTTPError: If the result type is unexpected
     """
+    if not job_id.startswith("jobid://"):
+        job_id = f"jobid://{job_id}"
+
     match result:
         case ParseResponse(result=ParseResult() as parse_result):
-            return ParseJobResult(result=ParseDocumentResponsePayload(chunks=parse_result.chunks))
+            return ParseJobResult(
+                result=ParseDocumentResponsePayload(chunks=parse_result.chunks),
+                job_id=job_id,
+            )
         case ExtractResponse() as extract_resp:
             # Reducto's ExtractResponse.result and .citations are both lists of objects,
             # result can't be typed, but citations has some structure.
@@ -373,9 +410,10 @@ def _create_job_result(result: Any) -> JobResult:
             return ExtractJobResult(
                 result=extract_resp.result[0],  # type: ignore
                 citations=extract_resp.citations[0] if extract_resp.citations else None,  # type: ignore
+                job_id=job_id,
             )
         case SplitResponse(result=SplitResult() as split_result):
-            return SplitJobResult(result=split_result)
+            return SplitJobResult(result=split_result, job_id=job_id)
         case _:
             raise PlatformHTTPError(
                 ErrorCode.UNEXPECTED,

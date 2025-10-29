@@ -99,7 +99,7 @@ async def get_job_result(
             case JobStatus.COMPLETED:
                 # Job is complete, get result without polling
                 result = await job.result()  # This should return immediately since job is done
-                return _create_job_result(result)
+                return _create_job_result(result, job_id)
             case JobStatus.PENDING | JobStatus.IDLE:
                 # Job still processing - result resource doesn't exist yet
                 raise PlatformHTTPError(

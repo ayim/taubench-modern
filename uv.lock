@@ -28,6 +28,7 @@ dev = [
     { name = "flaky" },
     { name = "freezegun" },
     { name = "ipython" },
+    { name = "jsonschema" },
     { name = "mu-repo" },
     { name = "nbstripout" },
     { name = "pillow" },
@@ -69,6 +70,7 @@ dev = [
     { name = "flaky", specifier = ">=3.8.1,<4.0.0" },
     { name = "freezegun", specifier = ">=1.5.4" },
     { name = "ipython", specifier = ">=8.31.0,<9.0.0" },
+    { name = "jsonschema", specifier = ">=4.25.1" },
     { name = "mu-repo", specifier = ">=1.9.0" },
     { name = "nbstripout", specifier = ">=0.7.1" },
     { name = "pillow", specifier = ">=11.1.0,<12.0.0" },
@@ -309,7 +311,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
-    { name = "sema4ai-docint", extras = ["memory"], specifier = ">=0.11.0,<0.12.0" },
+    { name = "sema4ai-docint", extras = ["memory"], specifier = "==0.11.3" },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
@@ -3554,7 +3556,7 @@ wheels = [
 
 [[package]]
 name = "sema4ai-docint"
-version = "0.11.1"
+version = "0.11.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -3576,9 +3578,9 @@ dependencies = [
     { name = "sema4ai-data" },
     { name = "sema4ai-http-helper" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/70/5f/381ccf24fdd9a58c144ab1c7e23b6bb149202a19429bf7b35336633bfc28/sema4ai_docint-0.11.1.tar.gz", hash = "sha256:1194a06e342d7e8c1b985782a5e30545518f745f1f1cbf4bd2f3df67c0e284c1", size = 1348725, upload-time = "2025-10-09T22:09:00.576Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/aa/6c8b561a2acfb5104af72bccfd655fd403644752466d347d82c282e87d90/sema4ai_docint-0.11.3.tar.gz", hash = "sha256:7eea7794c1a2e2089ed511edcf30f3d5f8635e3534995bf7fe96f2beaf2fb55f", size = 1350046, upload-time = "2025-10-28T13:31:26.039Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/73/b9/a1a24fdb1e37e48bd40222ae89a6c518e19111a6e9b1e72f2d800458fe8e/sema4ai_docint-0.11.1-py3-none-any.whl", hash = "sha256:906274dbb504855e35dfb4a9938be16675917250b600d516559aec7a790cd79e", size = 147292, upload-time = "2025-10-09T22:08:59.169Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/e2/e4bcd8fdd9a515ebd3b39df3a5538a1f4ff136e05ac960b2b34df84a72fd/sema4ai_docint-0.11.3-py3-none-any.whl", hash = "sha256:9c8ea8e24cb06176fff136b7165cacd0af314e8dddae30259f033d88ea91e3e5", size = 146654, upload-time = "2025-10-28T13:31:24.707Z" },
 ]
 
 [package.optional-dependencies]

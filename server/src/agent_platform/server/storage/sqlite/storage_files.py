@@ -46,8 +46,6 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
             AgentNotFoundError: If the referenced agent doesn't exist
             ThreadNotFoundError: If the referenced thread doesn't exist
         """
-        self._logger.debug(f"Validating owner type {owner}")
-
         if not isinstance(owner, Agent | Thread):
             raise ValueError("Owner must be either Agent or Thread instance")
 

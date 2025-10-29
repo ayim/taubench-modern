@@ -45,8 +45,6 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             AgentNotFoundError: If the referenced agent doesn't exist
             ThreadNotFoundError: If the referenced thread doesn't exist
         """
-        self._logger.debug(f"Validating owner type {owner}")
-
         if not isinstance(owner, Agent | Thread):
             raise ValueError("Owner must be either Agent or Thread instance")
 
@@ -76,7 +74,6 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
 
     async def _validate_work_item_owner_type(self, owner: WorkItem) -> str:
         self._validate_uuid(owner.work_item_id)
-        self._logger.debug(f"Validating owner type {owner}")
         await self._validate_work_item_exists(owner.work_item_id)
         return owner.work_item_id
 

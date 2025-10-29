@@ -249,12 +249,12 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
     confidence?: string;
   }> = [];
 
-  if (!parseResult?.chunks || !Array.isArray(parseResult.chunks)) {
+  if (!parseResult?.result?.chunks || !Array.isArray(parseResult.result.chunks)) {
     return boundingBoxes;
   }
   let numericIdCounter = 1;
 
-  parseResult.chunks.forEach((chunk, chunkIndex) => {
+  parseResult.result.chunks.forEach((chunk, chunkIndex) => {
     // Use chunk content as the field value
     const fieldValue = chunk.content || '';
 

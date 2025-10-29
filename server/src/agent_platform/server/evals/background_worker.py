@@ -115,7 +115,6 @@ class WorkQueue(Generic[T]):
             raise RuntimeError(f"Shutdown task not found for {WORKER_NAME} worker")
 
         while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
-            logger.debug("searching for eval tasks to process")
             try:
                 await self._worker_iteration()
             except Exception as exc:

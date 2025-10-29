@@ -210,6 +210,9 @@ else
 	VCR_RECORD=none uv run pytest -v -m "integration" --durations=50 --durations-min=1 -n $(PYTEST_PARALLEL)
 endif
 
+test-docint: sync  ## Run only Spar DocInt tests
+	VCR_RECORD=none uv run pytest -v -m "spar and not semantic_data_models"
+
 test-vcr-record-new:  check-env ## Run tests with pytest and record VCR cassettes for new requests
 	@NUM_EXISTING_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
 	echo "Found $$NUM_EXISTING_CASSETTES existing cassettes!"; \

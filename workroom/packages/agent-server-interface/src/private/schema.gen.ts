@@ -4206,7 +4206,9 @@ export interface components {
       /** Thread Id */
       thread_id: string;
       /** File Name */
-      file_name: string;
+      file_name?: string | null;
+      /** Job Id */
+      job_id?: string | null;
       /** Data Model Name */
       data_model_name?: string | null;
       /** Data Model Prompt */
@@ -4220,23 +4222,14 @@ export interface components {
        */
       generate_citations: boolean | null;
     };
-    /** ExtractDocumentResponsePayload */
-    ExtractDocumentResponsePayload: {
-      /** Result */
-      result: {
-        [key: string]: unknown;
-      };
-      /** Citations */
-      citations?: {
-        [key: string]: unknown;
-      } | null;
-    };
     /** ExtractJobResult */
     ExtractJobResult: {
       /** Result */
       result: {
         [key: string]: unknown;
       };
+      /** Job Id */
+      job_id: string;
       /** Citations */
       citations?: {
         [key: string]: unknown;
@@ -5289,6 +5282,8 @@ export interface components {
     /** ParseJobResult */
     ParseJobResult: {
       result: components['schemas']['ParseDocumentResponsePayload'];
+      /** Job Id */
+      job_id: string;
       /**
        * Job Type
        * @default parse
@@ -6841,6 +6836,8 @@ export interface components {
     /** SplitJobResult */
     SplitJobResult: {
       result: components['schemas']['Result'];
+      /** Job Id */
+      job_id: string;
       /**
        * Job Type
        * @default split
@@ -14139,7 +14136,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ParseDocumentResponsePayload'];
+          'application/json': components['schemas']['ParseJobResult'];
         };
       };
       /** @description Validation Error */
@@ -14207,7 +14204,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ExtractDocumentResponsePayload'];
+          'application/json': components['schemas']['ExtractJobResult'];
         };
       };
       /** @description Validation Error */

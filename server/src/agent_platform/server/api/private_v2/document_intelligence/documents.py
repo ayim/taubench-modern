@@ -10,11 +10,9 @@ from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
-    ExtractDocumentResponsePayload,
     ExtractJobResult,
     GenerateSchemaResponsePayload,
     JobStartResponsePayload,
-    ParseDocumentResponsePayload,
     ParseJobResult,
 )
 from agent_platform.server.api.dependencies import (
@@ -178,7 +176,7 @@ async def parse_document(  # noqa: PLR0913
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     extraction_client: AsyncExtractionClientDependency,
-) -> ParseDocumentResponsePayload:
+) -> ParseJobResult:
     """Parse a new document using the Document Intelligence database.
 
     This endpoint is used to parse a new document. It now uses the async client
@@ -205,14 +203,13 @@ async def parse_document(  # noqa: PLR0913
     # For synchronous parse, wait for completion (unlike get_job_result endpoint)
     try:
         result = await job.result(poll_interval=3.0)
-        job_result = _create_job_result(result)
-        if isinstance(job_result, ParseJobResult):
-            return job_result.result
-        else:
+        job_result = _create_job_result(result, job.job_id)
+        if not isinstance(job_result, ParseJobResult):
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNEXPECTED,
-                message="Parse response is not a ParseJobResult",
+                message=f"Parse response is not a ParseJobResult (was {type(job_result)})",
             )
+        return job_result
     except PlatformHTTPError:
         raise
     except Exception as e:
@@ -286,7 +283,7 @@ async def extract_document(  # noqa: PLR0913
     file_manager: FileManagerDependency,
     extraction_client: AsyncExtractionClientDependency,
     docint_ds: DocIntDatasourceDependency,
-) -> ExtractDocumentResponsePayload:
+) -> ExtractJobResult:
     """Extract structured data from an existing document.
 
     Returns extracted data formatted according to the document's data model schema.
@@ -311,17 +308,14 @@ async def extract_document(  # noqa: PLR0913
 
     try:
         result = await extract_response.result(poll_interval=3.0)
-        job_result = _create_job_result(result)
-        if isinstance(job_result, ExtractJobResult):
-            return ExtractDocumentResponsePayload(
-                result=job_result.result,
-                citations=job_result.citations,
-            )
-        else:
+        job_result = _create_job_result(result, extract_response.job_id)
+        if not isinstance(job_result, ExtractJobResult):
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNEXPECTED,
-                message="Extract response is not a ExtractJobResult",
+                message=f"Extract response is not a ExtractJobResult (was {type(job_result)})",
             )
+
+        return job_result
     except PlatformHTTPError:
         raise
     except Exception as e:

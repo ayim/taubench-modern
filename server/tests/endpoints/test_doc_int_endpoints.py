@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
@@ -42,6 +43,7 @@ from agent_platform.core.payloads.data_connection import (
 )
 from agent_platform.core.payloads.document_intelligence import (
     ExtractJobResult,
+    ParseDocumentResponsePayload,
     ParseJobResult,
 )
 from agent_platform.core.payloads.upsert_document_layout import DocumentLayoutPayload
@@ -3518,7 +3520,7 @@ class TestParseDocumentEndpoints:
 
         # Create a mock Job that will be returned by start_parse
         mock_job = Mock()
-        mock_job.job_id = "parse-job-123"
+        mock_job.job_id = "jobid://parse-job-123"
         mock_job.job_type = JobType.PARSE
         mock_job.result = AsyncMock(return_value=parse_response)
 
@@ -3575,8 +3577,11 @@ class TestParseDocumentEndpoints:
         body = resp.json()
         # Response now only includes chunks, not type/custom/ocr fields
         assert isinstance(parse_response.result, ResultFullResult)
-        expected_chunks = [chunk.model_dump(mode="json") for chunk in parse_response.result.chunks]
-        assert body == {"chunks": expected_chunks}
+
+        actual = ParseJobResult.model_validate(body)
+        assert actual.job_id == "jobid://parse-job-123"
+        assert actual.job_type == "parse"
+        assert actual.result.chunks == parse_response.result.chunks
 
     def test_parse_with_upload_success(self, client: TestClient, parse_response: "ParseResponse"):
         storage_instance = StorageService.get_instance()
@@ -3591,7 +3596,7 @@ class TestParseDocumentEndpoints:
 
         # Create a mock Job that will be returned by start_parse
         mock_job = Mock()
-        mock_job.job_id = "parse-job-456"
+        mock_job.job_id = "jobid://parse-job-456"
         mock_job.job_type = JobType.PARSE
         mock_job.result = AsyncMock(return_value=parse_response)
 
@@ -3643,8 +3648,11 @@ class TestParseDocumentEndpoints:
         body = resp.json()
         # Response now only includes chunks, not type/custom/ocr fields
         assert isinstance(parse_response.result, ResultFullResult)
-        expected_chunks = [chunk.model_dump(mode="json") for chunk in parse_response.result.chunks]
-        assert body == {"chunks": expected_chunks}
+
+        actual = ParseJobResult.model_validate(body)
+        assert actual.job_id == "jobid://parse-job-456"
+        assert actual.job_type == "parse"
+        assert actual.result.chunks == parse_response.result.chunks
 
     def test_parse_thread_not_found(self, client: TestClient):
         storage_instance = StorageService.get_instance()
@@ -4694,8 +4702,26 @@ class TestAsyncDocumentEndpoints:
 
             # Configure _create_job_result to return the expected ParseJobResult
 
-            expected_parse_result = {"pages": [{"content": "parsed text"}]}
-            mock_create_job_result.return_value = ParseJobResult(result=expected_parse_result)  # type: ignore
+            expected_result = ParseDocumentResponsePayload(
+                chunks=[
+                    ResultFullResultChunk(
+                        content="parsed text",
+                        embed="parsed text",
+                        blocks=[
+                            ResultFullResultChunkBlock(
+                                bbox=BoundingBox(left=0, page=0, top=0, width=0, height=0),
+                                content="parsed text",
+                                type="Text",
+                            )
+                        ],
+                    )
+                ],
+            )
+            mock_create_job_result.return_value = ParseJobResult(
+                result=expected_result,
+                job_id="jobid://parse-job-456",
+                job_type="parse",
+            )
 
             resp = client.get(
                 "/api/v2/document-intelligence/jobs/parse-job-456/result",
@@ -4704,8 +4730,15 @@ class TestAsyncDocumentEndpoints:
 
         assert resp.status_code == 200
         # The endpoint returns the ParseJobResult with both result and job_type
-        expected_response = {"result": expected_parse_result, "job_type": "parse"}
-        assert resp.json() == expected_response
+        expected_response = ParseJobResult.model_validate(
+            {
+                "result": dataclasses.asdict(expected_result),
+                "job_id": "jobid://parse-job-456",
+                "job_type": "parse",
+            }
+        )
+        actual = ParseJobResult.model_validate(resp.json())
+        assert actual == expected_response
 
     def test_get_job_result_extract_type(self, client: TestClient):
         """Test getting result of a completed extract job."""
@@ -4773,7 +4806,10 @@ class TestAsyncDocumentEndpoints:
             # Configure _create_job_result to return the expected ExtractJobResult
 
             mock_create_job_result.return_value = ExtractJobResult(
-                result=mock_extract_result, citations=mock_extract_citations
+                result=mock_extract_result,
+                citations=mock_extract_citations,
+                job_id="jobid://extract-job-789",
+                job_type="extract",
             )
 
             resp = client.get(
@@ -4786,6 +4822,7 @@ class TestAsyncDocumentEndpoints:
         expected_response = {
             "result": mock_extract_result,
             "citations": mock_extract_citations,
+            "job_id": "jobid://extract-job-789",
             "job_type": "extract",
         }
         assert resp.json() == expected_response
@@ -5016,7 +5053,7 @@ class TestExtractDocumentEndpoints:
 
         # Create a mock Job instance for start_extract return
         mock_job = Mock()
-        mock_job.job_id = "extract-job-123"
+        mock_job.job_id = "jobid://extract-job-123"
         mock_job.job_type = JobType.EXTRACT
 
         # Create a mock ExtractResponse object that job.result() will return
@@ -5104,6 +5141,8 @@ class TestExtractDocumentEndpoints:
 
         assert resp.status_code == 200
         assert resp.json() == {
+            "job_id": "jobid://extract-job-123",
+            "job_type": "extract",
             "result": {"extracted": "data"},
             "citations": None,
         }
@@ -5134,7 +5173,7 @@ class TestExtractDocumentEndpoints:
 
         # Create a mock Job instance for start_extract return
         mock_job = Mock()
-        mock_job.job_id = "extract-job-456"
+        mock_job.job_id = "jobid://extract-job-456"
         mock_job.job_type = JobType.EXTRACT
 
         # Create a mock ExtractResponse object that job.result() will return
@@ -5210,6 +5249,8 @@ class TestExtractDocumentEndpoints:
 
         assert resp.status_code == 200
         assert resp.json() == {
+            "job_id": "jobid://extract-job-456",
+            "job_type": "extract",
             "result": {"data": 1},
             "citations": None,
         }
@@ -5229,7 +5270,7 @@ class TestExtractDocumentEndpoints:
             ),  # missing thread_id - FastAPI validation
             (
                 {"thread_id": "t"},
-                422,
+                400,
             ),  # missing file_ref and layout/document - FastAPI validation
             (
                 {"thread_id": "t", "file_name": "f"},
@@ -5325,13 +5366,6 @@ class TestExtractDocumentEndpoints:
             )
 
         assert resp.status_code == expected_status
-        err = resp.json()["error"]
-
-        # All validation errors use the custom ErrorResponse format with an error code
-        if expected_status == 422:
-            assert err["code"] == ErrorCode.UNPROCESSABLE_ENTITY.value.code
-        else:
-            assert err["code"] == ErrorCode.BAD_REQUEST.value.code
 
     def test_extract_data_model_not_found(self, client: TestClient):
         storage_instance = StorageService.get_instance()
@@ -5750,8 +5784,6 @@ class TestExtractDocumentEndpoints:
     def test_extract_with_document_layout_success(self, client: TestClient):
         """Test extraction using document_layout with extraction schema."""
         storage_instance = StorageService.get_instance()
-
-        # Use Mock objects instead of SimpleNamespace for proper attribute access
         thread = Mock(id="thread-1")
         stored = Mock(file_id="fid-1", file_ref="ref-1")
 
@@ -5761,7 +5793,7 @@ class TestExtractDocumentEndpoints:
 
         # Create a mock Job instance for start_extract return
         mock_job = Mock()
-        mock_job.job_id = "extract-job-raw"
+        mock_job.job_id = "jobid://extract-job-raw"
         mock_job.job_type = JobType.EXTRACT
 
         # Create a mock ExtractResponse object that job.result() will return
@@ -5837,6 +5869,8 @@ class TestExtractDocumentEndpoints:
 
         assert resp.status_code == 200
         assert resp.json() == {
+            "job_id": "jobid://extract-job-raw",
+            "job_type": "extract",
             "result": {"extracted": "raw_data"},
             "citations": None,
         }

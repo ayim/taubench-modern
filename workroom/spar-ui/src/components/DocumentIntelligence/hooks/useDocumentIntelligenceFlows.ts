@@ -202,6 +202,7 @@ export const useDocumentLayoutFlow = () => {
         const extractedData = await extractDocumentMutation.mutateAsync({
           threadId,
           fileName: fileRef.name,
+          jobId: parseResult.job_id,
           dataModelName,
           documentLayout: finalDocumentLayout,
           generateCitations: true,

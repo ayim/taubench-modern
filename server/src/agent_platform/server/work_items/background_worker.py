@@ -275,7 +275,6 @@ async def worker_loop(
         raise RuntimeError(f"Shutdown task not found for {WORKER_NAME} worker")
 
     while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
-        logger.debug("searching for work items to process")
         try:
             await worker_iteration(work_func)
         except Exception as exc:

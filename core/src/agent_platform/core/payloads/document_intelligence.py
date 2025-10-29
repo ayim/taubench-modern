@@ -43,7 +43,8 @@ class ExtractDocumentPayload:
 
     # File related fields
     thread_id: str
-    file_name: str
+    file_name: str | None = None
+    job_id: str | None = None
 
     # Data model related fields (required when layout_name is provided)
     data_model_name: str | None = None
@@ -68,11 +69,20 @@ class ExtractDocumentPayload:
         # Validate file fields to ensure not None
         file_name = obj.get("file_name")
         thread_id = obj.get("thread_id")
-        if thread_id is None or file_name is None:
+        job_id = obj.get("job_id")
+        if thread_id is None:
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
-                message="thread_id and file_name are required",
+                message="thread_id is required",
             )
+        if file_name is None and job_id is None:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="At least one of file_name or job_id must be provided",
+            )
+
+        # Make sure the job_id is prefixed.
+        job_id = f"jobid://{job_id}" if job_id and not job_id.startswith("jobid://") else job_id
 
         # Validate layout fields: layout_name or document_layout must be provided
         document_layout = obj.get("document_layout")
@@ -117,9 +127,22 @@ class ExtractDocumentPayload:
             layout_name=layout_name,
             document_layout=document_layout,
             file_name=file_name,
+            job_id=job_id,
             thread_id=thread_id,
             generate_citations=obj.get("generate_citations", True),
         )
+
+    def model_dump(self) -> dict[str, Any]:
+        return {
+            "data_model_name": self.data_model_name,
+            "data_model_prompt": self.data_model_prompt,
+            "layout_name": self.layout_name,
+            "document_layout": self.document_layout.model_dump() if self.document_layout else None,
+            "file_name": self.file_name,
+            "job_id": self.job_id,
+            "thread_id": self.thread_id,
+            "generate_citations": self.generate_citations,
+        }
 
 
 @dataclass(frozen=True)
@@ -133,6 +156,12 @@ class ParseDocumentResponsePayload:
     # We exclude the `type`, `custom`, and `ocr` fields from the OpenAPI schema because they
     # are not used by any downstream users (e.g., spar-ui)
     chunks: list[ResultFullResultChunk]
+
+    @classmethod
+    def model_validate(cls, data: Any) -> ParseDocumentResponsePayload:
+        return cls(
+            chunks=[ResultFullResultChunk.model_validate(chunk) for chunk in data["chunks"]],
+        )
 
 
 @dataclass(frozen=True)
@@ -149,6 +178,19 @@ class JobStartResponsePayload:
     job_type: JobType
     uploaded_file: UploadedFile | None = None
 
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> JobStartResponsePayload:
+        if data.get("uploaded_file") is not None:
+            uploaded_file = UploadedFile.model_validate(data["uploaded_file"])
+        else:
+            uploaded_file = None
+
+        return cls(
+            job_id=data["job_id"],
+            job_type=data["job_type"],
+            uploaded_file=uploaded_file,
+        )
+
 
 @dataclass(frozen=True)
 class JobStatusResponsePayload:
@@ -163,20 +205,69 @@ class JobStatusResponsePayload:
 @dataclass(frozen=True)
 class ParseJobResult:
     result: ParseDocumentResponsePayload
+    job_id: str
     job_type: Literal["parse"] = "parse"
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> ParseJobResult:
+        if not isinstance(data, dict):
+            raise ValueError("data must be a dictionary")
+        if "job_id" not in data:
+            raise ValueError("job_id is required")
+        if "job_type" not in data:
+            raise ValueError("job_type is required")
+        if data["job_type"] != "parse":
+            raise ValueError("job_type must be 'parse'")
+        if "result" not in data:
+            raise ValueError("result is required")
+        return cls(
+            result=ParseDocumentResponsePayload.model_validate(data["result"]),
+            job_id=data["job_id"],
+            job_type=data["job_type"],
+        )
 
 
 @dataclass(frozen=True)
 class ExtractJobResult:
     result: dict[str, Any]  # Extract results are untyped objects
+    job_id: str
     citations: dict[str, Any] | None = None  # Citations are untyped objects
     job_type: Literal["extract"] = "extract"
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> ExtractJobResult:
+        if not isinstance(data, dict):
+            raise ValueError("data must be a dictionary")
+        if "job_id" not in data:
+            raise ValueError("job_id is required")
+        if "job_type" not in data:
+            raise ValueError("job_type is required")
+        if data["job_type"] != "extract":
+            raise ValueError("job_type must be 'extract'")
+        if "result" not in data:
+            raise ValueError("result is required")
+
+        return cls(
+            result=data["result"],
+            citations=data.get("citations", None),
+            job_id=data["job_id"],
+            job_type=data["job_type"],
+        )
 
 
 @dataclass(frozen=True)
 class SplitJobResult:
     result: SplitResult
+    job_id: str
     job_type: Literal["split"] = "split"
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> SplitJobResult:
+        return cls(
+            result=SplitResult.model_validate(data["result"]),
+            job_id=data["job_id"],
+            job_type=data["job_type"],
+        )
 
 
 # Union type for job results

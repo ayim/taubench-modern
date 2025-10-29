@@ -4520,7 +4520,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ParseDocumentResponsePayload"
+                  "$ref": "#/components/schemas/ParseJobResult"
                 }
               }
             }
@@ -4611,7 +4611,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExtractDocumentResponsePayload"
+                  "$ref": "#/components/schemas/ExtractJobResult"
                 }
               }
             }
@@ -11384,8 +11384,26 @@
             "title": "Thread Id"
           },
           "file_name": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File Name"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
           },
           "data_model_name": {
             "anyOf": [
@@ -11444,32 +11462,8 @@
           }
         },
         "type": "object",
-        "required": ["thread_id", "file_name"],
+        "required": ["thread_id"],
         "title": "ExtractDocumentPayload"
-      },
-      "ExtractDocumentResponsePayload": {
-        "properties": {
-          "result": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Result"
-          },
-          "citations": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Citations"
-          }
-        },
-        "type": "object",
-        "required": ["result"],
-        "title": "ExtractDocumentResponsePayload"
       },
       "ExtractJobResult": {
         "properties": {
@@ -11477,6 +11471,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Result"
+          },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
           },
           "citations": {
             "anyOf": [
@@ -11498,7 +11496,7 @@
           }
         },
         "type": "object",
-        "required": ["result"],
+        "required": ["result", "job_id"],
         "title": "ExtractJobResult"
       },
       "Fact": {
@@ -14042,6 +14040,10 @@
           "result": {
             "$ref": "#/components/schemas/ParseDocumentResponsePayload"
           },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
           "job_type": {
             "type": "string",
             "const": "parse",
@@ -14050,7 +14052,7 @@
           }
         },
         "type": "object",
-        "required": ["result"],
+        "required": ["result", "job_id"],
         "title": "ParseJobResult"
       },
       "PartialDataModelPayload": {
@@ -17167,6 +17169,10 @@
           "result": {
             "$ref": "#/components/schemas/Result"
           },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
           "job_type": {
             "type": "string",
             "const": "split",
@@ -17175,7 +17181,7 @@
           }
         },
         "type": "object",
-        "required": ["result"],
+        "required": ["result", "job_id"],
         "title": "SplitJobResult"
       },
       "Sslmode": {

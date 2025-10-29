@@ -45,7 +45,8 @@ class IngestDocumentResponse:
 @dataclass
 class ResolvedExtractRequest:
     thread_id: str
-    uploaded_file: UploadedFile
+    uploaded_file: UploadedFile | None
+    job_id: str | None
     extraction_schema: dict[str, Any]
     extraction_system_prompt: str | None
     extraction_config: dict[str, Any] | None

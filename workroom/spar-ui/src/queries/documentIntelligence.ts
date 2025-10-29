@@ -120,7 +120,8 @@ export const useExtractDocumentMutation = createSparMutation<
   object,
   {
     threadId: ExtractDocumentPayload['thread_id'];
-    fileName: ExtractDocumentPayload['file_name'];
+    fileName?: ExtractDocumentPayload['file_name'];
+    jobId?: ExtractDocumentPayload['job_id'];
     dataModelName?: ExtractDocumentPayload['data_model_name'];
     dataModelPrompt?: ExtractDocumentPayload['data_model_prompt'];
     layoutName?: ExtractDocumentPayload['layout_name'];
@@ -131,16 +132,26 @@ export const useExtractDocumentMutation = createSparMutation<
   mutationFn: async ({
     threadId,
     fileName,
+    jobId,
     dataModelName,
     dataModelPrompt,
     layoutName,
     documentLayout,
     generateCitations,
   }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/extract'>> => {
+    // Validate the one of these two are provided. The backend will use jobId if given, else fall back to fileName.
+    if (!fileName && !jobId) {
+      throw new QueryError('One of fileName or jobId must be provided', {
+        code: 'INVALID_PARAMETERS',
+        resource: ResourceType.DocumentIntelligence
+      });
+    }
+
     const response = await sparAPIClient.queryAgentServer('post', '/api/v2/document-intelligence/documents/extract', {
       body: {
         thread_id: threadId,
-        file_name: fileName,
+        file_name: fileName ?? null,
+        job_id: jobId ?? null,
         data_model_name: dataModelName,
         data_model_prompt: dataModelPrompt,
         layout_name: layoutName,

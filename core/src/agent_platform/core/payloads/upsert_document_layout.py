@@ -200,3 +200,16 @@ class DocumentLayoutPayload:
             extraction_config=self.extraction_config,
             system_prompt=self.prompt,
         )
+
+    def model_dump(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "data_model_name": self.data_model_name,
+            "extraction_schema": self.extraction_schema.model_dump(mode="json", exclude_none=True)
+            if self.extraction_schema
+            else None,
+            "translation_schema": self.wrap_translation_schema(),
+            "summary": self.summary,
+            "extraction_config": self.extraction_config,
+            "prompt": self.prompt,
+        }

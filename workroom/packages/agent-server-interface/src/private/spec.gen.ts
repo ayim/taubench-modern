@@ -4368,7 +4368,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ParseDocumentResponsePayload',
+                  $ref: '#/components/schemas/ParseJobResult',
                 },
               },
             },
@@ -4463,7 +4463,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ExtractDocumentResponsePayload',
+                  $ref: '#/components/schemas/ExtractJobResult',
                 },
               },
             },
@@ -11369,8 +11369,26 @@ export const spec = {
             title: 'Thread Id',
           },
           file_name: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'File Name',
+          },
+          job_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Job Id',
           },
           data_model_name: {
             anyOf: [
@@ -11429,32 +11447,8 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['thread_id', 'file_name'],
+        required: ['thread_id'],
         title: 'ExtractDocumentPayload',
-      },
-      ExtractDocumentResponsePayload: {
-        properties: {
-          result: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Result',
-          },
-          citations: {
-            anyOf: [
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Citations',
-          },
-        },
-        type: 'object',
-        required: ['result'],
-        title: 'ExtractDocumentResponsePayload',
       },
       ExtractJobResult: {
         properties: {
@@ -11462,6 +11456,10 @@ export const spec = {
             additionalProperties: true,
             type: 'object',
             title: 'Result',
+          },
+          job_id: {
+            type: 'string',
+            title: 'Job Id',
           },
           citations: {
             anyOf: [
@@ -11483,7 +11481,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['result'],
+        required: ['result', 'job_id'],
         title: 'ExtractJobResult',
       },
       Fact: {
@@ -14066,6 +14064,10 @@ export const spec = {
           result: {
             $ref: '#/components/schemas/ParseDocumentResponsePayload',
           },
+          job_id: {
+            type: 'string',
+            title: 'Job Id',
+          },
           job_type: {
             type: 'string',
             const: 'parse',
@@ -14074,7 +14076,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['result'],
+        required: ['result', 'job_id'],
         title: 'ParseJobResult',
       },
       PartialDataModelPayload: {
@@ -17218,6 +17220,10 @@ export const spec = {
           result: {
             $ref: '#/components/schemas/Result',
           },
+          job_id: {
+            type: 'string',
+            title: 'Job Id',
+          },
           job_type: {
             type: 'string',
             const: 'split',
@@ -17226,7 +17232,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['result'],
+        required: ['result', 'job_id'],
         title: 'SplitJobResult',
       },
       Sslmode: {
