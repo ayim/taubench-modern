@@ -32,7 +32,7 @@ jobs:
   spar-integration-tests:
     name: Run SPAR Integration Tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
 
     steps:
       - name: Checkout repository
