@@ -95,13 +95,15 @@ function HomePage() {
 
   if (allAgents.length === 0) {
     return (
-      <EmptyView
-        title="No Agents Yet"
-        description="Agents will appear here once someone deploys one and shares it with you."
-        illustration="agents"
-        docsLink="MAIN_WORKROOM_HELP"
-        action={<AgentUploadForm />}
-      />
+      <Box as="section">
+        <EmptyView
+          title="No Agents Yet"
+          description="Agents will appear here once someone deploys one and shares it with you."
+          illustration="agents"
+          docsLink="MAIN_WORKROOM_HELP"
+          action={<AgentUploadForm />}
+        />
+      </Box>
     );
   }
 
