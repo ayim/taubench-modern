@@ -109,6 +109,7 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
             storage=storage,
             request=Request(scope={"type": "http", "method": "POST"}),
             agent_id=thread.agent_id,
+            minimize_reasoning=True,
         )
 
         if not response.content:
