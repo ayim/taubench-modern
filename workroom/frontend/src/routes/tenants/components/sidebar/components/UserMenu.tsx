@@ -1,5 +1,5 @@
-import { Avatar, Divider, Menu } from '@sema4ai/components';
-import { IconLogOut, IconMoon, IconSun } from '@sema4ai/icons';
+import { Box, Divider, Menu } from '@sema4ai/components';
+import { IconLogOut, IconMoon, IconSun, IconUserCircle } from '@sema4ai/icons';
 import { useAuth } from '@sema4ai/robocloud-ui-utils';
 import { useCallback, useMemo } from 'react';
 
@@ -32,7 +32,20 @@ export const UserMenu = () => {
   }, [bypassAuth, logout, meta]);
 
   return (
-    <Menu trigger={<Avatar placeholder="U" as="button" />}>
+    <Menu
+      trigger={
+        <Box
+          as="button"
+          width="24px"
+          height="24px"
+          display="flex"
+          backgroundColor={theme == 'dark' ? 'magenta-dark80' : 'magenta90'}
+          borderRadius="30px"
+        >
+          <IconUserCircle color="content.inverted" />
+        </Box>
+      }
+    >
       <Menu.Item
         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         icon={theme === 'dark' ? <IconSun color="yellow50" /> : IconMoon}

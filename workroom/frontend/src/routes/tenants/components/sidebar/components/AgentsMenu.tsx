@@ -1,18 +1,11 @@
 import { Box, Typography } from '@sema4ai/components';
 import { AgentIcon } from '@sema4ai/layouts';
-import { styled } from '@sema4ai/theme';
 import { useParams } from '@tanstack/react-router';
 import { AgentContextMenu, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 
 import { RouterSideNavigationLink } from '~/components/RouterLink';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
-
-const Placeholder = styled(Typography)`
-  border: 1px dashed ${({ theme }) => theme.colors.border.primary.color};
-  padding: ${({ theme }) => theme.space.$12};
-  border-radius: ${({ theme }) => theme.radii.$8};
-`;
 
 export const AgentsMenu = () => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
@@ -33,12 +26,6 @@ export const AgentsMenu = () => {
           Conversational Agents
         </Typography>
       </Box>
-
-      {agents.length === 0 && (
-        <Placeholder variant="body-small" color="content.subtle.light" textAlign="center">
-          Add your favorite agents that you use often.
-        </Placeholder>
-      )}
 
       {conversationalAgents.map((agent) => {
         return (
