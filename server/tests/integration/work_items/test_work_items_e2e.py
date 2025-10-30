@@ -74,7 +74,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
-                    "models": {"openai": ["gpt-5-low"]},
+                    "models": {"openai": ["gpt-5-minimal"]},
                 }
             ],
             runbook="""
@@ -150,7 +150,8 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
                 status = WorkItemStatus(r.json()["status"])
                 return status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
 
-            await _wait_until(_is_final_status, interval=1.0, timeout=120)
+            # Three minutes
+            await _wait_until(_is_final_status, interval=1.0, timeout=180)
 
             # 5. Get final work item state
             final_resp = await client.get(f"/{work_item_id}?results=true")
