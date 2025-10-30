@@ -17062,13 +17062,13 @@ export const spec = {
           configuration: {
             anyOf: [
               {
-                $ref: '#/components/schemas/SnowflakeLinkedConfiguration',
+                $ref: '#/components/schemas/SnowflakeDataConnectionConfiguration',
               },
               {
                 $ref: '#/components/schemas/SnowflakeCustomKeyPairConfiguration',
               },
               {
-                $ref: '#/components/schemas/SnowflakeDataConnectionConfiguration',
+                $ref: '#/components/schemas/SnowflakeLinkedConfiguration',
               },
             ],
             title: 'Configuration',
@@ -17139,10 +17139,6 @@ export const spec = {
       },
       SnowflakeDataConnectionConfiguration: {
         properties: {
-          credential_type: {
-            type: 'string',
-            title: 'Credential Type',
-          },
           account: {
             type: 'string',
             title: 'Account',
@@ -17167,6 +17163,11 @@ export const spec = {
             type: 'string',
             title: 'Schema',
           },
+          credential_type: {
+            type: 'string',
+            title: 'Credential Type',
+            default: 'password',
+          },
           role: {
             anyOf: [
               {
@@ -17181,7 +17182,6 @@ export const spec = {
         },
         type: 'object',
         required: [
-          'credential_type',
           'account',
           'user',
           'password',

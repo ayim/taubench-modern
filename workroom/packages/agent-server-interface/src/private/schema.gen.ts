@@ -6780,9 +6780,9 @@ export interface components {
       description: string;
       /** Configuration */
       configuration:
-        | components['schemas']['SnowflakeLinkedConfiguration']
+        | components['schemas']['SnowflakeDataConnectionConfiguration']
         | components['schemas']['SnowflakeCustomKeyPairConfiguration']
-        | components['schemas']['SnowflakeDataConnectionConfiguration'];
+        | components['schemas']['SnowflakeLinkedConfiguration'];
       /** Created At */
       created_at?: string | null;
       /** Updated At */
@@ -6802,8 +6802,6 @@ export interface components {
     };
     /** SnowflakeDataConnectionConfiguration */
     SnowflakeDataConnectionConfiguration: {
-      /** Credential Type */
-      credential_type: string;
       /** Account */
       account: string;
       /** User */
@@ -6816,6 +6814,11 @@ export interface components {
       database: string;
       /** Schema */
       schema: string;
+      /**
+       * Credential Type
+       * @default password
+       */
+      credential_type: string;
       /** Role */
       role?: string | null;
     };

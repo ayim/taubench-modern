@@ -220,13 +220,23 @@ class DataConnection:
 
     @classmethod
     def _parse_snowflake_config(cls, config_data: dict[str, Any]) -> DataConnectionConfiguration:
-        """Parse Snowflake configuration."""
-        credential_type = config_data.get("credential_type", "linked")
-        if credential_type == "linked":
-            return SnowflakeLinkedConfiguration(**config_data)
-        if credential_type == "custom-key-pair":
+        """Parse Snowflake configuration based on available fields.
+
+        Determines the configuration type by checking which required fields are present:
+        - Password-based: requires account, user, password
+        - Key-pair: requires account, user, private_key_path
+        - Linked: only requires warehouse, database, schema
+        """
+        # Check for password-based authentication (most common)
+        if "account" in config_data and "user" in config_data and "password" in config_data:
+            return SnowflakeDataConnectionConfiguration(**config_data)
+
+        # Check for key-pair authentication
+        if "account" in config_data and "user" in config_data and "private_key_path" in config_data:
             return SnowflakeCustomKeyPairConfiguration(**config_data)
-        return SnowflakeDataConnectionConfiguration(**config_data)
+
+        # Fallback to linked configuration
+        return SnowflakeLinkedConfiguration(**config_data)
 
     @classmethod
     def _parse_confluence_config(

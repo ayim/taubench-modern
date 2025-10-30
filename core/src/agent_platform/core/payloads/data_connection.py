@@ -64,13 +64,13 @@ class SnowflakeCustomKeyPairConfiguration:
 
 @dataclass
 class SnowflakeDataConnectionConfiguration:
-    credential_type: str
     account: str
     user: str
     password: str
     warehouse: str
     database: str
     schema: str
+    credential_type: str = "password"
     role: str | None = None
 
 
@@ -279,9 +279,9 @@ class RedshiftDataConnection(BaseDataConnection):
 class SnowflakeDataConnection(BaseDataConnection):
     engine: Literal["snowflake"] = "snowflake"
     configuration: (
-        SnowflakeLinkedConfiguration
+        SnowflakeDataConnectionConfiguration
         | SnowflakeCustomKeyPairConfiguration
-        | SnowflakeDataConnectionConfiguration
+        | SnowflakeLinkedConfiguration
     )
 
 
