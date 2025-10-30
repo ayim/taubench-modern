@@ -84,6 +84,34 @@ export const formatDateTime = (dateString: string | undefined): string => {
   return `${datePart} at ${timePart}`;
 };
 
+export const formatShortDateTime = (dateString: string | undefined): string => {
+  if (!dateString) {
+    return '';
+  }
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const monthShort = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+  }).format(date);
+
+  const day = new Intl.DateTimeFormat('en-US', {
+    day: 'numeric',
+  }).format(date);
+
+  const time = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+
+  return `${monthShort} ${day}, ${time}`;
+};
+
 
 export const isImageFile = (file: File): boolean =>{ 
   return file.type.startsWith('image/');

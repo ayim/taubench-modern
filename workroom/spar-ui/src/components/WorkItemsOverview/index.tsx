@@ -179,8 +179,8 @@ export const WorkItemsOverview: FC = () => {
   }
 
   return (
-    <Box flexGrow={1} display="flex" flexDirection="column" gap={4} overflow="hidden" height="100%" pt="$20">
-      <Box flexGrow={1} overflow="hidden">
+    <Box display="flex" flexDirection="column" gap={4} pt="$8">
+      <Box>
         <TableWithFilter<WorkItemsOverviewRowData, never>
           id="work-items-overview-table"
           columns={columns}

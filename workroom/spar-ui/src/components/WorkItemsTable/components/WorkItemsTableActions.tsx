@@ -1,4 +1,4 @@
-import { Box, Button, Typography } from '@sema4ai/components';
+import { Button, Typography } from '@sema4ai/components';
 import { IconDownloadCloud, IconRefresh, IconSeparator } from '@sema4ai/icons';
 import { FC } from 'react';
 
@@ -16,7 +16,7 @@ export const WorkItemsTableActions: FC<TableActionsProps> = ({
   onDownloadRaw,
 }) => {
   return (
-    <Box display="flex" gap="$4" alignItems="center" px="$20" py="$8">
+    <> 
       <Button.Group collapse maxWidth="max-content">
         {onDownloadRaw && (
           <Button round icon={IconDownloadCloud} onClick={onDownloadRaw}>
@@ -33,10 +33,10 @@ export const WorkItemsTableActions: FC<TableActionsProps> = ({
         </Button>
       </Button.Group>
       <IconSeparator color="border.primary" />
-      <Typography pl="$12" color="content.subtle" variant="body-medium">
+      <Typography color="content.subtle" variant="body-medium">
         {selectionCount} selected
       </Typography>
-    </Box>
+    </>
   );
 };
 

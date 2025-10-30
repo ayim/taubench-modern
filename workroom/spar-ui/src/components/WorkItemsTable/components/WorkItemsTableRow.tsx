@@ -1,15 +1,13 @@
 /* eslint-disable camelcase */
-import { Badge, Button, Menu, Table, TableRowProps, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
+import { Box, Button, Menu, Table, TableRowProps, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
 import {
   IconCheck,
   IconDotsHorizontal,
-  IconLoading,
   IconRefresh,
-  IconSearchArea,
 } from '@sema4ai/icons';
 import { FC, useCallback } from 'react';
 
-import { formatDateTime } from '../../../common/helpers';
+import { formatDateTime, formatShortDateTime } from '../../../common/helpers';
 import { useCompleteWorkItemMutation, useRestartWorkItemMutation } from '../../../queries/workItems';
 import { useNavigate } from '../../../hooks';
 import { WorkItemRowData } from '../types';
@@ -26,12 +24,10 @@ const StatusCell: FC<RowProps> = ({ rowData }) => {
 
   return (
     <Table.Cell>
-      <Badge
-        icon={config.icon}
-        iconColor={config.iconColor}
-        label={config.label}
-        variant={config.variant}
-      />
+      <Box display="flex" alignItems="center" gap="$4">
+        <config.icon size="$16" color={config.iconColor} />
+        <Typography variant="body-medium">{config.label}</Typography>
+      </Box>
     </Table.Cell>
   );
 };
@@ -40,8 +36,8 @@ const UpdatedAtCell: FC<RowProps> = ({ rowData }) => {
   const timeStampText = rowData.updated_at || '';
   return (
     <Table.Cell>
-      <Tooltip text={timeStampText} placement="bottom-start" maxWidth={400}>
-        <Typography>{formatDateTime(timeStampText)}</Typography>
+      <Tooltip text={formatDateTime(timeStampText)} placement="bottom-start">
+        <Typography variant="body-small">{formatShortDateTime(timeStampText)}</Typography>
       </Tooltip>
     </Table.Cell>
   );
@@ -59,9 +55,8 @@ const WorkItemNameCell: FC<RowProps> = ({ rowData }) => {
 };
 
 const ActionsCell: FC<RowProps> = ({ rowData }) => {
-  const navigate = useNavigate();
   const { addSnackbar } = useSnackbar();
-  const { status, work_item_id, agent_id } = rowData;
+  const { status, work_item_id } = rowData;
 
   const { mutate: restartWorkItem, isPending: isRestarting } = useRestartWorkItemMutation({
     workItemId: work_item_id ?? '',
@@ -69,15 +64,6 @@ const ActionsCell: FC<RowProps> = ({ rowData }) => {
   const { mutate: completeWorkItem, isPending: isCompleting } = useCompleteWorkItemMutation({
     workItemId: work_item_id ?? '',
   });
-
-  const handleViewWorkItemClick = useCallback(() => {
-    if (status === 'PENDING' || !work_item_id || !agent_id) return;
-    
-    navigate({ 
-      to: '/workItem/$agentId/$workItemId', 
-      params: { workItemId: work_item_id, agentId: agent_id } 
-    });
-  }, [navigate, work_item_id, agent_id, status]);
 
   const handleRestart = useCallback(() => {
     restartWorkItem(
@@ -115,14 +101,6 @@ const ActionsCell: FC<RowProps> = ({ rowData }) => {
   return (
     <Table.Cell controls>
       <Button.Group>
-        <Button
-          aria-label="View Work Item"
-          size="small"
-          icon={status === 'PENDING' ? IconLoading : IconSearchArea}
-          variant="ghost-subtle"
-          onClick={status === 'PENDING' ? undefined : handleViewWorkItemClick}
-          loading={status === 'PENDING'}
-        />
         <Menu trigger={<Button aria-label="Actions" size="small" icon={IconDotsHorizontal} variant="ghost-subtle" />}>
           <Menu.Item icon={IconRefresh} onClick={handleRestart} disabled={!canRestart || isRestarting}>
             Restart

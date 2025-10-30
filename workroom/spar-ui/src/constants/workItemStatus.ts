@@ -1,12 +1,12 @@
 import { BadgeVariant } from '@sema4ai/components';
 import {
   IconForbid,
+  IconLoading,
   IconStatusCompleted,
   IconStatusError,
+  IconStatusTerminated,
   IconStatusNew,
   IconStatusPending,
-  IconStatusProcessing,
-  IconStatusTerminated,
   IconStatusTimeout,
   IconType,
 } from '@sema4ai/icons';
@@ -39,7 +39,7 @@ export const WORK_ITEM_STATUS_CONFIG: Record<WorkItemStatus, WorkItemStatusConfi
   EXECUTING: {
     label: 'Processing',
     variant: 'info',
-    icon: IconStatusProcessing,
+    icon: IconLoading,
     iconColor: 'content.subtle',
   },
   NEEDS_REVIEW: {
