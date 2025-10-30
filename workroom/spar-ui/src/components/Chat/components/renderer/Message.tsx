@@ -84,7 +84,7 @@ const Renderer: FC<{
   const messagePlatform = message.agent_metadata?.platform;
   const platform = typeof messagePlatform === 'string' ? messagePlatform : undefined;
 
-  return groupedMessageContent.map((processedContent) => {
+  return groupedMessageContent.map((processedContent, groupIndex) => {
     if (Array.isArray(processedContent)) {
       return (
         <ToolCallGroup
@@ -93,7 +93,7 @@ const Renderer: FC<{
           messageComplete={message.complete}
           platform={platform}
         >
-          {processedContent.map((processedContentItem) => (
+          {processedContent.map((processedContentItem, itemIndex) => (
             <MessageContentItemRenderer
               key={`group-item-${processedContentItem.content_id}`}
               message={message}
@@ -102,6 +102,9 @@ const Renderer: FC<{
               platform={platform}
               isLastMessage={isLastMessage}
               isFirstMessage={isFirstMessage}
+              isLastContentItem={
+                groupedMessageContent.length - 1 === groupIndex && processedContent.length - 1 === itemIndex
+              }
             />
           ))}
         </ToolCallGroup>
@@ -116,6 +119,7 @@ const Renderer: FC<{
         platform={platform}
         isLastMessage={isLastMessage}
         isFirstMessage={isFirstMessage}
+        isLastContentItem={groupedMessageContent.length - 1 === groupIndex}
       />
     );
   });

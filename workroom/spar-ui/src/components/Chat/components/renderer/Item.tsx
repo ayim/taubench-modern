@@ -2,8 +2,8 @@ import { FC, useEffect, useRef } from 'react';
 import MarkJS from 'mark.js';
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 import { Box, Button, Chat, useClipboard } from '@sema4ai/components';
-import { IconCheck2, IconCopy, IconThumbsDown, IconThumbsUp } from '@sema4ai/icons';
-import { styled } from '@sema4ai/theme';
+import { IconBallotBox, IconCheck2, IconCopy } from '@sema4ai/icons';
+import { css, styled } from '@sema4ai/theme';
 
 import { Attachment } from '../Attachment';
 import { FeedbackDialog } from '../FeedbackDialog';
@@ -27,6 +27,7 @@ type Props = {
   platform?: string;
   isLastMessage?: boolean;
   isFirstMessage?: boolean;
+  isLastContentItem?: boolean;
 };
 
 const MessageContainer = styled(Box)`
@@ -36,13 +37,27 @@ const MessageContainer = styled(Box)`
   }
 `;
 
-const MessageActions = styled(Box)<{ $isLastMessage?: boolean }>`
-  opacity: ${({ $isLastMessage }) => ($isLastMessage ? 1 : 0)};
-  transition: opacity 0.2s ease-in-out 0.4s;
-  display: flex;
-  justify-content: flex-start;
-  gap: ${({ theme }) => theme.space.$4};
-  margin-left: -${({ theme }) => theme.space.$8};
+const otherMessageActionsCss = css`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+`;
+
+const MessageActions = styled(Box)<{ $isLastMessage?: boolean; $isLastContentItem?: boolean }>`
+  position: relative;
+  padding-bottom: ${({ $isLastMessage, $isLastContentItem, theme }) =>
+    !$isLastMessage && $isLastContentItem ? theme.space.$4 : 0};
+
+  > div {
+    opacity: ${({ $isLastMessage }) => ($isLastMessage ? 1 : 0)};
+    transition: opacity 0.2s ease-in-out 0.4s;
+    display: flex;
+    justify-content: flex-start;
+    gap: ${({ theme }) => theme.space.$4};
+    margin-left: -${({ theme }) => theme.space.$8};
+    ${({ $isLastMessage, $isLastContentItem }) => !$isLastMessage && $isLastContentItem && otherMessageActionsCss}
+  }
 `;
 
 const TOOL_CALLS_TO_IGNORE: Record<string, boolean> = {
@@ -60,6 +75,7 @@ export const MessageContentItemRenderer: FC<Props> = ({
   platform,
   isLastMessage,
   isFirstMessage,
+  isLastContentItem,
 }) => {
   const { query } = useThreadSearchStore();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -116,29 +132,26 @@ export const MessageContentItemRenderer: FC<Props> = ({
           >
             {content.text}
           </Chat.Markdown>
-          <MessageActions $isLastMessage={isLastMessage && !isFirstMessage && !streaming} className="message-actions">
-            <Button
-              icon={copiedToClipboard ? IconCheck2 : IconCopy}
-              onClick={onCopyToClipboard(content.text)}
-              aria-label="Copy to clipboard"
-              variant="ghost-subtle"
-            />
-            {feedbackEnabled && sparAPIClient.sendFeedback && (
-              <>
+          <MessageActions
+            $isLastMessage={isLastMessage && !isFirstMessage && !streaming}
+            $isLastContentItem={isLastContentItem}
+          >
+            <div className="message-actions">
+              <Button
+                icon={copiedToClipboard ? IconCheck2 : IconCopy}
+                onClick={onCopyToClipboard(content.text)}
+                aria-label="Copy to clipboard"
+                variant="ghost-subtle"
+              />
+              {feedbackEnabled && sparAPIClient.sendFeedback && (
                 <Button
-                  icon={IconThumbsUp}
+                  icon={IconBallotBox}
                   onClick={() => openFeedbackDialog()}
                   aria-label="Feedback"
                   variant="ghost-subtle"
                 />
-                <Button
-                  icon={IconThumbsDown}
-                  onClick={() => openFeedbackDialog()}
-                  aria-label="Feedback"
-                  variant="ghost-subtle"
-                />
-              </>
-            )}
+              )}
+            </div>
           </MessageActions>
           {isFeedbackDialogOpen && <FeedbackDialog open onClose={closeFeedbackDialog} />}
         </MessageContainer>
