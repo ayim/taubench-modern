@@ -4,7 +4,7 @@ import { useTheme } from '@sema4ai/components';
 /**
  * Illustrations are located in the ./public/illustrations folder.
  */
-export type IllustrationName = 'agents' | 'generic' | 'llms' | 'secrets';
+export type IllustrationName = 'agents' | 'documents_processing' | 'generic' | 'llms' | 'secrets';
 
 type Props = {
   name: IllustrationName;

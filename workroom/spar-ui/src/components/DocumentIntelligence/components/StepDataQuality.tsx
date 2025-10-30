@@ -1,8 +1,5 @@
 import { Box, Typography, Button, useSnackbar } from '@sema4ai/components';
-import {
-  IconSparkles2,
-  IconPlus,
-} from '@sema4ai/icons';
+import { IconSparkles2, IconPlus } from '@sema4ai/icons';
 import { FC, useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { DocumentData } from '../types';
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
@@ -98,8 +95,8 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
     // Update the quality checks in store
     setDataQualityChecks(
       dataQualityChecks.map((check) =>
-        check.rule_name === ruleName ? { ...check, rule_description: newDescription } : check
-      )
+        check.rule_name === ruleName ? { ...check, rule_description: newDescription } : check,
+      ),
     );
   };
 
@@ -113,7 +110,6 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
       rule_description: '',
       sql_query: '',
     };
-
 
     setDataQualityChecks([...dataQualityChecks, newRule]);
 
@@ -158,7 +154,6 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
       }
 
       try {
-
         // Ensure the check has all required ValidationRule properties
         const validationRule: ValidationRule = {
           rule_name: check.rule_name || '',
@@ -176,7 +171,6 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
           close: true,
         });
       } finally {
-
         setRunningTests((prev) => {
           const newSet = new Set(prev);
           newSet.delete(check.rule_name as string);
@@ -202,14 +196,13 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
       }
 
       try {
-
         const currentChecks = [...dataQualityChecks];
 
         const result = await executeDataQualityFlow({
           agentId,
           dataModelName: dataModel.name,
           threadId,
-          description: checkDescriptions[ruleName] || check.rule_description as string,
+          description: checkDescriptions[ruleName] || (check.rule_description as string),
           limit: 1,
           skipGlobalLoading: true,
         });
@@ -227,14 +220,14 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
                   sql_query: newCheck.sql_query || '',
                   rule_description: newCheck.rule_description || checkDescriptions[ruleName] || c.rule_description,
                 }
-              : c
+              : c,
           );
 
           setDataQualityChecks(updatedChecks);
 
           // Auto-run the test with the new SQL
           // Use the original check.rule_name to find the updated check, since the API might return a different rule_name
-          const updatedCheck = updatedChecks.find(c => c.rule_name === check.rule_name);
+          const updatedCheck = updatedChecks.find((c) => c.rule_name === check.rule_name);
           if (updatedCheck) {
             await handleRunTest(updatedCheck);
           }
@@ -248,7 +241,17 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
         setRegeneratingRule(null);
       }
     },
-    [executeDataQualityFlow, dataModel, agentId, threadId, dataQualityChecks, setDataQualityChecks, setQualityCheckResult, addSnackbar, handleRunTest],
+    [
+      executeDataQualityFlow,
+      dataModel,
+      agentId,
+      threadId,
+      dataQualityChecks,
+      setDataQualityChecks,
+      setQualityCheckResult,
+      addSnackbar,
+      handleRunTest,
+    ],
   );
 
   const handleInit = useCallback(async () => {
@@ -265,48 +268,42 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
         });
       }
     } catch (e) {
-      addSnackbar({ message: `Failed to initialize data quality flow: ${e instanceof Error ? e.message : 'Unknown error'}`, close: true });
+      addSnackbar({
+        message: `Failed to initialize data quality flow: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        close: true,
+      });
     } finally {
       initLock.current = false;
     }
   }, [executeDataQualityFlow, dataModel, threadId, agentId, fileRef, dataQualityChecks]);
 
+  useEffect(() => {
+    const initialDescriptions: Record<string, string> = {};
+    dataQualityChecks.forEach((check) => {
+      const ruleName = check.rule_name as string;
+      const ruleDescription = check.rule_description as string;
 
-  useEffect(
-    () => {
-      const initialDescriptions: Record<string, string> = {};
-      dataQualityChecks.forEach((check) => {
-        const ruleName = check.rule_name as string;
-        const ruleDescription = check.rule_description as string;
-
-        if (checkDescriptions[ruleName] !== ruleDescription) {
-          initialDescriptions[ruleName] = ruleDescription;
-        }
-      });
-
-      if (Object.keys(initialDescriptions).length > 0) {
-        setCheckDescriptions((prev) => ({ ...prev, ...initialDescriptions }));
+      if (checkDescriptions[ruleName] !== ruleDescription) {
+        initialDescriptions[ruleName] = ruleDescription;
       }
-    },
+    });
 
-    [dataQualityChecks],
-  );
+    if (Object.keys(initialDescriptions).length > 0) {
+      setCheckDescriptions((prev) => ({ ...prev, ...initialDescriptions }));
+    }
+  }, [dataQualityChecks]);
 
-  useEffect(
-    () => {
-      handleInit();
-    },
-    [],
-  );
+  useEffect(() => {
+    handleInit();
+  }, []);
 
   const memoizedQualityChecks = useMemo(() => dataQualityChecks, [dataQualityChecks]);
   const memoizedQualityCheckResults = useMemo(() => qualityCheckResults, [qualityCheckResults]);
 
-
   // Only show full-screen loading for initial generation or global operations
   // Don't show it for individual quality check regeneration when we already have checks
-  const shouldShowFullScreenLoading = (isProcessing && dataQualityChecks.length === 0) ||
-                                    (flowLoading && dataQualityChecks.length === 0);
+  const shouldShowFullScreenLoading =
+    (isProcessing && dataQualityChecks.length === 0) || (flowLoading && dataQualityChecks.length === 0);
 
   if (shouldShowFullScreenLoading) {
     return <ProcessingLoadingState processingStep={processingStep} title="Generating Quality Checks" />;
@@ -348,9 +345,9 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
       {/* Header message */}
       <Box marginBottom="$32" display="flex" alignItems="center" gap="$8">
         <IconSparkles2 color="content.subtle.light" />
-          <Typography fontSize="$12" color="content.subtle">
-            Revise, add or remove the data quality checks below or via Agent chat.
-          </Typography>
+        <Typography fontSize="$12" color="content.subtle">
+          Revise, add or remove the data quality checks below or via Agent chat.
+        </Typography>
       </Box>
 
       <SpecialHandlingInstructions
@@ -367,7 +364,7 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
           <Typography fontSize="$16" fontWeight="bold">
             Data quality checks
           </Typography>
-           <Typography fontSize="$12" color="content.subtle">
+          <Typography fontSize="$12" color="content.subtle">
             These rules will automatically run to verify the logical and accurate extraction of data.
           </Typography>
         </Box>

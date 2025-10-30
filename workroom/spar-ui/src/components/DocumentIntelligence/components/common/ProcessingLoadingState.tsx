@@ -1,14 +1,12 @@
 import { FC, useMemo } from 'react';
 import { Box, EmptyState, Typography } from '@sema4ai/components';
 import { IconCheckCircle, IconLoading, IconAlertCircle } from '@sema4ai/icons';
+import { Illustration } from '../../../Illustration';
 
 interface ProcessingLoadingStateProps {
   processingStep?: string;
   title?: string;
 }
-
-// SVG illustration source - will be served from the consuming app's public folder
-const PIPER_WORKING_FILES_GRAPHIC_URL = '/illustrations/piper-working-files-graphic.svg';
 
 export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   processingStep,
@@ -46,9 +44,7 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   const getStepLabels = () => {
     // Special case for importing custom schema - single step process
     if (currentStep.includes('custom schema')) {
-      return [
-        { id: 'import-extract', label: 'Importing & Extracting with Custom Schema' },
-      ];
+      return [{ id: 'import-extract', label: 'Importing & Extracting with Custom Schema' }];
     }
 
     let step0 = 'Reading document';
@@ -93,7 +89,12 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
     }
 
     // If generating extraction schema, extracting data, or parsing document
-    if (currentStep.includes('schema') || currentStep.includes('extract') || currentStep.includes('parsing') || currentStep.includes('reading')) {
+    if (
+      currentStep.includes('schema') ||
+      currentStep.includes('extract') ||
+      currentStep.includes('parsing') ||
+      currentStep.includes('reading')
+    ) {
       return 'Generating Extraction Schema';
     }
 
@@ -113,7 +114,12 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
     }
 
     // For schema generation or extraction
-    if (currentStep.includes('schema') || currentStep.includes('extract') || currentStep.includes('parse') || currentStep.includes('reading')) {
+    if (
+      currentStep.includes('schema') ||
+      currentStep.includes('extract') ||
+      currentStep.includes('parse') ||
+      currentStep.includes('reading')
+    ) {
       return 'Your extraction will appear here once steps are complete';
     }
 
@@ -129,24 +135,12 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   return (
     <Box style={{ height: '100%' }} display="flex" flexDirection="column" alignItems="center" justifyContent="center">
       <EmptyState
-        illustration={
-          <img
-            src={PIPER_WORKING_FILES_GRAPHIC_URL}
-            alt="Processing documents"
-            loading="lazy"
-          />
-        }
+        illustration={<Illustration name="documents_processing" />}
         title={titleText}
         description={descriptionText}
         action={null}
       />
-      <Box
-        display="flex"
-        alignItems="center"
-        gap="$12"
-        marginTop="-2rem"
-        marginBottom="$0"
-      >
+      <Box display="flex" alignItems="center" gap="$12" marginTop="-2rem" marginBottom="$0">
         {steps.map((step) => {
           const status = getStepStatus(steps.indexOf(step));
           const Icon = getIcon(status);
@@ -165,4 +159,3 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
     </Box>
   );
 };
-

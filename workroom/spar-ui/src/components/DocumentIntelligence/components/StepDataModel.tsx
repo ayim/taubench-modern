@@ -1,10 +1,4 @@
-import {
-  Box,
-  Typography,
-  Column,
-  Tooltip,
-  Input,
-} from '@sema4ai/components';
+import { Box, Typography, Column, Tooltip, Input } from '@sema4ai/components';
 import { IconSparkles2, IconInformation } from '@sema4ai/icons';
 import { FC, useEffect, useMemo, useCallback, useState } from 'react';
 import { LayoutFieldRow, LayoutTableRow } from '../types';
@@ -19,12 +13,7 @@ interface StepDataModelProps {
   processingStep?: string;
 }
 
-export const StepDataModel: FC<StepDataModelProps> = ({
-  isReadOnly = false,
-  isProcessing = false,
-  processingStep,
-}) => {
-
+export const StepDataModel: FC<StepDataModelProps> = ({ isReadOnly = false, isProcessing = false, processingStep }) => {
   const layoutFields = useDocumentIntelligenceStore((state) => state.layoutFields);
   const layoutTables = useDocumentIntelligenceStore((state) => state.layoutTables);
   const updateField = useDocumentIntelligenceStore((state) => state.updateField);
@@ -199,7 +188,9 @@ export const StepDataModel: FC<StepDataModelProps> = ({
                 text={
                   <Box display="flex" flexDirection="column" gap="$4">
                     <Typography>Tables are the data that will be extracted from the document.</Typography>
-                    <Typography>You can edit the table columns, types, requirements, and descriptions below.</Typography>
+                    <Typography>
+                      You can edit the table columns, types, requirements, and descriptions below.
+                    </Typography>
                   </Box>
                 }
               >

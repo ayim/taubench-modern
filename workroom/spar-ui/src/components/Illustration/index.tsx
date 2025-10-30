@@ -4,7 +4,7 @@ import { FC } from 'react';
 /**
  * Illustrations are located in the ./public/illustrations folder.
  */
-type IllustrationName = 'actions' | 'agents' | 'environments' | 'generic' | 'llms' | 'secrets';
+type IllustrationName = 'actions' | 'agents' | 'documents_processing' | 'environments' | 'generic' | 'llms' | 'secrets';
 
 type Props = {
   name: IllustrationName;
