@@ -48,7 +48,7 @@ const UpdatedAtCell: FC<RowProps> = ({ rowData }) => {
 };
 
 const WorkItemNameCell: FC<RowProps> = ({ rowData }) => {
-  const displayName = rowData.work_item_name || rowData.work_item_id || '';
+  const displayName = rowData.work_item_name || '-';
   return (
     <Table.Cell>
       <Typography truncate $nowrap>
