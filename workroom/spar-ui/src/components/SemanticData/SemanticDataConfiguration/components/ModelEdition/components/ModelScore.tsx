@@ -1,9 +1,14 @@
+import { FC, ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Box, Tooltip, Typography } from '@sema4ai/components';
 import { IconHelpSmall } from '@sema4ai/icons';
 import { Color } from '@sema4ai/theme';
 
 import { DataConnectionFormSchema, getTableDimensions } from '../../form';
+
+type Props = {
+  children?: ReactNode;
+};
 
 const scoringMeta: { min: number; max: number; label: string; backgroundColor: Color; borderColor: Color }[] = [
   {
@@ -36,7 +41,7 @@ const scoringMeta: { min: number; max: number; label: string; backgroundColor: C
   },
 ];
 
-export const ModelScore = () => {
+export const ModelScore: FC<Props> = ({ children }) => {
   const { watch } = useFormContext<DataConnectionFormSchema>();
 
   const { tables } = watch();
@@ -66,30 +71,39 @@ export const ModelScore = () => {
 
   return (
     <Box
+      display="flex"
+      gap="$36"
+      flex="1"
       backgroundColor="background.panels"
       p="$24"
       borderColor="border.subtle"
       borderWidth={1}
       borderRadius="$16"
-      minWidth={220}
     >
-      <Box display="flex" alignItems="center" gap="$8" mb="$4">
-        <Typography color="content.subtle.light">Data Understanding</Typography>
-        <Tooltip text="The data understanding score is a measure of how well the data model captures the data.">
-          <IconHelpSmall color="background.subtle.light" />
-        </Tooltip>
+      <Box flex="1">
+        <Box display="flex" alignItems="center" gap="$8" mb="$4">
+          <Typography color="content.subtle.light">Data Understanding</Typography>
+          <Tooltip text="The data understanding score is a measure of how well the data model captures the data.">
+            <IconHelpSmall color="background.subtle.light" />
+          </Tooltip>
+        </Box>
+        <Typography fontWeight="medium" mb="$8">
+          {modelScore.label}
+        </Typography>
+        <Box height="$8" borderRadius="$8" backgroundColor={modelScore.backgroundColor}>
+          <Box
+            height="100%"
+            borderRadius="$8"
+            width={`${modelScore.finalScore}%`}
+            backgroundColor={modelScore.borderColor}
+          />
+        </Box>
       </Box>
-      <Typography fontWeight="medium" mb="$8">
-        {modelScore.label}
-      </Typography>
-      <Box height="$8" borderRadius="$8" backgroundColor={modelScore.backgroundColor}>
-        <Box
-          height="100%"
-          borderRadius="$8"
-          width={`${modelScore.finalScore}%`}
-          backgroundColor={modelScore.borderColor}
-        />
-      </Box>
+      {children && (
+        <Box display="flex" alignItems="center" justifyContent="flex-end">
+          {children}
+        </Box>
+      )}
     </Box>
   );
 };

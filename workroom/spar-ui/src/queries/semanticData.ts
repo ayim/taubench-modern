@@ -193,7 +193,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
       });
     }
 
-    return attachResponse.data;
+    return createResponse.data;
   },
   onSuccess: (_, { agentId }) => {
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });

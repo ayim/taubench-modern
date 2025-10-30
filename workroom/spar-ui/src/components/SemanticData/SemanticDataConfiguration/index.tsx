@@ -23,14 +23,17 @@ import { DataConnection } from './components/DataConnection';
 import { DataSelection } from './components/DataSelection';
 import { ModelEdition } from './components/ModelEdition';
 import { Processing } from './components/Processing';
+import { SuccessView } from './components/SuccessView';
 
 type Props = {
   onClose: () => void;
   modelId?: string;
 };
 
-export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
+export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initialModelId }) => {
+  const [modelId, setModelId] = useState<string | undefined>(initialModelId);
   const { agentId } = useParams('/thread/$agentId');
+
   const [activeStep, setActiveStep] = useState<ConfigurationStep>(ConfigurationStep.DataConnection);
   const { addSnackbar } = useSnackbar();
   const [databaseInspectionState, setDatabaseInspectionState] = useState<DatabaseInspectionState>({
@@ -65,7 +68,10 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
     if (semanticModel) {
       const values = semanticModelToFormSchema(semanticModel);
       formMethods.reset(values);
-      setActiveStep(ConfigurationStep.ModelEdition);
+
+      if (initialModelId) {
+        setActiveStep(ConfigurationStep.ModelEdition);
+      }
 
       if (values.dataConnectionId) {
         setDataSourceType(DataSourceType.Database);
@@ -73,7 +79,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
         setDataSourceType(DataSourceType.File);
       }
     }
-  }, [semanticModel]);
+  }, [semanticModel, initialModelId]);
 
   const onSubmit = formMethods.handleSubmit(async (values) => {
     if (modelId) {
@@ -81,7 +87,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
         { ...values, modelId, agentId },
         {
           onSuccess: () => {
-            addSnackbar({ message: 'Semantic data model updated successfully', variant: 'success' });
+            addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
             onClose();
           },
           onError: (error) => {
@@ -93,12 +99,9 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
       await importSemanticDataModel(
         { ...values, agentId },
         {
-          onSuccess: () => {
-            addSnackbar({
-              message: `Semantic data model imported successfully`,
-              variant: 'success',
-            });
-            onClose();
+          onSuccess: (result) => {
+            setActiveStep(ConfigurationStep.Success);
+            setModelId(result.semantic_data_model_id);
           },
           onError: (error) => {
             addSnackbar({ message: error.message, variant: 'danger' });
@@ -109,12 +112,9 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
       createSemanticData(
         { ...values, agentId },
         {
-          onSuccess: () => {
-            addSnackbar({
-              message: `Semantic data model created successfully`,
-              variant: 'success',
-            });
-            onClose();
+          onSuccess: (result) => {
+            setActiveStep(ConfigurationStep.Success);
+            setModelId(result.semantic_data_model_id);
           },
           onError: (error) => {
             addSnackbar({ message: error.message, variant: 'danger' });
@@ -191,7 +191,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
     ] satisfies StepStatusType[];
   })();
 
-  if (isLoadingSemanticModel) {
+  if (isLoadingSemanticModel && initialModelId === modelId) {
     return <Progress variant="page" />;
   }
 
@@ -200,32 +200,34 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
       <Form busy={isPending} onSubmit={onSubmit}>
         <FormProvider {...formMethods}>
           <DataConnectionFormContext.Provider value={formContextValue}>
-            <Dialog.Bar>
-              {(dataSourceType === DataSourceType.Database || dataSourceType === DataSourceType.File) && (
-                <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
-                  <Steps.Step status={step1Status}>Connection</Steps.Step>
-                  <Steps.Step status={step2Status} disabled={step1Status !== 'completed'}>
-                    Data Selection
-                  </Steps.Step>
-                  <Steps.Step status={step3Status} disabled={step2Status !== 'completed'}>
-                    Data Model
-                  </Steps.Step>
-                </Steps>
-              )}
-              {dataSourceType === DataSourceType.Import && (
-                <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
-                  <Steps.Step status={step1Status} onClick={() => onResetImport()}>
-                    File Upload
-                  </Steps.Step>
-                  <Steps.Step disabled status={step2Status}>
-                    Connection
-                  </Steps.Step>
-                  <Steps.Step disabled status={step3Status}>
-                    Data Model
-                  </Steps.Step>
-                </Steps>
-              )}
-            </Dialog.Bar>
+            {activeStep !== ConfigurationStep.Success && (
+              <Dialog.Bar>
+                {(dataSourceType === DataSourceType.Database || dataSourceType === DataSourceType.File) && (
+                  <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
+                    <Steps.Step status={step1Status}>Connection</Steps.Step>
+                    <Steps.Step status={step2Status} disabled={step1Status !== 'completed'}>
+                      Data Selection
+                    </Steps.Step>
+                    <Steps.Step status={step3Status} disabled={step2Status !== 'completed'}>
+                      Data Model
+                    </Steps.Step>
+                  </Steps>
+                )}
+                {dataSourceType === DataSourceType.Import && (
+                  <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
+                    <Steps.Step status={step1Status} onClick={() => onResetImport()}>
+                      File Upload
+                    </Steps.Step>
+                    <Steps.Step disabled status={step2Status}>
+                      Connection
+                    </Steps.Step>
+                    <Steps.Step disabled status={step3Status}>
+                      Data Model
+                    </Steps.Step>
+                  </Steps>
+                )}
+              </Dialog.Bar>
+            )}
             {isCreatePending ? (
               <Processing />
             ) : (
@@ -243,6 +245,9 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId }) => {
                 )}
                 {activeStep === ConfigurationStep.ModelEdition && (
                   <ModelEdition onClose={onClose} setActiveStep={setActiveStep} />
+                )}
+                {activeStep === ConfigurationStep.Success && (
+                  <SuccessView onClose={onClose} setActiveStep={setActiveStep} />
                 )}
               </>
             )}

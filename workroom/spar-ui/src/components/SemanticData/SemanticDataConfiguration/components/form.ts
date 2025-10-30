@@ -90,9 +90,10 @@ export type DataConnectionFormSchema = z.infer<typeof DataConnectionFormSchema>;
 
 export enum ConfigurationStep {
   DataConnection = 0,
-  ImportDataConnection = 3,
   DataSelection = 1,
   ModelEdition = 2,
+  ImportDataConnection = 3,
+  Success = 4,
 }
 
 type ConfigurationStepProps = {
