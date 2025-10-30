@@ -23,6 +23,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     agentId,
     evaluations: data.evaluations,
     handleCreateEvaluation: data.handleCreateEvaluation,
+    handleUpdateEvaluation: data.handleUpdateEvaluation,
     handleSuggestEvaluation: data.handleSuggestEvaluation,
     handleRunTest: data.handleRunTest,
     handleDeleteScenario: data.handleDeleteScenario,
@@ -32,8 +33,14 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     setCreateDialogOpen: state.setCreateDialogOpen,
     setSuggestedValues: state.setSuggestedValues,
     setDeleteTarget: state.setDeleteTarget,
+    editingScenario: state.editingScenario,
+    setEditingScenario: state.setEditingScenario,
     resetCreateDialogState: state.resetCreateDialogState,
   });
+
+  const isSubmittingEvaluation = state.editingScenario
+    ? data.updateScenarioMutation.isPending
+    : data.createScenarioMutation.isPending;
 
   return {
     // State values
@@ -47,6 +54,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     selectedTrials: state.selectedTrials,
     selectedTrialsForAll: state.selectedTrialsForAll,
     selectedRunIndices: state.selectedRunIndices,
+    editingScenario: state.editingScenario,
 
     // State actions
     setDeleteTarget: state.setDeleteTarget,
@@ -72,20 +80,24 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     loading: data.loading,
     isAnyTestRunning: data.isAnyTestRunning,
     createScenarioMutation: data.createScenarioMutation,
+    updateScenarioMutation: data.updateScenarioMutation,
     deleteScenarioMutation: data.deleteScenarioMutation,
     suggestScenarioMutation: data.suggestScenarioMutation,
     exportScenariosMutation: data.exportScenariosMutation,
     importScenariosMutation: data.importScenariosMutation,
+    isSubmittingEvaluation,
 
     // Data handlers (business logic)
     handleRunTest: data.handleRunTest,
     handleCreateEvaluation: data.handleCreateEvaluation,
+    handleUpdateEvaluation: data.handleUpdateEvaluation,
     handleSuggestEvaluation: data.handleSuggestEvaluation,
     handleDeleteScenario: data.handleDeleteScenario,
 
     // User action handlers
     handleAddEvaluation: actions.handleAddEvaluation,
-    handleCreateEvaluationWithCleanup: actions.handleCreateEvaluationWithCleanup,
+    handleEditEvaluation: actions.handleEditEvaluation,
+    handleSubmitEvaluation: actions.handleSubmitEvaluation,
     handleRunAll: actions.handleRunAll,
     handleDeleteConfirm: actions.handleDeleteConfirm,
     handleViewResults: actions.handleViewResults,

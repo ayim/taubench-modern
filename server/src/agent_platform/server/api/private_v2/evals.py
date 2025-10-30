@@ -2,7 +2,7 @@ import io
 import re
 import zipfile
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, Self
@@ -608,6 +608,72 @@ async def create_scenario(
 
 
 @dataclass(frozen=True)
+class UpdateScenarioPayload:
+    name: str
+    description: str
+    tool_execution_mode: Literal["replay", "live"] | None = None
+    evaluation_criteria: list[EvaluationCriterion] | None = None
+
+    def apply(self, scenario: Scenario) -> Scenario:  # noqa: PLR0912, C901
+        metadata = deepcopy(scenario.metadata) if isinstance(scenario.metadata, dict) else {}
+        drift_policy = metadata.get("drift_policy")
+        if isinstance(drift_policy, dict):
+            drift_policy = deepcopy(drift_policy)
+        else:
+            drift_policy = {}
+
+        criteria = self.evaluation_criteria or []
+        evaluations_config: dict[str, Any] = {}
+
+        for criterion in criteria:
+            if criterion.type == "action_calling":
+                action_config: dict[str, Any] = {"enabled": True}
+                for attr in (
+                    "assert_all_consumed",
+                    "allow_llm_arg_validation",
+                    "allow_llm_interpolation",
+                ):
+                    value = getattr(criterion, attr)
+                    if value is not None:
+                        action_config[attr] = value
+                        drift_policy[attr] = value
+                evaluations_config["action_calling"] = action_config
+            elif criterion.type == "flow_adherence":
+                evaluations_config["flow_adherence"] = {"enabled": True}
+            elif criterion.type == "response_accuracy":
+                expectation = criterion.expectation.strip()
+                if not expectation:
+                    raise ValueError("Response accuracy expectation cannot be empty")
+                evaluations_config["response_accuracy"] = {
+                    "enabled": True,
+                    "expectation": expectation,
+                }
+
+        if self.tool_execution_mode is not None:
+            drift_policy["tool_execution_mode"] = self.tool_execution_mode
+        else:
+            drift_policy.pop("tool_execution_mode", None)
+
+        if drift_policy:
+            metadata["drift_policy"] = drift_policy
+        else:
+            metadata.pop("drift_policy", None)
+
+        if evaluations_config:
+            metadata["evaluations"] = evaluations_config
+        else:
+            metadata.pop("evaluations", None)
+
+        return replace(
+            scenario,
+            name=self.name,
+            description=self.description,
+            metadata=metadata,
+            updated_at=datetime.now(UTC),
+        )
+
+
+@dataclass(frozen=True)
 class SuggestScenarioPayload:
     thread_id: str
     max_options: int = 1
@@ -716,6 +782,25 @@ async def import_agent_scenarios(
 @router.get("/scenarios/{scenario_id}", response_model=Scenario)
 async def get_scenario(scenario_id: str, user: AuthedUser, storage: StorageDependency):
     return await storage.get_scenario(scenario_id=scenario_id)
+
+
+@router.patch("/scenarios/{scenario_id}", response_model=Scenario)
+async def update_scenario(
+    scenario_id: str,
+    payload: UpdateScenarioPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    scenario = await storage.get_scenario(scenario_id=scenario_id)
+    if scenario is None:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+
+    try:
+        updated = payload.apply(scenario)
+    except ValueError as exc:  # pragma: no cover - validated via unit tests
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return await storage.update_scenario(updated)
 
 
 @router.delete("/scenarios/{scenario_id}", response_model=Scenario)

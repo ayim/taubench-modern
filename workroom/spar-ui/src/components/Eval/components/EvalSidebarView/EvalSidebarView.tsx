@@ -92,9 +92,10 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
         <CreateEvalDialog
           open={sidebar.createDialogOpen}
           onClose={sidebar.resetCreateDialogState}
-          onSubmit={sidebar.handleCreateEvaluationWithCleanup}
-          isLoading={sidebar.createScenarioMutation.isPending}
+          onSubmit={sidebar.handleSubmitEvaluation}
+          isLoading={sidebar.isSubmittingEvaluation}
           initialValues={sidebar.suggestedValues}
+          mode={sidebar.editingScenario ? 'edit' : 'create'}
         />
       </>
     );
@@ -137,6 +138,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
                     name: scenario.name,
                   })
                 }
+                onEditScenario={() => sidebar.handleEditEvaluation(scenario)}
                 onSetSelectedTrials={(numTrials) =>
                   sidebar.setSelectedTrials((prev) => new Map(prev).set(scenario.scenario_id, numTrials))
                 }
@@ -200,9 +202,10 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
       <CreateEvalDialog
         open={sidebar.createDialogOpen}
         onClose={sidebar.resetCreateDialogState}
-        onSubmit={sidebar.handleCreateEvaluationWithCleanup}
-        isLoading={sidebar.createScenarioMutation.isPending}
+        onSubmit={sidebar.handleSubmitEvaluation}
+        isLoading={sidebar.isSubmittingEvaluation}
         initialValues={sidebar.suggestedValues}
+        mode={sidebar.editingScenario ? 'edit' : 'create'}
       />
 
       <input

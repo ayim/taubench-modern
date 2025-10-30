@@ -9,6 +9,7 @@ export interface UseEvalSidebarActionsProps {
   agentId: string;
   evaluations: EvaluationItem[];
   handleCreateEvaluation: (data: CreateEvalFormData) => Promise<void>;
+  handleUpdateEvaluation: (scenarioId: string, data: CreateEvalFormData) => Promise<void>;
   handleSuggestEvaluation: () => Promise<Partial<CreateEvalFormData> | null>;
   handleRunTest: (scenario: Scenario, numTrials: number) => Promise<void>;
   handleDeleteScenario: (scenarioId: string) => Promise<void>;
@@ -18,6 +19,8 @@ export interface UseEvalSidebarActionsProps {
   setCreateDialogOpen: (open: boolean) => void;
   setSuggestedValues: (values: Partial<CreateEvalFormData> | undefined) => void;
   setDeleteTarget: (target: DeleteTarget | null) => void;
+  editingScenario: Scenario | null;
+  setEditingScenario: (scenario: Scenario | null) => void;
   resetCreateDialogState: () => void;
 }
 
@@ -25,6 +28,7 @@ export const useEvalSidebarActions = ({
   agentId,
   evaluations,
   handleCreateEvaluation,
+  handleUpdateEvaluation,
   handleSuggestEvaluation,
   handleRunTest,
   handleDeleteScenario,
@@ -34,21 +38,58 @@ export const useEvalSidebarActions = ({
   setCreateDialogOpen,
   setSuggestedValues,
   setDeleteTarget,
+  editingScenario,
+  setEditingScenario,
   resetCreateDialogState,
 }: UseEvalSidebarActionsProps) => {
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
 
+  const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+
+  const mapScenarioToFormValues = (scenario: Scenario): Partial<CreateEvalFormData> => {
+    const metadata = isRecord(scenario.metadata) ? scenario.metadata : {};
+    const driftPolicy = isRecord(metadata.drift_policy) ? metadata.drift_policy : {};
+    const evaluationKinds = isRecord(metadata.evaluations) ? metadata.evaluations : {};
+    const responseAccuracy = isRecord(evaluationKinds.response_accuracy) ? evaluationKinds.response_accuracy : {};
+
+    const expectation =
+      typeof responseAccuracy.expectation === 'string' ? responseAccuracy.expectation : '';
+    const toolExecutionMode =
+      typeof driftPolicy.tool_execution_mode === 'string' ? driftPolicy.tool_execution_mode : null;
+
+    return {
+      name: scenario.name,
+      description: scenario.description,
+      useLiveExecution: toolExecutionMode === 'live',
+      evaluationCriteria: {
+        responseAccuracyExpectation: expectation,
+      },
+    };
+  };
+
   const handleAddEvaluation = async () => {
     setSuggestedValues(undefined);
+    setEditingScenario(null);
 
     const suggestion = await handleSuggestEvaluation();
     setSuggestedValues(suggestion || undefined);
     setCreateDialogOpen(true);
   };
 
-  const handleCreateEvaluationWithCleanup = async (data: CreateEvalFormData) => {
-    await handleCreateEvaluation(data);
+  const handleEditEvaluation = (scenario: Scenario) => {
+    setEditingScenario(scenario);
+    setSuggestedValues(mapScenarioToFormValues(scenario));
+    setCreateDialogOpen(true);
+  };
+
+  const handleSubmitEvaluation = async (data: CreateEvalFormData) => {
+    if (editingScenario) {
+      await handleUpdateEvaluation(editingScenario.scenario_id, data);
+    } else {
+      await handleCreateEvaluation(data);
+    }
     resetCreateDialogState();
   };
 
@@ -137,7 +178,8 @@ export const useEvalSidebarActions = ({
 
   return {
     handleAddEvaluation,
-    handleCreateEvaluationWithCleanup,
+    handleEditEvaluation,
+    handleSubmitEvaluation,
     handleRunAll,
     handleDeleteConfirm,
     handleViewResults,

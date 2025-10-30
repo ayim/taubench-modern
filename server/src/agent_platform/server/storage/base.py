@@ -637,6 +637,42 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return Scenario.model_validate(dict(row)) if row is not None else None
 
+    async def update_scenario(self, scenario: Scenario) -> Scenario:
+        """Update a scenario."""
+        scenarios = self._get_table("scenarios")
+
+        stmt = (
+            sa.update(scenarios)
+            .where(scenarios.c.scenario_id == scenario.scenario_id)
+            .values(
+                name=scenario.name,
+                description=scenario.description,
+                metadata=scenario.metadata,
+                updated_at=scenario.updated_at,
+            )
+            .returning(
+                scenarios.c.scenario_id,
+                scenarios.c.name,
+                scenarios.c.description,
+                scenarios.c.thread_id,
+                scenarios.c.agent_id,
+                scenarios.c.user_id,
+                scenarios.c.created_at,
+                scenarios.c.updated_at,
+                scenarios.c.messages,
+                scenarios.c.metadata,
+            )
+        )
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        if row is None:
+            raise RuntimeError("Cannot update scenario")
+
+        return Scenario.model_validate(dict(row))
+
     async def delete_scenario(self, scenario_id: str) -> Scenario | None:
         """Delete a scenario."""
         scenarios = self._get_table("scenarios")

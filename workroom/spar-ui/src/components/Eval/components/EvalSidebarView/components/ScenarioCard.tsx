@@ -14,6 +14,7 @@ import {
   IconTrash,
   IconCloseCircle,
   IconArrowRightCircle,
+  IconEdit,
 } from '@sema4ai/icons';
 import { getRunStatus, hasTerminalTrials } from '../utils';
 import { getPassFailCounts } from '../helpers/evalHelpers';
@@ -29,6 +30,7 @@ export interface ScenarioCardProps {
   onRunTest: (numTrials: number) => void;
   onToggleResults: () => void;
   onDeleteScenario: () => void;
+  onEditScenario: () => void;
   onSetSelectedTrials: (numTrials: number) => void;
   onCancelTest: () => void;
   children?: React.ReactNode;
@@ -44,6 +46,7 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
   onRunTest,
   onToggleResults,
   onDeleteScenario,
+  onEditScenario,
   onSetSelectedTrials,
   onCancelTest,
   children,
@@ -163,16 +166,19 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
                   <Menu.Item
                     onClick={() => onSetSelectedTrials(4)}
                     icon={IconInformation}
-                  >
-                    Switch to 4x
-                  </Menu.Item>
-                </Tooltip>
-              )}
-              <Menu.Item 
-                icon={IconTrash} 
-                onClick={onDeleteScenario}
               >
-                Delete
+                Switch to 4x
+              </Menu.Item>
+            </Tooltip>
+          )}
+          <Menu.Item icon={IconEdit} onClick={onEditScenario}>
+            Edit evaluation
+          </Menu.Item>
+          <Menu.Item 
+            icon={IconTrash} 
+            onClick={onDeleteScenario}
+          >
+            Delete
               </Menu.Item>
             </Menu>
           </Box>

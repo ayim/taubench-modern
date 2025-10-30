@@ -7,6 +7,16 @@ import { useSparUIContext } from '../api/context';
 type ListScenariosResponse = paths['/api/v2/evals/scenarios']['get']['responses']['200']['content']['application/json'];
 export type Scenario = components['schemas']['Scenario'];
 type CreateScenarioPayload = components['schemas']['CreateScenarioPayload'];
+type UpdateScenarioPayload = {
+  name: string;
+  description: string;
+  tool_execution_mode?: 'replay' | 'live';
+  evaluation_criteria?: (
+    | components['schemas']['ActionCalling']
+    | components['schemas']['FlowAdherence']
+    | components['schemas']['ResponseAccuracy']
+  )[];
+};
 type CreateScenarioRunPayload = components['schemas']['CreateScenarioRunPayload'];
 type SuggestScenarioPayload =
   paths['/api/v2/evals/scenarios/suggest']['post']['requestBody']['content']['application/json'];
@@ -152,6 +162,26 @@ export const useCreateScenarioMutation = createSparMutation<Record<string, never
     },
   }),
 );
+
+export const useUpdateScenarioMutation = createSparMutation<
+  Record<string, never>,
+  { scenarioId: string; body: UpdateScenarioPayload }
+>()(({ sparAPIClient, queryClient }) => ({
+  mutationFn: async ({ scenarioId, body }): Promise<Scenario> => {
+    const response = await sparAPIClient.queryAgentServer('patch', '/api/v2/evals/scenarios/{scenario_id}', {
+      params: { path: { scenario_id: scenarioId } },
+      body,
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
+    }
+    return response.data;
+  },
+  onSuccess: async (_data, { scenarioId }) => {
+    await queryClient.invalidateQueries({ queryKey: ['scenarios'] });
+    await queryClient.invalidateQueries({ queryKey: ['scenario', scenarioId] });
+  },
+}));
 
 export const useDeleteScenarioMutation = createSparMutation<Record<string, never>, { scenarioId: string }>()(
   ({ sparAPIClient, queryClient }) => ({

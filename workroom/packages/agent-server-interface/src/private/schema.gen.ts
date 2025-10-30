@@ -2317,7 +2317,8 @@ export interface paths {
     delete: operations['delete_scenario_evals_scenarios__scenario_id__delete'];
     options?: never;
     head?: never;
-    patch?: never;
+    /** Update Scenario */
+    patch: operations['update_scenario_evals_scenarios__scenario_id__patch'];
     trace?: never;
   };
   '/api/v2/evals/scenarios/{scenario_id}/runs': {
@@ -7612,6 +7613,23 @@ export interface components {
     /** UpdateDataModelRequest */
     UpdateDataModelRequest: {
       data_model: components['schemas']['PartialDataModelPayload'];
+    };
+    /** UpdateScenarioPayload */
+    UpdateScenarioPayload: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Tool Execution Mode */
+      tool_execution_mode?: ('replay' | 'live') | null;
+      /** Evaluation Criteria */
+      evaluation_criteria?:
+        | (
+            | components['schemas']['ActionCalling']
+            | components['schemas']['FlowAdherence']
+            | components['schemas']['ResponseAccuracy']
+          )[]
+        | null;
     };
     /** UpdateWorkItemPayload */
     UpdateWorkItemPayload: {
@@ -15771,6 +15789,41 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Scenario'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  update_scenario_evals_scenarios__scenario_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scenario_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateScenarioPayload'];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {

@@ -35,6 +35,7 @@ export interface CreateEvalDialogProps {
   onSubmit: (data: CreateEvalFormData) => Promise<void>;
   isLoading: boolean;
   initialValues?: Partial<CreateEvalFormData>;
+  mode?: 'create' | 'edit';
 }
 
 export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
@@ -43,7 +44,9 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
   onSubmit,
   isLoading = false,
   initialValues,
+  mode = 'create',
 }) => {
+  const isEditMode = mode === 'edit';
   const form = useForm<CreateEvalFormData>({
     resolver: zodResolver(createEvalFormSchema),
     defaultValues: {
@@ -145,8 +148,14 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
         <Dialog.Content>
           <Box display="flex" flexDirection="column" alignItems="center" gap="$16" padding="$32">
             <Progress size="large" />
-            <Typography variant="display-large">Creating Your Evaluation</Typography>
-            <Typography variant="body-medium">Your Evaluation will be available in a few seconds.</Typography>
+            <Typography variant="display-large">
+              {isEditMode ? 'Updating Your Evaluation' : 'Creating Your Evaluation'}
+            </Typography>
+            <Typography variant="body-medium">
+              {isEditMode
+                ? 'Your changes will be saved in a few seconds.'
+                : 'Your Evaluation will be available in a few seconds.'}
+            </Typography>
           </Box>
         </Dialog.Content>
         
@@ -170,7 +179,9 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
         <Dialog.Header.Title title={
           <Box display="flex" alignItems="center" gap="$8">
             <IconChemicalBottle />
-            <Typography variant='display-small'>Create Evaluation Scenario</Typography>
+            <Typography variant='display-small'>
+              {isEditMode ? 'Edit Evaluation Scenario' : 'Create Evaluation Scenario'}
+            </Typography>
           </Box>
         } />
       </Dialog.Header>
@@ -267,7 +278,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
           loading={isLoading}
           round
         >
-          Create
+          {isEditMode ? 'Save changes' : 'Create'}
         </Button>
         <Button 
           variant="secondary" 

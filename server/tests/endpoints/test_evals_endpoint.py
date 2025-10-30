@@ -348,3 +348,65 @@ async def test_import_agent_scenarios_rejects_invalid_archive(client, storage, s
 
     after = await storage.list_scenarios(limit=None, agent_id=agent.agent_id)
     assert len(after) == len(before)
+
+
+async def test_update_scenario_persists_changes(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    scenario = Scenario(
+        scenario_id=str(uuid4()),
+        name="Original",
+        description="Original description",
+        thread_id=None,
+        agent_id=agent.agent_id,
+        user_id=stub_user.user_id,
+        messages=[
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="Hello")],
+                complete=True,
+            )
+        ],
+        metadata={
+            "evaluations": {
+                "response_accuracy": {
+                    "enabled": True,
+                    "expectation": "Stay polite.",
+                }
+            },
+            "drift_policy": {"tool_execution_mode": "live"},
+        },
+    )
+    await storage.create_scenario(scenario)
+
+    payload = {
+        "name": "Updated",
+        "description": "Updated description",
+        "evaluation_criteria": [
+            {"type": "action_calling"},
+            {"type": "flow_adherence"},
+            {"type": "response_accuracy", "expectation": "Handle returns."},
+        ],
+    }
+
+    response = client.patch(
+        f"/api/v2/evals/scenarios/{scenario.scenario_id}",
+        json=payload,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Updated"
+    assert body["description"] == "Updated description"
+
+    stored = await storage.get_scenario(scenario_id=scenario.scenario_id)
+    assert stored is not None
+    assert stored.name == "Updated"
+    assert stored.description == "Updated description"
+
+    metadata = stored.metadata or {}
+    evaluations = metadata.get("evaluations", {})
+    response_accuracy = evaluations.get("response_accuracy", {})
+    assert response_accuracy.get("expectation") == "Handle returns."
+    assert evaluations.get("action_calling", {}).get("enabled") is True
+    drift_policy = metadata.get("drift_policy", {})
+    assert "tool_execution_mode" not in drift_policy

@@ -7074,6 +7074,54 @@ export const spec = {
           },
         },
       },
+      patch: {
+        tags: ['evals'],
+        summary: 'Update Scenario',
+        operationId: 'update_scenario_evals_scenarios__scenario_id__patch',
+        parameters: [
+          {
+            name: 'scenario_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Scenario Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpdateScenarioPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Scenario',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
       delete: {
         tags: ['evals'],
         summary: 'Delete Scenario',
@@ -18491,6 +18539,57 @@ export const spec = {
         type: 'object',
         required: ['data_model'],
         title: 'UpdateDataModelRequest',
+      },
+      UpdateScenarioPayload: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          tool_execution_mode: {
+            anyOf: [
+              {
+                type: 'string',
+                enum: ['replay', 'live'],
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Tool Execution Mode',
+          },
+          evaluation_criteria: {
+            anyOf: [
+              {
+                items: {
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/ActionCalling',
+                    },
+                    {
+                      $ref: '#/components/schemas/FlowAdherence',
+                    },
+                    {
+                      $ref: '#/components/schemas/ResponseAccuracy',
+                    },
+                  ],
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Evaluation Criteria',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description'],
+        title: 'UpdateScenarioPayload',
       },
       UpdateWorkItemPayload: {
         properties: {

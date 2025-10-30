@@ -56,6 +56,7 @@ function getRouteMap(): {
       SIGN_WITH_TENANT,
       agentReadPermissions,
     ],
+    'patch /api/v2/evals/scenarios/{scenario_id}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'post /api/v2/package/deploy/agent': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
 
     // Allowed routes with user-level signing

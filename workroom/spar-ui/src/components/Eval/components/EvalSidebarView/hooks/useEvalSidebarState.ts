@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
+import type { Scenario } from '../types';
 
 export interface DeleteTarget {
   scenario_id: string;
@@ -11,6 +12,7 @@ export const useEvalSidebarState = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [suggestedValues, setSuggestedValues] = useState<Partial<CreateEvalFormData> | undefined>(undefined);
   const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
+  const [editingScenario, setEditingScenario] = useState<Scenario | null>(null);
 
   const [expandedResultsOrder, setExpandedResultsOrder] = useState<string[]>([]);
   const [expandedTrials, setExpandedTrials] = useState<Set<string>>(new Set());
@@ -83,6 +85,7 @@ export const useEvalSidebarState = () => {
   const resetCreateDialogState = () => {
     setCreateDialogOpen(false);
     setSuggestedValues(undefined);
+    setEditingScenario(null);
   };
 
   const handlePreviousRun = (scenarioId: string) => {
@@ -115,6 +118,7 @@ export const useEvalSidebarState = () => {
     createDialogOpen,
     suggestedValues,
     isFetchingSuggestion,
+    editingScenario,
     expandedResults,
     expandedTrials,
     expandedEvaluations,
@@ -127,6 +131,7 @@ export const useEvalSidebarState = () => {
     setCreateDialogOpen,
     setSuggestedValues,
     setIsFetchingSuggestion,
+    setEditingScenario,
     setSelectedTrials,
     setSelectedTrialsForAll,
     setSelectedRunIndices,

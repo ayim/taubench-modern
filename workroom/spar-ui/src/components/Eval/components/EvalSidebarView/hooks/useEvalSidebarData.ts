@@ -15,6 +15,7 @@ import {
   useCancelScenarioRunMutation,
   useExportScenariosMutation,
   useImportScenariosMutation,
+  useUpdateScenarioMutation,
 } from '../../../../../queries/evals';
 import { useSparUIContext } from '../../../../../api/context';
 import { sortByCreatedAtDesc } from '../../../../../lib/utils';
@@ -50,6 +51,7 @@ export const useEvalSidebarData = ({
   const deleteScenarioMutation = useDeleteScenarioMutation({});
   const createScenarioRunMutation = useCreateScenarioRunMutation({});
   const createScenarioMutation = useCreateScenarioMutation({});
+  const updateScenarioMutation = useUpdateScenarioMutation({});
   const suggestScenarioMutation = useSuggestScenarioMutation({});
   const cancelScenarioRunMutation = useCancelScenarioRunMutation({});
   const exportScenariosMutation = useExportScenariosMutation({});
@@ -207,7 +209,7 @@ export const useEvalSidebarData = ({
     }
   }, [evaluations, loading, expandResults, expandedResults]);
 
-  const handleCreateEvaluation = async (data: CreateEvalFormData) => {
+  const buildEvaluationCriteria = (data: CreateEvalFormData) => {
     const evaluationCriteria: EvaluationCriterionConfig[] = [];
     const expectation = data.evaluationCriteria.responseAccuracyExpectation.trim();
 
@@ -232,11 +234,31 @@ export const useEvalSidebarData = ({
       }
     }
 
+    return evaluationCriteria;
+  };
+
+  const handleCreateEvaluation = async (data: CreateEvalFormData) => {
+    const evaluationCriteria = buildEvaluationCriteria(data);
+
     await createScenarioMutation.mutateAsync({
       body: {
         name: data.name,
         description: data.description,
         thread_id: threadId,
+        tool_execution_mode: data.useLiveExecution ? 'live' : undefined,
+        evaluation_criteria: evaluationCriteria,
+      },
+    });
+  };
+
+  const handleUpdateEvaluation = async (scenarioId: string, data: CreateEvalFormData) => {
+    const evaluationCriteria = buildEvaluationCriteria(data);
+
+    await updateScenarioMutation.mutateAsync({
+      scenarioId,
+      body: {
+        name: data.name,
+        description: data.description,
         tool_execution_mode: data.useLiveExecution ? 'live' : undefined,
         evaluation_criteria: evaluationCriteria,
       },
@@ -335,6 +357,7 @@ export const useEvalSidebarData = ({
 
     // Mutations
     createScenarioMutation,
+    updateScenarioMutation,
     deleteScenarioMutation,
     suggestScenarioMutation,
     cancelScenarioRunMutation,
@@ -343,6 +366,7 @@ export const useEvalSidebarData = ({
 
     // Business logic functions
     handleCreateEvaluation,
+    handleUpdateEvaluation,
     handleSuggestEvaluation,
     handleRunTest,
     handleDeleteScenario,
