@@ -2,7 +2,7 @@ import { createBasicAgentConfig } from '../client';
 import { ActionPackage, McpServer, QuestionGroup, ToolDefinitionPayload, UpsertAgentPayload } from '../types';
 import { createSimpleTool } from '../../sdk/tools';
 import { GenericAgentOptions } from './generic';
-import { SAI_AGENT_SETUP_RUNBOOK } from './agentSetupRunbook';
+import { SAI_AGENT_SETUP_RUNBOOK } from './agentSetupRunbooks/agentSetupRunbook';
 
 const SAI_AGENT_SETUP_NAME = 'sai-sdk-agent-setup';
 const SAI_AGENT_SETUP_DESCRIPTION = 'Sai SDK Agent Setup';
