@@ -25,14 +25,16 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
       const model = yamlParse(text);
       const values = semanticModelToFormSchema(model);
 
+      if (values.fileRefId) {
+        values.fileRefId = file.name;
+      }
+
       if (values.dataConnectionId) {
         values.dataConnectionId = undefined;
-        reset(values);
-      } else {
-        values.fileRefId = file.name;
-        reset(values);
-        onSubmit();
       }
+
+      reset(values);
+      onSubmit();
     } catch (error) {
       addSnackbar({ message: error instanceof Error ? error.message : 'Failed to validate model', variant: 'danger' });
     }
