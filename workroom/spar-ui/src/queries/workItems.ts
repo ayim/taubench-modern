@@ -1,7 +1,9 @@
 import { components } from '@sema4ai/agent-server-interface';
 import { asyncForLoop } from '@sema4ai/robocloud-shared-utils';
+import { InfiniteData, useInfiniteQuery } from '@tanstack/react-query';
 
 import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
+import { useSparUIContext } from '../api/context';
 
 export type WorkItem = components['schemas']['WorkItem'];
 export type WorkItemStatus = components['schemas']['WorkItemStatus'];
@@ -77,6 +79,53 @@ export const workItemsQueryOptions = createSparQueryOptions<WorkItemsQueryParams
 });
 
 export const useWorkItemsQuery = createSparQuery(workItemsQueryOptions);
+
+const infiniteWorkItemsQueryKey = (params: { agentId: string; nameSearch: string | undefined }) => [
+  'work-items-infinite',
+  params.agentId,
+  params.nameSearch ?? '',
+];
+
+const infiniteWorkItemsQueryKeyPrefix = (params: { agentId: string }) => ['work-items-infinite', params.agentId];
+
+export const useWorkItemsInfiniteQuery = (params: {
+  agentId: string;
+  limit: number;
+  nameSearch: string | undefined;
+}) => {
+  const { sparAPIClient } = useSparUIContext();
+
+  return useInfiniteQuery<WorkItemsListResponse, QueryError>({
+    queryKey: infiniteWorkItemsQueryKey(params),
+    queryFn: async ({ pageParam }): Promise<WorkItemsListResponse> => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/', {
+        params: {
+          query: {
+            agent_id: params.agentId,
+            limit: params.limit,
+            offset: typeof pageParam === 'number' ? pageParam : 0,
+            name_search: params.nameSearch,
+          },
+        },
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to fetch work items', {
+          code: response.code,
+          resource: ResourceType.WorkItem,
+        });
+      }
+
+      return response.data;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const currentOffset = allPages.length * params.limit;
+      const hasMoreItems = (lastPage.records?.length ?? 0) === params.limit;
+      return hasMoreItems ? currentOffset : undefined;
+    },
+    initialPageParam: 0,
+  });
+};
 
 /**
  * Get Work Item
@@ -165,8 +214,6 @@ export const useCreateWorkItemMutation = createSparMutation<
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: workItemsQueryKey({ agentId }) });
-
       return response.data;
     };
 
@@ -198,8 +245,33 @@ export const useCreateWorkItemMutation = createSparMutation<
 
     return createdWorkItem;
   },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['work-items', agentId] });
+  onSuccess: (createdWorkItem) => {
+    queryClient.setQueriesData<InfiniteData<WorkItemsListResponse>>(
+      {
+        queryKey: infiniteWorkItemsQueryKeyPrefix({ agentId }),
+        exact: false,
+      },
+      (oldData) => {
+        if (!oldData || !createdWorkItem) {
+          return oldData;
+        }
+
+        const updatedPages = [...oldData.pages];
+        const firstPage = updatedPages[0];
+
+        if (firstPage && firstPage.records) {
+          updatedPages[0] = {
+            ...firstPage,
+            records: [createdWorkItem, ...firstPage.records],
+          };
+        }
+
+        return {
+          ...oldData,
+          pages: updatedPages,
+        };
+      },
+    );
   },
 }));
 

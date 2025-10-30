@@ -6,6 +6,11 @@ type Props<T extends object> = {
   items: T[];
   itemHeight: number;
   renderComponent: FC<{ item: T }>;
+  pagination?: {
+    hasMore: boolean;
+    isFetchingMore: boolean;
+    onLoadMore: () => void;
+  };
 };
 
 const Container = styled.div`
@@ -41,7 +46,12 @@ const ScrollContainer = styled.div`
   }
 `;
 
-export const VirtualList = <T extends object>({ items, itemHeight, renderComponent: RenderComponent }: Props<T>) => {
+export const VirtualList = <T extends object>({
+  items,
+  itemHeight,
+  renderComponent: RenderComponent,
+  pagination,
+}: Props<T>) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +62,24 @@ export const VirtualList = <T extends object>({ items, itemHeight, renderCompone
     getScrollElement: () => containerRef.current,
     estimateSize: () => itemHeight,
     overscan: 3,
+    onChange: (instance) => {
+      if (!pagination) {
+        return;
+      }
+
+      const { hasMore, isFetchingMore, onLoadMore } = pagination;
+
+      if (!hasMore || isFetchingMore) {
+        return;
+      }
+
+      const virtualItemsFromInstance = instance.getVirtualItems();
+      const lastItem = virtualItemsFromInstance.at(-1);
+
+      if (lastItem && lastItem.index >= items.length - 1) {
+        onLoadMore();
+      }
+    },
   });
 
   const virtualItems = virtualizer.getVirtualItems();

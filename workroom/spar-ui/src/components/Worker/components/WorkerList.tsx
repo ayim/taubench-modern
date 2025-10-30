@@ -1,11 +1,11 @@
-import { Box, Button, Input, Typography } from '@sema4ai/components';
+import { Box, Button, Input, Typography, useDebounce } from '@sema4ai/components';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, useMemo, useState } from 'react';
 
 import { IconCloseSmall, IconSearch } from '@sema4ai/icons';
 import { useParams } from '../../../hooks';
-import { useWorkItemsQuery } from '../../../queries/workItems';
+import { useWorkItemsInfiniteQuery } from '../../../queries/workItems';
 import { NewWorkItem } from './NewWorkItem';
 import { WorkerItem } from './WorkerItem';
 import { VirtualList } from '../../../common/VirtualList';
@@ -18,11 +18,17 @@ const WorkItemSearchButton = styled(Button)<{ $expanded: boolean }>`
 
 export const WorkerList: FC = () => {
   const { agentId } = useParams('/workItem/$agentId/$workItemId/$threadId');
-  const { data: workItems, isLoading } = useWorkItemsQuery({ agentId, limit: 1000, offset: 0 });
+  const [workItemFilterText, setWorkItemFilterText] = useState('');
+  const debouncedFilterText = useDebounce(workItemFilterText, 250);
+
+  const { data, hasNextPage, fetchNextPage, isFetchingNextPage } = useWorkItemsInfiniteQuery({
+    agentId,
+    nameSearch: debouncedFilterText === '' ? undefined : debouncedFilterText,
+    limit: 50,
+  });
 
   const { expanded: workItemsListExpanded } = useSidebarMenu('work-items-list');
   const [filteringWorkItem, setFilteringWorkItem] = useState(false);
-  const [workItemFilterText, setWorkItemFilterText] = useState('');
 
   const startWorkItemFilter = () => {
     setWorkItemFilterText('');
@@ -34,20 +40,9 @@ export const WorkerList: FC = () => {
     setFilteringWorkItem(false);
   };
 
-  const filteredWorkItems = useMemo(() => {
-    const textToSearch = workItemFilterText.toLowerCase().trim();
-
-    return workItems?.records?.filter((workItem) => {
-      const { work_item_name: workItemName, work_item_id: workItemId } = workItem;
-      const textToSearchInto = (workItemName ?? workItemId).toLowerCase();
-      return textToSearchInto.includes(textToSearch);
-    });
-  }, [workItems, workItemFilterText]);
-
-  // TODO-V2: Loading state for panels?
-  if (isLoading) {
-    return null;
-  }
+  const allWorkItems = useMemo(() => {
+    return data?.pages.flatMap((page) => page.records ?? []) ?? [];
+  }, [data]);
 
   return (
     <SidebarMenu name="work-items-list" title="Work Items">
@@ -58,7 +53,7 @@ export const WorkerList: FC = () => {
               Work Items
             </Typography>
           </Box>
-          {!filteringWorkItem && filteredWorkItems && filteredWorkItems.length > 0 && (
+          {!filteringWorkItem ? (
             <WorkItemSearchButton
               $expanded={workItemsListExpanded}
               variant="ghost-subtle"
@@ -66,8 +61,7 @@ export const WorkerList: FC = () => {
               onClick={startWorkItemFilter}
               aria-label="work-item-search"
             />
-          )}
-          {filteringWorkItem && (
+          ) : (
             <Box px={1}>
               <Input
                 autoFocus
@@ -89,10 +83,20 @@ export const WorkerList: FC = () => {
               />
             </Box>
           )}
+
           <NewWorkItem />
         </Box>
         <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
-          {filteredWorkItems && <VirtualList items={filteredWorkItems} renderComponent={WorkerItem} itemHeight={36} />}
+          <VirtualList
+            items={allWorkItems}
+            renderComponent={WorkerItem}
+            itemHeight={36}
+            pagination={{
+              hasMore: hasNextPage,
+              isFetchingMore: isFetchingNextPage,
+              onLoadMore: () => fetchNextPage(),
+            }}
+          />
         </Box>
       </Box>
     </SidebarMenu>
