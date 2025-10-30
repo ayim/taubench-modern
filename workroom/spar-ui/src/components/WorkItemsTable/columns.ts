@@ -8,7 +8,7 @@ export const workItemsTableColumns: Column[] = [
   { id: 'agent_name', title: 'Agent', resizable: true, sortable: false, minWidth: 150 },
   { id: 'status', title: 'Status', resizable: false, sortable: false, width: 170 },
   { id: 'updated_at', title: 'Last Updated', resizable: false, sortable: false, width: 130, minWidth: 130 },
-  { id: 'actions', title: '', resizable: false, sortable: false, width: 80 },
+  { id: 'actions', title: '', resizable: false, sortable: false, required: true, width: 80 },
 ];
 
 export const workItemsSortRules: SortRules<WorkItemRowData> = {

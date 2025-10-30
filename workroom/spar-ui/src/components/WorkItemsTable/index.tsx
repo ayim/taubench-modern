@@ -19,8 +19,6 @@ import {
 } from './utils';
 import { usePersistedQuery } from './usePersistedQuery';
 
-const PAGE_SIZE = 50;
-
 type Props = {
   onDownloadJSON: (data: unknown, options: { filename: string; addTimestamp?: boolean }) => void;
 }
@@ -44,9 +42,11 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
     agentsByName,
   });
 
+  const pageSize = query.size ?? 50;
+
   useEffect(() => {
     setSelectedItems([]);
-  }, [query.filters, query.search, query.page]);
+  }, [query.filters, query.search, query.page, query.size]);
 
   const selectedAgentId = query.filters?.agent_name?.[0] ? agentsByName.get(query.filters.agent_name[0]) : undefined;
   const selectedStatuses = query.filters?.status?.length ? (query.filters.status as WorkItemStatus[]) : undefined;
@@ -55,8 +55,8 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
     agentId: selectedAgentId,
     workItemStatus: selectedStatuses,
     nameSearch: query.search || undefined,
-    limit: PAGE_SIZE,
-    offset: (query.page || 0) * PAGE_SIZE,
+    limit: pageSize,
+    offset: (query.page || 0) * pageSize,
   });
 
   const workItems = useMemo<WorkItemRowData[]>(
@@ -71,7 +71,7 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
 
   const { estimatedTotal } = calculatePagination(
     query.page || 0,
-    PAGE_SIZE,
+    pageSize,
     workItems.length,
     workItemsResponse?.next_offset != null
   );

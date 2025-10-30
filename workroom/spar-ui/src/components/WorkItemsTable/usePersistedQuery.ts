@@ -20,6 +20,7 @@ const EMPTY_QUERY: Partial<QuerySettings> = {
   filters: { status: [], agent_name: [] },
   search: '',
   page: 0,
+  size: 50,
 };
 
 const normalizeStatusArray = (status: string | string[]): string[] => {
