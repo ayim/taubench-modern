@@ -356,19 +356,25 @@ class WorkItem:
         }
 
     @staticmethod
+    def default_name(work_item_id: str) -> str:
+        """Returns the default name for a work item when no name is provided."""
+        return f"Work Item {work_item_id}"
+
+    @staticmethod
     def normalize_work_item_name(name: str | None) -> str | None:
         """Normalize work item name by stripping whitespace and truncating if needed."""
         normalized = name.strip() if name else None
         if not normalized:
+            # If the resulting stripped name is empty, return None.
             return None
+        # Truncate the name if it's too long.
         if len(normalized) > MAX_WORK_ITEM_NAME_LENGTH:
-            normalized = normalized[: MAX_WORK_ITEM_NAME_LENGTH - 3] + "..."
+            return normalized[: MAX_WORK_ITEM_NAME_LENGTH - 3] + "..."
         return normalized
 
     def get_thread_name(self) -> str:
         """Get the thread name for this work item, using work_item_name if available."""
-        normalized_name = self.normalize_work_item_name(self.work_item_name)
-        return normalized_name or f"Work Item {self.work_item_id}"
+        return self.work_item_name or WorkItem.default_name(self.work_item_id)
 
     def to_initiate_stream_payload(self) -> InitiateStreamPayload:
         return InitiateStreamPayload(
@@ -415,7 +421,7 @@ class WorkItem:
         if "user_subject" in data and isinstance(data["user_subject"], str):
             data["user_subject"] = str(data["user_subject"])
         if "work_item_name" in data and isinstance(data["work_item_name"], str):
-            data["work_item_name"] = cls.normalize_work_item_name(data["work_item_name"])
+            data["work_item_name"] = data["work_item_name"]
 
         # Parse nested objects
         if "status" in data and isinstance(data["status"], str):

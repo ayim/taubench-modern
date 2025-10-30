@@ -210,7 +210,7 @@ class TestCreateWorkItem:
         response = client.post("/work-items", json=payload_dict)
         assert response.status_code == 200
         response_data = response.json()
-        assert response_data["work_item_name"] is None
+        assert response_data["work_item_name"] == f"Work Item {response_data['work_item_id']}"
 
         # Test whitespace trimming
         payload_dict["work_item_name"] = "  INVABC123  "

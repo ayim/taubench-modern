@@ -447,29 +447,6 @@ def test_work_item_name_field():
     assert deserialized.work_item_name == "SNOW12345"
 
 
-def test_work_item_name_validation():
-    """Test work_item_name validation during deserialization."""
-    # Test whitespace trimming
-    data = {
-        "work_item_id": "123",
-        "user_id": "456",
-        "created_by": "789",
-        "work_item_name": "  INVABC123  ",
-    }
-    work_item = WorkItem.model_validate(data)
-    assert work_item.work_item_name == "INVABC123"
-
-    # Test empty string becomes None
-    data["work_item_name"] = "   "
-    work_item = WorkItem.model_validate(data)
-    assert work_item.work_item_name is None
-
-    # Test length truncation (no longer raises error, truncates instead)
-    data["work_item_name"] = "x" * 256
-    work_item = WorkItem.model_validate(data)
-    assert work_item.work_item_name == "x" * 252 + "..."
-
-
 def test_work_item_to_initiate_stream_payload_with_custom_name():
     """Test that to_initiate_stream_payload uses custom work_item_name when provided."""
     initial_msg = ThreadMessage(content=[ThreadTextContent(text="Initial request")], role="user")
@@ -535,14 +512,6 @@ def test_get_thread_name():
 
     # Test with None name (fallback to auto-generated)
     work_item.work_item_name = None
-    assert work_item.get_thread_name() == f"Work Item {work_item_id}"
-
-    # Test with empty string name (fallback to auto-generated)
-    work_item.work_item_name = ""
-    assert work_item.get_thread_name() == f"Work Item {work_item_id}"
-
-    # Test with whitespace-only name (fallback to auto-generated)
-    work_item.work_item_name = "   "
     assert work_item.get_thread_name() == f"Work Item {work_item_id}"
 
 

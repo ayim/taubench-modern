@@ -138,8 +138,8 @@ class WorkItemTools:
                 "error": "No work item associated with this thread",
             }
 
+        # Do a basic validation of the user input before normalizing.
         new_work_item_name = WorkItem.normalize_work_item_name(new_work_item_name) or ""
-
         if not new_work_item_name:
             return {
                 "error_code": "empty_work_item_name",

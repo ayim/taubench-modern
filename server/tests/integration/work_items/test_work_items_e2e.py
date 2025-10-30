@@ -314,6 +314,9 @@ async def test_work_items_e2e(
             create_resp = await client.post("/", json=create_payload)
             assert create_resp.status_code == 200
             work_item = create_resp.json()
+            assert work_item["work_item_name"] == f"Work Item {work_item['work_item_id']}", (
+                "expected work item to be set to reasonable default value"
+            )
 
             # Verify work item is now PENDING with agent
             assert work_item["status"] in [

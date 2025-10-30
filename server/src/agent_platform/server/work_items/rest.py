@@ -153,7 +153,9 @@ async def create_work_item(
         payload.callbacks = await _validate_callbacks(payload.callbacks)
         work_item.callbacks = payload.callbacks
         work_item.payload = payload.payload
-        work_item.work_item_name = WorkItem.normalize_work_item_name(payload.work_item_name)
+        work_item.work_item_name = WorkItem.normalize_work_item_name(
+            payload.work_item_name
+        ) or WorkItem.default_name(work_item.work_item_id)
 
         # set agent ID as it wouldn't have been set before.
         work_item.agent_id = payload.agent_id
@@ -494,6 +496,7 @@ async def update_work_item(
 
     # Update work item name if provided
     if work_item_name is not None:
+        # Basic validation of the work item name
         new_name = WorkItem.normalize_work_item_name(work_item_name)
         if not new_name:
             raise PlatformHTTPError(ErrorCode.BAD_REQUEST, "Work item name cannot be empty")

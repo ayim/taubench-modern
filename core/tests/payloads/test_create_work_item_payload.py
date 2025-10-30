@@ -55,7 +55,7 @@ def test_create_work_item_payload_to_work_item_with_whitespace():
         created_by_user_id="creator-789",
     )
 
-    assert work_item_empty.work_item_name is None
+    assert work_item_empty.work_item_name == f"Work Item {work_item_empty.work_item_id}"
 
 
 def test_create_work_item_payload_to_work_item():
@@ -97,7 +97,7 @@ def test_create_work_item_payload_without_name():
         payload={"test": "data"},
     )
 
-    assert payload.work_item_name is None
+    assert payload.work_item_name is None, "The payload may have an absent name"
 
     work_item = CreateWorkItemPayload.to_work_item(
         payload=payload,
@@ -105,4 +105,6 @@ def test_create_work_item_payload_without_name():
         created_by_user_id="creator-789",
     )
 
-    assert work_item.work_item_name is None
+    assert work_item.work_item_name == f"Work Item {work_item.work_item_id}", (
+        "the real work item may not have an absent name"
+    )

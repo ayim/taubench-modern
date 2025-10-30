@@ -63,6 +63,11 @@ class CreateWorkItemPayload:
         owner_user_id: str,
         created_by_user_id: str,
     ) -> WorkItem:
+        work_item_id = payload.work_item_id or str(uuid4())
+        # Use the normalized name, falling back to the default name if empty.
+        name = WorkItem.normalize_work_item_name(payload.work_item_name) or WorkItem.default_name(
+            work_item_id
+        )
         return WorkItem(
             user_id=owner_user_id,
             created_by=created_by_user_id,
@@ -71,8 +76,8 @@ class CreateWorkItemPayload:
             initial_messages=payload.messages,
             messages=payload.messages,
             payload=payload.payload,
-            work_item_id=str(uuid4()),
-            work_item_name=WorkItem.normalize_work_item_name(payload.work_item_name),
+            work_item_id=work_item_id,
+            work_item_name=name,
             status=WorkItemStatus.PENDING,
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
