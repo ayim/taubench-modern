@@ -29,10 +29,10 @@ const WorkItemsOverviewRow: FC<TableRowProps<WorkItemsOverviewRowData>> = ({ row
   const handleStatusClick = useCallback(
     (status: WorkItemStatus) => {
       const { agent_id } = rowData;
-      sparAPIClient.navigate({ 
-        to: '/workItems', 
-        params: {}, 
-        search: { tab: 'all', agent: agent_id, status } 
+      sparAPIClient.navigate({
+        to: '/workItems',
+        params: {},
+        search: { tab: 'all', agent: agent_id, status },
       });
     },
     [sparAPIClient, rowData],
@@ -56,16 +56,16 @@ const WorkItemsOverviewRow: FC<TableRowProps<WorkItemsOverviewRowData>> = ({ row
           return (
             <Table.Cell key={status} align="center">
               {count > 0 ? (
-                  <Badge 
-                    forwardedAs="button"
-                    onClick={() => handleStatusClick(status)}
-                    variant={config.variant} 
-                    label={String(count)} 
-                    icon={config.icon}
-                    iconColor={config.iconColor}
-                    iconAfter={IconChevronRight}
-                    iconVisible
-                  />
+                <Badge
+                  forwardedAs="button"
+                  onClick={() => handleStatusClick(status)}
+                  variant={config.variant}
+                  label={String(count)}
+                  icon={config.icon}
+                  iconColor={config.iconColor}
+                  iconAfter={IconChevronRight}
+                  iconVisible
+                />
               ) : (
                 <Typography color="content.subtle.light">0</Typography>
               )}
@@ -81,14 +81,16 @@ const WorkItemsOverviewRow: FC<TableRowProps<WorkItemsOverviewRowData>> = ({ row
 };
 
 export const WorkItemsOverview: FC = () => {
-  const { data: summaryData = [], isLoading } = useWorkItemsSummaryQuery({}, { refetchInterval: 2000 });
+  const { data: summaryData = [], isLoading } = useWorkItemsSummaryQuery({}, { refetchInterval: 5000 });
 
   const tableData = useMemo<WorkItemsOverviewRowData[]>(
     () =>
-      summaryData.map((agent): WorkItemsOverviewRowData => ({
-        ...agent,
-        total: STATUS_ORDER.reduce((sum, status) => sum + (agent.work_items_status_counts[status] ?? 0), 0),
-      })),
+      summaryData.map(
+        (agent): WorkItemsOverviewRowData => ({
+          ...agent,
+          total: STATUS_ORDER.reduce((sum, status) => sum + (agent.work_items_status_counts[status] ?? 0), 0),
+        }),
+      ),
     [summaryData],
   );
 
@@ -140,7 +142,7 @@ export const WorkItemsOverview: FC = () => {
             type: 'number',
             value: (item: WorkItemsOverviewRowData) => item.work_items_status_counts[status] || 0,
           },
-        ])
+        ]),
       ),
       total: {
         type: 'number',
@@ -192,4 +194,3 @@ export const WorkItemsOverview: FC = () => {
     </Box>
   );
 };
-

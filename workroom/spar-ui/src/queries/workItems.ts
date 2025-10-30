@@ -102,7 +102,7 @@ export const workItemQueryOptions = createSparQueryOptions<{ workItemId: string 
   }),
 );
 
-export const useWorkItemQuery = createSparQuery<{ workItemId: string }>(workItemQueryOptions);
+export const useWorkItemQuery = createSparQuery(workItemQueryOptions);
 
 export const useCreateWorkItemMutation = createSparMutation<
   { agentId: string },

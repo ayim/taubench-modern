@@ -1,12 +1,13 @@
 import { BadgeVariant } from '@sema4ai/components';
 import {
-  IconLoading,
+  IconForbid,
   IconStatusCompleted,
   IconStatusError,
-  IconStatusIdle,
   IconStatusNew,
   IconStatusPending,
-  IconStatusUnresolved,
+  IconStatusProcessing,
+  IconStatusTerminated,
+  IconStatusTimeout,
   IconType,
 } from '@sema4ai/icons';
 import { ComponentProps } from 'react';
@@ -23,11 +24,11 @@ export type WorkItemStatusConfig = {
 };
 
 export const WORK_ITEM_STATUS_CONFIG: Record<WorkItemStatus, WorkItemStatusConfig> = {
-  ERROR: {
-    label: 'Failed',
-    variant: 'danger',
-    icon: IconStatusUnresolved,
-    iconColor: 'content.error',
+  DRAFT: {
+    label: 'Draft',
+    variant: 'secondary',
+    icon: IconStatusNew,
+    iconColor: 'content.subtle',
   },
   PENDING: {
     label: 'In Queue',
@@ -38,8 +39,14 @@ export const WORK_ITEM_STATUS_CONFIG: Record<WorkItemStatus, WorkItemStatusConfi
   EXECUTING: {
     label: 'Processing',
     variant: 'info',
-    icon: IconLoading,
+    icon: IconStatusProcessing,
     iconColor: 'content.subtle',
+  },
+  NEEDS_REVIEW: {
+    label: 'Needs Review',
+    variant: 'warning',
+    icon: IconStatusTerminated,
+    iconColor: 'background.notification',
   },
   COMPLETED: {
     label: 'Completed',
@@ -47,29 +54,23 @@ export const WORK_ITEM_STATUS_CONFIG: Record<WorkItemStatus, WorkItemStatusConfi
     icon: IconStatusCompleted,
     iconColor: 'background.success',
   },
-  CANCELLED: {
-    label: 'Cancelled',
-    variant: 'secondary',
+  ERROR: {
+    label: 'Failed',
+    variant: 'danger',
     icon: IconStatusError,
     iconColor: 'content.error',
   },
-  NEEDS_REVIEW: {
-    label: 'Needs Review',
-    variant: 'warning',
-    icon: IconStatusIdle,
-    iconColor: 'background.notification',
+  CANCELLED: {
+    label: 'Cancelled',
+    variant: 'secondary',
+    icon: IconForbid,
+    iconColor: 'content.error',
   },
   INDETERMINATE: {
     label: 'Indeterminate',
     variant: 'secondary',
-    icon: IconStatusIdle,
+    icon: IconStatusTimeout,
     iconColor: 'background.notification',
-  },
-  DRAFT: {
-    label: 'Draft',
-    variant: 'secondary',
-    icon: IconStatusPending,
-    iconColor: 'content.subtle',
   },
 };
 
