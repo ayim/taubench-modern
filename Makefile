@@ -130,7 +130,7 @@ observability-clean: ## Clean the observability stack and volumes.
 	docker volume rm agent-platform_prometheus_data 2>/dev/null || true
 
 # --------------------------------------------------------------------
-# Run & Test
+# Run
 # --------------------------------------------------------------------
 run-openapi-spec:
 	@echo "Running openapi spec from agent_platform.server..."
@@ -157,24 +157,41 @@ run-as-studio:  ## Run the agent server as in Studio
 	@echo "Running server from agent_platform.server (as Studio)..."
 	uv run -m agent_platform.server --host "127.0.0.1" --port 58885 --use-data-dir-lock --kill-lock-holder
 
+# --------------------------------------------------------------------
+# Run Server with Hot Reload
+# --------------------------------------------------------------------
+
+# override with: make run-server-hot-reload DB=postgres
+DB ?= sqlite  
+
+# DB-specific environment to prepend to the command
+ifeq ($(DB),postgres)
+DB_ENV = SEMA4AI_AGENT_SERVER_DB_TYPE=postgres \
+         POSTGRES_HOST=$${POSTGRES_HOST:-localhost} \
+         POSTGRES_DB=$${POSTGRES_DB:-agents} \
+         POSTGRES_USER=$${POSTGRES_USER:-agents} \
+         POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-agents} \
+         POSTGRES_PORT=$${POSTGRES_PORT:-5432}
+else
+DB_ENV =
+endif
+
 run-server-hot-reload: sync  ## Run the agent server with hot reloading (uvicorn --reload)
-	@echo "Starting agent server with hot reloading..."
+	@echo "Starting agent server with hot reloading... (DB: $(DB))"
 	@echo "Server will automatically restart when you change files in:"
 	@echo "  - server/src/"
 	@echo "  - core/src/"
 	@echo "  - architectures/*/src/ (any architecture)"
 	@echo ""
 	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"
+	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"
+ifeq ($(DB),postgres)
 	@echo "       Set POSTGRES_HOST=localhost if you have local PostgreSQL running"
 	@echo "       Or use docker compose up postgres to start containerized PostgreSQL"
 	@echo ""
-	SEMA4AI_AGENT_SERVER_DB_TYPE=postgres \
+endif
 	LOG_LEVEL=$${LOG_LEVEL:-DEBUG} \
-	POSTGRES_HOST=$${POSTGRES_HOST:-localhost} \
-	POSTGRES_DB=$${POSTGRES_DB:-agents} \
-	POSTGRES_USER=$${POSTGRES_USER:-agents} \
-	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-agents} \
-	POSTGRES_PORT=$${POSTGRES_PORT:-5432} \
+	$(DB_ENV) \
 	uv run uvicorn agent_platform.server.dev:create_dev_app \
 		--factory \
 		--host 127.0.0.1 \
@@ -184,6 +201,9 @@ run-server-hot-reload: sync  ## Run the agent server with hot reloading (uvicorn
 		--reload-dir core/src/ \
 		--reload-dir architectures/
 
+# --------------------------------------------------------------------
+# Test
+# --------------------------------------------------------------------
 
 test:  sync check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest

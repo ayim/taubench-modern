@@ -13,6 +13,7 @@ Usage: make [target]
 
 Available targets:
   all                       Perform a clean build of everything
+  aws                       AWS operations: make aws deploy|status|destroy|logs|troubleshoot
   build-exe                 Build a PyInstaller executable
   build-wheels              Build Python wheels into dist/ via uv
   check-env                 Check that all required environment variables are set in the .env file
@@ -21,12 +22,15 @@ Available targets:
   clean                     Remove build/dist artifacts
   coverage                  Run tests with pytest and generate coverage report
   dev-widget                Run pnpm run dev on server/examples/debug_widget
+  force-clean               Force remove build/dist artifacts (use with caution)
   format                    Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
   help                      Show this help
-  lint-fix                  Run ruff linting (fix violations)
   lint-fix-unsafe           Run ruff linting (fix violations)
+  lint-fix                  Run ruff linting (fix violations)
   lint                      Run ruff linting (check only)
-  new-empty-env             Create a new empty .env file if one doesn't exist
+  new-empty-env             Create a new empty .env file if one does not exist
+  notebooks-check           Check if notebooks have outputs that need stripping (dry-run)
+  notebooks-clean           Strip outputs from all Jupyter notebooks
   observability-clean       Clean the observability stack and volumes.
   observability-down        Stop the observability stack.
   observability-logs        Show the logs of the observability stack.
@@ -38,11 +42,11 @@ Available targets:
   run-server                Run the agent server
   sync                      Sync/install all packages in the monorepo
   test-integration          Run only integration tests
-  test                      Run all tests with pytest (VCR playback only)
   test-unit                 Run only unit tests
   test-vcr-record-fresh     Run tests with pytest and record VCR cassettes
   test-vcr-record-new       Run tests with pytest and record VCR cassettes for new requests
-  test-workitems-judge      Test work item judge stability by running multiple times
+  test-workitems-judge      Test work item judge stability by running multiple times (NUM_RUNS=20, TEST_PATTERN=test_work_item_judge_with_recorded_threads)
+  test                      Run all tests with pytest (VCR playback only)
   typecheck                 Run typechecking with pyright
   venv                      Create a new virtual environment with uv
 ```

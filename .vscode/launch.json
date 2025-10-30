@@ -91,7 +91,7 @@
       // up postgres + influx + otel stuff (so you can run workroom `npm run dev` and
       // docker compose up and backend in hot-reload to have backend + frontend hot-reload
       // together which is really nice!!)
-      "name": "Debug Agent Server with Hot Reload",
+      "name": "Debug Agent Server with Hot Reload (PostgreSQL)",
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
@@ -103,12 +103,12 @@
         "--port",
         "8000",
         "--reload",
-        "--reload-include",
-        "server/src/**/*.py",
-        "--reload-include",
-        "core/src/**/*.py",
-        "--reload-include",
-        "architectures/*/src/**/*.py"
+        "--reload-dir",
+        "server/src",
+        "--reload-dir",
+        "core/src",
+        "--reload-dir",
+        "architectures/"
       ],
       "justMyCode": false,
       "console": "integratedTerminal",
@@ -122,6 +122,35 @@
         "POSTGRES_PORT": "5432",
         "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
         "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+      }
+    },
+    {
+      "name": "Debug Agent Server with Hot Reload (SQLite)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "agent_platform.server.dev:create_dev_app",
+        "--factory",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+        "--reload",
+        "--reload-dir",
+        "server/src",
+        "--reload-dir",
+        "core/src",
+        "--reload-dir",
+        "architectures/"
+      ],
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "env": {
+        // Setting AGENT_SERVER_DATA_DIR to . will use the current working directory
+        // for the SQLite database.
+        "AGENT_SERVER_DATA_DIR": ".",
+        "LOG_LEVEL": "DEBUG"
       }
     },
     {
