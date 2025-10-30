@@ -239,10 +239,8 @@ const CitationBox: FC<CitationBoxProps> = ({
       }
     }
 
-    // Extract citations use green colors, but red for low confidence
+    // Extract citations use green colors
     // Don't override border colors on hover - keep consistent like parse boxes
-    // Low confidence extract citations use red
-    if (confidence === 'low') return 'rgb(140, 24, 22)'; // Red border for low confidence extract citations
     // If matched, use the specified green border
     if (isMatched) return 'rgb(22, 140, 43)'; // Green border for matched citations
     // Default green for unmatched citations
@@ -283,11 +281,9 @@ const CitationBox: FC<CitationBoxProps> = ({
       }
     }
 
-    // Extract citations use green colors, but red for low confidence
+    // Extract citations use green colors
     // On hover, make background transparent while keeping border color consistent
     if (isHovered || isActuallySelected) return 'transparent'; // Transparent background on hover
-    // Low confidence extract citations use red
-    if (confidence === 'low') return 'rgb(238 59 25 / 20%)'; // Light red background for low confidence extract citations
     // If matched, use the specified green background
     if (isMatched) return 'rgb(39 214 60 / 20%)'; // Green background for matched citations
     // Default green for unmatched citations
@@ -498,7 +494,7 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
   >([]);
 
   // Get showingParseBoxes state from store
-  const { showingParseBoxes } = useDocumentIntelligenceStore();
+  const showingParseBoxes = useDocumentIntelligenceStore((state) => state.showingParseBoxes);
 
   // Handle citation box click to select corresponding field in right panel
   const handleCitationClick = (fieldId: string, fieldName: string, numericId?: number | null) => {
@@ -780,7 +776,13 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
 
 export const DocumentViewer: FC<DocumentViewerProps> = () => {
   // Get state from minimal Zustand store
-  const { fileRef, extractedData, parseData, selectedFieldId, setSelectedFieldId, showingParseBoxes, setShowingParseBoxes } = useDocumentIntelligenceStore();
+  const fileRef = useDocumentIntelligenceStore((state) => state.fileRef);
+  const extractedData = useDocumentIntelligenceStore((state) => state.extractedData);
+  const parseData = useDocumentIntelligenceStore((state) => state.parseData);
+  const selectedFieldId = useDocumentIntelligenceStore((state) => state.selectedFieldId);
+  const setSelectedFieldId = useDocumentIntelligenceStore((state) => state.setSelectedFieldId);
+  const showingParseBoxes = useDocumentIntelligenceStore((state) => state.showingParseBoxes);
+  const setShowingParseBoxes = useDocumentIntelligenceStore((state) => state.setShowingParseBoxes);
 
   // PDF state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -992,7 +994,7 @@ export const DocumentViewer: FC<DocumentViewerProps> = () => {
       {/* Bottom Controls */}
       <Box
         padding="$8"
-        backgroundColor="background.subtle"
+        backgroundColor="background.primary"
         flexShrink="0"
         display="flex"
         alignItems="center"
@@ -1019,7 +1021,7 @@ export const DocumentViewer: FC<DocumentViewerProps> = () => {
             <>
               <Box display="flex" alignItems="center" gap="$8" style={{ transition: 'opacity 0.3s ease-in-out' }}>
                 <Typography fontSize="$14">
-                  Parse
+                  1st Pass
                 </Typography>
                 <Switch
                   checked={!showingParseBoxes}
@@ -1027,7 +1029,7 @@ export const DocumentViewer: FC<DocumentViewerProps> = () => {
                   aria-labelledby="parse-extract-toggle"
                 />
                 <Typography fontSize="$14">
-                  Extract
+                  Detailed
                 </Typography>
               </Box>
               <Divider orientation="vertical" />

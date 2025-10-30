@@ -7,7 +7,8 @@ import { useIngestDocumentMutation } from '../../../queries/documentIntelligence
 import { DocumentData } from '../types';
 
 export const useFlowHandlers = () => {
-  const { currentFlowType, documentLayout } = useDocumentIntelligenceStore();
+  const currentFlowType = useDocumentIntelligenceStore((state) => state.currentFlowType);
+  const documentLayout = useDocumentIntelligenceStore((state) => state.documentLayout);
   const { handleParseToCreateDataModelTransition, handleCreateDataModelPlusNewLayoutFlow, handleCreateDocLayoutFromExistingDataModelFlow } = useDocumentIntelligenceFlowTransitions();
   const { executeDocumentLayoutFlow } = useDocumentLayoutFlow();
   const { executeDataModelFlow } = useDataModelFlow();

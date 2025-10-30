@@ -1,4 +1,4 @@
-import { Box, Typography, Button, Progress, useSnackbar } from '@sema4ai/components';
+import { Box, Typography, Button, useSnackbar } from '@sema4ai/components';
 import {
   IconSparkles2,
   IconPlus,
@@ -11,6 +11,7 @@ import { useDataQualityFlow } from '../hooks/useDocumentIntelligenceFlows';
 import { formatSqlQuery } from '../utils/dataTransformations';
 import { SpecialHandlingInstructions } from './common/SpecialHandlingInstructions';
 import { QualityCheckItem } from './common/QualityCheckItem';
+import { ProcessingLoadingState } from './common/ProcessingLoadingState';
 
 interface StepDataQualityProps {
   documentData: DocumentData;
@@ -27,16 +28,14 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
 }) => {
   const { fileRef, threadId, agentId } = documentData;
 
-  const {
-    dataQualityChecks,
-    qualityCheckResults,
-    setDataQualityChecks,
-    setQualityCheckResult,
-    dataModel,
-    ingestedDocument,
-    dataQualityPrompt,
-    setDataQualityPrompt,
-  } = useDocumentIntelligenceStore();
+  const dataQualityChecks = useDocumentIntelligenceStore((state) => state.dataQualityChecks);
+  const qualityCheckResults = useDocumentIntelligenceStore((state) => state.qualityCheckResults);
+  const setDataQualityChecks = useDocumentIntelligenceStore((state) => state.setDataQualityChecks);
+  const setQualityCheckResult = useDocumentIntelligenceStore((state) => state.setQualityCheckResult);
+  const dataModel = useDocumentIntelligenceStore((state) => state.dataModel);
+  const ingestedDocument = useDocumentIntelligenceStore((state) => state.ingestedDocument);
+  const dataQualityPrompt = useDocumentIntelligenceStore((state) => state.dataQualityPrompt);
+  const setDataQualityPrompt = useDocumentIntelligenceStore((state) => state.setDataQualityPrompt);
 
   const { executeDataQualityFlow, executeQualityChecks, isLoading: flowLoading } = useDataQualityFlow();
   const [expandedSqlSections, setExpandedSqlSections] = useState<Set<string>>(new Set());
@@ -310,21 +309,7 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
                                     (flowLoading && dataQualityChecks.length === 0);
 
   if (shouldShowFullScreenLoading) {
-    return (
-      <Box className="h-full">
-        <Box display="flex" alignItems="center" gap="$8" marginBottom="$8">
-          <IconSparkles2 color="content.subtle.light" />
-          <Typography fontSize="$16" fontWeight="medium" color="content.subtle.light">
-            {processingStep || 'Processing document...'}
-          </Typography>
-        </Box>
-
-        {/* Loading dots */}
-        <Box display="flex" gap="$8">
-          <Progress id="data-quality-loading" />
-        </Box>
-      </Box>
-    );
+    return <ProcessingLoadingState processingStep={processingStep} title="Generating Quality Checks" />;
   }
 
   // Show empty state if no data model

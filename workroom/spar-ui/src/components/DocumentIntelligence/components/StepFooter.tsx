@@ -57,18 +57,6 @@ export const StepFooter: FC<StepFooterProps> = ({
         <Button variant="secondary" round onClick={onCancel}>
           Cancel
         </Button>
-        <Box  style={{ backgroundColor: '#ffffff', borderRadius: '2.5rem' }}>
-            <Button
-              variant="ghost"
-              round
-              onClick={handleRetryExtract}
-              disabled={isDisabled || isRetrying}
-              icon={IconRefresh}
-              loading={isRetrying}
-            >
-              Retry Extract
-            </Button>
-        </Box>
         <Button
           variant="primary"
           round
@@ -119,6 +107,16 @@ export const StepFooter: FC<StepFooterProps> = ({
       <Button variant="secondary" round onClick={onCancel}>
         Cancel
       </Button>
+        <Button
+          variant="outline"
+          round
+          onClick={handleRetryExtract}
+          disabled={isDisabled || isRetrying}
+          icon={IconRefresh}
+          loading={isRetrying}
+        >
+          Re-Run Extract
+        </Button>
       <Button disabled={isDisabled} variant="primary" round iconAfter={IconArrowRight} onClick={handleComplete}>
         Next
       </Button>

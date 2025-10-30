@@ -399,8 +399,67 @@ export const formatSqlQuery = (sqlQuery: string): string => {
 };
 
 // Convert parse result to fields format
-export const convertParseResultToFields = (parseResult: DocumentResponsePayload): LayoutFieldRow[] => {
+export const convertParseResultToFields = (
+  parseResult: DocumentResponsePayload,
+  originalGeneratedSchema?: ExtractionSchemaPayload | null,
+): LayoutFieldRow[] => {
   const extractedFields: LayoutFieldRow[] = [];
+
+  // Helper function to extract description from schema by field name
+  // Handles both flat fields (e.g., "field_name") and nested fields (e.g., "company.name")
+  const getDescriptionFromSchema = (fieldName: string): string | undefined => {
+    if (!originalGeneratedSchema?.properties) return undefined;
+
+    // Split the field name by '.' to handle nested fields
+    const pathParts = fieldName.split('.');
+
+    // Recursively navigate through the schema properties
+    let currentProps = originalGeneratedSchema.properties;
+
+    for (let i = 0; i < pathParts.length; i += 1) {
+      const part = pathParts[i];
+      let prop = currentProps[part];
+
+      // Try case-insensitive match if exact match fails
+      if (!prop) {
+        const lowerPart = part.toLowerCase();
+        const found = Object.entries(currentProps).find(
+          ([key]) => key.toLowerCase() === lowerPart
+        );
+        prop = found?.[1];
+      }
+
+      // If not found, try normalized match (remove underscores/hyphens)
+      if (!prop) {
+        const normalizedPart = part.replace(/[_-]/g, '').toLowerCase();
+        const found = Object.entries(currentProps).find(
+          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart
+        );
+        prop = found?.[1];
+      }
+
+      if (!prop || typeof prop !== 'object') {
+        return undefined;
+      }
+
+      // If this is the last part of the path, return its description
+      if (i === pathParts.length - 1) {
+        if ('description' in prop && typeof prop.description === 'string') {
+          return prop.description;
+        }
+        return undefined;
+      }
+
+      // Otherwise, continue navigating through nested properties
+      if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
+        currentProps = prop.properties as Record<string, unknown>;
+      } else {
+        return undefined;
+      }
+    }
+
+    return undefined;
+  };
 
   // Handle parse response (has chunks)
   if ('chunks' in parseResult && parseResult.chunks && Array.isArray(parseResult.chunks)) {
@@ -418,13 +477,15 @@ export const convertParseResultToFields = (parseResult: DocumentResponsePayload)
         return;
       }
 
+      const formattedName = formatFieldName(fieldName);
       extractedFields.push({
         id: generateUniqueId('field'),
         type: 'string',
         required: true,
-        name: formatFieldName(fieldName),
+        name: formattedName,
         value: String(fieldValue),
         citationId: numericIdCounter,
+        description: getDescriptionFromSchema(formattedName),
       });
       numericIdCounter += 1;
     });
@@ -475,14 +536,16 @@ export const convertParseResultToFields = (parseResult: DocumentResponsePayload)
       // Remove 'result.' prefix from field names
       const cleanKey = key.startsWith('result.') ? key.substring(7) : key;
 
+      const formattedName = formatFieldName(cleanKey);
       extractedFields.push({
         id: generateUniqueId('field'),
         type: 'string',
         required: true,
-        name: cleanKey,
+        name: formattedName,
         value: String(value),
         // Add numeric ID for citation matching
         citationId: numericIdCounter,
+        description: getDescriptionFromSchema(formattedName),
       });
       numericIdCounter += 1;
     });
@@ -494,9 +557,152 @@ export const convertParseResultToFields = (parseResult: DocumentResponsePayload)
 };
 
 // Convert parse result to tables format
-export const convertParseResultToTables = (parseResult: DocumentResponsePayload): LayoutTableRow[] => {
+export const convertParseResultToTables = (
+  parseResult: DocumentResponsePayload,
+  originalGeneratedSchema?: ExtractionSchemaPayload | null,
+): LayoutTableRow[] => {
   const extractedTables: LayoutTableRow[] = [];
   let tableCounter = 0;
+
+  // Helper function to extract description from schema by table name
+  // Handles both flat table names and nested table names
+  const getDescriptionFromSchema = (tableName: string): string | undefined => {
+    if (!originalGeneratedSchema?.properties) return undefined;
+
+    // Split the table name by '.' to handle nested tables
+    const pathParts = tableName.split('.');
+
+    // Recursively navigate through the schema properties
+    let currentProps = originalGeneratedSchema.properties;
+
+    for (let i = 0; i < pathParts.length; i += 1) {
+      const part = pathParts[i];
+      let prop = currentProps[part];
+
+      // Try case-insensitive match if exact match fails
+      if (!prop) {
+        const lowerPart = part.toLowerCase();
+        const found = Object.entries(currentProps).find(
+          ([key]) => key.toLowerCase() === lowerPart
+        );
+        prop = found?.[1];
+      }
+
+      // If not found, try normalized match (remove underscores/hyphens)
+      if (!prop) {
+        const normalizedPart = part.replace(/[_-]/g, '').toLowerCase();
+        const found = Object.entries(currentProps).find(
+          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart
+        );
+        prop = found?.[1];
+      }
+
+      if (!prop || typeof prop !== 'object') {
+        return undefined;
+      }
+
+      // If this is the last part of the path, return its description
+      if (i === pathParts.length - 1) {
+        if ('description' in prop && typeof prop.description === 'string') {
+          return prop.description;
+        }
+        return undefined;
+      }
+
+      // Otherwise, continue navigating through nested properties
+      if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
+        currentProps = prop.properties as Record<string, unknown>;
+      } else {
+        return undefined;
+      }
+    }
+
+    return undefined;
+  };
+
+  // Helper function to extract column description from schema
+  // Handles both flat and nested table names
+  const getColumnDescriptionFromSchema = (tableName: string, columnName: string): string | undefined => {
+    if (!originalGeneratedSchema?.properties) return undefined;
+
+    // Split the table name by '.' to handle nested tables
+    const pathParts = tableName.split('.');
+
+    // Recursively navigate through the schema properties to find the table
+    let currentProps = originalGeneratedSchema.properties;
+
+    for (let i = 0; i < pathParts.length; i += 1) {
+      const part = pathParts[i];
+      let prop = currentProps[part];
+
+      // Try case-insensitive match if exact match fails
+      if (!prop) {
+        const lowerPart = part.toLowerCase();
+        const found = Object.entries(currentProps).find(
+          ([key]) => key.toLowerCase() === lowerPart
+        );
+        prop = found?.[1];
+      }
+
+      // If not found, try normalized match (remove underscores/hyphens)
+      if (!prop) {
+        const normalizedPart = part.replace(/[_-]/g, '').toLowerCase();
+        const found = Object.entries(currentProps).find(
+          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart
+        );
+        prop = found?.[1];
+      }
+
+      if (!prop || typeof prop !== 'object') {
+        return undefined;
+      }
+
+      // If this is the last part of the table path, get the items
+      if (i === pathParts.length - 1) {
+        if ('items' in prop && typeof prop.items === 'object') {
+          const items = prop.items as Record<string, unknown>;
+          if (items && 'properties' in items && typeof items.properties === 'object') {
+            const properties = items.properties as Record<string, Record<string, unknown>>;
+
+            // Try to find the column property with multiple matching strategies
+            let columnProp: Record<string, unknown> | undefined = properties[columnName];
+
+            if (!columnProp) {
+              const lowerColumnName = columnName.toLowerCase();
+              const found = Object.entries(properties).find(
+                ([key]) => key.toLowerCase() === lowerColumnName
+              );
+              columnProp = found ? (found[1] as Record<string, unknown>) : undefined;
+            }
+
+            if (!columnProp) {
+              const normalizedColumnName = columnName.replace(/[_-]/g, '').toLowerCase();
+              const found = Object.entries(properties).find(
+                ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedColumnName
+              );
+              columnProp = found ? (found[1] as Record<string, unknown>) : undefined;
+            }
+
+            if (columnProp && typeof columnProp === 'object') {
+              if ('description' in columnProp && typeof columnProp.description === 'string') {
+                return columnProp.description;
+              }
+            }
+          }
+        }
+        return undefined;
+      }
+
+      // Otherwise, continue navigating through nested properties
+      if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
+        currentProps = prop.properties as Record<string, unknown>;
+      } else {
+        return undefined;
+      }
+    }
+
+    return undefined;
+  };
 
   // Helper function to recursively search for arrays
   const searchForArrays = (obj: Record<string, unknown>, prefix: string = '') => {
@@ -520,15 +726,20 @@ export const convertParseResultToTables = (parseResult: DocumentResponsePayload)
 
           const columns = Array.from(allKeys);
 
+          const formattedTableName = formatFieldName(currentPath);
           const table: LayoutTableRow = {
             id: `table-${tableCounter}`,
             required: true,
-            description: '',
-            name: formatFieldName(currentPath),
+            description: getDescriptionFromSchema(formattedTableName) || '',
+            name: formattedTableName,
             columns,
             columnsMeta: columns.reduce(
               (acc, col) => {
-                acc[col] = { type: 'string', required: true, description: '' };
+                acc[col] = {
+                  type: 'string',
+                  required: true,
+                  description: getColumnDescriptionFromSchema(formattedTableName, col) || ''
+                };
                 return acc;
               },
               {} as Record<string, { type: string; required: boolean; description: string }>,
@@ -988,3 +1199,74 @@ export const convertUIStateToDocumentLayoutPayload = (
     extraction_config: null,
   };
 };
+
+// Validation utilities for extraction schema
+export interface SchemaValidationResult {
+  valid: boolean;
+  error?: string;
+  schema?: Record<string, unknown>;
+}
+
+/**
+ * Validates the core structure of an extraction schema
+ */
+function validateSchemaStructure(schema: unknown): SchemaValidationResult {
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+    return { valid: false, error: 'Extraction schema must be an object' };
+  }
+
+  const schemaObj = schema as Record<string, unknown>;
+
+  // Check for required 'type' field
+  if (schemaObj.type !== 'object') {
+    return { valid: false, error: 'Extraction schema must have type: "object"' };
+  }
+
+  // Check for required 'properties' field
+  if (!schemaObj.properties || typeof schemaObj.properties !== 'object' || Array.isArray(schemaObj.properties)) {
+    return { valid: false, error: 'Extraction schema must have a "properties" object' };
+  }
+
+  // Properties must not be empty
+  const properties = schemaObj.properties as Record<string, unknown>;
+  if (Object.keys(properties).length === 0) {
+    return { valid: false, error: 'Extraction schema "properties" must not be empty' };
+  }
+
+  // Optional: validate 'required' is an array if present
+  if (schemaObj.required !== undefined) {
+    if (!Array.isArray(schemaObj.required)) {
+      return { valid: false, error: 'Extraction schema "required" must be an array' };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validates if the uploaded JSON is a valid extraction schema
+ */
+export function validateExtractionSchema(json: unknown): SchemaValidationResult {
+  // Must be an object
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
+    return { valid: false, error: 'Invalid JSON structure. Expected an object.' };
+  }
+
+  const jsonObj = json as Record<string, unknown>;
+
+  // Check if it's a full document_layout with nested extraction_schema
+  if (jsonObj.extraction_schema) {
+    const schemaResult = validateSchemaStructure(jsonObj.extraction_schema);
+    if (!schemaResult.valid) {
+      return schemaResult;
+    }
+    return { valid: true, schema: jsonObj.extraction_schema as Record<string, unknown> };
+  }
+
+  // Otherwise it should be a valid extraction schema directly
+  const schemaResult = validateSchemaStructure(jsonObj);
+  if (!schemaResult.valid) {
+    return schemaResult;
+  }
+  return { valid: true, schema: jsonObj };
+}

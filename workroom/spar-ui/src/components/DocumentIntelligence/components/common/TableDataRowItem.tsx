@@ -4,7 +4,8 @@ import { useDocumentIntelligenceStore } from '../../store/useDocumentIntelligenc
 
 
 export const TableDataRowItem: FC<TableRowProps<Record<string, string>, never>> = ({ rowData }) => {
-  const { setSelectedFieldId, selectedFieldId } = useDocumentIntelligenceStore();
+  const setSelectedFieldId = useDocumentIntelligenceStore((state) => state.setSelectedFieldId);
+  const selectedFieldId = useDocumentIntelligenceStore((state) => state.selectedFieldId);
 
   const rowIdentifier = Object.values(rowData).find((value) => value?.trim()) || Object.keys(rowData).join('-');
   const tableRowId = `table-row-${rowIdentifier}`;

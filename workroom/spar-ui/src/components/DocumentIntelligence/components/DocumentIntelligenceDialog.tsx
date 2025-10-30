@@ -15,7 +15,11 @@ interface DocumentIntelligenceDialogProps {
 
 export const DocumentIntelligenceDialog: FC<DocumentIntelligenceDialogProps> = ({ isOpen, onClose, documentData }) => {
   const { fileRef, flowType } = documentData;
-  const { setFileRef, reset, currentFlowType, cancelAllRequests, activeRequests } = useDocumentIntelligenceStore();
+  const setFileRef = useDocumentIntelligenceStore((state) => state.setFileRef);
+  const reset = useDocumentIntelligenceStore((state) => state.reset);
+  const currentFlowType = useDocumentIntelligenceStore((state) => state.currentFlowType);
+  const cancelAllRequests = useDocumentIntelligenceStore((state) => state.cancelAllRequests);
+  const activeRequests = useDocumentIntelligenceStore((state) => state.activeRequests);
   const { currentStep } = useStepManagement();
   const [openExitConfirmation, setOpenExitConfirmation] = useState(false);
 

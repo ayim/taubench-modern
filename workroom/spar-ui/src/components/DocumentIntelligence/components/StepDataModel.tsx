@@ -2,7 +2,6 @@ import {
   Box,
   Typography,
   Column,
-  Progress,
   Tooltip,
   Input,
 } from '@sema4ai/components';
@@ -12,6 +11,7 @@ import { LayoutFieldRow, LayoutTableRow } from '../types';
 import { DataModelFieldRowItem } from './common/DataModelFieldRowItem';
 import { StepDataTable } from './common/StepDataTable';
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
+import { ProcessingLoadingState } from './common/ProcessingLoadingState';
 
 interface StepDataModelProps {
   isReadOnly?: boolean;
@@ -25,12 +25,10 @@ export const StepDataModel: FC<StepDataModelProps> = ({
   processingStep,
 }) => {
 
-  const {
-    layoutFields,
-    layoutTables,
-    updateField,
-    updateTableField,
-  } = useDocumentIntelligenceStore();
+  const layoutFields = useDocumentIntelligenceStore((state) => state.layoutFields);
+  const layoutTables = useDocumentIntelligenceStore((state) => state.layoutTables);
+  const updateField = useDocumentIntelligenceStore((state) => state.updateField);
+  const updateTableField = useDocumentIntelligenceStore((state) => state.updateTableField);
 
   const [cachedFields, setCachedFields] = useState<LayoutFieldRow[]>(layoutFields);
   const [cachedTables, setCachedTables] = useState<LayoutTableRow[]>(layoutTables);
@@ -132,20 +130,7 @@ export const StepDataModel: FC<StepDataModelProps> = ({
   );
 
   if (isProcessing) {
-    return (
-      <Box style={{ height: '100%' }}>
-        <Box display="flex" alignItems="center" gap="$8" marginBottom="$8">
-          <IconSparkles2 color="content.subtle.light" />
-          <Typography fontSize="$16" fontWeight="medium" color="content.subtle.light">
-            {processingStep || 'Processing document...'}
-          </Typography>
-        </Box>
-
-        <Box display="flex" gap="$8">
-          <Progress id="data-model-loading" />
-        </Box>
-      </Box>
-    );
+    return <ProcessingLoadingState processingStep={processingStep} title="Creating Data Model" />;
   }
 
   if (cachedFields.length === 0 && cachedTables.length === 0) {

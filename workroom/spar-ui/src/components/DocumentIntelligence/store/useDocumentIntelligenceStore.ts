@@ -65,6 +65,8 @@ interface DocumentIntelligenceState {
   // Original generated schema from generate-schema endpoint
   originalGeneratedSchema: ExtractionSchemaPayload | null;
 
+  // Uploaded extraction schema for "Import Extraction Spec" feature
+  uploadedExtractionSchema: Record<string, unknown> | null;
 
   layoutFields: LayoutFieldRow[];
   layoutTables: LayoutTableRow[];
@@ -106,6 +108,7 @@ interface DocumentIntelligenceState {
   setExtractedData: (data: ExtractDocumentResponsePayload | null) => void;
   setDocumentLayout: (layout: DocumentIntelligenceState['documentLayout']) => void;
   setOriginalGeneratedSchema: (schema: ExtractionSchemaPayload | null) => void;
+  setUploadedExtractionSchema: (schema: Record<string, unknown> | null) => void;
 
   setLayoutFields: (fields: LayoutFieldRow[]) => void;
   setLayoutTables: (tables: LayoutTableRow[]) => void;
@@ -175,6 +178,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     extractedData: null,
     documentLayout: null,
     originalGeneratedSchema: null,
+    uploadedExtractionSchema: null,
     layoutFields: [],
     layoutTables: [],
     selectedFields: [],
@@ -221,6 +225,10 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
 
     setOriginalGeneratedSchema: (schema: ExtractionSchemaPayload | null) => {
       set({ originalGeneratedSchema: schema });
+    },
+
+    setUploadedExtractionSchema: (schema: Record<string, unknown> | null) => {
+      set({ uploadedExtractionSchema: schema });
     },
 
     setLayoutFields: (fields: LayoutFieldRow[]) => {
@@ -398,6 +406,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         parseData: null,
         extractedData: null,
         documentLayout: null,
+        uploadedExtractionSchema: null,
         layoutFields: [],
         layoutTables: [],
         selectedFields: [],

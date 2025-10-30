@@ -5,7 +5,8 @@ import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceSt
 import type { DocumentLayoutPayload } from '../store/useDocumentIntelligenceStore';
 
 export const useDocumentCommits = () => {
-  const { dataModel, documentLayout } = useDocumentIntelligenceStore();
+  const dataModel = useDocumentIntelligenceStore((state) => state.dataModel);
+  const documentLayout = useDocumentIntelligenceStore((state) => state.documentLayout);
   const { addSnackbar } = useSnackbar();
 
   const createDataModelMutation = useCreateDataModelMutation({});

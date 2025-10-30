@@ -6,10 +6,11 @@ import {
   Typography,
   Column,
   Tooltip,
-  Progress,
+  Dialog,
+  useSnackbar,
 } from '@sema4ai/components';
-import { IconSparkles2, IconPlus, IconCursorText, IconInformation, IconPencil } from '@sema4ai/icons';
-import { ChangeEvent, FC, useCallback, useMemo, useState, useEffect } from 'react';
+import { IconSparkles2, IconPlus, IconCursorText, IconInformation, IconPencil, IconAlignArrowDown } from '@sema4ai/icons';
+import { ChangeEvent, FC, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 
 import { LayoutFieldRow, getTableColumns, FieldRowProps, DocumentData } from '../types';
 import { StepDataTable, StepDataDisplayTable } from './common/StepDataTable';
@@ -19,47 +20,72 @@ import Collapsible from './common/Collapsible';
 import { StyledEditButton } from './common/styles';
 import { SpecialHandlingMenu } from './common/SpecialHandlingMenu';
 import { SpecialHandlingInstructions } from './common/SpecialHandlingInstructions';
-import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
+import { useDocumentIntelligenceStore, ExtractionSchemaPayload } from '../store/useDocumentIntelligenceStore';
 import { useDocumentLayoutFlow } from '../hooks/useDocumentIntelligenceFlows';
+import { useExtractDocumentMutation } from '../../../queries/documentIntelligence';
+import {
+  validateExtractionSchema,
+  convertParseResultToFields,
+  convertParseResultToTables,
+} from '../utils/dataTransformations';
+import { ProcessingLoadingState } from './common/ProcessingLoadingState';
 
 interface StepDocumentLayoutProps {
   documentData: DocumentData;
   isReadOnly?: boolean;
   isProcessing?: boolean;
   processingStep?: string;
+  onReExtractLoadingChange?: (isLoading: boolean) => void;
 }
 
 export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
   documentData,
   isReadOnly = false,
   isProcessing = false,
-  processingStep
+  processingStep,
+  onReExtractLoadingChange
 }) => {
   const { fileRef, threadId, agentId, flowType } = documentData;
 
-  const {
-    currentFlowType,
-    layoutFields,
-    layoutTables,
-    selectedFields,
-    selectedTableColumns,
-    documentLayout,
-    updateField,
-    updateTableField,
-    addField,
-    removeField,
-    setDocumentLayout,
-    setSelectedFields,
-    setSelectedTableColumns,
-    flowExecuted,
-    setFlowExecuted,
-  } = useDocumentIntelligenceStore();
+  const currentFlowType = useDocumentIntelligenceStore((state) => state.currentFlowType);
+  const layoutFields = useDocumentIntelligenceStore((state) => state.layoutFields);
+  const layoutTables = useDocumentIntelligenceStore((state) => state.layoutTables);
+  const selectedFields = useDocumentIntelligenceStore((state) => state.selectedFields);
+  const selectedTableColumns = useDocumentIntelligenceStore((state) => state.selectedTableColumns);
+  const documentLayout = useDocumentIntelligenceStore((state) => state.documentLayout);
+  const updateField = useDocumentIntelligenceStore((state) => state.updateField);
+  const updateTableField = useDocumentIntelligenceStore((state) => state.updateTableField);
+  const addField = useDocumentIntelligenceStore((state) => state.addField);
+  const removeField = useDocumentIntelligenceStore((state) => state.removeField);
+  const setDocumentLayout = useDocumentIntelligenceStore((state) => state.setDocumentLayout);
+  const setSelectedFields = useDocumentIntelligenceStore((state) => state.setSelectedFields);
+  const setSelectedTableColumns = useDocumentIntelligenceStore((state) => state.setSelectedTableColumns);
+  const flowExecuted = useDocumentIntelligenceStore((state) => state.flowExecuted);
+  const setFlowExecuted = useDocumentIntelligenceStore((state) => state.setFlowExecuted);
+  const setUploadedExtractionSchema = useDocumentIntelligenceStore((state) => state.setUploadedExtractionSchema);
+  const setStoreLayoutFields = useDocumentIntelligenceStore((state) => state.setLayoutFields);
+  const setStoreLayoutTables = useDocumentIntelligenceStore((state) => state.setLayoutTables);
+  const setProcessingState = useDocumentIntelligenceStore((state) => state.setProcessingState);
+  const setExtractedData = useDocumentIntelligenceStore((state) => state.setExtractedData);
+  const setOriginalGeneratedSchema = useDocumentIntelligenceStore((state) => state.setOriginalGeneratedSchema);
 
   const effectiveFlowType = currentFlowType || flowType;
   const isParseDocumentFlow = effectiveFlowType === 'parse_current_document';
 
   const { executeDocumentLayoutFlow, isLoading: flowLoading } = useDocumentLayoutFlow();
+  const extractDocumentMutation = useExtractDocumentMutation({});
+
+  // Notify parent about re-extraction loading state changes
+  useEffect(() => {
+    onReExtractLoadingChange?.(extractDocumentMutation.isPending);
+  }, [extractDocumentMutation.isPending, onReExtractLoadingChange]);
+  const { addSnackbar } = useSnackbar();
   const [busy, setBusy] = useState(false);
+  const [importErrorMessage, setImportErrorMessage] = useState<string | null>(null);
+  const [showReExtractConfirmDialog, setShowReExtractConfirmDialog] = useState(false);
+  const [pendingSchema, setPendingSchema] = useState<ExtractionSchemaPayload | null>(null);
+  const [pendingFileName, setPendingFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize cachedSelectedFields based on selectedFields from store
   const [cachedSelectedFields, setCachedSelectedFields] = useState<string[]>(() => {
@@ -80,7 +106,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
     const tableSelections: Record<string, string[]> = {};
     Object.entries(selectedTableColumns).forEach(([tableName, indices]) => {
       const table = layoutTables.find(t => t.name === tableName);
-      if (table && table.columnsMeta) {
+      if (table?.columnsMeta) {
         const columnNames = Object.keys(table.columnsMeta);
         tableSelections[tableName] = indices
           .map(index => columnNames[index])
@@ -269,6 +295,126 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
     [updateField],
   );
 
+  // Handler for importing extraction spec
+  const handleImportExtractionSpec = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  // Handler for file input change - validate and show confirmation dialog
+  const handleFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setImportErrorMessage(null);
+
+      // Read and validate the file
+      const text = await file.text();
+      const json = JSON.parse(text);
+
+      // Validate the extraction schema
+      const validationResult = validateExtractionSchema(json);
+      if (!validationResult.valid) {
+        setImportErrorMessage(validationResult.error || 'Invalid extraction schema');
+        setProcessingState(false, '', validationResult.error || 'Invalid extraction schema');
+        // Reset file input on error
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      // Store pending schema and file name, then show confirmation dialog
+      setPendingSchema(validationResult.schema! as ExtractionSchemaPayload);
+      setPendingFileName(fileRef?.name || '');
+      setShowReExtractConfirmDialog(true);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to process extraction spec file';
+      setImportErrorMessage(errorMsg);
+      setProcessingState(false, '', errorMsg);
+      // Reset file input on error
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [
+    fileRef,
+    setImportErrorMessage,
+    setProcessingState,
+  ]);
+
+  // Handle confirmation dialog - proceed with re-extraction
+  const handleConfirmReExtraction = useCallback(async () => {
+    if (!pendingSchema) return;
+
+    try {
+      setShowReExtractConfirmDialog(false);
+
+      // Store the uploaded schema
+      setUploadedExtractionSchema(pendingSchema);
+
+      // Re-extract with the new schema
+      const extractedData = await extractDocumentMutation.mutateAsync({
+        threadId,
+        fileName: pendingFileName || '',
+        documentLayout: {
+          extraction_schema: pendingSchema,
+          prompt: documentLayout?.prompt ?? undefined,
+        },
+      });
+
+      // Update the extracted data in store
+      setExtractedData(extractedData);
+
+      // Update the original generated schema with the new imported schema
+      setOriginalGeneratedSchema(pendingSchema);
+
+      // Convert extracted data to fields and tables for display using the new schema
+      const extractedFields = convertParseResultToFields(extractedData, pendingSchema);
+      const extractedTables = convertParseResultToTables(extractedData, pendingSchema);
+
+      // Update fields and tables with extracted data
+      setStoreLayoutFields(extractedFields);
+      setStoreLayoutTables(extractedTables);
+
+      // Show success snackbar
+      addSnackbar({ message: 'Document re-extracted successfully with custom schema', variant: 'success' });
+
+      // Clear pending state
+      setPendingSchema(null);
+      setPendingFileName(null);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to re-extract with custom schema';
+      setImportErrorMessage(errorMsg);
+      // Clear pending state on error
+      setPendingSchema(null);
+      setPendingFileName(null);
+    }
+  }, [
+    pendingSchema,
+    pendingFileName,
+    threadId,
+    extractDocumentMutation,
+    setUploadedExtractionSchema,
+    setExtractedData,
+    setOriginalGeneratedSchema,
+    setStoreLayoutFields,
+    setStoreLayoutTables,
+    setImportErrorMessage,
+    addSnackbar,
+  ]);
+
+  // Handle cancellation - close dialog and clear file input
+  const handleCancelReExtraction = useCallback(() => {
+    setShowReExtractConfirmDialog(false);
+    setPendingSchema(null);
+    setPendingFileName(null);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
   const onSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
@@ -280,14 +426,46 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
 
   const viewHeader = useMemo(
     () => (
-      <Box display="flex" alignItems="center" gap="$8" marginBottom="$12">
-        <IconSparkles2 color="content.subtle.light" />
-        <Typography fontSize="$12" color="content.subtle.light">
-          Fields and tables inferred below. Edit values directly below, via Agent chat or annotations.
-        </Typography>
+      <Box display="flex" flexDirection="column" gap="$12" marginBottom="$18">
+        <Box display="flex" alignItems="center" gap="$8">
+          <IconSparkles2 color="content.subtle.light" />
+          <Typography fontSize="$12" fontWeight="medium" color="content.subtle.light">
+            Fields and tables inferred below. If output looks correct, proceed to &ldquo;Create a Data Model&rdquo;
+          </Typography>
+        </Box>
+        <Box display="flex" alignItems="center" gap="$8">
+          <Button
+            onClick={handleImportExtractionSpec}
+            icon={IconAlignArrowDown}
+            variant="outline"
+            size="medium"
+            round
+            loading={extractDocumentMutation.isPending}
+            disabled={extractDocumentMutation.isPending}
+          >
+            Import Extraction Spec
+          </Button>
+          {importErrorMessage && (
+            <Typography fontSize="$12" style={{ color: 'var(--status-danger)' }}>
+              {importErrorMessage}
+            </Typography>
+          )}
+        </Box>
+        <Box display="flex" alignItems="center" gap="$8">
+          <Typography fontSize="$12" fontWeight="medium" color="content.subtle.light">
+            To replace Extraction Spec, click &ldquo;Import Extraction Spec&rdquo; above.
+          </Typography>
+        </Box>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
       </Box>
     ),
-    [],
+    [importErrorMessage, handleImportExtractionSpec, handleFileChange, extractDocumentMutation],
   );
 
   const fieldsColumns: Column[] = useMemo(
@@ -298,7 +476,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         isReadOnly || isParseDocumentFlow
           ? undefined
           : { id: 'annotate', title: 'Annotate', sortable: false, className: '!text-left', width: 100 },
-        isReadOnly ? undefined : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
+        isReadOnly || isParseDocumentFlow ? undefined : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
       ].filter((column) => column !== undefined),
     [isReadOnly, isParseDocumentFlow],
   );
@@ -311,7 +489,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         isReadOnly || isParseDocumentFlow
           ? undefined
           : { id: 'annotate', title: 'Annotate', sortable: false, className: '!text-left', width: 100 },
-        isReadOnly ? undefined : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
+        isReadOnly || isParseDocumentFlow ? undefined : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
       ].filter((column) => column !== undefined),
     [isReadOnly, isParseDocumentFlow],
   );
@@ -322,7 +500,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
       onSaveSpecialHandling: handleSaveFieldInstructions,
       onDelete: handleDeleteField,
       showAnnotateButtons: !isReadOnly && !isParseDocumentFlow,
-      showDeleteButton: !isReadOnly,
+      showDeleteButton: !isReadOnly && !isParseDocumentFlow,
       readOnlyFields: isReadOnly || isParseDocumentFlow,
       label: 'Field',
     }),
@@ -330,92 +508,93 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
   );
 
   // Show loading state
-  if (flowLoading || isProcessing) {
-    return (
-      <Box style={{ height: '100%' }}>
-        <Box display="flex" alignItems="center" gap="$8" marginBottom="$8">
-          <IconSparkles2 color="content.subtle.light" />
-          <Typography fontSize="$16" fontWeight="medium" color="content.subtle.light">
-            {processingStep || 'Processing document...'}
-          </Typography>
-        </Box>
-
-        <Box display="flex" gap="$8">
-          <Progress id="flim-flam" />
-        </Box>
-      </Box>
-    );
+  if (flowLoading || isProcessing || extractDocumentMutation.isPending) {
+    const loadingStep = extractDocumentMutation.isPending
+      ? 'Extracting data with custom schema...'
+      : processingStep;
+    return <ProcessingLoadingState processingStep={loadingStep} title={loadingStep || 'Processing document...'} />;
   }
 
   return (
     <Box display="flex" flexDirection="column">
       {viewHeader}
 
-      <SpecialHandlingInstructions
-        step="document_layout"
-        objectPrompt={documentLayout?.prompt}
-        disabled={isReadOnly}
-        onUpdate={(prompt) => {
-          if (documentLayout) {
-            setDocumentLayout({ ...documentLayout, prompt });
-          } else {
-            setDocumentLayout({ prompt });
-          }
-        }}
-      />
-
-      <Box marginTop="$16" display="flex" alignItems="center" gap="$8" marginBottom="$12">
-        <Typography fontSize="$16" fontWeight="bold">
-          Fields
-        </Typography>
-        <Tooltip
-          text={
-            <Box display="flex" flexDirection="column" gap="$4">
-              <Typography>Fields are the data that will be extracted from the document.</Typography>
-              <Typography>You can add, edit and select the wanted fields below.</Typography>
-            </Box>
-          }
-        >
-          <IconInformation color="content.subtle" size={24} />
-        </Tooltip>
-      </Box>
-
-      <Form busy={busy} onSubmit={onSubmit} gap="$12" display="flex" flexDirection="column">
-        <StepDataTable
-          selectable={!isReadOnly && !isParseDocumentFlow}
-          selected={cachedSelectedFields}
-          onSelect={(selectedFieldIds) => {
-            const fieldIds = typeof selectedFieldIds === 'function' ? selectedFieldIds(cachedSelectedFields) : selectedFieldIds;
-            setCachedSelectedFields(fieldIds);
-            // Convert field IDs back to indices for the store
-            const selectedIndices = layoutFields
-              .map((field, index) => fieldIds.includes(field.id) ? index : -1)
-              .filter(index => index !== -1);
-            setSelectedFields(selectedIndices);
+      {!isParseDocumentFlow && (
+        <SpecialHandlingInstructions
+          step="document_layout"
+          objectPrompt={documentLayout?.prompt}
+          disabled={isReadOnly}
+          onUpdate={(prompt) => {
+            if (documentLayout) {
+              setDocumentLayout({ ...documentLayout, prompt });
+            } else {
+              setDocumentLayout({ prompt });
+            }
           }}
-          columns={fieldsColumns}
-          data={layoutFields}
-          row={FieldRowItem}
-          rowProps={fieldsRowProps}
-          layout="auto"
-          rowCount="all"
-          keyId={(field) => field.id}
         />
+      )}
 
-        {!isParseDocumentFlow && (
-          <Box marginTop="$8" display="flex" gap="$8">
-            <Button
-              type="button"
-              icon={IconPlus}
-              onClick={handleAddField}
-              round
-              variant="primary"
-            >
-              Add Field
-            </Button>
+      <Collapsible
+        header={
+          <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
+            <Box display="flex" alignItems="center" gap="$8">
+              <Typography fontSize="$16" fontWeight="bold">
+                Fields
+              </Typography>
+              <Tooltip
+                text={
+                  <Box display="flex" flexDirection="column" gap="$4">
+                    <Typography>Fields are the data that will be extracted from the document.</Typography>
+                    <Typography>You can add, edit and select the wanted fields below.</Typography>
+                  </Box>
+                }
+              >
+                <IconInformation color="content.subtle" size={24} />
+              </Tooltip>
+            </Box>
           </Box>
-        )}
-      </Form>
+        }
+        isComplete={false}
+      >
+        <Box marginTop="$16" display="flex" flexDirection="column">
+          <Form busy={busy} onSubmit={onSubmit} gap="$12" display="flex" flexDirection="column">
+            <StepDataTable
+              selectable={!isReadOnly && !isParseDocumentFlow}
+              selected={cachedSelectedFields}
+              onSelect={(selectedFieldIds) => {
+                const fieldIds = typeof selectedFieldIds === 'function' ? selectedFieldIds(cachedSelectedFields) : selectedFieldIds;
+                setCachedSelectedFields(fieldIds);
+                // Convert field IDs back to indices for the store
+                const selectedIndices = layoutFields
+                  .map((field, index) => fieldIds.includes(field.id) ? index : -1)
+                  .filter(index => index !== -1);
+                setSelectedFields(selectedIndices);
+              }}
+              columns={fieldsColumns}
+              data={layoutFields}
+              row={FieldRowItem}
+              rowProps={fieldsRowProps}
+              layout="auto"
+              rowCount="all"
+              keyId={(field) => field.id}
+            />
+
+            {!isParseDocumentFlow && (
+              <Box marginTop="$8" display="flex" gap="$8">
+                <Button
+                  type="button"
+                  icon={IconPlus}
+                  onClick={handleAddField}
+                  round
+                  variant="primary"
+                >
+                  Add Field
+                </Button>
+              </Box>
+            )}
+          </Form>
+        </Box>
+      </Collapsible>
 
       {/* Tables Section */}
       <Box marginTop="$24" display="flex" flexDirection="column">
@@ -482,7 +661,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
               handleDeleteTableColumn(table.name, columnId);
             },
             showAnnotateButtons: !isReadOnly && !isParseDocumentFlow,
-            showDeleteButton: !isReadOnly,
+            showDeleteButton: !isReadOnly && !isParseDocumentFlow,
             readOnlyFields: isReadOnly || isParseDocumentFlow,
             label: 'Column',
           };
@@ -499,7 +678,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
                   style={{ flex: 1, width: '100%' }}
                 >
                   <Box style={{ flex: 1, width: '100%' }}>
-                    {isReadOnly ? (
+                    {isReadOnly || isParseDocumentFlow ? (
                       <Typography fontSize="$16" fontWeight="medium">
                         {table.name}
                       </Typography>
@@ -544,11 +723,12 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
               {table.columnsMeta && (
                 <Collapsible
                   header={
-                    <Box display="flex" alignItems="center" gap="$8">
-                      <IconPencil color="content.subtle" size={20} />
-                      <Typography fontSize="$16" fontWeight="medium">
-                        Table Columns
-                      </Typography>
+                    <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
+                      <Box display="flex" alignItems="center" gap="$8">
+                        <Typography fontSize="$16" fontWeight="medium">
+                          Table Columns
+                        </Typography>
+                      </Box>
                     </Box>
                   }
                 >
@@ -620,6 +800,32 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
           </Box>
         )}
       </Box>
+
+      {/* Confirmation Dialog for Re-Extraction */}
+      <Dialog open={showReExtractConfirmDialog} onClose={handleCancelReExtraction}>
+        <Dialog.Header>
+          <Dialog.Header.Title title="Confirm Re-Extraction" />
+          <Dialog.Header.Description>
+            Re-extracting with a custom schema will overwrite the current displayed results.
+            Are you sure you want to proceed?
+          </Dialog.Header.Description>
+        </Dialog.Header>
+        <Dialog.Content>
+          <Box padding="$12">
+            <Typography fontSize="$14" color="content.subtle">
+              This action will replace the currently displayed extraction results with new data extracted using your custom schema.
+            </Typography>
+          </Box>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button variant="primary" onClick={handleConfirmReExtraction} round>
+            Yes, Proceed
+          </Button>
+          <Button variant="secondary" onClick={handleCancelReExtraction} round>
+            Cancel
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
     </Box>
   );
 };

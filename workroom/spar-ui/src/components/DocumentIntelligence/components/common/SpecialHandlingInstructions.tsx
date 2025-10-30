@@ -40,7 +40,7 @@ export const SpecialHandlingInstructions: FC<SpecialHandlingInstructionsProps> =
     if (objectPrompt) {
       setPrompt(objectPrompt);
     }
-  }, [objectPrompt]);
+  }, []);
 
   const getPlaceholderText = () => {
     switch (step) {
@@ -93,7 +93,6 @@ export const SpecialHandlingInstructions: FC<SpecialHandlingInstructionsProps> =
               <Button
                 aria-label="Update"
                 onClick={() => handleUpdate(prompt)}
-                disabled={!prompt.trim() || isProcessing || disabled}
                 variant="outline"
                 size="small"
                 icon={IconCheckCircle}

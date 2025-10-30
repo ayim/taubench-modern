@@ -4,25 +4,22 @@ import { useExtractDocumentMutation } from '../../../queries/documentIntelligenc
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
 import { convertParseResultToFields, convertParseResultToTables, convertUIStateToDocumentLayoutPayload } from '../utils/dataTransformations';
 import { DocumentData } from '../types';
-import type { ExtractionSchemaPayload } from '../store/useDocumentIntelligenceStore';
 
 export const useRetryExtract = () => {
   const extractDocumentMutation = useExtractDocumentMutation({});
   const { addSnackbar } = useSnackbar();
 
-  const {
-    layoutFields,
-    layoutTables,
-    documentLayout,
-    originalGeneratedSchema,
-    setExtractedData,
-    setLayoutFields,
-    setLayoutTables,
-    setProcessingState,
-    setProcessingError,
-    clearProcessingState,
-    setShowingParseBoxes,
-  } = useDocumentIntelligenceStore();
+  const layoutFields = useDocumentIntelligenceStore((state) => state.layoutFields);
+  const layoutTables = useDocumentIntelligenceStore((state) => state.layoutTables);
+  const documentLayout = useDocumentIntelligenceStore((state) => state.documentLayout);
+  const originalGeneratedSchema = useDocumentIntelligenceStore((state) => state.originalGeneratedSchema);
+  const setExtractedData = useDocumentIntelligenceStore((state) => state.setExtractedData);
+  const setLayoutFields = useDocumentIntelligenceStore((state) => state.setLayoutFields);
+  const setLayoutTables = useDocumentIntelligenceStore((state) => state.setLayoutTables);
+  const setProcessingState = useDocumentIntelligenceStore((state) => state.setProcessingState);
+  const setProcessingError = useDocumentIntelligenceStore((state) => state.setProcessingError);
+  const clearProcessingState = useDocumentIntelligenceStore((state) => state.clearProcessingState);
+  const setShowingParseBoxes = useDocumentIntelligenceStore((state) => state.setShowingParseBoxes);
 
   const retryExtract = useCallback(async (documentData: DocumentData) => {
     try {
@@ -33,7 +30,7 @@ export const useRetryExtract = () => {
         layoutFields,
         layoutTables,
         documentLayout,
-        originalGeneratedSchema as ExtractionSchemaPayload | null
+        originalGeneratedSchema
       );
 
       // Call extract endpoint with updated schema
@@ -52,8 +49,8 @@ export const useRetryExtract = () => {
       setShowingParseBoxes(false);
 
       // Convert extracted data to fields and tables for display
-      const extractedFields = convertParseResultToFields(extractedData);
-      const extractedTables = convertParseResultToTables(extractedData);
+      const extractedFields = convertParseResultToFields(extractedData, originalGeneratedSchema);
+      const extractedTables = convertParseResultToTables(extractedData, originalGeneratedSchema);
 
       // Update existing fields with new values while preserving IDs and other properties
       const updatedFields = layoutFields.map(existingField => {

@@ -1,4 +1,4 @@
-import { Table, Typography, Input, Box, TableRowProps } from '@sema4ai/components';
+import { Table, Typography, Input, Box, TableRowProps, Tooltip } from '@sema4ai/components';
 import { IconCursorText, IconPencil, IconTrash } from '@sema4ai/icons';
 import { FC, useState, useEffect } from 'react';
 import { useDocumentIntelligenceStore } from '../../store/useDocumentIntelligenceStore';
@@ -19,18 +19,15 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
     onSaveSpecialHandling,
     label = 'Field',
   } = props;
-  const { setSelectedFieldId, selectedFieldId } = useDocumentIntelligenceStore();
+  const setSelectedFieldId = useDocumentIntelligenceStore((state) => state.setSelectedFieldId);
+  const selectedFieldId = useDocumentIntelligenceStore((state) => state.selectedFieldId);
 
   const [localValue, setLocalValue] = useState(rowData.name);
-  const [localFieldValue, setLocalFieldValue] = useState(rowData.value);
 
   useEffect(() => {
     setLocalValue(rowData.name);
   }, [rowData.name]);
 
-  useEffect(() => {
-    setLocalFieldValue(rowData.value);
-  }, [rowData.value]);
 
   const handleRowClick = () => {
     const newSelectedId = selectedFieldId === rowData.id ? null : rowData.id;
@@ -70,6 +67,9 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
         ) : (
           <Input
             key={rowData.id}
+            id={`field-name-${rowData.id}`}
+            name={`field-name-${rowData.id}`}
+            aria-labelledby={`field-name-${rowData.id}`}
             aria-label="Field name"
             placeholder="Field name"
             value={localValue}
@@ -89,44 +89,28 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
             disabled={!showAnnotateButtons}
           />
         )}
+
       </Table.Cell>
 
       <Table.Cell>
-        {!showAnnotateButtons || readOnlyFields ? (
+        <Tooltip text={rowData.value}>
           <Typography
             fontSize="$16"
             fontWeight="medium"
             style={{
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
               maxWidth: '400px',
               lineHeight: '1.4',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              wordBreak: 'break-word',
             }}
           >
             {rowData.value}
           </Typography>
-        ) : (
-          <Input
-            key={`${rowData.id}-value`}
-            aria-label="Field value"
-            placeholder="Field value"
-            value={localFieldValue}
-            onChange={(e) => {
-              setLocalFieldValue(e.target.value);
-              onChange(rowData.id, 'value')(e);
-            }}
-            onBlur={onBlur?.(rowData.id, 'value')}
-            onKeyDown={onKeyDown?.(rowData.id, 'value')}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            style={{
-              minWidth: '200px',
-              maxWidth: '400px',
-            }}
-            disabled={!showAnnotateButtons}
-          />
-        )}
+        </Tooltip>
       </Table.Cell>
 
       {showAnnotateButtons && (

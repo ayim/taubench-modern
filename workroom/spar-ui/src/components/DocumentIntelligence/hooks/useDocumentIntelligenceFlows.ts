@@ -53,20 +53,19 @@ export const useDocumentLayoutFlow = () => {
   const ingestDocumentMutation = useIngestDocumentMutation({});
   const generateExtractionSchemaMutation = useGenerateExtractionSchemaMutation({})
 
-  const {
-    setParseData,
-    setExtractedData,
-    setLayoutFields,
-    setLayoutTables,
-    setSelectedFields,
-    setSelectedTableColumns,
-    setProcessingState,
-    setProcessingError,
-    clearProcessingState,
-    setCurrentFlowType,
-    setOriginalGeneratedSchema,
-    setShowingParseBoxes,
-  } = useDocumentIntelligenceStore();
+  const originalGeneratedSchema = useDocumentIntelligenceStore((state) => state.originalGeneratedSchema);
+  const setParseData = useDocumentIntelligenceStore((state) => state.setParseData);
+  const setExtractedData = useDocumentIntelligenceStore((state) => state.setExtractedData);
+  const setLayoutFields = useDocumentIntelligenceStore((state) => state.setLayoutFields);
+  const setLayoutTables = useDocumentIntelligenceStore((state) => state.setLayoutTables);
+  const setSelectedFields = useDocumentIntelligenceStore((state) => state.setSelectedFields);
+  const setSelectedTableColumns = useDocumentIntelligenceStore((state) => state.setSelectedTableColumns);
+  const setProcessingState = useDocumentIntelligenceStore((state) => state.setProcessingState);
+  const setProcessingError = useDocumentIntelligenceStore((state) => state.setProcessingError);
+  const clearProcessingState = useDocumentIntelligenceStore((state) => state.clearProcessingState);
+  const setCurrentFlowType = useDocumentIntelligenceStore((state) => state.setCurrentFlowType);
+  const setOriginalGeneratedSchema = useDocumentIntelligenceStore((state) => state.setOriginalGeneratedSchema);
+  const setShowingParseBoxes = useDocumentIntelligenceStore((state) => state.setShowingParseBoxes);
 
   const executeDocumentLayoutFlow = useCallback(async ({
     fileRef,
@@ -99,6 +98,7 @@ export const useDocumentLayoutFlow = () => {
 
       // Step 2: Handle different flow types
       let finalDocumentLayout: DocumentLayoutPayload | undefined;
+      let currentGeneratedSchema: ExtractionSchemaPayload | null = null;
 
       if (flowType === 'create_data_model_plus_new_layout') {
         // Generate extraction schema without creating the data model
@@ -112,20 +112,21 @@ export const useDocumentLayoutFlow = () => {
         });
 
         const { schema } = schemaResult;
+        currentGeneratedSchema = schema as ExtractionSchemaPayload;
 
         // Store the original generated schema for later use
-        setOriginalGeneratedSchema(schema as ExtractionSchemaPayload);
+        setOriginalGeneratedSchema(currentGeneratedSchema);
 
         // Clear processing state after successful schema generation
         setProcessingState(false, '', null);
 
         // Convert parsed data to fields and tables for UI display
-        const fields = convertParseResultToFields(parseResult);
-        const tables = convertParseResultToTables(parseResult);
+        const fields = convertParseResultToFields(parseResult, currentGeneratedSchema);
+        const tables = convertParseResultToTables(parseResult, currentGeneratedSchema);
 
         finalDocumentLayout = {
           name: 'default',
-          extraction_schema: schema as ExtractionSchemaPayload
+          extraction_schema: currentGeneratedSchema
         };
 
         // Auto-select all fields and table columns
@@ -179,12 +180,13 @@ export const useDocumentLayoutFlow = () => {
 
         // Extract the schema from the response
         const schema = schemaResult.schema || schemaResult;
+        currentGeneratedSchema = schema as ExtractionSchemaPayload;
 
         // Store the original generated schema for later use
-        setOriginalGeneratedSchema(schema as ExtractionSchemaPayload);
+        setOriginalGeneratedSchema(currentGeneratedSchema);
 
         finalDocumentLayout = {
-          extraction_schema: schema as ExtractionSchemaPayload
+          extraction_schema: currentGeneratedSchema
         };
 
         // Don't auto-select fields for parse flow (read-only mode)
@@ -215,8 +217,10 @@ export const useDocumentLayoutFlow = () => {
         setShowingParseBoxes(false);
 
         // Convert extracted data to fields and tables for display
-        const extractedFields = convertParseResultToFields(extractedData);
-        const extractedTables = convertParseResultToTables(extractedData);
+        // Use currentGeneratedSchema if available, otherwise fall back to originalGeneratedSchema from store
+        const schemaToUse = currentGeneratedSchema ?? originalGeneratedSchema;
+        const extractedFields = convertParseResultToFields(extractedData, schemaToUse);
+        const extractedTables = convertParseResultToTables(extractedData, schemaToUse);
 
         // Update fields and tables with extracted data
         setLayoutFields(extractedFields);
@@ -282,12 +286,10 @@ export const useDataModelFlow = () => {
   const createDataModelMutation = useCreateDataModelMutation({});
   const generateDataModelDescriptionMutation = useGenerateDataModelDescriptionMutation({});
 
-  const {
-    setProcessingState,
-    setProcessingError,
-    clearProcessingState,
-    setDataModel,
-  } = useDocumentIntelligenceStore();
+  const setProcessingState = useDocumentIntelligenceStore((state) => state.setProcessingState);
+  const setProcessingError = useDocumentIntelligenceStore((state) => state.setProcessingError);
+  const clearProcessingState = useDocumentIntelligenceStore((state) => state.clearProcessingState);
+  const setDataModel = useDocumentIntelligenceStore((state) => state.setDataModel);
 
   const executeDataModelFlow = useCallback(async ({
     fileRef,
@@ -364,13 +366,11 @@ export const useDataQualityFlow = () => {
   const executeQualityChecksMutation = useExecuteQualityChecksMutation({});
   const [isSkippingGlobalLoading, setIsSkippingGlobalLoading] = useState(false);
 
-  const {
-    setDataQualityChecks,
-    setDataQualityChecksError,
-    setQualityCheckResult,
-    setProcessingState,
-    setProcessingError,
-  } = useDocumentIntelligenceStore();
+  const setDataQualityChecks = useDocumentIntelligenceStore((state) => state.setDataQualityChecks);
+  const setDataQualityChecksError = useDocumentIntelligenceStore((state) => state.setDataQualityChecksError);
+  const setQualityCheckResult = useDocumentIntelligenceStore((state) => state.setQualityCheckResult);
+  const setProcessingState = useDocumentIntelligenceStore((state) => state.setProcessingState);
+  const setProcessingError = useDocumentIntelligenceStore((state) => state.setProcessingError);
 
   // Reset isSkippingGlobalLoading when mutation completes
   useEffect(() => {
@@ -496,11 +496,9 @@ export const useDataQualityFlow = () => {
 export const useDocumentIngestion = () => {
   const ingestDocumentMutation = useIngestDocumentMutation({});
 
-  const {
-    setIngestedDocument,
-    setProcessingState,
-    setProcessingError,
-  } = useDocumentIntelligenceStore();
+  const setIngestedDocument = useDocumentIntelligenceStore((state) => state.setIngestedDocument);
+  const setProcessingState = useDocumentIntelligenceStore((state) => state.setProcessingState);
+  const setProcessingError = useDocumentIntelligenceStore((state) => state.setProcessingError);
 
   const ingestDocument = useCallback(async ({
     fileRef,
@@ -557,10 +555,8 @@ export const useDataModelDescriptionGeneration = () => {
   const mutationRef = useRef(generateDataModelDescriptionMutation);
   mutationRef.current = generateDataModelDescriptionMutation;
 
-  const {
-    setIsGeneratingDescription,
-    setProcessingError,
-  } = useDocumentIntelligenceStore();
+  const setIsGeneratingDescription = useDocumentIntelligenceStore((state) => state.setIsGeneratingDescription);
+  const setProcessingError = useDocumentIntelligenceStore((state) => state.setProcessingError);
 
   const generateDataModelDescription = useCallback(async ({
     threadId,
@@ -608,17 +604,15 @@ export const useDataModelNameDialogSave = () => {
   const ingestDocumentMutation = useIngestDocumentMutation({});
   const getDataModelsMutation = useGetDataModelsMutation({});
 
-  const {
-    setProcessingState,
-    setProcessingError,
-    closeDataModelNameDialog,
-    setDataModel,
-    setIngestedDocument,
-    originalGeneratedSchema,
-    layoutFields,
-    layoutTables,
-    documentLayout,
-  } = useDocumentIntelligenceStore();
+  const setProcessingState = useDocumentIntelligenceStore((state) => state.setProcessingState);
+  const setProcessingError = useDocumentIntelligenceStore((state) => state.setProcessingError);
+  const closeDataModelNameDialog = useDocumentIntelligenceStore((state) => state.closeDataModelNameDialog);
+  const setDataModel = useDocumentIntelligenceStore((state) => state.setDataModel);
+  const setIngestedDocument = useDocumentIntelligenceStore((state) => state.setIngestedDocument);
+  const originalGeneratedSchema = useDocumentIntelligenceStore((state) => state.originalGeneratedSchema);
+  const layoutFields = useDocumentIntelligenceStore((state) => state.layoutFields);
+  const layoutTables = useDocumentIntelligenceStore((state) => state.layoutTables);
+  const documentLayout = useDocumentIntelligenceStore((state) => state.documentLayout);
 
   const checkModelExists = useCallback(async (name: string) => {
     const snakeCaseName = toSnakeCase(name);
@@ -751,13 +745,11 @@ export const useDataModelNameDialogSave = () => {
 
 // Hook for handling flow transitions
 export const useDocumentIntelligenceFlowTransitions = () => {
-  const {
-    layoutFields,
-    layoutTables,
-    setSelectedFields,
-    setSelectedTableColumns,
-    setCurrentFlowType,
-  } = useDocumentIntelligenceStore();
+  const layoutFields = useDocumentIntelligenceStore((state) => state.layoutFields);
+  const layoutTables = useDocumentIntelligenceStore((state) => state.layoutTables);
+  const setSelectedFields = useDocumentIntelligenceStore((state) => state.setSelectedFields);
+  const setSelectedTableColumns = useDocumentIntelligenceStore((state) => state.setSelectedTableColumns);
+  const setCurrentFlowType = useDocumentIntelligenceStore((state) => state.setCurrentFlowType);
 
   const handleParseToCreateDataModelTransition = useCallback(async () => {
     try {

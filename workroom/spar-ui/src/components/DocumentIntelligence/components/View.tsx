@@ -23,15 +23,13 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
   onClose,
 }) => {
   const { flowType } = documentData;
-  const {
-    isProcessing,
-    processingStep,
-    currentFlowType,
-    isDataModelNameDialogOpen,
-    openDataModelNameDialog: openDialog,
-    closeDataModelNameDialog: closeDialog,
-    processingError
-  } = useDocumentIntelligenceStore();
+  const isProcessing = useDocumentIntelligenceStore((state) => state.isProcessing);
+  const processingStep = useDocumentIntelligenceStore((state) => state.processingStep);
+  const currentFlowType = useDocumentIntelligenceStore((state) => state.currentFlowType);
+  const isDataModelNameDialogOpen = useDocumentIntelligenceStore((state) => state.isDataModelNameDialogOpen);
+  const openDialog = useDocumentIntelligenceStore((state) => state.openDataModelNameDialog);
+  const closeDialog = useDocumentIntelligenceStore((state) => state.closeDataModelNameDialog);
+  const processingError = useDocumentIntelligenceStore((state) => state.processingError);
 
   const { handleDataModelNameSave } = useDataModelNameDialogSave();
   const { addSnackbar } = useSnackbar();
@@ -49,8 +47,12 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
     handleRetryDataModelFlow
   } = useFlowHandlers();
 
+  // Track re-extraction loading state
+  const [isReExtracting, setIsReExtracting] = useState(false);
+
   // Create step map to render the correct component based on current step
-  const stepMap: Record<StepType, FC<{ documentData: DocumentData; isReadOnly?: boolean; isProcessing?: boolean; processingStep?: string }>> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stepMap: Record<StepType, FC<any>> = {
     document_layout: StepDocumentLayout,
     data_model: StepDataModel,
     data_quality: StepDataQuality,
@@ -154,7 +156,7 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
               borderWidth="1px"
               borderRadius="$8"
               borderColor="border.subtle"
-              backgroundColor="background.primary"
+
               display="flex"
               flexDirection="column"
               flex="1"
@@ -193,13 +195,14 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
                       isReadOnly={isProcessing}
                       isProcessing={isProcessing}
                       processingStep={processingStep}
+                      onReExtractLoadingChange={setIsReExtracting}
                     />
                   )}
                 </Snackbar>
               </Box>
 
               {/* STEPPER FOOTER */}
-              <Box padding="$8" backgroundColor="background.subtle" flexShrink="0">
+              <Box padding="$8" backgroundColor="background.primary" flexShrink="0">
                 <Box display="flex" alignItems="center" justifyContent="space-between" gap="$16">
                   <Box display="flex" alignItems="center" gap="$16">
                     <Switch
@@ -209,12 +212,12 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
                       onChange={(e) => setShowExtractionData(e.target.checked)}
                       disabled={isProcessing}
                     />
-                    <Typography>View Extraction</Typography>
+                    <Typography>View as JSON</Typography>
                   </Box>
                     <StepFooter
                       flowType={currentFlowType}
                       currentStep={currentStep}
-                      isDisabled={isProcessing}
+                      isDisabled={isProcessing || isReExtracting}
                       goToPreviousStep={goToPreviousStep}
                       onComplete={onComplete}
                       onCancel={onCancel}
