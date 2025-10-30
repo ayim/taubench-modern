@@ -10,6 +10,7 @@ import { NewThreadItem } from '../NewThreadItem';
 import { ThreadItem } from '../ThreadItem';
 import { Header, ScrollableContainer } from './styles';
 import { VirtualList } from '../../../../common/VirtualList';
+import { SIDEBAR_STARTING_WIDTH_PX } from '../../../../lib/constants';
 
 const ThreadSearchButton = styled(Button)<{ $expanded: boolean }>`
   position: absolute;
@@ -20,7 +21,7 @@ const ThreadSearchButton = styled(Button)<{ $expanded: boolean }>`
 export const ThreadsList: FC = () => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const { data: threads, isLoading, refetch: refetchThreads } = useThreadsQuery({ agentId });
-  
+
   /**
    * Sometimes it may happen that we are on some valid $threadId,
    * but react-query client does not have it's information in its cache
@@ -64,7 +65,12 @@ export const ThreadsList: FC = () => {
   }
 
   return (
-    <SidebarMenu name="threads-list" title="Threads list">
+    <SidebarMenu
+      name="threads-list"
+      title="Threads list"
+      initialWidth={SIDEBAR_STARTING_WIDTH_PX}
+      minWidth={SIDEBAR_STARTING_WIDTH_PX}
+    >
       <Box display="flex" flexDirection="column" height="100%" overflow="hidden">
         <Header>
           <Typography variant="body-medium" fontWeight="bold">

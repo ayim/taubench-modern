@@ -5,3 +5,5 @@ export const EXTERNAL_LINKS = {
 };
 
 export const NEW_CHAT_STARTING_MSG = 'Hi! How can I help you today?';
+
+export const SIDEBAR_STARTING_WIDTH_PX = 248;

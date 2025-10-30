@@ -20,6 +20,7 @@ import { RouterSideNavigationLink } from '~/components/RouterLink';
 import { AgentsMenu } from './components/AgentsMenu';
 import { UserMenu } from './components/UserMenu';
 import { useTenantContext, shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
+import { SIDEBAR_STARTING_WIDTH_PX } from '@sema4ai/spar-ui';
 
 const MenuOuterToggle = styled(Button)<{ $expanded?: boolean }>`
   display: block;
@@ -70,7 +71,13 @@ export const Sidebar: FC = () => {
         $expanded={expanded}
       />
 
-      <SidebarMenu name="main-menu" title="Main menu" initialWidth={248} minWidth={248} primary>
+      <SidebarMenu
+        name="main-menu"
+        title="Main menu"
+        initialWidth={SIDEBAR_STARTING_WIDTH_PX}
+        minWidth={SIDEBAR_STARTING_WIDTH_PX}
+        primary
+      >
         <TenantMenu />
 
         <ScrollContainer>
