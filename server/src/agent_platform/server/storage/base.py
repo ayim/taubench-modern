@@ -1115,11 +1115,16 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Data Connections getter and setter
     # -------------------------------------------------------------------------
-    async def get_data_connections(self) -> list["DataConnection"]:
+    async def get_data_connections(
+        self, data_connection_ids: list[str] | None = None
+    ) -> list["DataConnection"]:
         """Get all data connections."""
         data_connections = self._get_table("data_connection")
 
         stmt = sa.select(data_connections)
+
+        if data_connection_ids:
+            stmt = stmt.where(data_connections.c.id.in_(data_connection_ids))
 
         async with self._read_connection() as conn:
             result = await conn.execute(stmt)

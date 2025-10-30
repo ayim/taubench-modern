@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 import datetime
 import typing
 import uuid
@@ -15,12 +16,12 @@ if typing.TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-async def create_data_frame_from_sql_computation_api(  # noqa: PLR0912, PLR0913, C901
+async def create_data_frame_from_sql_computation_api(  # noqa
     data_frames_kernel: "DataFramesKernel",
     storage: "BaseStorage",
     new_data_frame_name: str,
     sql_query: str,
-    dialect: str,
+    dialect: str | None,
     description: str | None = None,
     num_samples: int = 0,
 ) -> "tuple[DataNodeResult, Table]":
@@ -32,6 +33,8 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0912, PLR0913,
         sql_query: The SQL query to execute
         description: Optional description for the new data frame
         dialect: The dialect of the SQL query to use ("postgres", "mysql", "sqlite", etc).
+            If None, the dialect is inferred from the semantic data model(s) or data frame(s) being
+            queried.
         num_samples: The number of rows to return from the data frame.
             Note: Internally we always have to preload some samples to save in the
             data frame, but if the caller will require more, we'll actually load that many
@@ -51,6 +54,7 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0912, PLR0913,
         DataFrameSource,
         PlatformDataFrame,
     )
+    from agent_platform.core.data_frames.semantic_data_model_types import BaseTable, LogicalTable
     from agent_platform.core.errors.base import PlatformError
     from agent_platform.server.data_frames.data_node import DataNodeResult
     from agent_platform.server.data_frames.sql_manipulation import (
@@ -67,6 +71,9 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0912, PLR0913,
     thread = await data_frames_kernel.get_thread()
 
     all_data_frames = await data_frames_kernel.list_data_frames()
+    table_name_to_table_info: dict[str, LogicalTable] = {}
+
+    dialects_found: set[str | None] = set()
 
     # Get the data frame from storage
     for df in all_data_frames:
@@ -76,6 +83,7 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0912, PLR0913,
                 source_type="data_frame",
                 source_id=df.data_frame_id,
             )
+            dialects_found.add(df.sql_dialect)
             if not required_table_names:
                 break
 
@@ -83,10 +91,11 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0912, PLR0913,
         # If we don't find the data frames in the thread, we look for them in the semantic data
         # models (which would allow us to get data directly from a file or database).
         semantic_data_models_infos = await data_frames_kernel.get_semantic_data_models()
-        table_name_to_table_info = {}
-        for semantic_data_model_info in semantic_data_models_infos:
-            semantic_data_model = semantic_data_model_info["semantic_data_model"]
-            tables = semantic_data_model.get("tables", [])
+        for semantic_data_model_and_refs in semantic_data_models_infos:
+            semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info[
+                "semantic_data_model"
+            ]
+            tables: list[LogicalTable] = semantic_data_model.get("tables") or []
             if not tables:
                 continue
             for table in tables:
@@ -95,22 +104,50 @@ async def create_data_frame_from_sql_computation_api(  # noqa: PLR0912, PLR0913,
                     continue
                 table_name_to_table_info[name] = table
 
+        data_connection_ids: set[str] = set()
         for name in tuple(required_table_names):
             table_info = table_name_to_table_info.get(name)
             if table_info:
+                base_table: BaseTable | None = table_info.get("base_table")
+                if base_table is not None:
+                    data_connection_id = base_table.get("data_connection_id")
+                    if data_connection_id is not None:
+                        data_connection_ids.add(data_connection_id)
+                    elif base_table.get("file_reference") is not None:
+                        dialects_found.add("duckdb")
+
                 # Ok, name found in a semantic data model
                 computation_input_sources[name] = DataFrameSource(
                     source_type="semantic_data_model",
-                    base_table=table_info["base_table"],
-                    logical_table_name=table_info["name"],
+                    base_table=base_table,
+                    logical_table_name=table_info.get("name"),
                 )
                 required_table_names.remove(name)
+
+        if not dialect:
+            # We need to compute it based on the found dialects (update it with the data
+            # connections found and set it accordingly)
+            if data_connection_ids:
+                data_connections = await data_frames_kernel.get_data_connections(
+                    data_connection_ids
+                )
+                dialects_found.update(
+                    data_connection.engine for data_connection in data_connections
+                )
+
+            dialects_found.discard(None)
+            if len(dialects_found) == 1:
+                dialect = dialects_found.pop()
+            else:
+                dialect = "duckdb"  # Multiple dialects found, use duckdb for federation.
 
     if required_table_names:
         raise PlatformError(
             message=(
-                f"Data frame(s) with name(s) {required_table_names!r} not found. "
-                f"Available data frames in thread: {[df.name for df in all_data_frames]}"
+                f"Data frame(s) or Semantic Data Model table(s) with name(s) {required_table_names!r} not found.\n"
+                f"Available data frames in thread: {[df.name for df in all_data_frames]}\n"
+                f"Available Semantic Data Model tables: {list(table_name_to_table_info.keys())}\n"
+                f"Expected SQL to be compatible with: {dialect}"
             )
         )
 

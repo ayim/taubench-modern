@@ -7,9 +7,13 @@ if typing.TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import Any
 
+    from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.data_frames.data_frames import DataFrameSource, PlatformDataFrame
     from agent_platform.core.thread.thread import Thread
     from agent_platform.server.auth import AuthedUser
+    from agent_platform.server.data_frames.semantic_data_model_collector import (
+        SemanticDataModelAndReferences,
+    )
     from agent_platform.server.storage.base import BaseStorage
 
     from .data_node import DataNodeResult, SupportedIbisBackends
@@ -390,8 +394,9 @@ class DataFramesKernel:
         self._computing_data_frames: set[str] = set()
 
         self._data_frames: list[PlatformDataFrame] | None = None
-        self._semantic_data_models: list[BaseStorage.SemanticDataModelInfo] | None = None
+        self._semantic_data_models: list[SemanticDataModelAndReferences] | None = None
         self._name_to_data_frame: dict[str, PlatformDataFrame] | None = None
+        self._data_connection_id_to_data_connection: dict[str, DataConnection] = {}
 
     async def get_thread(self) -> "Thread":
         if self._thread is None:
@@ -417,7 +422,7 @@ class DataFramesKernel:
         self._name_to_data_frame = {df.name: df for df in data_frames}
         return self._name_to_data_frame
 
-    async def get_semantic_data_models(self) -> list["BaseStorage.SemanticDataModelInfo"]:
+    async def get_semantic_data_models(self) -> list["SemanticDataModelAndReferences"]:
         if self._semantic_data_models is None:
             from agent_platform.server.data_frames.semantic_data_model_collector import (
                 SemanticDataModelCollector,
@@ -432,6 +437,25 @@ class DataFramesKernel:
             self._semantic_data_models = await collector.collect_semantic_data_models(self._storage)
         assert self._semantic_data_models is not None
         return self._semantic_data_models
+
+    async def get_data_connections(self, data_connection_ids: set[str]) -> list["DataConnection"]:
+        missing: set[str] = set()
+        data_connections: list[DataConnection] = []
+
+        for data_connection_id in data_connection_ids:
+            data_connection = self._data_connection_id_to_data_connection.get(data_connection_id)
+            if data_connection is None:
+                missing.add(data_connection_id)
+            else:
+                data_connections.append(data_connection)
+
+        if missing:
+            queried_data_connections = await self._storage.get_data_connections(list(missing))
+            for data_connection in queried_data_connections:
+                self._data_connection_id_to_data_connection[data_connection.id] = data_connection
+                data_connections.append(data_connection)
+
+        return data_connections
 
     @property
     def tid(self) -> str:

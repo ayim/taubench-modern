@@ -1,4 +1,5 @@
 import typing
+from dataclasses import dataclass
 
 from pydantic import BaseModel
 from structlog import get_logger
@@ -25,6 +26,12 @@ class MatchingInfo(BaseModel):
     uploaded_file_thread_id: str
     uploaded_file_file_ref: str
     sheet_name_to_logical_table_names: "dict[str | None, list[str]]"
+
+
+@dataclass(slots=True)
+class SemanticDataModelAndReferences:
+    semantic_data_model_info: "BaseStorage.SemanticDataModelInfo"
+    references: "References"
 
 
 class SemanticDataModelCollector:
@@ -281,7 +288,7 @@ class SemanticDataModelCollector:
 
     async def collect_semantic_data_models(
         self, storage: "BaseStorage"
-    ) -> "list[BaseStorage.SemanticDataModelInfo]":
+    ) -> "list[SemanticDataModelAndReferences]":
         try:
             return await self._collect_semantic_data_models(storage)
         except Exception:
@@ -290,7 +297,7 @@ class SemanticDataModelCollector:
 
     async def _collect_semantic_data_models(  # noqa
         self, storage: "BaseStorage"
-    ) -> "list[BaseStorage.SemanticDataModelInfo]":
+    ) -> "list[SemanticDataModelAndReferences]":
         from agent_platform.core.data_frames.semantic_data_model_validation import (
             validate_semantic_model_payload_and_extract_references,
         )
@@ -306,7 +313,7 @@ class SemanticDataModelCollector:
         # a valid data connection or a valid file, if we're not able to find a valid target
         # then we cannot use it).
 
-        resolved_semantic_data_model_infos: list[BaseStorage.SemanticDataModelInfo] = []
+        resolved_semantic_data_model_infos: list[SemanticDataModelAndReferences] = []
 
         for semantic_data_model_info in semantic_data_model_infos:
             semantic_data_model: SemanticDataModel = semantic_data_model_info["semantic_data_model"]
@@ -320,7 +327,11 @@ class SemanticDataModelCollector:
                 continue
 
             if not references.tables_with_unresolved_file_references:
-                resolved_semantic_data_model_infos.append(semantic_data_model_info)
+                resolved_semantic_data_model_infos.append(
+                    SemanticDataModelAndReferences(
+                        semantic_data_model_info=semantic_data_model_info, references=references
+                    )
+                )
                 continue
 
             # Ok, we have some unresolved file references, we need to collect the files
@@ -367,6 +378,10 @@ class SemanticDataModelCollector:
 
                 if matched_all:
                     # We've mutated the semantic data model info in the code above!
-                    resolved_semantic_data_model_infos.append(semantic_data_model_info)
+                    resolved_semantic_data_model_infos.append(
+                        SemanticDataModelAndReferences(
+                            semantic_data_model_info=semantic_data_model_info, references=references
+                        )
+                    )
 
         return resolved_semantic_data_model_infos

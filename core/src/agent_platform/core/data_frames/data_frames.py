@@ -230,15 +230,16 @@ class PlatformDataFrame:
         self.extra_data = initial
 
     @property
-    def sql_dialect(self) -> str:
+    def sql_dialect(self) -> str | None:
         """The dialect of the SQL query that was used to create the data frame
         (can be set when the input_id_type is "sql_computation").
+        If not set, it'll return None.
         """
         dialect = None
         if self.extra_data is not None:
             dialect = self.extra_data.get("sql_dialect")
 
-        return dialect or "duckdb"
+        return dialect
 
     @property
     def sample_rows(self) -> "list[Row]":

@@ -20,6 +20,7 @@ must not use any tools this turn, but should you need to reference the available
 semantic data models to discuss them or to better contextualize your response,
 you will find them here:
 ### Model: test_semantic_model
+SQL dialect: duckdb
 Description: A test semantic model for data frame testing
 Table: test_table
  Description: Test table for semantic model

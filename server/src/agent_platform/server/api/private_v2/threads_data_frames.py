@@ -690,6 +690,8 @@ async def create_data_frame_from_file(  # noqa: PLR0913
                 )
             )
 
+    sql_dialect = "duckdb"  # For files, duckdb is the backing engine
+
     data_frame = PlatformDataFrame(
         data_frame_id=str(uuid.uuid4()),
         user_id=user.user_id,
@@ -712,6 +714,7 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         parquet_contents=None,
         extra_data=PlatformDataFrame.build_extra_data(
             sample_rows=inspected_data_frame.sample_rows[:DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT],
+            sql_dialect=sql_dialect,
         ),
     )
 
@@ -732,7 +735,7 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         file_ref=data_frame.file_ref,
         input_id_type="file",
         parent_data_frame_ids=None,
-        sql_dialect=None,
+        sql_dialect=sql_dialect,
         sql_query=None,
     )
 
@@ -808,9 +811,10 @@ class _DataFrameComputationPayload:
     new_data_frame_name: Annotated[str, "The name for the new data frame."]
     sql_query: Annotated[str, "The SQL query to execute."]
     description: Annotated[str | None, "Optional description for the new data frame."] = None
-    sql_dialect: Annotated[str, "The dialect of the SQL query to use (default is 'duckdb')."] = (
-        "duckdb"
-    )
+    sql_dialect: Annotated[
+        str | None,
+        "The dialect of the SQL query to use (default is computing based on dependencies).",
+    ] = None
 
 
 @router.post("/{tid}/data-frames/from-computation")

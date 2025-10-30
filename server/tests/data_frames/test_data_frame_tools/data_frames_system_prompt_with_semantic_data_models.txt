@@ -18,6 +18,7 @@ Note: It's possible to use an url such as 'data-frame://<data_frame_name>' to ge
 
 ## Semantic Data Models (tables available to be used in the `data_frames_create_from_sql` tool):
 ### Model: test_semantic_model
+SQL dialect: duckdb
 Description: A test semantic model for data frame testing
 Table: test_table
  Description: Test table for semantic model

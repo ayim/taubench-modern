@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 import typing
 from typing import Annotated, Any
 
@@ -15,6 +16,9 @@ if typing.TYPE_CHECKING:
     from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.data_frames.semantic_data_model_collector import (
+        SemanticDataModelAndReferences,
+    )
     from agent_platform.server.storage.base import BaseStorage
 
 logger = get_logger(__name__)
@@ -28,7 +32,9 @@ def _handle_some_table_field(k: str, v: Any) -> str:
     return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
 
 
-def _convert_semantic_data_model_to_context_string(data: "list[SemanticDataModel]") -> str:  # noqa: C901 PLR0912
+def _convert_semantic_data_model_to_context_string(  # noqa: C901 PLR0912
+    data: "list[tuple[SemanticDataModel, str]]",
+) -> str:
     """
     Convert data to a string that can be used in an LLM context.
 
@@ -43,7 +49,7 @@ def _convert_semantic_data_model_to_context_string(data: "list[SemanticDataModel
 
     result = []
 
-    for model in data:
+    for model, engine in data:
         if not isinstance(model, dict):
             continue
 
@@ -54,6 +60,7 @@ def _convert_semantic_data_model_to_context_string(data: "list[SemanticDataModel
         description = model.pop("description", "")
 
         model_header = f"### Model: {name}"
+        model_header += f"\nSQL dialect: {engine}"
         if description:
             model_header += f"\nDescription: {description}"
         result.append(model_header)
@@ -97,7 +104,10 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         super().__init__()
         self._name_to_data_frame: dict[str, PlatformDataFrame] = {}
         self._data_frame_tools: tuple[ToolDefinition, ...] = ()
-        self._semantic_data_models: list[BaseStorage.SemanticDataModelInfo] = []
+        self._semantic_data_models: list[SemanticDataModelAndReferences] = []
+
+        # Storage is needed to get data connections
+        self._data_connection_id_to_engine: dict[str, str] = {}
 
     def is_enabled(self) -> bool:
         """Returns True if data frames are enabled (and False otherwise).
@@ -150,6 +160,16 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             state=state,
         )
         self._semantic_data_models = await collector.collect_semantic_data_models(storage)
+        all_data_connection_ids = set()
+        for semantic_data_model_and_refs in self._semantic_data_models:
+            all_data_connection_ids.update(
+                semantic_data_model_and_refs.references.data_connection_ids
+            )
+
+        if all_data_connection_ids:
+            data_connections = await storage.get_data_connections(list(all_data_connection_ids))
+            for data_connection in data_connections:
+                self._data_connection_id_to_engine[data_connection.id] = data_connection.engine
 
         data_frame_tools = _DataFrameTools(
             self.kernel.user, self.kernel.thread.thread_id, self._name_to_data_frame, storage
@@ -262,15 +282,29 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         if not self._semantic_data_models:
             return "You have no semantic data models to work with."
 
-        models: list[SemanticDataModel] = []
+        models_and_engines: list[tuple[SemanticDataModel, str]] = []
         # We want to remove the base_table data from the semantic data models summary
         # and format it for the LLM to use.
-        for semantic_data_model_info in self._semantic_data_models:
+        for semantic_data_model_and_refs in self._semantic_data_models:
             try:
-                model: SemanticDataModel = semantic_data_model_info["semantic_data_model"]
+                model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info[
+                    "semantic_data_model"
+                ]
                 new_model: SemanticDataModel = typing.cast(
                     SemanticDataModel, {x: y for x, y in model.items() if y}
                 )
+                data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
+                engine = "duckdb"
+                if data_connection_ids:
+                    engines = set(
+                        self._data_connection_id_to_engine.get(data_connection_id)
+                        for data_connection_id in data_connection_ids
+                    )
+                    engines.discard(None)
+                    if len(engines) == 1:
+                        engine = engines.pop()
+                    else:
+                        engine = "duckdb"  # Fallback to duckdb if we have multiple engines
 
                 tables = new_model.get("tables", [])
                 if not tables:
@@ -283,15 +317,15 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                         if not v:
                             table.pop(k)
                 new_model["tables"] = tables
-                models.append(new_model)
+                models_and_engines.append((new_model, engine or "duckdb"))
             except Exception:
                 logger.exception(
                     "Error creating semantic data model summary from semantic data model info",
-                    semantic_data_model_info=semantic_data_model_info,
+                    semantic_data_model_and_refs=semantic_data_model_and_refs,
                 )
                 continue
 
-        return _convert_semantic_data_model_to_context_string(models)
+        return _convert_semantic_data_model_to_context_string(models_and_engines)
 
     @property
     def data_frames_summary(self) -> str:
@@ -307,6 +341,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
     def _data_frame_summary(self, data_frame: "PlatformDataFrame") -> str:
         result = [f"### Data Frame: {data_frame.name}"]
+        if data_frame.sql_dialect:
+            result.append(f"SQL dialect: {data_frame.sql_dialect}")
         if data_frame.description:
             result.append(f"Description: {data_frame.description}")
         if data_frame.num_rows:
@@ -342,6 +378,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         import io
         from uuid import uuid4
 
+        import pyarrow
         import pyarrow.parquet
 
         from agent_platform.core.data_frames.data_frames import PlatformDataFrame
@@ -613,7 +650,7 @@ class _DataFrameTools:
         sql_query: Annotated[
             str,
             """
-            A SQL query (using duckdb syntax) to execute against existing data frames
+            A SQL query to execute against existing data frames
             or "logical" tables in semantic data models.
             Any data frame or "logical" table can be referenced by its name in the SQL query.
             Some common SQL features:
@@ -630,6 +667,12 @@ class _DataFrameTools:
                 • 'SELECT UPPER(name) as name_upper FROM my_data_frame'
                 • 'SELECT * FROM my_data_frame
                        JOIN another_data_frame ON my_data_frame.id = another_data_frame.id'
+            Note: The SQL dialect syntax used for the query should be inferred from the
+                  SQL dialect specified in the semantic data model or data frame being used in
+                  the query (if multiple engines are found, duckdb will be used for
+                  queries across different engines, so, if a single engine is being used,
+                  the SQL query syntax should be compatible with that specific engine, if more than
+                  one engine is being used, duckdb syntax should be used for the query).
             """,
         ],
         new_data_frame_name: Annotated[
@@ -655,10 +698,9 @@ class _DataFrameTools:
 
         A sample of the newly created data frame is returned (specified by num_samples).
 
-        Use SQL using duckdb syntax. Existing data frames and "logical" tables in semantic data
-        models are available by their name in your query.
-        DuckDB supports most common SQL operations including SELECT, WHERE, GROUP BY,
-        ORDER BY, aggregate functions, and more.
+        Use SQL using syntax matching the SQL dialect of the semantic data model or data frame being queried.
+        Existing data frames and "logical" tables in semantic data models are available by their name in your query.
+        If the query is not valid an error will be returned so that it can be corrected and retried.
         """
         import keyword
 
@@ -682,7 +724,7 @@ class _DataFrameTools:
                 storage=self._storage,
                 new_data_frame_name=new_data_frame_name,
                 sql_query=sql_query,
-                dialect="duckdb",
+                dialect=None,  # Computed based on dependencies (semantic data model and data frames)
                 description=new_data_frame_description,
                 num_samples=num_samples if num_samples > 0 else 0,
             )

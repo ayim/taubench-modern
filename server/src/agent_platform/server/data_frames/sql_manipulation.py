@@ -130,9 +130,12 @@ def extract_variable_names_required_from_sql_computation(sql_ast: Any) -> "set[s
     return required_variable_names
 
 
-def validate_sql_query(sql_query: str, dialect: str) -> Any:
+def validate_sql_query(sql_query: str, dialect: str | None) -> Any:
     """
     Validate the SQL query and return the AST.
+
+    If the dialect is None, it'll try to parse with a very permissive
+    internal sqlglot dialect.
     """
     import sqlglot
 

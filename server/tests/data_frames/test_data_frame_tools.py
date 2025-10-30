@@ -31,7 +31,11 @@ async def test_data_frames_interface(file_regression):
 
     from tests.data_frames.fixtures import KernelStub, StorageStub
 
+    from agent_platform.core.data_frames.semantic_data_model_validation import References
     from agent_platform.core.kernel import Kernel
+    from agent_platform.server.data_frames.semantic_data_model_collector import (
+        SemanticDataModelAndReferences,
+    )
     from agent_platform.server.kernel.data_frames import (
         AgentServerDataFramesInterface,
     )
@@ -113,7 +117,22 @@ async def test_data_frames_interface(file_regression):
     ]
 
     assert hasattr(interface, "_semantic_data_models")
-    interface._semantic_data_models = semantic_data_models
+    interface._semantic_data_models = [
+        SemanticDataModelAndReferences(
+            semantic_data_model_info=semantic_data_model_info,
+            references=References(
+                data_connection_ids=set(),
+                file_references=set(),
+                data_connection_id_to_logical_table_names={},
+                file_reference_to_logical_table_names={},
+                logical_table_name_to_connection_info={},
+                errors=[],
+                tables_with_unresolved_file_references=set(),
+                semantic_data_model_with_errors=None,
+            ),
+        )
+        for semantic_data_model_info in semantic_data_models
+    ]
     file_regression.check(
         interface.data_frames_system_prompt,
         basename="data_frames_system_prompt_with_semantic_data_models",
@@ -300,3 +319,112 @@ async def test_data_frame_tools():
         "error_code": "data_frame_not_found",
         "error": "Data frame 'test_data_frame_2' not found",
     }
+
+
+@pytest.mark.asyncio
+async def test_semantic_data_models_engine_in_summary(
+    sqlite_storage, resources_dir, tmp_path, file_regression
+):
+    db_file = resources_dir / "data_frames" / "combined_data.sqlite"
+    assert db_file.exists()
+
+    # Imports inside method per project standard
+    from agent_platform.core.data_connections.data_connections import DataConnection
+    from agent_platform.core.kernel import Kernel
+    from agent_platform.core.payloads.data_connection import (
+        SQLiteDataConnectionConfiguration,
+    )
+    from agent_platform.server.kernel.data_frames import (
+        AgentServerDataFramesInterface,
+    )
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    # Create sample agent/thread and seed storage
+    model_creator = SampleModelCreator(sqlite_storage, tmp_path)
+    await model_creator.setup()
+    agent = await model_creator.obtain_sample_agent()
+    thread = await model_creator.obtain_sample_thread()
+
+    # Create a data connection pointing to the SQLite database file
+    dc = DataConnection(
+        id="sqlite-test-conn",
+        name="sqlite-test-conn",
+        description="SQLite connection for tests",
+        engine="sqlite",
+        configuration=SQLiteDataConnectionConfiguration(db_file=str(db_file)),
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+    )
+    await sqlite_storage.set_data_connection(dc)
+
+    # Minimal semantic data model that references a table in the SQLite DB via the data connection
+    semantic_model = {
+        "name": "combined_ai_semantic_model",
+        "description": "Semantic model over combined_data.sqlite",
+        "tables": [
+            {
+                "name": "artificial_intelligence_number_training_datapoints",
+                "base_table": {
+                    "database": "",
+                    "schema": "",
+                    "table": "artificial_intelligence_number_training_datapoints",
+                    "data_connection_id": dc.id,
+                },
+            }
+        ],
+    }
+
+    semantic_data_model_id = await sqlite_storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model,
+        data_connection_ids=[dc.id],
+        file_references=[],
+    )
+
+    # Associate model to agent and thread so the collector will find it
+    await sqlite_storage.set_agent_semantic_data_models(
+        agent_id=agent.agent_id, semantic_data_model_ids=[semantic_data_model_id]
+    )
+    await sqlite_storage.set_thread_semantic_data_models(
+        thread_id=thread.thread_id, semantic_data_model_ids=[semantic_data_model_id]
+    )
+
+    # Prepare Kernel stub bound to our agent/thread
+    class _KernelStub:
+        def __init__(self, thread, user_id: str):
+            self.thread = thread
+
+            # Minimal user object with user_id
+            class _User:
+                def __init__(self, user_id: str):
+                    self.user_id = user_id
+
+            self.user = _User(user_id)
+            # Provide minimal agent attribute expected by interface
+            self.agent = type("_Agent", (), {"extra": {}})()
+
+    kernel_stub = _KernelStub(thread, await model_creator.get_user_id())
+
+    # Initialize interface and verify engine in semantic data models summary
+    interface = AgentServerDataFramesInterface()
+    interface.attach_kernel(typing.cast(Kernel, kernel_stub))
+
+    state = _DefaultDataFrameArchState()
+    await interface.step_initialize(storage=sqlite_storage, state=state)
+
+    # Create a data frame via SQL referencing the semantic model logical table
+    tools = interface.get_data_frame_tools()
+    create_sql_tool = find_tool("data_frames_create_from_sql", tools)
+    result = await create_sql_tool.function(
+        sql_query=("SELECT * FROM artificial_intelligence_number_training_datapoints LIMIT 1"),
+        new_data_frame_name="ai_data_from_sql",
+    )
+    assert "result" in result
+
+    # The created data frame should reflect the sqlite dialect in the summary
+    df_summary = interface.data_frames_system_prompt
+    # The sample has some non-ascii characters, remove so that we don't have issues in the compare.
+    df_summary = df_summary.encode("ascii", errors="replace").decode("ascii")
+    assert "SQL dialect: sqlite" in df_summary
+    file_regression.check(df_summary, basename="data_frames_system_prompt_with_sqlite_dialect")

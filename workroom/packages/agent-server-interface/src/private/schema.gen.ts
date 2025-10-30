@@ -8167,11 +8167,8 @@ export interface components {
       sql_query: string;
       /** Description */
       description?: string | null;
-      /**
-       * Sql Dialect
-       * @default duckdb
-       */
-      sql_dialect: string;
+      /** Sql Dialect */
+      sql_dialect?: string | null;
     };
     /** _DataFrameCreationAPI */
     _DataFrameCreationAPI: {

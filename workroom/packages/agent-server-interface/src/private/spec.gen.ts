@@ -19576,9 +19576,15 @@ export const spec = {
             title: 'Description',
           },
           sql_dialect: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Sql Dialect',
-            default: 'duckdb',
           },
         },
         type: 'object',

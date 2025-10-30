@@ -133,8 +133,8 @@ async def test_semantic_data_model_collector(sqlite_storage: "SQLiteStorage", tm
 
     def verify_collected(collected):
         # Verify the collected model has resolved file reference
-        collected_model_info = collected[0]
-        collected_model = collected_model_info["semantic_data_model"]
+        collected_model_and_refs = collected[0]
+        collected_model = collected_model_and_refs.semantic_data_model_info["semantic_data_model"]
         tables = collected_model.get("tables")
         assert tables is not None, "Tables should not be None"
         table = tables[0]

@@ -63,6 +63,6 @@
   "input_id_type": "file",
   "parent_data_frame_ids": null,
   "file_ref": "example.ods",
-  "sql_dialect": null,
+  "sql_dialect": "duckdb",
   "sql_query": null
 }

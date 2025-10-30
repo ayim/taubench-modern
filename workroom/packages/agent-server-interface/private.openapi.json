@@ -19482,9 +19482,15 @@
             "title": "Description"
           },
           "sql_dialect": {
-            "type": "string",
-            "title": "Sql Dialect",
-            "default": "duckdb"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sql Dialect"
           }
         },
         "type": "object",
