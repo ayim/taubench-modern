@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -390,12 +390,12 @@ async def test_list_work_items_combined_filtering(
 
 
 @pytest.mark.asyncio
-async def test_list_work_items_ordering_by_updated_at(
+async def test_list_work_items_ordering_by_created_at(
     storage: PostgresStorage,
     sample_user_id: str,
     sample_agent,
 ):
-    """Test that work items are ordered by updated_at DESC."""
+    """Test that work items are ordered by created_at DESC."""
     await storage.upsert_agent(sample_user_id, sample_agent)
 
     # Create work items with different timestamps
@@ -406,6 +406,7 @@ async def test_list_work_items_ordering_by_updated_at(
         agent_id=sample_agent.agent_id,
         messages=[],
         payload={},
+        created_at=datetime.now(UTC),
     )
     item2 = WorkItem(
         work_item_id=str(uuid4()),
@@ -414,31 +415,30 @@ async def test_list_work_items_ordering_by_updated_at(
         agent_id=sample_agent.agent_id,
         messages=[],
         payload={},
+        created_at=item1.created_at + timedelta(seconds=1),
     )
 
     await storage.create_work_item(item1)
     await storage.create_work_item(item2)
+
+    # Get items and verify ordering
+    items = await storage.list_work_items(limit=10)
+    assert len(items) == 2
+
+    assert items[1].work_item_id == item1.work_item_id
+    assert items[0].work_item_id == item2.work_item_id
 
     # Update item2 to have a more recent updated_at
     await storage.update_work_item_status(
         sample_user_id, item2.work_item_id, WorkItemStatus.COMPLETED
     )
 
-    # Get items and verify ordering
+    # Get items again
     items = await storage.list_work_items(limit=10)
     assert len(items) == 2
 
-    # Find our items in the results
-    item1_result = next((wi for wi in items if wi.work_item_id == item1.work_item_id), None)
-    item2_result = next((wi for wi in items if wi.work_item_id == item2.work_item_id), None)
-
-    assert item1_result is not None
-    assert item2_result is not None
-
-    # item2 should come before item1 due to more recent updated_at
-    item2_index = items.index(item2_result)
-    item1_index = items.index(item1_result)
-    assert item2_index < item1_index
+    assert items[1].work_item_id == item1.work_item_id
+    assert items[0].work_item_id == item2.work_item_id
 
 
 @pytest.mark.asyncio

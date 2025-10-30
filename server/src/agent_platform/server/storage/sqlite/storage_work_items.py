@@ -165,7 +165,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
             query += "WHERE " + ("\nAND ".join(filters))
 
         query += """
-            ORDER BY w.updated_at DESC
+            ORDER BY w.created_at DESC
             LIMIT :limit
             OFFSET :offset
         """

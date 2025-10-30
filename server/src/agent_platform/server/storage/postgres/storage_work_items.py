@@ -199,7 +199,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
 
         # Always add the order, limit/offset clauses
         query += """
-            ORDER BY w.updated_at DESC
+            ORDER BY w.created_at DESC
             LIMIT %(limit)s
             OFFSET %(offset)s
         """
