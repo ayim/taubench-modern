@@ -1,14 +1,25 @@
 import { useEffect, useState } from 'react';
-import { ThreadMessage, ThreadContent, ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
+import { ThreadMessage, ThreadContent, ThreadToolUsageContent, Thread } from '@sema4ai/agent-server-interface';
 import { findByPointer } from '@jsonjoy.com/json-pointer';
 import { applyPatch, Operation } from 'json-joy/esm/json-patch/index.js';
 import { v4 as uuidv4 } from 'uuid';
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
 
-import { AgentErrorStreamPayload, StreamingDelta, StreamingDeltaMessageContent } from '../lib/AgentServerTypes';
+import {
+  AgentErrorStreamPayload,
+  StreamingDelta,
+  StreamingDeltaMessageContent,
+  StreamingDeltaThreadNameUpdated,
+} from '../lib/AgentServerTypes';
 import { SparAPIClient } from '../api';
 import { useSparUIContext } from '../api/context';
-import { threadMessagesQueryKey, useThreadFilesRefetch, useUploadThreadFilesMutation } from '../queries/threads';
+import {
+  threadMessagesQueryKey,
+  threadQueryKey,
+  threadsQueryKey,
+  useThreadFilesRefetch,
+  useUploadThreadFilesMutation,
+} from '../queries/threads';
 
 type MessageListener = (
   messages: ThreadMessage[] | undefined,
@@ -107,11 +118,37 @@ class StreamManager {
           this.messageEnd(threadId);
           break;
         }
+        case 'thread_name_updated': {
+          this.threadNameUpdated(streamingDelta);
+          break;
+        }
         default:
       }
     };
 
     this.wsMap[threadId] = ws;
+  }
+
+  private threadNameUpdated(streamingDelta: StreamingDeltaThreadNameUpdated) {
+    const { thread_id: threadId, agent_id: agentId, new_name: newName } = streamingDelta;
+
+    const updateThreadName = (thread: Thread | undefined) => {
+      if (!thread || thread.thread_id !== threadId || thread.name === newName) {
+        return thread;
+      }
+      return { ...thread, name: newName };
+    };
+
+    this.queryClient?.setQueryData(threadQueryKey(threadId), (thread: Thread | undefined) => {
+      return updateThreadName(thread);
+    });
+
+    this.queryClient?.setQueryData(threadsQueryKey(agentId), (threads: Thread[] | undefined) => {
+      if (!threads) {
+        return threads;
+      }
+      return threads.map(updateThreadName);
+    });
   }
 
   /**
@@ -389,7 +426,13 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     }
 
     try {
-      await streamManager.initiateStream({ startWebsocketStream: sparAPIClient.startWebsocketStream, queryClient, content, threadId, agentId });
+      await streamManager.initiateStream({
+        startWebsocketStream: sparAPIClient.startWebsocketStream,
+        queryClient,
+        content,
+        threadId,
+        agentId,
+      });
 
       return {
         success: true,
