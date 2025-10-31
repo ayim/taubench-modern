@@ -32,6 +32,66 @@ def _handle_some_table_field(k: str, v: Any) -> str:
     return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
 
 
+def _get_postgres_json_guidance(model: "SemanticDataModel") -> str:  # noqa: C901
+    """
+    Generate PostgreSQL-specific JSON/JSONB column guidance for a semantic data model.
+
+    Scans the model for JSON and JSONB columns and returns targeted guidance
+    on which functions to use and how to handle aggregations with LATERAL joins.
+
+    Args:
+        model: The semantic data model to scan for JSON columns
+
+    Returns:
+        A formatted guidance string if JSON columns are found, empty string otherwise
+    """
+    json_columns = []
+    jsonb_columns = []
+    tables = model.get("tables", [])
+
+    # Scan for JSON/JSONB columns in the semantic data model
+    if tables:
+        for table in tables:
+            if not isinstance(table, dict):
+                continue
+            table_name = table.get("name", "")
+
+            # Check all column categories
+            for category in ["dimensions", "facts", "metrics", "time_dimensions"]:
+                columns = table.get(category, [])
+                if isinstance(columns, list):
+                    for col in columns:
+                        if isinstance(col, dict):
+                            data_type = col.get("data_type", "").lower()
+                            col_name = col.get("name", "")
+                            if data_type == "json" and col_name:
+                                json_columns.append(f"{table_name}.{col_name}")
+                            elif data_type == "jsonb" and col_name:
+                                jsonb_columns.append(f"{table_name}.{col_name}")
+
+    # Generate guidance if JSON columns are detected
+    if not json_columns and not jsonb_columns:
+        return ""
+
+    guidance_parts = ["\n  PostgreSQL JSON Column Rules:"]
+
+    if json_columns:
+        cols = ", ".join(json_columns)
+        guidance_parts.append(
+            f"• Type 'json' columns ({cols}): Use json_array_elements(), NOT jsonb_*\n"
+            f"  Aggregation pattern: LATERAL (SELECT SUM((x->>'field')::numeric) FROM json_array_elements(col->'array') x)"
+        )
+
+    if jsonb_columns:
+        cols = ", ".join(jsonb_columns)
+        guidance_parts.append(
+            f"• Type 'jsonb' columns ({cols}): Use jsonb_array_elements(), NOT json_*\n"
+            f"  Aggregation pattern: LATERAL (SELECT SUM((x->>'field')::numeric) FROM jsonb_array_elements(col->'array') x)"
+        )
+
+    return "\n".join(guidance_parts)
+
+
 def _convert_semantic_data_model_to_context_string(  # noqa: C901 PLR0912
     data: "list[tuple[SemanticDataModel, str]]",
 ) -> str:
@@ -64,6 +124,12 @@ def _convert_semantic_data_model_to_context_string(  # noqa: C901 PLR0912
         if description:
             model_header += f"\nDescription: {description}"
         result.append(model_header)
+
+        # Add PostgreSQL-specific JSON guidance if applicable
+        if engine == "postgres":
+            postgres_guidance = _get_postgres_json_guidance(model)
+            if postgres_guidance:
+                result.append(postgres_guidance)
 
         # Tables
         tables = model.pop("tables", [])

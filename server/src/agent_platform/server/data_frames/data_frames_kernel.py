@@ -364,8 +364,45 @@ class Dependencies:
             df = DataNodeFromIbisResult(data_frame, result)
             return df
         except Exception as e:
-            logger.error(f"Error executing SQL computation. Error: {e}, SQL query: {sql_query}")
-            raise PlatformError(message=f"Error executing SQL query: {e!s}") from e
+            error_msg = str(e)
+            logger.error(
+                f"❌ Error executing SQL computation | "
+                f"Error: {error_msg[:300]} | "
+                f"Data frame: {data_frame.name}",
+                error=error_msg,
+                data_frame_name=data_frame.name,
+                logical_query=sql_query,
+                actual_query=full_sql_query_str,
+                logical_to_actual_mapping=logical_table_name_to_actual_table_name,
+            )
+
+            # Make errors more actionable by adding context
+            enhanced_error = str(e)
+
+            # Column not found errors - guide LLM to check SDM
+            column_not_found = "column" in error_msg.lower() and (
+                "does not exist" in error_msg.lower() or "not found" in error_msg.lower()
+            )
+            if column_not_found:
+                enhanced_error += (
+                    "\n\nAction: Check the column names in the semantic data model. "
+                    "The column name might be different than expected. "
+                    "Review the available columns and their data types in the table definition."
+                )
+
+            # Set-returning function errors - guide to LATERAL JOIN (PostgreSQL-specific)
+            elif (
+                "set-returning function" in error_msg.lower()
+                and "aggregate" in error_msg.lower()
+                and data_frame.sql_dialect == "postgres"
+            ):
+                enhanced_error += (
+                    "\n\nAction: Use LATERAL JOIN to unnest the array before aggregation. "
+                    "Pattern: FROM table t, LATERAL (SELECT AGG(field) "
+                    "FROM json_array_elements(...) x) AS agg"
+                )
+
+            raise PlatformError(message=f"Error executing SQL query: {enhanced_error}") from e
 
 
 class DataFramesKernel:
