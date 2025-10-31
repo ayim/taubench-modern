@@ -85,6 +85,12 @@ markers = [
     "real_selector: run with the real DefaultModelSelector implementation",
     "semantic_data_models: marks tests that run against semantic data models (deselect with '-m \"not semantic_data_models\"')",
     "semantic_data_models_edge_cases: marks tests that run against semantic data models edge cases (deselect with '-m \"not semantic_data_models_edge_cases\"')",
+    "batch1: batch 1 of semantic data model tests (Basic Retrieval - 4 tests)",
+    "batch2: batch 2 of semantic data model tests (Comparison Queries - 3 tests)",
+    "batch3: batch 3 of semantic data model tests (Aggregation - 4 tests)",
+    "batch4: batch 4 of semantic data model tests (Derived/Conditional - 3 tests)",
+    "batch5: batch 5 of semantic data model tests (Time-Based - 2 tests)",
+    "batch6: batch 6 of semantic data model tests (Advanced - 3 tests)",
 ]
 filterwarnings = [
     # Ignore pkg_resources/declare_namespace deprecation warnings from snowflake-snowpark-python
