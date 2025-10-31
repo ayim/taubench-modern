@@ -94,7 +94,9 @@ export const DataModelNameDialog: FC<DataModelNameDialogProps> = ({
 
     setErrors({});
     onSave(name.trim(), description.trim());
-  }, [name, description, onSave]);
+    // Close dialog after save is initiated (loading screen will show in background)
+    onClose();
+  }, [name, description, onSave, onClose]);
 
   const handleCancel = useCallback(() => {
       if (fileRef) {

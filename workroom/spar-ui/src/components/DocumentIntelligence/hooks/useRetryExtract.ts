@@ -33,7 +33,6 @@ export const useRetryExtract = () => {
         originalGeneratedSchema
       );
 
-      // Call extract endpoint with updated schema
       const extractedData = await extractDocumentMutation.mutateAsync({
         threadId: documentData.threadId,
         fileName: documentData.fileRef.name,
@@ -42,15 +41,15 @@ export const useRetryExtract = () => {
         generateCitations: true,
       });
 
-      // Update store with new extracted data
       setExtractedData(extractedData);
-
-      // Hide parse boxes and show extract citations after retry extraction completes
       setShowingParseBoxes(false);
 
       // Convert extracted data to fields and tables for display
-      const extractedFields = convertParseResultToFields(extractedData, originalGeneratedSchema);
-      const extractedTables = convertParseResultToTables(extractedData, originalGeneratedSchema);
+      // Use the updated schema (documentLayoutPayload.extraction_schema) that was sent to backend
+      // This preserves layout_description and other user modifications
+      const updatedSchema = documentLayoutPayload.extraction_schema as typeof originalGeneratedSchema;
+      const extractedFields = convertParseResultToFields(extractedData, updatedSchema);
+      const extractedTables = convertParseResultToTables(extractedData, updatedSchema);
 
       // Update existing fields with new values while preserving IDs and other properties
       const updatedFields = layoutFields.map(existingField => {
@@ -59,10 +58,8 @@ export const useRetryExtract = () => {
           return {
             ...existingField,
             value: extractedField.value,
-            // Update other properties that might have changed
-            type: extractedField.type,
-            required: extractedField.required,
-            description: extractedField.description,
+            description: existingField.description || extractedField.description,
+            layout_description: existingField.layout_description || extractedField.layout_description,
             citationId: extractedField.citationId,
           };
         }
@@ -74,7 +71,6 @@ export const useRetryExtract = () => {
         !layoutFields.some(existingField => existingField.name === extractedField.name)
       );
 
-      // Update fields and tables with extracted data
       setLayoutFields([...updatedFields, ...newFields]);
       setLayoutTables(extractedTables);
 
@@ -89,7 +85,6 @@ export const useRetryExtract = () => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to retry extraction';
       setProcessingError(errorMessage);
       setProcessingState(false, '', errorMessage);
-      // Reset parse boxes state on error
       setShowingParseBoxes(false);
       addSnackbar({
         message: `Failed to retry extraction: ${errorMessage}`,

@@ -130,11 +130,10 @@ export const useDocumentLayoutFlow = () => {
         };
 
         // Auto-select all fields and table columns
-        const selectedFields = fields.map((_, index) => index);
-        const selectedTableColumns: Record<string, number[]> = {};
+        const selectedFields = fields.map((field) => field.id);
+        const selectedTableColumns: Record<string, string[]> = {};
         tables.forEach((table) => {
-          const columnCount = Object.keys(table.columnsMeta || {}).length;
-          selectedTableColumns[table.name] = Array.from({ length: columnCount }, (_, index) => index);
+          selectedTableColumns[table.name] = Object.keys(table.columnsMeta || {});
         });
 
         setLayoutFields(fields);
@@ -757,15 +756,14 @@ export const useDocumentIntelligenceFlowTransitions = () => {
 
       // Auto-select all fields and table columns when transitioning to create_data_model_plus_new_layout
       if (layoutFields && layoutFields.length > 0) {
-        const allFieldIndices = layoutFields.map((_, index) => index);
-        setSelectedFields(allFieldIndices);
+        const allFieldIds = layoutFields.map((field) => field.id);
+        setSelectedFields(allFieldIds);
       }
 
       if (layoutTables && layoutTables.length > 0) {
-        const allTableColumnSelections: Record<string, number[]> = {};
+        const allTableColumnSelections: Record<string, string[]> = {};
         layoutTables.forEach((table) => {
-          const columnCount = Object.keys(table.columnsMeta || {}).length;
-          allTableColumnSelections[table.name] = Array.from({ length: columnCount }, (_, index) => index);
+          allTableColumnSelections[table.name] = Object.keys(table.columnsMeta || {});
         });
         setSelectedTableColumns(allTableColumnSelections);
       }

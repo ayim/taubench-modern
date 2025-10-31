@@ -1,8 +1,7 @@
-import { Box, Button, useSnackbar } from '@sema4ai/components';
+import { Box, Button, useSnackbar, Tooltip } from '@sema4ai/components';
 import { FC, useState } from 'react';
-import { IconArrowLeft, IconArrowRight, IconRefresh } from '@sema4ai/icons';
-import { FlowType, StepType, DocumentData } from '../types';
-import { useRetryExtract } from '../hooks/useRetryExtract';
+import { IconArrowLeft, IconArrowRight, IconRefresh, IconStatusEnabled, IconStatusIdle } from '@sema4ai/icons';
+import { FlowType, StepType } from '../types';
 
 export interface StepFooterProps {
   flowType: FlowType | undefined | null;
@@ -11,7 +10,9 @@ export interface StepFooterProps {
   goToPreviousStep: () => void;
   onComplete: () => Promise<void>;
   onCancel: () => void;
-  documentData?: DocumentData;
+  schemaModified?: boolean;
+  handleRerunExtractClick?: () => Promise<void>;
+  isReRunning?: boolean;
 }
 
 export const StepFooter: FC<StepFooterProps> = ({
@@ -21,11 +22,12 @@ export const StepFooter: FC<StepFooterProps> = ({
   goToPreviousStep,
   onComplete,
   onCancel,
-  documentData
+  schemaModified,
+  handleRerunExtractClick,
+  isReRunning,
 }) => {
   const [isCompleting, setIsCompleting] = useState(false);
   const { addSnackbar } = useSnackbar();
-  const { retryExtract, isLoading: isRetrying } = useRetryExtract();
 
   const handleComplete = async () => {
     setIsCompleting(true);
@@ -35,19 +37,6 @@ export const StepFooter: FC<StepFooterProps> = ({
       addSnackbar({ message: `Error completing step: ${e instanceof Error ? e.message : 'Error'}`, variant: 'danger' });
     } finally {
       setIsCompleting(false);
-    }
-  };
-
-  const handleRetryExtract = async () => {
-    if (!documentData) {
-      addSnackbar({ message: 'Document data not available for retry', variant: 'danger' });
-      return;
-    }
-
-    try {
-      await retryExtract(documentData);
-    } catch (error) {
-      addSnackbar({ message: `Failed to retry extract: ${error instanceof Error ? error.message : 'Error'}`, variant: 'danger' });
     }
   };
 
@@ -103,21 +92,31 @@ export const StepFooter: FC<StepFooterProps> = ({
 
   // Default case (document_layout)
   return (
-    <Box display="flex" gap="$16">
+    <Box display="flex" gap="$16" alignItems="center">
+      {/* Status Indicator */}
+      <Tooltip text={schemaModified ? 'Configuration changes made. Click Re-Run Extract to update extraction.' : 'Configuration is up to date'}>
+        {schemaModified ? <IconStatusIdle color="background.notification" size={27} /> : <IconStatusEnabled color="content.success" size={27} />}
+      </Tooltip>
+
       <Button variant="secondary" round onClick={onCancel}>
         Cancel
       </Button>
+
+      {/* Re-Run Extract button */}
+      {schemaModified && (
         <Button
           variant="outline"
           round
-          onClick={handleRetryExtract}
-          disabled={isDisabled || isRetrying}
+          onClick={handleRerunExtractClick}
+          disabled={isDisabled || isReRunning || !handleRerunExtractClick}
           icon={IconRefresh}
-          loading={isRetrying}
+          loading={isReRunning}
         >
           Re-Run Extract
         </Button>
-      <Button disabled={isDisabled} variant="primary" round iconAfter={IconArrowRight} onClick={handleComplete}>
+      )}
+
+      <Button disabled={isDisabled} variant="primary" round iconAfter={IconArrowRight} onClick={handleComplete} loading={isCompleting}>
         Next
       </Button>
     </Box>

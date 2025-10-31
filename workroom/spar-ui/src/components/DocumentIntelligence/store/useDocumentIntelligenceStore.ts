@@ -70,8 +70,8 @@ interface DocumentIntelligenceState {
 
   layoutFields: LayoutFieldRow[];
   layoutTables: LayoutTableRow[];
-  selectedFields: number[];
-  selectedTableColumns: Record<string, number[]>;
+  selectedFields: string[]; // Field IDs
+  selectedTableColumns: Record<string, string[]>; // Table name -> column names
   fieldToConsolidatedMap: Record<string, string>; // Maps individual field IDs to their consolidated box IDs
 
   isProcessing: boolean;
@@ -79,6 +79,8 @@ interface DocumentIntelligenceState {
   processingError: string | null;
   currentFlowType: FlowType | null;
 
+  // Track if schema has been modified since last extraction
+  schemaModified: boolean;
 
   isDataModelNameDialogOpen: boolean;
   dataModelNameDialogData: {
@@ -112,8 +114,8 @@ interface DocumentIntelligenceState {
 
   setLayoutFields: (fields: LayoutFieldRow[]) => void;
   setLayoutTables: (tables: LayoutTableRow[]) => void;
-  setSelectedFields: (selectedFields: number[]) => void;
-  setSelectedTableColumns: (selectedTableColumns: Record<string, number[]>) => void;
+  setSelectedFields: (selectedFields: string[]) => void;
+  setSelectedTableColumns: (selectedTableColumns: Record<string, string[]>) => void;
   setFieldToConsolidatedMap: (mapping: Record<string, string>) => void;
 
   setProcessingState: (isProcessing: boolean, step?: string, error?: string | null) => void;
@@ -153,6 +155,9 @@ interface DocumentIntelligenceState {
 
   // Parse bounding box display actions
   setShowingParseBoxes: (showing: boolean) => void;
+
+  // Schema modification tracking
+  setSchemaModified: (modified: boolean) => void;
 
   // Reset all state
   reset: () => void;
@@ -201,6 +206,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     isCancelled: false,
     flowExecuted: false,
     showingParseBoxes: false,
+    schemaModified: false,
 
     // Actions
     setFileRef: (fileRef: File | null) => {
@@ -239,11 +245,11 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
       set({ layoutTables: tables });
     },
 
-    setSelectedFields: (selectedFields: number[]) => {
+    setSelectedFields: (selectedFields: string[]) => {
       set({ selectedFields });
     },
 
-    setSelectedTableColumns: (selectedTableColumns: Record<string, number[]>) => {
+    setSelectedTableColumns: (selectedTableColumns: Record<string, string[]>) => {
       set({ selectedTableColumns });
     },
 
@@ -269,7 +275,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
 
     // Data Model Name Dialog actions
     openDataModelNameDialog: () => set({ isDataModelNameDialogOpen: true }),
-    closeDataModelNameDialog: () => set({ isDataModelNameDialogOpen: false, dataModelNameDialogData: null }),
+    closeDataModelNameDialog: () => set({ isDataModelNameDialogOpen: false, dataModelNameDialogData: null, originalGeneratedSchema: null }),
     setDataModelNameDialogData: (data) => set({ dataModelNameDialogData: data }),
     setIsGeneratingDescription: (generating: boolean) => set({ isGeneratingDescription: generating }),
 
@@ -342,7 +348,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     updateField: (id: string, updates: Partial<LayoutFieldRow>) =>
       set((state) => {
         const newFields = state.layoutFields.map((field) => (field.id === id ? { ...field, ...updates } : field));
-        return { layoutFields: newFields };
+        return { layoutFields: newFields, schemaModified: true };
       }),
 
     addField: (fieldData: Omit<LayoutFieldRow, 'id'>) => {
@@ -352,6 +358,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
       };
       set((state) => ({
         layoutFields: [...state.layoutFields, newField],
+        schemaModified: true,
       }));
       return newField;
     },
@@ -373,6 +380,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         return {
           layoutFields: updatedFields,
           extractedData: updatedExtractedData,
+          schemaModified: true,
         };
       }),
 
@@ -380,6 +388,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     updateTableField: (name: string, updates: Partial<LayoutTableRow>) =>
       set((state) => ({
         layoutTables: state.layoutTables.map((table) => (table.name === name ? { ...table, ...updates } : table)),
+        schemaModified: true,
       })),
 
     // Flow execution tracking
@@ -390,6 +399,11 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
     // Parse bounding box display actions
     setShowingParseBoxes: (showing: boolean) => {
       set({ showingParseBoxes: showing });
+    },
+
+    // Schema modification tracking
+    setSchemaModified: (modified: boolean) => {
+      set({ schemaModified: modified });
     },
 
     // Reset all state
@@ -406,6 +420,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         parseData: null,
         extractedData: null,
         documentLayout: null,
+        originalGeneratedSchema: null,
         uploadedExtractionSchema: null,
         layoutFields: [],
         layoutTables: [],
@@ -429,6 +444,7 @@ export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
         isCancelled: false,
         flowExecuted: false,
         showingParseBoxes: false,
+        schemaModified: false,
       });
     },
   }),

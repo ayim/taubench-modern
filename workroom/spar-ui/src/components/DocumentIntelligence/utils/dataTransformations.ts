@@ -405,10 +405,12 @@ export const convertParseResultToFields = (
 ): LayoutFieldRow[] => {
   const extractedFields: LayoutFieldRow[] = [];
 
-  // Helper function to extract description from schema by field name
+  // Helper function to extract description and layout_description from schema by field name
   // Handles both flat fields (e.g., "field_name") and nested fields (e.g., "company.name")
-  const getDescriptionFromSchema = (fieldName: string): string | undefined => {
-    if (!originalGeneratedSchema?.properties) return undefined;
+  const getDescriptionsFromSchema = (
+    fieldName: string
+  ): { description?: string; layout_description?: string } => {
+    if (!originalGeneratedSchema?.properties) return {};
 
     // Split the field name by '.' to handle nested fields
     const pathParts = fieldName.split('.');
@@ -439,26 +441,30 @@ export const convertParseResultToFields = (
       }
 
       if (!prop || typeof prop !== 'object') {
-        return undefined;
+        return {};
       }
 
-      // If this is the last part of the path, return its description
+      // If this is the last part of the path, return both descriptions
       if (i === pathParts.length - 1) {
+        const result: { description?: string; layout_description?: string } = {};
         if ('description' in prop && typeof prop.description === 'string') {
-          return prop.description;
+          result.description = prop.description;
         }
-        return undefined;
+        if ('layout_description' in prop && typeof prop.layout_description === 'string') {
+          result.layout_description = prop.layout_description;
+        }
+        return result;
       }
 
       // Otherwise, continue navigating through nested properties
       if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
         currentProps = prop.properties as Record<string, unknown>;
       } else {
-        return undefined;
+        return {};
       }
     }
 
-    return undefined;
+    return {};
   };
 
   // Handle parse response (has chunks)
@@ -478,6 +484,7 @@ export const convertParseResultToFields = (
       }
 
       const formattedName = formatFieldName(fieldName);
+      const descriptions = getDescriptionsFromSchema(formattedName);
       extractedFields.push({
         id: generateUniqueId('field'),
         type: 'string',
@@ -485,7 +492,8 @@ export const convertParseResultToFields = (
         name: formattedName,
         value: String(fieldValue),
         citationId: numericIdCounter,
-        description: getDescriptionFromSchema(formattedName),
+        description: descriptions.description,
+        layout_description: descriptions.layout_description,
       });
       numericIdCounter += 1;
     });
@@ -537,6 +545,7 @@ export const convertParseResultToFields = (
       const cleanKey = key.startsWith('result.') ? key.substring(7) : key;
 
       const formattedName = formatFieldName(cleanKey);
+      const descriptions = getDescriptionsFromSchema(formattedName);
       extractedFields.push({
         id: generateUniqueId('field'),
         type: 'string',
@@ -545,7 +554,8 @@ export const convertParseResultToFields = (
         value: String(value),
         // Add numeric ID for citation matching
         citationId: numericIdCounter,
-        description: getDescriptionFromSchema(formattedName),
+        description: descriptions.description,
+        layout_description: descriptions.layout_description,
       });
       numericIdCounter += 1;
     });
@@ -564,10 +574,12 @@ export const convertParseResultToTables = (
   const extractedTables: LayoutTableRow[] = [];
   let tableCounter = 0;
 
-  // Helper function to extract description from schema by table name
+  // Helper function to extract description and layout_description from schema by table name
   // Handles both flat table names and nested table names
-  const getDescriptionFromSchema = (tableName: string): string | undefined => {
-    if (!originalGeneratedSchema?.properties) return undefined;
+  const getDescriptionsFromSchema = (
+    tableName: string
+  ): { description?: string; layout_description?: string } => {
+    if (!originalGeneratedSchema?.properties) return {};
 
     // Split the table name by '.' to handle nested tables
     const pathParts = tableName.split('.');
@@ -598,32 +610,39 @@ export const convertParseResultToTables = (
       }
 
       if (!prop || typeof prop !== 'object') {
-        return undefined;
+        return {};
       }
 
-      // If this is the last part of the path, return its description
+      // If this is the last part of the path, return both descriptions
       if (i === pathParts.length - 1) {
+        const result: { description?: string; layout_description?: string } = {};
         if ('description' in prop && typeof prop.description === 'string') {
-          return prop.description;
+          result.description = prop.description;
         }
-        return undefined;
+        if ('layout_description' in prop && typeof prop.layout_description === 'string') {
+          result.layout_description = prop.layout_description;
+        }
+        return result;
       }
 
       // Otherwise, continue navigating through nested properties
       if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
         currentProps = prop.properties as Record<string, unknown>;
       } else {
-        return undefined;
+        return {};
       }
     }
 
-    return undefined;
+    return {};
   };
 
-  // Helper function to extract column description from schema
+  // Helper function to extract column description and layout_description from schema
   // Handles both flat and nested table names
-  const getColumnDescriptionFromSchema = (tableName: string, columnName: string): string | undefined => {
-    if (!originalGeneratedSchema?.properties) return undefined;
+  const getColumnDescriptionsFromSchema = (
+    tableName: string,
+    columnName: string
+  ): { description?: string; layout_description?: string } => {
+    if (!originalGeneratedSchema?.properties) return {};
 
     // Split the table name by '.' to handle nested tables
     const pathParts = tableName.split('.');
@@ -654,7 +673,7 @@ export const convertParseResultToTables = (
       }
 
       if (!prop || typeof prop !== 'object') {
-        return undefined;
+        return {};
       }
 
       // If this is the last part of the table path, get the items
@@ -684,24 +703,29 @@ export const convertParseResultToTables = (
             }
 
             if (columnProp && typeof columnProp === 'object') {
+              const result: { description?: string; layout_description?: string } = {};
               if ('description' in columnProp && typeof columnProp.description === 'string') {
-                return columnProp.description;
+                result.description = columnProp.description;
               }
+              if ('layout_description' in columnProp && typeof columnProp.layout_description === 'string') {
+                result.layout_description = columnProp.layout_description;
+              }
+              return result;
             }
           }
         }
-        return undefined;
+        return {};
       }
 
       // Otherwise, continue navigating through nested properties
       if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
         currentProps = prop.properties as Record<string, unknown>;
       } else {
-        return undefined;
+        return {};
       }
     }
 
-    return undefined;
+    return {};
   };
 
   // Helper function to recursively search for arrays
@@ -727,22 +751,26 @@ export const convertParseResultToTables = (
           const columns = Array.from(allKeys);
 
           const formattedTableName = formatFieldName(currentPath);
+          const tableDescriptions = getDescriptionsFromSchema(formattedTableName);
           const table: LayoutTableRow = {
             id: `table-${tableCounter}`,
             required: true,
-            description: getDescriptionFromSchema(formattedTableName) || '',
+            description: tableDescriptions.description || '',
+            layout_description: tableDescriptions.layout_description,
             name: formattedTableName,
             columns,
             columnsMeta: columns.reduce(
               (acc, col) => {
+                const columnDescriptions = getColumnDescriptionsFromSchema(formattedTableName, col);
                 acc[col] = {
                   type: 'string',
                   required: true,
-                  description: getColumnDescriptionFromSchema(formattedTableName, col) || ''
+                  description: columnDescriptions.description || '',
+                  layout_description: columnDescriptions.layout_description,
                 };
                 return acc;
               },
-              {} as Record<string, { type: string; required: boolean; description: string }>,
+              {} as Record<string, { type: string; required: boolean; description: string; layout_description?: string }>,
             ),
             data: value
               .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
@@ -1034,9 +1062,9 @@ export const filterFieldsBySelectedFields = ({
   selectedFields,
 }: {
   fields: LayoutFieldRow[];
-  selectedFields: number[];
+  selectedFields: string[];
 }): LayoutFieldRow[] => {
-  return selectedFields?.length > 0 ? fields.filter((_, index) => selectedFields.includes(index)) : fields;
+  return selectedFields?.length > 0 ? fields.filter((field) => selectedFields.includes(field.id)) : fields;
 };
 
 // Filter tables by selected table columns
@@ -1045,14 +1073,14 @@ export const filterTablesBySelectedTableColumns = ({
   selectedTableColumns,
 }: {
   tables: LayoutTableRow[];
-  selectedTableColumns: Record<string, number[]>;
+  selectedTableColumns: Record<string, string[]>;
 }): LayoutTableRow[] => {
   return Object.keys(selectedTableColumns).some((tableName) => selectedTableColumns[tableName].length > 0)
     ? tables
         .filter((table) => selectedTableColumns[table.name] && selectedTableColumns[table.name].length > 0)
         .map((table) => {
-          const selectedColumnIndices = selectedTableColumns[table.name];
-          const filteredColumns = table.columns.filter((_, index) => selectedColumnIndices.includes(index));
+          const selectedColumnNames = selectedTableColumns[table.name];
+          const filteredColumns = table.columns.filter((columnName) => selectedColumnNames.includes(columnName));
           const filteredColumnsMeta = Object.fromEntries(
             Object.entries(table.columnsMeta).filter(([columnName]) => filteredColumns.includes(columnName)),
           );
@@ -1197,6 +1225,74 @@ export const convertUIStateToDocumentLayoutPayload = (
     prompt: documentLayout?.prompt || null,
     summary: null,
     extraction_config: null,
+  };
+};
+
+// Build extraction schema from current layout state
+export const buildExtractionSchemaFromLayout = (
+  fields: LayoutFieldRow[],
+  tables: LayoutTableRow[]
+): ExtractionSchemaPayload => {
+  const properties: Record<string, SchemaProperty> = {};
+  const required: string[] = [];
+
+  // Add fields to schema
+  fields.forEach((field) => {
+    if (field.name && field.name.trim()) {
+      properties[field.name] = {
+        type: field.type || 'string',
+        description: field.description,
+        layout_description: field.layout_description,
+      };
+
+      if (field.required) {
+        required.push(field.name);
+      }
+    }
+  });
+
+  // Add tables to schema
+  tables.forEach((table) => {
+    if (table.name && table.name.trim()) {
+      const tableProperties: Record<string, SchemaProperty> = {};
+      const tableRequired: string[] = [];
+
+      // Add table columns
+      if (table.columnsMeta) {
+        Object.entries(table.columnsMeta).forEach(([columnName, meta]) => {
+          tableProperties[columnName] = {
+            type: meta.type || 'string',
+            description: meta.description,
+            layout_description: meta.layout_description,
+          };
+
+          if (meta.required) {
+            tableRequired.push(columnName);
+          }
+        });
+      }
+
+      properties[table.name] = {
+        type: 'array',
+        description: table.description,
+        layout_description: table.layout_description,
+        items: {
+          type: 'object',
+          properties: tableProperties,
+          required: tableRequired,
+        },
+      };
+
+      if (table.required) {
+        required.push(table.name);
+      }
+    }
+  });
+
+  return {
+    type: 'object',
+    properties,
+    required,
   };
 };
 

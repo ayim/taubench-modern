@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useState, useCallback } from 'react';
 import { IconAlert, IconRefresh } from '@sema4ai/icons';
 import { Box, Switch, Snackbar, Divider, Typography, Banner, Button, useSnackbar } from '@sema4ai/components';
 import { StepType, DocumentData } from '../types';
@@ -12,6 +12,8 @@ import { StepDataQuality } from './StepDataQuality';
 import { StepFooter } from './StepFooter';
 import { StepHeader } from './StepHeader';
 import { ExtractionData } from './ExtractionData';
+import { useExtractDocumentMutation } from '../../../queries/documentIntelligence';
+import { buildExtractionSchemaFromLayout, convertParseResultToFields, convertParseResultToTables } from '../utils/dataTransformations';
 
 interface DocumentIntelligenceViewProps {
   documentData: DocumentData;
@@ -30,9 +32,20 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
   const openDialog = useDocumentIntelligenceStore((state) => state.openDataModelNameDialog);
   const closeDialog = useDocumentIntelligenceStore((state) => state.closeDataModelNameDialog);
   const processingError = useDocumentIntelligenceStore((state) => state.processingError);
+  const schemaModified = useDocumentIntelligenceStore((state) => state.schemaModified);
+  const layoutFields = useDocumentIntelligenceStore((state) => state.layoutFields);
+  const layoutTables = useDocumentIntelligenceStore((state) => state.layoutTables);
+  const documentLayout = useDocumentIntelligenceStore((state) => state.documentLayout);
+  const setProcessingState = useDocumentIntelligenceStore((state) => state.setProcessingState);
+  const setExtractedData = useDocumentIntelligenceStore((state) => state.setExtractedData);
+  const setOriginalGeneratedSchema = useDocumentIntelligenceStore((state) => state.setOriginalGeneratedSchema);
+  const setStoreLayoutFields = useDocumentIntelligenceStore((state) => state.setLayoutFields);
+  const setStoreLayoutTables = useDocumentIntelligenceStore((state) => state.setLayoutTables);
+  const setSchemaModified = useDocumentIntelligenceStore((state) => state.setSchemaModified);
 
   const { handleDataModelNameSave } = useDataModelNameDialogSave();
   const { addSnackbar } = useSnackbar();
+  const extractDocumentMutation = useExtractDocumentMutation({});
   const {
     currentStep,
     availableSteps,
@@ -49,6 +62,115 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
 
   // Track re-extraction loading state
   const [isReExtracting, setIsReExtracting] = useState(false);
+
+  // Handle Re-Run Extract with modified schema
+  const handleReRunExtract = useCallback(async () => {
+    try {
+      setProcessingState(true, 'Re-extracting with updated schema...');
+
+      // Build the current schema from layoutFields and layoutTables
+      const currentSchema = buildExtractionSchemaFromLayout(layoutFields, layoutTables);
+
+      // Re-extract with the modified schema
+      const extractedData = await extractDocumentMutation.mutateAsync({
+        threadId: documentData.threadId,
+        fileName: documentData.fileRef?.name || '',
+        documentLayout: {
+          extraction_schema: currentSchema,
+          prompt: documentLayout?.prompt ?? undefined,
+        },
+      });
+
+      // Update the extracted data in store
+      setExtractedData(extractedData);
+
+      // Update the original generated schema with the new modified schema
+      setOriginalGeneratedSchema(currentSchema);
+
+      // Convert extracted data back to fields/tables
+      const extractedFields = convertParseResultToFields(extractedData, currentSchema);
+      const extractedTables = convertParseResultToTables(extractedData, currentSchema);
+
+      // Merge extracted data with existing fields, preserving user modifications like layout_description
+      const updatedFields = layoutFields.map(existingField => {
+        const extractedField = extractedFields.find(ef => ef.name === existingField.name);
+        if (extractedField) {
+          return {
+            ...existingField,
+            value: extractedField.value,
+            description: existingField.description || extractedField.description,
+            layout_description: existingField.layout_description || extractedField.layout_description,
+            citationId: extractedField.citationId,
+          };
+        }
+        return existingField;
+      });
+
+      // Add any new fields that weren't in the original layout
+      const newFields = extractedFields.filter(
+        ef => !layoutFields.some(existing => existing.name === ef.name)
+      );
+
+      // Merge extracted data with existing tables, preserving user modifications
+      const updatedTables = layoutTables.map(existingTable => {
+        const extractedTable = extractedTables.find(et => et.name === existingTable.name);
+        if (extractedTable) {
+          // Merge column metadata, preserving layout_description from existing columns
+          const mergedColumnsMeta = { ...extractedTable.columnsMeta };
+          Object.keys(mergedColumnsMeta).forEach(columnName => {
+            if (existingTable.columnsMeta[columnName]) {
+              mergedColumnsMeta[columnName] = {
+                ...mergedColumnsMeta[columnName],
+                layout_description: existingTable.columnsMeta[columnName].layout_description || mergedColumnsMeta[columnName].layout_description,
+              };
+            }
+          });
+
+          return {
+            ...existingTable,
+            data: extractedTable.data,
+            columns: extractedTable.columns,
+            columnsMeta: mergedColumnsMeta,
+            layout_description: existingTable.layout_description || extractedTable.layout_description,
+          };
+        }
+        return existingTable;
+      });
+
+      // Add any new tables that weren't in the original layout
+      const newTables = extractedTables.filter(
+        et => !layoutTables.some(existing => existing.name === et.name)
+      );
+
+      // Update with merged data
+      setStoreLayoutFields([...updatedFields, ...newFields]);
+      setStoreLayoutTables([...updatedTables, ...newTables]);
+
+      // Clear modified flag
+      setSchemaModified(false);
+
+      addSnackbar({ message: 'Document re-extracted successfully', variant: 'success' });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to re-extract document';
+      addSnackbar({ message: errorMsg, variant: 'danger' });
+    } finally {
+      setProcessingState(false);
+    }
+  }, [
+    layoutFields,
+    layoutTables,
+    documentLayout,
+    documentData.threadId,
+    documentData.fileRef,
+    extractDocumentMutation,
+    setExtractedData,
+    setOriginalGeneratedSchema,
+    setStoreLayoutFields,
+    setStoreLayoutTables,
+    setSchemaModified,
+    addSnackbar,
+    setProcessingState,
+  ]);
 
   // Create step map to render the correct component based on current step
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -221,7 +343,9 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
                       goToPreviousStep={goToPreviousStep}
                       onComplete={onComplete}
                       onCancel={onCancel}
-                      documentData={documentData}
+                      schemaModified={schemaModified}
+                      handleRerunExtractClick={handleReRunExtract}
+                      isReRunning={extractDocumentMutation.isPending}
                     />
                 </Box>
               </Box>

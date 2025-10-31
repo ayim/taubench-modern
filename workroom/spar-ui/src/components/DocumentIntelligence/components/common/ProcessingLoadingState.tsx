@@ -3,6 +3,7 @@ import { Box, EmptyState, Typography } from '@sema4ai/components';
 import { IconCheckCircle, IconLoading, IconAlertCircle } from '@sema4ai/icons';
 import { Illustration } from '../../../Illustration';
 
+
 interface ProcessingLoadingStateProps {
   processingStep?: string;
   title?: string;
@@ -17,9 +18,21 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   const currentStep = stepText.toLowerCase();
 
   const getActiveStep = () => {
+    // For creating data model, always show as active (single step)
+    if (currentStep.includes('creating data model')) {
+      return 0;
+    }
+    // For quality checks, always show as active (single step)
+    if (currentStep.includes('quality checks')) {
+      return 0;
+    }
     // For custom schema import, always show as active (single step)
     if (currentStep.includes('custom schema')) {
       return 0;
+    }
+    // For re-extraction with updated schema, show schema generation step
+    if (currentStep.includes('re-extract') && currentStep.includes('updated')) {
+      return 0; // Schema generation step (no reading step for re-extraction)
     }
     if (currentStep.includes('parsing') || currentStep.includes('reading') || currentStep.includes('import')) {
       return 0;
@@ -42,9 +55,30 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   };
 
   const getStepLabels = () => {
+    // Special case for creating data model - single step process
+    if (currentStep.includes('creating data model')) {
+      return [
+        { id: 'create-model', label: 'Creating data model' },
+      ];
+    }
+
+    // Special case for quality checks - single step process
+    if (currentStep.includes('quality checks')) {
+      return [
+        { id: 'quality-checks', label: 'Generating quality checks' },
+      ];
+    }
+
     // Special case for importing custom schema - single step process
     if (currentStep.includes('custom schema')) {
       return [{ id: 'import-extract', label: 'Importing & Extracting with Custom Schema' }];
+    }
+
+    // Special case for re-extraction with updated schema - skip reading step
+    if (currentStep.includes('re-extract') && currentStep.includes('updated')) {
+      return [
+        { id: 'regenerate-schema', label: 'Re-Generating Extraction Schema' },
+      ];
     }
 
     let step0 = 'Reading document';
@@ -83,12 +117,22 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   };
 
   const titleText = useMemo(() => {
+
+    if (currentStep.includes('creating data model')) {
+      return 'Creating data model with your document schema';
+    }
+
+    // If re-extracting with updated schema
+    if (currentStep.includes('re-extract') && currentStep.includes('updated')) {
+      return 'Re-Generating Extraction Schema';
+    }
+
     // If importing custom schema
     if (currentStep.includes('custom schema')) {
       return 'Importing Extraction Schema';
     }
 
-    // If generating extraction schema, extracting data, or parsing document
+
     if (
       currentStep.includes('schema') ||
       currentStep.includes('extract') ||
@@ -98,7 +142,6 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
       return 'Generating Extraction Schema';
     }
 
-    // If generating data quality checks
     if (currentStep.includes('quality checks')) {
       return 'Generating Quality Checks';
     }
@@ -106,8 +149,17 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
     return title;
   }, [currentStep, title]);
 
-  // Determine description text based on processing step
   const descriptionText = useMemo(() => {
+
+    if (currentStep.includes('creating data model')) {
+      return '';
+    }
+
+    // For re-extraction with updated schema
+    if (currentStep.includes('re-extract') && currentStep.includes('updated')) {
+      return 'Re-extracting document data with latest changes';
+    }
+
     // For custom schema import
     if (currentStep.includes('custom schema')) {
       return 'Re-extracting document data using your custom schema';
@@ -123,9 +175,8 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
       return 'Your extraction will appear here once steps are complete';
     }
 
-    // For quality checks
     if (currentStep.includes('quality checks')) {
-      return 'Your quality checks will appear here once they are complete';
+      return 'Analyzing your extracted data to create validation rules';
     }
 
     // Default: show the processingStep text
