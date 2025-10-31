@@ -8,7 +8,7 @@ import {
   IconMap,
   IconInformation,
   IconPaperclip,
-  IconSpreadsheet,
+  IconDataframe,
 } from '@sema4ai/icons';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
@@ -66,7 +66,7 @@ export const Header = () => {
 
           <Tooltip text="Data Frames" placement="bottom">
             <RouterSideNavigationLink
-              icon={<IconSpreadsheet />}
+              icon={<IconDataframe />}
               round
               {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/data-frames', {
                 tenantId,
@@ -131,7 +131,7 @@ export const Header = () => {
             )}
 
             <RouterMenuLink
-              icon={IconSpreadsheet}
+              icon={IconDataframe}
               {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/data-frames', {
                 tenantId,
                 agentId,
