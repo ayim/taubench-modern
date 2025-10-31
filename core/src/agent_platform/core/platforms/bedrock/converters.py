@@ -557,12 +557,18 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
 
         # NOTE: NEW for Claude 4.5, we must not provide BOTH temperature and top_p
         has_both_temperature_and_top_p = "topP" in config and "temperature" in config
-        is_claude_4_5_sonnet = model_id and "claude-4-5-sonnet" in model_id
-        if has_both_temperature_and_top_p and is_claude_4_5_sonnet:
-            # We'll prefer temperature over top_p
+        is_claude_4_5_variant = bool(
+            model_id
+            and any(
+                variant in model_id
+                for variant in ("claude-4-5-sonnet", "claude-4-5-haiku", "claude-4-5-opus")
+            )
+        )
+        if has_both_temperature_and_top_p and is_claude_4_5_variant:
+            # Prefer temperature over top_p for Claude 4.5 variants
             config.pop("topP")
             logger.warning(
-                "Both temperature and top_p were provided for Claude 4.5 Sonnet, ignoring top_p",
+                "Both temperature and top_p were provided for Claude 4.5, ignoring top_p",
             )
 
         return None if not config else config

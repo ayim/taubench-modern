@@ -267,6 +267,8 @@ def test_semantic_data_model_query_with_llm_integration(
     base_url_agent_server, resources_dir, openai_api_key
 ):
     """Test semantic data model query with LLM integration."""
+    import json
+
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
@@ -341,7 +343,7 @@ def test_semantic_data_model_query_with_llm_integration(
         # Verify the model was created correctly
         retrieved_model = agent_client.get_semantic_data_model(semantic_data_model_id)
         assert retrieved_model == generated_model["semantic_model"]
-        result, tool_calls = agent_client.send_message_to_agent_thread(
+        final_response, tool_calls = agent_client.send_message_to_agent_thread(
             agent_id,
             thread_id,
             (
@@ -349,14 +351,57 @@ def test_semantic_data_model_query_with_llm_integration(
                 "sampled in the year 2023?"
             ),
         )
-        for tool_call in tool_calls:
-            if tool_call.tool_name == "data_frames_create_from_sql":
-                break
-        else:
-            raise Exception("data_frames_create_from_sql tool call not found")
+        sql_tool_calls = [
+            tool_call
+            for tool_call in tool_calls
+            if tool_call.tool_name == "data_frames_create_from_sql"
+        ]
+        assert sql_tool_calls, (
+            f"Expected data_frames_create_from_sql tool call not found. "
+            f"Final response: {final_response}. Tool calls: {[tc.tool_name for tc in tool_calls]}"
+        )
+        sql_tool_call = next(
+            (tool_call for tool_call in reversed(sql_tool_calls) if tool_call.error is None),
+            None,
+        )
+        assert sql_tool_call is not None, (
+            "No successful data_frames_create_from_sql call. "
+            f"Errors: {[tc.error for tc in sql_tool_calls]} | Final response: {final_response}"
+        )
 
-        result_found = str(result)
-        assert "Claude 2" in result_found, "Claude 2 should be in the result"
+        assert sql_tool_call.error is None, (
+            f"data_frames_create_from_sql failed: {sql_tool_call.error}"
+        )
+
+        data_frame_name = sql_tool_call.input_data.get("new_data_frame_name")
+        assert data_frame_name, f"Tool input miss new_data_frame_name: {sql_tool_call.input_data}"
+
+        data_frames = agent_client.get_data_frames(thread_id, num_samples=5)
+        matching_data_frame = next(
+            (df for df in data_frames if df["name"] == data_frame_name),
+            None,
+        )
+        assert matching_data_frame is not None, (
+            f"Data frame {data_frame_name} not found in thread: "
+            f"{[df['name'] for df in data_frames]}"
+        )
+        assert matching_data_frame["num_rows"] > 0, (
+            f"Expected rows in data frame {data_frame_name}, got 0"
+        )
+
+        contents = agent_client.get_data_frame_contents(
+            thread_id=thread_id,
+            data_frame_name=data_frame_name,
+            output_format="json",
+        )
+        assert contents, f"No contents returned for data frame {data_frame_name}"
+
+        rows = json.loads(contents)
+        assert rows, f"No rows returned for data frame {data_frame_name}"
+        assert any(
+            "claude_2" in "_".join(str(value).lower().replace(" ", "_") for value in row.values())
+            for row in rows
+        ), "Expected Claude 2 to appear in the queried data frame"
 
 
 def check_upload_response(thread_response) -> str:

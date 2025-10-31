@@ -318,3 +318,31 @@ class TestBedrockConverters:
         assert "toolSpec" in result.tool_config["tools"][0]
         assert result.tool_config["tools"][0]["toolSpec"]["name"] == "get_weather"
         assert "toolChoice" in result.tool_config
+
+    @pytest.mark.asyncio
+    async def test_claude_4_5_models_drop_top_p_when_temperature_set(
+        self,
+        converters: BedrockConverters,
+    ) -> None:
+        """Every Claude 4.5 model must ignore top_p when temperature is provided."""
+        from agent_platform.core.platforms.configs import PlatformModelConfigs
+
+        configs = PlatformModelConfigs()
+        claude_4_5_models = [
+            model_id
+            for model_id in configs.models_to_platform_specific_model_ids
+            if model_id.startswith("bedrock/anthropic/claude-4-5")
+        ]
+        assert claude_4_5_models, "Expected at least one Claude 4.5 Bedrock model"
+
+        for model_id in claude_4_5_models:
+            inference = await converters._build_inference_config(
+                temperature=0.6,
+                max_output_tokens=None,
+                stop_sequences=None,
+                top_p=0.9,
+                model_id=model_id,
+            )
+            assert inference is not None
+            assert inference.get("temperature") == 0.6
+            assert "topP" not in inference, f"{model_id} must drop topP when temperature is set"
