@@ -28,7 +28,7 @@ export const EvalEmptyState: FC<EvalEmptyStateProps> = ({
       title="Evaluations"
       description='All evaluation runs will be shown here. Create an Evaluation by clicking "Add Evaluation"'
       action={
-        <Box display="flex" gap="$8" flexWrap="wrap">
+        <Box display="flex" gap="$8" flexWrap="wrap" justifyContent="center" alignItems="center" width="100%">
           <Button 
             variant="primary" 
             round 
