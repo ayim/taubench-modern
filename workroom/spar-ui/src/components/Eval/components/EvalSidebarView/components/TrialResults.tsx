@@ -7,7 +7,7 @@ import {
   IconChevronRight,
   IconShare,
   IconInformation,
-  IconStatusProcessing,
+  IconLoading,
 } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { getEvaluationResultColor, getEvaluationResultLabel, getEvaluationResultIcon, isTrialTerminal } from '../utils';
@@ -57,7 +57,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
     if (trial.status === 'PENDING') {
       return (  
         <Badge
-          icon={IconStatusProcessing}
+          icon={IconLoading}
           iconColor="blue80"
           variant="info"
           size="small"
@@ -69,7 +69,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
     if (trial.status === 'EXECUTING') {
       return (  
         <Badge
-          icon={IconStatusProcessing}
+          icon={IconLoading}
           iconColor="yellow80"
           variant="yellow"
           size="small"

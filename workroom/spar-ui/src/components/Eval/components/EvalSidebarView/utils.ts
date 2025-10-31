@@ -1,6 +1,6 @@
 import { Color } from '@sema4ai/theme';
 import { BadgeVariant } from '@sema4ai/components';
-import { IconStatusCompleted, IconStatusError, IconStatusPending, IconStatusProcessing } from '@sema4ai/icons';
+import { IconStatusCompleted, IconStatusError, IconStatusPending, IconLoading } from '@sema4ai/icons';
 import { Trial, EvaluationResult } from './types';
 
 export const getIconColor = (status: Trial['status']): Color => {
@@ -40,7 +40,7 @@ export const getIconColor = (status: Trial['status']): Color => {
       case 'ERROR':
         return IconStatusError;
       case 'EXECUTING':
-        return IconStatusProcessing;
+        return IconLoading;
       case 'PENDING':
       case 'CANCELED':
         return IconStatusPending;

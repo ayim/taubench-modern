@@ -6,7 +6,7 @@ import {
   IconMenu,
   IconStatusCompleted,
   IconStatusError,
-  IconStatusProcessing,
+  IconLoading,
 } from '@sema4ai/icons';
 import type { components } from '@sema4ai/agent-server-interface';
 import { TrialResults } from './TrialResults';
@@ -133,7 +133,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                 if (runIsRunning) {
                   statusBadge = (
                     <Badge
-                      icon={IconStatusProcessing}
+                      icon={IconLoading}
                       iconColor="blue80"
                       variant="blue"
                       size="small"

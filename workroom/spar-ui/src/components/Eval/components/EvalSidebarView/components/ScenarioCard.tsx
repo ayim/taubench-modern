@@ -10,7 +10,7 @@ import {
   IconStatusCompleted,
   IconStatusError,
   IconStatusPending,
-  IconStatusProcessing,
+  IconLoading,
   IconTrash,
   IconCloseCircle,
   IconArrowRightCircle,
@@ -61,7 +61,7 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
     if (isRunning) {
       return (
         <Badge
-          icon={IconStatusProcessing}
+          icon={IconLoading}
           iconColor="yellow80"
           variant="yellow"
           label="Running"
