@@ -224,14 +224,28 @@ async def inspect_data_connection(
 
         return result
     except Exception as e:
+        # Import ConnectionFailedError inside the exception handler
+        from agent_platform.core.errors.base import ErrorCode, PlatformHTTPError
+        from agent_platform.server.kernel.data_connection_inspector import ConnectionFailedError
+
         logger.error(
             "Failed to inspect data connection",
             connection_id=connection_id,
             error=str(e),
             user_id=user.user_id,
         )
-        raise HTTPException(
-            status_code=500, detail=f"Failed to inspect data connection: {e!s}"
+
+        # For ConnectionFailedError, use the cleaned error message directly
+        if isinstance(e, ConnectionFailedError):
+            raise PlatformHTTPError(
+                ErrorCode.UNEXPECTED,
+                str(e),
+            ) from e
+
+        # For other exceptions, include the generic prefix
+        raise PlatformHTTPError(
+            ErrorCode.UNEXPECTED,
+            f"Failed to inspect data connection: {e!s}",
         ) from e
 
 
