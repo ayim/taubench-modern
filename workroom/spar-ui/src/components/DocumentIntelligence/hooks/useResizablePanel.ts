@@ -5,25 +5,28 @@ export const useResizablePanel = () => {
   const minStepperWidth = 621;
   const maxStepperWidth = 1200;
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = stepperWidth;
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = stepperWidth;
 
-    const handleMouseMove = (event: MouseEvent) => {
-      const deltaX = startX - event.clientX; // Reversed for left-side resize
-      const newWidth = Math.min(Math.max(startWidth + deltaX, minStepperWidth), maxStepperWidth);
-      setStepperWidth(newWidth);
-    };
+      const handleMouseMove = (event: MouseEvent) => {
+        const deltaX = startX - event.clientX; // Reversed for left-side resize
+        const newWidth = Math.min(Math.max(startWidth + deltaX, minStepperWidth), maxStepperWidth);
+        setStepperWidth(newWidth);
+      };
 
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+      const handleMouseUp = () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [stepperWidth]);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [stepperWidth],
+  );
 
   return {
     stepperWidth,

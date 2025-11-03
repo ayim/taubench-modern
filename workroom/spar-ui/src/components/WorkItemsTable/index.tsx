@@ -11,31 +11,26 @@ import { workItemsTableColumns } from './columns';
 import { WorkItemsTableRow } from './components/WorkItemsTableRow';
 import { WorkItemsTableActions } from './components/WorkItemsTableActions';
 import { createWorkItemsStorageKey, getStoragePrefixFromPathname } from '../../constants/workItemsStorage';
-import {
-  buildAgentMaps,
-  transformWorkItemsWithAgentNames,
-  buildFilterOptions,
-  calculatePagination,
-} from './utils';
+import { buildAgentMaps, transformWorkItemsWithAgentNames, buildFilterOptions, calculatePagination } from './utils';
 import { usePersistedQuery } from './usePersistedQuery';
 
 type Props = {
   onDownloadJSON: (data: unknown, options: { filename: string; addTimestamp?: boolean }) => void;
-}
+};
 
 export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
   const { addSnackbar } = useSnackbar();
   const { sparAPIClient } = useContext(SparUIContext);
   const queryClient = useQueryClient();
-  
+
   const pathname = sparAPIClient.usePathnameFn();
   const storageKeyPrefix = getStoragePrefixFromPathname(pathname);
-  
+
   const { data: agents = [], refetch: refetchAgents } = useAgentsQuery({});
   const { agentsById, agentsByName } = useMemo(() => buildAgentMaps(agents), [agents]);
-  
+
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  
+
   const { query, setQuery } = usePersistedQuery({
     storageKey: createWorkItemsStorageKey(storageKeyPrefix, 'QUERY_SETTINGS'),
     agentsById,
@@ -61,19 +56,16 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
 
   const workItems = useMemo<WorkItemRowData[]>(
     () => transformWorkItemsWithAgentNames(workItemsResponse?.records ?? [], agentsById),
-    [workItemsResponse?.records, agentsById]
+    [workItemsResponse?.records, agentsById],
   );
 
-  const filterOptions = useMemo(
-    () => buildFilterOptions(agentsByName),
-    [agentsByName]
-  );
+  const filterOptions = useMemo(() => buildFilterOptions(agentsByName), [agentsByName]);
 
   const { estimatedTotal } = calculatePagination(
     query.page || 0,
     pageSize,
     workItems.length,
-    workItemsResponse?.next_offset != null
+    workItemsResponse?.next_offset != null,
   );
 
   const handleRefresh = useCallback(() => {
@@ -121,7 +113,7 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
     const restartRequests = selectedWorkItems.map((item) =>
       sparAPIClient.queryAgentServer('post', '/api/v2/work-items/{work_item_id}/restart', {
         params: { path: { work_item_id: item.work_item_id ?? '' } },
-      })
+      }),
     );
 
     const results = await Promise.allSettled(restartRequests);
@@ -135,9 +127,9 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
       addSnackbar({ message: `Successfully restarted ${succeeded} work item${plural}`, variant: 'success' });
     } else if (succeeded > 0 && failed > 0) {
       const plural = succeeded > 1 ? 's' : '';
-      addSnackbar({ 
-        message: `Restarted ${succeeded} work item${plural}, ${failed} failed`, 
-        variant: 'danger' 
+      addSnackbar({
+        message: `Restarted ${succeeded} work item${plural}, ${failed} failed`,
+        variant: 'danger',
       });
     } else {
       addSnackbar({ message: 'Failed to restart work items', variant: 'danger' });
@@ -158,30 +150,30 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
           />
         </Box>
       )}
-        {agents.length > 0 && (
-          <TableWithFilter<WorkItemRowData, 'status' | 'agent_name'>
-            id="work-items-table"
-            columns={workItemsTableColumns}
-            data={workItems}
-            row={WorkItemsTableRow}
-            filters={filterOptions}
-            label={{ singular: 'work item', plural: 'work items' }}
-            selectable
-            selected={selectedItems}
-            onSelect={setSelectedItems}
-            isServerSide
-            query={query}
-            onQuery={setQuery}
-            totalEntries={estimatedTotal}
-            contentBefore={
-              selectedItems.length > 0 ? (
-                <Box display="flex" alignItems="center">
-                  <Button aria-label="Refresh" icon={IconRefresh} variant="ghost" size="small" onClick={handleRefresh} />
-                </Box>
-              ) : undefined
-            }
-          />
-        )}
+      {agents.length > 0 && (
+        <TableWithFilter<WorkItemRowData, 'status' | 'agent_name'>
+          id="work-items-table"
+          columns={workItemsTableColumns}
+          data={workItems}
+          row={WorkItemsTableRow}
+          filters={filterOptions}
+          label={{ singular: 'work item', plural: 'work items' }}
+          selectable
+          selected={selectedItems}
+          onSelect={setSelectedItems}
+          isServerSide
+          query={query}
+          onQuery={setQuery}
+          totalEntries={estimatedTotal}
+          contentBefore={
+            selectedItems.length > 0 ? (
+              <Box display="flex" alignItems="center">
+                <Button aria-label="Refresh" icon={IconRefresh} variant="ghost" size="small" onClick={handleRefresh} />
+              </Box>
+            ) : undefined
+          }
+        />
+      )}
     </Box>
   );
 };

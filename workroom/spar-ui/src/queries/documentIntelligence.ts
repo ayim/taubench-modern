@@ -143,7 +143,7 @@ export const useExtractDocumentMutation = createSparMutation<
     if (!fileName && !jobId) {
       throw new QueryError('One of fileName or jobId must be provided', {
         code: 'INVALID_PARAMETERS',
-        resource: ResourceType.DocumentIntelligence
+        resource: ResourceType.DocumentIntelligence,
       });
     }
 

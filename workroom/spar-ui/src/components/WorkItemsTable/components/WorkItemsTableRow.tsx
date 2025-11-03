@@ -1,10 +1,6 @@
 /* eslint-disable camelcase */
 import { Box, Button, Menu, Table, TableRowProps, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
-import {
-  IconCheck,
-  IconDotsHorizontal,
-  IconRefresh,
-} from '@sema4ai/icons';
+import { IconCheck, IconDotsHorizontal, IconRefresh } from '@sema4ai/icons';
 import { FC, useCallback } from 'react';
 
 import { formatDateTime, formatShortDateTime } from '../../../common/helpers';
@@ -14,7 +10,7 @@ import { WorkItemRowData } from '../types';
 import { workItemsTableColumns } from '../columns';
 import { WORK_ITEM_STATUS_CONFIG, DEFAULT_WORK_ITEM_STATUS_CONFIG } from '../../../constants/workItemStatus';
 
-type RowProps = { 
+type RowProps = {
   rowData: WorkItemRowData;
 };
 
@@ -127,10 +123,10 @@ export const WorkItemsTableRow: FC<TableRowProps<WorkItemRowData>> = ({ rowData 
   const handleRowClick = useCallback(() => {
     const { work_item_id, agent_id, status } = rowData;
     if (status === 'PENDING' || !work_item_id || !agent_id) return;
-    
-    navigate({ 
-      to: '/workItem/$agentId/$workItemId', 
-      params: { workItemId: work_item_id, agentId: agent_id } 
+
+    navigate({
+      to: '/workItem/$agentId/$workItemId',
+      params: { workItemId: work_item_id, agentId: agent_id },
     });
   }, [rowData, navigate]);
 
@@ -151,4 +147,3 @@ export const WorkItemsTableRow: FC<TableRowProps<WorkItemRowData>> = ({ rowData 
     </Table.Row>
   );
 };
-

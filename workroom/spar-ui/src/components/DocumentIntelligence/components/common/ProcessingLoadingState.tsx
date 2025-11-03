@@ -3,7 +3,6 @@ import { Box, EmptyState, Typography } from '@sema4ai/components';
 import { IconCheckCircle, IconLoading, IconAlertCircle } from '@sema4ai/icons';
 import { Illustration } from '../../../Illustration';
 
-
 interface ProcessingLoadingStateProps {
   processingStep?: string;
   title?: string;
@@ -57,16 +56,12 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   const getStepLabels = () => {
     // Special case for creating data model - single step process
     if (currentStep.includes('creating data model')) {
-      return [
-        { id: 'create-model', label: 'Creating data model' },
-      ];
+      return [{ id: 'create-model', label: 'Creating data model' }];
     }
 
     // Special case for quality checks - single step process
     if (currentStep.includes('quality checks')) {
-      return [
-        { id: 'quality-checks', label: 'Generating quality checks' },
-      ];
+      return [{ id: 'quality-checks', label: 'Generating quality checks' }];
     }
 
     // Special case for importing custom schema - single step process
@@ -76,9 +71,7 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
 
     // Special case for re-extraction with updated schema - skip reading step
     if (currentStep.includes('re-extract') && currentStep.includes('updated')) {
-      return [
-        { id: 'regenerate-schema', label: 'Re-Generating Extraction Schema' },
-      ];
+      return [{ id: 'regenerate-schema', label: 'Re-Generating Extraction Schema' }];
     }
 
     let step0 = 'Reading document';
@@ -117,7 +110,6 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   };
 
   const titleText = useMemo(() => {
-
     if (currentStep.includes('creating data model')) {
       return 'Creating data model with your document schema';
     }
@@ -131,7 +123,6 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
     if (currentStep.includes('custom schema')) {
       return 'Importing Extraction Schema';
     }
-
 
     if (
       currentStep.includes('schema') ||
@@ -150,7 +141,6 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
   }, [currentStep, title]);
 
   const descriptionText = useMemo(() => {
-
     if (currentStep.includes('creating data model')) {
       return '';
     }

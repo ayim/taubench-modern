@@ -7,4 +7,3 @@ export type WorkItemsNavigationContext = {
   search?: string;
   page?: string;
 };
-

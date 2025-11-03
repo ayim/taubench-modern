@@ -6,7 +6,6 @@ import { LayoutFieldRow, FieldRowProps } from '../../types';
 import { StyledEditButton, StyledDeleteButton } from './styles';
 import { SpecialHandlingMenu } from './SpecialHandlingMenu';
 
-
 export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({ rowData, props }) => {
   const {
     onChange,
@@ -27,7 +26,6 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
   useEffect(() => {
     setLocalValue(rowData.name);
   }, [rowData.name]);
-
 
   const handleRowClick = () => {
     const newSelectedId = selectedFieldId === rowData.id ? null : rowData.id;
@@ -89,7 +87,6 @@ export const FieldRowItem: FC<TableRowProps<LayoutFieldRow, FieldRowProps>> = ({
             disabled={!showAnnotateButtons}
           />
         )}
-
       </Table.Cell>
 
       <Table.Cell>

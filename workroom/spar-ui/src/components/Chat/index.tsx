@@ -36,8 +36,7 @@ type Props = {
 const Container = styled.section<{ $hasEvalBanner: boolean }>`
   position: relative;
   display: grid;
-  grid-template-rows: ${({ $hasEvalBanner }) => 
-    $hasEvalBanner ? 'auto 1fr auto' : '1fr auto'};
+  grid-template-rows: ${({ $hasEvalBanner }) => ($hasEvalBanner ? 'auto 1fr auto' : '1fr auto')};
   height: 100%;
   min-height: 0;
   flex: 1;

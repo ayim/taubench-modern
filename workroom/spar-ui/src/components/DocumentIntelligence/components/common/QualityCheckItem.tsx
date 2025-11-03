@@ -120,13 +120,7 @@ const ActionButtons: FC<ActionButtonsProps> = ({
   return (
     <Box display="flex" alignItems="center" justifyContent="flex-end" gap="$8">
       {/* Conditional Success button - only show if test has results */}
-      {result && !isRegenerating && (
-        <Badge
-          label={getBadgeLabel()}
-          variant={getBadgeVariant()}
-          icon={getBadgeIcon()}
-        />
-      )}
+      {result && !isRegenerating && <Badge label={getBadgeLabel()} variant={getBadgeVariant()} icon={getBadgeIcon()} />}
 
       {/* SQL button - inline with other buttons */}
       {hasSqlQuery && !isReadOnly && (

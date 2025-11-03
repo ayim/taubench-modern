@@ -19,7 +19,6 @@ interface CollapsibleProps {
  */
 const animationDuration = 300;
 
-
 const Container = styled(Box)`
   overflow: hidden;
 `;
@@ -85,7 +84,7 @@ const Collapsible = memo(
             <Box
               style={{
                 transition: 'transform 300ms ease-in-out',
-                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
+                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
               }}
             >
               <IconChevronRight />

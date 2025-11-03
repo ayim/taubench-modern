@@ -84,14 +84,14 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
         {/* Hide new chat button for evaluation threads */}
         {!isEvaluationThread && (
           <Tooltip text="New Chat" placement="bottom">
-          <SideNavigation.Item
-            icon={IconPlus}
-            disabled={isNewThreadDisabled}
-            round
-            aria-label="New Chat"
-            onClick={onNewThread}
-          />
-        </Tooltip>
+            <SideNavigation.Item
+              icon={IconPlus}
+              disabled={isNewThreadDisabled}
+              round
+              aria-label="New Chat"
+              onClick={onNewThread}
+            />
+          </Tooltip>
         )}
         {children}
         <ThreadSearch />

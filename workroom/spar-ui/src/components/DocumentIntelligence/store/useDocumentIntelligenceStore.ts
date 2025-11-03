@@ -5,7 +5,6 @@ import { ServerResponse } from '../../../queries/shared';
 import { LayoutFieldRow, LayoutTableRow, FlowType } from '../types';
 import { removeCitationFromExtractedData } from '../utils/dataTransformations';
 
-
 type ParseDocumentResponsePayload = ServerResponse<'post', '/api/v2/document-intelligence/documents/parse'>;
 type ExtractDocumentResponsePayload = ServerResponse<'post', '/api/v2/document-intelligence/documents/extract'>;
 type IngestDocumentResponsePayload = ServerResponse<'post', '/api/v2/document-intelligence/documents/ingest'>;
@@ -26,7 +25,6 @@ export type {
   ExtractionSchemaPayload,
 };
 
-
 type QualityCheck = Partial<ValidationRule> & {
   id: string;
   name: string;
@@ -38,7 +36,6 @@ type QualityCheckResult = {
   message?: string;
   details?: Record<string, unknown>;
 };
-
 
 interface DocIntelDialogState {
   isOpen: boolean;
@@ -129,18 +126,13 @@ interface DocumentIntelligenceState {
   setDataModelNameDialogData: (data: { name: string; description: string } | null) => void;
   setIsGeneratingDescription: (generating: boolean) => void;
 
-
   setDataQualityChecks: (checks: QualityCheck[]) => void;
   setDataQualityChecksError: (error: string | null) => void;
-  setQualityCheckResult: (
-    ruleName: string,
-    result: QualityCheckResult | null,
-  ) => void;
+  setQualityCheckResult: (ruleName: string, result: QualityCheckResult | null) => void;
   setDataQualityPrompt: (prompt: string | null) => void;
 
   setIngestedDocument: (ingestedDocument: IngestDocumentResponsePayload | null) => void;
   setDataModel: (dataModel: DataModelPayload | null) => void;
-
 
   cancelAllRequests: () => void;
   cancelRequest: (requestId: string) => void;
@@ -175,280 +167,283 @@ export const useDocIntelDialogStore = create<DocIntelDialogState>()(
 
 // Main store
 export const useDocumentIntelligenceStore = create<DocumentIntelligenceState>()(
-  devtools((set, get) => ({
-    // Initial state
-    fileRef: null,
-    selectedFieldId: null,
-    parseData: null,
-    extractedData: null,
-    documentLayout: null,
-    originalGeneratedSchema: null,
-    uploadedExtractionSchema: null,
-    layoutFields: [],
-    layoutTables: [],
-    selectedFields: [],
-    selectedTableColumns: {},
-    fieldToConsolidatedMap: {},
-    isProcessing: false,
-    processingStep: '',
-    processingError: null,
-    currentFlowType: null,
-    isDataModelNameDialogOpen: false,
-    dataModelNameDialogData: null,
-    isGeneratingDescription: false,
-    dataQualityChecks: [],
-    dataQualityChecksError: null,
-    qualityCheckResults: {},
-    dataQualityPrompt: null,
-    ingestedDocument: null,
-    dataModel: null,
-    activeRequests: new Map<string, AbortController>(),
-    isCancelled: false,
-    flowExecuted: false,
-    showingParseBoxes: false,
-    schemaModified: false,
+  devtools(
+    (set, get) => ({
+      // Initial state
+      fileRef: null,
+      selectedFieldId: null,
+      parseData: null,
+      extractedData: null,
+      documentLayout: null,
+      originalGeneratedSchema: null,
+      uploadedExtractionSchema: null,
+      layoutFields: [],
+      layoutTables: [],
+      selectedFields: [],
+      selectedTableColumns: {},
+      fieldToConsolidatedMap: {},
+      isProcessing: false,
+      processingStep: '',
+      processingError: null,
+      currentFlowType: null,
+      isDataModelNameDialogOpen: false,
+      dataModelNameDialogData: null,
+      isGeneratingDescription: false,
+      dataQualityChecks: [],
+      dataQualityChecksError: null,
+      qualityCheckResults: {},
+      dataQualityPrompt: null,
+      ingestedDocument: null,
+      dataModel: null,
+      activeRequests: new Map<string, AbortController>(),
+      isCancelled: false,
+      flowExecuted: false,
+      showingParseBoxes: false,
+      schemaModified: false,
 
-    // Actions
-    setFileRef: (fileRef: File | null) => {
-      set({ fileRef });
-    },
+      // Actions
+      setFileRef: (fileRef: File | null) => {
+        set({ fileRef });
+      },
 
-    setSelectedFieldId: (fieldId: string | null) => {
-      set({ selectedFieldId: fieldId });
-    },
+      setSelectedFieldId: (fieldId: string | null) => {
+        set({ selectedFieldId: fieldId });
+      },
 
-    setParseData: (data: ParseDocumentResponsePayload | null) => {
-      set({ parseData: data });
-    },
+      setParseData: (data: ParseDocumentResponsePayload | null) => {
+        set({ parseData: data });
+      },
 
-    setExtractedData: (data: ExtractDocumentResponsePayload | null) => {
-      set({ extractedData: data });
-    },
+      setExtractedData: (data: ExtractDocumentResponsePayload | null) => {
+        set({ extractedData: data });
+      },
 
-    setDocumentLayout: (layout: DocumentIntelligenceState['documentLayout']) => {
-      set({ documentLayout: layout });
-    },
+      setDocumentLayout: (layout: DocumentIntelligenceState['documentLayout']) => {
+        set({ documentLayout: layout });
+      },
 
-    setOriginalGeneratedSchema: (schema: ExtractionSchemaPayload | null) => {
-      set({ originalGeneratedSchema: schema });
-    },
+      setOriginalGeneratedSchema: (schema: ExtractionSchemaPayload | null) => {
+        set({ originalGeneratedSchema: schema });
+      },
 
-    setUploadedExtractionSchema: (schema: Record<string, unknown> | null) => {
-      set({ uploadedExtractionSchema: schema });
-    },
+      setUploadedExtractionSchema: (schema: Record<string, unknown> | null) => {
+        set({ uploadedExtractionSchema: schema });
+      },
 
-    setLayoutFields: (fields: LayoutFieldRow[]) => {
-      set({ layoutFields: fields });
-    },
+      setLayoutFields: (fields: LayoutFieldRow[]) => {
+        set({ layoutFields: fields });
+      },
 
-    setLayoutTables: (tables: LayoutTableRow[]) => {
-      set({ layoutTables: tables });
-    },
+      setLayoutTables: (tables: LayoutTableRow[]) => {
+        set({ layoutTables: tables });
+      },
 
-    setSelectedFields: (selectedFields: string[]) => {
-      set({ selectedFields });
-    },
+      setSelectedFields: (selectedFields: string[]) => {
+        set({ selectedFields });
+      },
 
-    setSelectedTableColumns: (selectedTableColumns: Record<string, string[]>) => {
-      set({ selectedTableColumns });
-    },
+      setSelectedTableColumns: (selectedTableColumns: Record<string, string[]>) => {
+        set({ selectedTableColumns });
+      },
 
-    setFieldToConsolidatedMap: (mapping: Record<string, string>) => {
-      set({ fieldToConsolidatedMap: mapping });
-    },
+      setFieldToConsolidatedMap: (mapping: Record<string, string>) => {
+        set({ fieldToConsolidatedMap: mapping });
+      },
 
-    setProcessingState: (isProcessing: boolean, step = '', error = null) => {
-      set({ isProcessing, processingStep: step, processingError: error });
-    },
+      setProcessingState: (isProcessing: boolean, step = '', error = null) => {
+        set({ isProcessing, processingStep: step, processingError: error });
+      },
 
-    setProcessingError: (error?: string | null) => {
-      set({ processingError: error });
-    },
+      setProcessingError: (error?: string | null) => {
+        set({ processingError: error });
+      },
 
-    clearProcessingState: () => {
-      set({ isProcessing: false, processingStep: '', processingError: null });
-    },
+      clearProcessingState: () => {
+        set({ isProcessing: false, processingStep: '', processingError: null });
+      },
 
-    setCurrentFlowType: (flowType: FlowType | null) => {
-      set({ currentFlowType: flowType });
-    },
+      setCurrentFlowType: (flowType: FlowType | null) => {
+        set({ currentFlowType: flowType });
+      },
 
-    // Data Model Name Dialog actions
-    openDataModelNameDialog: () => set({ isDataModelNameDialogOpen: true }),
-    closeDataModelNameDialog: () => set({ isDataModelNameDialogOpen: false, dataModelNameDialogData: null, originalGeneratedSchema: null }),
-    setDataModelNameDialogData: (data) => set({ dataModelNameDialogData: data }),
-    setIsGeneratingDescription: (generating: boolean) => set({ isGeneratingDescription: generating }),
+      // Data Model Name Dialog actions
+      openDataModelNameDialog: () => set({ isDataModelNameDialogOpen: true }),
+      closeDataModelNameDialog: () =>
+        set({ isDataModelNameDialogOpen: false, dataModelNameDialogData: null, originalGeneratedSchema: null }),
+      setDataModelNameDialogData: (data) => set({ dataModelNameDialogData: data }),
+      setIsGeneratingDescription: (generating: boolean) => set({ isGeneratingDescription: generating }),
 
-    // Data Quality actions
-    setDataQualityChecks: (checks: QualityCheck[]) => {
-      set({ dataQualityChecks: checks });
-    },
+      // Data Quality actions
+      setDataQualityChecks: (checks: QualityCheck[]) => {
+        set({ dataQualityChecks: checks });
+      },
 
-    setDataQualityChecksError: (error: string | null) => {
-      set({ dataQualityChecksError: error });
-    },
+      setDataQualityChecksError: (error: string | null) => {
+        set({ dataQualityChecksError: error });
+      },
 
-    setQualityCheckResult: (ruleName: string, result: QualityCheckResult | null) => {
-      const { qualityCheckResults } = get();
-      set({
-        qualityCheckResults: {
-          ...qualityCheckResults,
-          [ruleName]: result ?? qualityCheckResults[ruleName],
-        },
-      });
-    },
+      setQualityCheckResult: (ruleName: string, result: QualityCheckResult | null) => {
+        const { qualityCheckResults } = get();
+        set({
+          qualityCheckResults: {
+            ...qualityCheckResults,
+            [ruleName]: result ?? qualityCheckResults[ruleName],
+          },
+        });
+      },
 
-    setDataQualityPrompt: (prompt: string | null) => {
-      set({ dataQualityPrompt: prompt });
-    },
+      setDataQualityPrompt: (prompt: string | null) => {
+        set({ dataQualityPrompt: prompt });
+      },
 
-    // Document ingestion actions
-    setIngestedDocument: (ingestedDocument: IngestDocumentResponsePayload | null) => {
-      set({ ingestedDocument });
-    },
+      // Document ingestion actions
+      setIngestedDocument: (ingestedDocument: IngestDocumentResponsePayload | null) => {
+        set({ ingestedDocument });
+      },
 
-    setDataModel: (dataModel: DataModelPayload | null) => {
-      set({ dataModel });
-    },
+      setDataModel: (dataModel: DataModelPayload | null) => {
+        set({ dataModel });
+      },
 
-    // Request cancellation actions
-    cancelAllRequests: () => {
-      const { activeRequests } = get();
-      activeRequests.forEach((controller) => {
-        controller.abort();
-      });
-      set({
-        activeRequests: new Map(),
-        isCancelled: true,
-        isProcessing: false,
-        processingError: null,
-        processingStep: 'Cancelled by user',
-        extractedData: null, // Clear extracted data when cancelling
-        parseData: null, // Clear parse data when cancelling
-      });
-    },
+      // Request cancellation actions
+      cancelAllRequests: () => {
+        const { activeRequests } = get();
+        activeRequests.forEach((controller) => {
+          controller.abort();
+        });
+        set({
+          activeRequests: new Map(),
+          isCancelled: true,
+          isProcessing: false,
+          processingError: null,
+          processingStep: 'Cancelled by user',
+          extractedData: null, // Clear extracted data when cancelling
+          parseData: null, // Clear parse data when cancelling
+        });
+      },
 
-    cancelRequest: (requestId: string) => {
-      const { activeRequests } = get();
-      const controller = activeRequests.get(requestId);
-      if (controller) {
-        controller.abort();
-        const newActiveRequests = new Map(activeRequests);
-        newActiveRequests.delete(requestId);
-        set({ activeRequests: newActiveRequests });
-      }
-    },
-
-    isRequestActive: (requestId: string) => {
-      const { activeRequests } = get();
-      return activeRequests.has(requestId);
-    },
-
-    // Field management actions
-    updateField: (id: string, updates: Partial<LayoutFieldRow>) =>
-      set((state) => {
-        const newFields = state.layoutFields.map((field) => (field.id === id ? { ...field, ...updates } : field));
-        return { layoutFields: newFields, schemaModified: true };
-      }),
-
-    addField: (fieldData: Omit<LayoutFieldRow, 'id'>) => {
-      const newField = {
-        ...fieldData,
-        id: `field-${Date.now()}`,
-      };
-      set((state) => ({
-        layoutFields: [...state.layoutFields, newField],
-        schemaModified: true,
-      }));
-      return newField;
-    },
-
-    removeField: (id: string) =>
-      set((state) => {
-        // Find the field being removed to get its name
-        const fieldToRemove = state.layoutFields.find((field) => field.id === id);
-
-        // Remove the field from layoutFields
-        const updatedFields = state.layoutFields.filter((field) => field.id !== id);
-
-        // If we have extractedData and the field has a name, remove the corresponding citation
-        let updatedExtractedData = state.extractedData;
-        if (fieldToRemove?.name && state.extractedData) {
-          updatedExtractedData = removeCitationFromExtractedData(state.extractedData, fieldToRemove.name);
+      cancelRequest: (requestId: string) => {
+        const { activeRequests } = get();
+        const controller = activeRequests.get(requestId);
+        if (controller) {
+          controller.abort();
+          const newActiveRequests = new Map(activeRequests);
+          newActiveRequests.delete(requestId);
+          set({ activeRequests: newActiveRequests });
         }
+      },
 
-        return {
-          layoutFields: updatedFields,
-          extractedData: updatedExtractedData,
-          schemaModified: true,
+      isRequestActive: (requestId: string) => {
+        const { activeRequests } = get();
+        return activeRequests.has(requestId);
+      },
+
+      // Field management actions
+      updateField: (id: string, updates: Partial<LayoutFieldRow>) =>
+        set((state) => {
+          const newFields = state.layoutFields.map((field) => (field.id === id ? { ...field, ...updates } : field));
+          return { layoutFields: newFields, schemaModified: true };
+        }),
+
+      addField: (fieldData: Omit<LayoutFieldRow, 'id'>) => {
+        const newField = {
+          ...fieldData,
+          id: `field-${Date.now()}`,
         };
-      }),
+        set((state) => ({
+          layoutFields: [...state.layoutFields, newField],
+          schemaModified: true,
+        }));
+        return newField;
+      },
 
-    // Table field management actions
-    updateTableField: (name: string, updates: Partial<LayoutTableRow>) =>
-      set((state) => ({
-        layoutTables: state.layoutTables.map((table) => (table.name === name ? { ...table, ...updates } : table)),
-        schemaModified: true,
-      })),
+      removeField: (id: string) =>
+        set((state) => {
+          // Find the field being removed to get its name
+          const fieldToRemove = state.layoutFields.find((field) => field.id === id);
 
-    // Flow execution tracking
-    setFlowExecuted: (executed: boolean) => {
-      set({ flowExecuted: executed });
+          // Remove the field from layoutFields
+          const updatedFields = state.layoutFields.filter((field) => field.id !== id);
+
+          // If we have extractedData and the field has a name, remove the corresponding citation
+          let updatedExtractedData = state.extractedData;
+          if (fieldToRemove?.name && state.extractedData) {
+            updatedExtractedData = removeCitationFromExtractedData(state.extractedData, fieldToRemove.name);
+          }
+
+          return {
+            layoutFields: updatedFields,
+            extractedData: updatedExtractedData,
+            schemaModified: true,
+          };
+        }),
+
+      // Table field management actions
+      updateTableField: (name: string, updates: Partial<LayoutTableRow>) =>
+        set((state) => ({
+          layoutTables: state.layoutTables.map((table) => (table.name === name ? { ...table, ...updates } : table)),
+          schemaModified: true,
+        })),
+
+      // Flow execution tracking
+      setFlowExecuted: (executed: boolean) => {
+        set({ flowExecuted: executed });
+      },
+
+      // Parse bounding box display actions
+      setShowingParseBoxes: (showing: boolean) => {
+        set({ showingParseBoxes: showing });
+      },
+
+      // Schema modification tracking
+      setSchemaModified: (modified: boolean) => {
+        set({ schemaModified: modified });
+      },
+
+      // Reset all state
+      reset: () => {
+        // Cancel any ongoing requests first
+        const { activeRequests } = get();
+        activeRequests.forEach((controller) => {
+          controller.abort();
+        });
+
+        set({
+          fileRef: null,
+          selectedFieldId: null,
+          parseData: null,
+          extractedData: null,
+          documentLayout: null,
+          originalGeneratedSchema: null,
+          uploadedExtractionSchema: null,
+          layoutFields: [],
+          layoutTables: [],
+          selectedFields: [],
+          selectedTableColumns: {},
+          fieldToConsolidatedMap: {},
+          isProcessing: false,
+          processingStep: '',
+          processingError: null,
+          currentFlowType: null,
+          isDataModelNameDialogOpen: false,
+          dataModelNameDialogData: null,
+          isGeneratingDescription: false,
+          dataQualityChecks: [],
+          dataQualityChecksError: null,
+          qualityCheckResults: {},
+          dataQualityPrompt: null,
+          ingestedDocument: null,
+          dataModel: null,
+          activeRequests: new Map<string, AbortController>(),
+          isCancelled: false,
+          flowExecuted: false,
+          showingParseBoxes: false,
+          schemaModified: false,
+        });
+      },
+    }),
+    {
+      name: 'document-intelligence-store',
     },
-
-    // Parse bounding box display actions
-    setShowingParseBoxes: (showing: boolean) => {
-      set({ showingParseBoxes: showing });
-    },
-
-    // Schema modification tracking
-    setSchemaModified: (modified: boolean) => {
-      set({ schemaModified: modified });
-    },
-
-    // Reset all state
-    reset: () => {
-      // Cancel any ongoing requests first
-      const { activeRequests } = get();
-      activeRequests.forEach((controller) => {
-        controller.abort();
-      });
-
-      set({
-        fileRef: null,
-        selectedFieldId: null,
-        parseData: null,
-        extractedData: null,
-        documentLayout: null,
-        originalGeneratedSchema: null,
-        uploadedExtractionSchema: null,
-        layoutFields: [],
-        layoutTables: [],
-        selectedFields: [],
-        selectedTableColumns: {},
-        fieldToConsolidatedMap: {},
-        isProcessing: false,
-        processingStep: '',
-        processingError: null,
-        currentFlowType: null,
-        isDataModelNameDialogOpen: false,
-        dataModelNameDialogData: null,
-        isGeneratingDescription: false,
-        dataQualityChecks: [],
-        dataQualityChecksError: null,
-        qualityCheckResults: {},
-        dataQualityPrompt: null,
-        ingestedDocument: null,
-        dataModel: null,
-        activeRequests: new Map<string, AbortController>(),
-        isCancelled: false,
-        flowExecuted: false,
-        showingParseBoxes: false,
-        schemaModified: false,
-      });
-    },
-  }),
-  {
-    name: 'document-intelligence-store',
-  },
-));
+  ),
+);

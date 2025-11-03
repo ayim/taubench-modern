@@ -369,7 +369,7 @@ export const RunbookEditorContainer = styled(Box)`
 
   ${LexicalThemeStyles}
 
-    ${({ theme }) => theme.screen.s} {
+  ${({ theme }) => theme.screen.s} {
     .editor-input {
       padding: 0;
     }

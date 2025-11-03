@@ -263,94 +263,88 @@ export const useCancelScenarioRunMutation = createSparMutation<
   },
 }));
 
-export const useExportScenariosMutation = createSparMutation<
-  Record<string, never>,
-  { agentId: string }
->()(({ sparAPIClient }) => ({
-  mutationFn: async ({ agentId }): Promise<{ blob: Blob; filename: string }> => {
-    const response = await sparAPIClient.queryAgentServer(
-      'get',
-      '/api/v2/evals/scenarios/export' as never,
-      {
-        params: { query: { agent_id: agentId } },
-        parseAs: 'stream',
-      } as never,
-    );
+export const useExportScenariosMutation = createSparMutation<Record<string, never>, { agentId: string }>()(
+  ({ sparAPIClient }) => ({
+    mutationFn: async ({ agentId }): Promise<{ blob: Blob; filename: string }> => {
+      const response = await sparAPIClient.queryAgentServer(
+        'get',
+        '/api/v2/evals/scenarios/export' as never,
+        {
+          params: { query: { agent_id: agentId } },
+          parseAs: 'stream',
+        } as never,
+      );
 
-    if (!response.success) {
-      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
-    }
-
-    const stream = response.data as ReadableStream<Uint8Array> | null | undefined;
-    const reader = stream?.getReader?.();
-
-    if (!reader) {
-      throw new QueryError('Failed to prepare scenarios archive for download', {
-        code: 'unexpected',
-        resource: ResourceType.Evaluation,
-      });
-    }
-
-    const chunks: BlobPart[] = [];
-    let done = false;
-
-    while (!done) {
-      // eslint-disable-next-line no-await-in-loop
-      const { value, done: streamDone } = await reader.read();
-      if (value) {
-        const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength) as ArrayBuffer;
-        chunks.push(chunk);
+      if (!response.success) {
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
       }
-      done = streamDone ?? false;
-    }
 
-    const blob = new Blob(chunks, { type: 'application/zip' });
+      const stream = response.data as ReadableStream<Uint8Array> | null | undefined;
+      const reader = stream?.getReader?.();
 
-    const sanitize = (value: string, fallback: string) => {
-      const sanitized = value.replace(/[^A-Za-z0-9_.-]/g, '_');
-      return sanitized || fallback;
-    };
+      if (!reader) {
+        throw new QueryError('Failed to prepare scenarios archive for download', {
+          code: 'unexpected',
+          resource: ResourceType.Evaluation,
+        });
+      }
 
-    const isoTimestamp = new Date().toISOString();
-    const timestamp = isoTimestamp.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-    const filename = `agent_${sanitize(agentId, 'agent')}_scenarios_${timestamp}.zip`;
+      const chunks: BlobPart[] = [];
+      let done = false;
 
-    return { blob, filename };
-  },
-}));
+      while (!done) {
+        // eslint-disable-next-line no-await-in-loop
+        const { value, done: streamDone } = await reader.read();
+        if (value) {
+          const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength) as ArrayBuffer;
+          chunks.push(chunk);
+        }
+        done = streamDone ?? false;
+      }
 
-export const useImportScenariosMutation = createSparMutation<
-  Record<string, never>,
-  { agentId: string; file: File }
->()(({ sparAPIClient, queryClient }) => ({
-  mutationFn: async ({ agentId, file }): Promise<Scenario[]> => {
-    const response = await sparAPIClient.queryAgentServer(
-      'post',
-      '/api/v2/evals/scenarios/import',
-      {
+      const blob = new Blob(chunks, { type: 'application/zip' });
+
+      const sanitize = (value: string, fallback: string) => {
+        const sanitized = value.replace(/[^A-Za-z0-9_.-]/g, '_');
+        return sanitized || fallback;
+      };
+
+      const isoTimestamp = new Date().toISOString();
+      const timestamp = isoTimestamp.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+      const filename = `agent_${sanitize(agentId, 'agent')}_scenarios_${timestamp}.zip`;
+
+      return { blob, filename };
+    },
+  }),
+);
+
+export const useImportScenariosMutation = createSparMutation<Record<string, never>, { agentId: string; file: File }>()(
+  ({ sparAPIClient, queryClient }) => ({
+    mutationFn: async ({ agentId, file }): Promise<Scenario[]> => {
+      const response = await sparAPIClient.queryAgentServer('post', '/api/v2/evals/scenarios/import', {
         params: { query: { agent_id: agentId } },
         body: { file },
-        bodySerializer(body: {file: string}) {
+        bodySerializer(body: { file: string }) {
           const formData = new FormData();
           formData.append('file', body.file);
           return formData;
         },
-      } as never,
-    );
+      } as never);
 
-    if (!response.success) {
-      throw new QueryError(response.message || 'Failed to import scenarios', {
-        code: response.code,
-        resource: ResourceType.Evaluation,
-      });
-    }
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to import scenarios', {
+          code: response.code,
+          resource: ResourceType.Evaluation,
+        });
+      }
 
-    return response.data as Scenario[];
-  },
-  onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: ['scenarios'] });
-  },
-}));
+      return response.data as Scenario[];
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['scenarios'] });
+    },
+  }),
+);
 
 export const usePollScenarioRun = () => {
   const { sparAPIClient } = useSparUIContext();

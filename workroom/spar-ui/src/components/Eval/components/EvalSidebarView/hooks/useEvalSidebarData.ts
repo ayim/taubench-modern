@@ -36,13 +36,13 @@ type EvaluationCriterionConfig =
   | components['schemas']['FlowAdherence']
   | components['schemas']['ResponseAccuracy'];
 
-export const useEvalSidebarData = ({ 
-  agentId, 
+export const useEvalSidebarData = ({
+  agentId,
   threadId,
-  selectedRunIndices, 
+  selectedRunIndices,
   setSelectedRunIndices,
   expandResults,
-  expandedResults
+  expandedResults,
 }: UseEvalSidebarDataProps) => {
   const { sparAPIClient } = useSparUIContext();
   const queryClient = useQueryClient();
@@ -76,7 +76,7 @@ export const useEvalSidebarData = ({
       scenarioRunsQueryOptions({
         scenarioId: scenario.scenario_id,
         sparAPIClient,
-        limit: 50 // Note: hardcoded limit for safety 
+        limit: 50, // Note: hardcoded limit for safety
       }),
     ),
   });
@@ -94,9 +94,9 @@ export const useEvalSidebarData = ({
       if (allRuns.length > 0) {
         const currentIndex = selectedRunIndices.get(scenario.scenario_id);
         if (currentIndex === undefined) {
-          setSelectedRunIndices(prev => new Map(prev).set(scenario.scenario_id, 0));
+          setSelectedRunIndices((prev) => new Map(prev).set(scenario.scenario_id, 0));
         } else if (currentIndex >= allRuns.length) {
-          setSelectedRunIndices(prev => new Map(prev).set(scenario.scenario_id, 0));
+          setSelectedRunIndices((prev) => new Map(prev).set(scenario.scenario_id, 0));
         }
       }
     });
@@ -108,38 +108,38 @@ export const useEvalSidebarData = ({
       const currentIndex = selectedRunIndices.get(scenario.scenario_id) ?? 0;
       const allRuns = allRunsData[scenarioIndex] || [];
       const isExpanded = expandedResults.has(scenario.scenario_id);
-      
+
       let indicesToPreload: number[] = [];
-      
+
       if (isExpanded) {
         // When expanded (menu visible), preload ALL runs for smooth menu navigation
         indicesToPreload = allRuns
           .map((_, index) => index)
-          .filter(index => 
-            index > 0 && // Don't preload latest run (index 0) as we already have it
-            index < allRuns.length &&
-            allRuns[index]
+          .filter(
+            (index) =>
+              index > 0 && // Don't preload latest run (index 0) as we already have it
+              index < allRuns.length &&
+              allRuns[index],
           );
       } else {
         // When collapsed, only preload adjacent runs for arrow navigation
-        indicesToPreload = [
-          currentIndex - 1,
-          currentIndex,
-          currentIndex + 1
-        ].filter(index => 
-          index > 0 && // Don't preload latest run (index 0) as we already have it
-          index < allRuns.length &&
-          allRuns[index]
+        indicesToPreload = [currentIndex - 1, currentIndex, currentIndex + 1].filter(
+          (index) =>
+            index > 0 && // Don't preload latest run (index 0) as we already have it
+            index < allRuns.length &&
+            allRuns[index],
         );
       }
-      
-      return indicesToPreload.map(index => 
-        scenarioRunQueryOptions({
-          scenarioId: scenario.scenario_id,
-          scenarioRunId: allRuns[index]?.scenario_run_id,
-          sparAPIClient,
-        })
-      ).filter(query => query.queryKey[2]); // Filter out any queries without valid scenario_run_id
+
+      return indicesToPreload
+        .map((index) =>
+          scenarioRunQueryOptions({
+            scenarioId: scenario.scenario_id,
+            scenarioRunId: allRuns[index]?.scenario_run_id,
+            sparAPIClient,
+          }),
+        )
+        .filter((query) => query.queryKey[2]); // Filter out any queries without valid scenario_run_id
     }),
   });
 
@@ -150,9 +150,8 @@ export const useEvalSidebarData = ({
       const allRuns = allRunsData[index] ?? [];
       const currentRunIndex = selectedRunIndices.get(scenario.scenario_id) ?? 0;
 
-      const isRunning = latestRun?.trials?.some(
-        (trial) => trial.status === 'PENDING' || trial.status === 'EXECUTING'
-      ) ?? false;
+      const isRunning =
+        latestRun?.trials?.some((trial) => trial.status === 'PENDING' || trial.status === 'EXECUTING') ?? false;
 
       // Sort runs by creation date (newest first)
       const sortedRuns = [...allRuns].sort(sortByCreatedAtDesc);
@@ -161,17 +160,17 @@ export const useEvalSidebarData = ({
         if (currentRunIndex === 0 && latestRun) {
           return latestRun;
         }
-        
+
         const targetRun = sortedRuns[currentRunIndex];
         if (!targetRun) {
           return null;
         }
-        
+
         // For historical runs, try to find the corresponding individual query result
-        const individualRunQuery = historicalRunQueries.find(q => 
-          q.data?.scenario_run_id === targetRun.scenario_run_id
+        const individualRunQuery = historicalRunQueries.find(
+          (q) => q.data?.scenario_run_id === targetRun.scenario_run_id,
         );
-        
+
         // Prefer detailed data from individual query if available
         // If individual query exists and has data, use it; otherwise fallback to basic run data
         return individualRunQuery?.data ?? targetRun;
@@ -188,7 +187,7 @@ export const useEvalSidebarData = ({
     });
   }, [scenarios, latestRunsData, allRunsData, selectedRunIndices, historicalRunQueries, expandedResults]);
 
-  const isAnyTestRunning = evaluations.some(evaluation => evaluation.isRunning);
+  const isAnyTestRunning = evaluations.some((evaluation) => evaluation.isRunning);
 
   // Track which scenarios we've auto-expanded to avoid expanding on every render
   const autoExpandedRef = useRef<Set<string>>(new Set());
@@ -290,10 +289,7 @@ export const useEvalSidebarData = ({
     }
   };
 
-  const handleRunTest = async (
-    scenario: Scenario,
-    numTrials: number = 1,
-  ) => {
+  const handleRunTest = async (scenario: Scenario, numTrials: number = 1) => {
     try {
       const newRun = await createScenarioRunMutation.mutateAsync({
         scenarioId: scenario.scenario_id,
@@ -301,20 +297,16 @@ export const useEvalSidebarData = ({
       });
 
       // Immediately update query cache with the new run data
-      queryClient.setQueryData(
-        ['scenario-run-latest', scenario.scenario_id],
-        newRun
-      );
+      queryClient.setQueryData(['scenario-run-latest', scenario.scenario_id], newRun);
 
       // Set the selected run index to 0 (latest run) when starting a new test
-      setSelectedRunIndices(prev => new Map(prev).set(scenario.scenario_id, 0));
+      setSelectedRunIndices((prev) => new Map(prev).set(scenario.scenario_id, 0));
 
       expandResults(scenario.scenario_id);
 
       pollForCompletion(scenario.scenario_id).then(() => {
         queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
       });
-
     } catch {
       addSnackbar({
         message: `Failed to run test for "${scenario.name}"`,

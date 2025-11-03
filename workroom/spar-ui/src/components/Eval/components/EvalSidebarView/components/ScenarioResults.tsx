@@ -11,12 +11,7 @@ import {
 import type { components } from '@sema4ai/agent-server-interface';
 import { TrialResults } from './TrialResults';
 import type { Trial, ScenarioRun } from '../types';
-import {
-  formatDuration,
-  getPassFailCounts,
-  getRunAverageTrialDuration,
-  isRunTerminated,
-} from '../helpers/evalHelpers';
+import { formatDuration, getPassFailCounts, getRunAverageTrialDuration, isRunTerminated } from '../helpers/evalHelpers';
 
 export interface ScenarioResultsProps {
   scenarioId: string;
@@ -71,20 +66,18 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
       <Box display="flex" alignItems="center" justifyContent="space-between" mb="$8">
         <Box display="flex" flexDirection="column" gap="$4">
           <Typography variant="body-medium" fontWeight="medium">
-            Test run {totalRuns - selectedRunIndex}{selectedRunIndex === 0 ? ' (Latest)' : ''}
+            Test run {totalRuns - selectedRunIndex}
+            {selectedRunIndex === 0 ? ' (Latest)' : ''}
           </Typography>
           <Box display="flex" flexDirection="column" gap="$4" paddingLeft="$4" marginTop="$4">
             <Typography variant="body-small">
-            • Models: {Array.isArray(configuration?.models) ? configuration.models.join(', ') : String(configuration?.models || 'N/A')}
+              • Models:{' '}
+              {Array.isArray(configuration?.models)
+                ? configuration.models.join(', ')
+                : String(configuration?.models || 'N/A')}
             </Typography>
-            <Typography variant="body-small">
-            • Arch: {String(configuration?.architecture_version || 'N/A')}
-            </Typography>
-            {runTerminated && (
-              <Typography variant="body-small">
-              • Average duration: {averageDurationLabel}
-              </Typography>
-            )}
+            <Typography variant="body-small">• Arch: {String(configuration?.architecture_version || 'N/A')}</Typography>
+            {runTerminated && <Typography variant="body-small">• Average duration: {averageDurationLabel}</Typography>}
           </Box>
         </Box>
         {totalRuns > 1 && (
@@ -124,36 +117,21 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                 const runNumber = totalRuns - index;
                 const isSelected = index === selectedRunIndex;
                 const isLatest = index === 0;
-                
-                const runIsRunning = run.trials?.some(
-                  (trial) => trial.status === 'PENDING' || trial.status === 'EXECUTING'
-                ) ?? false;
-                
+
+                const runIsRunning =
+                  run.trials?.some((trial) => trial.status === 'PENDING' || trial.status === 'EXECUTING') ?? false;
+
                 let statusBadge = null;
                 if (runIsRunning) {
-                  statusBadge = (
-                    <Badge
-                      icon={IconLoading}
-                      iconColor="blue80"
-                      variant="blue"
-                      size="small"
-                      label=""
-                    />
-                  );
+                  statusBadge = <Badge icon={IconLoading} iconColor="blue80" variant="blue" size="small" label="" />;
                 } else if (run.trials && run.trials.length > 0) {
                   const { passed, failed, canceled } = getPassFailCounts(run.trials);
                   const hasResults = passed > 0 || failed > 0 || canceled > 0;
-                  
+
                   if (hasResults) {
                     if (failed > 0 || canceled > 0) {
                       statusBadge = (
-                        <Badge
-                          icon={IconStatusError}
-                          iconColor="content.error"
-                          variant="red"
-                          size="small"
-                          label=""
-                        />
+                        <Badge icon={IconStatusError} iconColor="content.error" variant="red" size="small" label="" />
                       );
                     } else if (passed > 0) {
                       statusBadge = (
@@ -168,16 +146,13 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                     }
                   }
                 }
-                
+
                 return (
-                  <Menu.Item
-                    key={run.scenario_run_id}
-                    onClick={() => onSelectRun(index)}
-                    aria-selected={isSelected}
-                  >
+                  <Menu.Item key={run.scenario_run_id} onClick={() => onSelectRun(index)} aria-selected={isSelected}>
                     <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
                       <Typography>
-                        Test run {runNumber}{isLatest ? ' (Latest)' : ''}
+                        Test run {runNumber}
+                        {isLatest ? ' (Latest)' : ''}
                       </Typography>
                       {statusBadge}
                     </Box>
@@ -188,7 +163,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
           </Box>
         )}
       </Box>
-      
+
       <Box display="flex" flexDirection="column" gap="$12">
         {trials.map((trial, trialIndex) => (
           <TrialResults

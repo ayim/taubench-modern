@@ -1,10 +1,6 @@
 import type { Trial } from '../types';
 
-const TERMINAL_STATUSES: ReadonlySet<Trial['status']> = new Set([
-  'COMPLETED',
-  'ERROR',
-  'CANCELED',
-]);
+const TERMINAL_STATUSES: ReadonlySet<Trial['status']> = new Set(['COMPLETED', 'ERROR', 'CANCELED']);
 
 const parseTimestamp = (value: string | undefined | null): number | null => {
   if (!value) {
@@ -16,8 +12,7 @@ const parseTimestamp = (value: string | undefined | null): number | null => {
 };
 
 const trialDurationMs = (trial: Trial): number | null => {
-  const startedAt =
-    parseTimestamp(trial.execution_state?.started_at) ?? parseTimestamp(trial.created_at);
+  const startedAt = parseTimestamp(trial.execution_state?.started_at) ?? parseTimestamp(trial.created_at);
   const finishedAt =
     parseTimestamp(trial.execution_state?.finished_at) ??
     parseTimestamp(trial.status_updated_at) ??
@@ -30,7 +25,9 @@ const trialDurationMs = (trial: Trial): number | null => {
   return finishedAt - startedAt;
 };
 
-export const getPassFailCounts = (trials: Trial[]): {
+export const getPassFailCounts = (
+  trials: Trial[],
+): {
   passed: number;
   failed: number;
   canceled: number;
@@ -38,15 +35,15 @@ export const getPassFailCounts = (trials: Trial[]): {
   let passed = 0;
   let failed = 0;
   let canceled = 0;
-  
-  trials.forEach(trial => {
+
+  trials.forEach((trial) => {
     if (trial.status === 'CANCELED') {
       canceled += 1;
     } else if (trial.status === 'ERROR') {
       failed += 1;
     } else if (trial.status === 'COMPLETED') {
       const hasEvaluationResults = trial.evaluation_results && trial.evaluation_results.length > 0;
-      if (hasEvaluationResults && trial.evaluation_results?.every(result => result.passed)) {
+      if (hasEvaluationResults && trial.evaluation_results?.every((result) => result.passed)) {
         passed += 1;
       } else {
         failed += 1;
@@ -67,9 +64,7 @@ export const isRunTerminated = (trials: Trial[]): boolean => {
 };
 
 export const getRunAverageTrialDuration = (trials: Trial[]): number | null => {
-  const durations = trials
-    .map(trialDurationMs)
-    .filter((duration): duration is number => duration !== null);
+  const durations = trials.map(trialDurationMs).filter((duration): duration is number => duration !== null);
 
   if (durations.length === 0) {
     return null;

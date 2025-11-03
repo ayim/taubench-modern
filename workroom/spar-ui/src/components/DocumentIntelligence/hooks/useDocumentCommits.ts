@@ -24,7 +24,7 @@ export const useDocumentCommits = () => {
         extraction_schema: {
           type: 'object',
           properties: {},
-          required: []
+          required: [],
         },
         prompt: documentLayout?.prompt || '',
         data_model_name: dataModel.name,
@@ -39,24 +39,27 @@ export const useDocumentCommits = () => {
     }
   }, [dataModel, documentLayout, addSnackbar, upsertLayoutMutation]);
 
-  const commitDataModel = useCallback(async ({ agentId, threadId }: { agentId: string; threadId: string }) => {
-    if (!dataModel) {
-      throw new Error('No data model data found');
-    }
+  const commitDataModel = useCallback(
+    async ({ agentId, threadId }: { agentId: string; threadId: string }) => {
+      if (!dataModel) {
+        throw new Error('No data model data found');
+      }
 
-    try {
-      await createDataModelMutation.mutateAsync({
-        agentId,
-        threadId,
-        dataModel,
-      });
-      addSnackbar({ message: 'Data model saved successfully' });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save data model';
-      addSnackbar({ message: errorMessage });
-      throw error;
-    }
-  }, [dataModel, addSnackbar, createDataModelMutation]);
+      try {
+        await createDataModelMutation.mutateAsync({
+          agentId,
+          threadId,
+          dataModel,
+        });
+        addSnackbar({ message: 'Data model saved successfully' });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to save data model';
+        addSnackbar({ message: errorMessage });
+        throw error;
+      }
+    },
+    [dataModel, addSnackbar, createDataModelMutation],
+  );
 
   return {
     commitLayout,

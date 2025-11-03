@@ -6,12 +6,12 @@ export const DataAccessActions = {
     // eslint-disable-next-line no-alert
     alert('Create new data connection - CRUD operations to be implemented');
   },
-  
+
   handleEdit: (item: DataSourceItem): void => {
     // eslint-disable-next-line no-alert
     alert(`Edit data source: ${item.name} (ID: ${item.id}) - CRUD operations to be implemented`);
   },
-  
+
   handleDelete: (item: DataSourceItem): void => {
     // eslint-disable-next-line no-alert
     alert(`Delete data source: ${item.name} (ID: ${item.id}) - CRUD operations to be implemented`);

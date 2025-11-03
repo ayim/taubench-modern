@@ -8,9 +8,11 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "postbuild": "vite-node scripts/replacePaths.ts",
-    "lint": "eslint \"./src/**/*.{ts,tsx}\" --max-warnings 0",
     "dev": "tsc --watch",
+    "format:check": "prettier \"{src,scripts}/**/*.{ts,tsx,js,json,md,css}\" \"*.{js,cjs,json}\" --check --ignore-path ../../.prettierignore",
+    "format:fix": "prettier \"{src,scripts}/**/*.{ts,tsx,js,json,md,css}\" \"*.{js,cjs,json}\" --write --ignore-path ../../.prettierignore",
+    "lint": "eslint \"./src/**/*.{ts,tsx}\" --max-warnings 0",
+    "postbuild": "vite-node scripts/replacePaths.ts",
     "test": "tsc --noEmit"
   },
   "sideEffects": false,

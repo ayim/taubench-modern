@@ -94,8 +94,18 @@ export const StepFooter: FC<StepFooterProps> = ({
   return (
     <Box display="flex" gap="$16" alignItems="center">
       {/* Status Indicator */}
-      <Tooltip text={schemaModified ? 'Configuration changes made. Click Re-Run Extract to update extraction.' : 'Configuration is up to date'}>
-        {schemaModified ? <IconStatusIdle color="background.notification" size={27} /> : <IconStatusEnabled color="content.success" size={27} />}
+      <Tooltip
+        text={
+          schemaModified
+            ? 'Configuration changes made. Click Re-Run Extract to update extraction.'
+            : 'Configuration is up to date'
+        }
+      >
+        {schemaModified ? (
+          <IconStatusIdle color="background.notification" size={27} />
+        ) : (
+          <IconStatusEnabled color="content.success" size={27} />
+        )}
       </Tooltip>
 
       <Button variant="secondary" round onClick={onCancel}>
@@ -116,7 +126,14 @@ export const StepFooter: FC<StepFooterProps> = ({
         </Button>
       )}
 
-      <Button disabled={isDisabled} variant="primary" round iconAfter={IconArrowRight} onClick={handleComplete} loading={isCompleting}>
+      <Button
+        disabled={isDisabled}
+        variant="primary"
+        round
+        iconAfter={IconArrowRight}
+        onClick={handleComplete}
+        loading={isCompleting}
+      >
         Next
       </Button>
     </Box>

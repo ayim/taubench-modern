@@ -55,56 +55,24 @@ export const TrialResults: FC<TrialResultsProps> = ({
 
   const getTrialStatusBadges = () => {
     if (trial.status === 'PENDING') {
-      return (  
-        <Badge
-          icon={IconLoading}
-          iconColor="blue80"
-          variant="info"
-          size="small"
-          label="Pending"
-        />
-      );
+      return <Badge icon={IconLoading} iconColor="blue80" variant="info" size="small" label="Pending" />;
     }
 
     if (trial.status === 'EXECUTING') {
-      return (  
-        <Badge
-          icon={IconLoading}
-          iconColor="yellow80"
-          variant="yellow"
-          size="small"
-          label="Running"
-        />
-      );
+      return <Badge icon={IconLoading} iconColor="yellow80" variant="yellow" size="small" label="Running" />;
     }
 
     if (trial.status === 'CANCELED') {
-      return (
-        <Badge
-          icon={IconInformation}
-          iconColor="yellow80"
-          variant="yellow"
-          size="small"
-          label="Canceled"
-        />
-      );
+      return <Badge icon={IconInformation} iconColor="yellow80" variant="yellow" size="small" label="Canceled" />;
     }
 
     if (trial.status === 'ERROR') {
-      return (
-        <Badge
-          icon={IconStatusError}
-          iconColor="content.error"
-          variant="red"
-          size="small"
-          label="Error"
-        />
-      );
+      return <Badge icon={IconStatusError} iconColor="content.error" variant="red" size="small" label="Error" />;
     }
 
     if (trial.status === 'COMPLETED') {
-      const passedCount = trial.evaluation_results?.filter(result => result.passed).length || 0;
-      const failedCount = trial.evaluation_results?.filter(result => !result.passed).length || 0;
+      const passedCount = trial.evaluation_results?.filter((result) => result.passed).length || 0;
+      const failedCount = trial.evaluation_results?.filter((result) => !result.passed).length || 0;
 
       const badges = [];
 
@@ -117,7 +85,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
             variant="green"
             size="small"
             label={`${passedCount}`}
-          />
+          />,
         );
       }
 
@@ -130,20 +98,12 @@ export const TrialResults: FC<TrialResultsProps> = ({
             variant="red"
             size="small"
             label={`${failedCount}`}
-          />
+          />,
         );
       }
 
       if (badges.length === 0) {
-        return (
-          <Badge
-            icon={IconStatusError}
-            iconColor="content.error"
-            variant="red"
-            size="small"
-            label="No Results"
-          />
-        );
+        return <Badge icon={IconStatusError} iconColor="content.error" variant="red" size="small" label="No Results" />;
       }
 
       return badges;
@@ -195,68 +155,72 @@ export const TrialResults: FC<TrialResultsProps> = ({
                   Trial Error
                 </Typography>
               </Box>
-              <ErrorMessageBox>
-                {trial.error_message}
-              </ErrorMessageBox>
+              <ErrorMessageBox>{trial.error_message}</ErrorMessageBox>
             </Box>
           )}
 
-          {trial.evaluation_results && trial.evaluation_results.length > 0 ? (
-            trial.evaluation_results?.map((result) => {
-              const evaluationKey = `${trial.trial_id}-${result.kind}`;
-              const isExpanded = expandedEvaluations.has(evaluationKey);
-              const hasDetails = ('explanation' in result && result.explanation) || ('issues' in result && result.issues && result.issues.length > 0);
-              
-              return (
-                <Box key={evaluationKey} display="flex" flexDirection="column" gap="$4">
-                  <Box display="flex" alignItems="center" gap="$8">
-                    <Typography variant="body-small" fontWeight="medium">
-                      {getEvaluationResultLabel(result)}
-                    </Typography>
-                    {React.createElement(getEvaluationResultIcon(result), { 
-                      size: 20, 
-                      color: getEvaluationResultColor(result) 
-                    })}
-                    <Button
-                      variant="ghost"
-                      size="small"
-                      icon={isExpanded ? IconChevronDown : IconChevronRight}
-                      onClick={() => onToggleEvaluationDetails(evaluationKey)}
-                      disabled={!hasDetails}
-                      aria-label="Toggle evaluation details"
-                    />
-                  </Box>
-                  {isExpanded && hasDetails && (
-                    <Box paddingLeft="$14" display="flex" flexDirection="column" gap="$4" style={{ userSelect: 'text', cursor: 'text' }}>
-                      {'explanation' in result && result.explanation && (
-                        <Typography variant="body-small" color="content.subtle" style={{ userSelect: 'text' }}>
-                          {result.explanation}
-                        </Typography>
-                      )}
-                      {'issues' in result && result.issues && result.issues.length > 0 && (
-                        <Box display="flex" flexDirection="column" gap="$2" style={{ userSelect: 'text' }}>
-                          {result.issues.map((issue: string) => (
-                            <Typography variant="body-small" color="content.error" style={{ userSelect: 'text' }}>
-                              • {issue}
-                            </Typography>
-                          ))}
-                        </Box>
-                      )}
+          {trial.evaluation_results && trial.evaluation_results.length > 0
+            ? trial.evaluation_results?.map((result) => {
+                const evaluationKey = `${trial.trial_id}-${result.kind}`;
+                const isExpanded = expandedEvaluations.has(evaluationKey);
+                const hasDetails =
+                  ('explanation' in result && result.explanation) ||
+                  ('issues' in result && result.issues && result.issues.length > 0);
+
+                return (
+                  <Box key={evaluationKey} display="flex" flexDirection="column" gap="$4">
+                    <Box display="flex" alignItems="center" gap="$8">
+                      <Typography variant="body-small" fontWeight="medium">
+                        {getEvaluationResultLabel(result)}
+                      </Typography>
+                      {React.createElement(getEvaluationResultIcon(result), {
+                        size: 20,
+                        color: getEvaluationResultColor(result),
+                      })}
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        icon={isExpanded ? IconChevronDown : IconChevronRight}
+                        onClick={() => onToggleEvaluationDetails(evaluationKey)}
+                        disabled={!hasDetails}
+                        aria-label="Toggle evaluation details"
+                      />
                     </Box>
-                  )}
+                    {isExpanded && hasDetails && (
+                      <Box
+                        paddingLeft="$14"
+                        display="flex"
+                        flexDirection="column"
+                        gap="$4"
+                        style={{ userSelect: 'text', cursor: 'text' }}
+                      >
+                        {'explanation' in result && result.explanation && (
+                          <Typography variant="body-small" color="content.subtle" style={{ userSelect: 'text' }}>
+                            {result.explanation}
+                          </Typography>
+                        )}
+                        {'issues' in result && result.issues && result.issues.length > 0 && (
+                          <Box display="flex" flexDirection="column" gap="$2" style={{ userSelect: 'text' }}>
+                            {result.issues.map((issue: string) => (
+                              <Typography variant="body-small" color="content.error" style={{ userSelect: 'text' }}>
+                                • {issue}
+                              </Typography>
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                );
+              })
+            : !hasTrialError && (
+                <Box display="flex" alignItems="center" gap="$8">
+                  <IconInformation size={16} color="content.subtle" />
+                  <Typography variant="body-small" color="content.subtle">
+                    No evaluation results available for this run
+                  </Typography>
                 </Box>
-              );
-            })
-          ) : (
-            !hasTrialError && (
-              <Box display="flex" alignItems="center" gap="$8">
-                <IconInformation size={16} color="content.subtle" />
-                <Typography variant="body-small" color="content.subtle">
-                  No evaluation results available for this run
-                </Typography>
-              </Box>
-            )
-          )}
+              )}
         </Box>
       )}
     </Box>

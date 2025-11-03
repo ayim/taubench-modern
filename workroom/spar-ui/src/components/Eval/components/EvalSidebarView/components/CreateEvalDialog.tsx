@@ -1,31 +1,30 @@
-import { FC, useEffect } from "react";
-import z from "zod";
-import { Dialog, Box, Typography, Form, Input, Button, Progress, Switch } from "@sema4ai/components";
-import { IconChemicalBottle, IconArrowRight } from "@sema4ai/icons";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { FC, useEffect } from 'react';
+import z from 'zod';
+import { Dialog, Box, Typography, Form, Input, Button, Progress, Switch } from '@sema4ai/components';
+import { IconChemicalBottle, IconArrowRight } from '@sema4ai/icons';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 const evaluationCriteriaSchema = z.object({
-  responseAccuracyExpectation: z
-    .string()
-    .max(2000, 'Expectation must be less than 2000 characters')
-    .default(''),
+  responseAccuracyExpectation: z.string().max(2000, 'Expectation must be less than 2000 characters').default(''),
 });
 
-const createEvalFormSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
-  description: z.string().max(500, 'Description must be less than 500 characters').default(''),
-  useLiveExecution: z.boolean().default(false),
-  evaluationCriteria: evaluationCriteriaSchema,
-}).superRefine((value, ctx) => {
-  if (value.useLiveExecution && value.evaluationCriteria.responseAccuracyExpectation.trim().length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['evaluationCriteria', 'responseAccuracyExpectation'],
-      message: 'Expectation is required when live actions are enabled',
-    });
-  }
-});
+const createEvalFormSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
+    description: z.string().max(500, 'Description must be less than 500 characters').default(''),
+    useLiveExecution: z.boolean().default(false),
+    evaluationCriteria: evaluationCriteriaSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.useLiveExecution && value.evaluationCriteria.responseAccuracyExpectation.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['evaluationCriteria', 'responseAccuracyExpectation'],
+        message: 'Expectation is required when live actions are enabled',
+      });
+    }
+  });
 
 export type CreateEvalFormData = z.infer<typeof createEvalFormSchema>;
 
@@ -54,8 +53,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
       description: initialValues?.description || '',
       useLiveExecution: initialValues?.useLiveExecution ?? false,
       evaluationCriteria: {
-        responseAccuracyExpectation:
-          initialValues?.evaluationCriteria?.responseAccuracyExpectation ?? '',
+        responseAccuracyExpectation: initialValues?.evaluationCriteria?.responseAccuracyExpectation ?? '',
       },
     },
     mode: 'onChange',
@@ -86,8 +84,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     : [
         {
           id: 'action-calling',
-          description:
-            'Action calling — exhaustive on actions with strict order and arguments.',
+          description: 'Action calling — exhaustive on actions with strict order and arguments.',
         },
         {
           id: 'flow-adherence',
@@ -106,8 +103,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
         description: initialValues.description || '',
         useLiveExecution: initialValues.useLiveExecution ?? false,
         evaluationCriteria: {
-          responseAccuracyExpectation:
-            initialValues.evaluationCriteria?.responseAccuracyExpectation ?? '',
+          responseAccuracyExpectation: initialValues.evaluationCriteria?.responseAccuracyExpectation ?? '',
         },
       });
     }
@@ -144,7 +140,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
         <Dialog.Header>
           <Dialog.Header.Title title="" />
         </Dialog.Header>
-        
+
         <Dialog.Content>
           <Box display="flex" flexDirection="column" alignItems="center" gap="$16" padding="$32">
             <Progress size="large" />
@@ -158,14 +154,9 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
             </Typography>
           </Box>
         </Dialog.Content>
-        
+
         <Dialog.Actions>
-          <Button 
-            variant="secondary" 
-            onClick={handleClose}
-            disabled
-            round
-          >
+          <Button variant="secondary" onClick={handleClose} disabled round>
             Cancel
           </Button>
         </Dialog.Actions>
@@ -176,25 +167,22 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
   return (
     <Dialog width={800} open={open} onClose={handleClose}>
       <Dialog.Header>
-        <Dialog.Header.Title title={
-          <Box display="flex" alignItems="center" gap="$8">
-            <IconChemicalBottle />
-            <Typography variant='display-small'>
-              {isEditMode ? 'Edit Evaluation Scenario' : 'Create Evaluation Scenario'}
-            </Typography>
-          </Box>
-        } />
+        <Dialog.Header.Title
+          title={
+            <Box display="flex" alignItems="center" gap="$8">
+              <IconChemicalBottle />
+              <Typography variant="display-small">
+                {isEditMode ? 'Edit Evaluation Scenario' : 'Create Evaluation Scenario'}
+              </Typography>
+            </Box>
+          }
+        />
       </Dialog.Header>
-      
+
       <Dialog.Content>
         <Form onSubmit={handleFormSubmit}>
           <Form.Fieldset>
-            <Input 
-              label="Name" 
-              disabled={isLoading}
-              error={errors.name?.message}
-              {...register('name')} 
-            />
+            <Input label="Name" disabled={isLoading} error={errors.name?.message} {...register('name')} />
             <Controller
               name="useLiveExecution"
               control={control}
@@ -229,14 +217,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
                 style={{ listStyle: 'none' }}
               >
                 {evaluationSummaryItems.map((item) => (
-                  <Box
-                    key={item.id}
-                    as="li"
-                    display="flex"
-                    alignItems="center"
-                    gap="$6"
-                    padding="$6"
-                  >
+                  <Box key={item.id} as="li" display="flex" alignItems="center" gap="$6" padding="$6">
                     <Box
                       display="flex"
                       alignItems="center"
@@ -257,7 +238,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
                 label=""
                 description={
                   liveActionsEnabled
-                    ? "Add anything else you want us to check."
+                    ? 'Add anything else you want us to check.'
                     : 'Add anything else you want us to check. Leave blank to skip the response accuracy check.'
                 }
                 rows={4}
@@ -269,23 +250,12 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
           </Form.Fieldset>
         </Form>
       </Dialog.Content>
-      
+
       <Dialog.Actions>
-        <Button 
-          type="submit" 
-          onClick={handleFormSubmit}
-          disabled={!isValid || isLoading}
-          loading={isLoading}
-          round
-        >
+        <Button type="submit" onClick={handleFormSubmit} disabled={!isValid || isLoading} loading={isLoading} round>
           {isEditMode ? 'Save changes' : 'Create'}
         </Button>
-        <Button 
-          variant="secondary" 
-          onClick={handleClose}
-          disabled={isLoading}
-          round
-        >
+        <Button variant="secondary" onClick={handleClose} disabled={isLoading} round>
           Cancel
         </Button>
       </Dialog.Actions>

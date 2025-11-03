@@ -25,7 +25,7 @@ export const Thread: FC = () => {
     <>
       {/* Hide threads list for evaluation threads - navigation only through eval sidebar */}
       {!isEvaluationThread && <ThreadsList />}
-      <Chat agentId={agentId} threadId={threadId} agentType="conversational" thread={thread}/>
+      <Chat agentId={agentId} threadId={threadId} agentType="conversational" thread={thread} />
     </>
   );
 };

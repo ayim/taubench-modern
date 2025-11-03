@@ -192,7 +192,10 @@ const CitationBox: FC<CitationBoxProps> = ({
         <span style={{ fontSize: '12px', lineHeight: '1.3' }}>
           Type: {type}
           {confidence && confidence !== 'high' && (
-            <><br />Confidence: {confidence}</>
+            <>
+              <br />
+              Confidence: {confidence}
+            </>
           )}
         </span>
       );
@@ -204,7 +207,10 @@ const CitationBox: FC<CitationBoxProps> = ({
       <span style={{ fontSize: '12px', lineHeight: '1.3' }}>
         {cleanFieldName}: {fieldValue}
         {confidence && confidence !== 'high' && (
-          <><br />Confidence: {confidence}</>
+          <>
+            <br />
+            Confidence: {confidence}
+          </>
         )}
       </span>
     );
@@ -411,7 +417,6 @@ const calculateReactPdfCoordinates = (
     const pdfWidth = bbox.width || 0;
     const pdfHeight = bbox.height || 0;
 
-
     // Skip boxes with invalid dimensions
     if (pdfWidth <= 0 || pdfHeight <= 0) {
       return null;
@@ -440,7 +445,6 @@ const calculateReactPdfCoordinates = (
       screenWidth = pdfWidth * scale;
       screenHeight = pdfHeight * scale;
     }
-
 
     // No padding for precise highlighting like Reducto
     const result = {
@@ -561,7 +565,10 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
 
       // If showing parse boxes and we have parse data, use parse bounding boxes
       if (showingParseBoxes && parseData) {
-        const parseBoundingBoxes = convertParseResultToBoundingBoxes(parseData as ParseDocumentResponsePayload, pageNumber);
+        const parseBoundingBoxes = convertParseResultToBoundingBoxes(
+          parseData as ParseDocumentResponsePayload,
+          pageNumber,
+        );
 
         // Sort parse bounding boxes by area (largest first) so larger boxes render behind smaller ones
         const sortedParseBoxes = [...parseBoundingBoxes].sort((a, b) => {
@@ -572,12 +579,7 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
 
         sortedParseBoxes.forEach((bbox) => {
           // Convert parse bbox coordinates to screen coordinates
-          const screenCoords = calculateReactPdfCoordinates(
-            bbox.coords,
-            pageWidth,
-            pageHeight,
-            scale,
-          );
+          const screenCoords = calculateReactPdfCoordinates(bbox.coords, pageWidth, pageHeight, scale);
 
           if (screenCoords) {
             newCitationCoords.push({
@@ -750,25 +752,27 @@ const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
     >
       {/* Child bounding boxes (from citations) - interactive */}
       <Box style={{ transition: 'opacity 0.3s ease-in-out' }}>
-        {citationCoords.map(({ fieldId, coords, fieldName, fieldValue, isMatched, isParentBox, numericId, type, confidence }) => (
-          <Box key={`citation-overlay-${fieldId}`} style={{ pointerEvents: 'auto' }}>
-            <CitationBox
-              coords={coords}
-              fieldName={fieldName}
-              fieldValue={fieldValue}
-              fieldId={fieldId}
-              selectedFieldId={selectedFieldId}
-              onBoxClick={(id) => handleCitationClick(id, fieldName, numericId)}
-              onHoverChange={() => {}}
-              isMatched={isMatched}
-              isParentBox={isParentBox}
-              numericId={numericId}
-              isParseBox={showingParseBoxes}
-              type={type}
-              confidence={confidence}
-            />
-          </Box>
-        ))}
+        {citationCoords.map(
+          ({ fieldId, coords, fieldName, fieldValue, isMatched, isParentBox, numericId, type, confidence }) => (
+            <Box key={`citation-overlay-${fieldId}`} style={{ pointerEvents: 'auto' }}>
+              <CitationBox
+                coords={coords}
+                fieldName={fieldName}
+                fieldValue={fieldValue}
+                fieldId={fieldId}
+                selectedFieldId={selectedFieldId}
+                onBoxClick={(id) => handleCitationClick(id, fieldName, numericId)}
+                onHoverChange={() => {}}
+                isMatched={isMatched}
+                isParentBox={isParentBox}
+                numericId={numericId}
+                isParseBox={showingParseBoxes}
+                type={type}
+                confidence={confidence}
+              />
+            </Box>
+          ),
+        )}
       </Box>
     </Box>
   );
@@ -1020,17 +1024,13 @@ export const DocumentViewer: FC<DocumentViewerProps> = () => {
           {parseData && extractedData && (
             <>
               <Box display="flex" alignItems="center" gap="$8" style={{ transition: 'opacity 0.3s ease-in-out' }}>
-                <Typography fontSize="$14">
-                  1st Pass
-                </Typography>
+                <Typography fontSize="$14">1st Pass</Typography>
                 <Switch
                   checked={!showingParseBoxes}
                   onChange={(e) => setShowingParseBoxes(!e.target.checked)}
                   aria-labelledby="parse-extract-toggle"
                 />
-                <Typography fontSize="$14">
-                  Detailed
-                </Typography>
+                <Typography fontSize="$14">Detailed</Typography>
               </Box>
               <Divider orientation="vertical" />
             </>

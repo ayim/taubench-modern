@@ -1,7 +1,7 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, DataFrame, Menu, Typography } from '@sema4ai/components';
 import { styled } from '@sema4ai/theme';
-import { IconDotsHorizontal, IconMenu} from '@sema4ai/icons';
+import { IconDotsHorizontal, IconMenu } from '@sema4ai/icons';
 import { IconDataFrames } from '@sema4ai/icons/logos';
 
 import { useMessageStream } from '../../hooks';
@@ -199,14 +199,7 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
                 <Menu
                   visible={isMenuListOpen}
                   setVisible={setIsMenuListOpen}
-                  trigger={
-                    <Button
-                      icon={IconMenu}
-                      variant="outline"
-                      aria-label="choose data frame"
-                      round
-                    />
-                  }
+                  trigger={<Button icon={IconMenu} variant="outline" aria-label="choose data frame" round />}
                 >
                   {dataFrames.map((frame, index) => (
                     <Menu.Item

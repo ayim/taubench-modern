@@ -28,14 +28,14 @@ export const useEvalSidebarState = () => {
     setExpandedResultsOrder((prev) => {
       // If already expanded, collapse it
       if (prev.includes(scenarioId)) {
-        return prev.filter(id => id !== scenarioId);
+        return prev.filter((id) => id !== scenarioId);
       }
-      
+
       // If expanding and already have 2, remove the oldest (first in array)
       if (prev.length >= 2) {
         return [...prev.slice(1), scenarioId];
       }
-      
+
       // Otherwise just add it
       return [...prev, scenarioId];
     });
@@ -47,12 +47,12 @@ export const useEvalSidebarState = () => {
       if (prev.includes(scenarioId)) {
         return prev;
       }
-      
+
       // If already have 2, remove the oldest
       if (prev.length >= 2) {
         return [...prev.slice(1), scenarioId];
       }
-      
+
       return [...prev, scenarioId];
     });
   };
@@ -79,8 +79,7 @@ export const useEvalSidebarState = () => {
     });
   }, []);
 
-  const getSelectedTrialsForScenario = (scenarioId: string) => 
-    selectedTrials.get(scenarioId) || 1;
+  const getSelectedTrialsForScenario = (scenarioId: string) => selectedTrials.get(scenarioId) || 1;
 
   const resetCreateDialogState = () => {
     setCreateDialogOpen(false);
@@ -92,7 +91,7 @@ export const useEvalSidebarState = () => {
     const currentIndex = selectedRunIndices.get(scenarioId) ?? 0;
     if (currentIndex > 0) {
       const newIndex = currentIndex - 1;
-      setSelectedRunIndices(prev => new Map(prev).set(scenarioId, newIndex));
+      setSelectedRunIndices((prev) => new Map(prev).set(scenarioId, newIndex));
     }
   };
 
@@ -100,16 +99,16 @@ export const useEvalSidebarState = () => {
     const currentIndex = selectedRunIndices.get(scenarioId) ?? 0;
     if (currentIndex < totalRuns - 1) {
       const newIndex = currentIndex + 1;
-      setSelectedRunIndices(prev => new Map(prev).set(scenarioId, newIndex));
+      setSelectedRunIndices((prev) => new Map(prev).set(scenarioId, newIndex));
     }
   };
 
   const setRunIndexToLatest = (scenarioId: string) => {
-    setSelectedRunIndices(prev => new Map(prev).set(scenarioId, 0));
+    setSelectedRunIndices((prev) => new Map(prev).set(scenarioId, 0));
   };
 
   const handleSelectRun = (scenarioId: string, runIndex: number) => {
-    setSelectedRunIndices(prev => new Map(prev).set(scenarioId, runIndex));
+    setSelectedRunIndices((prev) => new Map(prev).set(scenarioId, runIndex));
   };
 
   return {

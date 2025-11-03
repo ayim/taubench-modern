@@ -75,50 +75,49 @@ export const DocumentIntelligenceDialog: FC<DocumentIntelligenceDialogProps> = (
   return (
     <>
       <Dialog open={isOpen} onClose={handleClose} size="full-screen">
-      <Dialog.Header>
-        <Box display="flex" alignItems="center" marginBottom="$16" gap="$8" flexShrink="0">
-        <Typography fontSize="$20" fontWeight="bold">
-          {getDialogTitle()}
-        </Typography>
-          {fileRef && (
-            <Typography fontSize="$20" variant="body-large" fontWeight="bold" style={{ color: 'gray' }}>
-              {fileRef.name}
+        <Dialog.Header>
+          <Box display="flex" alignItems="center" marginBottom="$16" gap="$8" flexShrink="0">
+            <Typography fontSize="$20" fontWeight="bold">
+              {getDialogTitle()}
             </Typography>
-          )}
-        </Box>
-      </Dialog.Header>
+            {fileRef && (
+              <Typography fontSize="$20" variant="body-large" fontWeight="bold" style={{ color: 'gray' }}>
+                {fileRef.name}
+              </Typography>
+            )}
+          </Box>
+        </Dialog.Header>
 
+        <Dialog.Content>
+          <DocumentIntelligenceView documentData={documentData} onClose={handleClose} />
+        </Dialog.Content>
+      </Dialog>
 
-      <Dialog.Content>
-        <DocumentIntelligenceView documentData={documentData} onClose={handleClose} />
-      </Dialog.Content>
-    </Dialog>
-
-    {/* EXIT CONFIRMATION DIALOG */}
-    <Dialog open={openExitConfirmation} onClose={() => setOpenExitConfirmation(false)} size="medium">
-      <Dialog.Header>
-        <Dialog.Header.Title title="Are you sure?" />
-      </Dialog.Header>
-      <Dialog.Content>
-        You are about to exit the Document Intelligence flow. This will discard all of the unsaved data and you will
-        lose all progress.
-      </Dialog.Content>
-      <Dialog.Actions>
-        <Button
-          variant="primary"
-          onClick={() => {
-            setOpenExitConfirmation(false);
-            reset(); // Clear all data immediately
-            handleCloseWithCancellation();
-          }}
-        >
-          Yes, exit
-        </Button>
-        <Button variant="secondary" onClick={() => setOpenExitConfirmation(false)}>
-          No, continue
-        </Button>
-      </Dialog.Actions>
-    </Dialog>
+      {/* EXIT CONFIRMATION DIALOG */}
+      <Dialog open={openExitConfirmation} onClose={() => setOpenExitConfirmation(false)} size="medium">
+        <Dialog.Header>
+          <Dialog.Header.Title title="Are you sure?" />
+        </Dialog.Header>
+        <Dialog.Content>
+          You are about to exit the Document Intelligence flow. This will discard all of the unsaved data and you will
+          lose all progress.
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setOpenExitConfirmation(false);
+              reset(); // Clear all data immediately
+              handleCloseWithCancellation();
+            }}
+          >
+            Yes, exit
+          </Button>
+          <Button variant="secondary" onClick={() => setOpenExitConfirmation(false)}>
+            No, continue
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
     </>
   );
 };

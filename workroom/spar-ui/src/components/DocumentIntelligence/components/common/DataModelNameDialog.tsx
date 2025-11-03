@@ -28,16 +28,12 @@ export const DataModelNameDialog: FC<DataModelNameDialogProps> = ({
   processingStep,
 }) => {
   const { addSnackbar } = useSnackbar();
-  const {
-    generateDataModelDescription,
-    isLoading: isGeneratingDescription,
-  } = useDataModelDescriptionGeneration();
+  const { generateDataModelDescription, isLoading: isGeneratingDescription } = useDataModelDescriptionGeneration();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
   const [isInitialized, setIsInitialized] = useState(false);
-
 
   useEffect(() => {
     if (fileRef) {
@@ -66,7 +62,6 @@ export const DataModelNameDialog: FC<DataModelNameDialogProps> = ({
       generateDescription();
     }
   }, [open, isInitialized, fileRef, threadId, agentId]);
-
 
   useEffect(() => {
     if (!open) {
@@ -99,16 +94,15 @@ export const DataModelNameDialog: FC<DataModelNameDialogProps> = ({
   }, [name, description, onSave, onClose]);
 
   const handleCancel = useCallback(() => {
-      if (fileRef) {
-        const suggestedName = `${toSnakeCase(fileRef.name)}_data_model`;
-        setName(suggestedName);
-      }
-      setDescription('');
-      setIsInitialized(false);
+    if (fileRef) {
+      const suggestedName = `${toSnakeCase(fileRef.name)}_data_model`;
+      setName(suggestedName);
+    }
+    setDescription('');
+    setIsInitialized(false);
     setErrors({});
     onClose();
   }, [fileRef, onClose]);
-
 
   const handleDialogClose = useCallback(() => {
     if (isProcessing) {

@@ -306,12 +306,7 @@ export const StepDataQuality: FC<StepDataQualityProps> = ({
     (isProcessing && dataQualityChecks.length === 0) || (flowLoading && dataQualityChecks.length === 0);
 
   if (shouldShowFullScreenLoading) {
-    return (
-      <ProcessingLoadingState
-        processingStep={processingStep}
-        title="Generating Quality Checks"
-      />
-    );
+    return <ProcessingLoadingState processingStep={processingStep} title="Generating Quality Checks" />;
   }
 
   // Show empty state if no data model

@@ -8,7 +8,7 @@ import type { Scenario, ScenarioRun } from '../../Eval/components/EvalSidebarVie
 const FilterSection = styled(Box)`
   border-bottom: 1px solid ${({ theme }) => theme.color('border.primary')};
   padding: ${({ theme }) => theme.space.$12} 0;
-  
+
   &:last-child {
     border-bottom: none;
   }
@@ -48,7 +48,7 @@ export const EvaluationFiltersComponent: FC<EvaluationFiltersProps> = ({
         if (run.configuration?.models && Array.isArray(run.configuration.models)) {
           run.configuration.models.forEach((model: string) => models.add(model));
         }
-        
+
         if (run.configuration?.architecture_version && typeof run.configuration.architecture_version === 'string') {
           architectures.add(run.configuration.architecture_version);
         }
@@ -67,35 +67,30 @@ export const EvaluationFiltersComponent: FC<EvaluationFiltersProps> = ({
 
   const handleModelToggle = (model: string) => {
     const newModels = filters.models.includes(model)
-      ? filters.models.filter(m => m !== model)
+      ? filters.models.filter((m) => m !== model)
       : [...filters.models, model];
-    
+
     onFiltersChange({ ...filters, models: newModels });
   };
 
   const handleArchitectureToggle = (architecture: string) => {
     const newArchitectures = filters.architectures.includes(architecture)
-      ? filters.architectures.filter(a => a !== architecture)
+      ? filters.architectures.filter((a) => a !== architecture)
       : [...filters.architectures, architecture];
-    
+
     onFiltersChange({ ...filters, architectures: newArchitectures });
   };
 
-  const hasActiveFilters = 
-    filters.timeRange !== 'all' || 
-    filters.models.length > 0 || 
-    filters.architectures.length > 0;
+  const hasActiveFilters = filters.timeRange !== 'all' || filters.models.length > 0 || filters.architectures.length > 0;
 
   return (
     <Box p="$12">
       <FilterSection>
-        <Typography variant="body-small" fontWeight="medium" mb="$6">Time Range</Typography>
+        <Typography variant="body-small" fontWeight="medium" mb="$6">
+          Time Range
+        </Typography>
         <Box display="flex" flexDirection="column" gap="$6">
-          <Checkbox
-            label="All"
-            checked={filters.timeRange === 'all'}
-            onChange={() => handleTimeRangeChange('all')}
-          />
+          <Checkbox label="All" checked={filters.timeRange === 'all'} onChange={() => handleTimeRangeChange('all')} />
           <Checkbox
             label="Today"
             checked={filters.timeRange === 'today'}
@@ -111,7 +106,9 @@ export const EvaluationFiltersComponent: FC<EvaluationFiltersProps> = ({
 
       {availableModels.length > 0 && (
         <FilterSection>
-          <Typography variant="body-small" fontWeight="medium" mb="$6">Models</Typography>
+          <Typography variant="body-small" fontWeight="medium" mb="$6">
+            Models
+          </Typography>
           <Box display="flex" flexDirection="column" gap="$6">
             {availableModels.map((model) => (
               <Checkbox
@@ -127,7 +124,9 @@ export const EvaluationFiltersComponent: FC<EvaluationFiltersProps> = ({
 
       {availableArchitectures.length > 0 && (
         <FilterSection>
-          <Typography variant="body-small" fontWeight="medium" mb="$6">Architecture Versions</Typography>
+          <Typography variant="body-small" fontWeight="medium" mb="$6">
+            Architecture Versions
+          </Typography>
           <Box display="flex" flexDirection="column" gap="$6">
             {availableArchitectures.map((architecture) => (
               <Checkbox
@@ -143,12 +142,7 @@ export const EvaluationFiltersComponent: FC<EvaluationFiltersProps> = ({
 
       {hasActiveFilters && (
         <Box marginTop="$8" display="flex" justifyContent="flex-end">
-        <Button
-          variant="ghost-subtle"
-          size="small"
-          icon={IconTrash}
-          onClick={onClearAll}
-        >
+          <Button variant="ghost-subtle" size="small" icon={IconTrash} onClick={onClearAll}>
             Clear
           </Button>
         </Box>

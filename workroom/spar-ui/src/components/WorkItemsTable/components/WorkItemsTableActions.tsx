@@ -16,7 +16,7 @@ export const WorkItemsTableActions: FC<TableActionsProps> = ({
   onDownloadRaw,
 }) => {
   return (
-    <> 
+    <>
       <Button.Group collapse maxWidth="max-content">
         {onDownloadRaw && (
           <Button round icon={IconDownloadCloud} onClick={onDownloadRaw}>
@@ -39,4 +39,3 @@ export const WorkItemsTableActions: FC<TableActionsProps> = ({
     </>
   );
 };
-

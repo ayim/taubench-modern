@@ -18,7 +18,6 @@ interface SchemaProperty {
   items?: SchemaProperty;
 }
 
-
 // Utility function to generate unique IDs
 export const generateUniqueId = (prefix: string): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -53,12 +52,11 @@ export const toSnakeCase = (s: string): string => {
 // Remove citation from extracted data by field name
 export const removeCitationFromExtractedData = (
   extractedData: ExtractDocumentResponsePayload,
-  fieldName: string
+  fieldName: string,
 ): ExtractDocumentResponsePayload => {
   if (!extractedData?.citations) {
     return extractedData;
   }
-
 
   // Helper function to recursively remove citations by field name
   const removeCitationRecursively = (obj: unknown, currentPath: string = ''): unknown => {
@@ -66,7 +64,7 @@ export const removeCitationFromExtractedData = (
 
     // If this object is a citation (has bbox and content), check if it matches the field name
     if ('bbox' in obj && 'content' in obj) {
-      const citationFieldName = formatFieldName(currentPath)
+      const citationFieldName = formatFieldName(currentPath);
       // Try multiple matching strategies:
       // 1. Exact match
       const exactMatch = citationFieldName === fieldName;
@@ -93,7 +91,7 @@ export const removeCitationFromExtractedData = (
     if (Array.isArray(obj)) {
       return obj
         .map((item, index) => removeCitationRecursively(item, `${currentPath}[${index}]`))
-        .filter(item => item !== null);
+        .filter((item) => item !== null);
     }
 
     // If it's an object, process each property
@@ -120,7 +118,7 @@ export const removeCitationFromExtractedData = (
 // Function to check if two bounding boxes overlap
 const boxesOverlap = (
   box1: { left: number; top: number; width: number; height: number },
-  box2: { left: number; top: number; width: number; height: number }
+  box2: { left: number; top: number; width: number; height: number },
 ): boolean => {
   const box1Right = box1.left + box1.width;
   const box1Bottom = box1.top + box1.height;
@@ -138,7 +136,7 @@ const boxesOverlap = (
 // Function to calculate the overlap ratio between two bounding boxes
 const calculateOverlapRatio = (
   box1: { left: number; top: number; width: number; height: number },
-  box2: { left: number; top: number; width: number; height: number }
+  box2: { left: number; top: number; width: number; height: number },
 ): number => {
   const box1Right = box1.left + box1.width;
   const box1Bottom = box1.top + box1.height;
@@ -164,15 +162,17 @@ const calculateOverlapRatio = (
 };
 
 // Function to detect and handle overlapping bounding boxes
-const handleOverlappingBoundingBoxes = (boundingBoxes: Array<{
-  fieldId: string;
-  coords: { left: number; top: number; width: number; height: number };
-  fieldName: string;
-  fieldValue: string;
-  numericId: number;
-  type?: string;
-  confidence?: string;
-}>) => {
+const handleOverlappingBoundingBoxes = (
+  boundingBoxes: Array<{
+    fieldId: string;
+    coords: { left: number; top: number; width: number; height: number };
+    fieldName: string;
+    fieldValue: string;
+    numericId: number;
+    type?: string;
+    confidence?: string;
+  }>,
+) => {
   const result: Array<{
     fieldId: string;
     coords: { left: number; top: number; width: number; height: number };
@@ -192,7 +192,6 @@ const handleOverlappingBoundingBoxes = (boundingBoxes: Array<{
 
   sortedBoxes.forEach((currentBox) => {
     let shouldInclude = true;
-
 
     // Check if this box overlaps with any already included box
     result.forEach((includedBox) => {
@@ -230,7 +229,10 @@ const handleOverlappingBoundingBoxes = (boundingBoxes: Array<{
 };
 
 // Convert parse result to bounding boxes for display
-export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResponsePayload, currentPage: number = 1): Array<{
+export const convertParseResultToBoundingBoxes = (
+  parseResult: ParseDocumentResponsePayload,
+  currentPage: number = 1,
+): Array<{
   fieldId: string;
   coords: { left: number; top: number; width: number; height: number };
   fieldName: string;
@@ -257,7 +259,6 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
   parseResult.result.chunks.forEach((chunk, chunkIndex) => {
     // Use chunk content as the field value
     const fieldValue = chunk.content || '';
-
 
     // Skip empty chunks
     if (!fieldValue.trim()) {
@@ -297,8 +298,6 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
     // Process each block in the chunk
     if (chunk.blocks && Array.isArray(chunk.blocks)) {
       chunk.blocks.forEach((block, blockIndex) => {
-
-
         // Check if block has bounding box data
         if (block.bbox && typeof block.bbox === 'object') {
           const bbox = block.bbox as { left?: number; top?: number; width?: number; height?: number; page?: number };
@@ -310,7 +309,6 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
           if (blockPage !== currentPage) {
             return;
           }
-
 
           // Extract field name from block content or use chunk content
           const fieldName = block.content || chunk.content || `parse_field_${chunkIndex}_${blockIndex}`;
@@ -334,8 +332,8 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
           coords = {
             left: Math.max(0, coords.left - padding),
             top: Math.max(0, coords.top - padding),
-            width: Math.min(1, coords.width + (padding * 2)),
-            height: Math.min(1, coords.height + (padding * 2)),
+            width: Math.min(1, coords.width + padding * 2),
+            height: Math.min(1, coords.height + padding * 2),
           };
 
           // Fine-tune table positioning to eliminate gaps
@@ -343,7 +341,7 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
             // Additional padding for tables
             coords = {
               left: Math.max(0, coords.left - 0.005), // Extend slightly left
-              top: Math.max(0, coords.top - 0.005),    // Extend slightly up
+              top: Math.max(0, coords.top - 0.005), // Extend slightly up
               width: Math.min(1, coords.width + 0.01), // Extend slightly right
               height: Math.min(1, coords.height + 0.01), // Extend slightly down
             };
@@ -370,7 +368,6 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
     } else {
       // If no blocks and no chunk-level bbox, skip this chunk
       // Don't create fallback boxes with default coordinates
-
     }
   });
 
@@ -379,7 +376,6 @@ export const convertParseResultToBoundingBoxes = (parseResult: ParseDocumentResp
 
   return processedBoundingBoxes;
 };
-
 
 export const formatSqlQuery = (sqlQuery: string): string => {
   if (!sqlQuery) return '';
@@ -407,9 +403,7 @@ export const convertParseResultToFields = (
 
   // Helper function to extract description and layout_description from schema by field name
   // Handles both flat fields (e.g., "field_name") and nested fields (e.g., "company.name")
-  const getDescriptionsFromSchema = (
-    fieldName: string
-  ): { description?: string; layout_description?: string } => {
+  const getDescriptionsFromSchema = (fieldName: string): { description?: string; layout_description?: string } => {
     if (!originalGeneratedSchema?.properties) return {};
 
     // Split the field name by '.' to handle nested fields
@@ -425,9 +419,7 @@ export const convertParseResultToFields = (
       // Try case-insensitive match if exact match fails
       if (!prop) {
         const lowerPart = part.toLowerCase();
-        const found = Object.entries(currentProps).find(
-          ([key]) => key.toLowerCase() === lowerPart
-        );
+        const found = Object.entries(currentProps).find(([key]) => key.toLowerCase() === lowerPart);
         prop = found?.[1];
       }
 
@@ -435,7 +427,7 @@ export const convertParseResultToFields = (
       if (!prop) {
         const normalizedPart = part.replace(/[_-]/g, '').toLowerCase();
         const found = Object.entries(currentProps).find(
-          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart
+          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart,
         );
         prop = found?.[1];
       }
@@ -457,7 +449,12 @@ export const convertParseResultToFields = (
       }
 
       // Otherwise, continue navigating through nested properties
-      if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
+      if (
+        'properties' in prop &&
+        typeof prop.properties === 'object' &&
+        prop.properties !== null &&
+        !Array.isArray(prop.properties)
+      ) {
         currentProps = prop.properties as Record<string, unknown>;
       } else {
         return {};
@@ -519,7 +516,7 @@ export const convertParseResultToFields = (
           // Handle null/undefined values
           flattened[newKey] = '';
         } else if (Array.isArray(value)) {
-        // Skip arrays - they are handled by tables
+          // Skip arrays - they are handled by tables
         } else if (typeof value === 'object' && value !== null) {
           // Recursively flatten nested objects
           const nestedFlattened = flattenObject(value as Record<string, unknown>, newKey);
@@ -576,9 +573,7 @@ export const convertParseResultToTables = (
 
   // Helper function to extract description and layout_description from schema by table name
   // Handles both flat table names and nested table names
-  const getDescriptionsFromSchema = (
-    tableName: string
-  ): { description?: string; layout_description?: string } => {
+  const getDescriptionsFromSchema = (tableName: string): { description?: string; layout_description?: string } => {
     if (!originalGeneratedSchema?.properties) return {};
 
     // Split the table name by '.' to handle nested tables
@@ -594,9 +589,7 @@ export const convertParseResultToTables = (
       // Try case-insensitive match if exact match fails
       if (!prop) {
         const lowerPart = part.toLowerCase();
-        const found = Object.entries(currentProps).find(
-          ([key]) => key.toLowerCase() === lowerPart
-        );
+        const found = Object.entries(currentProps).find(([key]) => key.toLowerCase() === lowerPart);
         prop = found?.[1];
       }
 
@@ -604,7 +597,7 @@ export const convertParseResultToTables = (
       if (!prop) {
         const normalizedPart = part.replace(/[_-]/g, '').toLowerCase();
         const found = Object.entries(currentProps).find(
-          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart
+          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart,
         );
         prop = found?.[1];
       }
@@ -626,7 +619,12 @@ export const convertParseResultToTables = (
       }
 
       // Otherwise, continue navigating through nested properties
-      if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
+      if (
+        'properties' in prop &&
+        typeof prop.properties === 'object' &&
+        prop.properties !== null &&
+        !Array.isArray(prop.properties)
+      ) {
         currentProps = prop.properties as Record<string, unknown>;
       } else {
         return {};
@@ -640,7 +638,7 @@ export const convertParseResultToTables = (
   // Handles both flat and nested table names
   const getColumnDescriptionsFromSchema = (
     tableName: string,
-    columnName: string
+    columnName: string,
   ): { description?: string; layout_description?: string } => {
     if (!originalGeneratedSchema?.properties) return {};
 
@@ -657,9 +655,7 @@ export const convertParseResultToTables = (
       // Try case-insensitive match if exact match fails
       if (!prop) {
         const lowerPart = part.toLowerCase();
-        const found = Object.entries(currentProps).find(
-          ([key]) => key.toLowerCase() === lowerPart
-        );
+        const found = Object.entries(currentProps).find(([key]) => key.toLowerCase() === lowerPart);
         prop = found?.[1];
       }
 
@@ -667,7 +663,7 @@ export const convertParseResultToTables = (
       if (!prop) {
         const normalizedPart = part.replace(/[_-]/g, '').toLowerCase();
         const found = Object.entries(currentProps).find(
-          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart
+          ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedPart,
         );
         prop = found?.[1];
       }
@@ -688,16 +684,14 @@ export const convertParseResultToTables = (
 
             if (!columnProp) {
               const lowerColumnName = columnName.toLowerCase();
-              const found = Object.entries(properties).find(
-                ([key]) => key.toLowerCase() === lowerColumnName
-              );
+              const found = Object.entries(properties).find(([key]) => key.toLowerCase() === lowerColumnName);
               columnProp = found ? (found[1] as Record<string, unknown>) : undefined;
             }
 
             if (!columnProp) {
               const normalizedColumnName = columnName.replace(/[_-]/g, '').toLowerCase();
               const found = Object.entries(properties).find(
-                ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedColumnName
+                ([key]) => key.replace(/[_-]/g, '').toLowerCase() === normalizedColumnName,
               );
               columnProp = found ? (found[1] as Record<string, unknown>) : undefined;
             }
@@ -718,7 +712,12 @@ export const convertParseResultToTables = (
       }
 
       // Otherwise, continue navigating through nested properties
-      if ('properties' in prop && typeof prop.properties === 'object' && prop.properties !== null && !Array.isArray(prop.properties)) {
+      if (
+        'properties' in prop &&
+        typeof prop.properties === 'object' &&
+        prop.properties !== null &&
+        !Array.isArray(prop.properties)
+      ) {
         currentProps = prop.properties as Record<string, unknown>;
       } else {
         return {};
@@ -770,7 +769,10 @@ export const convertParseResultToTables = (
                 };
                 return acc;
               },
-              {} as Record<string, { type: string; required: boolean; description: string; layout_description?: string }>,
+              {} as Record<
+                string,
+                { type: string; required: boolean; description: string; layout_description?: string }
+              >,
             ),
             data: value
               .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
@@ -957,9 +959,7 @@ export const convertTablesToExtractionSchema = (tables: LayoutTableRow[]): Recor
                 description: table.columnsMeta[column]?.description || column,
                 // Fallback to description if no specific layout instructions provided
                 layout_description:
-                  table.columnsMeta[column]?.layout_description ||
-                  table.columnsMeta[column]?.description ||
-                  column,
+                  table.columnsMeta[column]?.layout_description || table.columnsMeta[column]?.description || column,
               };
               return acc;
             },
@@ -989,9 +989,7 @@ export const convertTablesToExtractionSchema = (tables: LayoutTableRow[]): Recor
                 description: table.columnsMeta[column]?.description || column,
                 // Fallback to description if no specific layout instructions provided
                 layout_description:
-                  table.columnsMeta[column]?.layout_description ||
-                  table.columnsMeta[column]?.description ||
-                  column,
+                  table.columnsMeta[column]?.layout_description || table.columnsMeta[column]?.description || column,
               };
               return acc;
             },
@@ -1007,7 +1005,9 @@ export const convertTablesToExtractionSchema = (tables: LayoutTableRow[]): Recor
 };
 
 // Merge extracted schema properties
-export const mergeExtractedSchemaProperties = (extractedSchemaProperties: Record<string, SchemaProperty>[]): Record<string, SchemaProperty> => {
+export const mergeExtractedSchemaProperties = (
+  extractedSchemaProperties: Record<string, SchemaProperty>[],
+): Record<string, SchemaProperty> => {
   const mergedSchema: Record<string, SchemaProperty> = {};
 
   // Helper function to deeply merge two schema properties
@@ -1055,7 +1055,6 @@ export const mergeExtractedSchemaProperties = (extractedSchemaProperties: Record
   return mergedSchema;
 };
 
-
 // Filter fields by selected fields
 export const filterFieldsBySelectedFields = ({
   fields,
@@ -1085,9 +1084,7 @@ export const filterTablesBySelectedTableColumns = ({
             Object.entries(table.columnsMeta).filter(([columnName]) => filteredColumns.includes(columnName)),
           );
           const filteredData = table.data.map((row) =>
-            Object.fromEntries(
-              Object.entries(row).filter(([columnName]) => filteredColumns.includes(columnName)),
-            ),
+            Object.fromEntries(Object.entries(row).filter(([columnName]) => filteredColumns.includes(columnName))),
           );
 
           return {
@@ -1105,7 +1102,7 @@ export const convertUIStateToDocumentLayoutPayload = (
   layoutFields: LayoutFieldRow[],
   layoutTables: LayoutTableRow[],
   documentLayout?: { prompt?: string | null } | null,
-  originalGeneratedSchema?: ExtractionSchemaPayload | null
+  originalGeneratedSchema?: ExtractionSchemaPayload | null,
 ): Record<string, unknown> => {
   // Start with the original generated schema if available, otherwise create a new one
   let baseSchema: Record<string, unknown>;
@@ -1184,7 +1181,7 @@ export const convertUIStateToDocumentLayoutPayload = (
             const items = originalTableProperty.items as Record<string, unknown>;
             if (items.properties && typeof items.properties === 'object') {
               const itemsProps = items.properties as Record<string, unknown>;
-              originalColumnProperty = itemsProps[columnFieldName] as Record<string, unknown> || null;
+              originalColumnProperty = (itemsProps[columnFieldName] as Record<string, unknown>) || null;
             }
           }
 
@@ -1231,7 +1228,7 @@ export const convertUIStateToDocumentLayoutPayload = (
 // Build extraction schema from current layout state
 export const buildExtractionSchemaFromLayout = (
   fields: LayoutFieldRow[],
-  tables: LayoutTableRow[]
+  tables: LayoutTableRow[],
 ): ExtractionSchemaPayload => {
   const properties: Record<string, SchemaProperty> = {};
   const required: string[] = [];

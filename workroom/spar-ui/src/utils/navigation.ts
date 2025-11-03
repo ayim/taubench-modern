@@ -5,14 +5,14 @@ import { WorkItemsNavigationContext } from '../types/navigation';
  */
 export const getUrlSearchParams = (): Record<string, string> => {
   if (typeof window === 'undefined') return {};
-  
+
   const params = new URLSearchParams(window.location.search);
   const result: Record<string, string> = {};
-  
+
   params.forEach((value, key) => {
     result[key] = value;
   });
-  
+
   return result;
 };
 
@@ -22,7 +22,7 @@ export const getUrlSearchParams = (): Record<string, string> => {
 export const createWorkItemsNavigationContext = (
   from: 'workItems',
   tab: 'all' | 'overview',
-  additionalParams?: Record<string, string>
+  additionalParams?: Record<string, string>,
 ): WorkItemsNavigationContext | null => {
   try {
     const urlParams = getUrlSearchParams();
@@ -41,4 +41,3 @@ export const createWorkItemsNavigationContext = (
     return null;
   }
 };
-

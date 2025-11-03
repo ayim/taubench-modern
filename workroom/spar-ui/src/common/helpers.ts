@@ -112,10 +112,9 @@ export const formatShortDateTime = (dateString: string | undefined): string => {
   return `${monthShort} ${day}, ${time}`;
 };
 
-
-export const isImageFile = (file: File): boolean =>{ 
+export const isImageFile = (file: File): boolean => {
   return file.type.startsWith('image/');
-}
+};
 
 export const snakeCaseToCamelCase = (str: string): string => {
   return str

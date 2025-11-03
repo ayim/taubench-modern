@@ -13,19 +13,16 @@ export const StyledDeleteButton = styled(Button)`
   }
 `;
 
-
 export const StyledAddButton = styled(Button)`
   div {
     width: 80px !important;
   }
 `;
 
-
 export const StyledWidthButton = styled(Button)<{ $width?: string }>`
   div {
-    width: ${props => props.$width || 'auto'} !important;
+    width: ${(props) => props.$width || 'auto'} !important;
   }
 `;
-
 
 export { Button };

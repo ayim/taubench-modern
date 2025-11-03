@@ -126,15 +126,22 @@ const PayloadSection: FC<{ workItem: WorkItem }> = memo(({ workItem }) => {
       <Typography variant="body-medium" fontWeight="bold" marginBottom={4} id="payload-section">
         Payload
       </Typography>
-      <Code theme="light" readOnly lineNumbers={false} value={payloadContent} aria-labelledby="payload-section" title="JSON" />
+      <Code
+        theme="light"
+        readOnly
+        lineNumbers={false}
+        value={payloadContent}
+        aria-labelledby="payload-section"
+        title="JSON"
+      />
     </Box>
   );
 });
 
 const IdSection: FC<{ workItem: WorkItem }> = ({ workItem }) => {
   if (!workItem.work_item_id) {
-    return null
-  };
+    return null;
+  }
 
   return (
     <Box as="section">
@@ -148,8 +155,8 @@ const IdSection: FC<{ workItem: WorkItem }> = ({ workItem }) => {
 
 const NameSection: FC<{ workItem: WorkItem }> = ({ workItem }) => {
   if (!workItem.work_item_name) {
-    return null
-  };
+    return null;
+  }
   return (
     <Box as="section">
       <Typography variant="body-medium" fontWeight="bold" marginBottom="$4">
@@ -160,11 +167,7 @@ const NameSection: FC<{ workItem: WorkItem }> = ({ workItem }) => {
   );
 };
 
-export const WorkItemDetails = ({
-  workItemId,
-}: {
-  workItemId: string;
-}) => {
+export const WorkItemDetails = ({ workItemId }: { workItemId: string }) => {
   const { data: workItem, isLoading } = useWorkItemQuery({ workItemId });
 
   if (isLoading) {

@@ -42,18 +42,21 @@ export const FeedbackDialog: FC<Props> = ({ open, onClose }) => {
   }, [onClose]);
 
   const onSubmit = handleSubmit(({ feedback }) => {
-    sendFeedback({
-      feedback,
-      comment: '', // Keep comment as empty for now
-    }, {
-      onSuccess: () => {
-        addSnackbar({ message: 'Feedback sent successfully', variant: 'success' });
-        handleClose();
+    sendFeedback(
+      {
+        feedback,
+        comment: '', // Keep comment as empty for now
       },
-      onError: (error: Error) => {
-        addSnackbar({ message: error.message, variant: 'danger' });
+      {
+        onSuccess: () => {
+          addSnackbar({ message: 'Feedback sent successfully', variant: 'success' });
+          handleClose();
+        },
+        onError: (error: Error) => {
+          addSnackbar({ message: error.message, variant: 'danger' });
+        },
       },
-    });
+    );
   });
 
   return (

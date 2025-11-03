@@ -4,7 +4,12 @@ import { Box, Switch, Snackbar, Divider, Typography, Banner, Button, useSnackbar
 import { StepType, DocumentData } from '../types';
 import { DataModelNameDialog } from './common/DataModelNameDialog';
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
-import { useDataModelNameDialogSave, useStepNavigation, useResizablePanel, useFlowHandlers } from '../hooks/useDocumentIntelligenceFlows';
+import {
+  useDataModelNameDialogSave,
+  useStepNavigation,
+  useResizablePanel,
+  useFlowHandlers,
+} from '../hooks/useDocumentIntelligenceFlows';
 import { DocumentViewer } from './DocumentViewer';
 import { StepDocumentLayout } from './StepDocumentLayout';
 import { StepDataModel } from './StepDataModel';
@@ -13,17 +18,18 @@ import { StepFooter } from './StepFooter';
 import { StepHeader } from './StepHeader';
 import { ExtractionData } from './ExtractionData';
 import { useExtractDocumentMutation } from '../../../queries/documentIntelligence';
-import { buildExtractionSchemaFromLayout, convertParseResultToFields, convertParseResultToTables } from '../utils/dataTransformations';
+import {
+  buildExtractionSchemaFromLayout,
+  convertParseResultToFields,
+  convertParseResultToTables,
+} from '../utils/dataTransformations';
 
 interface DocumentIntelligenceViewProps {
   documentData: DocumentData;
   onClose: () => void;
 }
 
-export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
-  documentData,
-  onClose,
-}) => {
+export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({ documentData, onClose }) => {
   const { flowType } = documentData;
   const isProcessing = useDocumentIntelligenceStore((state) => state.isProcessing);
   const processingStep = useDocumentIntelligenceStore((state) => state.processingStep);
@@ -46,19 +52,9 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
   const { handleDataModelNameSave } = useDataModelNameDialogSave();
   const { addSnackbar } = useSnackbar();
   const extractDocumentMutation = useExtractDocumentMutation({});
-  const {
-    currentStep,
-    availableSteps,
-    isLastStep,
-    goToNextStep,
-    goToPreviousStep
-  } = useStepNavigation(flowType);
+  const { currentStep, availableSteps, isLastStep, goToNextStep, goToPreviousStep } = useStepNavigation(flowType);
   const { stepperWidth, handleMouseDown, minStepperWidth } = useResizablePanel();
-  const {
-    handleComplete,
-    handleRetryDocumentLayoutFlow,
-    handleRetryDataModelFlow
-  } = useFlowHandlers();
+  const { handleComplete, handleRetryDocumentLayoutFlow, handleRetryDataModelFlow } = useFlowHandlers();
 
   // Track re-extraction loading state
   const [isReExtracting, setIsReExtracting] = useState(false);
@@ -92,8 +88,8 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
       const extractedTables = convertParseResultToTables(extractedData, currentSchema);
 
       // Merge extracted data with existing fields, preserving user modifications like layout_description
-      const updatedFields = layoutFields.map(existingField => {
-        const extractedField = extractedFields.find(ef => ef.name === existingField.name);
+      const updatedFields = layoutFields.map((existingField) => {
+        const extractedField = extractedFields.find((ef) => ef.name === existingField.name);
         if (extractedField) {
           return {
             ...existingField,
@@ -107,21 +103,21 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
       });
 
       // Add any new fields that weren't in the original layout
-      const newFields = extractedFields.filter(
-        ef => !layoutFields.some(existing => existing.name === ef.name)
-      );
+      const newFields = extractedFields.filter((ef) => !layoutFields.some((existing) => existing.name === ef.name));
 
       // Merge extracted data with existing tables, preserving user modifications
-      const updatedTables = layoutTables.map(existingTable => {
-        const extractedTable = extractedTables.find(et => et.name === existingTable.name);
+      const updatedTables = layoutTables.map((existingTable) => {
+        const extractedTable = extractedTables.find((et) => et.name === existingTable.name);
         if (extractedTable) {
           // Merge column metadata, preserving layout_description from existing columns
           const mergedColumnsMeta = { ...extractedTable.columnsMeta };
-          Object.keys(mergedColumnsMeta).forEach(columnName => {
+          Object.keys(mergedColumnsMeta).forEach((columnName) => {
             if (existingTable.columnsMeta[columnName]) {
               mergedColumnsMeta[columnName] = {
                 ...mergedColumnsMeta[columnName],
-                layout_description: existingTable.columnsMeta[columnName].layout_description || mergedColumnsMeta[columnName].layout_description,
+                layout_description:
+                  existingTable.columnsMeta[columnName].layout_description ||
+                  mergedColumnsMeta[columnName].layout_description,
               };
             }
           });
@@ -138,9 +134,7 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
       });
 
       // Add any new tables that weren't in the original layout
-      const newTables = extractedTables.filter(
-        et => !layoutTables.some(existing => existing.name === et.name)
-      );
+      const newTables = extractedTables.filter((et) => !layoutTables.some((existing) => existing.name === et.name));
 
       // Update with merged data
       setStoreLayoutFields([...updatedFields, ...newFields]);
@@ -222,11 +216,7 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
               variant="ghost"
               size="small"
               iconAfter={IconRefresh}
-              onClick={
-                currentStep === 'document_layout'
-                  ? onRetryDocumentLayout
-                  : onRetryDataModel
-              }
+              onClick={currentStep === 'document_layout' ? onRetryDocumentLayout : onRetryDataModel}
             >
               Restart
             </Button>
@@ -278,7 +268,6 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
               borderWidth="1px"
               borderRadius="$8"
               borderColor="border.subtle"
-
               display="flex"
               flexDirection="column"
               flex="1"
@@ -287,15 +276,11 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
               {!isParseDocumentFlow && (
                 <>
                   <Box p="$24" width="75%" margin="0 auto">
-                    <StepHeader
-                      currentStep={currentStep}
-                      availableSteps={availableSteps}
-                    />
-                    </Box>
-                  <Divider/>
+                    <StepHeader currentStep={currentStep} availableSteps={availableSteps} />
+                  </Box>
+                  <Divider />
                 </>
               )}
-
 
               {/* STEPPER CONTENT */}
               <Box
@@ -336,17 +321,17 @@ export const DocumentIntelligenceView: FC<DocumentIntelligenceViewProps> = ({
                     />
                     <Typography>View as JSON</Typography>
                   </Box>
-                    <StepFooter
-                      flowType={currentFlowType}
-                      currentStep={currentStep}
-                      isDisabled={isProcessing || isReExtracting}
-                      goToPreviousStep={goToPreviousStep}
-                      onComplete={onComplete}
-                      onCancel={onCancel}
-                      schemaModified={schemaModified}
-                      handleRerunExtractClick={handleReRunExtract}
-                      isReRunning={extractDocumentMutation.isPending}
-                    />
+                  <StepFooter
+                    flowType={currentFlowType}
+                    currentStep={currentStep}
+                    isDisabled={isProcessing || isReExtracting}
+                    goToPreviousStep={goToPreviousStep}
+                    onComplete={onComplete}
+                    onCancel={onCancel}
+                    schemaModified={schemaModified}
+                    handleRerunExtractClick={handleReRunExtract}
+                    isReRunning={extractDocumentMutation.isPending}
+                  />
                 </Box>
               </Box>
             </Box>

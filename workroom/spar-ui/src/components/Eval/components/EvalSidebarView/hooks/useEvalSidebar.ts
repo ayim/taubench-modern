@@ -9,7 +9,7 @@ export interface UseEvalSidebarProps {
 
 export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
   const state = useEvalSidebarState();
-  
+
   const data = useEvalSidebarData({
     agentId,
     threadId,

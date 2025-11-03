@@ -19,37 +19,37 @@ function createSampleCitationData(): ExtractDocumentResponsePayload {
     citations: {
       invoice_number: {
         bbox: [100, 200, 300, 250],
-        content: "INV-12345"
+        content: 'INV-12345',
       },
       Invoice_Date: {
         bbox: [100, 300, 200, 350],
-        content: "2024-01-15"
+        content: '2024-01-15',
       },
       inspection_summary_0: {
         bbox: [100, 400, 500, 450],
-        content: "First inspection item"
+        content: 'First inspection item',
       },
       inspection_summary_1: {
         bbox: [100, 500, 500, 550],
-        content: "Second inspection item"
+        content: 'Second inspection item',
       },
       nested: {
         field: {
           bbox: [100, 600, 300, 650],
-          content: "Nested field content"
-        }
+          content: 'Nested field content',
+        },
       },
       array_field: [
         {
           bbox: [100, 700, 300, 750],
-          content: "Array item 1"
+          content: 'Array item 1',
         },
         {
           bbox: [100, 800, 300, 850],
-          content: "Array item 2"
-        }
-      ]
-    }
+          content: 'Array item 2',
+        },
+      ],
+    },
   } as ExtractDocumentResponsePayload;
 }
 
@@ -100,7 +100,13 @@ runTest('Nested field removal', () => {
   const data = createSampleCitationData();
   const result = removeCitationFromExtractedData(data, 'nested.field');
 
-  if (result.citations && result.citations.nested && typeof result.citations.nested === 'object' && result.citations.nested !== null && 'field' in result.citations.nested) {
+  if (
+    result.citations &&
+    result.citations.nested &&
+    typeof result.citations.nested === 'object' &&
+    result.citations.nested !== null &&
+    'field' in result.citations.nested
+  ) {
     throw new Error('nested.field should be removed');
   }
 

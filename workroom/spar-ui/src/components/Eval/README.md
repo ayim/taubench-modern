@@ -24,7 +24,7 @@ function MyComponent() {
           tenantId: 'your-tenant-id',
         }),
       });
-      
+
       if (!response.ok) throw new Error('Failed to create evaluation');
       return response.json();
     },
@@ -54,18 +54,18 @@ function MyComponent() {
 
 ## Props
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `open` | `boolean` | Yes | Whether the dialog is open |
-| `onClose` | `() => void` | Yes | Called when dialog closes |
-| `onSubmit` | `(data: CreateEvalFormData) => Promise<void>` | Yes | Called on form submission |
-| `isLoading` | `boolean` | No | Shows loading state |
+| Prop        | Type                                          | Required | Description                |
+| ----------- | --------------------------------------------- | -------- | -------------------------- |
+| `open`      | `boolean`                                     | Yes      | Whether the dialog is open |
+| `onClose`   | `() => void`                                  | Yes      | Called when dialog closes  |
+| `onSubmit`  | `(data: CreateEvalFormData) => Promise<void>` | Yes      | Called on form submission  |
+| `isLoading` | `boolean`                                     | No       | Shows loading state        |
 
 ## Types
 
 ```tsx
 interface CreateEvalFormData {
-  name: string;        // Required, max 100 chars
+  name: string; // Required, max 100 chars
   description: string; // Optional, populated from suggestions when available
   useLiveExecution: boolean; // When true, execute real tools during evaluation
   evaluationCriteria: {

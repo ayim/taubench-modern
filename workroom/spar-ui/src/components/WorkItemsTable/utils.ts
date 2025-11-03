@@ -6,30 +6,28 @@ import { WorkItemRowData } from './types';
 export const buildAgentMaps = (agents: Array<{ id?: string | null; name?: string | null }>) => {
   const agentsById = new Map<string, string>();
   const agentsByName = new Map<string, string>();
-  
+
   agents.forEach((agent) => {
     if (agent.id && agent.name) {
       agentsById.set(agent.id, agent.name);
       agentsByName.set(agent.name, agent.id);
     }
   });
-  
+
   return { agentsById, agentsByName };
 };
 
 export const transformWorkItemsWithAgentNames = (
   workItems: WorkItem[],
-  agentsById: Map<string, string>
+  agentsById: Map<string, string>,
 ): WorkItemRowData[] => {
   return workItems.map((item) => ({
     ...item,
-    agent_name: item.agent_id ? agentsById.get(item.agent_id) ?? item.agent_id : item.agent_id,
+    agent_name: item.agent_id ? (agentsById.get(item.agent_id) ?? item.agent_id) : item.agent_id,
   }));
 };
 
-export const buildFilterOptions = (
-  agentsByName: Map<string, string>
-): Record<'status' | 'agent_name', FilterGroup> => {
+export const buildFilterOptions = (agentsByName: Map<string, string>): Record<'status' | 'agent_name', FilterGroup> => {
   return {
     status: {
       label: 'Status',
@@ -58,12 +56,9 @@ export const calculatePagination = (
   currentPage: number,
   pageSize: number,
   itemsCount: number,
-  hasNextPage: boolean
+  hasNextPage: boolean,
 ) => {
-  const estimatedTotal = hasNextPage 
-    ? currentPage * pageSize + pageSize + 1 
-    : currentPage * pageSize + itemsCount;
-  
+  const estimatedTotal = hasNextPage ? currentPage * pageSize + pageSize + 1 : currentPage * pageSize + itemsCount;
+
   return { estimatedTotal };
 };
-

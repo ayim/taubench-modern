@@ -121,7 +121,9 @@ const TableOfContentsList = ({ tableOfContents }: { tableOfContents: Array<Table
               key={key}
             >
               <Box onClick={() => scrollToNode(key, index)} role="button" className={indent(tag)} tabIndex={0}>
-                <Box as="li" className={`normal-heading ${selectedKey === key ? 'selected-heading' : ''}`}>{text}</Box>
+                <Box as="li" className={`normal-heading ${selectedKey === key ? 'selected-heading' : ''}`}>
+                  {text}
+                </Box>
               </Box>
             </Box>
           );

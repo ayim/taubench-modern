@@ -46,28 +46,28 @@ export const ExtractionData: FC = memo(() => {
   const customToolbar = useMemo(() => {
     return (
       <Box display="flex" justifyContent="flex-end" gap="$4" marginBottom="$4" marginTop="$4" marginRight="$8">
-       {originalGeneratedSchema && (
-         <Tooltip text="Download Extraction Schema">
-           <Button
-             aria-label="Download Extraction Schema"
-             variant="inverted"
-             round
-             icon={IconDownload}
-             onClick={handleDownloadSchema}
-             size="small"
-           />
-         </Tooltip>
+        {originalGeneratedSchema && (
+          <Tooltip text="Download Extraction Schema">
+            <Button
+              aria-label="Download Extraction Schema"
+              variant="inverted"
+              round
+              icon={IconDownload}
+              onClick={handleDownloadSchema}
+              size="small"
+            />
+          </Tooltip>
         )}
-         <Tooltip text="Copy Extraction Schema to clipboard">
-           <Button
-             aria-label="Copy Extraction Schema to clipboard"
-             variant="inverted"
-             round
-             icon={copiedToClipboard ? IconCheck2 : IconCopy}
-             onClick={handleCopy}
-             size="small"
-           />
-         </Tooltip>
+        <Tooltip text="Copy Extraction Schema to clipboard">
+          <Button
+            aria-label="Copy Extraction Schema to clipboard"
+            variant="inverted"
+            round
+            icon={copiedToClipboard ? IconCheck2 : IconCopy}
+            onClick={handleCopy}
+            size="small"
+          />
+        </Tooltip>
       </Box>
     );
   }, [onCopyToClipboard, copiedToClipboard, originalGeneratedSchema, handleCopy, handleDownloadSchema]);

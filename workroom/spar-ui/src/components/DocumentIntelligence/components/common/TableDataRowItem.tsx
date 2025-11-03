@@ -2,7 +2,6 @@ import { Table, Typography, TableRowProps } from '@sema4ai/components';
 import { FC } from 'react';
 import { useDocumentIntelligenceStore } from '../../store/useDocumentIntelligenceStore';
 
-
 export const TableDataRowItem: FC<TableRowProps<Record<string, string>, never>> = ({ rowData }) => {
   const setSelectedFieldId = useDocumentIntelligenceStore((state) => state.setSelectedFieldId);
   const selectedFieldId = useDocumentIntelligenceStore((state) => state.selectedFieldId);
@@ -14,7 +13,6 @@ export const TableDataRowItem: FC<TableRowProps<Record<string, string>, never>> 
     const newSelectedId = selectedFieldId === tableRowId ? null : tableRowId;
     setSelectedFieldId(newSelectedId);
   };
-
 
   const isSelected = selectedFieldId === tableRowId;
   const shouldHighlight = isSelected;

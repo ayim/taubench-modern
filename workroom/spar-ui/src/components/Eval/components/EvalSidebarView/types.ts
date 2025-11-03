@@ -5,9 +5,9 @@ export type Scenario = components['schemas']['Scenario'];
 export type ScenarioRun = components['schemas']['ScenarioRun'];
 export type Trial = components['schemas']['Trial'];
 // EvaluationResult is a union type in the API schemas, not a single type
-export type EvaluationResult = 
-  | components['schemas']['ResponseAccuracyResult'] 
-  | components['schemas']['FlowAdherenceResult'] 
+export type EvaluationResult =
+  | components['schemas']['ResponseAccuracyResult']
+  | components['schemas']['FlowAdherenceResult']
   | components['schemas']['ActionCallingResult'];
 
 // Simple interface for the evaluation item that combines API data with UI state

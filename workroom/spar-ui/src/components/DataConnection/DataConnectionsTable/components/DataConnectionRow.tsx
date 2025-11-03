@@ -55,7 +55,12 @@ export const DataConnectionRow: FC<DataAccessRowProps> = ({ rowData }) => {
         <Box display="flex" alignItems="center" gap="$8">
           {rowData.name}
           {isDataConnectionUsedByDocumentIntelligence && (
-            <Badge size="small" variant="info" label="Document Intelligence" aria-description="This data connection is used for Document Intelligence" />
+            <Badge
+              size="small"
+              variant="info"
+              label="Document Intelligence"
+              aria-description="This data connection is used for Document Intelligence"
+            />
           )}
         </Box>
       </Table.Cell>

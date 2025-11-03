@@ -45,8 +45,7 @@ export const useEvalSidebarActions = ({
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
 
-  const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null;
+  const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
   const mapScenarioToFormValues = (scenario: Scenario): Partial<CreateEvalFormData> => {
     const metadata = isRecord(scenario.metadata) ? scenario.metadata : {};
@@ -54,8 +53,7 @@ export const useEvalSidebarActions = ({
     const evaluationKinds = isRecord(metadata.evaluations) ? metadata.evaluations : {};
     const responseAccuracy = isRecord(evaluationKinds.response_accuracy) ? evaluationKinds.response_accuracy : {};
 
-    const expectation =
-      typeof responseAccuracy.expectation === 'string' ? responseAccuracy.expectation : '';
+    const expectation = typeof responseAccuracy.expectation === 'string' ? responseAccuracy.expectation : '';
     const toolExecutionMode =
       typeof driftPolicy.tool_execution_mode === 'string' ? driftPolicy.tool_execution_mode : null;
 

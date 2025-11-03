@@ -29,10 +29,10 @@ export const EvalEmptyState: FC<EvalEmptyStateProps> = ({
       description='All evaluation runs will be shown here. Create an Evaluation by clicking "Add Evaluation"'
       action={
         <Box display="flex" gap="$8" flexWrap="wrap" justifyContent="center" alignItems="center" width="100%">
-          <Button 
-            variant="primary" 
-            round 
-            onClick={onAddEvaluation} 
+          <Button
+            variant="primary"
+            round
+            onClick={onAddEvaluation}
             disabled={!hasMessages || isFetchingSuggestion}
             loading={isFetchingSuggestion}
           >

@@ -1,15 +1,12 @@
+import { Box, Button, Form, Input, Typography, Column, Tooltip, Dialog, useSnackbar } from '@sema4ai/components';
 import {
-  Box,
-  Button,
-  Form,
-  Input,
-  Typography,
-  Column,
-  Tooltip,
-  Dialog,
-  useSnackbar,
-} from '@sema4ai/components';
-import { IconSparkles2, IconPlus, IconCursorText, IconInformation, IconPencil, IconAlignArrowDown } from '@sema4ai/icons';
+  IconSparkles2,
+  IconPlus,
+  IconCursorText,
+  IconInformation,
+  IconPencil,
+  IconAlignArrowDown,
+} from '@sema4ai/icons';
 import { ChangeEvent, FC, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 
 import { LayoutFieldRow, getTableColumns, FieldRowProps, DocumentData } from '../types';
@@ -43,7 +40,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
   isReadOnly = false,
   isProcessing = false,
   processingStep,
-  onReExtractLoadingChange
+  onReExtractLoadingChange,
 }) => {
   const { fileRef, threadId, agentId, flowType } = documentData;
 
@@ -95,12 +92,12 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
     if (effectiveFlowType === 'create_data_model_plus_new_layout') {
       // Auto-select all fields if none are selected
       if (layoutFields.length > 0 && selectedFields.length === 0) {
-        setSelectedFields(layoutFields.map(field => field.id));
+        setSelectedFields(layoutFields.map((field) => field.id));
       }
       // Auto-select all table columns if none are selected
       if (layoutTables.length > 0 && Object.keys(selectedTableColumns).length === 0) {
         const allTableColumns: Record<string, string[]> = {};
-        layoutTables.forEach(table => {
+        layoutTables.forEach((table) => {
           if (table.columnsMeta) {
             allTableColumns[table.name] = Object.keys(table.columnsMeta);
           }
@@ -108,7 +105,15 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         setSelectedTableColumns(allTableColumns);
       }
     }
-  }, [effectiveFlowType, layoutFields, layoutTables, selectedFields.length, selectedTableColumns, setSelectedFields, setSelectedTableColumns]);
+  }, [
+    effectiveFlowType,
+    layoutFields,
+    layoutTables,
+    selectedFields.length,
+    selectedTableColumns,
+    setSelectedFields,
+    setSelectedTableColumns,
+  ]);
 
   // Initialize flow when component mounts (only once)
   useEffect(() => {
@@ -127,8 +132,6 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
     }
   }, [effectiveFlowType, documentData.dataModelName, isProcessing, flowLoading, flowExecuted, setFlowExecuted]);
 
-
-
   const handleSaveFieldInstructions = useCallback(
     (fieldId: string, instructions: string) => {
       updateField(fieldId, { layout_description: instructions });
@@ -138,8 +141,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
 
   const handleSaveTableSpecialHandling = useCallback(
     (tableName: string, instructions: string) => {
-
-      const currentTable = layoutTables.find(table => table.name === tableName);
+      const currentTable = layoutTables.find((table) => table.name === tableName);
       if (!currentTable) return;
 
       // Update the table's layout_description
@@ -155,8 +157,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
 
   const handleSaveTableColumnInstructions = useCallback(
     (tableName: string, columnName: string, instructions: string) => {
-
-      const currentTable = layoutTables.find(table => table.name === tableName);
+      const currentTable = layoutTables.find((table) => table.name === tableName);
       if (!currentTable) return;
 
       // Update the specific column's layout_description
@@ -179,15 +180,15 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
   // Handle deleting a table column
   const handleDeleteTableColumn = useCallback(
     (tableName: string, columnName: string) => {
-      const currentTable = layoutTables.find(table => table.name === tableName);
+      const currentTable = layoutTables.find((table) => table.name === tableName);
       if (!currentTable) return;
 
       // Remove column from columns array
-      const updatedColumns = currentTable.columns.filter(col => col !== columnName);
+      const updatedColumns = currentTable.columns.filter((col) => col !== columnName);
 
       // Remove column from columnsMeta
       const updatedColumnsMeta = Object.fromEntries(
-        Object.entries(currentTable.columnsMeta).filter(([col]) => col !== columnName)
+        Object.entries(currentTable.columnsMeta).filter(([col]) => col !== columnName),
       );
 
       updateTableField(tableName, {
@@ -196,13 +197,13 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         columnsMeta: updatedColumnsMeta,
       });
     },
-    [layoutTables, updateTableField]
+    [layoutTables, updateTableField],
   );
 
   // Handle updating column name
   const handleUpdateColumnName = useCallback(
     (tableName: string, oldColumnName: string, newColumnName: string) => {
-      const currentTable = layoutTables.find(table => table.name === tableName);
+      const currentTable = layoutTables.find((table) => table.name === tableName);
       if (!currentTable) return;
 
       // Validate the new column name
@@ -217,9 +218,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
       }
 
       // Update columns array - maintain order
-      const updatedColumns = currentTable.columns.map(col =>
-        col === oldColumnName ? trimmedNewName : col
-      );
+      const updatedColumns = currentTable.columns.map((col) => (col === oldColumnName ? trimmedNewName : col));
 
       // Update columnsMeta - preserve metadata but with new key
       const updatedColumnsMeta = { ...currentTable.columnsMeta };
@@ -234,13 +233,13 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         columnsMeta: updatedColumnsMeta,
       });
     },
-    [layoutTables, updateTableField]
+    [layoutTables, updateTableField],
   );
 
   // Handle updating table name
   const handleUpdateTableName = useCallback(
     (oldTableName: string, newTableName: string) => {
-      const currentTable = layoutTables.find(table => table.name === oldTableName);
+      const currentTable = layoutTables.find((table) => table.name === oldTableName);
       if (!currentTable) return;
 
       // Update the table with the new name
@@ -249,7 +248,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         name: newTableName,
       });
     },
-    [layoutTables, updateTableField]
+    [layoutTables, updateTableField],
   );
 
   const handleAddField = useCallback(() => {
@@ -265,7 +264,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
   const handleDeleteField = useCallback(
     (fieldId: string) => {
       removeField(fieldId);
-      setSelectedFields(selectedFields.filter(id => id !== fieldId));
+      setSelectedFields(selectedFields.filter((id) => id !== fieldId));
     },
     [removeField, selectedFields, setSelectedFields],
   );
@@ -284,56 +283,56 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
   }, []);
 
   // Handler for file input change - validate and show confirmation dialog
-  const handleFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    try {
-      setImportErrorMessage(null);
+      try {
+        setImportErrorMessage(null);
 
-      // Read and validate the file
-      const text = await file.text();
-      const json = JSON.parse(text);
+        // Read and validate the file
+        const text = await file.text();
+        const json = JSON.parse(text);
 
-      // Validate the extraction schema
-      const validationResult = validateExtractionSchema(json);
-      if (!validationResult.valid) {
-        setImportErrorMessage(validationResult.error ?? null);
-        setProcessingState(false, '', validationResult.error ?? null);
+        // Validate the extraction schema
+        const validationResult = validateExtractionSchema(json);
+        if (!validationResult.valid) {
+          setImportErrorMessage(validationResult.error ?? null);
+          setProcessingState(false, '', validationResult.error ?? null);
+          // Reset file input on error
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          return;
+        }
+
+        // Store pending schema and file name, then show confirmation dialog
+        setPendingReExtraction({
+          schema: validationResult.schema! as ExtractionSchemaPayload,
+          fileName: fileRef?.name || '',
+        });
+        setShowReExtractConfirmDialog(true);
+      } catch (error) {
+        let errorMsg: string;
+        if (error instanceof SyntaxError) {
+          errorMsg =
+            'Failed to process extraction spec file: Invalid JSON format. Please check your file for syntax errors.';
+        } else if (error instanceof Error) {
+          errorMsg = error.message;
+        } else {
+          errorMsg = 'Failed to process extraction spec file';
+        }
+        setImportErrorMessage(errorMsg);
+        setProcessingState(false, '', errorMsg);
         // Reset file input on error
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        return;
       }
-
-      // Store pending schema and file name, then show confirmation dialog
-      setPendingReExtraction({
-        schema: validationResult.schema! as ExtractionSchemaPayload,
-        fileName: fileRef?.name || ''
-      });
-      setShowReExtractConfirmDialog(true);
-    } catch (error) {
-      let errorMsg: string;
-      if (error instanceof SyntaxError) {
-        errorMsg = 'Failed to process extraction spec file: Invalid JSON format. Please check your file for syntax errors.';
-      } else if (error instanceof Error) {
-        errorMsg = error.message;
-      } else {
-        errorMsg = 'Failed to process extraction spec file';
-      }
-      setImportErrorMessage(errorMsg);
-      setProcessingState(false, '', errorMsg);
-      // Reset file input on error
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  }, [
-    fileRef,
-    setImportErrorMessage,
-    setProcessingState,
-  ]);
+    },
+    [fileRef, setImportErrorMessage, setProcessingState],
+  );
 
   // Handle confirmation dialog - proceed with re-extraction
   const handleConfirmReExtraction = useCallback(async () => {
@@ -366,8 +365,8 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
       const extractedTables = convertParseResultToTables(extractedData, pendingReExtraction.schema);
 
       // Merge extracted data with existing fields, preserving user modifications like layout_description
-      const updatedFields = layoutFields.map(existingField => {
-        const extractedField = extractedFields.find(ef => ef.name === existingField.name);
+      const updatedFields = layoutFields.map((existingField) => {
+        const extractedField = extractedFields.find((ef) => ef.name === existingField.name);
         if (extractedField) {
           return {
             ...existingField,
@@ -381,21 +380,21 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
       });
 
       // Add any new fields that weren't in the original layout
-      const newFields = extractedFields.filter(
-        ef => !layoutFields.some(existing => existing.name === ef.name)
-      );
+      const newFields = extractedFields.filter((ef) => !layoutFields.some((existing) => existing.name === ef.name));
 
       // Merge extracted data with existing tables, preserving user modifications
-      const updatedTables = layoutTables.map(existingTable => {
-        const extractedTable = extractedTables.find(et => et.name === existingTable.name);
+      const updatedTables = layoutTables.map((existingTable) => {
+        const extractedTable = extractedTables.find((et) => et.name === existingTable.name);
         if (extractedTable) {
           // Merge column metadata, preserving layout_description from existing columns
           const mergedColumnsMeta = { ...extractedTable.columnsMeta };
-          Object.keys(mergedColumnsMeta).forEach(columnName => {
+          Object.keys(mergedColumnsMeta).forEach((columnName) => {
             if (existingTable.columnsMeta[columnName]) {
               mergedColumnsMeta[columnName] = {
                 ...mergedColumnsMeta[columnName],
-                layout_description: existingTable.columnsMeta[columnName].layout_description || mergedColumnsMeta[columnName].layout_description,
+                layout_description:
+                  existingTable.columnsMeta[columnName].layout_description ||
+                  mergedColumnsMeta[columnName].layout_description,
               };
             }
           });
@@ -412,9 +411,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
       });
 
       // Add any new tables that weren't in the original layout
-      const newTables = extractedTables.filter(
-        et => !layoutTables.some(existing => existing.name === et.name)
-      );
+      const newTables = extractedTables.filter((et) => !layoutTables.some((existing) => existing.name === et.name));
 
       // Update fields and tables with merged data
       setStoreLayoutFields([...updatedFields, ...newFields]);
@@ -503,13 +500,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
             To replace Extraction Spec, click &ldquo;Import Extraction Spec&rdquo; above.
           </Typography>
         </Box>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-        />
+        <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} style={{ display: 'none' }} />
       </Box>
     ),
     [importErrorMessage, handleImportExtractionSpec, handleFileChange, extractDocumentMutation],
@@ -523,7 +514,9 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         isReadOnly || isParseDocumentFlow
           ? undefined
           : { id: 'annotate', title: 'Annotate', sortable: false, className: '!text-left', width: 100 },
-        isReadOnly || isParseDocumentFlow ? undefined : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
+        isReadOnly || isParseDocumentFlow
+          ? undefined
+          : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
       ].filter((column) => column !== undefined),
     [isReadOnly, isParseDocumentFlow],
   );
@@ -536,7 +529,9 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         isReadOnly || isParseDocumentFlow
           ? undefined
           : { id: 'annotate', title: 'Annotate', sortable: false, className: '!text-left', width: 100 },
-        isReadOnly || isParseDocumentFlow ? undefined : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
+        isReadOnly || isParseDocumentFlow
+          ? undefined
+          : { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
       ].filter((column) => column !== undefined),
     [isReadOnly, isParseDocumentFlow],
   );
@@ -556,15 +551,8 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
 
   // Show loading state
   if (flowLoading || isProcessing || extractDocumentMutation.isPending) {
-    const loadingStep = extractDocumentMutation.isPending
-      ? 'Extracting data with custom schema...'
-      : processingStep;
-    return (
-      <ProcessingLoadingState
-        processingStep={loadingStep}
-        title={loadingStep || 'Processing document...'}
-      />
-    );
+    const loadingStep = extractDocumentMutation.isPending ? 'Extracting data with custom schema...' : processingStep;
+    return <ProcessingLoadingState processingStep={loadingStep} title={loadingStep || 'Processing document...'} />;
   }
 
   return (
@@ -614,7 +602,8 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
               selectable={!isReadOnly && !isParseDocumentFlow}
               selected={selectedFields}
               onSelect={(selectedFieldIds) => {
-                const fieldIds = typeof selectedFieldIds === 'function' ? selectedFieldIds(selectedFields) : selectedFieldIds;
+                const fieldIds =
+                  typeof selectedFieldIds === 'function' ? selectedFieldIds(selectedFields) : selectedFieldIds;
                 setSelectedFields(fieldIds);
               }}
               columns={fieldsColumns}
@@ -628,13 +617,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
 
             {!isParseDocumentFlow && (
               <Box marginTop="$8" display="flex" gap="$8">
-                <Button
-                  type="button"
-                  icon={IconPlus}
-                  onClick={handleAddField}
-                  round
-                  variant="primary"
-                >
+                <Button type="button" icon={IconPlus} onClick={handleAddField} round variant="primary">
                   Add Field
                 </Button>
               </Box>
@@ -783,9 +766,10 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
                     selectable={!isReadOnly && !isParseDocumentFlow}
                     selected={selectedTableColumns[table.name] || []}
                     onSelect={(selectedColumnNames) => {
-                      const columnNames = typeof selectedColumnNames === 'function'
-                        ? selectedColumnNames(selectedTableColumns[table.name] || [])
-                        : selectedColumnNames;
+                      const columnNames =
+                        typeof selectedColumnNames === 'function'
+                          ? selectedColumnNames(selectedTableColumns[table.name] || [])
+                          : selectedColumnNames;
                       setSelectedTableColumns({
                         ...selectedTableColumns,
                         [table.name]: columnNames,
@@ -802,13 +786,7 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
                   {/* Add Column Button */}
                   {!isParseDocumentFlow && (
                     <Box marginTop="$8" display="flex" gap="$8">
-                      <Button
-                        type="button"
-                        icon={IconPlus}
-                        variant="primary"
-                        round
-
-                      >
+                      <Button type="button" icon={IconPlus} variant="primary" round>
                         Add Column
                       </Button>
                     </Box>
@@ -845,14 +823,15 @@ export const StepDocumentLayout: FC<StepDocumentLayoutProps> = ({
         <Dialog.Header>
           <Dialog.Header.Title title="Confirm Re-Extraction" />
           <Dialog.Header.Description>
-            Re-extracting with a custom schema will overwrite the current displayed results.
-            Are you sure you want to proceed?
+            Re-extracting with a custom schema will overwrite the current displayed results. Are you sure you want to
+            proceed?
           </Dialog.Header.Description>
         </Dialog.Header>
         <Dialog.Content>
           <Box padding="$12">
             <Typography fontSize="$14" color="content.subtle">
-              This action will replace the currently displayed extraction results with new data extracted using your custom schema.
+              This action will replace the currently displayed extraction results with new data extracted using your
+              custom schema.
             </Typography>
           </Box>
         </Dialog.Content>

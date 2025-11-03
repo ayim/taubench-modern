@@ -25,14 +25,14 @@ const EMPTY_QUERY: Partial<QuerySettings> = {
 
 const normalizeStatusArray = (status: string | string[]): string[] => {
   const statusArray = Array.isArray(status) ? status : [status];
-  return statusArray.filter((s): s is string => 
-    typeof s === 'string' && WORK_ITEM_STATUS_VALUES.includes(s as WorkItemStatus)
+  return statusArray.filter(
+    (s): s is string => typeof s === 'string' && WORK_ITEM_STATUS_VALUES.includes(s as WorkItemStatus),
   );
 };
 
 const convertUrlToQuery = (
   urlParams: Record<string, unknown>,
-  agentsById: Map<string, string>
+  agentsById: Map<string, string>,
 ): Partial<QuerySettings> => {
   const filters: Record<string, string[]> = { status: [], agent_name: [] };
 
@@ -61,14 +61,12 @@ const convertUrlToQuery = (
 
 const convertQueryToUrl = (
   query: Partial<QuerySettings>,
-  agentsByName: Map<string, string>
+  agentsByName: Map<string, string>,
 ): Record<string, unknown> => {
   const urlParams: Record<string, unknown> = {};
 
   if (query.filters?.status?.length) {
-    urlParams.status = query.filters.status.length === 1 
-      ? query.filters.status[0] 
-      : query.filters.status;
+    urlParams.status = query.filters.status.length === 1 ? query.filters.status[0] : query.filters.status;
   }
 
   if (query.filters?.agent_name?.length) {
@@ -92,9 +90,9 @@ const convertQueryToUrl = (
 const hasAnyQueryParams = (query: Partial<QuerySettings>): boolean => {
   return Boolean(
     query.filters?.status?.length ||
-    query.filters?.agent_name?.length ||
-    query.search ||
-    (query.page && query.page > 0)
+      query.filters?.agent_name?.length ||
+      query.search ||
+      (query.page && query.page > 0),
   );
 };
 
@@ -105,7 +103,9 @@ export const usePersistedQuery = ({
 }: UsePersistedQueryParams): UsePersistedQueryResult => {
   const { sparAPIClient } = useContext(SparUIContext);
   const urlSearchParams = sparAPIClient.useSearchParamsFn();
-  const { storageValue: localStorageQuery, setStorageValue: setLocalStorageQuery } = useLocalStorage<Partial<QuerySettings>>({
+  const { storageValue: localStorageQuery, setStorageValue: setLocalStorageQuery } = useLocalStorage<
+    Partial<QuerySettings>
+  >({
     key: storageKey,
     defaultValue: EMPTY_QUERY,
   });
@@ -140,9 +140,7 @@ export const usePersistedQuery = ({
   const setQuery: Dispatch<SetStateAction<Partial<QuerySettings>>> = useCallback(
     (queryOrUpdater) => {
       setQueryState((previousQuery) => {
-        const newQuery = typeof queryOrUpdater === 'function' 
-          ? queryOrUpdater(previousQuery) 
-          : queryOrUpdater;
+        const newQuery = typeof queryOrUpdater === 'function' ? queryOrUpdater(previousQuery) : queryOrUpdater;
 
         const urlParams = convertQueryToUrl(newQuery, agentsByName);
         sparAPIClient.navigate({
@@ -155,7 +153,7 @@ export const usePersistedQuery = ({
         return newQuery;
       });
     },
-    [agentsByName, setLocalStorageQuery]
+    [agentsByName, setLocalStorageQuery],
   );
 
   return { query, setQuery };

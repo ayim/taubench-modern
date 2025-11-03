@@ -119,12 +119,7 @@ export const StepDataModel: FC<StepDataModelProps> = ({ isReadOnly = false, isPr
   );
 
   if (isProcessing) {
-    return (
-      <ProcessingLoadingState
-        processingStep={processingStep}
-        title="Creating Data Model"
-      />
-    );
+    return <ProcessingLoadingState processingStep={processingStep} title="Creating Data Model" />;
   }
 
   if (cachedFields.length === 0 && cachedTables.length === 0) {

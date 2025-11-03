@@ -28,15 +28,13 @@ const StyledTable = styled(Table)`
   }
 
   thead {
-    border-bottom: 1px solid #D1D5DB !important;
+    border-bottom: 1px solid #d1d5db !important;
   }
 ` as typeof Table;
-
 
 const StyledStepDataTable = styled(StyledTable)`
   overflow: hidden;
 ` as typeof Table;
-
 
 export interface StepDataTableProps<TData, TRowProps> {
   columns: Column[];
@@ -94,13 +92,5 @@ export const StepDataDisplayTable = <TData,>({
   layout = 'auto',
   rowCount = 'all',
 }: Omit<StepDataTableProps<TData, never>, 'selectable' | 'selected' | 'onSelect' | 'rowProps'>) => {
-  return (
-    <StyledStepDataTable
-      columns={columns}
-      data={data}
-      row={row}
-      layout={layout}
-      rowCount={rowCount}
-    />
-  );
+  return <StyledStepDataTable columns={columns} data={data} row={row} layout={layout} rowCount={rowCount} />;
 };

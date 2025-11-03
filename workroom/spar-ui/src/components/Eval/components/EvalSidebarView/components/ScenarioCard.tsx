@@ -51,29 +51,22 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
   onCancelTest,
   children,
 }) => {
-  const runStatus = isRunning ? 'EXECUTING' : (currentRun?.trials && getRunStatus(currentRun.trials));
+  const runStatus = isRunning ? 'EXECUTING' : currentRun?.trials && getRunStatus(currentRun.trials);
 
-  const renderStatusBadges = () => {    
+  const renderStatusBadges = () => {
     if (!currentRun) {
       return null;
     }
-    
+
     if (isRunning) {
-      return (
-        <Badge
-          icon={IconLoading}
-          iconColor="yellow80"
-          variant="yellow"
-          label="Running"
-        />
-      );
+      return <Badge icon={IconLoading} iconColor="yellow80" variant="yellow" label="Running" />;
     }
-    
+
     const hasCompletedTrials = hasTerminalTrials(currentRun.trials ?? []);
-    
+
     if (hasCompletedTrials) {
       const { passed, failed, canceled } = getPassFailCounts(currentRun.trials ?? []);
-      
+
       return (
         <Box display="flex" alignItems="center" gap="$4">
           <Badge
@@ -95,13 +88,7 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
             />
           )}
           {failed > 0 && (
-            <Badge
-              variant="red"
-              icon={IconStatusError}
-              iconColor="red80"
-              label={failed.toString()}
-              size="small"
-            />
+            <Badge variant="red" icon={IconStatusError} iconColor="red80" label={failed.toString()} size="small" />
           )}
           {canceled > 0 && (
             <Badge
@@ -115,31 +102,20 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
         </Box>
       );
     }
-    
+
     return null;
   };
 
   return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      gap="$8"
-      mt="$16"
-    >
+    <Box display="flex" flexDirection="column" gap="$8" mt="$16">
       <Box display="flex" flexDirection="column" gap="$8">
         <Box>
-          <Box 
-            display="flex" 
-            alignItems="center" 
-            gap="$8" 
-            flexDirection="row" 
-            justifyContent='space-between'
-          >
+          <Box display="flex" alignItems="center" gap="$8" flexDirection="row" justifyContent="space-between">
             <Box display="flex" alignItems="center" gap="$8">
               <IconChemicalBottle size={20} />
               <Typography variant="display-headline">{scenario.name}</Typography>
             </Box>
-            
+
             <Menu
               trigger={
                 <Button
@@ -148,54 +124,40 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
                   round
                   aria-label="Scenario actions"
                   disabled={isAnyTestRunning}
-                  size='small'
+                  size="small"
                 />
               }
             >
               {selectedTrials === 4 ? (
                 <Tooltip text='Run tests 1 time when clicking "Run Test"'>
-                  <Menu.Item
-                    onClick={() => onSetSelectedTrials(1)}
-                    icon={IconInformation}
-                  >
+                  <Menu.Item onClick={() => onSetSelectedTrials(1)} icon={IconInformation}>
                     Switch to 1x
                   </Menu.Item>
                 </Tooltip>
               ) : (
                 <Tooltip text='Run tests 4 times when clicking "Run Test"'>
-                  <Menu.Item
-                    onClick={() => onSetSelectedTrials(4)}
-                    icon={IconInformation}
-              >
-                Switch to 4x
+                  <Menu.Item onClick={() => onSetSelectedTrials(4)} icon={IconInformation}>
+                    Switch to 4x
+                  </Menu.Item>
+                </Tooltip>
+              )}
+              <Menu.Item icon={IconEdit} onClick={onEditScenario}>
+                Edit evaluation
               </Menu.Item>
-            </Tooltip>
-          )}
-          <Menu.Item icon={IconEdit} onClick={onEditScenario}>
-            Edit evaluation
-          </Menu.Item>
-          <Menu.Item 
-            icon={IconTrash} 
-            onClick={onDeleteScenario}
-          >
-            Delete
+              <Menu.Item icon={IconTrash} onClick={onDeleteScenario}>
+                Delete
               </Menu.Item>
             </Menu>
           </Box>
-          
+
           <Typography variant="body-small" mt="$8">
             {scenario.description}
           </Typography>
         </Box>
-        
+
         <Box width="100%" display="flex" alignItems="center" gap="$8">
           {isRunning ? (
-            <Button
-              variant="outline"
-              round
-              icon={IconCloseCircle}
-              onClick={onCancelTest}
-            >
+            <Button variant="outline" round icon={IconCloseCircle} onClick={onCancelTest}>
               Cancel
             </Button>
           ) : (
@@ -209,7 +171,7 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
               {selectedTrials === 1 ? 'Run Test' : `Run Test (${selectedTrials}x)`}
             </Button>
           )}
-          
+
           {runStatus && (
             <Box display="flex" alignItems="center" gap="$4">
               {renderStatusBadges()}

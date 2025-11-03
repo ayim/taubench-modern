@@ -6,5 +6,3 @@ export type WorkItemRowData = Pick<
 > & {
   agent_name: string | null | undefined;
 };
-
-

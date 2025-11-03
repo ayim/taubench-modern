@@ -11,7 +11,7 @@ interface DataModelFieldRowProps {
 
 export const DataModelFieldRowItem: FC<TableRowProps<LayoutFieldRow, DataModelFieldRowProps>> = ({
   rowData,
-  props
+  props,
 }) => {
   const { onFieldContextChange, onFieldTypeChange, onFieldRequiredChange, isReadOnly } = props;
 

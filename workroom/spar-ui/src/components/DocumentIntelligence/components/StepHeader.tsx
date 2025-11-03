@@ -1,7 +1,7 @@
-import { FC } from "react";
-import { Box, Steps } from "@sema4ai/components";
+import { FC } from 'react';
+import { Box, Steps } from '@sema4ai/components';
 import { IconNotebook, IconDatabase, IconPlay } from '@sema4ai/icons';
-import { StepType } from "../types";
+import { StepType } from '../types';
 
 export interface StepHeaderProps {
   currentStep: StepType;
@@ -13,10 +13,7 @@ export interface StepHeaderProps {
   }>;
 }
 
-export const StepHeader: FC<StepHeaderProps> = ({
-  currentStep,
-  availableSteps,
-}) => {
+export const StepHeader: FC<StepHeaderProps> = ({ currentStep, availableSteps }) => {
   const currentStepIndex = availableSteps.findIndex((step) => step.id === currentStep);
 
   return (

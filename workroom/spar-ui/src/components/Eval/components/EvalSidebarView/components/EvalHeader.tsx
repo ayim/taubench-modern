@@ -26,13 +26,7 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
   const evaluationActionsMenu = (
     <Menu
       trigger={
-        <Button
-          variant="outline"
-          round
-          size="small"
-          icon={IconDotsHorizontal}
-          aria-label="Evaluation actions"
-        />
+        <Button variant="outline" round size="small" icon={IconDotsHorizontal} aria-label="Evaluation actions" />
       }
     >
       <Menu.Item icon={IconUpload} onClick={onImportScenarios} disabled={isImporting}>
@@ -49,14 +43,12 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
       <Box display="flex" alignItems="center" gap="$8">
         <Typography variant="display-small">Evaluations</Typography>
         <Tooltip text="Evaluations are used to test the performance of your agent.">
-          <IconInformation size="48" color='content.subtle.light' />
+          <IconInformation size="48" color="content.subtle.light" />
         </Tooltip>
       </Box>
-      
-      <Typography variant="body-medium">
-        All evaluation runs will be shown here.
-      </Typography>
-      
+
+      <Typography variant="body-medium">All evaluation runs will be shown here.</Typography>
+
       <Box
         display="flex"
         justifyContent={hasMessages ? 'flex-start' : 'space-between'}
@@ -77,9 +69,7 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
               gap="$8"
             >
               <IconLightBulb size={24} />
-              <Typography variant="body-medium">
-                Talk to your agent to be able to add an evaluation.
-              </Typography>
+              <Typography variant="body-medium">Talk to your agent to be able to add an evaluation.</Typography>
             </Box>
 
             {evaluationActionsMenu}
@@ -106,7 +96,7 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
           </Box>
         )}
       </Box>
-      
+
       <Divider />
     </Box>
   );
