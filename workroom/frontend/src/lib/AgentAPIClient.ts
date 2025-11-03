@@ -90,10 +90,10 @@ export class AgentAPIClient {
   }
 
   private async getWorkroomToken({ tenantId }: { tenantId: string }) {
-    const tenants = await this.getTenants();
-    const hasTenantAccess = tenants.find((tenant) => tenant.id === tenantId);
+    const hasTenantAccess = await this.getTenant(tenantId);
 
     if (!hasTenantAccess) {
+      const tenants = await this.getTenants();
       throw new RequestError(404, 'Workspace not found', {
         type: 'tenants_selection',
         tenants: tenants.map((tenant) => {
