@@ -35,7 +35,9 @@ function View() {
   const { agentId, threadId, tenantId } = Route.useParams();
 
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-  const { data: threadResult } = useQuery(getThreadQueryOptions({ threadId, tenantId, agentAPIClient }));
+  const { data: threadResult, isLoading: isThreadLoading } = useQuery(
+    getThreadQueryOptions({ threadId, tenantId, agentAPIClient }),
+  );
 
   const { storageValue: threadsExpanded, setStorageValue: setThreadsExpanded } = useLocalStorage<boolean>({
     key: 'chat-conversational-threads-ui',
@@ -53,10 +55,10 @@ function View() {
   // Evaluation threads are identified by having a scenario_id in metadata
   const isEvaluationThread = Boolean(threadResult?.success && threadResult.data.metadata?.scenario_id);
   useEffect(() => {
-    if (!isEvaluationThread) {
+    if (!isThreadLoading && !isEvaluationThread) {
       setUserPreferenceId(getPreferenceKey({ agentId }), threadId);
     }
-  }, [isEvaluationThread, agentId, threadId]);
+  }, [isEvaluationThread, agentId, threadId, isThreadLoading]);
 
   if (agentMeta?.workroomUi && !agentMeta.workroomUi.conversations.enabled) {
     return (
