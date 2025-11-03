@@ -853,6 +853,51 @@
         }
       }
     },
+    "/agents/{agent_id}/user-interfaces": {
+      "get": {
+        "tags": ["agents"],
+        "summary": "Get Agent User Interfaces",
+        "description": "Get user interfaces associated with an agent.",
+        "operationId": "get_agent_user_interfaces_agents__agent_id__user_interfaces_get",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentUserInterface"
+                  },
+                  "title": "Response Get Agent User Interfaces Agents  Agent Id  User Interfaces Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/runs/{run_id}/messages": {
       "get": {
         "tags": ["runs"],
@@ -8718,6 +8763,12 @@
         "type": "object",
         "required": ["api_key", "api_url", "project_name"],
         "title": "AgentPackagePayloadLangsmith"
+      },
+      "AgentUserInterface": {
+        "type": "string",
+        "enum": ["di-parse-only", "di-create-data-model"],
+        "title": "AgentUserInterface",
+        "description": "Custom, user interfaces for agents."
       },
       "AgentWorkItemsSummaryResponse": {
         "properties": {

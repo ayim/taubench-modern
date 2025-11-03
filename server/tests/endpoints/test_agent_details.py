@@ -1,14 +1,16 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from fastapi import HTTPException
 
 from agent_platform.core.actions.action_package import ActionPackage, SecretString
-from agent_platform.core.agent import Agent, AgentArchitecture
+from agent_platform.core.agent import Agent, AgentArchitecture, AgentUserInterface
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.runbook import Runbook
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2.agents import (
     get_agent_details,
+    get_agent_user_interfaces,
 )
 
 
@@ -830,3 +832,55 @@ async def test_agent_details_multiple_packages_with_mixed_versions(mock_user, mo
 # Note: HTTP integration tests for _fetch_action_packages_data are complex to mock
 # due to async context managers. The core functionality is tested through the
 # endpoint tests above, which mock the _fetch_action_packages_data function directly.
+
+
+# ============================================================================
+# Tests for user interfaces endpoint
+# ============================================================================
+
+
+async def test_get_agent_user_interfaces_empty(mock_user, mock_storage):
+    """Test agent with no user interfaces returns empty list."""
+    agent = create_test_agent()
+    mock_storage.get_agent.return_value = agent
+
+    result = await get_agent_user_interfaces(
+        agent_id="test_agent", user=mock_user, storage=mock_storage
+    )
+
+    assert result == []
+
+
+async def test_get_agent_user_interfaces(mock_user, mock_storage):
+    """Test agent with valid user interface."""
+    agent = create_test_agent()
+    agent = agent.copy(
+        extra={
+            "agent_settings": {
+                "user_interfaces": [
+                    AgentUserInterface.DOCUMENT_INTELLIGENCE_PARSE_ONLY,
+                    "unknown-interface",
+                ]
+            }
+        }
+    )
+    mock_storage.get_agent.return_value = agent
+
+    result = await get_agent_user_interfaces(
+        agent_id="test_agent", user=mock_user, storage=mock_storage
+    )
+
+    assert len(result) == 1
+    assert result[0] == AgentUserInterface.DOCUMENT_INTELLIGENCE_PARSE_ONLY
+
+
+async def test_get_agent_user_interfaces_not_found(mock_user, mock_storage):
+    """Test 404 when agent not found."""
+    mock_storage.get_agent.return_value = None
+
+    with pytest.raises(HTTPException) as exc_info:
+        await get_agent_user_interfaces(
+            agent_id="nonexistent", user=mock_user, storage=mock_storage
+        )
+
+    assert exc_info.value.status_code == 404

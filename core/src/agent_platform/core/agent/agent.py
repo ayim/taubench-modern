@@ -1,8 +1,11 @@
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
+
+from structlog import get_logger
 
 from agent_platform.core.actions.action_package import ActionPackage
 from agent_platform.core.agent.agent_architecture import AgentArchitecture
@@ -15,6 +18,15 @@ from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils import assert_literal_value_valid
 from agent_platform.core.utils.dataclass_meta import TolerantDataclass
+
+logger = get_logger(__name__)
+
+
+class AgentUserInterface(StrEnum):
+    """Custom, user interfaces for agents."""
+
+    DOCUMENT_INTELLIGENCE_PARSE_ONLY = "di-parse-only"
+    DOCUMENT_INTELLIGENCE_CREATE_DATA_MODEL = "di-create-data-model"
 
 
 @dataclass(frozen=True)
@@ -246,6 +258,20 @@ class Agent(TolerantDataclass):
 
     def is_conversational_agent(self) -> bool:
         return self.mode == "conversational"
+
+    def get_user_interfaces(self) -> list[AgentUserInterface]:
+        """Returns any defined AgentUserInterfaces in this agent's extra.agent_settings."""
+        user_interfaces = self.extra.get("agent_settings", {}).get("user_interfaces", [])
+        if not user_interfaces:
+            return []
+        result = []
+        for ui in user_interfaces:
+            try:
+                result.append(AgentUserInterface(ui))
+            except ValueError:
+                # Skip unknown user interface values. Ignore ones we don't know.
+                logger.warning(f"Unknown AgentUserInterface value: {ui}")
+        return result
 
     @classmethod
     def model_validate(cls, data: dict) -> "Agent":

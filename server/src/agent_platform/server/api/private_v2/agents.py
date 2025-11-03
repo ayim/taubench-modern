@@ -12,6 +12,7 @@ from agent_platform.core.actions.action_package import (
     ActionPackageDetail,
     AgentDetails,
 )
+from agent_platform.core.agent import AgentUserInterface
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.errors.base import PlatformHTTPError
@@ -517,3 +518,18 @@ async def get_agent_semantic_data_models(
 
     # Return the semantic data models
     return await storage.get_agent_semantic_data_models(aid)
+
+
+@router.get("/{agent_id}/user-interfaces", response_model=list[AgentUserInterface])
+async def get_agent_user_interfaces(
+    agent_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[AgentUserInterface]:
+    """Get user interfaces associated with an agent."""
+    # Verify agent exists and belongs to user
+    agent = await storage.get_agent(user.user_id, agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    return agent.get_user_interfaces()

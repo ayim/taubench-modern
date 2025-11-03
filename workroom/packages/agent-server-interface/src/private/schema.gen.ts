@@ -260,6 +260,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/agents/{agent_id}/user-interfaces': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Agent User Interfaces
+     * @description Get user interfaces associated with an agent.
+     */
+    get: operations['get_agent_user_interfaces_agents__agent_id__user_interfaces_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/runs/{run_id}/messages': {
     parameters: {
       query?: never;
@@ -3059,6 +3079,12 @@ export interface components {
        */
       project_name: string;
     };
+    /**
+     * AgentUserInterface
+     * @description Custom, user interfaces for agents.
+     * @enum {string}
+     */
+    AgentUserInterface: 'di-parse-only' | 'di-create-data-model';
     /** AgentWorkItemsSummaryResponse */
     AgentWorkItemsSummaryResponse: {
       /** Agent Id */
@@ -11882,6 +11908,37 @@ export interface operations {
           'application/json': {
             [key: string]: unknown;
           }[];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_agent_user_interfaces_agents__agent_id__user_interfaces_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentUserInterface'][];
         };
       };
       /** @description Validation Error */

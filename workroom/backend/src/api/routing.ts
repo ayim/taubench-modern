@@ -107,6 +107,7 @@ function getRouteMap(): {
     'post /api/v2/config/': [ALLOWED, SIGN_WITH_USER, deploymentMonitoringReadPermissions],
 
     // @TODO: New endpoints, needs perms - needs PRODUCT decision
+    'get /api/v2/agents/{agent_id}/user-interfaces': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'delete /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'delete /api/v2/platforms/{platform_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/capabilities/platforms': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
