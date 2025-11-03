@@ -7,8 +7,8 @@
   "scripts": {
     "build": "vite build --mode production",
     "lint": "eslint --ext ts,tsx --report-unused-disable-directives",
-    "format": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" \"public/**/*.{ts,tsx,js,json,md,css}\" \"index.html\" --write",
-    "format:check": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" \"public/**/*.{ts,tsx,js,json,md,css}\" \"index.html\" --check",
+    "format:check": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" \"public/**/*.{ts,tsx,js,json,md,css}\" \"index.html\" --check --ignore-path ../../.prettierignore",
+    "format:fix": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" \"public/**/*.{ts,tsx,js,json,md,css}\" \"index.html\" --write --ignore-path ../../.prettierignore",
     "test": "npm run test:specs && npm run test:types",
     "test:specs": "vitest run",
     "test:types": "tsc --noEmit"

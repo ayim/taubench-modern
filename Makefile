@@ -162,7 +162,7 @@ run-as-studio:  ## Run the agent server as in Studio
 # --------------------------------------------------------------------
 
 # override with: make run-server-hot-reload DB=postgres
-DB ?= sqlite  
+DB ?= sqlite
 
 # DB-specific environment to prepend to the command
 ifeq ($(DB),postgres)
@@ -278,11 +278,11 @@ typecheck:  sync ## Run typechecking with pyright
 
 format:  sync ## Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
 	uv run ruff format
-	npx prettier@3.5.3 . --write
+	npx prettier@3.5.3 . --write --ignore-path .prettierignore.make --ignore-path .prettierignore --ignore-path .gitignore
 
 check-format:  sync ## Run formatting check with ruff
 	uv run ruff format --check
-	npx prettier@3.5.3 . --check
+	npx prettier@3.5.3 . --check --ignore-path .prettierignore.make --ignore-path .prettierignore --ignore-path .gitignore
 
 notebooks-check:  sync ## Check if notebooks have outputs that need stripping (dry-run)
 	@echo "Checking notebooks for outputs that need stripping..."
@@ -610,7 +610,7 @@ dev-docint-down:
 	echo "Removing sema4ai-docint from editable mode..."
 	uv remove --frozen sema4ai-docint
 	$(MAKE) sync
-	
+
 
 # --------------------------------------------------------------------
 # All

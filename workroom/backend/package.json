@@ -9,8 +9,8 @@
     "build": "node build.mjs",
     "dev": "dotenv -e ../.env tsx ./src/index.ts",
     "lint": "eslint . --ext ts --report-unused-disable-directives",
-    "format": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" --write",
-    "format:check": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" --check",
+    "format:check": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" --check --ignore-path ../../.prettierignore",
+    "format:fix": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" --write --ignore-path ../../.prettierignore",
     "test": "npm run test:specs && npm run test:types && npm run lint",
     "test:specs": "vitest run --test-timeout=10000",
     "test:types": "tsc --noEmit"

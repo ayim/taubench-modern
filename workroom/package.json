@@ -10,8 +10,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "format": "turbo run format",
     "format:check": "turbo run format:check",
+    "format:fix": "turbo run format:fix",
     "sync:agent-server-interface": "bash ../scripts/sync-agent-server-interface.sh"
   },
   "workspaces": [

@@ -12,9 +12,17 @@ server/go-wrapper/agent-server
 agent-spec/validation/_go_validation_tests/test_go_validation/**
 agent-spec/validation/_spec_validation_tests/test_spec*/**
 packages/golang-agent-cli/tests
-workroom/**
 compose.yml
 compose.*.yml
 Dockerfile.spar
 server/tests/**/*.yml
 core/tests/**/*.yml
+
+# Workroom specific (ignore files are not searched for like config files are -
+#   thus only the root .prettierignore file is needed)
+workroom/**/package.json
+workroom/**/package-lock.json
+workroom/**/routeTree.gen.ts
+workroom/**/node_modules/
+workroom/**/dist/
+workroom/**/build/

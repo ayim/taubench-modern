@@ -16,8 +16,8 @@
     "test": {
       "dependsOn": ["^build"]
     },
-    "format": {},
     "format:check": {},
+    "format:fix": {},
     "@sema4ai/workroom-frontend#test": {},
     "@sema4ai/workroom-backend#test": {
       "dependsOn": ["@sema4ai/workroom-frontend#build"]
