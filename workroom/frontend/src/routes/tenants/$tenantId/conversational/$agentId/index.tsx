@@ -3,13 +3,13 @@ import { NEW_CHAT_STARTING_MSG, streamManager } from '@sema4ai/spar-ui';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { AgentNotFound } from '~/components/AgentNotFound';
+import { getAgentQueryOptions } from '~/queries/agents';
+import { getThreadQueryOptions, listThreadsQueryOptions } from '~/queries/thread';
 import { getPreferenceKey, getUserPreferenceId, isWorkerAgent, removeUserPreferenceId } from '~/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId }, location }) => {
-    const agentResult = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/agents/{aid}', {
-      params: { path: { aid: agentId } },
-    });
+    const agentResult = await queryClient.fetchQuery(getAgentQueryOptions({ tenantId, agentId, agentAPIClient }));
 
     if (!agentResult.success) {
       throw redirect({
@@ -27,10 +27,9 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       });
     }
 
-    const threadsResult = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/', {
-      params: { query: { aid: agentId, limit: 100 } },
-    });
-
+    const threadsResult = await queryClient.fetchQuery(
+      listThreadsQueryOptions({ tenantId, agentId, params: { limit: 100 }, agentAPIClient }),
+    );
     if (!threadsResult.success) {
       throw redirect({
         to: '/tenants/$tenantId/conversational/$agentId',
@@ -99,9 +98,9 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     const preferedThreadId = getUserPreferenceId(getPreferenceKey({ agentId }));
 
     if (preferedThreadId) {
-      const thread = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/threads/{tid}', {
-        params: { path: { tid: preferedThreadId } },
-      });
+      const thread = await queryClient.fetchQuery(
+        getThreadQueryOptions({ threadId: preferedThreadId, tenantId, agentAPIClient }),
+      );
 
       if (thread.success) {
         // Check if this is an evaluation thread (has scenario_id in metadata)

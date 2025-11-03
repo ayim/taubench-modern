@@ -3,6 +3,7 @@ import { QueryProps } from './shared';
 import { AgentAPIClient } from '~/lib/AgentAPIClient';
 
 export const getAgentMetaQueryKey = (agentId: string) => [agentId, 'meta'];
+const getAgentQueryKey = (agentId: string) => ['agent', agentId];
 
 export const getAgentMetaQueryOptions = ({
   agentId,
@@ -20,4 +21,22 @@ export const getAgentMetaQueryOptions = ({
       return agentAPIClient.getAgentMeta({ tenantId, agentId });
     },
     initialData,
+  });
+
+export const getAgentQueryOptions = ({
+  agentId,
+  tenantId,
+  agentAPIClient,
+}: QueryProps<{
+  tenantId: string;
+  agentId: string;
+}>) =>
+  queryOptions({
+    queryKey: getAgentQueryKey(agentId),
+    queryFn: () => {
+      return agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/agents/{aid}', {
+        params: { path: { aid: agentId } },
+        errorMsg: 'Agent Not Found',
+      });
+    },
   });

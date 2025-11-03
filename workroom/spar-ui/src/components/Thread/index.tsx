@@ -10,10 +10,9 @@ export const Thread: FC = () => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
 
   const { ...agentQueryState } = useAgentQuery({ agentId });
-  const { data: thread, ...threadQueryState } = useThreadQuery({ threadId });
+  const { data: thread } = useThreadQuery({ threadId });
 
-  const queryDataGuard = useQueryDataGuard([agentQueryState, threadQueryState]);
-
+  const queryDataGuard = useQueryDataGuard([agentQueryState]);
   if (queryDataGuard) {
     return queryDataGuard;
   }
