@@ -35,6 +35,7 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
     storageKey: createWorkItemsStorageKey(storageKeyPrefix, 'QUERY_SETTINGS'),
     agentsById,
     agentsByName,
+    pathToNavigateTo: '/workItems/list',
   });
 
   const pageSize = query.size ?? 50;

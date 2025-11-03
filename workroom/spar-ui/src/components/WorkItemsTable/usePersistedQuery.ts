@@ -4,11 +4,13 @@ import { QuerySettings } from '@sema4ai/layouts';
 import { SparUIContext } from '../../api/context';
 import { WorkItemStatus } from '../../queries';
 import { WORK_ITEM_STATUS_VALUES } from '../../constants/workItemStatus';
+import { SparUIRoutes } from '../../api/routes';
 
 type UsePersistedQueryParams = {
   storageKey: string;
   agentsById: Map<string, string>;
   agentsByName: Map<string, string>;
+  pathToNavigateTo: keyof Pick<SparUIRoutes, '/workItems/list'>;
 };
 
 type UsePersistedQueryResult = {
@@ -100,6 +102,7 @@ export const usePersistedQuery = ({
   storageKey,
   agentsById,
   agentsByName,
+  pathToNavigateTo,
 }: UsePersistedQueryParams): UsePersistedQueryResult => {
   const { sparAPIClient } = useContext(SparUIContext);
   const urlSearchParams = sparAPIClient.useSearchParamsFn();
@@ -130,12 +133,21 @@ export const usePersistedQuery = ({
     if (hasAnyQueryParams(localStorageQuery ?? {})) {
       const urlParams = convertQueryToUrl(localStorageQuery ?? {}, agentsByName);
       sparAPIClient.navigate({
-        to: '/workItems',
+        to: pathToNavigateTo,
         params: {},
         search: urlParams,
       });
     }
-  }, [agentsById.size, agentsById, agentsByName, localStorageQuery, setLocalStorageQuery, urlSearchParams]);
+  }, [
+    agentsById.size,
+    agentsById,
+    agentsByName,
+    localStorageQuery,
+    setLocalStorageQuery,
+    urlSearchParams,
+    pathToNavigateTo,
+    sparAPIClient,
+  ]);
 
   const setQuery: Dispatch<SetStateAction<Partial<QuerySettings>>> = useCallback(
     (queryOrUpdater) => {
@@ -144,7 +156,7 @@ export const usePersistedQuery = ({
 
         const urlParams = convertQueryToUrl(newQuery, agentsByName);
         sparAPIClient.navigate({
-          to: '/workItems',
+          to: pathToNavigateTo,
           params: {},
           search: urlParams,
         });
@@ -153,7 +165,7 @@ export const usePersistedQuery = ({
         return newQuery;
       });
     },
-    [agentsByName, setLocalStorageQuery],
+    [agentsByName, setLocalStorageQuery, pathToNavigateTo, sparAPIClient],
   );
 
   return { query, setQuery };

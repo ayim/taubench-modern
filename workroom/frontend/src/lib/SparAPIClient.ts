@@ -15,7 +15,7 @@ const routesMapping = {
   '/workItem/$agentId/create': '/tenants/$tenantId/worker/$agentId/create',
   '/workItem/$agentId/$workItemId/$threadId': '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId',
   '/workItem/$agentId/$workItemId': '/tenants/$tenantId/worker/$agentId/$workItemId',
-  '/workItems': '/tenants/$tenantId/workItems',
+  '/workItems/list': '/tenants/$tenantId/workItems/list',
   '/data-connections': '/tenants/$tenantId/data-access/data-connections',
   '/data-connections/create': '/tenants/$tenantId/data-access/data-connections/create',
   '/data-connections/$dataConnectionId': '/tenants/$tenantId/data-access/data-connections/$dataConnectionId',

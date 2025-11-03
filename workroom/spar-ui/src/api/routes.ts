@@ -31,7 +31,7 @@ export type SparUIRoutes = {
     agentId: string;
     workItemId: string;
   };
-  '/workItems': {};
+  '/workItems/list': {};
   '/data-connections': {};
   '/data-connections/create': {};
   '/data-connections/$dataConnectionId': {

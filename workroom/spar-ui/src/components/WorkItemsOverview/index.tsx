@@ -30,9 +30,9 @@ const WorkItemsOverviewRow: FC<TableRowProps<WorkItemsOverviewRowData>> = ({ row
     (status: WorkItemStatus) => {
       const { agent_id } = rowData;
       sparAPIClient.navigate({
-        to: '/workItems',
+        to: '/workItems/list',
         params: {},
-        search: { tab: 'all', agent: agent_id, status },
+        search: { agent: agent_id, status },
       });
     },
     [sparAPIClient, rowData],
