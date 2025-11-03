@@ -1,14 +1,15 @@
 import { components } from '@sema4ai/agent-server-interface';
-import { Box, Tooltip, Typography } from '@sema4ai/components';
-import { IconLoading } from '@sema4ai/icons';
+import { Box, Button, Menu, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
+import { IconDotsHorizontal, IconLoading } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
-import { FC, useEffect, useMemo } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 
 import { useSparUIContext } from '../../../api/context';
+import { RenameDialog } from '../../../common/dialogs/RenameDialog';
 import { formatDateTime } from '../../../common/helpers';
 import { SidebarLink } from '../../../common/link';
 import { useParams } from '../../../hooks';
-import { useWorkItemQuery } from '../../../queries/workItems';
+import { useUpdateWorkItemMutation, useWorkItemQuery } from '../../../queries/workItems';
 import { WORK_ITEM_STATUS_CONFIG } from '../../../constants/workItemStatus';
 
 type WorkItem = components['schemas']['WorkItem'];
@@ -25,6 +26,29 @@ const Container = styled(Box)`
     flex: 1;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  > button {
+    display: none;
+  }
+
+  &:hover > a {
+    color: ${({ theme }) => theme.colors.content.primary.color};
+  }
+
+  &:has([aria-expanded='true']) {
+    > button {
+      display: block;
+    }
+    > a {
+      color: ${({ theme }) => theme.colors.content.primary.color};
+    }
+  }
+
+  &:hover {
+    > button {
+      display: block;
+    }
   }
 `;
 
@@ -107,6 +131,9 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
     },
   );
   const { sparAPIClient } = useSparUIContext();
+  const { mutate: updateWorkItem } = useUpdateWorkItemMutation({ agentId });
+  const { addSnackbar } = useSnackbar();
+  const [isRenaming, setIsRenaming] = useState(false);
 
   const threadId = workItem?.thread_id;
   const displayName = workItem?.work_item_name || workItem?.work_item_id || '';
@@ -126,6 +153,26 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
     }
   }, [threadIdFromParams, workItemIdFromParams, threadId, agentId, workItem?.work_item_id]);
 
+  const onWorkItemRename = (workItemName: string) => {
+    updateWorkItem(
+      { workItemId: workItem?.work_item_id || '', workItemName },
+      {
+        onSuccess: () => {
+          addSnackbar({
+            message: 'Work item renamed successfully',
+            variant: 'success',
+          });
+        },
+        onError: () => {
+          addSnackbar({
+            message: 'Failed to rename work item',
+            variant: 'danger',
+          });
+        },
+      },
+    );
+  };
+
   const iconForStatus = useMemo(() => {
     if (!workItem) {
       return null;
@@ -143,7 +190,6 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
         display="flex"
         justifyContent="space-between"
         gap="$8"
-        pl="$8"
         alignItems="center"
         color="content.subtle.light"
         height={36}
@@ -171,7 +217,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
       placement="bottom-end"
       $nowrap
     >
-      <Container display="flex" justifyContent="space-between" pl="$8" alignItems="center">
+      <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center">
         {iconForStatus}
         <Box flex={1}>
           <Typography $nowrap truncate={1}>
@@ -183,6 +229,22 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
             </SidebarLink>
           </Typography>
         </Box>
+
+        <Menu
+          trigger={
+            <Button variant="ghost-subtle" size="small" icon={IconDotsHorizontal} aria-label="Work item actions" />
+          }
+        >
+          <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
+        </Menu>
+        {isRenaming && (
+          <RenameDialog
+            onClose={() => setIsRenaming(false)}
+            onRename={onWorkItemRename}
+            entityName={displayName}
+            entityType="Work Item"
+          />
+        )}
       </Container>
     </Tooltip>
   );

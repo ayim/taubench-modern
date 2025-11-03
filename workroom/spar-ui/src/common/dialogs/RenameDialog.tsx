@@ -1,5 +1,14 @@
-import { FC, FormEvent, useState } from 'react';
+import { FC } from 'react';
 import { Button, Dialog, Form, Input, Box } from '@sema4ai/components';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const renameFormSchema = z.object({
+  name: z.string().trim().min(1, 'Name cannot be empty'),
+});
+
+type RenameFormData = z.infer<typeof renameFormSchema>;
 
 type Props = {
   onClose: () => void;
@@ -20,26 +29,31 @@ export const RenameDialog: FC<Props> = ({
   entityType,
   multiLine = false,
 }) => {
-  const [name, setName] = useState(entityName);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<RenameFormData>({
+    resolver: zodResolver(renameFormSchema),
+    defaultValues: {
+      name: entityName,
+    },
+    mode: 'onChange',
+  });
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const { ref, ...registerProps } = register('name');
 
-    const newName = name.trim();
+  const onSubmit = handleSubmit((data) => {
+    const newName = data.name.trim();
 
     if (entityName === newName) {
       onClose();
       return;
     }
 
-    if (newName.length === 0) {
-      return;
-    }
-
     onClose();
     onRename(newName);
-  };
+  });
 
   return (
     <Dialog onClose={onClose} width={multiLine ? 720 : undefined} open>
@@ -47,7 +61,7 @@ export const RenameDialog: FC<Props> = ({
         <Dialog.Header>
           <Dialog.Header.Title title={`${actionType} ${entityType}`} />
           <Dialog.Header.Description>
-            {actionDescription || `Give your ${entityType} and clear name.`}
+            {actionDescription || `Give your ${entityType} a clear name.`}
           </Dialog.Header.Description>
         </Dialog.Header>
         <Dialog.Content>
@@ -56,13 +70,19 @@ export const RenameDialog: FC<Props> = ({
               rows={multiLine ? 8 : undefined}
               autoFocus
               aria-label={`${entityType} name`}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              error={errors.name?.message}
+              {...registerProps}
+              ref={(element) => {
+                ref(element);
+                if (element) {
+                  requestAnimationFrame(() => element.select());
+                }
+              }}
             />
           </Box>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button variant="primary" type="submit" round>
+          <Button variant="primary" type="submit" disabled={!isValid} round>
             {actionType}
           </Button>
           <Button variant="secondary" onClick={onClose} round>

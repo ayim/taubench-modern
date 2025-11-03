@@ -276,6 +276,55 @@ export const useCreateWorkItemMutation = createSparMutation<
 }));
 
 /**
+ * Update Work Item
+ */
+export const useUpdateWorkItemMutation = createSparMutation<
+  { agentId: string },
+  { workItemId: string; workItemName: string }
+>()(({ sparAPIClient, queryClient, agentId }) => ({
+  mutationFn: async ({ workItemId, workItemName }) => {
+    const response = await sparAPIClient.queryAgentServer('patch', '/api/v2/work-items/{work_item_id}', {
+      params: { path: { work_item_id: workItemId } },
+      body: { work_item_name: workItemName },
+    });
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to update work item', {
+        code: response.code,
+        resource: ResourceType.WorkItem,
+      });
+    }
+
+    return response.data;
+  },
+  onSuccess: (updatedWorkItem, { workItemId }) => {
+    queryClient.setQueryData(workItemQueryKey(workItemId), updatedWorkItem);
+
+    queryClient.setQueriesData<InfiniteData<WorkItemsListResponse>>(
+      {
+        queryKey: infiniteWorkItemsQueryKeyPrefix({ agentId }),
+        exact: false,
+      },
+      (oldData) => {
+        if (!oldData) {
+          return oldData;
+        }
+
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            records: page.records?.map((workItem) =>
+              workItem.work_item_id === workItemId ? updatedWorkItem : workItem,
+            ),
+          })),
+        };
+      },
+    );
+  },
+}));
+
+/**
  * Restart Work Item
  */
 export const useRestartWorkItemMutation = createSparMutation<{ workItemId: string }, Record<string, never>>()(
