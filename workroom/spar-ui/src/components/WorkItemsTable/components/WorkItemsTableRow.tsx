@@ -127,6 +127,7 @@ export const WorkItemsTableRow: FC<TableRowProps<WorkItemRowData>> = ({ rowData 
     navigate({
       to: '/workItem/$agentId/$workItemId',
       params: { workItemId: work_item_id, agentId: agent_id },
+      search: { from: 'workItemsListView' },
     });
   }, [rowData, navigate]);
 

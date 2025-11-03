@@ -2,7 +2,7 @@ import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
 import { IconArrowLeft, IconDotsHorizontal, IconInformation, IconPaperclip, IconPoll } from '@sema4ai/icons';
 import { WorkerHeader } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
-import { useParams, useRouter } from '@tanstack/react-router';
+import { useParams, useRouter, useSearch } from '@tanstack/react-router';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';
 import { useToggleRoutePath } from '~/hooks/useToggleRoutePath';
@@ -12,13 +12,14 @@ export const Header = () => {
   const { agentId, tenantId } = useParams({ from: '/tenants/$tenantId/worker/$agentId' });
   const { workItemId, threadId } = useParams({ strict: false });
   const router = useRouter();
+  const searchParams = useSearch({ strict: false });
 
   const { features } = useTenantContext();
   const isMobile = useScreenSize('m');
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
 
-  const hasHistory = router.history.length > 1;
+  const isUserComingFromWorkItemsListView = searchParams.from === 'workItemsListView';
 
   const handleBack = () => {
     router.history.back();
@@ -38,7 +39,7 @@ export const Header = () => {
   return (
     <WorkerHeader
       leftAction={
-        !isMobile && hasHistory ? (
+        !isMobile && isUserComingFromWorkItemsListView ? (
           <Tooltip text="Back" placement="bottom">
             <Button icon={IconArrowLeft} variant="ghost-subtle" round onClick={handleBack} aria-label="Back" />
           </Tooltip>
@@ -97,7 +98,7 @@ export const Header = () => {
       {isMobile && (
         <>
           <Menu trigger={<Button icon={IconDotsHorizontal} variant="ghost" aria-label="Chat Actions" />}>
-            {hasHistory && (
+            {isUserComingFromWorkItemsListView && (
               <Menu.Item icon={IconArrowLeft} onClick={handleBack}>
                 Back
               </Menu.Item>

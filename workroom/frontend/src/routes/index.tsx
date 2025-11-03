@@ -4,8 +4,16 @@ import { useAuth } from '@sema4ai/robocloud-ui-utils';
 
 import { listUserTenantsQueryOptions } from '~/queries/tenants';
 import errorIllustration from '~/assets/error.svg';
+import { z } from 'zod';
+
+const globalSearchParams = z.object({
+  from: z.enum(['workItemsListView']).optional(),
+});
 
 export const Route = createFileRoute('/')({
+  validateSearch: (search: Record<string, unknown>) => {
+    return globalSearchParams.parse(search);
+  },
   component: View,
   loader: async ({ context: { agentAPIClient, queryClient } }) => {
     const tenants = await queryClient.ensureQueryData(

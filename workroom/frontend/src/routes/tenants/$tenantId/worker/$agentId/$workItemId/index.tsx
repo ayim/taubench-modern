@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/$workItemId/')({
-  loader: async ({ context: { agentAPIClient }, params: { agentId, tenantId, workItemId } }) => {
+  loader: async ({ context: { agentAPIClient }, params: { agentId, tenantId, workItemId }, location }) => {
     /**
      * If workItem has threadId, redirecting to it
      */
@@ -31,6 +31,7 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/$workIt
           threadId,
           workItemId,
         },
+        search: location.search,
       });
     }
   },

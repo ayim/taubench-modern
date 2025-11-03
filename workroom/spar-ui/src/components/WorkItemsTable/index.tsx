@@ -1,4 +1,4 @@
-import { Box, Button, useSnackbar } from '@sema4ai/components';
+import { Box, Button, useDebounce, useSnackbar } from '@sema4ai/components';
 import { IconRefresh } from '@sema4ai/icons';
 import { TableWithFilter } from '@sema4ai/layouts';
 import { FC, useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -39,6 +39,8 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
 
   const pageSize = query.size ?? 50;
 
+  const debouncedSearch = useDebounce(query.search, 250);
+
   useEffect(() => {
     setSelectedItems([]);
   }, [query.filters, query.search, query.page, query.size]);
@@ -49,7 +51,7 @@ export const WorkItemsTable: FC<Props> = ({ onDownloadJSON }) => {
   const { data: workItemsResponse, refetch: refetchWorkItems } = useWorkItemsQuery({
     agentId: selectedAgentId,
     workItemStatus: selectedStatuses,
-    nameSearch: query.search || undefined,
+    nameSearch: debouncedSearch || undefined,
     limit: pageSize,
     offset: (query.page || 0) * pageSize,
   });
