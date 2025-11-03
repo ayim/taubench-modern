@@ -167,11 +167,17 @@ export class AgentAPIClient {
     const response = await fetch(workroomTenantListUrl, {
       method: 'GET',
       headers: { authorization: `Bearer ${userToken}` },
-    }).then((res) => res.json());
+    });
 
-    this.tenants = response.data;
+    if (!response.ok) {
+      throw new RequestError(response.status, 'Authorization failed');
+    }
 
-    return response.data;
+    const tenantsList = ((await response.json()) as { data: UserTenant[] }).data;
+
+    this.tenants = tenantsList;
+
+    return tenantsList;
   }
 
   public async getAgentMeta({
