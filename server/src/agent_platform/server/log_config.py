@@ -199,9 +199,31 @@ def setup_logging(default_mode: bool = False, log_level: str | None = None):
             structlog.processors.StackInfoRenderer(),
             structlog.processors.UnicodeDecoder(),
             _platform_error_processor,
-            structlog.stdlib.render_to_log_kwargs,
+            _multiline_variables_renderer,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
+
+
+def _multiline_variables_renderer(_, __, event_dict):
+    # Note: based on structlog.stdlib.render_to_log_kwargs, but actually
+    # shows variables in the msg.
+    msg = event_dict.pop("event", "")
+    color_message = event_dict.pop("color_message", "")
+
+    additional = {
+        kw: event_dict.pop(kw)
+        for kw in ("exc_info", "stack_info", "stacklevel")
+        if kw in event_dict
+    }
+
+    msg = msg or color_message
+    if event_dict:
+        details = "\n".join(f"    {key}: {value}" for key, value in event_dict.items())
+        new_msg = f"{msg}\n{details}"
+    else:
+        new_msg = msg
+
+    return {"msg": new_msg, **additional}
