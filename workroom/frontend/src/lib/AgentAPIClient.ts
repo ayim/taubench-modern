@@ -90,6 +90,23 @@ export class AgentAPIClient {
   }
 
   private async getWorkroomToken({ tenantId }: { tenantId: string }) {
+    const tenants = await this.getTenants();
+    const hasTenantAccess = tenants.find((tenant) => tenant.id === tenantId);
+
+    if (!hasTenantAccess) {
+      throw new RequestError(404, 'Workspace not found', {
+        type: 'tenants_selection',
+        tenants: tenants.map((tenant) => {
+          const tenantWorkroomURL = tenant.environment.tenant_workroom_url ?? `${tenant.environment.url}/${tenant.id}`;
+
+          return {
+            name: tenant.name,
+            url: tenantWorkroomURL,
+          };
+        }),
+      });
+    }
+
     if (this.workroomToken) {
       const isTokenStillValid = new Date(this.workroomToken.expiresAt).valueOf() - new Date().valueOf() > 60000;
       if (isTokenStillValid) {
@@ -101,7 +118,7 @@ export class AgentAPIClient {
 
     if (metaContent.deploymentType !== undefined) {
       metaContent.deploymentType satisfies 'spar';
-      return metaContent.deploymentType === 'spar' ? `TO_BE_DEFINED` : 'SPCS_AUTH_VIA_COOKIES';
+      return '_';
     }
 
     const userToken = await this.getUserToken();
