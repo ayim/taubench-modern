@@ -6,7 +6,19 @@ start_time = time.monotonic()
 import sys
 import agent_platform.server
 
+RUN_AS_STUDIO = False
+
 if __name__ == "__main__":
+    if RUN_AS_STUDIO:
+        sys.argv = [
+            "",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "58885",
+            "--use-data-dir-lock",
+            "--kill-lock-holder",
+        ]
     try:
         agent_platform.server.main(run_server=not DEBUG_STARTUP)
     finally:

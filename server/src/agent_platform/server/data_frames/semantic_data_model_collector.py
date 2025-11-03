@@ -282,8 +282,11 @@ class SemanticDataModelCollector:
         for attr in ["dimensions", "facts", "time_dimensions", "metrics"]:
             columns_info = logical_table.get(attr) or []
             for column_info in columns_info:
-                if isinstance(column_info, dict) and "name" in column_info:
+                if isinstance(column_info, dict) and "expr" in column_info:
                     columns.add(column_info["expr"].lower())
+                elif isinstance(column_info, dict) and "name" in column_info:
+                    # Fallback to name if expr is not present
+                    columns.add(column_info["name"].lower())
         return columns
 
     async def collect_semantic_data_models(

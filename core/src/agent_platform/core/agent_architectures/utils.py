@@ -2,9 +2,13 @@ from asyncio import iscoroutinefunction
 from dataclasses import is_dataclass
 from inspect import signature
 
+import structlog
+
 from agent_platform.core.agent_architectures.fields import get_fields_by_scope
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.storage import ScopedStorage
+
+logger: structlog.BoundLogger = structlog.get_logger(__name__)
 
 
 def validate_2param_async(func, param_names=("kernel", "state")):
@@ -103,6 +107,8 @@ async def restore_state_fields(
 
     If a given field does not already exist in storage, creates it.
     """
+    from agent_platform.server.storage.errors import ScopedStorageNotFoundError
+
     new_scoped_storage_ids = []
     for scope in scopes:
         for field in get_fields_by_scope(state, scope):
@@ -118,7 +124,10 @@ async def restore_state_fields(
                     scoped_storage.storage_id,
                 )
                 setattr(state, field, rehydrated.storage)
-            except Exception:
+            except (Exception, ScopedStorageNotFoundError) as e:
+                if not isinstance(e, ScopedStorageNotFoundError):
+                    # If not found something bad may have happened (anyways, log and continue)
+                    logger.error(f"Error restoring state field {field}: {e}", exc_info=True)
                 scoped_storage.storage = getattr(state, field)
                 await kernel.storage.create_scoped_storage(scoped_storage)
                 new_scoped_storage_ids.append(scoped_storage.storage_id)

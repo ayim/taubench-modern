@@ -162,3 +162,69 @@ async def test_semantic_data_model_collector(sqlite_storage: "SQLiteStorage", tm
     collected = await collector.collect_semantic_data_models(storage=sqlite_storage)
     assert len(collected) == 0, "Should not collect semantic data model without matching file"
     assert not cache_hits, "No cache hits should be registered"
+
+
+async def test_semantic_data_model_collector_with_state_dict_access(
+    sqlite_storage: "SQLiteStorage", tmpdir: Path
+):
+    """
+    Regression test for bug where empty_file_cache_key_to_matching_info was a FieldInfo
+    descriptor instead of a dict, causing AttributeError when calling .get().
+
+    This test ensures that the state's empty_file_cache_key_to_matching_info field
+    is a proper dict that supports .get() method calls.
+    """
+    from agent_platform.core.user import User
+    from agent_platform.server.auth.handlers import AuthedUser
+    from agent_platform.server.data_frames.semantic_data_model_collector import (
+        SemanticDataModelCollector,
+    )
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await model_creator.setup()
+    user_id = await model_creator.get_user_id()
+    agent = await model_creator.obtain_sample_agent()
+    thread = await model_creator.obtain_sample_thread()
+
+    # Save semantic data model with unresolved file reference
+    semantic_data_model_id = await sqlite_storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=SEMANTIC_DATA_MODEL_WITH_UNRESOLVED_FILE_REFERENCE,
+        data_connection_ids=[],
+        file_references=[],
+    )
+
+    await sqlite_storage.set_thread_semantic_data_models(
+        thread_id=thread.thread_id,
+        semantic_data_model_ids=[semantic_data_model_id],
+    )
+
+    from agent_platform.architectures.experimental.exp_1 import Exp1State
+
+    state = Exp1State()
+
+    # Critical assertion: verify state field is a dict with .get() method
+    assert isinstance(state.empty_file_cache_key_to_matching_info, dict), (
+        "empty_file_cache_key_to_matching_info must be a dict, not a FieldInfo descriptor"
+    )
+    assert hasattr(state.empty_file_cache_key_to_matching_info, "get"), (
+        "empty_file_cache_key_to_matching_info must have .get() method"
+    )
+
+    collector = SemanticDataModelCollector(
+        agent_id=agent.agent_id,
+        thread_id=thread.thread_id,
+        user=typing.cast(AuthedUser, User(user_id=user_id, sub="")),
+        state=state,
+    )
+
+    # This would previously fail with AttributeError: 'FieldInfo' object has no attribute 'get'
+    # if the field was defined using field(default_factory=dict) without @dataclass
+    collected = await collector.collect_semantic_data_models(storage=sqlite_storage)
+
+    # Should return empty list since no matching file exists
+    assert len(collected) == 0, "Should not collect semantic data model without matching file"
+
+    # Verify the cache dict is still accessible and empty
+    assert state.empty_file_cache_key_to_matching_info == {}, "Cache should remain empty dict"

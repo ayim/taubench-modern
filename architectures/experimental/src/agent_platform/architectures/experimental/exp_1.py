@@ -59,6 +59,7 @@ STREAM_BACKOFF_SECONDS = (0.6, 1.5, 3.0)  # simple backoff per attempt
 # ---- State --------------------------------------------------------------------
 
 
+@dataclass
 class Exp1State(aa.StateBase):
     """
     State for Experimental Architecture 1.
@@ -67,26 +68,28 @@ class Exp1State(aa.StateBase):
     and for execution bookkeeping (iteration counts, retries).
     """
 
-    current_iteration: int
-    processing_start_time: str
-    no_toolcall_retry_count: int
-    no_final_reply_retry_count: int
-    controller_feedback: str
-    configuration_issues: list[str]
-    step: Literal["initial", "processing", "done"]
-    processing_elapsed_time: str
-    recently_called_tools: list[ToolExecutionResult]
+    current_iteration: int = 0
+    processing_start_time: str = field(
+        default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds")
+    )
+    no_toolcall_retry_count: int = 0
+    no_final_reply_retry_count: int = 0
+    controller_feedback: str = ""
+    configuration_issues: list[str] = field(default_factory=list)
+    step: Literal["initial", "processing", "done"] = "initial"
+    processing_elapsed_time: str = "0.00 seconds"
+    recently_called_tools: list[ToolExecutionResult] = field(default_factory=list)
     tool_loop_detected: bool = False
-    action_tools: list[ToolDefinition]
-    action_issues: list[str]
-    mcp_tools: list[ToolDefinition]
-    mcp_issues: list[str]
+    action_tools: list[ToolDefinition] = field(default_factory=list)
+    action_issues: list[str] = field(default_factory=list)
+    mcp_tools: list[ToolDefinition] = field(default_factory=list)
+    mcp_issues: list[str] = field(default_factory=list)
     data_frames_tools_state: Literal["enabled", ""] = ""
     work_item_tools_state: Literal["enabled", ""] = ""
     empty_file_cache_key_to_matching_info: dict[str, dict] = field(default_factory=dict)
-    selected_platform: str
-    selected_model: str
-    selected_model_provider: str
+    selected_platform: str = ""
+    selected_model: str = ""
+    selected_model_provider: str = ""
     memories: list[str] = field(default_factory=list, metadata=aa.fields.thread_scoped())
 
     @property
@@ -135,7 +138,6 @@ async def entrypoint_exp_1(kernel: Kernel, state: Exp1State) -> Exp1State:
     """
     try:
         logger.info("Experimental architecture 1 starting")
-        _initialize_state_for_run(state)
         # Check for exact-match special commands on the latest user message
         try:
             latest_user_text = kernel.thread.latest_user_message_as_text
@@ -303,29 +305,6 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
 
 
 # ---- Small, Focused Helpers ---------------------------------------------------
-
-
-def _initialize_state_for_run(state: Exp1State) -> None:
-    """Initialize/clear per-run fields."""
-    state.step = "initial"
-    state.configuration_issues = []
-    state.current_iteration = 0
-    state.no_toolcall_retry_count = 0
-    state.no_final_reply_retry_count = 0
-    state.controller_feedback = ""
-    state.processing_start_time = datetime.now(UTC).isoformat(timespec="milliseconds")
-    state.processing_elapsed_time = "0.00 seconds"
-    state.recently_called_tools = []
-    state.tool_loop_detected = False
-    state.work_item_tools_state = ""
-    state.memories = []
-    state.action_tools = []
-    state.action_issues = []
-    state.mcp_tools = []
-    state.mcp_issues = []
-    state.selected_platform = ""
-    state.selected_model = ""
-    state.selected_model_provider = ""
 
 
 async def _gather_tools(
