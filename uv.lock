@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12.9, <3.13"
 
 [manifest]
@@ -278,6 +278,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "pyyaml" },
     { name = "reductoai" },
+    { name = "sema4ai-actions" },
     { name = "sema4ai-common" },
     { name = "sema4ai-docint", extra = ["memory"] },
     { name = "siphash" },
@@ -310,6 +311,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.18,<0.0.19" },
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
+    { name = "sema4ai-actions", specifier = ">=1.6.1" },
     { name = "sema4ai-common", specifier = "==0.1.0" },
     { name = "sema4ai-docint", extras = ["memory"], specifier = "==0.11.3" },
     { name = "siphash", specifier = "==0.0.1" },
@@ -3500,7 +3502,7 @@ wheels = [
 
 [[package]]
 name = "sema4ai-actions"
-version = "1.4.1"
+version = "1.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -3512,9 +3514,9 @@ dependencies = [
     { name = "robocorp-truststore" },
     { name = "sema4ai-http-helper" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/da/15761f654d99731ed5bb3306c6d35858b65f3f65f62d362fe75391fb80fc/sema4ai_actions-1.4.1.tar.gz", hash = "sha256:aabde4fbba44957f4143ef72690ad62ae8ca011fffbbb60b70a43f9887a13287", size = 75446, upload-time = "2025-08-07T13:36:47.92Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/21/24abd55938ff6a50751f3d8c2497d7ff8c8590176a2ebdd5eccaa1ce58f0/sema4ai_actions-1.6.1.tar.gz", hash = "sha256:7288292b8d23c973d04f7370a380af8f643efd9c5a0848aaf1dc3679e66f353d", size = 78811, upload-time = "2025-10-30T07:40:17.149Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/9e/3dd53544a45fc0eb8fb431ea6404d048207d5eeedb7b63dd52f581833ed8/sema4ai_actions-1.4.1-py3-none-any.whl", hash = "sha256:43060c008b2d2e21cfec615a2c8b0371ed131cc80abdc194be05e7890d83f3be", size = 93004, upload-time = "2025-08-07T13:36:46.552Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/ff/81403b1c672b526855ad4162faebcab47253dde933bf5756195bf861d3b0/sema4ai_actions-1.6.1-py3-none-any.whl", hash = "sha256:e4513683bf6c96702d26eaa857e82a214d0e8d64b9c14c88e334423e3c2b61d7", size = 96419, upload-time = "2025-10-30T07:40:15.652Z" },
 ]
 
 [[package]]

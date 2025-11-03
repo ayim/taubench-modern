@@ -29,6 +29,7 @@ dependencies = [
     "siphash==0.0.1",
     "reductoai>=0.9.0",
     "pyjaq>=0.1.0,<1.0.0",
+    "sema4ai-actions>=1.6.1",
 ]
 
 [project.scripts]
