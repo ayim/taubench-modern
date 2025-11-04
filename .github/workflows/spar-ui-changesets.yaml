@@ -1,0 +1,46 @@
+name: Spar UI Changesets check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'workroom/spar-ui/**'
+
+defaults:
+  run:
+    working-directory: ./workroom/spar-ui/
+
+jobs:
+  spar-ui-changesets-check:
+    if: github.event.pull_request.title != 'Spar UI:${{ ' ' }}Next Release'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.12.1'
+
+      - name: Creating .npmrc
+        run: |
+          cat << EOF > ~/.npmrc
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_READ_PACKAGES }}
+          EOF
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Isolate spar-ui package
+        run: rm ../package.json
+
+      - name: Check for changesets file
+        run: npx changeset status --since=origin/main

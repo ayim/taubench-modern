@@ -1,0 +1,81 @@
+name: Spar UI Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'workroom/spar-ui/**'
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+defaults:
+  run:
+    working-directory: ./workroom/spar-ui/
+
+jobs:
+  spar-ui-releases:
+    name: Spar UI Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.12.1'
+
+      - name: Creating .npmrc
+        run: |
+          cat << EOF > ~/.npmrc
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_READ_PACKAGES }}
+          EOF
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Isolate spar-ui package
+        run: rm ../package.json
+
+      - name: Create Release Pull Request or Publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          title: 'Spar UI: Next Release'
+          commit: Release version changes
+          publish: npm run release
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release message
+        if: steps.changesets.outputs.published == 'true'
+        id: release-message
+        run: |
+          echo 'message<<EOF' >> $GITHUB_OUTPUT
+          node ./.changeset/releaseInfo.js '${{ steps.changesets.outputs.publishedPackages }}' >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      - name: Post release message to Slack
+        uses: slackapi/slack-github-action@v2.0.0
+        if: steps.changesets.outputs.published == 'true'
+        with:
+          webhook: ${{ secrets.SPAR_UI_RELEASE_SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            "text": ${{ toJSON(steps.release-message.outputs.message) }}
