@@ -7,6 +7,7 @@ from typing import TypedDict
 import yaml
 from fastapi import APIRouter
 from structlog import get_logger
+from structlog.stdlib import BoundLogger
 
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.errors.base import PlatformHTTPError
@@ -22,13 +23,15 @@ from agent_platform.core.payloads import (
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     ValidateSemanticDataModelPayload,
     ValidateSemanticDataModelResult,
+    ValidateSemanticDataModelResultItem,
+    _ValidateSemanticDataModelResultsSummary,
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
 from sema4ai.common.text import slugify
 
 router = APIRouter()
-logger = get_logger(__name__)
+logger: BoundLogger = get_logger(__name__)
 
 
 async def _replace_data_connection_id_with_name(
@@ -875,37 +878,211 @@ async def import_semantic_data_model(
     )
 
 
+async def _collect_single_sdm(
+    payload: ValidateSemanticDataModelPayload,
+    storage: StorageDependency,
+) -> list[tuple[str | None, SemanticDataModel | dict]]:
+    if payload.semantic_data_model:
+        return [(None, payload.semantic_data_model)]
+
+    if payload.semantic_data_model_id:
+        try:
+            sdm = await storage.get_semantic_data_model(payload.semantic_data_model_id)
+            return [(payload.semantic_data_model_id, sdm)]
+        except ValueError as e:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.NOT_FOUND,
+                message=str(e),
+            ) from e
+
+    return []
+
+
+async def _collect_agent_sdms(
+    agent_id: str,
+    storage: StorageDependency,
+) -> list[tuple[str | None, SemanticDataModel | dict]]:
+    agent_sdms = await storage.get_agent_semantic_data_models(agent_id)
+
+    # Storage returns list[dict] where each dict is {sdm_id: sdm}
+    sdms_to_validate: list[tuple[str | None, SemanticDataModel | dict]] = []
+    for sdm_dict in agent_sdms:
+        for sdm_id, sdm in sdm_dict.items():
+            sdms_to_validate.append((sdm_id, sdm))
+
+    return sdms_to_validate
+
+
+async def _collect_thread_sdms(
+    thread_id: str,
+    storage: StorageDependency,
+) -> list[tuple[str | None, SemanticDataModel | dict]]:
+    thread_sdms = await storage.get_thread_semantic_data_models(thread_id)
+
+    # Storage returns list[dict] where each dict is {sdm_id: sdm}
+    sdms_to_validate: list[tuple[str | None, SemanticDataModel | dict]] = []
+    for sdm_dict in thread_sdms:
+        for sdm_id, sdm in sdm_dict.items():
+            sdms_to_validate.append((sdm_id, sdm))
+
+    return sdms_to_validate
+
+
+async def _validate_single_sdm(
+    sdm_id: str | None,
+    sdm: SemanticDataModel | dict,
+    thread_id: str | None,
+    storage: StorageDependency,
+    user: AuthedUser,
+) -> ValidateSemanticDataModelResultItem:
+    """Validate a single SDM and return result item.
+
+    Args:
+        sdm_id: The SDM ID (None for inline SDMs)
+        sdm: The semantic data model to validate
+        thread_id: Optional thread ID for file reference resolution
+        storage: Storage instance
+        user: Authenticated user
+
+    Returns:
+        Validation result item with SDM, errors, and warnings
+    """
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        SemanticDataModel,
+        ValidationMessage,
+    )
+    from agent_platform.server.data_frames.semantic_data_model_validator import (
+        SemanticDataModelValidator,
+    )
+
+    try:
+        validator = SemanticDataModelValidator(
+            semantic_data_model=typing.cast(SemanticDataModel, sdm),
+            thread_id=thread_id,
+            storage=storage,
+            user=user,
+        )
+
+        validated_sdm = await validator.validate()
+
+        return ValidateSemanticDataModelResultItem(
+            semantic_data_model_id=sdm_id,
+            semantic_data_model=validated_sdm,
+            errors=validator.errors,
+            warnings=validator.warnings,
+        )
+    except Exception as e:
+        # Handle validation failures gracefully
+        logger.exception(f"Error validating SDM {sdm_id}: {e}")
+        return ValidateSemanticDataModelResultItem(
+            semantic_data_model_id=sdm_id,
+            semantic_data_model=sdm,
+            errors=[ValidationMessage(message=str(e), level="error")],
+            warnings=[],
+        )
+
+
 @router.post("/validate")
 async def validate_semantic_data_model(
     payload: ValidateSemanticDataModelPayload,
     user: AuthedUser,
     storage: StorageDependency,
 ) -> ValidateSemanticDataModelResult:
-    """Validate a semantic data model."""
-    from agent_platform.server.data_frames.semantic_data_model_validator import (
-        SemanticDataModelValidator,
+    """Validate one or more semantic data models.
+
+    **Selector fields** (exactly one required):
+    - `semantic_data_model`, `semantic_data_model_id`, `agent_id`, OR `thread_id` alone
+
+    **Context field** (optional):
+    - `thread_id` can be provided alongside selectors for file reference resolution
+
+    This endpoint supports multiple validation modes:
+
+    1. **Single inline SDM validation**:
+       - Provide `semantic_data_model` (dict)
+       - Optionally add `thread_id` for file resolution
+       - Without `thread_id`: file references will be warnings
+
+    2. **Single stored SDM validation**:
+       - Provide `semantic_data_model_id`
+       - Optionally add `thread_id` for file resolution
+       - Without `thread_id`: file references will be warnings
+
+    3. **Agent SDMs validation**:
+       - Provide `agent_id` to validate all SDMs associated with that agent
+       - Optionally add `thread_id` for file resolution
+       - Without `thread_id`: file references will be warnings
+       - If `thread_id` is provided, it must belong to the agent
+
+    4. **Thread SDMs validation**:
+       - Provide `thread_id` alone
+       - Validates all SDMs stored in the thread
+       - File references can be resolved using the thread context
+       - Note: Does NOT validate agent SDMs, only thread SDMs
+
+    Returns:
+        ValidateSemanticDataModelResult: Contains a list of validation results,
+        one per SDM validated, with errors and warnings for each.
+    """
+    import asyncio
+
+    # Get and validate access to agent and thread, if provided
+    agent = None
+    thread = None
+    if payload.agent_id:
+        agent = await storage.get_agent(user.user_id, payload.agent_id)
+    if payload.thread_id:
+        thread = await storage.get_thread(user.user_id, payload.thread_id)
+
+    # Validate that if both agent_id and thread_id are provided, they are associated
+    if thread and agent and thread.agent_id != agent.agent_id:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=f"Thread {thread.thread_id} does not belong to agent {agent.agent_id}.",
+        )
+
+    # Collect SDMs to validate from various sources
+    sdms_to_validate: list[tuple[str | None, SemanticDataModel | dict]] = []
+    if payload.semantic_data_model or payload.semantic_data_model_id:
+        sdms_to_validate.extend(await _collect_single_sdm(payload, storage))
+
+    # Agent SDMs validation
+    elif agent:
+        sdms_to_validate.extend(await _collect_agent_sdms(agent.agent_id, storage))
+
+    # Thread SDMs validation
+    elif thread:
+        sdms_to_validate.extend(await _collect_thread_sdms(thread.thread_id, storage))
+
+    # Deduplicate SDMs that have the same ID (removes any SDM with a duplicate non-None ID)
+    seen_ids = set()
+    deduped_sdms = []
+    for sdm_id, sdm in sdms_to_validate:
+        if sdm_id is None:
+            deduped_sdms.append((sdm_id, sdm))
+        elif sdm_id not in seen_ids:
+            deduped_sdms.append((sdm_id, sdm))
+            seen_ids.add(sdm_id)
+    sdms_to_validate = deduped_sdms
+
+    # Validate each collected SDM in parallel
+    results = await asyncio.gather(
+        *[
+            _validate_single_sdm(sdm_id, sdm, thread.thread_id if thread else None, storage, user)
+            for sdm_id, sdm in sdms_to_validate
+        ]
     )
 
-    semantic_data_model = typing.cast(SemanticDataModel, payload.semantic_data_model)
-
-    thread = await storage.get_thread(user.user_id, payload.thread_id)
-
-    validator = SemanticDataModelValidator(
-        semantic_data_model=semantic_data_model,
-        thread_id=thread.thread_id,
-        storage=storage,
-        user=user,
+    # Compute summary statistics
+    summary = _ValidateSemanticDataModelResultsSummary(
+        total_sdms=len(results),
+        total_errors=sum(len(result.errors) for result in results),
+        total_warnings=sum(len(result.warnings) for result in results),
+        sdms_with_errors=sum(1 for result in results if result.errors),
+        sdms_with_warnings=sum(1 for result in results if result.warnings),
     )
-    validated_semantic_data_model = await validator.validate()
-    if validator.errors:
-        return ValidateSemanticDataModelResult(
-            semantic_data_model_id=None,
-            semantic_data_model=validated_semantic_data_model,
-            errors=validator.errors,
-        )
-    else:
-        return ValidateSemanticDataModelResult(
-            semantic_data_model_id=None,
-            semantic_data_model=semantic_data_model,
-            errors=[],
-        )
+    # Return results with summary statistics
+    return ValidateSemanticDataModelResult(
+        results=results,
+        summary=summary,
+    )

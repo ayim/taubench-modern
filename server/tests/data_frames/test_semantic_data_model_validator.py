@@ -389,6 +389,52 @@ def test_add_warning_vs_error(validator_checker):
     assert warning_msg["message"] == "This is a warning"
 
 
+def test_errors_and_warnings_properties(validator_checker):
+    """Test the errors and warnings properties."""
+    from agent_platform.server.data_frames.semantic_data_model_validator import (
+        SemanticDataModelValidator,
+    )
+
+    sample_model = validator_checker.build_semantic_model(
+        name="Test Model",
+        tables=[],
+    )
+
+    validator = SemanticDataModelValidator(
+        semantic_data_model=sample_model,
+        thread_id=validator_checker.thread.thread_id,
+        storage=validator_checker.sqlite_storage,
+        user=validator_checker.user,
+    )
+
+    # Before validation, accessing properties should raise error
+    with pytest.raises(ValueError, match="Validation has not been run"):
+        _ = validator.errors
+
+    with pytest.raises(ValueError, match="Validation has not been run"):
+        _ = validator.warnings
+
+    # Add mixed validation messages
+    validator._add_error("Error 1")
+    validator._add_error("Error 2")
+    validator._add_warning("Warning 1")
+    validator._add_warning("Warning 2")
+    validator._add_warning("Warning 3")
+    validator._validation_ran = True
+
+    # Test errors property
+    errors = validator.errors
+    assert len(errors) == 2
+    assert all(e["level"] == "error" for e in errors)
+    assert {e["message"] for e in errors} == {"Error 1", "Error 2"}
+
+    # Test warnings property
+    warnings = validator.warnings
+    assert len(warnings) == 3
+    assert all(w["level"] == "warning" for w in warnings)
+    assert {w["message"] for w in warnings} == {"Warning 1", "Warning 2", "Warning 3"}
+
+
 def test_add_validation_message_column_without_table_raises_error(validator_checker):
     """Test that adding column error without table name raises ValueError."""
     from agent_platform.server.data_frames.semantic_data_model_validator import (
@@ -675,7 +721,7 @@ async def test_file_reference_validation_success(validator_checker):
     validator = await validator_checker.validate_model(semantic_model)
 
     assert validator.is_valid
-    assert len([e for e in validator.errors if e["level"] == "error"]) == 0
+    assert len(validator.errors) == 0
 
 
 @pytest.mark.asyncio
@@ -706,10 +752,15 @@ async def test_file_reference_not_found(validator_checker):
 
     validator = await validator_checker.validate_model(semantic_model)
 
-    assert not validator.is_valid
-    assert len(validator.errors) > 0
-    error_messages = [e["message"] for e in validator.errors]
-    assert any("non_existent_file.csv" in msg and "not found" in msg for msg in error_messages)
+    # Should be valid - file not found is just a warning
+    assert validator.is_valid
+    assert len(validator.errors) == 0
+
+    # Should have warning for file not found
+    warnings = validator.warnings
+    assert len(warnings) > 0
+    warning_messages = [w["message"] for w in warnings]
+    assert any("non_existent_file.csv" in msg and "not found" in msg for msg in warning_messages)
 
 
 @pytest.mark.asyncio
@@ -795,7 +846,7 @@ async def test_file_reference_sheet_name_matching(validator_checker):
 
     # Should be valid - found the right sheet with the right column
     assert validator.is_valid
-    assert len([e for e in validator.errors if e["level"] == "error"]) == 0
+    assert len(validator.errors) == 0
 
 
 # ==================== Edge Cases and Special Scenarios ====================
@@ -829,8 +880,8 @@ async def test_unresolved_file_references_create_warnings(validator_checker):
 
     # Should still be valid since unresolved refs are warnings
     assert validator.is_valid
-    errors = validator.errors
-    warnings = [e for e in errors if e["level"] == "warning"]
+    assert len(validator.errors) == 0
+    warnings = validator.warnings
     assert len(warnings) > 0
     assert any("unresolved file reference" in w["message"].lower() for w in warnings)
 
@@ -961,7 +1012,7 @@ async def test_validation_with_multiple_tables(validator_checker):
     validator = await validator_checker.validate_model(semantic_model)
 
     assert validator.is_valid
-    assert len([e for e in validator.errors if e["level"] == "error"]) == 0
+    assert len(validator.errors) == 0
 
 
 @pytest.mark.asyncio
@@ -1024,4 +1075,199 @@ async def test_mixed_data_connection_and_file_references(validator_checker):
     validator = await validator_checker.validate_model(semantic_model)
 
     assert validator.is_valid
-    assert len([e for e in validator.errors if e["level"] == "error"]) == 0
+    assert len(validator.errors) == 0
+
+
+# ==================== Optional Thread ID Tests ====================
+
+
+@pytest.mark.asyncio
+async def test_validation_without_thread_id_data_connections_only(validator_checker):
+    """Test validation without thread_id works for data connections."""
+    from agent_platform.server.data_frames.semantic_data_model_validator import (
+        SemanticDataModelValidator,
+    )
+
+    # Create a real SQLite connection with tables
+    data_connection = await validator_checker.create_sqlite_connection_with_tables(
+        {
+            "products": [
+                ("product_id", "INTEGER"),
+                ("product_name", "TEXT"),
+            ],
+        }
+    )
+
+    semantic_model = validator_checker.build_semantic_model(
+        name="Data Connection Model",
+        tables=[
+            {
+                "name": "product_data",
+                "base_table": {
+                    "table": "products",
+                    "data_connection_id": data_connection.id,
+                },
+                "dimensions": [
+                    {"name": "id", "expr": "product_id", "data_type": "INTEGER"},
+                    {"name": "name", "expr": "product_name", "data_type": "TEXT"},
+                ],
+                "facts": [],
+                "time_dimensions": [],
+                "metrics": [],
+            }
+        ],
+    )
+
+    # Validate without thread_id
+    validator = SemanticDataModelValidator(
+        semantic_data_model=semantic_model,
+        thread_id=None,  # No thread context
+        storage=validator_checker.sqlite_storage,
+        user=validator_checker.user,
+    )
+    await validator.validate()
+
+    # Should be valid since data connections don't require thread_id
+    assert validator.is_valid
+    assert len(validator.errors) == 0
+
+
+@pytest.mark.asyncio
+async def test_validation_without_thread_id_file_references_fail(validator_checker):
+    """Test that file references cannot be resolved without thread_id."""
+    from agent_platform.server.data_frames.semantic_data_model_validator import (
+        SemanticDataModelValidator,
+    )
+
+    # Create a CSV file in the thread
+    csv_file = await validator_checker.create_csv_file(
+        filename="data.csv",
+        headers=["col1", "col2"],
+    )
+
+    semantic_model = validator_checker.build_semantic_model(
+        name="File Model",
+        tables=[
+            {
+                "name": "file_data",
+                "base_table": {
+                    "table": "data_frame_file",
+                    "file_reference": {
+                        "thread_id": validator_checker.thread.thread_id,
+                        "file_ref": csv_file.file_ref,
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {"name": "column1", "expr": "col1", "data_type": "TEXT"},
+                ],
+                "facts": [],
+                "time_dimensions": [],
+                "metrics": [],
+            }
+        ],
+    )
+
+    # Validate without thread_id
+    validator = SemanticDataModelValidator(
+        semantic_data_model=semantic_model,
+        thread_id=None,  # No thread context
+        storage=validator_checker.sqlite_storage,
+        user=validator_checker.user,
+    )
+    await validator.validate()
+
+    # Should be valid - file can't be resolved without thread_id is just a warning
+    assert validator.is_valid
+    assert len(validator.errors) == 0
+
+    # Should have warning since file can't be resolved without thread_id
+    warnings = validator.warnings
+    assert len(warnings) > 0
+    warning_messages = [w["message"] for w in warnings]
+    assert any(
+        "cannot be resolved and validated without thread ID" in msg for msg in warning_messages
+    )
+
+
+@pytest.mark.asyncio
+async def test_validation_without_thread_id_mixed_sources(validator_checker):
+    """Test validation without thread_id on mixed data sources."""
+    from agent_platform.server.data_frames.semantic_data_model_validator import (
+        SemanticDataModelValidator,
+    )
+
+    # Create data connection (should validate successfully)
+    data_connection = await validator_checker.create_sqlite_connection_with_tables(
+        {
+            "sales": [
+                ("amount", "INTEGER"),
+            ],
+        }
+    )
+
+    # Create file (should fail validation without thread_id)
+    csv_file = await validator_checker.create_csv_file(
+        filename="customers.csv",
+        headers=["customer_name"],
+    )
+
+    semantic_model = validator_checker.build_semantic_model(
+        name="Mixed Model",
+        tables=[
+            {
+                "name": "sales_data",
+                "base_table": {
+                    "table": "sales",
+                    "data_connection_id": data_connection.id,
+                },
+                "dimensions": [],
+                "facts": [
+                    {"name": "amount", "expr": "amount", "data_type": "INTEGER"},
+                ],
+                "time_dimensions": [],
+                "metrics": [],
+            },
+            {
+                "name": "customer_data",
+                "base_table": {
+                    "table": "data_frame_file",
+                    "file_reference": {
+                        "thread_id": validator_checker.thread.thread_id,
+                        "file_ref": csv_file.file_ref,
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {"name": "name", "expr": "customer_name", "data_type": "TEXT"},
+                ],
+                "facts": [],
+                "time_dimensions": [],
+                "metrics": [],
+            },
+        ],
+    )
+
+    # Validate without thread_id
+    validator = SemanticDataModelValidator(
+        semantic_data_model=semantic_model,
+        thread_id=None,  # No thread context
+        storage=validator_checker.sqlite_storage,
+        user=validator_checker.user,
+    )
+    await validator.validate()
+
+    # Should be valid - file not found without thread_id is just a warning
+    assert validator.is_valid
+
+    # Should have no errors (data connection is valid)
+    errors = validator.errors
+    assert len(errors) == 0
+
+    # Should have warnings for the file reference that couldn't be resolved
+    warnings = validator.warnings
+    assert len(warnings) > 0
+    warning_messages = [w["message"] for w in warnings]
+    assert any(
+        "cannot be resolved and validated without thread ID" in msg for msg in warning_messages
+    )

@@ -651,9 +651,10 @@ export interface paths {
     put?: never;
     /**
      * Validate Thread Semantic Data Models
-     * @description Validate all semantic data models associated with a thread, returning
-     *     the validated semantic data models with errors attached. If there are no errors,
-     *     returns the original semantic data models.
+     * @description Validate all semantic data models associated with a thread.
+     *
+     *     Returns a ValidateSemanticDataModelResult containing a list of validation results
+     *     for each SDM in the thread, along with summary statistics.
      */
     post: operations['validate_thread_semantic_data_models_threads__tid__semantic_data_models_validate_post'];
     delete?: never;
@@ -2597,7 +2598,41 @@ export interface paths {
     put?: never;
     /**
      * Validate Semantic Data Model
-     * @description Validate a semantic data model.
+     * @description Validate one or more semantic data models.
+     *
+     *     **Selector fields** (exactly one required):
+     *     - `semantic_data_model`, `semantic_data_model_id`, `agent_id`, OR `thread_id` alone
+     *
+     *     **Context field** (optional):
+     *     - `thread_id` can be provided alongside selectors for file reference resolution
+     *
+     *     This endpoint supports multiple validation modes:
+     *
+     *     1. **Single inline SDM validation**:
+     *        - Provide `semantic_data_model` (dict)
+     *        - Optionally add `thread_id` for file resolution
+     *        - Without `thread_id`: file references will be warnings
+     *
+     *     2. **Single stored SDM validation**:
+     *        - Provide `semantic_data_model_id`
+     *        - Optionally add `thread_id` for file resolution
+     *        - Without `thread_id`: file references will be warnings
+     *
+     *     3. **Agent SDMs validation**:
+     *        - Provide `agent_id` to validate all SDMs associated with that agent
+     *        - Optionally add `thread_id` for file resolution
+     *        - Without `thread_id`: file references will be warnings
+     *        - If `thread_id` is provided, it must belong to the agent
+     *
+     *     4. **Thread SDMs validation**:
+     *        - Provide `thread_id` alone
+     *        - Validates all SDMs stored in the thread
+     *        - File references can be resolved using the thread context
+     *        - Note: Does NOT validate agent SDMs, only thread SDMs
+     *
+     *     Returns:
+     *         ValidateSemanticDataModelResult: Contains a list of validation results,
+     *         one per SDM validated, with errors and warnings for each.
      */
     post: operations['validate_semantic_data_model_semantic_data_models_validate_post'];
     delete?: never;
@@ -7949,16 +7984,29 @@ export interface components {
     /** ValidateSemanticDataModelPayload */
     ValidateSemanticDataModelPayload: {
       /** Semantic Data Model */
-      semantic_data_model:
+      semantic_data_model?:
         | components['schemas']['SemanticDataModel']
         | {
             [key: string]: unknown;
-          };
+          }
+        | null;
+      /** Semantic Data Model Id */
+      semantic_data_model_id?: string | null;
+      /** Agent Id */
+      agent_id?: string | null;
       /** Thread Id */
-      thread_id: string;
+      thread_id?: string | null;
     };
     /** ValidateSemanticDataModelResult */
     ValidateSemanticDataModelResult: {
+      /** Results */
+      results: components['schemas']['ValidateSemanticDataModelResultItem'][];
+      summary?:
+        | components['schemas']['_ValidateSemanticDataModelResultsSummary']
+        | null;
+    };
+    /** ValidateSemanticDataModelResultItem */
+    ValidateSemanticDataModelResultItem: {
       /** Semantic Data Model Id */
       semantic_data_model_id: string | null;
       /** Semantic Data Model */
@@ -7968,7 +8016,9 @@ export interface components {
             [key: string]: unknown;
           };
       /** Errors */
-      errors: components['schemas']['ValidationMessage'][];
+      errors?: components['schemas']['ValidationMessage'][];
+      /** Warnings */
+      warnings?: components['schemas']['ValidationMessage'][];
     };
     /** ValidationMessage */
     ValidationMessage: {
@@ -8400,6 +8450,19 @@ export interface components {
     _TranslationSchema: {
       /** Rules */
       rules: components['schemas']['_TranslationRule'][];
+    };
+    /** _ValidateSemanticDataModelResultsSummary */
+    _ValidateSemanticDataModelResultsSummary: {
+      /** Total Sdms */
+      total_sdms: number;
+      /** Total Errors */
+      total_errors: number;
+      /** Total Warnings */
+      total_warnings: number;
+      /** Sdms With Errors */
+      sdms_with_errors: number;
+      /** Sdms With Warnings */
+      sdms_with_warnings: number;
     };
     /**
      * FileReference
@@ -12874,7 +12937,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ValidateSemanticDataModelResult'][];
+          'application/json': components['schemas']['ValidateSemanticDataModelResult'];
         };
       };
       /** @description Validation Error */

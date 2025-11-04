@@ -22,6 +22,8 @@ from agent_platform.core.payloads import (
 from agent_platform.core.payloads.patch_thread import PatchThreadPayload
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     ValidateSemanticDataModelResult,
+    ValidateSemanticDataModelResultItem,
+    _ValidateSemanticDataModelResultsSummary,
 )
 from agent_platform.core.thread import Thread
 from agent_platform.core.thread.base import ThreadMessage
@@ -685,10 +687,12 @@ async def validate_thread_semantic_data_models(
     tid: str,
     user: AuthedUser,
     storage: StorageDependency,
-) -> list[ValidateSemanticDataModelResult]:
-    """Validate all semantic data models associated with a thread, returning
-    the validated semantic data models with errors attached. If there are no errors,
-    returns the original semantic data models."""
+) -> ValidateSemanticDataModelResult:
+    """Validate all semantic data models associated with a thread.
+
+    Returns a ValidateSemanticDataModelResult containing a list of validation results
+    for each SDM in the thread, along with summary statistics.
+    """
     thread = await storage.get_thread(user.user_id, tid)
     semantic_data_models = await storage.get_thread_semantic_data_models(thread.thread_id)
     if not semantic_data_models:
@@ -704,7 +708,7 @@ async def validate_thread_semantic_data_models(
         SemanticDataModelValidator,
     )
 
-    results: list[ValidateSemanticDataModelResult] = []
+    results: list[ValidateSemanticDataModelResultItem] = []
     for semantic_data_model_info in semantic_data_models:
         semantic_data_model_id = semantic_data_model_info["semantic_data_model_id"]
         semantic_data_model = cast(
@@ -721,28 +725,36 @@ async def validate_thread_semantic_data_models(
         except Exception as e:
             logger.error(f"Error validating semantic data model: {e!s}", error=str(e))
             results.append(
-                ValidateSemanticDataModelResult(
+                ValidateSemanticDataModelResultItem(
                     semantic_data_model_id=semantic_data_model_id,
                     semantic_data_model={},
                     errors=[ValidationMessage(message=str(e), level="error")],
+                    warnings=[],
                 )
             )
             continue
-        if validator.errors:
-            results.append(
-                ValidateSemanticDataModelResult(
-                    semantic_data_model_id=semantic_data_model_id,
-                    semantic_data_model=validated_semantic_data_model,
-                    errors=validator.errors,
-                )
-            )
-        else:
-            results.append(
-                ValidateSemanticDataModelResult(
-                    semantic_data_model_id=semantic_data_model_id,
-                    semantic_data_model=semantic_data_model,
-                    errors=[],
-                )
-            )
 
-    return results
+        results.append(
+            ValidateSemanticDataModelResultItem(
+                semantic_data_model_id=semantic_data_model_id,
+                semantic_data_model=validated_semantic_data_model,
+                errors=validator.errors,
+                warnings=validator.warnings,
+            )
+        )
+
+    # Calculate summary statistics
+    total_sdms = len(results)
+    total_errors = sum(len(result.errors) for result in results)
+    total_warnings = sum(len(result.warnings) for result in results)
+
+    return ValidateSemanticDataModelResult(
+        results=results,
+        summary=_ValidateSemanticDataModelResultsSummary(
+            total_sdms=total_sdms,
+            total_errors=total_errors,
+            total_warnings=total_warnings,
+            sdms_with_errors=sum(1 for result in results if result.errors),
+            sdms_with_warnings=sum(1 for result in results if result.warnings),
+        ),
+    )

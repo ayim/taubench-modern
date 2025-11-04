@@ -1,12 +1,13 @@
 """Payload types for semantic data model API endpoints."""
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Annotated, Any
 
 from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
     ValidationMessage,
 )
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
 
 @dataclass(frozen=True)
@@ -250,16 +251,163 @@ class ImportSemanticDataModel:
 
 @dataclass(frozen=True)
 class ValidateSemanticDataModelPayload:
-    """Payload for validating a semantic data model."""
+    """Payload for validating a semantic data model.
+
+    **Selector fields** (exactly one required):
+    - `semantic_data_model`, `semantic_data_model_id`, `agent_id`, OR `thread_id` alone
+
+    **Context field** (optional):
+    - `thread_id` can be provided alongside selectors for file reference resolution
+
+    Supported validation modes:
+
+    1. **Validate a specific inline SDM**:
+       - Provide `semantic_data_model` (dict)
+       - Optionally add `thread_id` for file resolution
+       - Without `thread_id`: file references will be warnings
+
+    2. **Validate a specific stored SDM by ID**:
+       - Provide `semantic_data_model_id`
+       - Optionally add `thread_id` for file resolution
+       - Without `thread_id`: file references will be warnings
+
+    3. **Validate all SDMs for an agent**:
+       - Provide `agent_id`
+       - Optionally add `thread_id` for file resolution
+       - Without `thread_id`: file references will be warnings
+       - If `thread_id` is provided, it must belong to the agent
+
+    4. **Validate all SDMs for a thread**:
+       - Provide `thread_id` alone
+       - Validates all SDMs stored in the thread
+       - File references can be resolved using the thread context
+       - Note: Does NOT validate agent SDMs, only thread SDMs
+
+    Examples:
+        # Validate inline SDM (no file resolution)
+        ValidateSemanticDataModelPayload(semantic_data_model={...})
+
+        # Validate inline SDM with file resolution
+        ValidateSemanticDataModelPayload(semantic_data_model={...}, thread_id="thread_456")
+
+        # Validate stored SDM by ID with file resolution
+        ValidateSemanticDataModelPayload(semantic_data_model_id="sdm_123", thread_id="thread_456")
+
+        # Validate all agent SDMs with file resolution
+        ValidateSemanticDataModelPayload(agent_id="agent_123", thread_id="thread_456")
+
+        # Validate all thread SDMs (with file resolution)
+        ValidateSemanticDataModelPayload(thread_id="thread_456")
+    """
+
+    semantic_data_model: Annotated[
+        SemanticDataModel | dict | None,
+        "The semantic data model to validate (selector). Can be combined with thread_id.",
+    ] = None
+
+    semantic_data_model_id: Annotated[
+        str | None,
+        "The ID of the semantic data model to validate (selector). Can be combined with thread_id.",
+    ] = None
+
+    agent_id: Annotated[
+        str | None,
+        "The ID of the agent whose SDMs should be validated (selector). "
+        "Can be combined with thread_id (thread must belong to the agent).",
+    ] = None
+
+    thread_id: Annotated[
+        str | None,
+        "The ID of the thread for file resolution context OR as the sole selector "
+        "to validate all thread SDMs.",
+    ] = None
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "ValidateSemanticDataModelPayload":
+        """Validate and create payload from dict data."""
+        return ValidateSemanticDataModelPayload(
+            semantic_data_model=data.get("semantic_data_model"),
+            semantic_data_model_id=data.get("semantic_data_model_id"),
+            agent_id=data.get("agent_id"),
+            thread_id=data.get("thread_id"),
+        )
+
+    def __post_init__(self) -> None:
+        """Validate payload options and raise BAD_REQUEST if invalid."""
+        # Validate we have at least one option provided
+        if not any(
+            [self.semantic_data_model, self.semantic_data_model_id, self.agent_id, self.thread_id]
+        ):
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="At least one of semantic_data_model, semantic_data_model_id, "
+                "agent_id, or thread_id must be provided",
+            )
+
+        # Count selectors (excluding thread_id which can be a context parameter)
+        selectors = [
+            self.semantic_data_model,
+            self.semantic_data_model_id,
+            self.agent_id,
+        ]
+        num_selectors = sum(1 for x in selectors if x is not None)
+
+        # Must have exactly one selector, OR just thread_id alone
+        if num_selectors > 1:
+            options = [
+                f"{opt}: {str(x)[:50]}"
+                for opt, x in [
+                    ("semantic_data_model", self.semantic_data_model),
+                    ("semantic_data_model_id", self.semantic_data_model_id),
+                    ("agent_id", self.agent_id),
+                ]
+                if x is not None
+            ]
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message="Only one of semantic_data_model, semantic_data_model_id, or "
+                "agent_id can be provided as the selector, got: " + ", ".join(options),
+            )
+
+
+@dataclass(frozen=True)
+class ValidateSemanticDataModelResultItem:
+    """Result of validating a single semantic data model."""
+
+    semantic_data_model_id: str | None
+    """The ID of the semantic data model, if it exists in storage."""
 
     semantic_data_model: SemanticDataModel | dict
-    thread_id: str
+    """The validated semantic data model."""
+
+    errors: list[ValidationMessage] = field(default_factory=list)
+    """List of validation errors for this SDM."""
+
+    warnings: list[ValidationMessage] = field(default_factory=list)
+    """List of validation warnings for this SDM (e.g., unresolved file references)."""
+
+
+@dataclass(frozen=True)
+class _ValidateSemanticDataModelResultsSummary:
+    """Summary of validation results."""
+
+    total_sdms: Annotated[int, "Total number of semantic data models validated."]
+    total_errors: Annotated[int, "Total number of validation errors."]
+    total_warnings: Annotated[int, "Total number of validation warnings."]
+    sdms_with_errors: Annotated[int, "Number of semantic data models with errors."]
+    sdms_with_warnings: Annotated[int, "Number of semantic data models with warnings."]
 
 
 @dataclass(frozen=True)
 class ValidateSemanticDataModelResult:
-    """Result of validating a semantic data model."""
+    """Result of validating one or more semantic data models."""
 
-    semantic_data_model_id: str | None
-    semantic_data_model: SemanticDataModel | dict
-    errors: list[ValidationMessage]
+    results: Annotated[
+        list[ValidateSemanticDataModelResultItem],
+        "List of validation results, one per SDM validated.",
+    ]
+
+    summary: Annotated[
+        _ValidateSemanticDataModelResultsSummary | None,
+        "Summary statistics about the validation run (e.g., total_sdms, total_errors).",
+    ] = None

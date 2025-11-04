@@ -2182,7 +2182,7 @@ export const spec = {
         tags: ['threads'],
         summary: 'Validate Thread Semantic Data Models',
         description:
-          'Validate all semantic data models associated with a thread, returning\nthe validated semantic data models with errors attached. If there are no errors,\nreturns the original semantic data models.',
+          'Validate all semantic data models associated with a thread.\n\nReturns a ValidateSemanticDataModelResult containing a list of validation results\nfor each SDM in the thread, along with summary statistics.',
         operationId:
           'validate_thread_semantic_data_models_threads__tid__semantic_data_models_validate_post',
         parameters: [
@@ -2202,12 +2202,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  type: 'array',
-                  items: {
-                    $ref: '#/components/schemas/ValidateSemanticDataModelResult',
-                  },
-                  title:
-                    'Response Validate Thread Semantic Data Models Threads  Tid  Semantic Data Models Validate Post',
+                  $ref: '#/components/schemas/ValidateSemanticDataModelResult',
                 },
               },
             },
@@ -7893,7 +7888,8 @@ export const spec = {
       post: {
         tags: ['semantic-data-models'],
         summary: 'Validate Semantic Data Model',
-        description: 'Validate a semantic data model.',
+        description:
+          'Validate one or more semantic data models.\n\n**Selector fields** (exactly one required):\n- `semantic_data_model`, `semantic_data_model_id`, `agent_id`, OR `thread_id` alone\n\n**Context field** (optional):\n- `thread_id` can be provided alongside selectors for file reference resolution\n\nThis endpoint supports multiple validation modes:\n\n1. **Single inline SDM validation**:\n   - Provide `semantic_data_model` (dict)\n   - Optionally add `thread_id` for file resolution\n   - Without `thread_id`: file references will be warnings\n\n2. **Single stored SDM validation**:\n   - Provide `semantic_data_model_id`\n   - Optionally add `thread_id` for file resolution\n   - Without `thread_id`: file references will be warnings\n\n3. **Agent SDMs validation**:\n   - Provide `agent_id` to validate all SDMs associated with that agent\n   - Optionally add `thread_id` for file resolution\n   - Without `thread_id`: file references will be warnings\n   - If `thread_id` is provided, it must belong to the agent\n\n4. **Thread SDMs validation**:\n   - Provide `thread_id` alone\n   - Validates all SDMs stored in the thread\n   - File references can be resolved using the thread context\n   - Note: Does NOT validate agent SDMs, only thread SDMs\n\nReturns:\n    ValidateSemanticDataModelResult: Contains a list of validation results,\n    one per SDM validated, with errors and warnings for each.',
         operationId:
           'validate_semantic_data_model_semantic_data_models_validate_post',
         requestBody: {
@@ -19238,19 +19234,74 @@ export const spec = {
                 additionalProperties: true,
                 type: 'object',
               },
+              {
+                type: 'null',
+              },
             ],
             title: 'Semantic Data Model',
           },
+          semantic_data_model_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Semantic Data Model Id',
+          },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+          },
           thread_id: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Thread Id',
           },
         },
         type: 'object',
-        required: ['semantic_data_model', 'thread_id'],
         title: 'ValidateSemanticDataModelPayload',
       },
       ValidateSemanticDataModelResult: {
+        properties: {
+          results: {
+            items: {
+              $ref: '#/components/schemas/ValidateSemanticDataModelResultItem',
+            },
+            type: 'array',
+            title: 'Results',
+          },
+          summary: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/_ValidateSemanticDataModelResultsSummary',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: ['results'],
+        title: 'ValidateSemanticDataModelResult',
+      },
+      ValidateSemanticDataModelResultItem: {
         properties: {
           semantic_data_model_id: {
             anyOf: [
@@ -19282,10 +19333,17 @@ export const spec = {
             type: 'array',
             title: 'Errors',
           },
+          warnings: {
+            items: {
+              $ref: '#/components/schemas/ValidationMessage',
+            },
+            type: 'array',
+            title: 'Warnings',
+          },
         },
         type: 'object',
-        required: ['semantic_data_model_id', 'semantic_data_model', 'errors'],
-        title: 'ValidateSemanticDataModelResult',
+        required: ['semantic_data_model_id', 'semantic_data_model'],
+        title: 'ValidateSemanticDataModelResultItem',
       },
       ValidationMessage: {
         properties: {
@@ -20265,6 +20323,39 @@ export const spec = {
         type: 'object',
         required: ['rules'],
         title: '_TranslationSchema',
+      },
+      _ValidateSemanticDataModelResultsSummary: {
+        properties: {
+          total_sdms: {
+            type: 'integer',
+            title: 'Total Sdms',
+          },
+          total_errors: {
+            type: 'integer',
+            title: 'Total Errors',
+          },
+          total_warnings: {
+            type: 'integer',
+            title: 'Total Warnings',
+          },
+          sdms_with_errors: {
+            type: 'integer',
+            title: 'Sdms With Errors',
+          },
+          sdms_with_warnings: {
+            type: 'integer',
+            title: 'Sdms With Warnings',
+          },
+        },
+        type: 'object',
+        required: [
+          'total_sdms',
+          'total_errors',
+          'total_warnings',
+          'sdms_with_errors',
+          'sdms_with_warnings',
+        ],
+        title: '_ValidateSemanticDataModelResultsSummary',
       },
       agent_platform__core__data_frames__semantic_data_model_types__FileReference:
         {

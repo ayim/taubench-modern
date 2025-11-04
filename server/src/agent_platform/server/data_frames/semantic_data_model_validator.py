@@ -73,8 +73,7 @@ class SemanticDataModelValidator:
     def __init__(
         self,
         semantic_data_model: SemanticDataModel,
-        # Thread ID could be optional if we allowed for validation of only data connections or files
-        thread_id: str,
+        thread_id: str | None,
         storage: BaseStorage,
         user: AuthedUser,
     ):
@@ -205,14 +204,24 @@ class SemanticDataModelValidator:
     @property
     def errors(self) -> list[ValidationMessage]:
         """
-        The list of validation messages found during validation, returns an empty list
-        if validation was successful.
+        The list of error messages (level='error') found during validation.
 
         If validation has not been run yet, raises a ValueError.
         """
         if not self._validation_ran:
             raise ValueError("Validation has not been run yet")
-        return self._errors
+        return [e for e in self._errors if e.get("level") == "error"]
+
+    @property
+    def warnings(self) -> list[ValidationMessage]:
+        """
+        The list of warning messages (level='warning') found during validation.
+
+        If validation has not been run yet, raises a ValueError.
+        """
+        if not self._validation_ran:
+            raise ValueError("Validation has not been run yet")
+        return [w for w in self._errors if w.get("level") == "warning"]
 
     @property
     def is_valid(self) -> bool:
@@ -393,9 +402,22 @@ class SemanticDataModelValidator:
                     logical_column_name=logical_column_name,
                 )
 
+    def _add_validation_message_for_file_reference(
+        self, file_reference: _FileReference, message: str, level: Literal["error", "warning"]
+    ):
+        """Adds a valiation message for a file reference to all logical tables that reference it."""
+        logical_table_names = self.references.file_reference_to_logical_table_names[file_reference]
+        for logical_table_name in logical_table_names:
+            self._add_validation_message(message, level, logical_table_name=logical_table_name)
+
     async def _get_uploaded_file(self, file_ref: str) -> UploadedFile | None:
+        if self.thread_id is None:
+            # We cannot retrieve file without thread context.
+            return None
+
         if file_ref in self._uploaded_files_by_ref:
             return self._uploaded_files_by_ref[file_ref]
+
         thread = await self.storage.get_thread(self.user.user_id, self.thread_id)
         uploaded_file = await self.storage.get_file_by_ref(thread, file_ref, self.user.user_id)
         if not uploaded_file:
@@ -409,15 +431,21 @@ class SemanticDataModelValidator:
     ):
         uploaded_file = await self._get_uploaded_file(file_reference.file_ref)
         if not uploaded_file:
-            for logical_table_name in self.references.file_reference_to_logical_table_names[
-                file_reference
-            ]:
-                self._add_error(
+            if self.thread_id is None:
+                self._add_validation_message_for_file_reference(
+                    file_reference,
+                    f"File {file_reference.file_ref} cannot be resolved and validated "
+                    f"without thread ID",
+                    level="warning",
+                )
+            else:
+                self._add_validation_message_for_file_reference(
+                    file_reference,
                     f"File {file_reference.file_ref} not found in thread {self.thread_id}",
-                    logical_table_name=logical_table_name,
+                    level="warning",
                 )
             return
-
+        assert self.thread_id is not None  # it must be because we got an uploaded file above
         try:
             inspected_data_frames: list[_DataFrameInspectionAPI] = await inspect_file_as_data_frame(
                 user=self.user,
@@ -429,13 +457,11 @@ class SemanticDataModelValidator:
                 file_ref=uploaded_file.file_ref,
             )
         except Exception as e:
-            for logical_table_name in self.references.file_reference_to_logical_table_names[
-                file_reference
-            ]:
-                self._add_error(
-                    f"File {file_reference.file_ref} could not be inspected due to an error: {e}",
-                    logical_table_name=logical_table_name,
-                )
+            self._add_validation_message_for_file_reference(
+                file_reference,
+                f"File {file_reference.file_ref} could not be inspected due to an error: {e}",
+                level="error",
+            )
             return
 
         # Validate each logical table that references this file
