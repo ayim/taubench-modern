@@ -236,6 +236,18 @@ def _initialize_postgres_database(
                 edge_case_data_sql = edge_case_data_file.read_text()
                 conn.execute(sa.text(edge_case_data_sql))
 
+            # Load documents schema and data for JSON/JSONB testing
+            documents_schema_file = resources_path / "postgres" / "documents_schema.sql"
+            documents_data_file = resources_path / "postgres" / "documents_data.sql"
+
+            if documents_schema_file.exists():
+                documents_schema_sql = documents_schema_file.read_text()
+                conn.execute(sa.text(documents_schema_sql))
+
+            if documents_data_file.exists():
+                documents_data_sql = documents_data_file.read_text()
+                conn.execute(sa.text(documents_data_sql))
+
         yield test_schema
 
     finally:

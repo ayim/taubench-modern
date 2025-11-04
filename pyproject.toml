@@ -85,6 +85,7 @@ markers = [
     "real_selector: run with the real DefaultModelSelector implementation",
     "semantic_data_models: marks tests that run against semantic data models (deselect with '-m \"not semantic_data_models\"')",
     "semantic_data_models_edge_cases: marks tests that run against semantic data models edge cases (deselect with '-m \"not semantic_data_models_edge_cases\"')",
+    "json_queries: marks tests for JSON/JSONB column queries in semantic data models (deselect with '-m \"not json_queries\"')",
     "batch1: batch 1 of semantic data model tests (Basic Retrieval - 4 tests)",
     "batch2: batch 2 of semantic data model tests (Comparison Queries - 3 tests)",
     "batch3: batch 3 of semantic data model tests (Aggregation - 4 tests)",
