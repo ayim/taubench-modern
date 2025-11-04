@@ -1,5 +1,12 @@
 import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
-import { IconArrowLeft, IconDotsHorizontal, IconInformation, IconPaperclip, IconPoll } from '@sema4ai/icons';
+import {
+  IconArrowLeft,
+  IconDataframe,
+  IconDotsHorizontal,
+  IconInformation,
+  IconPaperclip,
+  IconPoll,
+} from '@sema4ai/icons';
 import { WorkerHeader } from '@sema4ai/spar-ui';
 import { useAgentQuery } from '@sema4ai/spar-ui/queries';
 import { useParams, useRouter, useSearch } from '@tanstack/react-router';
@@ -63,6 +70,19 @@ export const Header = () => {
                 />
               </Tooltip>
 
+              <Tooltip text="Data Frames" placement="bottom">
+                <RouterSideNavigationLink
+                  icon={<IconDataframe />}
+                  round
+                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames', {
+                    tenantId,
+                    agentId,
+                    workItemId,
+                    threadId,
+                  })}
+                />
+              </Tooltip>
+
               <Tooltip text="Files" placement="bottom">
                 <RouterSideNavigationLink
                   icon={<IconPaperclip />}
@@ -106,6 +126,39 @@ export const Header = () => {
 
             {workItemId && threadId && (
               <>
+                <RouterMenuLink
+                  icon={IconPoll}
+                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
+                    tenantId,
+                    agentId,
+                    workItemId,
+                    threadId,
+                  })}
+                >
+                  Work Item Details
+                </RouterMenuLink>
+                <RouterMenuLink
+                  icon={IconDataframe}
+                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames', {
+                    tenantId,
+                    agentId,
+                    workItemId,
+                    threadId,
+                  })}
+                >
+                  Data Frames
+                </RouterMenuLink>
+                <RouterMenuLink
+                  icon={IconPaperclip}
+                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files', {
+                    tenantId,
+                    agentId,
+                    workItemId,
+                    threadId,
+                  })}
+                >
+                  Files
+                </RouterMenuLink>
                 {features.agentDetails.enabled && (
                   <RouterMenuLink
                     icon={IconInformation}
@@ -119,28 +172,6 @@ export const Header = () => {
                     Details
                   </RouterMenuLink>
                 )}
-                <RouterMenuLink
-                  icon={IconPoll}
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                >
-                  Work Item Details
-                </RouterMenuLink>
-                <RouterMenuLink
-                  icon={IconPaperclip}
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                >
-                  Files
-                </RouterMenuLink>
               </>
             )}
           </Menu>
