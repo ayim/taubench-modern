@@ -50,8 +50,8 @@ jobs:
         working-directory: ./workroom/
         run: npm run build
 
-      - name: Isolate spar-ui package
-        run: rm ../package.json
+      - name: Isolate spar-ui package from monorepo setup
+        run: rm ${{ github.workspace }}/workroom/package.json
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
