@@ -11,6 +11,7 @@ type Props<T extends object> = {
     isFetchingMore: boolean;
     onLoadMore: () => void;
   };
+  itemKey: keyof T;
 };
 
 const Container = styled.div`
@@ -51,6 +52,7 @@ export const VirtualList = <T extends object>({
   itemHeight,
   renderComponent: RenderComponent,
   pagination,
+  itemKey,
 }: Props<T>) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -99,7 +101,7 @@ export const VirtualList = <T extends object>({
         >
           {virtualItems.map((virtualRow) => {
             const item = items[virtualRow.index];
-            return <RenderComponent data-index={virtualRow.index} key={virtualRow.key} item={item} />;
+            return <RenderComponent data-index={virtualRow.index} key={String(item[itemKey])} item={item} />;
           })}
         </div>
       </ScrollContainer>

@@ -89,6 +89,7 @@ export const WorkerList: FC = () => {
         <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
           <VirtualList
             items={allWorkItems}
+            itemKey="thread_id"
             renderComponent={WorkerItem}
             itemHeight={36}
             pagination={{

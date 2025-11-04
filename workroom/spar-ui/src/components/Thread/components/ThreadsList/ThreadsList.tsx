@@ -111,7 +111,12 @@ export const ThreadsList: FC = () => {
         <NewThreadItem />
         <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
           {filteredUserInitiatedThreads && (
-            <VirtualList items={filteredUserInitiatedThreads} renderComponent={ThreadItem} itemHeight={36} />
+            <VirtualList
+              items={filteredUserInitiatedThreads}
+              renderComponent={ThreadItem}
+              itemHeight={36}
+              itemKey="thread_id"
+            />
           )}
           {filteredUserInitiatedThreads?.length === 0 && (
             <ScrollableContainer>
