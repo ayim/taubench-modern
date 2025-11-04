@@ -707,6 +707,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/data-frames/from-json': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Data Frame From Json
+     * @description Create a data frame from JSON data using a JQ expression.
+     *
+     *     This endpoint accepts JSON data and a JQ expression that transforms/selects
+     *     the data into tabular format. The JQ expression determines what becomes rows and columns.
+     */
+    post: operations['create_data_frame_from_json_threads__tid__data_frames_from_json_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/threads/{tid}/data-frames': {
     parameters: {
       query?: never;
@@ -8245,6 +8268,19 @@ export interface components {
       /** Sql Query */
       sql_query: string | null;
     };
+    /** _DataFrameFromJsonPayload */
+    _DataFrameFromJsonPayload: {
+      /** Json Data */
+      json_data: {
+        [key: string]: unknown;
+      };
+      /** Jq Expression */
+      jq_expression?: string | null;
+      /** Name */
+      name?: string | null;
+      /** Description */
+      description?: string | null;
+    };
     /** _DataFrameInspectionAPI */
     _DataFrameInspectionAPI: {
       /** Thread Id */
@@ -12905,6 +12941,43 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['_DataFrameCreationAPI'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_data_frame_from_json_threads__tid__data_frames_from_json_post: {
+    parameters: {
+      query?: {
+        num_samples?: number;
+      };
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['_DataFrameFromJsonPayload'];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {

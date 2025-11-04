@@ -14,6 +14,7 @@ Table(columns, rows) shape).
 - `pytest` is used to run tests and tests should be done top-level (i.e.: not inside a class)
 - `pytest` should be run with `uv run python -m pytest <args>` from the root of the project.
 - The tests shouldn't be extensive, they should be focused on the new code and the new functionality.
+- `pyjaq` build details can be found at [koodivaja](https://github.com/Sema4AI/koodivaja/tree/master/josh/python-jq-wasm)
 
 ## To run integrated with Studio
 
@@ -84,6 +85,7 @@ REST APIs created:
 
 - threads/{thread_id}/inspect-file-as-data-frame (GET)
 - threads/{thread_id}/data-frames/from-file (POST)
+- threads/{thread_id}/data-frames/from-json (POST)
 - threads/{thread_id}/data-frames (GET)
 
 # Current implementation step:

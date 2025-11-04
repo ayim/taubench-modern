@@ -146,3 +146,6 @@ class KernelStub:
     def __init__(self, thread: ThreadStub, user: UserStub):
         self.thread = thread
         self.user = user
+        self.thread_state = None  # Add thread_state for new tools
+        # Provide minimal agent attribute expected by interface
+        self.agent = type("_Agent", (), {"extra": {}})()

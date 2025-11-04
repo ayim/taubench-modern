@@ -1,0 +1,22 @@
+column_headers:
+- doc_id
+- name
+- value
+description: null
+file_id: null
+file_ref: null
+input_id_type: in_memory
+name: selected_items
+num_columns: 3
+num_rows: 2
+parent_data_frame_ids: null
+sample_rows:
+- - DOC-789
+  - Item 1
+  - 100
+- - DOC-789
+  - Item 2
+  - 200
+sheet_name: null
+sql_dialect: null
+sql_query: null

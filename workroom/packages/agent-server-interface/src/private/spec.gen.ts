@@ -2464,6 +2464,69 @@ export const spec = {
         },
       },
     },
+    '/api/v2/threads/{tid}/data-frames/from-json': {
+      post: {
+        tags: ['threads'],
+        summary: 'Create Data Frame From Json',
+        description:
+          'Create a data frame from JSON data using a JQ expression.\n\nThis endpoint accepts JSON data and a JQ expression that transforms/selects\nthe data into tabular format. The JQ expression determines what becomes rows and columns.',
+        operationId:
+          'create_data_frame_from_json_threads__tid__data_frames_from_json_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+          {
+            name: 'num_samples',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              default: 0,
+              title: 'Num Samples',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/_DataFrameFromJsonPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/_DataFrameCreationAPI',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/threads/{tid}/data-frames': {
       get: {
         tags: ['threads'],
@@ -19810,6 +19873,51 @@ export const spec = {
           'sql_query',
         ],
         title: '_DataFrameCreationAPI',
+      },
+      _DataFrameFromJsonPayload: {
+        properties: {
+          json_data: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Json Data',
+          },
+          jq_expression: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Jq Expression',
+          },
+          name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Name',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+        },
+        type: 'object',
+        required: ['json_data'],
+        title: '_DataFrameFromJsonPayload',
       },
       _DataFrameInspectionAPI: {
         properties: {

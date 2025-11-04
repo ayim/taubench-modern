@@ -77,6 +77,27 @@ def base_url_agent_server(tmpdir, logs_dir, files_location):
         yield f"http://{host}:{port}"
 
 
+@pytest.fixture(scope="session")
+def base_url_agent_server_session(tmp_path_factory, base_logs_directory):
+    """Session-scoped agent server that starts once and is reused across all tests.
+
+    This is faster than function-scoped fixtures but requires tests to be independent
+    (create their own agents/threads) to avoid interference.
+    """
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
+    if start_server == "true":
+        tmpdir = tmp_path_factory.mktemp("agent_server_session")
+        logs_dir = base_logs_directory / "agent_server_session"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        with start_agent_server(tmpdir, logs_dir) as url:
+            yield url
+    else:
+        host = os.getenv("API_HOST", "localhost")
+        port = os.getenv("API_PORT", "8000")
+        yield f"http://{host}:{port}"
+
+
 @pytest.fixture
 def base_url_agent_server_with_data_frames(tmpdir, logs_dir, files_location):
     env_vars = {

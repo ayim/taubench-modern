@@ -138,6 +138,7 @@ function getRouteMap(): {
     'post /api/v2/package/inspect/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/platforms/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/threads/{tid}/data-frames/from-file': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/threads/{tid}/data-frames/from-json': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/document-intelligence/data-models/{model_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/package/deploy/agent/{aid}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/platforms/{platform_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],

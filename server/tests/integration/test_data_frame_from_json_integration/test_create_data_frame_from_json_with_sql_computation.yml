@@ -1,0 +1,19 @@
+column_headers:
+- product
+- total_value
+description: null
+file_id: null
+file_ref: null
+input_id_type: sql_computation
+name: high_value_sales
+num_columns: 2
+num_rows: 2
+parent_data_frame_ids:
+- sales_data
+sample_rows: []
+sheet_name: null
+sql_dialect: duckdb
+sql_query: "\n                SELECT\n                    product,\n             \
+  \       quantity * price as total_value\n                FROM sales_data\n     \
+  \           WHERE quantity * price > 50\n                ORDER BY total_value DESC\n\
+  \            "

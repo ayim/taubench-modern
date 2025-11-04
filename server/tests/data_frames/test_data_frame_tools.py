@@ -164,7 +164,10 @@ async def test_data_frames_interface_state(file_regression):
 
     assert interface.thread_has_data_frames is False
     tools = interface.get_data_frame_tools()
-    assert {t.name for t in tools} == {"data_frames_create_from_file"}
+    assert {t.name for t in tools} == {
+        "data_frames_create_from_file",
+        "data_frames_create_from_json",
+    }
     assert state.data_frames_tools_state == ""
 
     await storage_stub.create_in_memory_data_frame(
@@ -176,6 +179,7 @@ async def test_data_frames_interface_state(file_regression):
     assert state.data_frames_tools_state == "enabled"
     all_tools = {
         "data_frames_create_from_file",
+        "data_frames_create_from_json",
         "data_frames_slice",
         "data_frames_delete",
         "data_frames_create_from_sql",
@@ -289,6 +293,7 @@ async def test_data_frame_tools():
         tid=storage_stub.thread.tid,
         name_to_data_frame={d.name: d for d in data_frames},
         storage=typing.cast(BaseStorage, storage_stub),
+        thread_state=None,
     )
 
     rows = await tools.data_frame_slice(data_frame.name, limit=10)
@@ -317,7 +322,7 @@ async def test_data_frame_tools():
 
     assert await tools.delete_data_frame("test_data_frame_2") == {
         "error_code": "data_frame_not_found",
-        "error": "Data frame 'test_data_frame_2' not found",
+        "message": "Data frame 'test_data_frame_2' not found",
     }
 
 
@@ -403,6 +408,7 @@ async def test_semantic_data_models_engine_in_summary(
             self.user = _User(user_id)
             # Provide minimal agent attribute expected by interface
             self.agent = type("_Agent", (), {"extra": {}})()
+            self.thread_state = None  # Add thread_state for new tools
 
     kernel_stub = _KernelStub(thread, await model_creator.get_user_id())
 

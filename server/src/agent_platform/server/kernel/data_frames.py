@@ -1,6 +1,6 @@
 # ruff: noqa: E501
 import typing
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from structlog import get_logger
 
@@ -14,6 +14,7 @@ if typing.TYPE_CHECKING:
         SemanticDataModel,
     )
     from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
+    from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.data_frames.semantic_data_model_collector import (
@@ -22,6 +23,115 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.storage.base import BaseStorage
 
 logger = get_logger(__name__)
+
+
+def _clean_value_for_json(value: Any) -> Any:
+    """Clean a value for JSON/DataFrame storage.
+
+    Handles:
+    - Complex objects (dict/list) → JSON string
+    - NaN/None/inf → None
+    - Everything else → as-is
+    """
+    import json
+    import math
+
+    import pandas as pd
+
+    # Handle complex objects first (before pd.isna check)
+    if isinstance(value, dict | list):
+        return json.dumps(value, ensure_ascii=False)
+    # Handle NaN values (including float('nan'), pd.NA, np.nan, etc.)
+    elif pd.isna(value):
+        return None
+    # Handle inf/-inf values
+    elif isinstance(value, float) and (math.isinf(value) or math.isnan(value)):
+        return None
+    else:
+        return value
+
+
+async def create_data_frame_from_columns_and_rows(  # noqa: PLR0913
+    *,
+    columns: list[str],
+    rows: list[list],
+    name: str,
+    user_id: str,
+    agent_id: str,
+    thread_id: str,
+    storage: "BaseStorage",
+    description: str | None = None,
+    input_id_type: Literal["file", "sql_computation", "in_memory"] = "in_memory",
+    num_sample_rows: int = 10,
+    file_id: str | None = None,
+    file_ref: str | None = None,
+    sheet_name: str | None = None,
+) -> "PlatformDataFrame":
+    """Create a data frame from columns and rows data.
+
+    This shared implementation is used by both the kernel's auto-create functionality
+    and the API endpoint for creating data frames from raw data.
+
+    Args:
+        columns: List of column names
+        rows: List of rows, where each row is a list of values
+        name: Name for the data frame
+        user_id: User ID
+        agent_id: Agent ID
+        thread_id: Thread ID
+        storage: Storage instance to save the data frame
+        description: Optional description
+        input_id_type: Type of input (e.g., "in_memory", "file", "sql_computation")
+        num_sample_rows: Number of sample rows to store (for LLM context)
+        file_id: Optional file ID if created from a file
+        file_ref: Optional file reference if created from a file
+        sheet_name: Optional sheet name if created from a spreadsheet
+
+    Returns:
+        The created PlatformDataFrame
+    """
+    import datetime
+    import io
+    from uuid import uuid4
+
+    import pyarrow.parquet
+
+    from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+
+    # Convert rows and columns format to dictionary format for PyArrow
+    # This allows PyArrow to automatically infer the schema
+    col_data = list(zip(*rows, strict=True)) if rows else [[] for _ in columns]
+
+    # Build the table
+    pyarrow_df = pyarrow.Table.from_arrays([pyarrow.array(col) for col in col_data], names=columns)
+
+    stream = io.BytesIO()
+    pyarrow.parquet.write_table(pyarrow_df, stream)
+
+    sample_rows = rows[:num_sample_rows] if num_sample_rows > 0 else []
+
+    data_frame = PlatformDataFrame(
+        data_frame_id=str(uuid4()),
+        name=name,
+        description=description,
+        user_id=user_id,
+        agent_id=agent_id,
+        thread_id=thread_id,
+        num_rows=pyarrow_df.shape[0],
+        num_columns=pyarrow_df.shape[1],
+        column_headers=list(pyarrow_df.schema.names),
+        input_id_type=input_id_type,
+        created_at=datetime.datetime.now(datetime.UTC),
+        parquet_contents=stream.getvalue(),
+        computation_input_sources={},
+        extra_data=PlatformDataFrame.build_extra_data(sample_rows=sample_rows),
+        file_id=file_id,
+        file_ref=file_ref,
+        sheet_name=sheet_name,
+    )
+
+    await storage.save_data_frame(data_frame)
+    return data_frame
 
 
 def _handle_some_table_field(k: str, v: Any) -> str:
@@ -238,7 +348,11 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 self._data_connection_id_to_engine[data_connection.id] = data_connection.engine
 
         data_frame_tools = _DataFrameTools(
-            self.kernel.user, self.kernel.thread.thread_id, self._name_to_data_frame, storage
+            self.kernel.user,
+            self.kernel.thread.thread_id,
+            self._name_to_data_frame,
+            storage,
+            thread_state=self.kernel.thread_state,
         )
         if data_frames or previous_state == "enabled":
             if not previous_state:
@@ -248,6 +362,10 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 ToolDefinition.from_callable(
                     data_frame_tools.create_data_frame_from_file,
                     name="data_frames_create_from_file",
+                ),
+                ToolDefinition.from_callable(
+                    data_frame_tools.create_data_frame_from_json,
+                    name="data_frames_create_from_json",
                 ),
                 ToolDefinition.from_callable(
                     data_frame_tools.delete_data_frame, name="data_frames_delete"
@@ -260,12 +378,17 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 ),
             )
         else:
-            # Creating from a file should be always there (i.e.: the user should be able to
-            # create a data frame from a file even if there are no data frames yet).
+            # Creating from a file or JSON should be always there (i.e.: the user should be able to
+            # create a data frame from a file or JSON data even if there are no data frames yet).
+            # Transform should also be available for general JSON manipulation.
             self._data_frame_tools = (
                 ToolDefinition.from_callable(
                     data_frame_tools.create_data_frame_from_file,
                     name="data_frames_create_from_file",
+                ),
+                ToolDefinition.from_callable(
+                    data_frame_tools.create_data_frame_from_json,
+                    name="data_frames_create_from_json",
                 ),
             )
 
@@ -440,52 +563,28 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         description: str | None = None,
         storage: "BaseStorage | None" = None,
     ) -> "PlatformDataFrame":
-        import datetime
-        import io
-        from uuid import uuid4
+        """Create an in-memory data frame from columns and rows.
 
-        import pyarrow
-        import pyarrow.parquet
-
-        from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+        This is a wrapper around create_data_frame_from_columns_and_rows that provides
+        the necessary context from the kernel.
+        """
         from agent_platform.server.storage.option import StorageService
 
-        columns = contents["columns"]
-        rows = contents["rows"]
+        storage = StorageService.get_instance() if storage is None else storage
 
-        # Convert rows and columns format to dictionary format for PyArrow
-        # This allows PyArrow to automatically infer the schema
-        col_data = list(zip(*rows, strict=True)) if rows else [[] for _ in columns]
-
-        # Build the table
-        pyarrow_df = pyarrow.Table.from_arrays(
-            [pyarrow.array(col) for col in col_data], names=columns
-        )
-
-        stream = io.BytesIO()
-        pyarrow.parquet.write_table(pyarrow_df, stream)
-
-        sample_rows = rows[:10]
-
-        data_frame = PlatformDataFrame(
-            data_frame_id=str(uuid4()),
+        data_frame = await create_data_frame_from_columns_and_rows(
+            columns=contents["columns"],
+            rows=contents["rows"],
             name=name,
             description=description,
             user_id=self.kernel.thread.user_id,
             agent_id=self.kernel.thread.agent_id,
             thread_id=self.kernel.thread.thread_id,
-            num_rows=pyarrow_df.shape[0],
-            num_columns=pyarrow_df.shape[1],
-            column_headers=list(pyarrow_df.schema.names),
+            storage=storage,
             input_id_type="in_memory",
-            created_at=datetime.datetime.now(datetime.UTC),
-            parquet_contents=stream.getvalue(),
-            computation_input_sources={},
-            extra_data=PlatformDataFrame.build_extra_data(sample_rows=sample_rows),
+            num_sample_rows=10,
         )
 
-        storage = StorageService.get_instance() if storage is None else storage
-        await storage.save_data_frame(data_frame)
         self._name_to_data_frame[name] = data_frame
         return data_frame
 
@@ -572,6 +671,7 @@ class _DataFrameTools:
         tid: str,
         name_to_data_frame: "dict[str, PlatformDataFrame]",
         storage: "BaseStorage",
+        thread_state: "ThreadStateInterface | None" = None,
     ):
         assert isinstance(name_to_data_frame, dict), (
             f"Expected a dict, got {type(name_to_data_frame)}"
@@ -580,6 +680,7 @@ class _DataFrameTools:
         self._tid = tid
         self._name_to_data_frame = name_to_data_frame
         self._storage = storage
+        self._thread_state = thread_state
 
     def _create_data_frames_kernel(self) -> "DataFramesKernel":
         from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
@@ -622,9 +723,209 @@ class _DataFrameTools:
             num_samples=num_samples,
         )
         ret_as_dict = asdict(ret)
+        # Remove binary data that can't be JSON serialized
+        ret_as_dict.pop("parquet_contents", None)
         if "created_at" in ret_as_dict:
             ret_as_dict["created_at"] = ret_as_dict["created_at"].isoformat()
         return ret_as_dict
+
+    async def create_data_frame_from_json(
+        self,
+        data_frame_name: Annotated[
+            str,
+            "The name of the data frame to create. The name must be unique in the thread.",
+        ],
+        tool_call_ref_or_json_data: Annotated[
+            str,
+            """A previous tool call result (or alternatively the JSON data) to convert.
+
+            This can be:
+            1. A message reference using out.tool_name[index] format, where the index is 1-indexed and
+            tool_name is actually the name of the tool that you want to get the result from, e.g: parse_document.
+            Examples:
+               - out.extract_document[1] = Get result from 1st call to extract_document
+               - out.extract_document[3] = Get result from 3rd call to extract_document
+               - out.extract_document[-1] = Get result from last call to extract_document
+               - out.parse_document[-2] = Get result from second to last call to parse_document
+            2. A JSON string: '{\"items\": [{\"product\": \"A\", \"price\": 10}]}'
+
+            When using a reference, the tool will look for the tool result
+            and use it as the JSON data.
+            Always try to use a reference when possible instead of copying JSON.
+            """,
+        ],
+        jq_expression: Annotated[
+            str | None,
+            """JQ expression to transform/select the JSON data into tabular format.
+            If not provided, the JSON data is used as is.
+
+            NOTE: We use pyjaq (stricter than standard jq).
+
+            Common patterns:
+            - Extract array of objects: '.items[]' - each object becomes a row
+            - Filter and extract: '.items[] | select(.price > 10)'
+            - Create custom columns: '.items[] | {code, total: (.price * .qty)}'
+            - Navigate nested data: '.invoice.line_items[]'
+            - Use variables: '.items[] | select(.price > 10) as $item | {code: $item.code}'
+            - Remove non-numeric chars: 'gsub("[^0-9.]";"")'
+
+            Best Practices:
+            - Keep expressions simple and prefer one-liners
+            - Use contains("text") instead of regex test() when possible
+            - Always return structured JSON (objects/arrays), not raw text
+            - Use 'as $var' for temporary variables to improve readability
+
+            Avoid:
+            - Escaped parentheses or dollar signs (\\(, \\$) - use plain syntax
+            - Extra quotes around the entire expression
+            - Mixing shell quoting rules
+            - Building expressions with string concatenation or f-strings
+            - jq-only extensions not in jaq (like sub() with flags)
+            """,
+        ],
+        description: Annotated[str | None, "The description for the data frame."] = None,
+        num_samples: Annotated[int, "The number of samples to return for each data frame."] = 0,
+    ) -> dict[str, Any]:
+        """Creates a data frame from JSON data using JQ to select and transform data.
+
+        This tool:
+        1. Gets JSON data (either directly or by looking up a tool call's output)
+        2. Applies a JQ expression to extract/transform into tabular format
+        3. Converts the result to a DataFrame
+        """
+        # Use _transform_json to handle JSON parsing, reference lookup, and JQ transformation
+        # If no jq_expression provided, use identity transform to pass through the data
+        effective_jq_expression = jq_expression if jq_expression is not None else "."
+
+        transform_result = await self._transform_json(
+            tool_call_ref_or_json_data, effective_jq_expression
+        )
+
+        if "error_code" in transform_result:
+            return transform_result
+
+        # Extract the transformed data
+        transformed_data = transform_result["result"]
+
+        from agent_platform.server.api.private_v2.threads_data_frames import (
+            _convert_jq_result_to_columns_rows,
+        )
+
+        try:
+            columns, rows = _convert_jq_result_to_columns_rows(transformed_data)
+        except ValueError as e:
+            error_msg = str(e)
+            if "empty array" in error_msg:
+                return {
+                    "error_code": "empty_result",
+                    "message": error_msg,
+                }
+            else:
+                return {
+                    "error_code": "invalid_jq_result",
+                    "message": error_msg,
+                }
+
+        from dataclasses import asdict
+
+        from agent_platform.core.data_frames.data_frames import DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT
+
+        # Determine the number of samples to use
+        if num_samples < 0:
+            use_num_samples = num_samples
+        else:
+            use_num_samples = max(num_samples, DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT)
+
+        # Get the thread to find the agent_id
+        thread = await self._storage.get_thread(self._user.user_id, self._tid)
+        if not thread:
+            return {
+                "error_code": "thread_not_found",
+                "message": f"Thread {self._tid!r} not found",
+            }
+
+        # Create the data frame
+        ret = await create_data_frame_from_columns_and_rows(
+            columns=columns,
+            rows=rows,
+            name=data_frame_name,
+            user_id=self._user.user_id,
+            agent_id=thread.agent_id,
+            thread_id=self._tid,
+            storage=self._storage,
+            description=description,
+            input_id_type="in_memory",
+            num_sample_rows=use_num_samples,
+        )
+
+        ret_as_dict = asdict(ret)
+        # Remove binary data that can't be JSON serialized
+        ret_as_dict.pop("parquet_contents", None)
+        if "created_at" in ret_as_dict:
+            ret_as_dict["created_at"] = ret_as_dict["created_at"].isoformat()
+        return ret_as_dict
+
+    async def _transform_json(
+        self,
+        tool_call_ref_or_json_data: Annotated[
+            str,
+            "A previous tool call result (or alternatively the JSON data) to convert.",
+        ],
+        jq_expression: Annotated[
+            str,
+            """JQ expression to transform/filter the JSON data.""",
+        ],
+    ) -> dict:
+        """Transforms JSON data using a JQ expression.
+
+        This tool:
+        1. Gets JSON data (either directly or by looking up a tool call's output)
+        2. Applies a JQ expression to transform/filter the data
+        3. Returns the transformed JSON
+
+        Use this when you need to extract, filter, or transform JSON data
+        without creating a DataFrame.
+        """
+        import json
+
+        # Step 1: Try to parse as JSON directly
+        try:
+            _parsed_json_data = json.loads(tool_call_ref_or_json_data)
+        except (json.JSONDecodeError, TypeError):
+            # Not JSON, must be a message reference (out.tool_name[index])
+            ref = tool_call_ref_or_json_data.strip()
+
+            if self._thread_state is None:
+                return {
+                    "error_code": "thread_state_not_available",
+                    "message": "Thread state is not available for message reference lookup",
+                }
+
+            from agent_platform.server.kernel.thread_utils import get_tool_result_by_ref
+
+            result = get_tool_result_by_ref(self._thread_state, ref)
+
+            if isinstance(result, dict) and "error_code" in result:
+                return result
+
+            _parsed_json_data = result
+
+        from agent_platform.orchestrator._jq_transform import apply_jq_transform
+
+        try:
+            transformed_data = apply_jq_transform(_parsed_json_data, jq_expression)
+        except NotImplementedError as e:
+            return {
+                "error_code": "not_implemented",
+                "message": str(e),
+            }
+        except Exception as e:
+            return {
+                "error_code": "jq_error",
+                "message": f"Error applying JQ expression: {e!s}",
+            }
+
+        return {"result": transformed_data}
 
     async def delete_data_frame(
         self,
@@ -634,7 +935,7 @@ class _DataFrameTools:
         if data_frame_name not in self._name_to_data_frame:
             return {
                 "error_code": "data_frame_not_found",
-                "error": f"Data frame {data_frame_name!r} not found",
+                "message": f"Data frame {data_frame_name!r} not found",
             }
 
         try:
@@ -644,7 +945,7 @@ class _DataFrameTools:
             logger.exception(f"Error deleting data frame {data_frame_name} in thread {self._tid}")
             return {
                 "error_code": "unable_to_delete_data_frame",
-                "error": (
+                "message": (
                     f"Unable to delete data frame {data_frame_name!r} in thread {self._tid}. "
                     f"Error: {e!r}"
                 ),
@@ -671,20 +972,20 @@ class _DataFrameTools:
         if data_frame is None:
             return {
                 "error_code": "data_frame_not_found",
-                "error": f"Data frame {data_frame_name!r} not found",
+                "message": f"Data frame {data_frame_name!r} not found",
             }
 
         if limit <= 0:
             return {
                 "error_code": "invalid_limit",
-                "error": "limit must be > 0",
+                "message": "limit must be > 0",
             }
 
         max_limit = 500
         if limit > max_limit:
             return {
                 "error_code": "invalid_limit",
-                "error": f"limit must be <= {max_limit}",
+                "message": f"limit must be <= {max_limit}",
             }
 
         try:
@@ -708,7 +1009,7 @@ class _DataFrameTools:
             logger.exception(f"Error slicing data frame {data_frame_name} in thread {self._tid}")
             return {
                 "error_code": "unable_to_sample_data_frame",
-                "error": f"Unable to sample data frame. Error: {e!r}",
+                "message": f"Unable to sample data frame. Error: {e!r}",
             }
 
     async def create_data_frame_from_sql(

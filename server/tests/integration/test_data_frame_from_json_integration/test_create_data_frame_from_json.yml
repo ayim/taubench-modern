@@ -1,0 +1,19 @@
+column_headers:
+- date
+- invoice_number
+- total
+description: null
+file_id: null
+file_ref: null
+input_id_type: in_memory
+name: simple_invoice
+num_columns: 3
+num_rows: 1
+parent_data_frame_ids: null
+sample_rows:
+- - '2024-01-15'
+  - INV-123
+  - 1000.5
+sheet_name: null
+sql_dialect: null
+sql_query: null

@@ -1,0 +1,18 @@
+column_headers:
+- x
+- y
+description: null
+file_id: null
+file_ref: null
+input_id_type: in_memory
+num_columns: 2
+num_rows: 2
+parent_data_frame_ids: null
+sample_rows:
+- - 1
+  - 2
+- - 3
+  - 4
+sheet_name: null
+sql_dialect: null
+sql_query: null

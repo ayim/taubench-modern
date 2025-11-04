@@ -755,6 +755,68 @@ class AgentServerClient:
             ) from e
         return response.json()
 
+    def create_data_frame_from_json(
+        self,
+        thread_id: str,
+        json_data: dict,
+        jq_expression: str | None = None,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> dict:
+        """
+        Create a data frame from JSON data using a JQ expression to transform it into
+        tabular format.
+
+        Args:
+            thread_id: The ID of the thread to create the data frame in
+            json_data: The JSON data to transform into a data frame
+            jq_expression: JQ expression to transform/select the JSON data into
+                tabular format. The JQ expression determines what data becomes rows
+                and columns.
+
+                Common patterns:
+                - Extract array of objects: '.items[]' - each object becomes a row
+                - Filter and extract: '.items[] | select(.price > 10)'
+                - Create custom columns: '.items[] | {code, total: (.price * .qty)}'
+                - Navigate nested data: '.invoice.line_items[]'
+                - Combine root and array fields:
+                  '. as $root | .items[] | {seller: $root.seller, item: .name}'
+
+                The JQ result should be:
+                - Array of objects: [{col1: val1, col2: val2}, ...] - becomes rows
+                - Single object: {col1: val1, col2: val2} - becomes single row
+
+                Example: If JSON is {"items": [{"code": "A", "price": 10}]}
+                Use jq_expression='.items[]' to get a DataFrame with [code, price]
+            name: Optional name for the data frame
+            description: Optional description for the data frame
+
+        Returns:
+            The created data frame information
+
+        Raises:
+            HTTPError: If the data frame could not be created
+        """
+        # Call the from-json endpoint
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames/from-json")
+        payload: dict[str, Any] = {
+            "json_data": json_data,
+            "jq_expression": jq_expression,
+        }
+        if name is not None:
+            payload["name"] = name
+        if description is not None:
+            payload["description"] = description
+
+        response = requests.post(url, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error creating data frame from JSON: {response.status_code} {response.text}",
+            ) from e
+        return response.json()
+
     def get_data_frames(self, thread_id: str, num_samples: int = 0) -> list[dict]:
         url = urljoin(self.base_url + "/", f"threads/{thread_id}/data-frames")
         response = requests.get(url, params={"num_samples": num_samples})

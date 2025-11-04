@@ -8,6 +8,7 @@ from fastapi.routing import APIRouter
 from pydantic.main import BaseModel
 from structlog.stdlib import get_logger
 
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
@@ -736,6 +737,191 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         input_id_type="file",
         parent_data_frame_ids=None,
         sql_dialect=sql_dialect,
+        sql_query=None,
+    )
+
+
+@dataclasses.dataclass
+class _DataFrameFromJsonPayload:
+    json_data: Annotated[dict, "The JSON data to convert to a DataFrame."]
+    jq_expression: Annotated[
+        str | None,
+        "JQ expression to transform/select the JSON data into tabular format. "
+        "If not provided, the JSON data is used as is.",
+    ] = None
+    name: Annotated[str | None, "The name for the data frame."] = None
+    description: Annotated[str | None, "The description for the data frame."] = None
+
+
+def _generate_data_frame_name(provided_name: str | None) -> str:
+    """Generate a valid data frame name from the provided name or create a default one."""
+    import keyword
+    import uuid
+
+    from agent_platform.core.errors.base import PlatformError
+    from sema4ai.common.text import slugify
+
+    if not provided_name:
+        return f"data_frame_{str(uuid.uuid4())[:8]}"
+
+    use_name = slugify(provided_name).replace("-", "_")
+    if not use_name.isidentifier() or keyword.iskeyword(use_name):
+        use_name = f"data_{use_name}"
+
+    if not use_name.isidentifier() or keyword.iskeyword(use_name):
+        raise PlatformError(
+            message=(
+                "It was not possible to generate a valid name for the data frame. "
+                f"Please provide a valid Python identifier (provided name: {provided_name!r}, "
+                f"auto-generated name: {use_name!r})."
+            )
+        )
+
+    return use_name
+
+
+def _convert_jq_result_to_columns_rows(
+    transformed_data: dict | list,
+) -> tuple[list[str], list[list]]:
+    """Convert JQ transformation result to columns and rows format.
+
+    Raises:
+        ValueError: If the transformed data is not in the expected format.
+    """
+    from agent_platform.server.kernel.data_frames import _clean_value_for_json
+
+    if isinstance(transformed_data, dict):
+        # Single object - one row
+        columns = list(transformed_data.keys())
+        rows = [[_clean_value_for_json(transformed_data[col]) for col in columns]]
+        return columns, rows
+    elif isinstance(transformed_data, list):
+        if not transformed_data:
+            raise ValueError("JQ expression returned empty array")
+        if not all(isinstance(item, dict) for item in transformed_data):
+            raise ValueError("JQ expression must return object(s), not primitive values")
+
+        dict_list = typing.cast(list[dict], transformed_data)
+        columns = []
+        for item in dict_list:
+            for key in item.keys():
+                if key not in columns:
+                    columns.append(key)
+
+        rows = []
+        for item in dict_list:
+            row = [_clean_value_for_json(item.get(col)) for col in columns]
+            rows.append(row)
+        return columns, rows
+    else:
+        raise ValueError("JQ expression must return an object or array of objects")
+
+
+@router.post("/{tid}/data-frames/from-json")
+async def create_data_frame_from_json(
+    payload: _DataFrameFromJsonPayload,
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+    num_samples: Annotated[
+        int,
+        """The number of samples to return for each data frame.
+
+        If 0, no samples are returned.
+        If -1, all samples are returned.
+        If a positive number, return up to that number of samples.
+        """,
+    ] = 0,
+) -> _DataFrameCreationAPI:
+    """Create a data frame from JSON data using a JQ expression.
+
+    This endpoint accepts JSON data and a JQ expression that transforms/selects
+    the data into tabular format. The JQ expression determines what becomes rows and columns.
+    """
+    from agent_platform.orchestrator._jq_transform import apply_jq_transform
+
+    from agent_platform.core.data_frames.data_frames import DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT
+    from agent_platform.server.kernel.data_frames import create_data_frame_from_columns_and_rows
+    from agent_platform.server.storage.base import BaseStorage
+
+    base_storage = typing.cast(BaseStorage, storage)
+
+    # Get the thread to find the agent_id
+    thread = await base_storage.get_thread(user.user_id, tid)
+    if not thread:
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="Thread not found")
+
+    # Apply JQ transformation
+    if payload.jq_expression is None:
+        transformed_data = payload.json_data
+    else:
+        try:
+            transformed_data = apply_jq_transform(payload.json_data, payload.jq_expression)
+        except Exception as e:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST, message=f"Error applying JQ expression: {e!s}"
+            ) from e
+
+    # Validate that transformed_data is dict or list (not a scalar)
+    if not isinstance(transformed_data, dict | list):
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=(
+                f"JQ expression must return an object or array to convert into a data frame, "
+                f"got {type(transformed_data).__name__}"
+            ),
+        )
+
+    try:
+        columns, rows = _convert_jq_result_to_columns_rows(transformed_data)
+    except ValueError as e:
+        raise PlatformHTTPError(error_code=ErrorCode.BAD_REQUEST, message=str(e)) from e
+
+    # Create the data frame
+    if num_samples < 0:
+        use_num_samples = num_samples
+    else:
+        use_num_samples = max(num_samples, DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT)
+
+    data_frame_name = payload.name or _generate_data_frame_name(payload.name)
+
+    data_frame = await create_data_frame_from_columns_and_rows(
+        columns=columns,
+        rows=rows,
+        name=data_frame_name,
+        user_id=user.user_id,
+        agent_id=thread.agent_id,
+        thread_id=tid,
+        storage=base_storage,
+        description=payload.description,
+        input_id_type="in_memory",
+        num_sample_rows=use_num_samples,
+    )
+
+    # Get sample rows to return
+    if use_num_samples == -1:
+        sample_rows = rows
+    elif use_num_samples > 0:
+        sample_rows = rows[:use_num_samples]
+    else:
+        sample_rows = []
+
+    return _DataFrameCreationAPI(
+        data_frame_id=data_frame.data_frame_id,
+        thread_id=data_frame.thread_id,
+        name=data_frame.name,
+        sheet_name=None,
+        description=data_frame.description,
+        num_rows=data_frame.num_rows,
+        num_columns=data_frame.num_columns,
+        created_at=data_frame.created_at,
+        column_headers=data_frame.column_headers,
+        sample_rows=sample_rows,
+        file_id=None,
+        file_ref=None,
+        input_id_type="in_memory",
+        parent_data_frame_ids=None,
+        sql_dialect=None,
         sql_query=None,
     )
 

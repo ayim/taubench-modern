@@ -1,0 +1,82 @@
+data_frames:
+- column_headers:
+  - age
+  - city
+  - name
+  description: null
+  file_id: null
+  file_ref: null
+  input_id_type: in_memory
+  name: customers
+  num_columns: 3
+  num_rows: 2
+  parent_data_frame_ids: []
+  sample_rows: []
+  sheet_name: null
+  sql_dialect: null
+  sql_query: null
+- column_headers:
+  - id
+  - name
+  - price
+  description: null
+  file_id: null
+  file_ref: null
+  input_id_type: in_memory
+  name: products
+  num_columns: 3
+  num_rows: 3
+  parent_data_frame_ids: []
+  sample_rows: []
+  sheet_name: null
+  sql_dialect: null
+  sql_query: null
+result_1:
+  column_headers:
+  - age
+  - city
+  - name
+  description: null
+  file_id: null
+  file_ref: null
+  input_id_type: in_memory
+  name: customers
+  num_columns: 3
+  num_rows: 2
+  parent_data_frame_ids: null
+  sample_rows:
+  - - 30
+    - NYC
+    - Alice
+  - - 25
+    - LA
+    - Bob
+  sheet_name: null
+  sql_dialect: null
+  sql_query: null
+result_2:
+  column_headers:
+  - id
+  - name
+  - price
+  description: null
+  file_id: null
+  file_ref: null
+  input_id_type: in_memory
+  name: products
+  num_columns: 3
+  num_rows: 3
+  parent_data_frame_ids: null
+  sample_rows:
+  - - P1
+    - Widget
+    - 19.99
+  - - P2
+    - Gadget
+    - 29.99
+  - - P3
+    - Tool
+    - 39.99
+  sheet_name: null
+  sql_dialect: null
+  sql_query: null

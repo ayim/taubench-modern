@@ -1,11 +1,12 @@
 import argparse
+import glob
 import os
 import pprint
 import sys
+from pathlib import Path
+
 import pkg_resources
 import PyInstaller
-
-from pathlib import Path
 from PyInstaller.building.api import COLLECT, EXE, PYZ
 from PyInstaller.building.build_main import Analysis
 from PyInstaller.log import logger
@@ -14,6 +15,7 @@ from PyInstaller.utils.hooks import (
     collect_data_files,
     collect_submodules,
     copy_metadata,
+    get_package_paths,
 )
 
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
@@ -102,6 +104,27 @@ psyco_binary_datas, psyco_binary_binaries, psyco_binary_hiddenimports = collect_
 )
 di_datas, di_binaries, di_hiddenimports = collect_all("sema4ai_docint")
 
+# Handle wasmtime: ensure native lib is placed in the correct platform subdir
+wasmtime_datas, wasmtime_binaries, wasmtime_hiddenimports = collect_all("wasmtime")
+pkg_base, pkg_dir = get_package_paths("wasmtime")
+# Find any _libwasmtime.* shipped by the wheel (handles Linux/macOS/Windows)
+lib_candidates = glob.glob(os.path.join(pkg_dir, "*", "_libwasmtime.*"))
+# Copy each to wasmtime/<platform>/ to match runtime expectations
+for lib in lib_candidates:
+    platform_dir = os.path.basename(os.path.dirname(lib))  # e.g., linux-x86_64, darwin-aarch64
+    wasmtime_binaries.append((lib, os.path.join("wasmtime", platform_dir)))
+
+# Handle pyjaq: ensure jaq.wasm is included
+pyjaq_datas, pyjaq_binaries, pyjaq_hiddenimports = collect_all("pyjaq")
+pkg_base, pkg_dir = get_package_paths("pyjaq")
+jaq_wasm_file = os.path.join(pkg_dir, "data", "jaq.wasm")
+if not os.path.exists(jaq_wasm_file):
+    raise FileNotFoundError(
+        f"Required pyjaq WASM file not found: {jaq_wasm_file}\n"
+        f"This file is essential for JQ transformations to work."
+    )
+pyjaq_datas.append((jaq_wasm_file, "pyjaq/data"))
+
 
 # Add explicit psycopg binary imports - these are the core components needed
 psycopg_hiddenimports.extend(
@@ -141,6 +164,8 @@ ALL_BINARIES = [
     *numpy_binaries,
     *pandas_binaries,
     *numpy_libs_binaries,
+    *wasmtime_binaries,
+    *pyjaq_binaries,
 ]
 
 ALL_DATAS = [
@@ -180,6 +205,8 @@ ALL_DATAS = [
     *ibis_metadata,
     *numpy_datas,
     *pandas_datas,
+    *wasmtime_datas,
+    *pyjaq_datas,
 ]
 
 
@@ -216,6 +243,8 @@ a = Analysis(
         *sqlglot_hiddenimports,
         *numpy_hiddenimports,
         *pandas_hiddenimports,
+        *wasmtime_hiddenimports,
+        *pyjaq_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},

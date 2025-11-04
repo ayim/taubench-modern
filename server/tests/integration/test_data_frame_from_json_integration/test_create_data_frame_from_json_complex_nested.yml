@@ -1,0 +1,31 @@
+column_headers:
+- company_name
+- hours
+- invoice_number
+- product
+- rate
+- total
+description: null
+file_id: null
+file_ref: null
+input_id_type: in_memory
+name: complex_invoice
+num_columns: 6
+num_rows: 2
+parent_data_frame_ids: null
+sample_rows:
+- - ACME Corp
+  - 40
+  - INV-2024-001
+  - Professional Services
+  - 150.0
+  - 6000.0
+- - ACME Corp
+  - null
+  - INV-2024-001
+  - Software License
+  - 500.0
+  - 500.0
+sheet_name: null
+sql_dialect: null
+sql_query: null
