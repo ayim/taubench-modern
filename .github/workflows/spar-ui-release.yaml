@@ -43,6 +43,7 @@ jobs:
           EOF
 
       - name: Install Dependencies
+        working-directory: ./workroom/
         run: npm ci
 
       - name: Build package
