@@ -314,6 +314,8 @@ export const getConfiguration = (): Configuration => {
     },
     workroomMeta: {
       features: {
+        // For ACE the values are defined here: https://github.com/Sema4AI/ace/blob/86a89c91c3d6f3623992e7a952a2cccb26b5059f/applications/router-service/src/interface.ts#L205
+        // SPAR & SPCS: defined here - anything that is SPAR Only will be disabled in SPCS
         mcpServersManagement: sparOnlyFeature,
         deploymentWizard: sparOnlyFeature,
         agentAuthoring: sparOnlyFeature,
@@ -321,6 +323,7 @@ export const getConfiguration = (): Configuration => {
         agentEvals: sparOnlyFeature,
         documentIntelligence: sparOnlyFeature,
         semanticDataModels: sparOnlyFeature,
+        workerAgents: sparOnlyFeature,
         developerMode: {
           enabled: true,
           reason: null,

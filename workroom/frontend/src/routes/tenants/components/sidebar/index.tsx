@@ -102,13 +102,15 @@ export const Sidebar: FC = () => {
               </RouterSideNavigationLink>
             )}
 
-            <RouterSideNavigationLink
-              icon={<IconFileText />}
-              to="/tenants/$tenantId/workItems/overview"
-              params={{ tenantId }}
-            >
-              Work Items
-            </RouterSideNavigationLink>
+            {features.workerAgents.enabled && (
+              <RouterSideNavigationLink
+                icon={<IconFileText />}
+                to="/tenants/$tenantId/workItems/overview"
+                params={{ tenantId }}
+              >
+                Work Items
+              </RouterSideNavigationLink>
+            )}
 
             {shouldDisplayConfigurationSidebarLink({ features }) && (
               <RouterSideNavigationLink

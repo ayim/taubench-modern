@@ -43,6 +43,10 @@ export const TenantContext = createContext<TenantMeta>({
       enabled: false,
       reason: '',
     },
+    workerAgents: {
+      enabled: false,
+      reason: '',
+    },
   },
 });
 

@@ -90,6 +90,10 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         enabled: true,
         reason: null,
       },
+      workerAgents: {
+        enabled: true,
+        reason: null,
+      },
     },
   },
 });
