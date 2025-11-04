@@ -2,10 +2,10 @@ import { createBasicAgentConfig } from '../client';
 import { ActionPackage, McpServer, QuestionGroup, ToolDefinitionPayload, UpsertAgentPayload } from '../types';
 import { createSimpleTool } from '../../sdk/tools';
 import { GenericAgentOptions } from './generic';
-import { SAI_AGENT_SETUP_RUNBOOK } from './agentSetupRunbooks/agentSetupRunbook';
+import { SAI_AGENT_SETUP_RUNBOOK } from './agentSetupRunbooks/theRunbook';
 
 const SAI_AGENT_SETUP_NAME = 'sai-sdk-agent-setup';
-const SAI_AGENT_SETUP_DESCRIPTION = 'Sai SDK Agent Setup';
+const SAI_AGENT_SETUP_DESCRIPTION = 'Sai Expert Agent Setup';
 
 type AgentSetupTools = {
   callbackSetNameAndDescription: (name: string, description: string) => void;
@@ -48,7 +48,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   // Set the description of the agent
   const setNameAndDescriptionTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_name_and_description',
-    'Set the name and description of the agent',
+    '⚠️ PHASE 3 ONLY - DO NOT USE IN PHASE 1 OR 2 ⚠️ Set the name and description of the agent. Only call this tool after user has approved and moved to Phase 3.',
   )
     .addStringProperty('description', 'The description of the agent')
     .addStringProperty('name', 'The name of the agent')
@@ -62,7 +62,10 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   tools.push(setNameAndDescriptionTool);
 
   // Set the runbook of the agent
-  const setRunbookTool: ToolDefinitionPayload = createSimpleTool('set_agent_runbook', 'Set the runbook of the agent')
+  const setRunbookTool: ToolDefinitionPayload = createSimpleTool(
+    'set_agent_runbook',
+    '⚠️ PHASE 3 ONLY - DO NOT USE IN PHASE 1 OR 2 ⚠️ Set the runbook of the agent. Only call this tool after user has approved and moved to Phase 3.',
+  )
     .addStringProperty('runbook', 'The runbook of the agent')
     .addRequired('runbook')
     .setCallback((i) => agentSetupTools.callbackSetRunbook(i.runbook))
@@ -73,7 +76,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   // Set the action packages of the agent
   const setActionPackagesTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_action_packages',
-    'Set the action packages of the agent',
+    '⚠️ PHASE 3 ONLY - DO NOT USE IN PHASE 1 OR 2 ⚠️ Set the action packages of the agent. Only call this tool after user has approved and moved to Phase 3.',
   )
     .addArrayProperty(
       'action_packages',
@@ -97,7 +100,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   // Set the MCP servers of the agent
   const setMcpServersTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_mcp_servers',
-    'Set the MCP servers of the agent',
+    '⚠️ PHASE 3 ONLY - DO NOT USE IN PHASE 1 OR 2 ⚠️ Set the MCP servers of the agent. Only call this tool after user has approved and moved to Phase 3.',
   )
     .addArrayProperty(
       'mcp_servers',
@@ -117,7 +120,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   // Set the conversation starter of the agent
   const setConversationStarterTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_conversation_starter',
-    'Set the conversation starter of the agent',
+    '⚠️ PHASE 3 ONLY - DO NOT USE IN PHASE 1 OR 2 ⚠️ Set the conversation starter of the agent. Only call this tool after user has approved and moved to Phase 3.',
   )
     .addStringProperty('conversation_starter', 'The conversation starter of the agent')
     .addRequired('conversation_starter')
@@ -129,7 +132,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   // Set the question groups of the agent
   const setQuestionGroupsTool: ToolDefinitionPayload = createSimpleTool(
     'set_agent_conversation_guide',
-    'Set the question groups of the agent',
+    '⚠️ PHASE 3 ONLY - DO NOT USE IN PHASE 1 OR 2 ⚠️ Set the question groups of the agent. Only call this tool after user has approved and moved to Phase 3.',
   )
     .addArrayProperty(
       'question_groups',
@@ -149,7 +152,7 @@ export function configureSaiAgentSetupTools(agentSetupTools: AgentSetupTools): T
   // On complete
   const onCompleteTool: ToolDefinitionPayload = createSimpleTool(
     'on_complete',
-    'To be called when the agent setup is complete',
+    '⚠️ PHASE 3 ONLY - DO NOT USE IN PHASE 1 OR 2 ⚠️ To be called when the agent setup is complete (Step 7 of Phase 3). Only call this tool after all previous steps in Phase 3 are complete.',
   )
     .setCallback(() => agentSetupTools.callbackOnComplete())
     .setCategory('client-info-tool')

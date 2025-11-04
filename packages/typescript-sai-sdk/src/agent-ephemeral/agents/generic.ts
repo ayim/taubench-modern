@@ -3,7 +3,7 @@ import { createBasicAgentConfig } from '../client';
 import { ActionPackage, AgentArchitecture, McpServer, ToolDefinitionPayload, UpsertAgentPayload } from '../types';
 
 const SAI_GENERIC_AGENT_NAME = 'sai-sdk-generic-agent';
-const SAI_GENERIC_AGENT_DESCRIPTION = 'Sai SDK Generic Agent';
+const SAI_GENERIC_AGENT_DESCRIPTION = 'Sai General Purpose Agent';
 const SAI_GENERIC_AGENT_RUNBOOK = `
 ## OBJECTIVE
 You are Sai.

@@ -10,6 +10,12 @@ import type { ToolDefinitionPayload } from '../../src/agent-ephemeral/types';
 import { AGENT_SETUP_CONTEXT } from '../helpers/context';
 import { createSaiGenericAgentConfig } from '../../src/agent-ephemeral/agents/generic';
 
+const CONVERSATION_GUIDE = [
+  'Build an agent that uses Wikipedia for fact-checking.',
+  'Build an agent that retrieves transcripts from YouTube videos and provides a summary.',
+  'Build an agent that uses Zendesk to help with customer support.',
+];
+
 export interface EphemeralAgentChatProps {
   baseUrl: string;
   apiKey: string;
@@ -149,7 +155,11 @@ export const EphemeralAgentChat: React.FC<EphemeralAgentChatProps> = ({
             },
             callbackSetConversationGuide: (conversationGuide: SaiAgentEphemeral.QuestionGroup[]) => {
               // console.warn('[TEST - CLIENT TOOLS] Set conversation guide:', conversationGuide);
-              const toolCallMsg = `set_conversation_guide called with conversation guide: ${conversationGuide.map((questionGroup) => questionGroup.title).join(', ')}`;
+              const toolCallMsg = `set_conversation_guide called with conversation guide: ${conversationGuide
+                .map((questionGroup) => {
+                  return `Title: ${questionGroup.title} & Questions: ${questionGroup?.questions?.join(' + ')} \n\n-----\n\n`;
+                })
+                .join(' | ')}`;
               setToolCalls((prev) => [...prev, toolCallMsg]);
             },
             callbackOnComplete: () => {
@@ -405,6 +415,22 @@ export const EphemeralAgentChat: React.FC<EphemeralAgentChatProps> = ({
             Send
           </button>
         </div>
+
+        {CONVERSATION_GUIDE.map((guide, idx) => (
+          <button
+            onClick={() => {
+              setInput(guide);
+            }}
+            style={{ cursor: 'pointer', width: '100%', marginTop: '8px', textAlign: 'center' }}
+          >
+            <div
+              key={idx}
+              className="flex items-center justify-center text-center p-4 bg-green-200 rounded-lg hover:bg-green-300"
+            >
+              {guide}
+            </div>
+          </button>
+        ))}
       </div>
 
       {error && (

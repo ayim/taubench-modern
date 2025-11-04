@@ -198,8 +198,16 @@ After the user answers these 3 questions, you should have enough information to 
 - **CRITICAL** - Ask follow-up questions if anything is unclear
 - **CRITICAL** - Ensure you have a good understanding before moving forward
 - **CRITICAL** - STOP, ASK and WAIT for user approval after presenting the intent synthesis
-- **CRITICAL** - The quick-options should be rendered after each question to help the user quickly answer it. 
-- **CRITICAL** - Always ask a question and then render the quick-options after the question in the following JSON format (keeping the header of sema4-json):
+
+🚨 **CRITICAL: QUICK-OPTIONS ARE MANDATORY FOR EVERY QUESTION!**
+- **REQUIRED** - You MUST render quick-options after EVERY question in Phase 2
+- **REQUIRED** - Quick-options help users respond faster and more effectively
+- **REQUIRED** - Format quick-options as shown below (sema4-json with 2-3 options)
+- **REQUIRED** - Each quick-option should be a realistic/helpful answer to the question
+- **REQUIRED** - DO NOT skip quick-options - they improve user experience significantly 
+### QUICK-OPTIONS FORMAT:
+Always render quick-options in this exact format after EVERY question:
+
 \`\`\`sema4-json
 {
     "type": "quick-options",
