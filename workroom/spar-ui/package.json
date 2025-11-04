@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/spar-ui",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "SPAR reusable  User Interface components",
   "main": "dist/index.js",
@@ -16,7 +16,7 @@
     "test": "tsc --noEmit",
     "changeset": "changeset",
     "changeset-setup": "mv ../package.json ./package.json.tmp && changeset version && mv ./package.json.tmp ../package.json",
-    "release": "changeset publish"
+    "release": "mv ../package.json ./package.json.tmp && changeset publish && mv ./package.json.tmp ../package.json"
   },
   "sideEffects": false,
   "files": [
