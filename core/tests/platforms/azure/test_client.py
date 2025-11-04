@@ -13,6 +13,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from agent_platform.core.delta import GenericDelta
+from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.azure.client import AzureOpenAIClient
 from agent_platform.core.platforms.azure.parameters import (
@@ -446,3 +448,27 @@ class TestAzureOpenAIClient:
         assert "usage" in result
         assert "total_tokens" in result["usage"]
         assert result["usage"]["total_tokens"] == 0
+
+    def test_handle_openai_apierror_rate_limit_stream(
+        self,
+        azure_client: AzureOpenAIClient,
+    ) -> None:
+        """Ensure APIError with rate limit code maps to TOO_MANY_REQUESTS."""
+        import httpx
+        from openai._exceptions import APIError
+
+        request = httpx.Request("POST", "https://example.com")
+        api_error = APIError(
+            message="Rate limit is exceeded. Try again in 10 seconds.",
+            request=request,
+            body={"code": "rate_limit_exceeded"},
+        )
+
+        streaming_error = azure_client._handle_openai_error(
+            api_error,
+            model="azure/openai/gpt-4-1",
+            error_type=StreamingError,
+        )
+
+        assert isinstance(streaming_error, StreamingError)
+        assert streaming_error.response.error_code == ErrorCode.TOO_MANY_REQUESTS

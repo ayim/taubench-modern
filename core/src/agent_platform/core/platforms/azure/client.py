@@ -175,7 +175,7 @@ class AzureOpenAIClient(
             error_type = StreamingError if stream else PlatformHTTPError
             raise self._handle_openai_error(e, model, error_type) from e
 
-    def _handle_openai_error(  # noqa: C901, PLR0911
+    def _handle_openai_error(  # noqa: C901, PLR0911, PLR0912
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
     ) -> PlatformError:
         """Handle OpenAI errors and convert them to PlatformError instances.
@@ -278,6 +278,16 @@ class AzureOpenAIClient(
                 )
             case APIError():
                 # Base OpenAI error - catch any other OpenAI-specific errors
+                # Handle Rate Limit errors here.
+                # Azure might return a RateLimitError, handled above;
+                # or it might return an APIError with code "429" / "rate_limit_exceeded".
+                if error.code in {"rate_limit_exceeded", "429"}:
+                    return error_type(
+                        error_code=ErrorCode.TOO_MANY_REQUESTS,
+                        message=f"LLM usage limit reached. Please increase the limit for '{model}' "
+                        f"or switch to an available model.",
+                        data={"model": model},
+                    )
                 return error_type(
                     error_code=ErrorCode.UNEXPECTED,
                     message=f"An unexpected error occurred with Azure OpenAI model '{model}'. "
@@ -343,16 +353,19 @@ class AzureOpenAIClient(
         )
 
         # Process each event through the parser
-        async for event in response:
-            async for delta in self._parsers.parse_stream_event(
-                event,
-                message,
-                last_message,
-            ):
-                yield delta
+        try:
+            async for event in response:
+                async for delta in self._parsers.parse_stream_event(
+                    event,
+                    message,
+                    last_message,
+                ):
+                    yield delta
 
-            # Update last message state after processing each event
-            last_message = deepcopy(message)
+                # Update last message state after processing each event
+                last_message = deepcopy(message)
+        except Exception as exc:
+            raise self._handle_openai_error(exc, model, StreamingError) from exc
 
         # Add final metadata and platform info
         final_event = self._generate_platform_metadata()
