@@ -24,3 +24,7 @@ it's easier to generate SQL queries from natural language based on the semantic 
 
 **IMPORTANT:** You should NOT regenerate or modify any column information. Only provide metadata
 for the table itself (name, description, synonyms).
+
+**Output Instructions:**
+Use the provided tool to submit your enhanced result. The tool will validate your output against
+the expected schema. If your first attempt has validation errors, you will be asked to correct them.

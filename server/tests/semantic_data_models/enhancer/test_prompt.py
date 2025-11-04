@@ -237,7 +237,6 @@ def test_user_prompt_full_mode(file_regression):
         render_user_prompt,
     )
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-        FULL_OUTPUT_SCHEMA_FORMAT,
         create_semantic_data_model_for_llm_from_semantic_data_model,
     )
 
@@ -247,7 +246,6 @@ def test_user_prompt_full_mode(file_regression):
     prompt = render_user_prompt(
         mode="full",
         current_semantic_model=model_for_llm,
-        output_schema=FULL_OUTPUT_SCHEMA_FORMAT,
         tables_to_enhance=None,
         table_to_columns_to_enhance=None,
     )
@@ -260,7 +258,6 @@ def test_user_prompt_full_mode_with_selection(file_regression):
         render_user_prompt,
     )
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-        FULL_OUTPUT_SCHEMA_FORMAT,
         create_semantic_data_model_for_llm_from_semantic_data_model,
     )
 
@@ -270,7 +267,6 @@ def test_user_prompt_full_mode_with_selection(file_regression):
     prompt = render_user_prompt(
         mode="full",
         current_semantic_model=model_for_llm,
-        output_schema=FULL_OUTPUT_SCHEMA_FORMAT,
         tables_to_enhance={"sales_data"},
         table_to_columns_to_enhance={"sales_data": ["product_category"]},
     )
@@ -283,7 +279,6 @@ def test_user_prompt_full_mode_mixed_selection(file_regression):
         render_user_prompt,
     )
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-        FULL_OUTPUT_SCHEMA_FORMAT,
         create_semantic_data_model_for_llm_from_semantic_data_model,
     )
 
@@ -293,7 +288,6 @@ def test_user_prompt_full_mode_mixed_selection(file_regression):
     prompt = render_user_prompt(
         mode="full",
         current_semantic_model=model_for_llm,
-        output_schema=FULL_OUTPUT_SCHEMA_FORMAT,
         tables_to_enhance={"sales_data", "inventory_data"},
         table_to_columns_to_enhance={"sales_data": ["product_category", "store_country"]},
     )
@@ -306,7 +300,6 @@ def test_user_prompt_tables_mode(file_regression):
         render_user_prompt,
     )
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-        TABLES_OUTPUT_SCHEMA_FORMAT,
         create_semantic_data_model_for_llm_from_semantic_data_model,
     )
 
@@ -316,7 +309,6 @@ def test_user_prompt_tables_mode(file_regression):
     prompt = render_user_prompt(
         mode="tables",
         current_semantic_model=model_for_llm,
-        output_schema=TABLES_OUTPUT_SCHEMA_FORMAT,
         tables_to_enhance={"sales_data"},
         table_to_columns_to_enhance=None,
     )
@@ -329,7 +321,6 @@ def test_user_prompt_columns_mode(file_regression):
         render_user_prompt,
     )
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-        TABLES_TO_COLUMNS_OUTPUT_SCHEMA_FORMAT,
         create_semantic_data_model_for_llm_from_semantic_data_model,
     )
 
@@ -339,7 +330,6 @@ def test_user_prompt_columns_mode(file_regression):
     prompt = render_user_prompt(
         mode="columns",
         current_semantic_model=model_for_llm,
-        output_schema=TABLES_TO_COLUMNS_OUTPUT_SCHEMA_FORMAT,
         tables_to_enhance=None,
         table_to_columns_to_enhance={"sales_data": ["product_category", "store_country"]},
     )

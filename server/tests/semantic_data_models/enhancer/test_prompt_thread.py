@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
 
 from agent_platform.core.prompts.messages import PromptTextContent, PromptUserMessage
-from agent_platform.core.responses.content.text import ResponseTextContent
+from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.responses.response import ResponseMessage
 
 
-def _create_response_message(text: str) -> ResponseMessage:
-    """Helper to create a ResponseMessage with text content."""
+def _create_tool_response_message(tool_input: dict) -> ResponseMessage:
+    """Helper to create a ResponseMessage with tool call content."""
     return ResponseMessage(
         role="agent",
-        content=[ResponseTextContent(text=text)],
+        content=[
+            ResponseToolUseContent(
+                tool_call_id="test_call_id",
+                tool_name="enhance_semantic_data_model",
+                tool_input_raw=json.dumps(tool_input),
+            )
+        ],
     )
 
 
@@ -46,7 +53,7 @@ class TestPromptThreadUpdateWithPreviousTry:
 
         error = LLMResponseError(
             improvement_request="Please fix the JSON syntax",
-            response_message=_create_response_message("Previous response"),
+            response_message=_create_tool_response_message({"name": "test"}),
         )
         retry_state.outcome.exception.return_value = error
 
@@ -71,7 +78,7 @@ class TestPromptThreadUpdateWithPreviousTry:
 
         error = QualityCheckError(
             improvement_request="Please improve the quality",
-            response_message=_create_response_message("Previous response"),
+            response_message=_create_tool_response_message({"name": "test"}),
         )
         retry_state.outcome.exception.return_value = error
 
@@ -124,10 +131,13 @@ class TestPromptThreadAppendResponseAndError:
     """Tests for append_response_and_error method."""
 
     def test_prompt_thread_append_response_and_error(self, prompt_thread):
-        """Verify agent message and user message are correctly appended."""
+        """Verify agent message with tool call and user message are correctly appended."""
+        from agent_platform.core.prompts.messages import PromptToolUseContent
+
         initial_message_count = len(prompt_thread.messages)
 
-        response = _create_response_message("Agent response text")
+        tool_input = {"name": "Test Model", "tables": []}
+        response = _create_tool_response_message(tool_input)
         improvement_request = "Please fix the JSON syntax"
 
         prompt_thread.append_response_and_error(response, improvement_request)
@@ -135,9 +145,11 @@ class TestPromptThreadAppendResponseAndError:
         # Verify messages were appended
         assert len(prompt_thread.messages) == initial_message_count + 2
 
-        # Check agent message (second to last)
+        # Check agent message (second to last) contains tool call
         agent_message = prompt_thread.messages[-2]
-        assert agent_message.content[0].text == "Agent response text"
+        assert isinstance(agent_message.content[0], PromptToolUseContent)
+        assert agent_message.content[0].tool_name == "enhance_semantic_data_model"
+        assert agent_message.content[0].tool_call_id == "test_call_id"
 
         # Check user message (last)
         user_message = prompt_thread.messages[-1]

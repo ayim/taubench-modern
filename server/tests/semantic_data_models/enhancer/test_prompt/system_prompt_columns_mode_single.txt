@@ -35,3 +35,7 @@ Your task is to enhance a SINGLE COLUMN in a semantic data model by improving:
 You will receive the full semantic model for context, but you should ONLY enhance the specific
 column that is highlighted. Focus on making this single column more useful so that later it's
 easier to generate SQL queries from natural language based on the semantic data model.
+
+**Output Instructions:**
+Use the provided tool to submit your enhanced result. The tool will validate your output against
+the expected schema. If your first attempt has validation errors, you will be asked to correct them.

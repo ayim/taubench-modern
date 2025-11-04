@@ -130,33 +130,14 @@ def test_create_semantic_data_model_for_llm_from_semantic_data_model(data_regres
     data_regression.check(semantic_model_example, basename="updated_from_llm")
 
 
-def test_output_schema_format(file_regression):
-    """Test the output schema format."""
-    from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-        FULL_OUTPUT_SCHEMA_FORMAT,
-    )
-
-    file_regression.check(FULL_OUTPUT_SCHEMA_FORMAT, basename="output_schema_format")
-
-
 @pytest.mark.asyncio
 async def test_enhance_semantic_data_model_with_invalid_json_retry():
-    """Test enhancing a semantic data model when LLM first returns invalid JSON.
+    """Test enhancing a semantic data model when LLM text responses are rejected.
 
-    This unit test verifies that invalid JSON responses are handled correctly through
-    retry logic. It mocks prompt_generate to return:
-    1. First call: improperly formatted JSON response (missing closing brace)
-    2. Second call: valid JSON response
-
-    The system should:
-    - Detect invalid JSON parsing
-    - Request correction by adding error message to the prompt
-    - Parse the corrected JSON response successfully
-    - Successfully enhance the model
-
-    Note: Quality check is disabled by default, so only 2 calls are expected.
+    This unit test verifies that text responses (without tool calls) are rejected.
+    The system now requires tool calls for all responses.
     """
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import AsyncMock, MagicMock, patch
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         ColumnInfo,
@@ -201,38 +182,122 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry():
         data_connections_info=[data_connection_info],
         files_info=[],
     )
+
+    # Response without tool call - text response that should be rejected
+    text_response = (
+        """Here is the enhanced semantic data model with improved names and descriptions."""
+    )
+
+    # Create async mock
+    mock_prompt_generate = AsyncMock()
+    mock_prompt_generate.return_value = ResponseMessage(
+        role="agent",
+        content=[ResponseTextContent(text=text_response)],
+    )
+
+    from agent_platform.server.semantic_data_models.enhancer.enhancer import (
+        SemanticDataModelEnhancer,
+    )
+
+    # Patch prompt_generate at its source location
+    with patch(
+        "agent_platform.server.api.private_v2.prompt.prompt_generate",
+        mock_prompt_generate,
+    ):
+        enhancer = SemanticDataModelEnhancer(
+            user=mock_user,
+            storage=mock_storage,
+            agent_id="test_agent_id",
+        )
+
+        # Call enhance_semantic_data_model
+        enhanced_model = await enhancer.enhance_semantic_data_model(
+            semantic_model=semantic_model,
+        )
+
+        # Verify that the model was NOT enhanced since text responses are not accepted
+        # The enhancer returns the original model unchanged on failure
+        original_table_name = semantic_model["tables"][0].get("name")  # type: ignore[index]
+        enhanced_table_name = enhanced_model["tables"][0].get("name")  # type: ignore[index]
+
+        assert original_table_name == enhanced_table_name, (
+            f"Expected model to remain unchanged when text response is returned, "
+            f"but got table name '{enhanced_table_name}'"
+        )
+
+
+@pytest.mark.asyncio
+async def test_enhance_semantic_data_model_with_tool_call():
+    """Test enhancing a semantic data model using structured tool calls.
+
+    This unit test verifies that tool call responses are handled correctly through
+    the new structured tool calling approach. It mocks prompt_generate to return:
+    1. First call: invalid tool call (missing required fields)
+    2. Second call: valid tool call with complete enhancement
+
+    The system should:
+    - Detect schema validation errors in tool calls
+    - Request correction by adding error message to the prompt
+    - Parse the corrected tool call response successfully
+    - Successfully enhance the model
+
+    Note: Quality check is disabled by default, so only 2 calls are expected.
+    """
+    from unittest.mock import MagicMock, patch
+
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        ColumnInfo,
+        DataConnectionInfo,
+        TableInfo,
+    )
+    from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
+    from agent_platform.core.responses.response import ResponseMessage
+    from agent_platform.core.user import User
+    from agent_platform.server.kernel.semantic_data_model_generator import (
+        SemanticDataModelGenerator,
+    )
+
+    # Create a simple semantic model to enhance
+    mock_storage = MagicMock()
+    mock_user = User(user_id="test_user", sub="test_user")
+
+    # Create a simple semantic model to enhance with user, storage, and agent_id
+    generator = SemanticDataModelGenerator()
+
+    column_info = ColumnInfo(
+        name="system_name",
+        data_type="TEXT",
+        sample_values=["GPT-4", "Claude-2", "Gemini"],
+    )
+
+    table_info = TableInfo(
+        name="ai_systems",
+        database="test_db",
+        schema="public",
+        columns=[column_info],
+    )
+
+    data_connection_info = DataConnectionInfo(
+        data_connection_id="conn_123",
+        tables_info=[table_info],
+    )
+
+    semantic_model = await generator.generate_semantic_data_model(
+        name="test_model",
+        description="Test semantic model",
+        data_connections_info=[data_connection_info],
+        files_info=[],
+    )
     # Save the original table name for later comparison
     original_table_name = semantic_model["tables"][0].get("name")  # type: ignore[index]
     assert original_table_name is not None
     assert original_table_name == "ai_systems"
 
-    # First response: improperly formatted JSON (missing closing braces)
-    invalid_json_response = """<semantic-data-model>
-{
-  "name": "test_model",
-  "description": "Enhanced test semantic model",
-  "tables": [
-    {
-      "name": "ai_systems_enhanced",
-      "base_table": {
-        "table": "ai_systems",
-        "schema": "public"
-      },
-      "columns": [
-        {
-          "name": "system_name",
-          "expr": "system_name",
-          "data_type": "TEXT",
-          "category": "dimension",
-          "description": "Name of the AI system"
-        }
-      ]
-    }
-</semantic-data-model>"""
+    # First response: invalid tool call (missing required 'tables' field)
+    invalid_tool_input = '{"name": "test_model", "description": "Enhanced test semantic model"}'
 
-    # Second response: valid JSON response
-    valid_json_response = """<semantic-data-model>
-{
+    # Second response: valid tool call with complete enhancement
+    valid_tool_input = """{
   "name": "test_model",
   "description": "Enhanced test semantic model",
   "tables": [
@@ -254,26 +319,37 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry():
       ]
     }
   ]
-}
-</semantic-data-model>"""
+}"""
 
     # Track which call we're on
     call_count = [0]
 
     async def mock_prompt_generate(*args, **kwargs):
-        """Mock that returns invalid JSON first, then valid JSON."""
+        """Mock that returns invalid tool call first, then valid tool call."""
         call_count[0] += 1
         if call_count[0] == 1:
-            # First call: return invalid JSON response
+            # First call: return invalid tool call response
             return ResponseMessage(
                 role="agent",
-                content=[ResponseTextContent(text=invalid_json_response)],
+                content=[
+                    ResponseToolUseContent(
+                        tool_call_id="call_1",
+                        tool_name="enhance_semantic_data_model",
+                        tool_input_raw=invalid_tool_input,
+                    )
+                ],
             )
         elif call_count[0] == 2:
-            # Second call: return valid JSON response
+            # Second call: return valid tool call response
             return ResponseMessage(
                 role="agent",
-                content=[ResponseTextContent(text=valid_json_response)],
+                content=[
+                    ResponseToolUseContent(
+                        tool_call_id="call_2",
+                        tool_name="enhance_semantic_data_model",
+                        tool_input_raw=valid_tool_input,
+                    )
+                ],
             )
         else:
             pytest.fail(f"Unexpected call {call_count[0]} to prompt_generate")
@@ -312,7 +388,7 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry():
         if original_table_name == enhanced_table_name:
             # The model was NOT enhanced - the retry didn't work
             pytest.fail(
-                f"Enhancement failed - invalid JSON was not retried correctly. "
+                f"Enhancement failed - invalid tool call was not retried correctly. "
                 f"Model unchanged (table name still '{original_table_name}'). "
                 f"Expected: 'ai_systems_enhanced', Got: '{enhanced_table_name}'"
             )

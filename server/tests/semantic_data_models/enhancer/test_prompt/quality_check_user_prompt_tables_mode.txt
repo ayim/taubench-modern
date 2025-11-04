@@ -67,7 +67,7 @@ Other tables/columns may not have complete enhancements.
 }
 ```
 
-Respond with only "PASSED" if the enhancements are good enough.
-If the enhancements are not good enough, please reply with "Please improve: <explanation>"
-where <explanation> is a detailed explanation of what needs to be improved.
+Use the `provide_quality_response` tool to respond:
+- If the enhancements are good enough, call the tool with `passed=true`
+- If improvements are needed, call the tool with `passed=false` and provide a detailed `improvement_request` explaining what needs to be improved
 

@@ -1,6 +1,6 @@
 # ruff: noqa: E501
 
-from agent_platform.server.semantic_data_models.enhancer.prompts import EnhancementMode
+from agent_platform.server.semantic_data_models.enhancer.type_defs import EnhancementMode
 
 
 def render_system_prompt(  # noqa
@@ -187,5 +187,14 @@ def render_system_prompt(  # noqa
         parts.append(
             "easier to generate SQL queries from natural language based on the semantic data model.\n"
         )
+
+    # Add tool usage instructions
+    parts.append("\n**Output Instructions:**\n")
+    parts.append(
+        "Use the provided tool to submit your enhanced result. The tool will validate your output against\n"
+    )
+    parts.append(
+        "the expected schema. If your first attempt has validation errors, you will be asked to correct them.\n"
+    )
 
     return "".join(parts)

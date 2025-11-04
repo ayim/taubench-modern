@@ -6,8 +6,8 @@ import json
 import typing
 
 if typing.TYPE_CHECKING:
-    from agent_platform.server.semantic_data_models.enhancer.prompts import EnhancementMode
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
+        EnhancementMode,
         SemanticDataModelForLLM,
     )
 
@@ -15,7 +15,6 @@ if typing.TYPE_CHECKING:
 def render_user_prompt(  # noqa
     mode: EnhancementMode,
     current_semantic_model: SemanticDataModelForLLM,
-    output_schema: str,
     tables_to_enhance: set[str] | None = None,
     table_to_columns_to_enhance: dict[str, list[str]] | None = None,
 ) -> str:
@@ -142,41 +141,7 @@ def render_user_prompt(  # noqa
 
     # Build output format section
     output_format = "**Output Format:**\n"
-    if mode != "full":
-        output_format += "   Return ONLY "
-    else:
-        output_format += "   Return "
-
-    if mode == "tables":
-        output_format += "the enhanced table metadata"
-    elif mode == "columns":
-        output_format += "the enhanced column(s)"
-    else:
-        output_format += "the enhanced"
-
-    output_format += " in JSON structure, but with improved:\n"
-
-    name_text = "fields" if mode == "full" else "field"
-    output_format += (
-        f"   - `name` {name_text} (better logical name{'s' if mode == 'full' else ''})\n"
-    )
-    output_format += "   - `description` fields (clear, descriptive and concise descriptions)\n"
-
-    synonyms_text = "fields" if mode == "full" else "field"
-    output_format += (
-        f"   - `synonyms` {synonyms_text} (relevant alternative terms to improve discoverability,\n"
-    )
-    output_format += "      make them user friendly"
-    if mode in {"full", "columns"}:
-        output_format += " and consider the units of the data if applicable"
-    output_format += ")\n"
-
-    if mode in {"full", "columns"}:
-        output_format += "   - Proper categorization of columns into `dimensions`, `facts`, `metrics`, `time_dimensions`\n"
-
-    output_format += "   - Optional fields that haven't changed should be ommitted in the output.\n"
-    if mode in {"full", "columns"}:
-        output_format += "   - The `sample_values` field should always be ommitted in the output.\n"
+    output_format += "   Use the provided tool to return your enhanced result. The tool will validate your output.\n"
 
     # Build important section
     important = "**Important:**\n"
@@ -184,32 +149,11 @@ def render_user_prompt(  # noqa
     important += "- Make names SQL-safe (no spaces, special characters)\n"
 
     if mode == "tables":
-        important += "- Output ONLY the enhanced table metadata in JSON format\n"
-        important += "- DO NOT include any column information\n"
+        important += "- Output ONLY the enhanced table metadata (no column information)\n"
     elif mode == "columns":
-        important += "- Output ONLY the enhanced column(s) in JSON format\n"
+        important += "- Output ONLY the enhanced column(s)\n"
 
-    important += "- Output the JSON in the following format:\n"
-    if mode == "full":
-        important += " <semantic-data-model>...</semantic-data-model>\n"
-    elif mode == "tables":
-        important += " <table>...</table>\n"
-    elif mode == "columns":
-        important += " <column>...</column>\n"
-
-    important += ".\n"
-    important += "- Do not include any other text except the\n"
-    if mode == "full":
-        important += " <semantic-data-model>...</semantic-data-model>\n"
-    elif mode == "tables":
-        important += " <table>...</table>\n"
-    elif mode == "columns":
-        important += " <column>...</column>\n"
-    important += " block.\n"
-
-    must_text = "be the semantic data model in JSON format and MUST " if mode == "full" else ""
-    important += f"- The output MUST {must_text}match the JSON schema below:\n\n"
-    important += output_schema
+    important += "- The tool will validate your output against the expected JSON schema\n"
 
     # Combine all sections
     prompt = f"""{opening}

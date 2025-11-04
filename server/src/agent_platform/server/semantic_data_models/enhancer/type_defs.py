@@ -1,6 +1,7 @@
 """Semantic model data structures for as we want the LLM generator to see it."""
 
-import json
+from __future__ import annotations
+
 import warnings
 from types import NoneType
 from typing import TYPE_CHECKING, Annotated, Literal
@@ -10,9 +11,11 @@ from pydantic import BaseModel, Field
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 
 if TYPE_CHECKING:
-    pass
+    from agent_platform.core.tools.tool_definition import ToolDefinition
 
 Category = Literal["dimension", "fact", "metric", "time_dimension"]
+EnhancementMode = Literal["full", "tables", "columns"]
+
 CATEGORY_TO_COLUMN_GROUP: dict[Category, str] = {
     "dimension": "dimensions",
     "fact": "facts",
@@ -265,24 +268,12 @@ def create_semantic_data_model_for_llm_from_semantic_data_model(
     )
 
 
-FULL_OUTPUT_SCHEMA_FORMAT: str = json.dumps(
-    SemanticDataModelForLLM.model_json_schema(mode="serialization"),
-    indent=2,
-)
-
-
 class TablesOutputSchema(BaseModel):
     """A schema for a list of tables."""
 
     tables: Annotated[
         list[LogicalTableMetadataForLLM], "A list of logical tables in this semantic model"
     ]
-
-
-TABLES_OUTPUT_SCHEMA_FORMAT: str = json.dumps(
-    TablesOutputSchema.model_json_schema(mode="serialization"),
-    indent=2,
-)
 
 
 class TableToColumnsOutputSchema(BaseModel):
@@ -293,9 +284,125 @@ class TableToColumnsOutputSchema(BaseModel):
     ]
 
 
-TABLES_TO_COLUMNS_OUTPUT_SCHEMA_FORMAT: str = json.dumps(
-    TableToColumnsOutputSchema.model_json_schema(mode="serialization"),
-    indent=2,
-)
-
 LLMOutputSchemas = SemanticDataModelForLLM | TablesOutputSchema | TableToColumnsOutputSchema
+
+
+def create_semantic_data_model_enhancement_tool() -> ToolDefinition:
+    """Create a ToolDefinition for semantic data model enhancement (full mode).
+
+    Returns:
+        A ToolDefinition that the LLM can call to provide the enhanced semantic data model.
+    """
+    from agent_platform.core.tools.tool_definition import ToolDefinition
+
+    return ToolDefinition(
+        name="enhance_semantic_data_model",
+        description=(
+            "Provide the enhanced semantic data model with improved table names, descriptions, "
+            "synonyms, and column categorization. Return the complete enhanced model including "
+            "all tables and columns."
+        ),
+        input_schema=SemanticDataModelForLLM.model_json_schema(mode="serialization"),
+        category="internal-tool",
+    )
+
+
+def create_tables_enhancement_tool() -> ToolDefinition:
+    """Create a ToolDefinition for table metadata enhancement.
+
+    Returns:
+        A ToolDefinition that the LLM can call to provide enhanced table metadata.
+    """
+    from agent_platform.core.tools.tool_definition import ToolDefinition
+
+    return ToolDefinition(
+        name="enhance_tables",
+        description=(
+            "Provide the enhanced table metadata. Return a list of tables with improved names, "
+            "descriptions, and synonyms. Do not include column information."
+        ),
+        input_schema=TablesOutputSchema.model_json_schema(mode="serialization"),
+        category="internal-tool",
+    )
+
+
+def create_columns_enhancement_tool() -> ToolDefinition:
+    """Create a ToolDefinition for column enhancement.
+
+    Returns:
+        A ToolDefinition that the LLM can call to provide enhanced column information.
+    """
+    from agent_platform.core.tools.tool_definition import ToolDefinition
+
+    return ToolDefinition(
+        name="enhance_columns",
+        description=(
+            "Provide the enhanced columns. Return a mapping of table names to lists of improved "
+            "columns with better names, descriptions, synonyms, and categorization."
+        ),
+        input_schema=TableToColumnsOutputSchema.model_json_schema(mode="serialization"),
+        category="internal-tool",
+    )
+
+
+def get_enhancement_tool(mode: EnhancementMode) -> ToolDefinition:
+    """Get the appropriate enhancement tool for the given mode.
+
+    Args:
+        mode: The enhancement mode ("full", "tables", or "columns").
+
+    Returns:
+        The ToolDefinition for the specified mode.
+
+    Raises:
+        ValueError: If the mode is not recognized.
+    """
+    if mode == "full":
+        return create_semantic_data_model_enhancement_tool()
+    elif mode == "tables":
+        return create_tables_enhancement_tool()
+    elif mode == "columns":
+        return create_columns_enhancement_tool()
+    else:
+        raise ValueError(f"Unknown enhancement mode: {mode}")
+
+
+class QualityCheckResponse(BaseModel):
+    """Quality check response for semantic data model enhancement."""
+
+    passed: Annotated[
+        bool,
+        Field(description="Whether the enhancement quality check passed (True) or failed (False)."),
+    ]
+
+    improvement_request: Annotated[
+        str | None,
+        Field(
+            description=(
+                "If quality check failed, a detailed explanation of what needs to be improved. "
+                "Required if passed=False, otherwise should be None."
+            ),
+            default=None,
+        ),
+    ]
+
+
+def create_quality_check_tool() -> ToolDefinition:
+    """Create a ToolDefinition for quality check responses.
+
+    Returns:
+        A ToolDefinition that the LLM can call to provide quality check feedback.
+    """
+    from agent_platform.core.tools.tool_definition import ToolDefinition
+
+    return ToolDefinition(
+        name="provide_quality_response",
+        description=(
+            "Provide feedback on whether the semantic data model enhancement meets "
+            "quality standards. Set passed=true if the enhancements are sufficient, "
+            "or passed=false with a detailed improvement_request if further "
+            "improvements are needed."
+        ),
+        input_schema=QualityCheckResponse.model_json_schema(mode="serialization"),
+        category="internal-tool",
+    )

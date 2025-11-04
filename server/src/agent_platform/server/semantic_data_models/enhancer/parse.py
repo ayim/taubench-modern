@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
@@ -13,6 +13,7 @@ from agent_platform.server.semantic_data_models.enhancer.type_defs import (
 
 if TYPE_CHECKING:
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.responses.content import ResponseToolUseContent
     from agent_platform.core.responses.response import ResponseMessage
     from agent_platform.server.semantic_data_models.enhancer.prompts import EnhancementMode
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
@@ -26,76 +27,77 @@ if TYPE_CHECKING:
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-def extract_response_text(response: ResponseMessage) -> str:
-    """Extract response text from the response."""
-    from agent_platform.core.responses.content import ResponseTextContent
-    from agent_platform.server.semantic_data_models.enhancer.errors import EmptyResponseError
+def get_tool_use_content(response: ResponseMessage) -> ResponseToolUseContent | None:
+    """Extract ResponseToolUseContent from response without validation.
+
+    Args:
+        response: The ResponseMessage to extract from.
+
+    Returns:
+        The first ResponseToolUseContent found, or None if not present.
+    """
+    from agent_platform.core.responses.content import ResponseToolUseContent
 
     if not response.content:
-        raise EmptyResponseError(
-            "Your response had no content. Please provide a complete semantic data model "
-            "enhancement with the proper format as specified in the instructions.",
-            response_message=response,
-        )
+        return None
 
-    text_content = [c.text for c in response.content if isinstance(c, ResponseTextContent)]
-    if not text_content:
-        raise EmptyResponseError(
-            "Your response had no text content. Please provide a complete semantic data "
-            "model enhancement in text format with the proper XML tags and JSON structure.",
-            response_message=response,
-        )
+    for content in response.content:
+        if isinstance(content, ResponseToolUseContent):
+            return content
 
-    response_text = text_content[-1]
-
-    if not response_text or not response_text.strip():
-        raise EmptyResponseError(
-            "Your response was empty. Please provide a complete semantic data model "
-            "in the expected format with proper XML tags and JSON content.",
-            response_message=response,
-        )
-
-    return response_text
+    return None
 
 
-def extract_json_from_response_text(response_text: str, mode: EnhancementMode = "full") -> str:
-    """Extract the json from the appropriate <xml_tag>...</xml_tag> block."""
-    from agent_platform.server.semantic_data_models.enhancer.errors import MissingXMLTagError
+def extract_tool_use_content(response: ResponseMessage) -> dict[str, Any]:
+    """Extract and validate tool use content from the response.
 
-    xml_tag = {
-        "full": "semantic-data-model",
-        "tables": "table",
-        "columns": "column",
-    }[mode]
-    i = response_text.find(f"<{xml_tag}>")
-    j = response_text.rfind(f"</{xml_tag}>")
-    if i == -1 or j == -1:
-        # We couldn't find the <xml_tag>...</xml_tag> block.
-        missing_parts = []
-        if i == -1:
-            missing_parts.append(f"opening tag <{xml_tag}>")
-        if j == -1:
-            missing_parts.append(f"closing tag </{xml_tag}>")
+    Args:
+        response: The ResponseMessage to extract from.
 
+    Returns:
+        The tool input as a dictionary.
+
+    Raises:
+        EmptyResponseError: If response has no content
+        NoToolCallError: If no tool call is found
+        SchemaValidationError: If tool input is invalid
+    """
+    from agent_platform.server.semantic_data_models.enhancer.errors import (
+        EmptyResponseError,
+        EmptyToolInputError,
+        NoToolCallError,
+    )
+
+    if not response.content:
         improvement_msg = (
-            f"Your response is missing the {' and '.join(missing_parts)}. "
-            f"Please wrap your JSON response with <{xml_tag}> and </{xml_tag}> tags. "
-            "The format should be:\n"
-            f"<{xml_tag}>\n"
-            "{\n"
-            '  "your": "json",\n'
-            '  "content": "here"\n'
-            "}\n"
-            f"</{xml_tag}>"
+            "Your response had no content. Please provide the enhanced data "
+            "by calling the appropriate tool with the required parameters."
         )
-        logger.warning(
-            f"Couldn't find the <{xml_tag}>...</{xml_tag}> block"
-            f" in the response text: {response_text}"
+        logger.error("Response had no content")
+        raise EmptyResponseError(improvement_msg, response_message=response)
+
+    tool_use_content = get_tool_use_content(response)
+
+    if not tool_use_content:
+        # No tool call found - this is a failure
+        improvement_msg = (
+            "Your response must use the provided tool to submit your enhancement. "
+            "Please call the appropriate enhancement tool with your enhanced semantic data model."
         )
-        raise MissingXMLTagError(improvement_msg)
-    response_text = response_text[i + len(f"<{xml_tag}>") : j]
-    response_text = response_text.strip()
-    return response_text
+        logger.error("No tool call found in response")
+        raise NoToolCallError(improvement_msg, response_message=response)
+
+    # Validate tool input
+    tool_input = tool_use_content.tool_input
+    if not tool_input:
+        improvement_msg = (
+            "Your tool call had empty input. Please provide the enhanced data "
+            "by calling the tool with the required parameters."
+        )
+        logger.error("Tool call had empty input")
+        raise EmptyToolInputError(improvement_msg, response_message=response)
+
+    return tool_input
 
 
 def validate_and_parse_llm_response(
@@ -115,16 +117,10 @@ def validate_and_parse_llm_response(
         - For "column" mode: Column
 
     Raises:
-        EmptyResponseError: If response has no content
-        MissingXMLTagError: If XML tags are missing
-        InvalidJSONError: If JSON parsing fails
-        SchemaValidationError: If schema validation fails
+        EmptyResponseError: If response has no content or no tool call
+        SchemaValidationError: If tool call doesn't match expected schema
     """
-    import json
-
     from agent_platform.server.semantic_data_models.enhancer.errors import (
-        InvalidJSONError,
-        MissingXMLTagError,
         SchemaValidationError,
     )
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
@@ -133,48 +129,29 @@ def validate_and_parse_llm_response(
         TableToColumnsOutputSchema,
     )
 
-    response_text = extract_response_text(response)
-
-    # Extract content from XML tags
-    try:
-        extracted_json = extract_json_from_response_text(response_text, mode=mode)
-    except MissingXMLTagError as e:
-        # Re-raise with response context
-        raise MissingXMLTagError(e.improvement_request, response_message=response) from e
-
-    # Parse JSON
-    try:
-        enhanced_model_dict = json.loads(extracted_json)
-    except json.JSONDecodeError as e:
-        error_location = f"at line {e.lineno} column {e.colno}" if hasattr(e, "lineno") else ""
-        improvement_msg = (
-            f"Your JSON response has a syntax error {error_location}: {e.msg}. "
-            "Please fix the JSON syntax and ensure all braces, brackets, and quotes are "
-            "properly closed. Pay special attention to trailing commas and quote escaping."
-        )
-        logger.error(f"JSON parse error: {e}\nResponse from LLM: {extracted_json}")
-        raise InvalidJSONError(improvement_msg, response_message=response) from e
+    # Extract and validate tool use content
+    tool_input = extract_tool_use_content(response)
 
     # Validate against schema based on mode
     try:
         if mode == "full":
-            parsed_result = SemanticDataModelForLLM.model_validate(enhanced_model_dict)
+            parsed_result = SemanticDataModelForLLM.model_validate(tool_input)
         elif mode == "tables":
-            parsed_result = TablesOutputSchema.model_validate(enhanced_model_dict)
+            parsed_result = TablesOutputSchema.model_validate(tool_input)
         elif mode == "columns":
-            parsed_result = TableToColumnsOutputSchema.model_validate(enhanced_model_dict)
+            parsed_result = TableToColumnsOutputSchema.model_validate(tool_input)
         else:
             raise ValueError(f"Unknown mode: {mode}")
+
+        return parsed_result
     except Exception as e:
         improvement_msg = (
-            f"Your response doesn't match the expected schema. Error: {e}. "
-            "Please review the output schema format carefully and ensure all required fields "
+            f"Your tool call parameters don't match the expected schema. Error: {e}.\n\n"
+            "Please review the tool schema and ensure all required fields "
             "are present with the correct types and structure."
         )
-        logger.error(f"Schema validation error: {e}\nFound response: {enhanced_model_dict}")
+        logger.error(f"Tool call schema validation error: {e}\nTool input: {tool_input}")
         raise SchemaValidationError(improvement_msg, response_message=response) from e
-
-    return parsed_result
 
 
 def update_semantic_data_model_with_semantic_data_model_from_llm(  # noqa: PLR0912, C901

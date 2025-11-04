@@ -220,7 +220,6 @@ class SemanticDataModelEnhancer:
             QualityCheckError,
         )
         from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_response_text,
             update_columns_in_semantic_model,
             update_semantic_data_model_with_semantic_data_model_from_llm,
             update_tables_metadata_in_semantic_model,
@@ -261,8 +260,8 @@ class SemanticDataModelEnhancer:
 
             parsed_result = validate_and_parse_llm_response(response, mode=mode)
 
-            # Extract text content for logging/debugging
-            response_text = extract_response_text(response)
+            # Log the response for debugging
+            response_text = str(response.model_dump())
             self._write_output_response(response_text, "enhancement", iteration=attempt_number)
             logger.debug(f"LLM response for attempt {attempt_number}: {response_text}")
 
@@ -385,9 +384,14 @@ class SemanticDataModelEnhancer:
 
         from agent_platform.server.api.private_v2.prompt import prompt_generate
         from agent_platform.server.semantic_data_models.enhancer.errors import EmptyResponseError
-        from agent_platform.server.semantic_data_models.enhancer.parse import extract_response_text
+        from agent_platform.server.semantic_data_models.enhancer.parse import (
+            extract_tool_use_content,
+        )
         from agent_platform.server.semantic_data_models.enhancer.prompts import (
             create_quality_check_prompt,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.type_defs import (
+            QualityCheckResponse,
         )
 
         self._quality_check_prompt_thread = create_quality_check_prompt(
@@ -419,22 +423,29 @@ class SemanticDataModelEnhancer:
                 f"{time.monotonic() - initial_time} seconds"
             )
 
-            text_content = extract_response_text(response)
-            self._write_output_response(text_content, "quality_check", iteration=iteration)
-            quality_response_text = text_content.strip().upper()
-            if quality_response_text.startswith(("PASSED", '"PASSED')):
+            response_text = str(response.model_dump())
+            self._write_output_response(response_text, "quality_check", iteration=iteration)
+
+            # Extract and validate tool use content from the response
+            tool_input = extract_tool_use_content(response)
+            quality_response = QualityCheckResponse.model_validate(tool_input)
+
+            if quality_response.passed:
                 logger.info("LLM confirmed enhancement quality is sufficient")
                 return None
             else:
                 logger.info(
                     f"LLM suggested further improvements needed in the semantic "
-                    f"data model: {text_content}"
+                    f"data model: {quality_response.improvement_request}"
                 )
-                return text_content
+                return (
+                    quality_response.improvement_request
+                    or "Quality check failed, please improve the enhancement"
+                )
         except EmptyResponseError as e:
             logger.warning(f"Empty response from LLM while checking enhancement quality: {e}")
         except Exception as e:
-            logger.error(f"Error checking enhancement quality: {e}")
+            logger.error(f"Error checking enhancement quality: {e}", exc_info=True)
 
         # If we can't check quality, assume it's okay
         return None

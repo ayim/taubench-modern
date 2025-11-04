@@ -30,12 +30,12 @@ class EmptyResponseError(LLMOutputResponseError):
     """Raised when LLM returns empty response."""
 
 
-class MissingXMLTagError(LLMOutputResponseError):
-    """Raised when LLM response is missing expected XML tags."""
+class NoToolCallError(LLMOutputResponseError):
+    """Raised when LLM response is not empty but is missing tool call."""
 
 
-class InvalidJSONError(LLMOutputResponseError):
-    """Raised when LLM response contains invalid JSON."""
+class EmptyToolInputError(LLMOutputResponseError):
+    """Raised when LLM response contains empty tool input."""
 
 
 class SchemaValidationError(LLMOutputResponseError):

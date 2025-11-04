@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, Self
+from typing import TYPE_CHECKING, Self
 
 import structlog
 
@@ -13,11 +13,10 @@ if TYPE_CHECKING:
 
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.responses.response import ResponseMessage
+    from agent_platform.server.semantic_data_models.enhancer.type_defs import EnhancementMode
 
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
-
-EnhancementMode = Literal["full", "tables", "columns"]
 
 TEMPERATURE = 0.5
 MINIMIZE_REASONING = True
@@ -53,20 +52,32 @@ class PromptThread(Prompt):
         from agent_platform.core.prompts.messages import (
             PromptAgentMessage,
             PromptTextContent,
+            PromptToolUseContent,
             PromptUserMessage,
         )
-        from agent_platform.server.semantic_data_models.enhancer.errors import EmptyResponseError
-        from agent_platform.server.semantic_data_models.enhancer.parse import extract_response_text
+        from agent_platform.server.semantic_data_models.enhancer.parse import (
+            get_tool_use_content,
+        )
 
-        try:
-            response_text = extract_response_text(response)
-        except EmptyResponseError:
-            # This shouldn't happen, but we'll just log it and move on.
-            logger.warning(f"Empty response from LLM: {response}")
-            # Use empty string as fallback
-            response_text = ""
+        # Extract tool call from response
+        agent_content = []
 
-        agent_message = PromptAgentMessage(content=[PromptTextContent(text=response_text)])
+        tool_use_content = get_tool_use_content(response)
+        if tool_use_content:
+            # Convert to prompt tool use content for conversation history
+            agent_content.append(
+                PromptToolUseContent(
+                    tool_call_id=tool_use_content.tool_call_id,
+                    tool_name=tool_use_content.tool_name,
+                    tool_input_raw=tool_use_content.tool_input_raw,
+                )
+            )
+
+        # If no tool call found, add empty text as fallback
+        if not agent_content:
+            agent_content.append(PromptTextContent(text=""))
+
+        agent_message = PromptAgentMessage(content=agent_content)
         new_user_message = PromptUserMessage(content=[PromptTextContent(text=improvement_request)])
         self.extend_messages([agent_message, new_user_message])
 
@@ -95,24 +106,17 @@ def create_enhancement_prompt(  # noqa: PLR0913
         render_user_prompt,
     )
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-        FULL_OUTPUT_SCHEMA_FORMAT,
-        TABLES_OUTPUT_SCHEMA_FORMAT,
-        TABLES_TO_COLUMNS_OUTPUT_SCHEMA_FORMAT,
         create_semantic_data_model_for_llm_from_semantic_data_model,
+        get_enhancement_tool,
     )
 
     model_for_llm = create_semantic_data_model_for_llm_from_semantic_data_model(
         semantic_model,
     )
-    match mode:
-        case "full":
-            output_schema = FULL_OUTPUT_SCHEMA_FORMAT
-        case "tables":
-            output_schema = TABLES_OUTPUT_SCHEMA_FORMAT
-        case "columns":
-            output_schema = TABLES_TO_COLUMNS_OUTPUT_SCHEMA_FORMAT
-        case _:
-            raise ValueError(f"Invalid mode: {mode}")
+
+    # Get the enhancement tool for this mode
+    enhancement_tool = get_enhancement_tool(mode)
+
     system_message = render_system_prompt(
         mode=mode,
         tables_to_enhance=tables_to_enhance,
@@ -121,7 +125,6 @@ def create_enhancement_prompt(  # noqa: PLR0913
     user_message = render_user_prompt(
         mode=mode,
         current_semantic_model=model_for_llm,
-        output_schema=output_schema,
         tables_to_enhance=tables_to_enhance,
         table_to_columns_to_enhance=table_to_columns_to_enhance,
     )
@@ -134,6 +137,11 @@ def create_enhancement_prompt(  # noqa: PLR0913
         temperature=temperature,
         minimize_reasoning=minimize_reasoning,
     )
+
+    # Add the enhancement tool and set tool_choice to require this tool
+    prompt = prompt.with_tools(enhancement_tool)  # type: ignore[assignment]
+    prompt.tool_choice = enhancement_tool.name
+
     len_summary = f"""
     Len summary for the semantic data model enhancement prompt:
     system_prompt_length: {len(system_message)}
@@ -141,9 +149,10 @@ def create_enhancement_prompt(  # noqa: PLR0913
     mode: {mode}
     tables_to_enhance: {tables_to_enhance}
     table_to_columns_to_enhance: {table_to_columns_to_enhance}
+    tool: {enhancement_tool.name}
     """
     logger.info(len_summary)
-    return prompt
+    return prompt  # type: ignore[return-value]
 
 
 def create_quality_check_prompt(  # noqa: PLR0913
@@ -165,6 +174,9 @@ def create_quality_check_prompt(  # noqa: PLR0913
     from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (
         render_quality_check_user_prompt,
     )
+    from agent_platform.server.semantic_data_models.enhancer.type_defs import (
+        create_quality_check_tool,
+    )
 
     system_message = render_quality_check_system_prompt()
     user_message = render_quality_check_user_prompt(
@@ -180,10 +192,17 @@ def create_quality_check_prompt(  # noqa: PLR0913
         temperature=temperature,
         minimize_reasoning=minimize_reasoning,
     )
+
+    # Add the quality check tool and set tool_choice to require this tool
+    quality_tool = create_quality_check_tool()
+    prompt = prompt.with_tools(quality_tool)  # type: ignore[assignment]
+    prompt.tool_choice = quality_tool.name
+
     len_summary = f"""
     Len summary for the semantic data model quality check prompt:
     system_prompt_length: {len(system_message)}
     user_prompt_length: {len(user_message)}
+    tool: {quality_tool.name}
     """
     logger.info(len_summary)
-    return prompt
+    return prompt  # type: ignore[return-value]

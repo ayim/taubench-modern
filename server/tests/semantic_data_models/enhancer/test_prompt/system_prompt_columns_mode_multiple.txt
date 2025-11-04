@@ -36,3 +36,7 @@ For each column:
 You will receive the full semantic model for context, but you should ONLY enhance the specific
 columns that are highlighted. Focus on making these columns more useful so that later it's
 easier to generate SQL queries from natural language based on the semantic data model.
+
+**Output Instructions:**
+Use the provided tool to submit your enhanced result. The tool will validate your output against
+the expected schema. If your first attempt has validation errors, you will be asked to correct them.

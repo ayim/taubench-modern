@@ -14,15 +14,22 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
     TimeDimension,
 )
-from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
 
 
-def _create_response_message(text: str) -> ResponseMessage:
-    """Helper to create a ResponseMessage with text content."""
+def _create_tool_response_message(tool_input: dict) -> ResponseMessage:
+    """Helper to create a ResponseMessage with tool call content."""
+    from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
+
     return ResponseMessage(
         role="agent",
-        content=[ResponseTextContent(text=text)],
+        content=[
+            ResponseToolUseContent(
+                tool_call_id="test_call_id",
+                tool_name="enhance_semantic_data_model",
+                tool_input_raw=json.dumps(tool_input),
+            )
+        ],
     )
 
 
@@ -84,181 +91,11 @@ def example_semantic_model() -> SemanticDataModel:
     }
 
 
-class TestExtractResponseText:
-    """Tests for extract_response_text function."""
-
-    def test_extract_response_text_empty_content(self):
-        """Verify EmptyResponseError when response has no content."""
-        from agent_platform.server.semantic_data_models.enhancer.errors import (
-            EmptyResponseError,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_response_text,
-        )
-
-        response = _create_empty_response_message()
-        with pytest.raises(EmptyResponseError) as exc_info:
-            extract_response_text(response)
-
-        assert "no content" in exc_info.value.improvement_request.lower()
-        assert exc_info.value.response_message == response
-
-    def test_extract_response_text_no_text_content(self):
-        """Verify EmptyResponseError when response has no text content (only other types)."""
-        from agent_platform.server.semantic_data_models.enhancer.errors import (
-            EmptyResponseError,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_response_text,
-        )
-
-        # Create a response with non-text content (a simple object that's not ResponseTextContent)
-        class NonTextContent:
-            """Mock non-text content type."""
-
-            pass
-
-        non_text_content = NonTextContent()
-        response = ResponseMessage(
-            role="agent",
-            content=[non_text_content],  # type: ignore[arg-type]  # Has content, but not text content
-        )
-        with pytest.raises(EmptyResponseError) as exc_info:
-            extract_response_text(response)
-
-        assert "no text content" in exc_info.value.improvement_request.lower()
-        assert exc_info.value.response_message == response
-
-    def test_extract_response_text_multiple_text_contents(self):
-        """Verify it correctly takes the last text content when multiple exist."""
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_response_text,
-        )
-
-        response = ResponseMessage(
-            role="agent",
-            content=[
-                ResponseTextContent(text="First text"),
-                ResponseTextContent(text="Second text"),
-                ResponseTextContent(text="Last text"),
-            ],
-        )
-        result = extract_response_text(response)
-        assert result == "Last text"
-
-    def test_extract_response_text_empty_string(self):
-        """Verify EmptyResponseError when text content is empty/whitespace."""
-        from agent_platform.server.semantic_data_models.enhancer.errors import (
-            EmptyResponseError,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_response_text,
-        )
-
-        response = ResponseMessage(
-            role="agent",
-            content=[ResponseTextContent(text="   ")],
-        )
-        with pytest.raises(EmptyResponseError) as exc_info:
-            extract_response_text(response)
-
-        assert "empty" in exc_info.value.improvement_request.lower()
-        assert exc_info.value.response_message == response
-
-
-class TestExtractJSONFromResponseText:
-    """Tests for extract_json_from_response_text function."""
-
-    def test_extract_json_missing_opening_tag(self):
-        """Verify MissingXMLTagError with correct message for all modes."""
-        from agent_platform.server.semantic_data_models.enhancer.errors import (
-            MissingXMLTagError,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_json_from_response_text,
-        )
-
-        # Map modes to their expected XML tags
-        mode_to_tag = {
-            "full": "semantic-data-model",
-            "tables": "table",
-            "columns": "column",
-        }
-
-        for mode, expected_tag in mode_to_tag.items():
-            # Use closing tag for the mode being tested
-            closing_tag = f"</{expected_tag}>"
-            response_text = f'{{"name": "test"}}{closing_tag}'
-            with pytest.raises(MissingXMLTagError) as exc_info:
-                extract_json_from_response_text(response_text, mode=mode)  # type: ignore[arg-type]
-
-            assert "opening tag" in exc_info.value.improvement_request.lower()
-            assert f"<{expected_tag}>" in exc_info.value.improvement_request
-
-    def test_extract_json_missing_closing_tag(self):
-        """Verify MissingXMLTagError with correct message."""
-        from agent_platform.server.semantic_data_models.enhancer.errors import (
-            MissingXMLTagError,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_json_from_response_text,
-        )
-
-        response_text = '<semantic-data-model>{"name": "test"}'
-        with pytest.raises(MissingXMLTagError) as exc_info:
-            extract_json_from_response_text(response_text, mode="full")
-
-        assert "closing tag" in exc_info.value.improvement_request.lower()
-
-    def test_extract_json_success_different_modes(self):
-        """Verify correct extraction for full/tables/columns modes."""
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_json_from_response_text,
-        )
-
-        json_content = '{"name": "test", "tables": []}'
-
-        # Test full mode
-        response_text = f"<semantic-data-model>{json_content}</semantic-data-model>"
-        result = extract_json_from_response_text(response_text, mode="full")
-        assert result == json_content
-
-        # Test tables mode (uses "table" tag, not "tables")
-        response_text = f"<table>{json_content}</table>"
-        result = extract_json_from_response_text(response_text, mode="tables")
-        assert result == json_content
-
-        # Test columns mode (uses "column" tag, not "columns")
-        response_text = f"<column>{json_content}</column>"
-        result = extract_json_from_response_text(response_text, mode="columns")
-        assert result == json_content
-
-
 class TestValidateAndParseLLMResponse:
     """Tests for validate_and_parse_llm_response function."""
 
-    def test_validate_and_parse_invalid_json(self):
-        """Verify InvalidJSONError with helpful error message including line/column."""
-        from agent_platform.server.semantic_data_models.enhancer.errors import (
-            InvalidJSONError,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            validate_and_parse_llm_response,
-        )
-
-        # Invalid JSON - missing closing brace
-        invalid_json = '{"name": "test"'
-        response_text = f"<semantic-data-model>{invalid_json}</semantic-data-model>"
-        response = _create_response_message(response_text)
-
-        with pytest.raises(InvalidJSONError) as exc_info:
-            validate_and_parse_llm_response(response, mode="full")
-
-        assert "syntax error" in exc_info.value.improvement_request.lower()
-        assert exc_info.value.response_message == response
-
     def test_validate_and_parse_schema_validation_error(self):
-        """Verify SchemaValidationError when JSON doesn't match Pydantic schema."""
+        """Verify SchemaValidationError when tool input doesn't match Pydantic schema."""
         from agent_platform.server.semantic_data_models.enhancer.errors import (
             SchemaValidationError,
         )
@@ -267,9 +104,8 @@ class TestValidateAndParseLLMResponse:
         )
 
         # Invalid schema - missing required "name" field
-        invalid_schema_json = '{"tables": []}'
-        response_text = f"<semantic-data-model>{invalid_schema_json}</semantic-data-model>"
-        response = _create_response_message(response_text)
+        invalid_tool_input = {"tables": []}
+        response = _create_tool_response_message(invalid_tool_input)
 
         with pytest.raises(SchemaValidationError) as exc_info:
             validate_and_parse_llm_response(response, mode="full")
@@ -286,7 +122,7 @@ class TestValidateAndParseLLMResponse:
             SemanticDataModelForLLM,
         )
 
-        valid_json = {
+        valid_tool_input = {
             "name": "Test Model",
             "description": "A test model",
             "tables": [
@@ -297,8 +133,7 @@ class TestValidateAndParseLLMResponse:
                 }
             ],
         }
-        response_text = f"<semantic-data-model>{json.dumps(valid_json)}</semantic-data-model>"
-        response = _create_response_message(response_text)
+        response = _create_tool_response_message(valid_tool_input)
 
         result = validate_and_parse_llm_response(response, mode="full")
         assert isinstance(result, SemanticDataModelForLLM)
@@ -313,7 +148,7 @@ class TestValidateAndParseLLMResponse:
             TablesOutputSchema,
         )
 
-        valid_json = {
+        valid_tool_input = {
             "tables": [
                 {
                     "name": "test_table",
@@ -321,8 +156,7 @@ class TestValidateAndParseLLMResponse:
                 }
             ]
         }
-        response_text = f"<table>{json.dumps(valid_json)}</table>"
-        response = _create_response_message(response_text)
+        response = _create_tool_response_message(valid_tool_input)
 
         result = validate_and_parse_llm_response(response, mode="tables")
         assert isinstance(result, TablesOutputSchema)
@@ -337,7 +171,7 @@ class TestValidateAndParseLLMResponse:
             TableToColumnsOutputSchema,
         )
 
-        valid_json = {
+        valid_tool_input = {
             "table_to_columns": {
                 "test_table": [
                     {
@@ -348,8 +182,7 @@ class TestValidateAndParseLLMResponse:
                 ]
             }
         }
-        response_text = f"<column>{json.dumps(valid_json)}</column>"
-        response = _create_response_message(response_text)
+        response = _create_tool_response_message(valid_tool_input)
 
         result = validate_and_parse_llm_response(response, mode="columns")
         assert isinstance(result, TableToColumnsOutputSchema)
