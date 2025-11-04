@@ -54,9 +54,12 @@ const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunn
 
 export const QuickOptions: InteractionComponent<QuickOptionsPayload> = ({ payload: { data: choices }, messageId }) => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
-  const { data: messages } = useThreadMessagesQuery({
-    threadId,
-  });
+
+  /**
+   * Use only cached messages without fetching
+   * - stream might still be in flight and this will overwrite stream content as messages might not be persisted yet
+   */
+  const { data: messages } = useThreadMessagesQuery({ threadId }, { enabled: false });
 
   const { streamingMessages, sendMessage } = useMessageStream({
     agentId,

@@ -6,7 +6,7 @@ const DATA_FRAME_REFETCH_GRACE_PERIOD = 1000;
 
 const DataFrameCallback: FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
-  const { refetch } = useDataFramesQuery({ threadId });
+  const { refetch } = useDataFramesQuery({ threadId }, { enabled: false });
 
   useEffect(() => {
     setTimeout(() => {
