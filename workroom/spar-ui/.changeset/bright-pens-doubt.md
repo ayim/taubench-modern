@@ -2,4 +2,4 @@
 '@sema4ai/spar-ui': minor
 ---
 
-Release flow test
+Adding CHANGELOG.md and CI release publish flow.

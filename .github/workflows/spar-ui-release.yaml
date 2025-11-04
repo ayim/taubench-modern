@@ -46,6 +46,7 @@ jobs:
         run: npm ci
 
       - name: Build package
+        working-directory: ./workroom/
         run: npm run build
 
       - name: Isolate spar-ui package
