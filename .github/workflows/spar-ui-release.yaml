@@ -60,7 +60,7 @@ jobs:
           title: 'Spar UI: Next Release'
           commit: Release version changes
           publish: npm run release
-          token: ${{ secrets.GITHUB_TOKEN }}
+          cwd: ./workroom/spar-ui/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}

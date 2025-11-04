@@ -2,4 +2,4 @@
 '@sema4ai/spar-ui': minor
 ---
 
-README update, adding CHANGELOG.md and CI release publish flow.
+README.md update, adding initial CHANGELOG.md and CI release publish flow.

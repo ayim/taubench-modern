@@ -26,7 +26,7 @@ const createReleaseFile = async () => {
     const args = process.argv.slice(2);
     const packages = JSON.parse(args[0]);
 
-    let output = `*New version of <https://github.com/Sema4AI/agent-platform/tree/main/workroom/spar-ui|Spar UI> package has been released!* :rocket:`;
+    let output = `*New version of <https://github.com/Sema4AI/agent-platform/pkgs/npm/spar-ui|Spar UI> package has been released!* :rocket:`;
 
     for (let i = 0; i < packages.length; i += 1) {
       const { name, version } = packages[i];
