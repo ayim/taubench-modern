@@ -55,12 +55,12 @@ jobs:
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
-        uses: changesets/action@v1.5.1
+        uses: changesets/action@v1.5.2
         with:
           title: 'Spar UI: Next Release'
           commit: Release version changes
           publish: npm run release
-          cwd: ./workroom/spar-ui/
+          cwd: ${{ github.workspace }}/workroom/spar-ui/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}

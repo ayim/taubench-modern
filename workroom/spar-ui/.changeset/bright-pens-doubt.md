@@ -2,4 +2,4 @@
 '@sema4ai/spar-ui': minor
 ---
 
-README.md update, adding initial CHANGELOG.md and CI release publish workflow.
+Readme update, adding initial Changelog and CI release publish workflow.
