@@ -1,0 +1,351 @@
+Please improve the following semantic data model by improving table and column information.
+
+**Current Semantic Data Model:**
+```json
+{
+  "name": "Sales Data",
+  "description": "This semantic model can be used for asking questions over the sales data.",
+  "tables": [
+    {
+      "name": "sales_data",
+      "base_table": {
+        "schema": "public",
+        "table": "sd_data"
+      },
+      "synonyms": null,
+      "description": "A logical table capturing daily sales information across different\n                store locations and product categories.",
+      "columns": [
+        {
+          "name": "product_category",
+          "expr": "cat",
+          "data_type": "NUMBER",
+          "category": "dimension",
+          "synonyms": [
+            "item_category",
+            "product_type"
+          ],
+          "description": "The category of the product sold.",
+          "unique": false,
+          "sample_values": [
+            "501",
+            "544"
+          ]
+        },
+        {
+          "name": "sale_timestamp",
+          "expr": "dt",
+          "data_type": "TIMESTAMP",
+          "category": "time_dimension",
+          "synonyms": [
+            "time_of_sale",
+            "transaction_time"
+          ],
+          "description": "The time when the sale occurred. In UTC.",
+          "unique": false,
+          "sample_values": null
+        },
+        {
+          "name": "store_country",
+          "expr": "cntry",
+          "data_type": "TEXT",
+          "category": "dimension",
+          "synonyms": null,
+          "description": "The country where the sale took place.",
+          "unique": false,
+          "sample_values": [
+            "USA",
+            "GBR"
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Enhancement Requirements:**
+
+**For each table:**
+   - Improve the logical name
+   - Add/improve the description explaining the table's purpose
+   - Add/change relevant synonyms that users might use to improve discoverability
+
+**For each column:**
+   - Improve the logical name
+   - Add/improve the description explaining what the data represents
+   - Add/change relevant synonyms that users might use to improve discoverability
+   - Ensure proper categorization (dimension, fact, metric, time_dimension)
+     (the initial categorization should be treated as a hint)
+
+
+**Output Format:**
+   Return the enhanced in JSON structure, but with improved:
+   - `name` fields (better logical names)
+   - `description` fields (clear, descriptive and concise descriptions)
+   - `synonyms` fields (relevant alternative terms to improve discoverability,
+      make them user friendly and consider the units of the data if applicable)
+   - Proper categorization of columns into `dimensions`, `facts`, `metrics`, `time_dimensions`
+   - Optional fields that haven't changed should be ommitted in the output.
+   - The `sample_values` field should always be ommitted in the output.
+
+
+**Important:**
+- Ensure all synonyms are unique across the model
+- Make names SQL-safe (no spaces, special characters)
+- Output the JSON in the following format:
+ <semantic-data-model>...</semantic-data-model>
+.
+- Do not include any other text except the
+ <semantic-data-model>...</semantic-data-model>
+ block.
+- The output MUST be the semantic data model in JSON format and MUST match the JSON schema below:
+
+{
+  "$defs": {
+    "BaseTable": {
+      "description": "A base table represents represents the actual table in the database.\nMUST NOT be changed.",
+      "properties": {
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the schema. MUST NOT be changed.",
+          "title": "Schema"
+        },
+        "table": {
+          "title": "Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "table"
+      ],
+      "title": "BaseTable",
+      "type": "object"
+    },
+    "ColumnForLLM": {
+      "description": "A column in a table.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "expr": {
+          "title": "Expr",
+          "type": "string"
+        },
+        "data_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Type"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "enum": [
+                "dimension",
+                "fact",
+                "metric",
+                "time_dimension"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category"
+        },
+        "synonyms": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Synonyms"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "unique": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unique"
+        },
+        "sample_values": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sample Values"
+        }
+      },
+      "required": [
+        "name",
+        "expr"
+      ],
+      "title": "ColumnForLLM",
+      "type": "object"
+    },
+    "LogicalTable": {
+      "description": "A logical table represents a view over a physical database table or view.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "base_table": {
+          "$ref": "#/$defs/BaseTable"
+        },
+        "synonyms": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Synonyms"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ColumnForLLM"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Columns"
+        }
+      },
+      "required": [
+        "name",
+        "base_table"
+      ],
+      "title": "LogicalTable",
+      "type": "object"
+    }
+  },
+  "description": "A semantic model represents a collection of tables with their relationships.",
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "tables": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/LogicalTable"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Tables"
+    }
+  },
+  "required": [
+    "name",
+    "tables"
+  ],
+  "title": "SemanticDataModelForLLM",
+  "type": "object"
+}

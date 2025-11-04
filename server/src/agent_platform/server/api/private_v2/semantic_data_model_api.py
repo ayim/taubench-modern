@@ -203,7 +203,6 @@ async def set_semantic_data_model(
     """Set a semantic data mode.
     Returns the ID of the semantic data model (the same one passed in) as well as the
     data connection IDs and file references that were used to set the semantic data model."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
@@ -260,7 +259,6 @@ async def create_semantic_data_model(
     """Create a new semantic data model.
     Returns the ID of the created semantic data model as well as the
     data connection IDs and file references that were used to create the semantic data model."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
@@ -342,18 +340,26 @@ async def delete_semantic_data_model(
 
 
 @router.post("/generate")
-async def generate_semantic_data_model(
+async def generate_semantic_data_model(  # noqa
     payload: GenerateSemanticDataModelPayload,
     user: AuthedUser,
     storage: StorageDependency,
 ) -> GenerateSemanticDataModelResponse:
     """Generate a semantic data model from data connections and files."""
+    from agent_platform.server.kernel.semantic_data_model_generator import (
+        SemanticDataModelGenerator,
+    )
+    from agent_platform.server.semantic_data_models.enhancer.enhancer import (
+        SemanticDataModelEnhancer,
+    )
+    from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
+        KeyForBaseTable,
+        KeyForDimension,
+        ValueForBaseTable,
+        ValueForDimension,
+    )
 
     try:
-        from agent_platform.server.kernel.semantic_data_model_generator import (
-            SemanticDataModelGenerator,
-        )
-
         generator = SemanticDataModelGenerator()
         semantic_model = await generator.generate_semantic_data_model(
             name=payload.name,
@@ -362,15 +368,111 @@ async def generate_semantic_data_model(
             files_info=payload.files_info,
         )
 
-        if payload.agent_id:
-            await generator.enhance_semantic_data_model(
-                semantic_model, user=user, storage=storage, agent_id=payload.agent_id
+        enhance_model: bool = True
+        missing_keys: list[KeyForDimension | KeyForBaseTable] = []
+        # Store the existing model's name and description to preserve after enhancement
+        existing_model_name: str | None = None
+        existing_model_description: str | None = None
+
+        if payload.existing_semantic_data_model:
+            from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (  # noqa: E501
+                SemanticDataModelIndex,
+                copy_synonyms_and_descriptions_from_existing_semantic_model,
             )
-        else:
-            logger.critical(
-                "No agent ID provided when generating semantic data model, "
-                "LLM improvement is not possible! This will become an error in the future."
+
+            if isinstance(payload.existing_semantic_data_model, str):
+                existing_semantic_model = await storage.get_semantic_data_model(
+                    payload.existing_semantic_data_model
+                )
+            else:
+                existing_semantic_model = payload.existing_semantic_data_model
+
+            # Store the existing model's name and description to preserve after enhancement
+            existing_model_name = existing_semantic_model.get("name")
+            existing_model_description = existing_semantic_model.get("description")
+
+            # When regenerating an existing semantic model, preserve its name and description
+            # because we're updating the existing model, not creating a new one
+            semantic_model["name"] = existing_model_name or semantic_model.get("name", "")
+            if "description" in existing_semantic_model:
+                semantic_model["description"] = existing_model_description
+
+            # Now, we need to copy from the existing semantic model to the new semantic model
+            # the synonyms and descriptions that are not present in the new semantic model.
+            # Note that it's important to match the models based on the base_table information
+            # (because the logical table name may have changed).
+            new_index = SemanticDataModelIndex(typing.cast(SemanticDataModel, semantic_model))
+            existing_index = SemanticDataModelIndex(
+                typing.cast(SemanticDataModel, existing_semantic_model)
             )
+            missing_keys = copy_synonyms_and_descriptions_from_existing_semantic_model(
+                index_from=existing_index, index_to=new_index
+            )
+            if not missing_keys:
+                # We're good to go, nothing seems to have changed (probably just
+                # removed columns or tables).
+                logger.info("No missing keys, no enhancement needed")
+                enhance_model = False
+
+        if enhance_model:
+            if payload.agent_id:
+                enhancer = SemanticDataModelEnhancer(
+                    user=user,
+                    storage=storage,
+                    agent_id=payload.agent_id,
+                )
+                if missing_keys:
+                    # Calculate the tables/dimensions that need to be enhanced
+                    tables_to_enhance: set[str] = set()
+                    table_to_columns_to_enhance: dict[str, list[str]] = {}
+                    for key in missing_keys:
+                        if isinstance(key, KeyForDimension):
+                            value: ValueForDimension = new_index.dimension_key_to_dimension[key]
+                            table_name = value.logical_table.get("name")
+                            if table_name:
+                                # Use expr (database column name) instead of name (logical name)
+                                # because LLM can change the logical name during enhancement
+                                column_expr = value.dimension.get("expr")
+                                if column_expr:
+                                    table_to_columns_to_enhance.setdefault(table_name, []).append(
+                                        column_expr
+                                    )
+                        elif isinstance(key, KeyForBaseTable):
+                            value_for_base_table: ValueForBaseTable = (
+                                new_index.base_table_to_logical_table[key]
+                            )
+                            table_name = value_for_base_table.table.get("name")
+                            if table_name:
+                                tables_to_enhance.add(table_name)
+                        else:
+                            logger.critical(f"Unknown key type: {key}")
+
+                    logger.info(
+                        f"Partial enhancement: {len(missing_keys)} missing keys - "
+                        f"Tables: {tables_to_enhance}, Columns: {table_to_columns_to_enhance}"
+                    )
+
+                    if tables_to_enhance or table_to_columns_to_enhance:
+                        await enhancer.enhance_semantic_data_model(
+                            semantic_model,
+                            tables_to_enhance=tables_to_enhance,
+                            table_to_columns_to_enhance=table_to_columns_to_enhance,
+                        )
+                else:  # no missing keys means we have to enhance the full model.
+                    await enhancer.enhance_semantic_data_model(semantic_model)
+
+                # After enhancement, restore the existing model's name and description
+                # The enhancer may have modified these, but we want to preserve the original
+                # when regenerating an existing model
+                if existing_model_name is not None:
+                    semantic_model["name"] = existing_model_name
+                if existing_model_description is not None:
+                    semantic_model["description"] = existing_model_description
+            else:
+                logger.critical(
+                    "No agent ID provided when generating semantic data model, "
+                    "LLM improvement is not possible! This will become an error in the future."
+                )
 
         logger.info(
             "Successfully generated semantic data model",
@@ -394,7 +496,6 @@ async def list_semantic_data_models(
     thread_id: str | None = None,
 ) -> list[SemanticDataModelWithAssociations]:
     """List semantic data models with optional filtering by agent_id or thread_id."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
@@ -781,7 +882,6 @@ async def validate_semantic_data_model(
     storage: StorageDependency,
 ) -> ValidateSemanticDataModelResult:
     """Validate a semantic data model."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
     )

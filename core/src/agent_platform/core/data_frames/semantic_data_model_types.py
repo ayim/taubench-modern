@@ -379,6 +379,16 @@ class LogicalTable(TypedDict, total=False):
     errors: Annotated[list[ValidationMessage] | None, "Validation errors for this table, if any"]
 
 
+CategoriesType = Literal["dimensions", "time_dimensions", "metrics", "facts"]
+
+CATEGORIES: tuple[CategoriesType, CategoriesType, CategoriesType, CategoriesType] = (
+    "dimensions",
+    "time_dimensions",
+    "metrics",
+    "facts",
+)
+
+
 class SemanticDataModel(TypedDict, total=False):
     """A semantic model represents a collection of tables with their relationships."""
 

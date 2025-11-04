@@ -3,15 +3,25 @@
 import json
 import warnings
 from types import NoneType
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic.fields import Field
-from pydantic.main import BaseModel
+from pydantic import BaseModel, Field
 
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 
+if TYPE_CHECKING:
+    pass
 
-class Column(BaseModel):
+Category = Literal["dimension", "fact", "metric", "time_dimension"]
+CATEGORY_TO_COLUMN_GROUP: dict[Category, str] = {
+    "dimension": "dimensions",
+    "fact": "facts",
+    "metric": "metrics",
+    "time_dimension": "time_dimensions",
+}
+
+
+class ColumnForLLM(BaseModel):
     """A column in a table."""
 
     # Required fields
@@ -35,7 +45,7 @@ class Column(BaseModel):
     ] = None
 
     category: Annotated[
-        Literal["dimension", "fact", "metric", "time_dimension"] | None,
+        Category | None,
         """
         The category of the column. It can be changed if the current name or description
         match a better category.
@@ -117,8 +127,8 @@ class BaseTable(BaseModel):
     ]
 
 
-class LogicalTable(BaseModel):
-    """A logical table represents a view over a physical database table or view."""
+class LogicalTableBase(BaseModel):
+    """A base class for logical tables that share common fields."""
 
     # Required fields
     name: Annotated[
@@ -143,11 +153,22 @@ class LogicalTable(BaseModel):
         str | None,
         "A description of this table. Can be changed if the current description can be improved.",
     ] = None
+
+
+class LogicalTable(LogicalTableBase):
+    """A logical table represents a view over a physical database table or view."""
+
     columns: Annotated[
-        list[Column] | None,
+        list[ColumnForLLM] | None,
         "A list of columns in this table with their categories (dimension, fact, metric, "
         "time_dimension).",
     ] = None
+
+
+# This is the same schema as LogicalTable without columns, allowing an LLM to generate enhancements
+# for the table's metadata only without being distracted by the need to generate column info.
+class LogicalTableMetadataForLLM(LogicalTableBase):
+    """A logical table represents a view over a physical database table or view (metadata only)."""
 
 
 class SemanticDataModelForLLM(BaseModel):
@@ -210,24 +231,15 @@ def create_semantic_data_model_for_llm_from_semantic_data_model(
         all_columns = []
 
         # Convert dimensions
-        groups: list[Literal["dimensions", "facts", "time_dimensions", "metrics"]] = [
-            "dimensions",
-            "facts",
-            "time_dimensions",
-            "metrics",
-        ]
-
-        for group in groups:
+        for group in CATEGORY_TO_COLUMN_GROUP.values():
             columns_info = table.get(group) or []
             for item in columns_info:
-                column = Column(
+                column = ColumnForLLM(
                     name=item.get("name"),
                     expr=item.get("expr"),
                     data_type=item.get("data_type"),
                     # Just remove the last `s` to make it compatible.
-                    category=typing.cast(
-                        Literal["dimension", "fact", "time_dimension", "metric"], group[:-1]
-                    ),
+                    category=typing.cast(Category, group[:-1]),
                     synonyms=item.get("synonyms"),
                     description=item.get("description"),
                     unique=item.get("unique"),
@@ -253,177 +265,37 @@ def create_semantic_data_model_for_llm_from_semantic_data_model(
     )
 
 
-def update_semantic_data_model_with_semantic_data_model_from_llm(  # noqa: PLR0912, C901
-    semantic_data_model: SemanticDataModel,
-    semantic_data_model_for_llm: SemanticDataModelForLLM,
-) -> None:
-    """
-    Update the semantic data model with the semantic data model for LLM.
-
-    We should go over the changes and update the references in the existing semantic data model.
-
-    The references are:
-    - A table should be referenced by the `base_table.schema` and `base_table.table` fields to
-      update the synonyms, description and name accordingly.
-    - A column should be referenced by the table + the `expr` field to update accordingly.
-    - A table may be moved from one group (dimensions, facts, time_dimensions, metrics) to another
-      based on the category found for the column.
-
-    While doing this we should also collect possible errors in a list.
-
-    Some possible errors are:
-    - If a table in semantic_data_model_for_llm does not have a reference, we should add an error
-      saying so (and skip it).
-    - If a column in semantic_data_model_for_llm does not have a reference, we should add an error
-      saying so (and skip it).
-
-    At the end, we should not have any additional tables or columns (but all existing ones
-    should be updated and put in the correct group).
-    """
-    errors = []
-
-    # Update semantic model name and description
-    if semantic_data_model_for_llm.name:
-        semantic_data_model["name"] = semantic_data_model_for_llm.name
-    if semantic_data_model_for_llm.description is not None:
-        semantic_data_model["description"] = semantic_data_model_for_llm.description
-
-    # Get existing tables from the semantic data model
-    existing_tables = semantic_data_model.get("tables") or []
-
-    # Create a mapping of (schema, table) -> existing table for quick lookup
-    existing_table_map = {}
-    for table in existing_tables:
-        base_table = table.get("base_table", {})
-        schema = base_table.get("schema")
-        table_name = base_table.get("table")
-        if table_name:
-            key = (schema, table_name)
-            existing_table_map[key] = table
-
-    # Process each table from the LLM model
-    llm_tables = semantic_data_model_for_llm.tables or []
-    for llm_table in llm_tables:
-        base_table = llm_table.base_table
-        schema = base_table.schema
-        table_name = base_table.table
-
-        # Find the corresponding existing table
-        key = (schema, table_name)
-        existing_table = existing_table_map.get(key)
-
-        if not existing_table:
-            errors.append(
-                f"Table with schema '{schema}' and table '{table_name}' "
-                "not found in existing semantic data model"
-            )
-            continue
-
-        # Update table properties
-        if llm_table.name:
-            existing_table["name"] = llm_table.name
-        if llm_table.description is not None:
-            existing_table["description"] = llm_table.description
-        if llm_table.synonyms is not None:
-            existing_table["synonyms"] = llm_table.synonyms
-
-        # Process columns from the LLM model
-        if llm_table.columns:
-            _update_table_columns(existing_table, llm_table.columns, errors)
-
-    # Check for tables in LLM model that weren't found in existing model
-    llm_table_keys = set()
-    for llm_table in llm_tables:
-        base_table = llm_table.base_table
-        key = (base_table.schema, base_table.table)
-        llm_table_keys.add(key)
-
-    # Report any tables that were in LLM model but not found in existing model
-    for key in llm_table_keys:
-        if key not in existing_table_map:
-            schema, table_name = key
-            errors.append(
-                f"Table with schema '{schema}' and table '{table_name}' from LLM model "
-                "not found in existing semantic data model"
-            )
-
-
-def _update_table_columns(existing_table: dict, llm_columns: list[Column], errors: list) -> None:  # noqa: PLR0912, C901
-    """Update table columns based on LLM model columns."""
-    # Get all existing columns from all groups
-    all_existing_columns = []
-    column_groups = ["dimensions", "facts", "time_dimensions", "metrics"]
-
-    for group in column_groups:
-        columns = existing_table.get(group) or []
-        for col in columns:
-            col["_group"] = group  # Track which group it came from
-            all_existing_columns.append(col)
-
-    # Create a mapping of (expr) -> existing column for quick lookup
-    existing_column_map = {}
-    for col in all_existing_columns:
-        expr = col.get("expr")
-        if expr:
-            existing_column_map[expr] = col
-
-    # Process each column from the LLM model
-    for llm_column in llm_columns:
-        expr = llm_column.expr
-
-        # Find the corresponding existing column
-        existing_column = existing_column_map.get(expr)
-
-        if not existing_column:
-            errors.append(f"Column with expr '{expr}' not found in existing semantic data model")
-            continue
-
-        # Update column properties
-        if llm_column.name:
-            existing_column["name"] = llm_column.name
-        if llm_column.description is not None:
-            existing_column["description"] = llm_column.description
-        if llm_column.synonyms is not None:
-            existing_column["synonyms"] = llm_column.synonyms
-
-        # Check if column needs to be moved to a different group based on category
-        current_group = existing_column.get("_group")
-        target_group = _get_target_group_for_category(llm_column.category)
-
-        if current_group != target_group:
-            # Remove from current group
-            current_group_columns = existing_table.get(current_group, [])
-            current_group_columns.remove(existing_column)
-
-            # Add to target group
-            if target_group not in existing_table:
-                existing_table[target_group] = []
-            existing_table[target_group].append(existing_column)
-
-    # Remove the temporary _group field
-    for column in all_existing_columns:
-        column.pop("_group", None)
-
-    # Clean up empty groups
-    for group in column_groups:
-        if group in existing_table and not existing_table[group]:
-            del existing_table[group]
-
-
-def _get_target_group_for_category(category: str | None) -> str:
-    """Get the target group name for a given category."""
-    if category is None:
-        return "dimensions"
-    category_to_group = {
-        "dimension": "dimensions",
-        "fact": "facts",
-        "time_dimension": "time_dimensions",
-        "metric": "metrics",
-    }
-    return category_to_group.get(category, "dimensions")
-
-
-OUTPUT_SCHEMA_FORMAT: str = json.dumps(
+FULL_OUTPUT_SCHEMA_FORMAT: str = json.dumps(
     SemanticDataModelForLLM.model_json_schema(mode="serialization"),
     indent=2,
 )
+
+
+class TablesOutputSchema(BaseModel):
+    """A schema for a list of tables."""
+
+    tables: Annotated[
+        list[LogicalTableMetadataForLLM], "A list of logical tables in this semantic model"
+    ]
+
+
+TABLES_OUTPUT_SCHEMA_FORMAT: str = json.dumps(
+    TablesOutputSchema.model_json_schema(mode="serialization"),
+    indent=2,
+)
+
+
+class TableToColumnsOutputSchema(BaseModel):
+    """A schema for a dictionary of table names to columns."""
+
+    table_to_columns: Annotated[
+        dict[str, list[ColumnForLLM]], "A dictionary of table names to columns"
+    ]
+
+
+TABLES_TO_COLUMNS_OUTPUT_SCHEMA_FORMAT: str = json.dumps(
+    TableToColumnsOutputSchema.model_json_schema(mode="serialization"),
+    indent=2,
+)
+
+LLMOutputSchemas = SemanticDataModelForLLM | TablesOutputSchema | TableToColumnsOutputSchema

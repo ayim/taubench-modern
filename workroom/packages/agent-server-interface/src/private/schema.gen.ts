@@ -4414,6 +4414,14 @@ export interface components {
       files_info: components['schemas']['FileInfo'][];
       /** Agent Id */
       agent_id?: string | null;
+      /** Existing Semantic Data Model */
+      existing_semantic_data_model?:
+        | components['schemas']['SemanticDataModel']
+        | {
+            [key: string]: unknown;
+          }
+        | string
+        | null;
     };
     /** GenerateSemanticDataModelResponse */
     GenerateSemanticDataModelResponse: {

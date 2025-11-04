@@ -608,7 +608,7 @@ class _DataFramesChecker:
         return inspect_response
 
     async def generate_semantic_data_model(
-        self, tables_info: "list[TableInfo]", data_connection_id: str
+        self, tables_info: "list[TableInfo]", data_connection_id: str, agent_id: str | None = None
     ) -> "GenerateSemanticDataModelResponse":
         from agent_platform.core.payloads.semantic_data_model_payloads import (
             DataConnectionInfo,
@@ -630,6 +630,7 @@ class _DataFramesChecker:
                     )
                 ],
                 files_info=[],
+                agent_id=agent_id,
             ),
             user=self.user,
             storage=self.model_creator.storage,

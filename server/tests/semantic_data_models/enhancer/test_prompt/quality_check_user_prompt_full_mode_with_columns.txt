@@ -1,0 +1,74 @@
+
+Please review this enhanced semantic data model and determine if there are additional improvements needed:
+
+Scope: The following item(s) were enhanced:
+  Columns:
+    - Table "sales_data": "product_category"
+
+Other tables/columns may not have complete enhancements.
+
+```json
+{
+  "name": "Sales Data",
+  "description": "This semantic model can be used for asking questions over the sales data.",
+  "tables": [
+    {
+      "name": "sales_data",
+      "description": "A logical table capturing daily sales information across different\n                store locations and product categories.",
+      "base_table": {
+        "database": "sales",
+        "schema": "public",
+        "table": "sd_data"
+      },
+      "dimensions": [
+        {
+          "name": "product_category",
+          "synonyms": [
+            "item_category",
+            "product_type"
+          ],
+          "description": "The category of the product sold.",
+          "expr": "cat",
+          "data_type": "NUMBER",
+          "unique": false,
+          "sample_values": [
+            "501",
+            "544"
+          ]
+        },
+        {
+          "name": "store_country",
+          "description": "The country where the sale took place.",
+          "expr": "cntry",
+          "data_type": "TEXT",
+          "unique": false,
+          "sample_values": [
+            "USA",
+            "GBR"
+          ]
+        }
+      ],
+      "time_dimensions": [
+        {
+          "name": "sale_timestamp",
+          "synonyms": [
+            "time_of_sale",
+            "transaction_time"
+          ],
+          "description": "The time when the sale occurred. In UTC.",
+          "expr": "dt",
+          "data_type": "TIMESTAMP",
+          "unique": false
+        }
+      ],
+      "facts": [],
+      "filters": []
+    }
+  ]
+}
+```
+
+Respond with only "PASSED" if the enhancements are good enough.
+If the enhancements are not good enough, please reply with "Please improve: <explanation>"
+where <explanation> is a detailed explanation of what needs to be improved.
+

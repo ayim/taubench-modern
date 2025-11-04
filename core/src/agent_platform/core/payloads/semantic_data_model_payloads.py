@@ -109,6 +109,10 @@ class GenerateSemanticDataModelPayload:
     data_connections_info: list[DataConnectionInfo]
     files_info: list[FileInfo]
     agent_id: str | None = None
+    existing_semantic_data_model: SemanticDataModel | dict | None | str = None
+    """The existing semantic data model to enhance. Can be provided as a dict/object or just its id.
+    If not provided, a new semantic data model will be generated based on the data_connections_info
+    and files_info."""
 
 
 @dataclass(frozen=True)

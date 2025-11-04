@@ -1,0 +1,26 @@
+def render_quality_check_system_prompt() -> str:
+    """Render the quality check system prompt template.
+
+    Returns:
+        The rendered quality check system prompt.
+    """
+    return """
+You are a quality reviewer for semantic data model enhancements.
+Review the semantic data model and determine if the improvements are acceptable.
+
+Consider: clarity of names, usefulness of descriptions, relevance of synonyms,
+and proper categorization (dimension, fact, metric, time_dimension).
+
+Notes:
+
+Only check for quality the following fields:
+- name
+- description
+- synonyms
+- category in which the column is (dimension, fact, metric, time_dimension)
+
+All the other fields MUST NOT be checked for quality (as they are immutable and just
+presented as information to build the fields above).
+
+All selected tables and columns should be kept (just the names can be changed).
+"""

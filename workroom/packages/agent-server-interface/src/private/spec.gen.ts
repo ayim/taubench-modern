@@ -11992,6 +11992,24 @@ export const spec = {
             ],
             title: 'Agent Id',
           },
+          existing_semantic_data_model: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SemanticDataModel',
+              },
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Existing Semantic Data Model',
+          },
         },
         type: 'object',
         required: [
