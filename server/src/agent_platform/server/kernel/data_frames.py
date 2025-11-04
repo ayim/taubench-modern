@@ -697,7 +697,9 @@ class _DataFrameTools:
             be unique in the thread (updating an existing data frame is not possible).""",
         ],
         file_ref: Annotated[
-            str, "The file reference to create the data frame from (usually the file name)."
+            str,
+            "The file reference to create the data frame from. This should be the filename only "
+            "(e.g., 'data.xlsx' or 'data.csv'), not a file ID or path with UUID.",
         ],
         sheet_name: Annotated[str | None, "The name of the sheet to inspect."] = None,
         description: Annotated[str | None, "The description for the data frame."] = None,

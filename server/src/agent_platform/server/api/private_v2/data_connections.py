@@ -1,4 +1,3 @@
-import mimetypes
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
@@ -282,7 +281,7 @@ def _create_column_info(header: str, sample_rows: list, column_index: int) -> Co
     )
 
 
-def _create_table_info(sheet, file_name: str) -> TableInfo:
+def _create_table_info(sheet, file_name: str, has_multiple_sheets: bool) -> TableInfo:
     """Create TableInfo from a data reader sheet."""
     sample_rows = sheet.list_sample_rows(5)
     columns = []
@@ -291,7 +290,13 @@ def _create_table_info(sheet, file_name: str) -> TableInfo:
         column_info = _create_column_info(header, sample_rows, i)
         columns.append(column_info)
 
-    table_name = sheet.name if sheet.name else file_name
+    # For single-sheet files (like CSV or single-sheet Excel), use the filename
+    # For multi-sheet Excel files, use the sheet name to distinguish them
+    if has_multiple_sheets and sheet.name:
+        table_name = sheet.name
+    else:
+        table_name = file_name
+
     return TableInfo(
         name=table_name,
         database=None,
@@ -326,12 +331,10 @@ async def inspect_file_as_data_connection(
         from agent_platform.server.data_frames.data_reader import (
             create_file_data_reader_from_contents,
         )
+        from agent_platform.server.file_manager.utils import guess_mimetype
 
-        # Determine MIME type from file extension
-        mime_type, _ = mimetypes.guess_type(file_name)
-        if not mime_type:
-            # Default to CSV if we can't determine the type
-            mime_type = "text/csv"
+        # Determine MIME type from file extension and/or content
+        mime_type = guess_mimetype(file_name, file_contents)
 
         # Create a file data reader from the contents
         data_reader = create_file_data_reader_from_contents(
@@ -342,8 +345,9 @@ async def inspect_file_as_data_connection(
 
         # Convert the data reader sheets to TableInfo objects
         tables = []
+        has_multiple_sheets = data_reader.has_multiple_sheets()
         for sheet in data_reader.iter_sheets():
-            table_info = _create_table_info(sheet, file_name)
+            table_info = _create_table_info(sheet, file_name, has_multiple_sheets)
             tables.append(table_info)
 
         logger.info(

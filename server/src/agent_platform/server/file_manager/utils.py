@@ -62,10 +62,15 @@ def url_to_fs_path(file_url: str) -> str:
 
 def guess_mimetype(file_name: str, file_bytes: bytes) -> str:  # noqa: PLR0911
     """Guess the mime-type of a file based on its name or bytes."""
-    # Guess based on the file extension
-    mime_type, _ = mimetypes.guess_type(file_name)
+    # First, check for known extensions explicitly (more reliable than mimetypes module)
+    file_lower = file_name.lower()
+    if file_lower.endswith(".xlsx"):
+        return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif file_lower.endswith(".xls"):
+        return "application/vnd.ms-excel"
 
-    # Return detected mime type from mimetypes guess, unless it's None
+    # Fall back to mimetypes module for other extensions
+    mime_type, _ = mimetypes.guess_type(file_name)
     if mime_type:
         return mime_type
 

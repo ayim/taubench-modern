@@ -101,8 +101,14 @@ class ExcelDataReader(FileDataReader):
 
             try:
                 self.__excel_reader = fastexcel.read_excel(self._file_bytes)
-            except Exception:
+            except Exception as e:
                 self._failed_reading_as_excel = True
+                logger.error(
+                    "Failed to read Excel file with fastexcel",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    file_size=len(self._file_bytes),
+                )
                 raise
         return self.__excel_reader
 
@@ -123,7 +129,12 @@ class ExcelDataReader(FileDataReader):
     def iter_sheets(self) -> Iterator[DataReaderSheet]:
         try:
             excel_reader = self._excel_reader
-        except Exception:
+        except Exception as e:
+            logger.warning(
+                "Failed to read file as Excel, falling back to CSV",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             yield from CsvDataReader(self._file_bytes).iter_sheets()
             return
 
