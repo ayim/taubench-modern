@@ -39,7 +39,7 @@ jobs:
           registry=https://registry.npmjs.org/
           //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
           @sema4ai:registry=https://npm.pkg.github.com/
-          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_READ_PACKAGES }}
+          //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
           EOF
 
       - name: Install Dependencies
