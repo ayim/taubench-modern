@@ -50,9 +50,6 @@ jobs:
         working-directory: ./workroom/
         run: npm run build
 
-      - name: Isolate spar-ui package from monorepo setup
-        run: rm ${{ github.workspace }}/workroom/package.json
-
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1.4.9
@@ -60,6 +57,7 @@ jobs:
           title: 'Spar UI: Next Release'
           commit: Release version changes
           publish: npm run release
+          version: npm run changeset-version
           cwd: ${{ github.workspace }}/workroom/spar-ui/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

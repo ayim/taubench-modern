@@ -15,6 +15,7 @@
     "postbuild": "vite-node scripts/replacePaths.ts",
     "test": "tsc --noEmit",
     "changeset": "changeset",
+    "changeset-setup": "mv ../package.json ./package.json.tmp && changeset version && mv ./package.json.tmp ../package.json",
     "release": "changeset publish"
   },
   "sideEffects": false,
