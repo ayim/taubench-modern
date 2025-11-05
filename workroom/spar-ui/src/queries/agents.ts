@@ -82,6 +82,33 @@ export const agentDetailsQueryOptions = createSparQueryOptions<{ agentId: string
 export const useAgentDetailsQuery = createSparQuery(agentDetailsQueryOptions);
 
 /**
+ * Get Agent User Interfaces query
+ */
+export const agentUserInterfacesQueryKey = (agentId: string) => ['agentUserInterfaces', agentId];
+
+export const agentUserInterfacesQueryOptions = createSparQueryOptions<{ agentId: string }>()(
+  ({ sparAPIClient, agentId }) => ({
+    queryKey: agentUserInterfacesQueryKey(agentId),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/agents/{agent_id}/user-interfaces', {
+        params: { path: { agent_id: agentId } },
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to fetch agent user interfaces', {
+          code: response.code,
+          resource: ResourceType.Agent,
+        });
+      }
+
+      return response.data;
+    },
+  }),
+);
+
+export const useAgentUserInterfacesQuery = createSparQuery(agentUserInterfacesQueryOptions);
+
+/**
  * Agent OAuth state query
  */
 export const agentOAuthStateQueryKey = (agentId: string) => ['agentOAuthState', agentId];
