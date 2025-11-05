@@ -14337,6 +14337,7 @@ export interface operations {
   parse_document_document_intelligence_documents_parse_post: {
     parameters: {
       query: {
+        agent_id: string;
         thread_id: string;
       };
       header?: never;

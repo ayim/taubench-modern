@@ -112,12 +112,14 @@ class TestReductoIntegration:
         spar_resources_path: Path,
         resource_name: str,
     ):
-        thread_id, file_ref, _ = self._upload_resource_to_new_agent_thread(
+        thread_id, file_ref, agent_id = self._upload_resource_to_new_agent_thread(
             agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
         )
 
         # perform the parse
-        parse_result = agent_server_client_with_doc_int.parse_document(file_ref, thread_id)
+        parse_result = agent_server_client_with_doc_int.parse_document(
+            file_ref, agent_id, thread_id
+        )
 
         # assert the parse result matches expected structure
         self._assert_tables_pdf_parse_result(parse_result)

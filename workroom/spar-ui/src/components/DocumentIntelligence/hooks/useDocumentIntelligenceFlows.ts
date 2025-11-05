@@ -84,6 +84,7 @@ export const useDocumentLayoutFlow = () => {
         // Step 1: Parse document
         setProcessingState(true, 'Parsing document...', null);
         const parseResult = await parseDocumentMutation.mutateAsync({
+          agentId,
           threadId,
           formData: fileRef,
         });

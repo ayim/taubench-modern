@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Form, UploadFile
 from sema4ai_docint.extraction.reducto.async_ import JobType
@@ -18,6 +18,7 @@ from agent_platform.core.payloads.document_intelligence import (
 from agent_platform.server.api.dependencies import (
     AgentServerClientDependency,
     AsyncExtractionClientDependency,
+    CachingDIServiceDependency,
     DIDependency,
     DocIntDatasourceDependency,
     FileManagerDependency,
@@ -172,18 +173,24 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
 async def parse_document(  # noqa: PLR0913
     user: AuthedUser,
     file: UploadFile | str,  # a direct upload or a file ref
+    agent_id: str,
     thread_id: str,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
-    extraction_client: AsyncExtractionClientDependency,
+    di_service_with_persistence: CachingDIServiceDependency,
 ) -> ParseJobResult:
     """Parse a new document using the Document Intelligence database.
 
     This endpoint is used to parse a new document. It now uses the async client
     for better server performance.
     """
+    from reducto.types import ParseResponse
+    from sema4ai_docint import DIService
+
+    # Get the thread
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
+    # Always put the file in Agent thread storage
     uploaded_file, _ = await _get_or_upload_file(
         file,
         thread=thread,
@@ -192,38 +199,19 @@ async def parse_document(  # noqa: PLR0913
         file_manager=file_manager,
     )
 
-    job = await _upload_and_start_parse(
-        file_manager=file_manager,
-        extraction_client=extraction_client,
-        uploaded_file=uploaded_file,
-        user_id=user.user_id,
-        thread_id=thread_id,
-    )
+    di_service = cast(DIService, di_service_with_persistence)
 
-    # For synchronous parse, wait for completion (unlike get_job_result endpoint)
-    try:
-        result = await job.result(poll_interval=3.0)
-        job_result = _create_job_result(result, job.job_id)
-        if not isinstance(job_result, ParseJobResult):
-            raise PlatformHTTPError(
-                error_code=ErrorCode.UNEXPECTED,
-                message=f"Parse response is not a ParseJobResult (was {type(job_result)})",
-            )
-        return job_result
-    except PlatformHTTPError:
-        raise
-    except Exception as e:
-        logger.error(
-            f"Document parse failed via Reducto (uploaded_file={uploaded_file!s}, "
-            f"user_id={user.user_id}, thread_id={thread_id}): {e!s}",
-            error=str(e),
+    # Create a new document
+    doc = await di_service.document_v2.new_document(uploaded_file.file_ref)
+    parse_response: ParseResponse = await di_service.document_v2.parse(doc, force_reload=False)
+
+    job_result = _create_job_result(parse_response, parse_response.job_id)
+    if not isinstance(job_result, ParseJobResult):
+        raise PlatformHTTPError(
+            error_code=ErrorCode.INTERNAL_ERROR,
+            message=f"Parse response is not a ParseJobResult (was {type(job_result)})",
         )
-        _raise_mapped_reducto_error(e)
-
-    raise PlatformHTTPError(
-        error_code=ErrorCode.UNEXPECTED,
-        message="Should be unreachable",
-    )  # can't reach
+    return job_result
 
 
 @router.post("/documents/parse/async")
@@ -259,6 +247,7 @@ async def parse_document_async(  # noqa: PLR0913
         file_manager=file_manager,
     )
 
+    # TODO migrate this to the same impl as /documents/parse
     job = await _upload_and_start_parse(
         file_manager=file_manager,
         extraction_client=extraction_client,

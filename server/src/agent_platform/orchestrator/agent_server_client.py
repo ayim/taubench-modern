@@ -1030,7 +1030,7 @@ class AgentServerClient:
         print_success("Extraction schema generated successfully")
         return result
 
-    def parse_document(self, file_ref: str, thread_id: str) -> ParseJobResult:
+    def parse_document(self, file_ref: str, agent_id: str, thread_id: str) -> ParseJobResult:
         """Parse a document using Document Intelligence.
 
         Args:
@@ -1042,7 +1042,7 @@ class AgentServerClient:
         """
         url = urljoin(
             self.base_url + "/",
-            f"document-intelligence/documents/parse?thread_id={thread_id}",
+            f"document-intelligence/documents/parse?agent_id={agent_id}&thread_id={thread_id}",
         )
         headers = {
             "Accept": "application/json",

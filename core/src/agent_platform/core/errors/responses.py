@@ -66,6 +66,11 @@ class ErrorCode(Enum):
         "The request failed due to a invalid state.",
         412,
     )
+    INTERNAL_ERROR = ErrorInfo(
+        "internal_error",
+        "An internal error occurred while processing this request.",
+        500,
+    )
 
     @property
     def code(self) -> str:

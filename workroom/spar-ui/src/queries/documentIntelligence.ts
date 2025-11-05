@@ -88,17 +88,20 @@ export const useGetDataModelQuery = createSparQuery(getDataModelQueryOptions);
 export const useParseDocumentMutation = createSparMutation<
   object,
   {
+    agentId: string;
     threadId: string;
     formData: DocumentIntelligenceFileUpload;
   }
 >()(({ sparAPIClient }) => ({
   mutationFn: async ({
+    agentId,
     threadId,
     formData,
   }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/parse'>> => {
     const response = await sparAPIClient.queryAgentServer('post', '/api/v2/document-intelligence/documents/parse', {
       params: {
         query: {
+          agent_id: agentId,
           thread_id: threadId,
         },
       },

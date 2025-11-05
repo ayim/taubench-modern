@@ -259,13 +259,25 @@ class Agent(TolerantDataclass):
     def is_conversational_agent(self) -> bool:
         return self.mode == "conversational"
 
+    def agent_settings(self) -> dict[str, Any]:
+        """Helper method to return the `agent_settings` from the `extra` attr. Defaults to an empty
+        dict if agent_settings is not set."""
+        return self.extra.get("agent_settings", {})
+
     def get_user_interfaces(self) -> list[AgentUserInterface]:
         """Returns any defined AgentUserInterfaces in this agent's extra.agent_settings."""
-        user_interfaces = self.extra.get("agent_settings", {}).get("user_interfaces", [])
+        user_interfaces = self.agent_settings().get("user_interfaces", "")
         if not user_interfaces:
             return []
         result = []
-        for ui in user_interfaces:
+        # Handle both list and comma-separated string formats
+        # Today, agent-spec only supports string values. This is some future-proofing.
+        if isinstance(user_interfaces, list):
+            items = user_interfaces
+        else:
+            items = user_interfaces.split(",")
+
+        for ui in items:
             try:
                 result.append(AgentUserInterface(ui))
             except ValueError:

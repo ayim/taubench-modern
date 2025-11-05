@@ -4448,6 +4448,15 @@ export const spec = {
           'parse_document_document_intelligence_documents_parse_post',
         parameters: [
           {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+          {
             name: 'thread_id',
             in: 'query',
             required: true,

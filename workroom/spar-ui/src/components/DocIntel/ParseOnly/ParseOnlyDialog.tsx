@@ -17,10 +17,11 @@ interface ParseOnlyDialogProps {
   isOpen: boolean;
   onClose: () => void;
   file: File;
+  agentId: string;
   threadId: string;
 }
 
-export const ParseOnlyDialog: FC<ParseOnlyDialogProps> = ({ isOpen, onClose, file, threadId }) => {
+export const ParseOnlyDialog: FC<ParseOnlyDialogProps> = ({ isOpen, onClose, file, agentId, threadId }) => {
   const { addSnackbar } = useSnackbar();
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
@@ -31,6 +32,7 @@ export const ParseOnlyDialog: FC<ParseOnlyDialogProps> = ({ isOpen, onClose, fil
   const handleParse = useCallback(async () => {
     try {
       const result = await mutateAsync({
+        agentId,
         threadId,
         formData: file,
       });

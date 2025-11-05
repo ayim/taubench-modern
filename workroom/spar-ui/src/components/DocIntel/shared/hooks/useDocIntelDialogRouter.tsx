@@ -67,7 +67,15 @@ export const useDocIntelDialogRouter = (threadId: string) => {
 
     // Route to new ParseOnlyDialog
     if (dialogState.interfaceType === 'di-parse-only') {
-      return <ParseOnlyDialog isOpen onClose={closeDialog} file={dialogState.file} threadId={dialogState.threadId} />;
+      return (
+        <ParseOnlyDialog
+          isOpen
+          onClose={closeDialog}
+          file={dialogState.file}
+          agentId={dialogState.agentId}
+          threadId={dialogState.threadId}
+        />
+      );
     }
 
     // Route to legacy DocumentIntelligenceDialog for other types - TEMPORARY so we can still access the legacy flow.

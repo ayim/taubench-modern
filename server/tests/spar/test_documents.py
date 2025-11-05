@@ -129,7 +129,7 @@ class TestDocuments:
         response = requests.post(
             f"{spar_agent_server_base_url}/document-intelligence/documents/parse",
             data={"file": file_upload_result.file_ref},
-            params={"thread_id": thread_id},
+            params={"agent_id": agent_id, "thread_id": thread_id},
         )
         response.raise_for_status()
         parse_response = response.json()

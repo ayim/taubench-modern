@@ -22,6 +22,7 @@ from agent_platform.core.document_intelligence.document_layout import (
 )
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.core.files import UploadedFile
 from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
     ExtractJobResult,
@@ -59,7 +60,7 @@ async def _get_or_upload_file(
     user_id: str,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
-):
+) -> tuple[UploadedFile, bool]:
     """Resolve an input file reference or upload a new file.
 
     Returns a tuple of (uploaded_file, new_file_flag).

@@ -1,6 +1,8 @@
 from collections.abc import AsyncGenerator
+from enum import StrEnum
 from typing import Annotated, Any, cast
 
+import structlog
 from fastapi import Depends, Request, UploadFile
 from sema4ai.data import DataSource
 from sema4ai.data._data_source import ConnectionNotSetupError
@@ -10,6 +12,7 @@ from sema4ai_docint.agent_server_client.transport import MemoryTransport
 from sema4ai_docint.extraction.reducto.async_ import AsyncExtractionClient
 from starlette.concurrency import run_in_threadpool
 
+from agent_platform.core.agent.agent import Agent
 from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.errors import ErrorCode
@@ -23,6 +26,7 @@ from agent_platform.core.errors.work_items import (
     WorkItemPayloadTooLargeError,
 )
 from agent_platform.core.integrations.settings.reducto import ReductoSettings
+from agent_platform.server.auth import AuthedUser
 from agent_platform.server.document_intelligence import DocumentIntelligenceService
 from agent_platform.server.file_manager import BaseFileManager, FileManagerService
 from agent_platform.server.secret_manager.base import BaseSecretManager
@@ -36,6 +40,8 @@ from agent_platform.server.storage.errors import (
 StorageDependency = Annotated[BaseStorage, Depends(StorageService.get_instance)]
 
 SecretDependency = Annotated[BaseSecretManager, Depends(SecretService.get_instance)]
+
+logger = structlog.get_logger(__name__)
 
 
 def get_file_manager(storage: StorageDependency) -> BaseFileManager:
@@ -375,11 +381,7 @@ AsyncExtractionClientDependency = Annotated[
 ]
 
 
-async def get_di_service(
-    datasource: DocIntDatasourceDependency,
-    storage: StorageDependency,
-    transport: AgentServerTransportDependency,
-) -> "DIService":
+async def _reducto_api_key(storage: StorageDependency) -> str:
     reducto_integ = await storage.get_integration_by_kind("reducto")
     reducto_settings = reducto_integ.settings
     if not isinstance(reducto_settings, ReductoSettings):
@@ -387,21 +389,124 @@ async def get_di_service(
 
     reducto_settings = cast(ReductoSettings, reducto_settings)
 
-    # Convert SecretString to str if needed
     from agent_platform.core.utils import SecretString
 
-    api_key = (
-        reducto_settings.api_key.get_secret_value()
-        if isinstance(reducto_settings.api_key, SecretString)
-        else reducto_settings.api_key
-    )
+    if isinstance(reducto_settings.api_key, SecretString):
+        return reducto_settings.api_key.get_secret_value()
+    else:
+        return str(reducto_settings.api_key)
 
-    di = build_di_service(
+
+async def get_di_service(
+    datasource: DocIntDatasourceDependency,
+    storage: StorageDependency,
+    transport: AgentServerTransportDependency,
+) -> "DIService":
+    api_key = await _reducto_api_key(storage)
+
+    return build_di_service(
         datasource=datasource,
         sema4_api_key=api_key,
         agent_server_transport=transport,
     )
-    return di
 
 
 DIDependency = Annotated["DIService", Depends(get_di_service)]
+
+
+# Constant from agent-spec
+AGENT_PERSISTENCE_MODE_KEY = "di-persistence"
+
+
+class PersistenceMode(StrEnum):
+    """
+    The persistence mode of the document intelligence service.
+    """
+
+    FILE = "file"
+    DATABASE = "database"
+
+
+def _is_docint_rag_agent(agent: Agent) -> bool:
+    """
+    Returns True if the agent has one of the "canonical" Document Intelligence action packages
+    that have historically required a Postgres database.
+    """
+    return any(
+        ap.name in ("Document Intelligence", "Document Insights") for ap in agent.action_packages
+    )
+
+
+async def _persistence_mode(agent: Agent) -> PersistenceMode:
+    """
+    Get the persistence mode of the document intelligence service.
+    """
+    if _is_docint_rag_agent(agent):
+        return PersistenceMode.DATABASE
+
+    if not agent.extra:
+        return PersistenceMode.FILE
+    persistence_mode_val = agent.agent_settings().get(AGENT_PERSISTENCE_MODE_KEY, "file")
+    try:
+        return PersistenceMode(persistence_mode_val)
+    except ValueError:
+        logger.warning(
+            "Invalid persistence mode {persistence_mode_val} for agent {agent.id}",
+            persistence_mode_val=persistence_mode_val,
+            agent_id=agent.agent_id,
+        )
+        return PersistenceMode.FILE
+
+
+async def di_service_with_persistence(
+    user: AuthedUser,
+    agent_id: str,
+    thread_id: str,
+    storage: StorageDependency,
+    transport: AgentServerTransportDependency,
+) -> "DIService":
+    """Construct the DIService API client introspecting the current Agent."""
+    # Verify thread
+    thread = await storage.get_thread(user.user_id, thread_id)
+    if not thread:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"Thread {thread_id} not found",
+        )
+
+    # Verify agent
+    agent = await storage.get_agent(user.user_id, agent_id)
+    if not agent:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"Agent {agent_id} not found",
+        )
+
+    persistence_mode = await _persistence_mode(agent)
+    if persistence_mode == PersistenceMode.DATABASE:
+        # Fall back to "classic" Document Intelligence service with a required Postgres datasource
+        # Manually resolve the datasource dependency only when needed
+        details = await get_dids_connection_details(storage)
+        datasource = get_docint_datasource(details)
+        return await get_di_service(datasource, storage, transport)
+    elif persistence_mode == PersistenceMode.FILE:
+        from sema4ai_docint.services.persistence import ChatFilePersistenceService
+        from sema4ai_docint.services.persistence.file import AgentServerChatFileAccessor
+
+        api_key = await _reducto_api_key(storage)
+
+        # Use agent server's REST API to interact with chat files for caching.
+        # This is mutually exclusive with a Datasource (postgres database).
+        return build_di_service(
+            datasource=None,
+            sema4_api_key=api_key,
+            agent_server_transport=transport,
+            persistence_service=ChatFilePersistenceService(
+                chat_file_accessor=AgentServerChatFileAccessor(thread_id, transport),
+            ),
+        )
+
+    raise Exception(f"Unhandled persistence mode {persistence_mode} for agent {agent.agent_id}")
+
+
+CachingDIServiceDependency = Annotated["DIService", Depends(di_service_with_persistence)]
