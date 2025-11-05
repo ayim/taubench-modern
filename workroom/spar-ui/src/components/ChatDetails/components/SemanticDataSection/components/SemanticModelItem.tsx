@@ -97,6 +97,8 @@ export const SemanticModelItem: FC<Props> = ({ model, validation }) => {
     });
   };
 
+  const errors = validation?.errors || [];
+
   return (
     <Item>
       <Menu
@@ -105,9 +107,9 @@ export const SemanticModelItem: FC<Props> = ({ model, validation }) => {
             <Box display="flex" alignItems="center" gap="$4">
               <IconDatabase />
               <Typography fontWeight="bold">{model.name}</Typography>
-              {validation?.errors && (
+              {errors.length > 0 && (
                 <Tooltip
-                  text={validation.errors.map((error) => (
+                  text={errors.map((error) => (
                     <Fragment key={error.message}>
                       {error.message}
                       <br />
