@@ -196,7 +196,7 @@ export const getConfiguration = (): Configuration => {
       max: 10,
     },
     port: process.env.POSTGRES_PORT ? parseEnvVariableInteger('POSTGRES_PORT') : 5432,
-    schema: 'spar-backend',
+    schema: 'spar_backend',
     username: parseEnvVariable('POSTGRES_USER'),
   };
 
