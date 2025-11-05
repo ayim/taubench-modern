@@ -425,6 +425,8 @@ class UpsertAgentPayload:
             return
         if self.model["provider"] != "Azure":
             return
+        if "name" not in self.model or not self.model["name"]:
+            raise ValueError("Azure OpenAI model configuration is missing required 'name' field.")
 
         params_to_keep = [
             "chat_url",

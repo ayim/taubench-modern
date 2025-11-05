@@ -176,6 +176,39 @@ class TestLegacyModelDictToAllowlist:
         result = self.payload._legacy_model_dict_to_allowlist(model_dict)
         assert result == {"anthropic": ["claude-4-sonnet"]}
 
+    def test_resolves_to_azure(self):
+        known_names = [
+            "gpt-5-high",
+            "gpt-5-medium",
+            "gpt-5-low",
+            "gpt-5-minimal",
+            "gpt-5-mini",
+            "gpt-5-nano",
+            "gpt-4-1",
+            "gpt-4-1-mini",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "gpt-4o-chatgpt",
+            "o3-high",
+            "o3-low",
+            "o4-mini-high",
+            "o4-mini-low",
+        ]
+        for name in known_names:
+            model_dict = {"provider": "Azure", "name": name}
+            result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+            # this looks weird, but remember that Azure may some day have deployment
+            # of other models from other provides (not sure openai). We're future
+            # proofing that here.
+            assert result == {"openai": [name]}
+
+        unknown_names = ["foo-bar-baz"]
+        for name in unknown_names:
+            model_dict = {"provider": "Azure", "name": name}
+            result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+            # When we don't know the name, we just pass it through with the given provider
+            assert result == {"azure": [name]}
+
 
 class TestWorkerConfigRoundTrip:
     def test_underscore_key(self) -> None:
@@ -986,3 +1019,60 @@ class TestArchitectureSolverResolution:
 
         agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
         assert agent.agent_architecture.name == "agent_platform.architectures.experimental_1"
+
+
+def test_missing_name_azure_legacy():
+    """Test we raise an error when missing the name"""
+    with pytest.raises(ValueError) as e:  # noqa: PT011
+        UpsertAgentPayload(
+            name="Legacy Azure Agent",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=DEFAULT_ARCH,
+            model={
+                "provider": "Azure",
+                # Intentionally omitting the name.
+                # "name": "gpt-5-low",
+                "config": {
+                    "chat_url": "https://myresource.openai.azure.com/openai/deployments/gpt-5-deployment/chat/completions?api-version=2024-02-01",
+                    "chat_openai_api_key": "test-legacy-key",
+                    "embeddings_url": "https://myresource.openai.azure.com/openai/deployments/embeddings-deployment/embeddings?api-version=2024-02-01",
+                },
+            },
+        )
+    assert "missing required 'name'" in str(e.value)
+
+
+def test_legacy_azure_chat_openai_api_key_conversion():
+    """Test that legacy chat_openai_api_key is converted to azure_api_key."""
+    payload = UpsertAgentPayload(
+        name="Legacy Azure Agent",
+        description="desc",
+        version="1.0.0",
+        runbook="hi",
+        agent_architecture=DEFAULT_ARCH,
+        model={
+            "provider": "Azure",
+            "name": "gpt-5-low",
+            "config": {
+                "chat_url": "https://myresource.openai.azure.com/openai/deployments/gpt-5-deployment/chat/completions?api-version=2024-02-01",
+                "chat_openai_api_key": "test-legacy-key",
+                "embeddings_url": "https://myresource.openai.azure.com/openai/deployments/embeddings-deployment/embeddings?api-version=2024-02-01",
+            },
+        },
+    )
+
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+
+    assert len(agent.platform_configs) == 1
+    azure_config = agent.platform_configs[0]
+    assert azure_config.kind == "azure"
+    assert azure_config.azure_api_key is not None
+    assert azure_config.azure_api_key.get_secret_value() == "test-legacy-key"
+    assert azure_config.azure_endpoint_url == "https://myresource.openai.azure.com"
+    assert azure_config.azure_deployment_name == "gpt-5-deployment"
+    assert azure_config.azure_model_backing_deployment_name == "gpt-5-low"
+    assert azure_config.azure_deployment_name_embeddings == "embeddings-deployment"
+    assert azure_config.azure_api_version == "2024-02-01"
+    assert azure_config.models == {"openai": ["gpt-5-low"]}
