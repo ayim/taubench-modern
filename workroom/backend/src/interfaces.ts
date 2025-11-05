@@ -20,15 +20,38 @@ export type ExpressResponse = Response<
   ExpressResponseLocals
 >;
 
-export type Tokens = z.infer<typeof Tokens>;
-export const Tokens = z.object({
+export type OIDCTokenClaims = z.infer<typeof OIDCTokenClaims>;
+export const OIDCTokenClaims = z
+  .object({
+    iss: z.string().nonempty(),
+    sub: z.string().nonempty(),
+    aud: z.string().or(z.array(z.string())),
+    iat: z.number().int(),
+    exp: z.number().int(),
+    // Omitted as not needed:
+    //   nonce, auth_time, azp
+    // Profile scope claims
+    name: z.string().optional(),
+    given_name: z.string().optional(),
+    family_name: z.string().optional(),
+    picture: z.string().url().optional(),
+    locale: z.string().optional(),
+    // Email scope claims
+    email: z.string().email().optional(),
+    email_verified: z.boolean().optional(),
+  })
+  .passthrough();
+
+export type OIDCTokens = z.infer<typeof OIDCTokens>;
+export const OIDCTokens = z.object({
   accessToken: z.string().nonempty(),
+  claims: OIDCTokenClaims,
   expiresAt: z.number().int(),
-  idToken: z.string().nullable(),
+  idToken: z.string(),
+  oidcUserId: z.string(),
   refreshToken: z.string().nullable(),
   state: z.string().nonempty(),
   tokenType: z.string().nonempty(),
-  userId: z.string(),
 });
 
 export const getExpectedLocal = <Key extends keyof ExpressResponseLocals>(

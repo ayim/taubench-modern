@@ -1,6 +1,8 @@
 import z from 'zod';
 import type { AuthManager } from '../auth/AuthManager.js';
+import { upsertOIDCUser } from '../auth/utils/oidcUserRegistration.js';
 import type { Configuration } from '../configuration.js';
+import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { ErrorResponse, ExpressRequest, ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/SessionManager.js';
@@ -9,11 +11,13 @@ export const createOIDCCallbackHandler =
   ({
     authManager,
     configuration,
+    database,
     monitoring,
     sessionManager,
   }: {
     authManager: AuthManager;
     configuration: Configuration;
+    database: DatabaseClient;
     monitoring: MonitoringContext;
     sessionManager: SessionManager;
   }) =>
@@ -120,13 +124,41 @@ export const createOIDCCallbackHandler =
       } satisfies ErrorResponse);
     }
 
-    await sessionManager.setSessionOnRequest(req, {
+    const userResult = await upsertOIDCUser({
+      claims: tokensResult.data.claims,
+      database,
+      monitoring,
+    });
+    if (!userResult.success) {
+      monitoring.logger.error('User upsert failed', {
+        errorName: userResult.error.code,
+        errorMessage: userResult.error.message,
+      });
+
+      return res.status(500).json({
+        error: { code: 'internal_error', message: 'Failed reconciling authentication' },
+      } satisfies ErrorResponse);
+    }
+
+    const sessionUpdateResult = await sessionManager.setSessionOnRequest(req, {
       auth: {
         stage: 'authenticated',
         tokens: tokensResult.data,
+        userId: userResult.data.userId,
+        userRole: userResult.data.userRole,
       },
       authType: 'oidc',
     });
+    if (!sessionUpdateResult.success) {
+      monitoring.logger.error('Session update failed', {
+        errorName: sessionUpdateResult.error.code,
+        errorMessage: sessionUpdateResult.error.message,
+      });
+
+      return res.status(500).json({
+        error: { code: 'internal_error', message: 'Failed reconciling authentication' },
+      } satisfies ErrorResponse);
+    }
 
     monitoring.logger.info('User logged in successfully');
 

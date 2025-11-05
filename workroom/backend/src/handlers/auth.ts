@@ -6,6 +6,34 @@ import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import { getRequestBaseUrl } from '../utils/request.js';
 
+export const createAuthMetaHandler =
+  ({ monitoring, sessionManager }: { monitoring: MonitoringContext; sessionManager: SessionManager }) =>
+  async (req: ExpressRequest, res: ExpressResponse) => {
+    const sessionResult = await sessionManager.extractSessionFromRequest(req);
+    if (!sessionResult.success) {
+      monitoring.logger.error('Could not extract session for auth meta', {
+        errorMessage: sessionResult.error.message,
+        errorName: sessionResult.error.code,
+      });
+
+      return res
+        .status(500)
+        .json({ error: { code: 'internal_error', message: 'Invalid authentication state' } } satisfies ErrorResponse);
+    }
+
+    res.json(
+      sessionResult.data?.auth.stage === 'authenticated'
+        ? {
+            status: 'authenticated',
+            userId: sessionResult.data.auth.userId,
+            userRole: sessionResult.data.auth.userRole,
+          }
+        : {
+            status: 'unauthenticated',
+          },
+    );
+  };
+
 export const createLogoutHandler =
   ({
     authManager,

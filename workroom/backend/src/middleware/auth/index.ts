@@ -7,6 +7,7 @@ import { extractSnowflakeUserIdentity, handleSnowflakeAuthCheck } from './snowfl
 import type { AuthManager } from '../../auth/AuthManager.js';
 import type { Permission } from '../../auth/sema4OIDC.js';
 import type { Configuration } from '../../configuration.js';
+import type { DatabaseClient } from '../../database/DatabaseClient.js';
 import type { ErrorResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/SessionManager.js';
@@ -18,12 +19,14 @@ export const createAuthMiddleware =
     authentication,
     authManager,
     configuration,
+    database,
     monitoring,
     sessionManager,
   }: {
     authentication: 'with-permissions-check' | 'without-permissions-check';
     authManager: AuthManager;
     configuration: Configuration;
+    database: DatabaseClient;
     monitoring: MonitoringContext;
     sessionManager: SessionManager;
   }) =>
@@ -36,7 +39,7 @@ export const createAuthMiddleware =
       case 'sema4-oidc-sso':
         return handleSema4OIDCAuthCheck({ authentication, authManager, configuration, monitoring, next, req, res });
       case 'oidc':
-        return handleOIDCAuthCheck({ authManager, monitoring, next, req, res, sessionManager });
+        return handleOIDCAuthCheck({ authManager, database, monitoring, next, req, res, sessionManager });
 
       default:
         exhaustiveCheck(configuration.auth);
@@ -48,12 +51,14 @@ export const createAuthRedirectMiddleware =
     authManager,
     bypassedPages = [],
     configuration,
+    database,
     monitoring,
     sessionManager,
   }: {
     authManager: AuthManager;
     bypassedPages: Readonly<Array<string>>;
     configuration: Configuration;
+    database: DatabaseClient;
     monitoring: MonitoringContext;
     sessionManager: SessionManager;
   }) =>
@@ -152,6 +157,7 @@ export const createAuthRedirectMiddleware =
 
         const refreshResult = await refreshOIDCToken({
           authManager,
+          database,
           monitoring,
           req,
           sessionManager,

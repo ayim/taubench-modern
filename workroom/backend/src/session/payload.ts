@@ -1,5 +1,5 @@
 import z from 'zod';
-import { Tokens } from '../interfaces.js';
+import { OIDCTokens } from '../interfaces.js';
 
 export type Session = z.infer<typeof Session>;
 export const Session = z.union([
@@ -11,13 +11,17 @@ export const Session = z.union([
       }),
       z.object({
         stage: z.literal('authenticated'),
-        tokens: Tokens,
+        tokens: OIDCTokens,
+        userId: z.string().nonempty(),
+        userRole: z.string().nonempty(),
       }),
     ]),
     authType: z.literal('oidc'),
   }),
   z.null(),
 ]);
+
+const isEmpty = (session: Session): boolean => session === null || Object.keys(session).length === 0;
 
 const isEqual = (obj1: unknown, obj2: unknown): boolean => {
   if (obj1 === obj2) return true;
@@ -39,11 +43,14 @@ const isEqual = (obj1: unknown, obj2: unknown): boolean => {
   return false;
 };
 
-export const sessionsEqual = (session1: Session, session2: Session): boolean => {
-  if (session1 === null || session2 === null) return false;
+export const sessionsEqual = (sessionA: Session, sessionB: Session): boolean => {
+  const sessionAEmpty = isEmpty(sessionA);
+  const sessionBEmpty = isEmpty(sessionB);
+  if (sessionAEmpty && sessionBEmpty) return true;
+  if (sessionAEmpty || sessionBEmpty) return false;
 
-  const target1 = structuredClone(session1) as unknown as Record<string, string>;
-  const target2 = structuredClone(session2) as unknown as Record<string, string>;
+  const target1 = structuredClone(sessionA) as unknown as Record<string, string>;
+  const target2 = structuredClone(sessionB) as unknown as Record<string, string>;
 
   delete target1.cookie;
   delete target1.id;

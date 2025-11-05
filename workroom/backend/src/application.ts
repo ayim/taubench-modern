@@ -6,12 +6,13 @@ import express, { type Application, type NextFunction, type Request, type Respon
 import createRouter from 'express-promise-router';
 import { AuthManager } from './auth/AuthManager.js';
 import type { Configuration } from './configuration.js';
+import type { DatabaseClient } from './database/DatabaseClient.js';
 import { createFilesManager } from './files/filesManagement.js';
 import { createGetAgentMeta, createProxyHandler } from './handlers/agents.js';
-import { createLogoutHandler } from './handlers/auth.js';
+import { createAuthMetaHandler, createLogoutHandler } from './handlers/auth.js';
 import { createConfigureDocumentIntelligence } from './handlers/documentIntelligence.js';
 import { createFilesRouter } from './handlers/files.js';
-import { createHealthCheck } from './handlers/health.js';
+import { createHealthCheck, createReadinessCheck } from './handlers/health.js';
 import { createGetMeta, createGetSparTenantsList } from './handlers/meta.js';
 import { createOIDCCallbackHandler } from './handlers/oidc.js';
 import { createAssetServe, createIndexServe, initializeFrontendPlaceholders } from './handlers/static.js';
@@ -21,7 +22,7 @@ import type { ErrorResponse } from './interfaces.js';
 import { createAuthMiddleware, createAuthRedirectMiddleware } from './middleware/auth/index.js';
 import { badPlatform } from './middleware/badRoute.js';
 import { createRequestLogger } from './middleware/logging.js';
-import { poweredByHeaders } from './middleware/poweredBy.js';
+import { serverHeaders } from './middleware/server.js';
 import { createTenantExtractionMiddleware } from './middleware/tenant.js';
 import type { MonitoringContext } from './monitoring/index.js';
 import { createSessionMemoryStore, createSessionMiddleware } from './session/middleware.js';
@@ -31,9 +32,11 @@ const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
 export const createApplication = async ({
   configuration,
+  database,
   monitoring,
 }: {
   configuration: Configuration;
+  database: DatabaseClient;
   monitoring: MonitoringContext;
 }): Promise<{
   appPublic: Application;
@@ -73,7 +76,7 @@ export const createApplication = async ({
 
   appPublic.set('trust proxy', 1);
   appPublic.disable('x-powered-by');
-  appPublic.use(poweredByHeaders);
+  appPublic.use(serverHeaders);
   appPublic.use(cors());
   appPublic.use(
     createSessionMiddleware({
@@ -84,10 +87,10 @@ export const createApplication = async ({
   );
 
   appInternal.disable('x-powered-by');
-  appInternal.use(poweredByHeaders);
+  appInternal.use(serverHeaders);
 
-  appInternal.get('/healthz', createHealthCheck());
-  appInternal.get('/ready', createHealthCheck());
+  appInternal.get('/healthz', createHealthCheck({ database, monitoring }));
+  appInternal.get('/ready', createReadinessCheck());
 
   appPublic.use(createRequestLogger({ monitoring }));
   appInternal.use(createRequestLogger({ monitoring }));
@@ -121,6 +124,13 @@ export const createApplication = async ({
   tenantRouter.get('/meta', createGetMeta({ configuration, monitoring }));
 
   tenantRouter.get(
+    '/auth/meta',
+    createAuthMetaHandler({
+      monitoring,
+      sessionManager,
+    }),
+  );
+  tenantRouter.get(
     '/auth/logout',
     createLogoutHandler({
       authManager,
@@ -136,6 +146,7 @@ export const createApplication = async ({
       authentication: 'without-permissions-check',
       authManager,
       configuration,
+      database,
       monitoring,
       sessionManager,
     }),
@@ -148,6 +159,7 @@ export const createApplication = async ({
       authentication: 'without-permissions-check',
       authManager,
       configuration,
+      database,
       monitoring,
       sessionManager,
     }),
@@ -156,7 +168,7 @@ export const createApplication = async ({
 
   tenantRouter.get(
     '/workroom/oidc/callback',
-    createOIDCCallbackHandler({ authManager, configuration, monitoring, sessionManager }),
+    createOIDCCallbackHandler({ authManager, configuration, database, monitoring, sessionManager }),
   );
 
   // Overrides
@@ -171,6 +183,7 @@ export const createApplication = async ({
         authentication: 'without-permissions-check',
         authManager,
         configuration,
+        database,
         monitoring,
         sessionManager,
       }),
@@ -189,6 +202,7 @@ export const createApplication = async ({
         authentication: 'without-permissions-check',
         authManager,
         configuration,
+        database,
         monitoring,
         sessionManager,
       }),
@@ -207,6 +221,7 @@ export const createApplication = async ({
         authentication: 'without-permissions-check',
         authManager,
         configuration,
+        database,
         monitoring,
         sessionManager,
       }),
@@ -225,6 +240,7 @@ export const createApplication = async ({
         authentication: 'without-permissions-check',
         authManager,
         configuration,
+        database,
         monitoring,
         sessionManager,
       }),
@@ -245,6 +261,7 @@ export const createApplication = async ({
       authentication: 'without-permissions-check',
       authManager,
       configuration,
+      database,
       monitoring,
       sessionManager,
     }),
@@ -256,6 +273,7 @@ export const createApplication = async ({
       authentication: 'with-permissions-check',
       authManager,
       configuration,
+      database,
       monitoring,
       sessionManager,
     }),
@@ -272,6 +290,7 @@ export const createApplication = async ({
       authentication: 'with-permissions-check',
       authManager,
       configuration,
+      database,
       monitoring,
       sessionManager,
     }),
@@ -290,6 +309,7 @@ export const createApplication = async ({
       authentication: 'without-permissions-check',
       authManager,
       configuration,
+      database,
       monitoring,
       sessionManager,
     }),
@@ -311,6 +331,7 @@ export const createApplication = async ({
       authManager,
       bypassedPages: AUTH_BYPASSED_PAGES,
       configuration,
+      database,
       monitoring,
       sessionManager,
     }),

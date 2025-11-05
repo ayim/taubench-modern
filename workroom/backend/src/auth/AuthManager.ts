@@ -2,7 +2,7 @@ import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { Configuration } from '../configuration.js';
 import { OIDCClient } from './OIDCClient.js';
 import { createGetACEUser, type GetACEUser, type UserFrom } from './sema4OIDC.js';
-import type { Tokens } from '../interfaces.js';
+import { OIDCTokenClaims, type OIDCTokens } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { asResult, type Result } from '../utils/result.js';
 import { Semaphore } from './utils/Semaphore.js';
@@ -12,7 +12,7 @@ import { safeParseUrl } from '../utils/url.js';
 export type EndSessionResult = Result<{ logoutUri: string }>;
 
 export type TokenRefreshResult = Result<
-  Tokens,
+  OIDCTokens,
   {
     code: 'no_refresh_token' | 'failed' | 'invalid_configuration';
     message: string;
@@ -34,13 +34,13 @@ export class AuthManager {
   private getACEUser: GetACEUser | null = null;
   private oidcClient: OIDCClient | null = null;
 
-  public readonly refreshSemaphore: Semaphore<Result<Tokens>>;
+  public readonly refreshSemaphore: Semaphore<Result<{ userId: string }>>;
 
   constructor({ configuration, monitoring }: { configuration: Configuration; monitoring: MonitoringContext }) {
     this.configuration = configuration;
     this.monitoring = monitoring;
 
-    this.refreshSemaphore = new Semaphore<Result<Tokens>>();
+    this.refreshSemaphore = new Semaphore<Result<{ userId: string }>>();
   }
 
   async endSession({
@@ -48,7 +48,7 @@ export class AuthManager {
     tokens,
   }: {
     postLogoutRedirectUri: string;
-    tokens: Tokens;
+    tokens: OIDCTokens;
   }): Promise<EndSessionResult> {
     this.monitoring.logger.info('Ending session', {
       authMode: this.configuration.auth.type,
@@ -133,7 +133,7 @@ export class AuthManager {
     codeVerifier: string;
     redirectUri: string;
     state: string;
-  }): Promise<Result<Tokens>> {
+  }): Promise<Result<OIDCTokens>> {
     switch (this.configuration.auth.type) {
       case 'none':
       case 'sema4-oidc-sso':
@@ -157,7 +157,11 @@ export class AuthManager {
               },
             };
           }
-          const response = await this.oidcClient.exchangeCodeForTokens({ code, codeVerifier, redirectUri });
+          const { idTokenClaims, response } = await this.oidcClient.exchangeCodeForTokens({
+            code,
+            codeVerifier,
+            redirectUri,
+          });
 
           if (!response.id_token) {
             // Should not occur so long as:
@@ -175,25 +179,27 @@ export class AuthManager {
             this.monitoring.logger.error('Error validating OIDC callback state', {
               error: err as Error,
             });
+
+            throw err;
           }
 
-          const claims = response.claims();
-          if (!claims) {
+          if (!idTokenClaims || !response.id_token) {
             throw new Error('No claims returned for token exchange');
           }
 
-          const userId = OIDCClient.extractUserIdFromClaims(claims);
+          const userId = OIDCClient.extractUserIdFromClaims(idTokenClaims);
 
           return {
             success: true,
             data: {
               accessToken: response.access_token,
+              claims: OIDCTokenClaims.parse(idTokenClaims),
               expiresAt: OIDCClient.resolveExpiresAt(response.expiresIn()),
-              idToken: response.id_token ?? null,
+              idToken: response.id_token,
+              oidcUserId: userId,
               refreshToken: response.refresh_token ?? null,
               state,
               tokenType: response.token_type,
-              userId,
             },
           };
         });
@@ -420,7 +426,7 @@ export class AuthManager {
     }
   }
 
-  async refreshTokens({ tokens }: { tokens: Tokens }): Promise<TokenRefreshResult> {
+  async refreshTokens({ tokens }: { tokens: OIDCTokens }): Promise<TokenRefreshResult> {
     switch (this.configuration.auth.type) {
       case 'oidc': {
         if (!this.oidcClient) {
@@ -443,25 +449,26 @@ export class AuthManager {
           };
         }
 
-        let newTokens: Tokens;
+        let newTokens: OIDCTokens;
         try {
           const response = await this.oidcClient.refreshTokens({ refreshToken: tokens.refreshToken });
 
           const claims = response.claims();
-          if (!claims) {
+          if (!claims || !response.id_token) {
             throw new Error('No claims returned for token exchange');
           }
 
-          const userId = OIDCClient.extractUserIdFromClaims(claims);
+          const oidcUserId = OIDCClient.extractUserIdFromClaims(claims);
 
           newTokens = {
             accessToken: response.access_token,
+            claims: OIDCTokenClaims.parse(claims),
             expiresAt: OIDCClient.resolveExpiresAt(response.expiresIn()),
-            idToken: response.id_token ?? null,
+            idToken: response.id_token,
+            oidcUserId,
             refreshToken: response.refresh_token ?? null,
             state: tokens.state,
             tokenType: response.token_type,
-            userId,
           };
         } catch (err) {
           this.monitoring.logger.error('Token refresh request failed', {
@@ -548,7 +555,7 @@ export class AuthManager {
     }
   }
 
-  async validateTokens({ tokens }: { tokens: Tokens }): Promise<TokenValidationResult> {
+  async validateTokens({ tokens }: { tokens: OIDCTokens }): Promise<TokenValidationResult> {
     if (tokens.expiresAt <= Date.now()) {
       return {
         success: false,

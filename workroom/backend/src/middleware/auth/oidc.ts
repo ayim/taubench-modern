@@ -1,5 +1,7 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { AuthManager } from '../../auth/AuthManager.js';
+import { upsertOIDCUser } from '../../auth/utils/oidcUserRegistration.js';
+import type { DatabaseClient } from '../../database/DatabaseClient.js';
 import type { ErrorResponse, ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/SessionManager.js';
@@ -30,6 +32,7 @@ type OIDCUserIdentityResult = Result<
 
 export const handleOIDCAuthCheck = async ({
   authManager,
+  database,
   monitoring,
   next,
   req,
@@ -37,6 +40,7 @@ export const handleOIDCAuthCheck = async ({
   sessionManager,
 }: {
   authManager: AuthManager;
+  database: DatabaseClient;
   monitoring: MonitoringContext;
   next: ExpressNextFunction;
   req: ExpressRequest;
@@ -74,6 +78,7 @@ export const handleOIDCAuthCheck = async ({
 
         const refreshResult = await refreshOIDCToken({
           authManager,
+          database,
           monitoring,
           req,
           sessionManager,
@@ -103,6 +108,9 @@ export const handleOIDCAuthCheck = async ({
   return next();
 };
 
+/**
+ * Extract the internal user identity by reconciling with OIDC
+ */
 export const extractOIDCUserIdentity = async ({
   authManager,
   headers,
@@ -206,18 +214,20 @@ export const extractOIDCUserIdentity = async ({
   return {
     success: true,
     data: {
-      userId: sessionResult.data.auth.tokens.userId,
+      userId: sessionResult.data.auth.userId,
     },
   };
 };
 
 export const refreshOIDCToken = async ({
   authManager,
+  database,
   monitoring,
   req,
   sessionManager,
 }: {
   authManager: AuthManager;
+  database: DatabaseClient;
   monitoring: MonitoringContext;
   req: ExpressRequest;
   sessionManager: SessionManager;
@@ -284,7 +294,7 @@ export const refreshOIDCToken = async ({
   const authPayload = sessionResult.data.auth;
 
   monitoring.logger.info('Refreshing user tokens');
-  const tokensResult = await authManager.refreshSemaphore.use(authPayload.tokens.refreshToken ?? '-', async () => {
+  const userIdResult = await authManager.refreshSemaphore.use(authPayload.tokens.refreshToken ?? '-', async () => {
     const refreshResult = await authManager.refreshTokens({ tokens: authPayload.tokens });
     if (!refreshResult.success) {
       monitoring.logger.error('Unable to handle expired tokens: Token refresh failed', {
@@ -309,28 +319,50 @@ export const refreshOIDCToken = async ({
       };
     }
 
-    await sessionManager.setSessionOnRequest(req, {
+    const userUpdateResult = await upsertOIDCUser({
+      claims: refreshResult.data.claims,
+      database,
+      monitoring,
+    });
+    if (!userUpdateResult.success) {
+      return {
+        success: false,
+        error: {
+          code: 'user_update_failed',
+          message: `Failed updating user from OIDC claims: ${userUpdateResult.error.message}`,
+        },
+      };
+    }
+
+    const sessionUpdateResult = await sessionManager.setSessionOnRequest(req, {
       auth: {
         stage: 'authenticated',
         tokens: refreshResult.data,
+        userId: userUpdateResult.data.userId,
+        userRole: userUpdateResult.data.userRole,
       },
       authType: 'oidc',
     });
+    if (!sessionUpdateResult.success) {
+      return sessionUpdateResult;
+    }
 
     return {
       success: true,
-      data: refreshResult.data,
+      data: {
+        userId: userUpdateResult.data.userId,
+      },
     };
   });
 
-  if (!tokensResult.success) {
-    return tokensResult;
+  if (!userIdResult.success) {
+    return userIdResult;
   }
 
   return {
     success: true,
     data: {
-      userId: tokensResult.data.userId,
+      userId: userIdResult.data.userId,
     },
   };
 };

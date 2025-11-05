@@ -6,6 +6,7 @@ import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createApplication } from './application.js';
 import type { Configuration } from './configuration.js';
+import type { DatabaseClient } from './database/DatabaseClient.js';
 
 const TEST_PRIVATE_KEY_BASE64 =
   'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZ2Y1TmZyRGNHejhwclpwS2QKYzZxWWJvUzhROUdxTkhNR3k4Z0JwZWxhMkFtaFJBTkNBQVNpWWI2alNydTltLzhLbXlzVjBuUFlaKzluR1p4YQoyRVVFZmFPWnQ1OXlBT1lta1JGZnlKVTNUcGVUSnRhRWpyalRFQUkyYkhRK2daN3p1SDlpaStXMQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==';
@@ -16,6 +17,21 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   auth: {
     tokenIssuer: 'spar',
     type: 'none',
+  },
+  database: {
+    host: 'localhost',
+    migrations: {
+      lockTable: 'test-lock',
+      recordsTable: 'test',
+    },
+    name: 'test',
+    password: 'test',
+    pool: {
+      max: 1,
+    },
+    port: 5432,
+    schema: 'test-schema',
+    username: 'test',
   },
   dataServerCredentials: {
     credentials: {
@@ -98,6 +114,10 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   },
 });
 
+const getMockDatabase = (): DatabaseClient => {
+  return {} as unknown as DatabaseClient;
+};
+
 describe('application', () => {
   const ACE_ID = randomUUID();
   const USER_ID = randomUUID();
@@ -144,6 +164,7 @@ describe('application', () => {
 
       service = await createApplication({
         configuration: generateConfiguration({ agentServerInternalUrl: targetServerUrl }),
+        database: getMockDatabase(),
         monitoring: {
           logger: {
             debug: () => {},
@@ -181,6 +202,7 @@ describe('application', () => {
             type: 'snowflake',
           },
         },
+        database: getMockDatabase(),
         monitoring: {
           logger: {
             debug: () => {},
@@ -244,6 +266,7 @@ describe('application', () => {
             tenantName: 'ACE test',
           },
         },
+        database: getMockDatabase(),
         monitoring: {
           logger: {
             debug: () => {},

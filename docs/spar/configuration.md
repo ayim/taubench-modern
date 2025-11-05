@@ -42,6 +42,11 @@ These variables are workroom related, and can be applied to the general SPAR doc
 
 | Variable                                   | Example               | Definition                                          | Required |
 | ------------------------------------------ | --------------------- | --------------------------------------------------- | -------- |
+| `POSTGRES_DB`                              | `agents`              | Postgres database name.                             | Yes      |
+| `POSTGRES_HOST`                            | `postgres`            | Postgres database host.                             | Yes      |
+| `POSTGRES_PASSWORD`                        | `agents`              | Postgres database password.                         | Yes      |
+| `POSTGRES_PORT`                            | `5432`                | Postgres database port.                             | Yes      |
+| `POSTGRES_USER`                            | `agents`              | Postgres database username.                         | Yes      |
 | `SEMA4AI_WORKROOM_AGENT_SERVER_URL`        | `http://agent-server` | URL to the agent server, non-public.                | Yes      |
 | `SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS` | `true`                | Allow non-HTTPS requests (session/cookie handling). | No       |
 | `SEMA4AI_WORKROOM_LOG_LEVEL`               | `INFO`                | Configure log level for the workroom backend.       | No [^3]  |

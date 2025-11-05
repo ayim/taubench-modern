@@ -38,6 +38,21 @@ export interface Configuration {
         type: 'oidc';
       }
   );
+  database: {
+    host: string;
+    migrations: {
+      lockTable: string;
+      recordsTable: string;
+    };
+    name: string;
+    password: string;
+    pool: {
+      max: number;
+    };
+    port: number;
+    schema: string;
+    username: string;
+  };
   dataServerCredentials: {
     credentials: {
       username: string;
@@ -145,9 +160,10 @@ export const getConfiguration = (): Configuration => {
         // Standard, required scopes:
         //  offline_access  => Refresh tokens
         //  openid          => ID tokens
+        //  profile         => User info, like name, picture etc.
         const scopes = process.env.SEMA4AI_WORKROOM_OIDC_SCOPES
           ? parseEnvVariable('SEMA4AI_WORKROOM_OIDC_SCOPES').split(/\s+/g)
-          : ['offline_access', 'openid'];
+          : ['offline_access', 'openid', 'profile'];
 
         return {
           clientId: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_ID'),
@@ -167,6 +183,22 @@ export const getConfiguration = (): Configuration => {
         exhaustiveCheck(mode);
     }
   })();
+
+  const database: Configuration['database'] = {
+    host: parseEnvVariable('POSTGRES_HOST'),
+    migrations: {
+      lockTable: 'spar_migration_lock',
+      recordsTable: 'spar_migrations',
+    },
+    name: parseEnvVariable('POSTGRES_DB'),
+    password: parseEnvVariable('POSTGRES_PASSWORD'),
+    pool: {
+      max: 10,
+    },
+    port: process.env.POSTGRES_PORT ? parseEnvVariableInteger('POSTGRES_PORT') : 5432,
+    schema: 'spar-backend',
+    username: parseEnvVariable('POSTGRES_USER'),
+  };
 
   const files = ((): Configuration['files'] => {
     const mode: Configuration['files']['mode'] = process.env.SEMA4AI_WORKROOM_FILES_MODE
@@ -280,6 +312,7 @@ export const getConfiguration = (): Configuration => {
     agentServerInternalUrl,
     allowInsecureRequests,
     auth,
+    database,
     dataServerCredentials: {
       // Default credentials when using SKIP_CONFIGURATION
       // https://github.com/Sema4AI/data/blob/master/docker/data-server/default_config.json

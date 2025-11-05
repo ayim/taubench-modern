@@ -19,9 +19,14 @@ export interface LogAttributes {
   fileSize: number;
   fileType: string;
   logLevel: LogSeverity;
+  migrationDirection: string;
+  migrationName: string;
+  migrationStatus: string;
   objectStorageBucketName: string;
   oidcIssuer: string;
   oidcRedirectUrl: string;
+  oidcScopes: string;
+  oidcUserId: string;
   port: number;
   processSignal: string;
   requestMethod: string;
@@ -30,10 +35,20 @@ export interface LogAttributes {
   status: number;
   statusText: string;
   tenantId: string;
+  /**
+   * Internal SPAR user ID
+   */
+  userId: string;
+  userRole: string;
 }
 
 interface DebugLogAttributes extends LogAttributes {
+  dbHost: string;
+  dbName: string;
+  dbPort: number;
+  dbSchema: string;
   oidcClaims: string;
+  oidcHasRefresh: boolean;
 }
 
 export interface LoggingContext {

@@ -1,5 +1,6 @@
 import { createApplication } from './application.js';
 import { getConfiguration } from './configuration.js';
+import { createDatabaseClient } from './database/index.js';
 import { createMonitoringContext, type MonitoringContext } from './monitoring/index.js';
 
 const gracefulShutdown =
@@ -17,8 +18,9 @@ const gracefulShutdown =
 const main = async () => {
   const configuration = getConfiguration();
   const monitoring = createMonitoringContext({ logLevel: configuration.logLevel });
+  const database = await createDatabaseClient({ configuration, monitoring });
 
-  const app = await createApplication({ configuration, monitoring });
+  const app = await createApplication({ configuration, database, monitoring });
   await app.start();
 
   process.on('warning', (warning) => {

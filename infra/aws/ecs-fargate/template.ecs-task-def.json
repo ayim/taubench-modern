@@ -97,7 +97,7 @@
         { "name": "SEMA4AI_WORKROOM_FILES_AWS_REGION", "value": "${AGENT_FILES_REGION}" },
         { "name": "SEMA4AI_WORKROOM_FILES_AWS_ROLE_ARN", "value": "${AGENT_FILES_ROLE_ARN}" },
         { "name": "SEMA4AI_WORKROOM_FILES_S3_BUCKET", "value": "${AGENT_FILES_BUCKET_NAME}" },
-        { "name": "SEMA4AI_WORKROOM_LOG_LEVEL", "value": "INFO" },
+        { "name": "SEMA4AI_WORKROOM_LOG_LEVEL", "value": "DEBUG" },
         { "name": "SEMA4AI_WORKROOM_TENANT_ID", "value": "${RELEASE_NAME}" },
         { "name": "SEMA4AI_WORKROOM_AGENT_SERVER_URL", "value": "http://localhost:8000" },
         { "name": "SEMA4AI_WORKROOM_PORT", "value": "8001" },

@@ -59,7 +59,10 @@ export class OIDCClient {
     code: string;
     redirectUri: string;
     codeVerifier: string;
-  }): Promise<TokenEndpointResponse & TokenEndpointResponseHelpers> {
+  }): Promise<{
+    idTokenClaims: IDToken | undefined;
+    response: TokenEndpointResponse & TokenEndpointResponseHelpers;
+  }> {
     const tokenSet = await (async () => {
       try {
         return await oidcClient.authorizationCodeGrant(
@@ -82,12 +85,16 @@ export class OIDCClient {
       }
     })();
 
-    const idToken = tokenSet.claims();
+    const idTokenClaims = tokenSet.claims();
     this.monitoring.logger.debug('Exchanged OIDC token', {
-      oidcClaims: JSON.stringify(idToken ?? {}),
+      oidcClaims: JSON.stringify(idTokenClaims ?? {}),
+      oidcHasRefresh: !!tokenSet.refresh_token,
     });
 
-    return tokenSet;
+    return {
+      idTokenClaims,
+      response: tokenSet,
+    };
   }
 
   async getAuthorizationUrl({
@@ -124,6 +131,7 @@ export class OIDCClient {
 
     this.monitoring.logger.info('Generated OIDC authorization URL', {
       oidcIssuer: issuerUrlResult.data.toString(),
+      oidcScopes: authParams.scope,
       requestUrl: authUrl.toString(),
     });
 
@@ -181,6 +189,7 @@ export class OIDCClient {
     const idToken = tokenSet.claims();
     this.monitoring.logger.debug('Refreshed OIDC token', {
       oidcClaims: JSON.stringify(idToken ?? {}),
+      oidcHasRefresh: !!tokenSet.refresh_token,
     });
 
     return tokenSet;

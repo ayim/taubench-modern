@@ -71,7 +71,12 @@ RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc \
 
 COPY --from=workroom-pruner /build/out/full/ .
 
-RUN npx turbo build --filter=@sema4ai/workroom-frontend --filter=@sema4ai/workroom-backend
+RUN npm run build && \
+    rm -rf node_modules && \
+    rm -rf ./**/node_modules
+
+RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc \
+    npm ci --workspace=backend --omit=dev
 
 # [ Final SPAR image ] #############################################################################
 FROM node-base
@@ -98,8 +103,15 @@ COPY --chmod=755 ./scripts/entrypoint-spar.sh ./scripts/spar-healthcheck.sh /app
 # Copy Agent Server binary
 COPY --from=agent-server-builder --chmod=755 /build/dist/agent-server /usr/local/bin/agent-server
 
-# Copy backend bundle
-COPY --from=workroom-builder --chown=appuser:appuser /app/backend/dist/index.js ./workroom/backend/dist/index.js
+# Copy workspace package.json and node_modules for backend dependencies
+COPY --from=workroom-builder --chown=appuser:appuser /app/package*.json ./workroom/
+COPY --from=workroom-builder --chown=appuser:appuser /app/node_modules ./workroom/node_modules
+COPY --from=workroom-builder --chown=appuser:appuser /app/packages ./workroom/packages
+
+# Copy backend
+COPY --from=workroom-builder --chown=appuser:appuser /app/backend/dist ./workroom/backend/dist
+COPY --from=workroom-builder --chown=appuser:appuser /app/backend/package.json ./workroom/backend/
+COPY --from=workroom-builder --chown=appuser:appuser /app/backend/node_modules ./workroom/backend/node_modules
 
 # Copy frontend bundle + assets
 COPY --from=workroom-builder --chown=appuser:appuser /app/frontend/dist ./workroom/frontend/dist
@@ -111,14 +123,19 @@ RUN sed -i -e "s/SPAR_VERSION_PLACEHOLDER/${SPAR_VERSION}/g" ./workroom/frontend
 
 ARG AGENT_SERVER_PORT=8000
 ARG SEMA4AI_WORKROOM_PORT=8001
+ARG SEMA4AI_WORKROOM_PORT_INTERNAL=8002
 
 ENV AGENT_SERVER_PORT=${AGENT_SERVER_PORT}
 ENV SEMA4AI_WORKROOM_PORT=${SEMA4AI_WORKROOM_PORT}
+ENV SEMA4AI_WORKROOM_PORT_INTERNAL=${SEMA4AI_WORKROOM_PORT_INTERNAL}
 ENV SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true
 ENV SEMA4AI_OPTIMIZE_FOR_CONTAINER=1
 ENV SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1
 
 USER appuser
-EXPOSE ${AGENT_SERVER_PORT} ${SEMA4AI_WORKROOM_PORT}
+EXPOSE ${AGENT_SERVER_PORT} ${SEMA4AI_WORKROOM_PORT} ${SEMA4AI_WORKROOM_PORT_INTERNAL}
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 CMD curl -f http://localhost:${SEMA4AI_WORKROOM_PORT_INTERNAL}/healthz || exit 1
+
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/app/entrypoint-spar.sh"]

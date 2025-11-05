@@ -76,3 +76,13 @@ For builds _without_ workroom, you can then spin up a local build by performing 
 
 > [!TIP]
 > The running agent server will be available on [`http://localhost:8000`](http://localhost:8000), and workroom on [`http://localhost:8001`](http://localhost:8001). Additionally, the private/internal workroom API will be exposed in development on `http://localhost:8002`.
+
+## Database Requirements
+
+Both the agent-server and workroom (backend) require access to a Postgres database. Both operate on separate schemas, so it's fine to pass them the same connection details.
+
+While the agent server supports both `SEMA4AI_` and `POSTGRES_` -prefixed environment variables, workroom only supports the latter (`POSTGRES_...`).
+
+### Migrations
+
+The workroom database migrations are stored as timestamped `.ts` files in `workroom/backend/src/database/migrations/`. These are created by running `npm run migrations:create` in the `workroom/backend` directory.
