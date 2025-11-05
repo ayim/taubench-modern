@@ -191,3 +191,23 @@ async def test_live_tool_executor_missing_definition_errors() -> None:
 
     with pytest.raises(UnexpectedToolError, match="Cannot find live tool definition"):
         await executor.execute(tool)
+
+
+@pytest.mark.asyncio
+async def test_live_tool_executor_reports_gather_issues_on_missing_definition() -> None:
+    executor = LiveToolExecutor([], issues=["Error acquiring tool definitions from action server"])
+    executor.attach_kernel(SimpleNamespace(tools=None))  # type: ignore[arg-type]
+
+    tool = Tool(
+        tool_call_id="call-1",
+        tool_name="demo-tool",
+        input_raw=json.dumps({"arg": "value"}),
+    )
+
+    with pytest.raises(UnexpectedToolError) as exc:
+        await executor.execute(tool)
+
+    assert exc.value.details["tool"] == "demo-tool"
+    assert exc.value.details["tool_gathering_issues"] == [
+        "Error acquiring tool definitions from action server"
+    ]

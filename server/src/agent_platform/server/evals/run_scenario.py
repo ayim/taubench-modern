@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from tempfile import SpooledTemporaryFile
 from typing import Any, BinaryIO, cast
@@ -50,16 +50,6 @@ from agent_platform.server.kernel.tools import AgentServerToolsInterface
 from agent_platform.server.storage.option import StorageService
 
 logger = logging.getLogger(__name__)
-
-
-def _extract_evaluation_from_model_response(text: str) -> dict | None:
-    import json
-
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError as e:
-        logger.debug(f"Cannot parse JSON: {e}")
-        return None
 
 
 def _list_scenario_next_user_messages(
@@ -146,6 +136,7 @@ def _collect_tool_executor_drifts(
 class ToolsBundle:
     action_tools: Sequence[ToolDefinition]
     mcp_tools: Sequence[ToolDefinition]
+    issues: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def all(self) -> tuple[ToolDefinition, ...]:
@@ -305,9 +296,7 @@ async def _copy_thread_files_to_run_thread(
                 logger.debug("Error closing temporary file during cleanup", exc_info=True)
 
 
-async def _gather_agent_tools(
-    agent: Agent, context: AgentServerContext
-) -> tuple[ToolsBundle, list[str]]:
+async def _gather_agent_tools(agent: Agent, context: AgentServerContext) -> ToolsBundle:
     kernel = create_minimal_kernel(context)
     iface = AgentServerToolsInterface()
     iface.attach_kernel(kernel)
@@ -324,7 +313,8 @@ async def _gather_agent_tools(
     return ToolsBundle(
         action_tools=action_tools,
         mcp_tools=mcp_tools,
-    ), issues
+        issues=tuple(issues),
+    )
 
 
 async def _terminate_and_return_not_ok(
@@ -411,12 +401,11 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
         agent_id=agent.agent_id,
     )
 
-    agent_tools, issues = await _gather_agent_tools(agent, server_context)
-
-    if len(issues) > 0:
-        logger.info(f"Cannot upload some agent tools: {issues}")
-        return await _terminate_and_return_not_ok(
-            storage, task.trial_id, state, "TOOL_GATHERING_ISSUES", issues
+    agent_tools = await _gather_agent_tools(agent, server_context)
+    if agent_tools.issues:
+        logger.warning(
+            f"One or more agent tools failed to initialize; "
+            f"continuing anyway: {'; '.join(agent_tools.issues)}",
         )
 
     agent_tool_names = [tool.name for tool in agent_tools.all]
@@ -434,6 +423,15 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
         _list_scenario_next_agent_messages(scenario, 0) if start_with_agent else ([], None)
     )
 
+    thread_metadata = {
+        "scenario_id": scenario.scenario_id,
+        "scenario_run_id": scenario_run.scenario_run_id,
+        "trial_index": task.index_in_run,
+        "trial_id": task.trial_id,
+    }
+    if agent_tools.issues:
+        thread_metadata["tool_gathering_issues"] = list(agent_tools.issues)
+
     new_thread = Thread(
         name=(
             f'"{scenario.name}" - '
@@ -444,12 +442,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
         agent_id=agent.agent_id,
         thread_id=str(uuid4()),
         messages=initial_agent_messages,
-        metadata={
-            "scenario_id": scenario.scenario_id,
-            "scenario_run_id": scenario_run.scenario_run_id,
-            "trial_index": task.index_in_run,
-            "trial_id": task.trial_id,
-        },
+        metadata=thread_metadata,
     )
     await storage.upsert_thread(system_user.user_id, new_thread)
 
@@ -497,7 +490,10 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
             tool_executor = None
 
             if execution_mode == "live":
-                tool_executor = LiveToolExecutor(list(agent_tools.all))
+                tool_executor = LiveToolExecutor(
+                    list(agent_tools.all),
+                    issues=list(agent_tools.issues),
+                )
             elif execution_mode == "replay":
                 tool_executor = ReplayToolExecutor.from_conversation(
                     agent_messages_from_scenario,
@@ -514,6 +510,11 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                         f"in the selected agent: "
                         f"{', '.join([tool.name for tool in missing_tools_in_agent])}"
                     )
+                    if agent_tools.issues:
+                        message = (
+                            f"{message}. We had some issues in gathering tools: "
+                            f"{'; '.join(agent_tools.issues)}"
+                        )
                     logger.info(f"Agent tools don't match the conversation: {message}")
                     state.termination = "AGENT_TOOL_MISMATCH"
                     state.status = "ERROR"

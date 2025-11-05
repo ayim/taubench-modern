@@ -37,11 +37,12 @@ def _kernel_result_to_client_result(result: KernelToolExecutionResult) -> ToolEx
 class LiveToolExecutor(ToolExecutor):
     """Executes tools against live implementations instead of replaying outputs."""
 
-    def __init__(self, tools: list[ToolDefinition]):
+    def __init__(self, tools: list[ToolDefinition], issues: list[str] | None = None):
         self.tools = tools
         self._kernel: Kernel | None = None
         self._tool_by_name: dict[str, ToolDefinition] = {}
         self.drifts: list[Any] = []
+        self._gather_issues = issues or []
         for definition in tools:
             if definition.name in self._tool_by_name:
                 logger.warning(
@@ -62,9 +63,12 @@ class LiveToolExecutor(ToolExecutor):
 
         definition = self._tool_by_name.get(tool.tool_name)
         if definition is None:
+            details: dict = {"tool": tool.tool_name}
+            if self._gather_issues:
+                details["tool_gathering_issues"] = list(self._gather_issues)
             raise UnexpectedToolError(
-                message="Cannot find live tool definition",
-                details={"tool": tool.tool_name},
+                message="Cannot find live tool definition; tool server may be unavailable.",
+                details=details,
             )
 
         pending_tool_calls = [
