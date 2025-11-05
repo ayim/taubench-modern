@@ -1,17 +1,30 @@
+import { FC } from 'react';
 import { Box, Typography } from '@sema4ai/components';
 import { TreeList } from '@sema4ai/layouts';
-import { IconDbDatabase } from '@sema4ai/icons';
+import { IconDbDatabase, IconDbSchema } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useFormContext } from 'react-hook-form';
 
 import { DataConnectionFormSchema } from '../../form';
 import { InputControlled } from '../../../../../../common/form/InputControlled';
+import { useSemanticDataValidationQuery } from '../../../../../../queries';
 import { TableTreeItem } from './TableTreeItem';
+import { snakeCaseToCamelCase } from '../../../../../../common/helpers';
+
+type Props = {
+  modelId: string;
+};
 
 const columns = [
   'Description',
   <Typography>
     Synonyms{' '}
+    <Typography fontWeight="normal" color="content.subtle.light" as="span">
+      (comma-separated)
+    </Typography>
+  </Typography>,
+  <Typography>
+    Sample Values{' '}
     <Typography fontWeight="normal" color="content.subtle.light" as="span">
       (comma-separated)
     </Typography>
@@ -33,7 +46,10 @@ const Cell = styled.div`
   }
 `;
 
-export const TableTree = () => {
+const dimensionTypes = ['dimensions', 'time_dimensions', 'facts', 'metrics'] as const;
+
+export const TableTree: FC<Props> = ({ modelId }) => {
+  const { data: validation } = useSemanticDataValidationQuery({ modelId });
   const { watch } = useFormContext<DataConnectionFormSchema>();
   const tables = watch('tables');
 
@@ -64,47 +80,43 @@ export const TableTree = () => {
                 <Cell>
                   <Box p="$16">-</Box>
                 </Cell>
+                <Cell>
+                  <Box p="$16">-</Box>
+                </Cell>
               </>
             }
           >
-            {table.dimensions?.map((dimension, dimensionIndex) => {
+            {dimensionTypes.map((type) => {
+              if (!table[type] || table[type].length === 0) {
+                return null;
+              }
+
               return (
-                <TableTreeItem
-                  type="dimensions"
-                  dimension={dimension}
-                  dimensionIndex={dimensionIndex}
-                  tableIndex={tableIndex}
-                />
-              );
-            })}
-            {table.time_dimensions?.map((dimension, dimensionIndex) => {
-              return (
-                <TableTreeItem
-                  type="time_dimensions"
-                  dimension={dimension}
-                  dimensionIndex={dimensionIndex}
-                  tableIndex={tableIndex}
-                />
-              );
-            })}
-            {table.facts?.map((dimension, dimensionIndex) => {
-              return (
-                <TableTreeItem
-                  type="facts"
-                  dimension={dimension}
-                  dimensionIndex={dimensionIndex}
-                  tableIndex={tableIndex}
-                />
-              );
-            })}
-            {table.metrics?.map((dimension, dimensionIndex) => {
-              return (
-                <TableTreeItem
-                  type="metrics"
-                  dimension={dimension}
-                  dimensionIndex={dimensionIndex}
-                  tableIndex={tableIndex}
-                />
+                <TreeList.Item
+                  icon={IconDbSchema}
+                  open
+                  label={snakeCaseToCamelCase(type)}
+                  columns={
+                    <>
+                      <Cell />
+                      <Cell />
+                      <Cell />
+                    </>
+                  }
+                >
+                  {table[type].map((dimension, dimensionIndex) => {
+                    return (
+                      <TableTreeItem
+                        key={dimension.name}
+                        type={type}
+                        dimension={dimension}
+                        dimensionIndex={dimensionIndex}
+                        tableIndex={tableIndex}
+                        validation={validation}
+                      />
+                    );
+                  })}
+                </TreeList.Item>
               );
             })}
           </TreeList.Item>

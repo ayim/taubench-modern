@@ -4,14 +4,15 @@ import { useState } from 'react';
 
 import { SparUIFeatureFlag } from '../../../../api';
 import { useFeatureFlag, useParams } from '../../../../hooks';
-import { useAgentSemanticDataQuery } from '../../../../queries/semanticData';
+import { useAgentSemanticDataQuery, useAgentSemanticDataValidationQuery } from '../../../../queries/semanticData';
 import { SemanticDataConfiguration } from '../../../SemanticData/SemanticDataConfiguration';
 import { SemanticModelItem } from './components/SemanticModelItem';
 
 export const SemanticDataSection = () => {
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { agentId } = useParams('/thread/$agentId');
-  const { data: semanticDataModels } = useAgentSemanticDataQuery({ agentId });
+  const { data: semanticDataModels, isLoading } = useAgentSemanticDataQuery({ agentId });
+  const { data: semanticDataValidation } = useAgentSemanticDataValidationQuery({ agentId });
   const { enabled: isSemanticDataModelsAvailable } = useFeatureFlag(SparUIFeatureFlag.semanticDataModels);
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
@@ -19,7 +20,7 @@ export const SemanticDataSection = () => {
     setIsConfigurationOpen(!isConfigurationOpen);
   };
 
-  if (!isSemanticDataModelsAvailable) {
+  if (!isSemanticDataModelsAvailable || isLoading) {
     return null;
   }
 
@@ -41,7 +42,8 @@ export const SemanticDataSection = () => {
       </Box>
       {semanticDataModels?.length ? (
         semanticDataModels.map((model) => {
-          return <SemanticModelItem key={model.id} model={model} />;
+          const validation = semanticDataValidation?.find((v) => v.semantic_data_model_id === model.id);
+          return <SemanticModelItem key={model.id} model={model} validation={validation} />;
         })
       ) : (
         <Typography>Connect your agent to data from databases or files using Sema4.ai Data Models.</Typography>

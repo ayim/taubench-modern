@@ -1,6 +1,6 @@
-import { FC, useState } from 'react';
-import { Box, Button, Typography, Menu, useSnackbar } from '@sema4ai/components';
-import { IconDatabase, IconDotsHorizontal } from '@sema4ai/icons';
+import { FC, Fragment, useState } from 'react';
+import { Box, Button, Typography, Menu, Tooltip, useSnackbar } from '@sema4ai/components';
+import { IconDatabase, IconDotsHorizontal, IconStatusError } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 
@@ -12,9 +12,11 @@ import {
 } from '../../../../../queries/semanticData';
 import { useParams } from '../../../../../hooks';
 import { downloadFile } from '../../../../../lib/utils';
+import { ServerResponse } from '../../../../../queries/shared';
 
 type Props = {
   model: SemanticModel;
+  validation?: ServerResponse<'post', '/api/v2/semantic-data-models/validate'>['results'][number];
 };
 
 const Item = styled(Box)`
@@ -43,7 +45,7 @@ const Trigger = styled.div`
   }
 `;
 
-export const SemanticModelItem: FC<Props> = ({ model }) => {
+export const SemanticModelItem: FC<Props> = ({ model, validation }) => {
   const { agentId } = useParams('/thread/$agentId');
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { mutate: deleteSemanticDataModel } = useDeleteSemanticDataModelMutation({});
@@ -103,6 +105,18 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
             <Box display="flex" alignItems="center" gap="$4">
               <IconDatabase />
               <Typography fontWeight="bold">{model.name}</Typography>
+              {validation?.errors && (
+                <Tooltip
+                  text={validation.errors.map((error) => (
+                    <Fragment key={error.message}>
+                      {error.message}
+                      <br />
+                    </Fragment>
+                  ))}
+                >
+                  <IconStatusError color="content.error" />
+                </Tooltip>
+              )}
             </Box>
 
             <Button variant="outline" size="small" icon={IconDotsHorizontal} round aria-label="Actions" />

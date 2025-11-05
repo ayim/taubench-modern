@@ -34,7 +34,10 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
       }
 
       reset(values);
-      onSubmit();
+
+      if (values.fileRefId) {
+        onSubmit();
+      }
     } catch (error) {
       addSnackbar({ message: error instanceof Error ? error.message : 'Failed to validate model', variant: 'danger' });
     }

@@ -1,5 +1,5 @@
 import { FC, useEffect, useMemo, useState } from 'react';
-import { Dialog, Form, Progress, Steps, StepStatusType, useSnackbar } from '@sema4ai/components';
+import { Dialog, Form, Progress, StepProps, Steps, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -17,6 +17,7 @@ import {
   DataConnectionFormContext,
   DataConnectionFormSchema,
   DataSourceType,
+  hasDataSelectionChanged,
   semanticModelToFormSchema,
 } from './components/form';
 import { DataConnection } from './components/DataConnection';
@@ -34,7 +35,9 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
   const [modelId, setModelId] = useState<string | undefined>(initialModelId);
   const { agentId } = useParams('/thread/$agentId');
 
-  const [activeStep, setActiveStep] = useState<ConfigurationStep>(ConfigurationStep.DataConnection);
+  const [activeStep, setActiveStep] = useState<ConfigurationStep>(
+    initialModelId ? ConfigurationStep.ModelEdition : ConfigurationStep.DataConnection,
+  );
   const { addSnackbar } = useSnackbar();
   const [databaseInspectionState, setDatabaseInspectionState] = useState<DatabaseInspectionState>({
     isLoading: false,
@@ -69,26 +72,28 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
       const values = semanticModelToFormSchema(semanticModel);
       formMethods.reset(values);
 
-      if (initialModelId) {
-        setActiveStep(ConfigurationStep.ModelEdition);
-      }
-
       if (values.dataConnectionId) {
         setDataSourceType(DataSourceType.Database);
       } else {
         setDataSourceType(DataSourceType.File);
       }
     }
-  }, [semanticModel, initialModelId]);
+  }, [semanticModel]);
 
   const onSubmit = formMethods.handleSubmit(async (values) => {
     if (modelId) {
+      const shouldRegenerateModel = hasDataSelectionChanged(values);
+
       updateSemanticData(
-        { ...values, modelId, agentId },
+        { ...values, modelId, agentId, shouldRegenerateModel },
         {
           onSuccess: () => {
-            addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
-            onClose();
+            if (shouldRegenerateModel) {
+              setActiveStep(ConfigurationStep.Success);
+            } else {
+              addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
+              onClose();
+            }
           },
           onError: (error) => {
             addSnackbar({ message: error.message, variant: 'danger' });
@@ -149,7 +154,9 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
                 error: error.message,
                 dataTables: [],
               });
-              setActiveStep(ConfigurationStep.DataConnection);
+              if (!initialModelId) {
+                setActiveStep(ConfigurationStep.DataConnection);
+              }
             },
             onSuccess: (result) => {
               setDatabaseInspectionState({
@@ -175,20 +182,50 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     });
   };
 
-  const [step1Status, step2Status, step3Status] = (() => {
+  const connectionStepProps: StepProps & { label: string } = (() => {
     if (dataSourceType === DataSourceType.Import) {
-      return [
-        tables ? 'completed' : 'incomplete',
-        fileRefId || dataConnectionId ? 'completed' : 'incomplete',
-        modelId || isCreatePending ? 'completed' : 'incomplete',
-      ] satisfies StepStatusType[];
+      return {
+        status: tables ? 'completed' : 'incomplete',
+        onClick: () => onResetImport(),
+        label: 'File Upload',
+      };
     }
 
-    return [
-      fileRefId || dataConnectionId ? 'completed' : 'incomplete',
-      dataSelection.length > 0 ? 'completed' : 'incomplete',
-      modelId || isCreatePending ? 'completed' : 'incomplete',
-    ] satisfies StepStatusType[];
+    if (databaseInspectionState.error) {
+      return {
+        status: 'error',
+        label: 'Connection',
+      };
+    }
+
+    return {
+      status: fileRefId || dataConnectionId ? 'completed' : 'incomplete',
+      label: 'Connection',
+    };
+  })();
+
+  const dataSelectionStepProps: StepProps & { label: string } = (() => {
+    if (dataSourceType === DataSourceType.Import) {
+      return {
+        status: fileRefId || dataConnectionId ? 'completed' : 'incomplete',
+        disabled: !tables,
+        label: 'Connection',
+      };
+    }
+
+    return {
+      status: dataSelection.length > 0 ? 'completed' : 'incomplete',
+      disabled: (!fileRefId && !dataConnectionId) || !!databaseInspectionState.error,
+      label: 'Data Selection',
+    };
+  })();
+
+  const modelEditionStepProps: StepProps & { label: string } = (() => {
+    return {
+      status: modelId || isCreatePending ? 'completed' : 'incomplete',
+      label: 'Data Model',
+      disabled: !modelId,
+    };
   })();
 
   if (isLoadingSemanticModel && initialModelId === modelId) {
@@ -202,33 +239,14 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
           <DataConnectionFormContext.Provider value={formContextValue}>
             {activeStep !== ConfigurationStep.Success && (
               <Dialog.Bar>
-                {(dataSourceType === DataSourceType.Database || dataSourceType === DataSourceType.File) && (
-                  <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
-                    <Steps.Step status={step1Status}>Connection</Steps.Step>
-                    <Steps.Step status={step2Status} disabled={step1Status !== 'completed'}>
-                      Data Selection
-                    </Steps.Step>
-                    <Steps.Step status={step3Status} disabled={step2Status !== 'completed'}>
-                      Data Model
-                    </Steps.Step>
-                  </Steps>
-                )}
-                {dataSourceType === DataSourceType.Import && (
-                  <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
-                    <Steps.Step status={step1Status} onClick={() => onResetImport()}>
-                      File Upload
-                    </Steps.Step>
-                    <Steps.Step disabled status={step2Status}>
-                      Connection
-                    </Steps.Step>
-                    <Steps.Step disabled status={step3Status}>
-                      Data Model
-                    </Steps.Step>
-                  </Steps>
-                )}
+                <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
+                  <Steps.Step {...connectionStepProps}>{connectionStepProps.label}</Steps.Step>
+                  <Steps.Step {...dataSelectionStepProps}>{dataSelectionStepProps.label}</Steps.Step>
+                  <Steps.Step {...modelEditionStepProps}>{modelEditionStepProps.label}</Steps.Step>
+                </Steps>
               </Dialog.Bar>
             )}
-            {isCreatePending ? (
+            {isPending && activeStep === ConfigurationStep.DataSelection ? (
               <Processing />
             ) : (
               <>
@@ -243,8 +261,8 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
                 {activeStep === ConfigurationStep.DataSelection && (
                   <DataSelection onClose={onClose} setActiveStep={setActiveStep} />
                 )}
-                {activeStep === ConfigurationStep.ModelEdition && (
-                  <ModelEdition onClose={onClose} setActiveStep={setActiveStep} />
+                {activeStep === ConfigurationStep.ModelEdition && modelId && (
+                  <ModelEdition onClose={onClose} setActiveStep={setActiveStep} modelId={modelId} />
                 )}
                 {activeStep === ConfigurationStep.Success && (
                   <SuccessView onClose={onClose} setActiveStep={setActiveStep} />

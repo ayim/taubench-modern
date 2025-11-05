@@ -3,13 +3,7 @@ import { Box, Typography } from '@sema4ai/components';
 import { IconSai } from '@sema4ai/icons/logos';
 import { IconLoading, IconStatusCompleted, IconStatusTimeout } from '@sema4ai/icons';
 
-const steps = [
-  'Profiling tables and views',
-  'Profiling columns',
-  'Generating metadata',
-  'Understanding relations',
-  'Distilling business context',
-];
+const steps = ['Profiling tables and views', 'Profiling columns', 'Generating metadata', 'Distilling business context'];
 
 export const Processing: FC = () => {
   const [currentStep, setCurrentStep] = useState(0);

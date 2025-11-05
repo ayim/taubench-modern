@@ -43,17 +43,22 @@ export const RenameDialog: FC<Props> = ({
 
   const { ref, ...registerProps } = register('name');
 
-  const onSubmit = handleSubmit((data) => {
-    const newName = data.name.trim();
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-    if (entityName === newName) {
+    handleSubmit((data) => {
+      const newName = data.name.trim();
+
+      if (entityName === newName) {
+        onClose();
+        return;
+      }
+
       onClose();
-      return;
-    }
-
-    onClose();
-    onRename(newName);
-  });
+      onRename(newName);
+    })();
+  };
 
   return (
     <Dialog onClose={onClose} width={multiLine ? 720 : undefined} open>

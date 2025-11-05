@@ -24,6 +24,7 @@ export const SemanticModel = z.object({
       name: z.string(),
       base_table: z.object({
         data_connection_id: z.string().optional(),
+        data_connection_name: z.string().optional(),
         database: z.string().nullable().optional(),
         schema: z.string().nullable().optional(),
         table: z.string(),
@@ -107,6 +108,68 @@ const semanticModelQueryOptions = createSparQueryOptions<{ modelId: string }>()(
 }));
 
 export const useSemanticModelQuery = createSparQuery(semanticModelQueryOptions);
+
+/**
+ * Get Agents Semantic Data Validation results
+ */
+const getAgentSemanticDataValidationQueryKey = (agentId: string) => ['agent-semantic-data-validation', agentId];
+
+const agentSemanticDataValidationQueryOptions = createSparQueryOptions<{ agentId: string }>()(
+  ({ agentId, sparAPIClient }) => ({
+    queryKey: getAgentSemanticDataValidationQueryKey(agentId),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/validate', {
+        params: {},
+        body: {
+          agent_id: agentId,
+        },
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to get Semantic Data validation results', {
+          code: response.code,
+          resource: ResourceType.SemanticData,
+        });
+      }
+
+      return response.data.results;
+    },
+  }),
+);
+
+export const useAgentSemanticDataValidationQuery = createSparQuery(agentSemanticDataValidationQueryOptions);
+
+/**
+ * Get Semantic Data Validation results
+ */
+const getSemanticDataValidationQueryKey = (modelId: string) => ['semantic-data-validation', modelId];
+
+const semanticDataValidationQueryOptions = createSparQueryOptions<{ modelId: string }>()(
+  ({ modelId, sparAPIClient }) => ({
+    queryKey: getSemanticDataValidationQueryKey(modelId),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/validate', {
+        params: {},
+        body: {
+          semantic_data_model_id: modelId,
+        },
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to get Semantic Data validation results', {
+          code: response.code,
+          resource: ResourceType.SemanticData,
+        });
+      }
+
+      const validation = response.data.results.find((result) => result.semantic_data_model_id === modelId);
+
+      return validation;
+    },
+  }),
+);
+
+export const useSemanticDataValidationQuery = createSparQuery(semanticDataValidationQueryOptions);
 
 /**
  * Create Semantic Data Model
@@ -205,9 +268,57 @@ export const useCreateSemanticDataMutation = createSparMutation<
  */
 export const useUpdateSemanticDataModelMutation = createSparMutation<
   object,
-  DataConnectionFormSchema & { modelId: string; agentId: string }
+  DataConnectionFormSchema & { modelId: string; agentId: string; shouldRegenerateModel: boolean }
 >()(({ sparAPIClient, queryClient }) => ({
   mutationFn: async (payload) => {
+    let { tables } = payload;
+
+    if (payload.shouldRegenerateModel) {
+      const tableData = payload.dataConnectionId
+        ? {
+            data_connections_info: [
+              {
+                data_connection_id: payload.dataConnectionId,
+                tables_info: payload.dataSelection,
+              },
+            ],
+            files_info: [],
+          }
+        : {
+            data_connections_info: [],
+            files_info: [
+              {
+                thread_id: '',
+                file_ref: '',
+                tables_info: payload.dataSelection,
+              },
+            ],
+          };
+
+      const generateResponse = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/generate', {
+        body: {
+          name: payload.name || '',
+          description: payload.description || '',
+          agent_id: payload.agentId,
+          ...tableData,
+          existing_semantic_data_model: {
+            name: payload.name,
+            description: payload.description,
+            tables: payload.tables,
+          },
+        },
+      });
+
+      if (!generateResponse.success) {
+        throw new QueryError(generateResponse.message || 'Failed to generate Semantic Data model', {
+          code: generateResponse.code,
+          resource: ResourceType.SemanticData,
+        });
+      }
+
+      tables = generateResponse.data.semantic_model.tables as SemanticModel['tables'];
+    }
+
     const response = await sparAPIClient.queryAgentServer(
       'put',
       '/api/v2/semantic-data-models/{semantic_data_model_id}',
@@ -217,7 +328,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
           semantic_model: {
             name: payload.name,
             description: payload.description,
-            tables: payload.tables,
+            tables,
           },
         },
       },

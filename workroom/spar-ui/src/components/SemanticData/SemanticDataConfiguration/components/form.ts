@@ -35,6 +35,7 @@ export const DataConnectionFormContext = createContext<{
 
 export const DataConnectionFormSchema = z.object({
   dataConnectionId: z.string().optional(),
+  dataConnectionName: z.string().optional(),
   fileRefId: z.string().optional(),
   description: z.string().optional(),
   name: z.string().optional(),
@@ -66,6 +67,7 @@ export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
   return {
     name: semanticModel.name,
     dataConnectionId: semanticModel.tables[0].base_table.data_connection_id,
+    dataConnectionName: semanticModel.tables[0].base_table.data_connection_name,
     fileRefId: semanticModel.tables[0].base_table.file_reference?.file_ref,
     description: semanticModel.description,
     dataSelection: semanticModel.tables.map((table) => {
@@ -102,3 +104,35 @@ type ConfigurationStepProps = {
 };
 
 export type ConfigurationStepView<T = unknown> = FC<ConfigurationStepProps & T>;
+
+export const hasDataSelectionChanged = (payload: DataConnectionFormSchema) => {
+  const dataSelectionAdded = payload.dataSelection.some((selection) => {
+    const table = payload.tables?.find((curr) => curr.base_table.table === selection.name);
+
+    if (!table) {
+      return true;
+    }
+
+    const dimensions = getTableDimensions(table);
+
+    return selection.columns.some((column) => {
+      return dimensions.findIndex((dimension) => dimension.expr === column.name) < 0;
+    });
+  });
+
+  const dataSelectionRemoved = !!payload.tables?.some((table) => {
+    const selections = payload.dataSelection.find((curr) => curr.name === table.base_table.table);
+
+    if (!selections) {
+      return true;
+    }
+
+    const dimensions = getTableDimensions(table);
+
+    return dimensions.some((column) => {
+      return selections.columns.findIndex((selection) => column.expr === selection.name) < 0;
+    });
+  });
+
+  return dataSelectionAdded || dataSelectionRemoved;
+};
