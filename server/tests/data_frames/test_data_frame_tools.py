@@ -270,6 +270,77 @@ async def test_data_frames_create_from_file(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_create_data_frame_with_complex_values():
+    """Test that create_data_frame_from_columns_and_rows cleans complex values.
+
+    This test verifies the fix for data cleaning in auto-created data frames:
+    1. Dicts are converted to JSON strings
+    2. Lists are converted to JSON strings
+    3. NaN values are converted to None
+    """
+    from tests.data_frames.fixtures import StorageStub
+
+    from agent_platform.server.kernel.data_frames import create_data_frame_from_columns_and_rows
+    from agent_platform.server.storage.base import BaseStorage
+
+    storage_stub = StorageStub()
+
+    # Create data frame with complex values that need cleaning
+    columns = ["id", "metadata", "tags", "score"]
+    rows = [
+        [1, {"key": "value"}, ["tag1", "tag2"], 95.5],  # Dict and list
+        [2, {"status": "active"}, ["urgent"], float("nan")],  # NaN value
+        [3, {}, [], None],  # Empty dict/list and None
+    ]
+
+    df = await create_data_frame_from_columns_and_rows(
+        columns=columns,
+        rows=rows,
+        name="test_complex_values",
+        user_id=storage_stub.thread.user.user_id,
+        agent_id=storage_stub.thread.agent_id,
+        thread_id=storage_stub.thread.tid,
+        storage=typing.cast(BaseStorage, storage_stub),
+        input_id_type="in_memory",
+        num_sample_rows=10,
+    )
+
+    # Verify the data frame structure
+    assert df.num_rows == 3
+    assert df.num_columns == 4
+    assert set(df.column_headers) == {"id", "metadata", "tags", "score"}
+
+    # Verify values were cleaned in sample_rows
+    assert df.extra_data is not None
+    sample_rows = df.extra_data.get("sample_rows")
+    assert sample_rows is not None
+    assert len(sample_rows) == 3
+
+    metadata_idx = df.column_headers.index("metadata")
+    tags_idx = df.column_headers.index("tags")
+    score_idx = df.column_headers.index("score")
+
+    # Row 0: dict and list should be JSON strings
+    assert isinstance(sample_rows[0][metadata_idx], str)
+    assert sample_rows[0][metadata_idx] == '{"key": "value"}'
+    assert isinstance(sample_rows[0][tags_idx], str)
+    assert sample_rows[0][tags_idx] == '["tag1", "tag2"]'
+    assert sample_rows[0][score_idx] == 95.5
+
+    # Row 1: NaN should be None
+    assert isinstance(sample_rows[1][metadata_idx], str)
+    assert sample_rows[1][metadata_idx] == '{"status": "active"}'
+    assert isinstance(sample_rows[1][tags_idx], str)
+    assert sample_rows[1][tags_idx] == '["urgent"]'
+    assert sample_rows[1][score_idx] is None  # NaN -> None
+
+    # Row 2: empty dict/list should be JSON strings, None stays None
+    assert sample_rows[2][metadata_idx] == "{}"
+    assert sample_rows[2][tags_idx] == "[]"
+    assert sample_rows[2][score_idx] is None
+
+
+@pytest.mark.asyncio
 async def test_data_frame_tools():
     from tests.data_frames.fixtures import StorageStub
 

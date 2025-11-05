@@ -98,9 +98,13 @@ async def create_data_frame_from_columns_and_rows(  # noqa: PLR0913
 
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
 
+    # Clean all values in rows to handle complex objects (dict/list) and NaN values
+    # This prevents PyArrow from failing when encountering unsupported types
+    cleaned_rows = [[_clean_value_for_json(value) for value in row] for row in rows]
+
     # Convert rows and columns format to dictionary format for PyArrow
     # This allows PyArrow to automatically infer the schema
-    col_data = list(zip(*rows, strict=True)) if rows else [[] for _ in columns]
+    col_data = list(zip(*cleaned_rows, strict=True)) if cleaned_rows else [[] for _ in columns]
 
     # Build the table
     pyarrow_df = pyarrow.Table.from_arrays([pyarrow.array(col) for col in col_data], names=columns)
@@ -108,7 +112,7 @@ async def create_data_frame_from_columns_and_rows(  # noqa: PLR0913
     stream = io.BytesIO()
     pyarrow.parquet.write_table(pyarrow_df, stream)
 
-    sample_rows = rows[:num_sample_rows] if num_sample_rows > 0 else []
+    sample_rows = cleaned_rows[:num_sample_rows] if num_sample_rows > 0 else []
 
     data_frame = PlatformDataFrame(
         data_frame_id=str(uuid4()),
