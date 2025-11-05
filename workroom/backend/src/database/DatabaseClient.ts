@@ -88,6 +88,10 @@ export class DatabaseClient {
     );
   }
 
+  async getUsers(): Promise<Result<Array<User>>> {
+    return asResult(() => this.database.selectFrom('user').selectAll().execute());
+  }
+
   async getUsersCount(): Promise<Result<number>> {
     const userCountResult = await asResult(() =>
       this.database
@@ -102,6 +106,10 @@ export class DatabaseClient {
 
     const count = Number(userCountResult.data?.count);
     if (isNaN(count)) {
+      this.monitoring.logger.error('Invalid users count', {
+        errorMessage: `Count was not a number: ${userCountResult.data?.count}`,
+      });
+
       return {
         success: false,
         error: {

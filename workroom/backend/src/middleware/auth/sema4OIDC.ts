@@ -1,6 +1,6 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { AuthManager } from '../../auth/AuthManager.js';
-import { validateWorkRoomToken, type Permission } from '../../auth/sema4OIDC.js';
+import { validateWorkRoomToken } from '../../auth/sema4OIDC.js';
 import type { Configuration } from '../../configuration.js';
 import {
   type ErrorResponse,
@@ -9,6 +9,7 @@ import {
   type ExpressResponse,
 } from '../../interfaces.js';
 import { extractRoutePermissions } from './helpers/permissions.js';
+import type { Permission } from '../../auth/permissions.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';

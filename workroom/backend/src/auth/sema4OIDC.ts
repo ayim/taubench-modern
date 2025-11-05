@@ -3,6 +3,7 @@ import { expectedValue, getTokenVerifier, keyPairHelpers } from '@sema4ai/robocl
 import { SignInterface, type WorkRoomV1 } from '@sema4ai/robocloud-sign-interface';
 import type { Configuration } from '../configuration.js';
 import type { AuthManager } from './AuthManager.js';
+import type { Permission } from './permissions.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { formatZodError } from '../utils/error.js';
 import type { Result } from '../utils/result.js';
@@ -23,7 +24,8 @@ export type UserFrom =
 export type GetACEUser = (userFrom: UserFrom) => Promise<Result<{ userId: string }>>;
 
 export type WorkroomUser = WorkRoomV1;
-export type Permission = WorkRoomV1['capabilities']['byTenantId'][string][number];
+
+type LegacyPermission = WorkRoomV1['capabilities']['byTenantId'][string][number];
 // #endregion
 
 // #region Helpers
@@ -220,7 +222,7 @@ export const validateWorkRoomToken = async (
       },
       capabilities: {
         byTenantId: {
-          [tenantId]: permissions,
+          [tenantId]: permissions as Array<LegacyPermission>,
         },
       },
     },

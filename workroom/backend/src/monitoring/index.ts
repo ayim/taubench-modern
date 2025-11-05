@@ -8,6 +8,10 @@ export interface LogAttributes {
   authSkip: boolean;
   contentDispositionType: string;
   count: number;
+  dbHost: string;
+  dbName: string;
+  dbPort: number;
+  dbSchema: string;
   error?: Error;
   errorCause: string;
   errorMessage: string;

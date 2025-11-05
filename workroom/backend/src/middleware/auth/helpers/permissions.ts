@@ -1,6 +1,6 @@
 import { parseAgentRequest } from '../../../api/parsers.js';
 import { getRouteBehaviour } from '../../../api/routing.js';
-import type { Permission } from '../../../auth/sema4OIDC.js';
+import type { Permission } from '../../../auth/permissions.js';
 import type { Configuration } from '../../../configuration.js';
 import type { ExpressRequest } from '../../../interfaces.js';
 import type { MonitoringContext } from '../../../monitoring/index.js';

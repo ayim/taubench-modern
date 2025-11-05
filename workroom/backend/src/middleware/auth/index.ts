@@ -5,9 +5,10 @@ import { extractOIDCUserIdentity, handleOIDCAuthCheck, refreshOIDCToken } from '
 import { extractSema4OIDCUserIdentity, handleSema4OIDCAuthCheck } from './sema4OIDC.js';
 import { extractSnowflakeUserIdentity, handleSnowflakeAuthCheck } from './snowflake.js';
 import type { AuthManager } from '../../auth/AuthManager.js';
-import type { Permission } from '../../auth/sema4OIDC.js';
+import type { Permission } from '../../auth/permissions.js';
 import type { Configuration } from '../../configuration.js';
 import type { DatabaseClient } from '../../database/DatabaseClient.js';
+import type { UserRole } from '../../database/types/users.js';
 import type { ErrorResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/SessionManager.js';
@@ -196,6 +197,7 @@ export const extractAuthenticatedUserIdentity = async ({
   Result<
     {
       userId: string | null;
+      userRole: UserRole | null;
     },
     | {
         code: 'unauthorized';
@@ -225,18 +227,43 @@ export const extractAuthenticatedUserIdentity = async ({
         success: true,
         data: {
           userId: null,
+          userRole: null,
         },
       };
-    case 'snowflake':
-      return extractSnowflakeUserIdentity({ headers, monitoring });
-    case 'sema4-oidc-sso':
-      return await extractSema4OIDCUserIdentity({
+    case 'snowflake': {
+      const snowflakeIdentityResult = extractSnowflakeUserIdentity({ headers, monitoring });
+      if (!snowflakeIdentityResult.success) {
+        return snowflakeIdentityResult;
+      }
+
+      return {
+        success: true,
+        data: {
+          userId: snowflakeIdentityResult.data.userId,
+          userRole: null,
+        },
+      };
+    }
+    case 'sema4-oidc-sso': {
+      const sema4SSOResult = await extractSema4OIDCUserIdentity({
         authManager,
         configuration,
         headers,
         monitoring,
         permissions,
       });
+      if (!sema4SSOResult.success) {
+        return sema4SSOResult;
+      }
+
+      return {
+        success: true,
+        data: {
+          userId: sema4SSOResult.data.userId,
+          userRole: null,
+        },
+      };
+    }
     case 'oidc':
       return await extractOIDCUserIdentity({
         authManager,

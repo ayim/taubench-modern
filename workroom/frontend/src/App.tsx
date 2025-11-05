@@ -11,6 +11,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { SPAR_VERSION } from './version';
 import { resolveWorkroomURL } from './lib/utils';
 import errorIllustration from '~/assets/error.svg';
+import { TRPCProvider } from './components/TRPCProvider';
 
 export const App = () => {
   useEffect(() => {
@@ -35,6 +36,8 @@ export const App = () => {
   );
 
   const loginUrl = useMemo(() => resolveWorkroomURL('/home'), []);
+
+  const trpcUrl = useMemo(() => resolveWorkroomURL('/trpc'), []);
 
   // @TODO: Remove this hack - this logged-out page needs to run OUTSIDE the current auth logic,
   // as it cannot have any requests hitting the backend (besides /meta for example).
@@ -68,7 +71,9 @@ export const App = () => {
               <ConfirmationDialogProvider>
                 <AuthProvider>
                   <ProtectedRoute>
-                    <RouterProvider />
+                    <TRPCProvider trpcUrl={trpcUrl}>
+                      <RouterProvider />
+                    </TRPCProvider>
                   </ProtectedRoute>
                 </AuthProvider>
               </ConfirmationDialogProvider>

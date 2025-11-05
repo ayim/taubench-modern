@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { resolve } from 'node:path';
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import * as trpcExpress from '@trpc/server/adapters/express';
 import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
@@ -21,12 +22,14 @@ import { createGetWorkroomMeta } from './handlers/workroom.js';
 import type { ErrorResponse } from './interfaces.js';
 import { createAuthMiddleware, createAuthRedirectMiddleware } from './middleware/auth/index.js';
 import { badPlatform } from './middleware/badRoute.js';
+import { noCache } from './middleware/cache.js';
 import { createRequestLogger } from './middleware/logging.js';
 import { serverHeaders } from './middleware/server.js';
 import { createTenantExtractionMiddleware } from './middleware/tenant.js';
 import type { MonitoringContext } from './monitoring/index.js';
 import { createSessionMemoryStore, createSessionMiddleware } from './session/middleware.js';
 import { SessionManager } from './session/SessionManager.js';
+import { createRouterContext, sparRouter } from './trpc/index.js';
 
 const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
@@ -121,10 +124,11 @@ export const createApplication = async ({
     }),
   );
 
-  tenantRouter.get('/meta', createGetMeta({ configuration, monitoring }));
+  tenantRouter.get('/meta', noCache, createGetMeta({ configuration, monitoring }));
 
   tenantRouter.get(
     '/auth/meta',
+    noCache,
     createAuthMetaHandler({
       monitoring,
       sessionManager,
@@ -132,6 +136,7 @@ export const createApplication = async ({
   );
   tenantRouter.get(
     '/auth/logout',
+    noCache,
     createLogoutHandler({
       authManager,
       configuration,
@@ -140,8 +145,24 @@ export const createApplication = async ({
     }),
   );
 
+  tenantRouter.use(
+    '/trpc',
+    noCache,
+    trpcExpress.createExpressMiddleware({
+      router: sparRouter,
+      createContext: createRouterContext({
+        authManager,
+        configuration,
+        database,
+        monitoring,
+        sessionManager,
+      }),
+    }),
+  );
+
   tenantRouter.get(
     '/tenants-list',
+    noCache,
     createAuthMiddleware({
       authentication: 'without-permissions-check',
       authManager,
@@ -155,6 +176,7 @@ export const createApplication = async ({
 
   tenantRouter.get(
     `/workroom/meta`,
+    noCache,
     createAuthMiddleware({
       authentication: 'without-permissions-check',
       authManager,
@@ -168,6 +190,7 @@ export const createApplication = async ({
 
   tenantRouter.get(
     '/workroom/oidc/callback',
+    noCache,
     createOIDCCallbackHandler({ authManager, configuration, database, monitoring, sessionManager }),
   );
 
@@ -179,6 +202,7 @@ export const createApplication = async ({
 
     tenantRouter.get(
       '/workroom/agents/:agentId/threads/:threadId/action-invocations/:actionInvocationId',
+      noCache,
       createAuthMiddleware({
         authentication: 'without-permissions-check',
         authManager,
@@ -198,6 +222,7 @@ export const createApplication = async ({
 
     tenantRouter.get(
       '/workroom/agents/:agentId/me/oauth/permissions',
+      noCache,
       createAuthMiddleware({
         authentication: 'without-permissions-check',
         authManager,
@@ -217,6 +242,7 @@ export const createApplication = async ({
 
     tenantRouter.get(
       '/workroom/oauth/authorize',
+      noCache,
       createAuthMiddleware({
         authentication: 'without-permissions-check',
         authManager,
@@ -257,6 +283,7 @@ export const createApplication = async ({
   // Agent server routes
   tenantRouter.get(
     '/workroom/agents/:agentId/meta',
+    noCache,
     createAuthMiddleware({
       authentication: 'without-permissions-check',
       authManager,
@@ -269,6 +296,7 @@ export const createApplication = async ({
   );
   tenantRouter.all(
     '/agents/api/v2/*',
+    noCache,
     createAuthMiddleware({
       authentication: 'with-permissions-check',
       authManager,
@@ -286,6 +314,7 @@ export const createApplication = async ({
   );
   tenantRouter.get(
     '/workroom/agents/:agentId/details',
+    noCache,
     createAuthMiddleware({
       authentication: 'with-permissions-check',
       authManager,
@@ -349,7 +378,7 @@ export const createApplication = async ({
     res.set('x-sema4ai-redirect-source', 'spar-gateway').redirect(302, tenantPrefix + req.originalUrl);
   });
 
-  appInternal.use('/files', createFilesRouter({ configuration, filesManager, monitoring }));
+  appInternal.use('/files', noCache, createFilesRouter({ configuration, filesManager, monitoring }));
 
   // Static routes / Frontend handling
   if (configuration.frontendMode === 'disk') {
