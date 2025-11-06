@@ -1,7 +1,7 @@
 import { FC } from 'react';
-import { Box, Typography } from '@sema4ai/components';
+import { Box, Button, Typography } from '@sema4ai/components';
 import { TreeList } from '@sema4ai/layouts';
-import { IconDbDatabase, IconDbSchema } from '@sema4ai/icons';
+import { IconCloseSmall, IconDbDatabase, IconDbSchema } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useFormContext } from 'react-hook-form';
 
@@ -50,15 +50,21 @@ const dimensionTypes = ['dimensions', 'time_dimensions', 'facts', 'metrics'] as 
 
 export const TableTree: FC<Props> = ({ modelId }) => {
   const { data: validation } = useSemanticDataValidationQuery({ modelId });
-  const { watch } = useFormContext<DataConnectionFormSchema>();
+  const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const tables = watch('tables');
 
   if (!tables) {
     return null;
   }
 
+  const handleRemoveTable = (tableIndex: number) => {
+    const newTables = [...tables];
+    newTables.splice(tableIndex, 1);
+    setValue('tables', newTables);
+  };
+
   return (
-    <TreeList columns={columns}>
+    <TreeList columns={columns} withActions>
       {tables.map((table, tableIndex) => {
         return (
           <TreeList.Item
@@ -83,11 +89,23 @@ export const TableTree: FC<Props> = ({ modelId }) => {
                 <Cell>
                   <Box p="$16">-</Box>
                 </Cell>
+                <Cell>
+                  {tables.length !== 1 && (
+                    <Button
+                      variant="ghost-subtle"
+                      aria-label="Remove dimension"
+                      icon={IconCloseSmall}
+                      onClick={() => handleRemoveTable(tableIndex)}
+                    />
+                  )}
+                </Cell>
               </>
             }
           >
             {dimensionTypes.map((type) => {
-              if (!table[type] || table[type].length === 0) {
+              const dimensions = table[type];
+
+              if (!dimensions || dimensions.length === 0) {
                 return null;
               }
 
@@ -101,17 +119,19 @@ export const TableTree: FC<Props> = ({ modelId }) => {
                       <Cell />
                       <Cell />
                       <Cell />
+                      <Cell />
                     </>
                   }
                 >
-                  {table[type].map((dimension, dimensionIndex) => {
+                  {dimensions.map((dimension, dimensionIndex) => {
                     return (
                       <TableTreeItem
                         key={dimension.name}
                         type={type}
-                        dimension={dimension}
+                        dimensions={dimensions}
                         dimensionIndex={dimensionIndex}
                         tableIndex={tableIndex}
+                        baseTableName={table.base_table.table}
                         validation={validation}
                       />
                     );

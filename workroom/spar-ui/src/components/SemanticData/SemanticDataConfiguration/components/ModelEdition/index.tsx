@@ -2,7 +2,7 @@
 import { useContext, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Box, Button, Dialog, Typography, Link, Banner } from '@sema4ai/components';
-import { IconInformation, IconPencil, IconWriteNote } from '@sema4ai/icons';
+import { IconInformation, IconPencil, IconPlus, IconWriteNote } from '@sema4ai/icons';
 
 import { RenameDialog } from '../../../../../common/dialogs/RenameDialog';
 import { EXTERNAL_LINKS } from '../../../../../lib/constants';
@@ -38,7 +38,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
     setIsUpdateContextDialogOpen(false);
   };
 
-  const { name, description, dataSelection } = watch();
+  const { name, description, dataSelection, dataConnectionId } = watch();
 
   return (
     <>
@@ -91,6 +91,16 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
           </Box>
         </Box>
         <Box display="flex" gap="$8" mb="$16">
+          {dataConnectionId && (
+            <Button
+              variant="secondary"
+              onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
+              icon={IconPlus}
+              round
+            >
+              Add Data
+            </Button>
+          )}
           <Button variant="secondary" onClick={onToggleUpdateContextDialog} icon={IconWriteNote} round>
             Edit Business Context
           </Button>
