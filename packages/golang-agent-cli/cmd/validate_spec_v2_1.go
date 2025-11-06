@@ -383,6 +383,21 @@ var SpecV2_1 = `
     "required": true,
     "expected-type": "string"
   },
+  "agent-package/agents/selected-tools": {
+    "description": "Selected tools for the agent",
+    "required": false,
+    "expected-type": "object"
+  },
+  "agent-package/agents/selected-tools/tools": {
+    "description": "List of the selected tools for the agent",
+    "required": false,
+    "expected-type": "list"
+  },
+  "agent-package/agents/selected-tools/tools/name": {
+    "description": "Name of the selected tools for the agent",
+    "required": true,
+    "expected-type": "string"
+  },
   "agent-package/agents/resources": {
     "description": "Please use 'knowledge' instead",
     "deprecated": true

@@ -495,6 +495,7 @@ func GenerateAgentMetadataFromProject(agentProjectPath string) ([]*common.AgentP
 			McpServers:           []common.AgentPackageMcpServer{},
 			DockerMcpGateway:     nil,
 			Metadata:             agent.Metadata,
+			SelectedTools:        agent.SelectedTools,
 		}
 
 		// Extract Welcome Message if present

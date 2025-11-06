@@ -625,6 +625,36 @@ agent-package/agents/runbooks:
     RelativeTo: ''
   Path: agent-package/agents/runbooks
   Required: false
+agent-package/agents/selected-tools:
+  Deprecated: false
+  Description: Selected tools for the agent
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/selected-tools
+  Required: false
+agent-package/agents/selected-tools/tools:
+  Deprecated: false
+  Description: List of the selected tools for the agent
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/selected-tools/tools
+  Required: false
+agent-package/agents/selected-tools/tools/name:
+  Deprecated: false
+  Description: Name of the selected tools for the agent
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/selected-tools/tools/name
+  Required: true
 agent-package/agents/semantic-data-models:
   Deprecated: false
   Description: Section to indicate semantic data models for the agent.

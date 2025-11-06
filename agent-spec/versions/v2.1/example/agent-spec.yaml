@@ -72,3 +72,7 @@ agent-package:
         worker-config:
           type: Document Intelligence
           document-type: Invoice Reconciliation
+      selected-tools:
+        tools:
+          - name: tool-a
+          - name: tool-b

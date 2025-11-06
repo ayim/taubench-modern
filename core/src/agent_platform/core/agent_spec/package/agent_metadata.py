@@ -11,6 +11,7 @@ from ruamel.yaml import YAML
 from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.agent_spec.config import AgentSpecConfig
 from agent_platform.core.agent_spec.utils import read_file_from_zip, read_package_bytes
+from agent_platform.core.selected_tools import SelectedTools
 
 _yaml = YAML(typ="safe")
 
@@ -788,6 +789,12 @@ class AgentPackageMetadata:
     )
     """The document intelligence version to use."""
 
+    selected_tools: SelectedTools = field(
+        default_factory=SelectedTools,
+        metadata={"description": "Configuration for tools selected for this agent."},
+    )
+    """Configuration for tools selected for this agent."""
+
     def model_dump(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         result = {
@@ -809,6 +816,7 @@ class AgentPackageMetadata:
             "docker_mcp_gateway_changes": self.docker_mcp_gateway_changes.model_dump(),
             "agent_settings": self.agent_settings,
             "document_intelligence": self.document_intelligence,
+            "selected_tools": self.selected_tools.model_dump(),
         }
 
         # Handle optional fields
@@ -896,6 +904,7 @@ class AgentPackageMetadata:
                 docker_mcp_gateway_changes=DockerMcpGatewayChanges(),
                 agent_settings=None,
                 document_intelligence=None,
+                selected_tools=SelectedTools(),
             )
 
         if isinstance(data, cls):
@@ -927,6 +936,7 @@ class AgentPackageMetadata:
             ),
             agent_settings=data.get("agent_settings", None),
             document_intelligence=data.get("document_intelligence", None),
+            selected_tools=SelectedTools.model_validate(data.get("selected_tools", {})),
         )
 
 

@@ -116,28 +116,30 @@ func (v *Validator) ValidateNodesExistAndBuildYamlInfo(node *yaml.Node, errors c
 	// fmt.Printf("Node: line: %d, column: %d, kind: %v, tag: %v, value: %v\n", node.Line, node.Column, node.Kind, node.Tag, node.Value)
 
 	// defaultVisitChildren := true
-	if node.Kind == yaml.DocumentNode {
+	switch node.Kind {
+	case yaml.DocumentNode:
 		node = node.Content[0]
 		// print node info (line and column)
 		v.ValidateNodesExistAndBuildYamlInfo(node, errors)
 
-	} else if node.Kind == yaml.ScalarNode {
-		if node.Tag == strTag {
+	case yaml.ScalarNode:
+		switch node.Tag {
+		case strTag:
 			v.yamlCursorNode.data = &YamlNodeData{
 				Node: node,
 				Kind: YamlNodeKindString,
 			}
-		} else if node.Tag == boolTag {
+		case boolTag:
 			v.yamlCursorNode.data = &YamlNodeData{
 				Node: node,
 				Kind: YamlNodeKindBool,
 			}
-		} else if node.Tag == intTag {
+		case intTag:
 			v.yamlCursorNode.data = &YamlNodeData{
 				Node: node,
 				Kind: YamlNodeKindInt,
 			}
-		} else if node.Tag == floatTag {
+		case floatTag:
 			v.yamlCursorNode.data = &YamlNodeData{
 				Node: node,
 				Kind: YamlNodeKindFloat,
@@ -148,7 +150,7 @@ func (v *Validator) ValidateNodesExistAndBuildYamlInfo(node *yaml.Node, errors c
 		// fmt.Printf("Unhandled node tag: %v\n", node.Tag)
 		// }
 
-	} else if node.Kind == yaml.SequenceNode {
+	case yaml.SequenceNode:
 		v.yamlCursorNode.data.Kind = YamlNodeKindList
 
 		for i := 0; i < len(node.Content); i += 1 {
@@ -168,7 +170,7 @@ func (v *Validator) ValidateNodesExistAndBuildYamlInfo(node *yaml.Node, errors c
 			// fmt.Printf("Found list item: kind: %v - tag: %v - value: %v\n", node.Content[i].Kind, node.Content[i].Tag, node.Content[i].Value)
 		}
 
-	} else if node.Kind == yaml.MappingNode {
+	case yaml.MappingNode:
 		for i := 0; i < len(node.Content); i += 2 {
 			key := node.Content[i]
 			value := node.Content[i+1]
@@ -446,7 +448,8 @@ func (v *Validator) verifyYamlMatchesSpec(
 			} else {
 				packageInfoInFilesystem := v.getActionPackageInfo(specNode, yamlNode)
 				if packageInfoInFilesystem != nil {
-					if specData.ExpectedType.ExpectedType == ExpectedTypeEnumActionPackageVersionLink {
+					switch specData.ExpectedType.ExpectedType {
+					case ExpectedTypeEnumActionPackageVersionLink:
 						versionInFilesystem := packageInfoInFilesystem.GetVersion()
 						if versionInFilesystem == "" {
 							versionInFilesystem = "Unable to get version from package.yaml"
@@ -456,7 +459,7 @@ func (v *Validator) verifyYamlMatchesSpec(
 							errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to match the version in the action package being referenced ('%s'). Found in spec: '%s'", specData.Path, versionInFilesystem, versionInAgentPackage),
 								yamlNode.data, Critical)
 						}
-					} else if specData.ExpectedType.ExpectedType == ExpectedTypeEnumActionPackageNameLink {
+					case ExpectedTypeEnumActionPackageNameLink:
 						nameInFilesystem := packageInfoInFilesystem.GetName()
 						if nameInFilesystem == "" {
 							nameInFilesystem = "Unable to get name from package.yaml"
@@ -574,17 +577,18 @@ func (v *Validator) verifyYamlMatchesSpec(
 					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be one of ['streamable-http', 'sse', 'stdio', 'auto'] (found %q).", specData.Path, transport),
 						yamlNode.data, Critical)
 				} else {
-					if transport == "streamable-http" || transport == "sse" {
+					switch transport {
+					case "streamable-http", "sse":
 						if yamlNode.parent == nil || yamlNode.parent.GetChildren()["url"] == nil {
 							errors <- *NewErrorFromYamlNode(fmt.Sprintf("%s: When the transport is 'streamable-http' or 'sse', the url must be defined.", specData.Path),
 								yamlNode.data, Critical)
 						}
-					} else if transport == "stdio" {
+					case "stdio":
 						if yamlNode.parent == nil || yamlNode.parent.GetChildren()["command-line"] == nil {
 							errors <- *NewErrorFromYamlNode(fmt.Sprintf("%s: When the transport is 'stdio', the command-line must be defined.", specData.Path),
 								yamlNode.data, Critical)
 						}
-					} else if transport == "auto" {
+					case "auto":
 						if yamlNode.parent == nil || (yamlNode.parent.GetChildren()["url"] == nil && yamlNode.parent.GetChildren()["command-line"] == nil) {
 							errors <- *NewErrorFromYamlNode(fmt.Sprintf("%s: When the transport is 'auto', either the url or command-line field must be defined.", specData.Path),
 								yamlNode.data, Critical)
@@ -600,7 +604,8 @@ func (v *Validator) verifyYamlMatchesSpec(
 		case ExpectedTypeEnumMapStringObject:
 			acceptDirectString := false
 
-			if specData.ExpectedType.ExpectedType == ExpectedTypeEnumMcpServerHeaders {
+			switch specData.ExpectedType.ExpectedType {
+			case ExpectedTypeEnumMcpServerHeaders:
 				acceptDirectString = true
 
 				if yamlNode.data.Kind == YamlNodeKindUnhandled {
@@ -611,7 +616,7 @@ func (v *Validator) verifyYamlMatchesSpec(
 					}
 				}
 
-			} else if specData.ExpectedType.ExpectedType == ExpectedTypeEnumMcpServerEnv {
+			case ExpectedTypeEnumMcpServerEnv:
 				acceptDirectString = true
 
 				if yamlNode.data.Kind == YamlNodeKindUnhandled {

@@ -5,9 +5,9 @@ SET scriptPath=%~dp0
 SET scriptPath=%scriptPath:~0,-1%
 cd /D %scriptPath%
 
-SET rccPath=%scriptPath%\rcc.exe
-SET condaYaml=%scriptPath%\develop.yaml
-SET activatePath=%scriptPath%\activate.bat
+SET rccPath="%scriptPath%\rcc.exe"
+SET condaYaml="%scriptPath%\develop.yaml"
+SET activatePath="%scriptPath%\activate.bat"
 
 echo 
 :: Get RCC, binary with which we're going to create the master environment.

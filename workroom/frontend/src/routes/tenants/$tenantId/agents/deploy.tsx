@@ -43,6 +43,7 @@ function buildAgentPackagePayload(form: AgentDeploymentFormSchema) {
     action_servers: [],
     mcp_servers: inlineMcpServers,
     mcp_server_ids: configuredMCPServerIds,
+    selected_tools: form.selected_tools || { tool_names: [] },
   };
 
   return payload;

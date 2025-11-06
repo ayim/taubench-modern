@@ -108,6 +108,14 @@ func (state *SpecState) specForAgent(assistant AgentServer.Agent, projectPath st
 		metadata.QuestionGroups = nil
 	}
 
+	// Convert selected_tools from agent to spec format
+	var specSelectedTools common.SpecSelectedTools
+	for _, toolConfig := range assistant.SelectedTools.ToolNames {
+		specSelectedTools.Tools = append(specSelectedTools.Tools, common.SpecSelectedToolConfig{
+			Name: toolConfig.ToolName,
+		})
+	}
+
 	return common.SpecAgent{
 		Name:        assistant.Name,
 		Description: assistant.Description,
@@ -137,6 +145,7 @@ func (state *SpecState) specForAgent(assistant AgentServer.Agent, projectPath st
 		Knowledge:          state.assistantKnowledge[assistant.ID],
 		SemanticDataModels: state.assistantSemanticDataModels[assistant.ID],
 		Metadata:           metadata,
+		SelectedTools:      specSelectedTools,
 	}
 }
 
@@ -529,34 +538,34 @@ func (state *SpecState) createMcpServers(assistants []AgentServer.Agent) error {
 
 func (state *SpecState) createSemanticDataModelsDir(assistants []AgentServer.Agent, projectPath string, client *AgentServer.Client) error {
 	sdmPath := filepath.Join(projectPath, "semantic-data-models")
-	
+
 	// Cache for data connections to avoid redundant API calls
 	connectionCache := make(map[string]*AgentServer.DataConnection)
-	
+
 	for _, assistant := range assistants {
 		pretty.LogIfVerbose("[createSemanticDataModelsDir] fetching SDMs for agent: %s", assistant.ID)
-		
+
 		// Fetch SDMs from agent server
 		sdms, err := client.GetAgentSemanticDataModels(assistant.ID)
 		if err != nil {
 			pretty.LogIfVerbose("[createSemanticDataModelsDir] failed to fetch SDMs for agent %s: %s", assistant.ID, err)
 			continue // Continue with other agents if one fails
 		}
-		
+
 		if len(sdms) == 0 {
 			pretty.LogIfVerbose("[createSemanticDataModelsDir] no SDMs found for agent: %s", assistant.ID)
 			continue
 		}
-		
+
 		// Create semantic-data-models directory only if we have SDMs
 		err = os.MkdirAll(sdmPath, 0o755)
 		if err != nil {
 			return fmt.Errorf("[createSemanticDataModelsDir] failed to create semantic-data-models directory: %w", err)
 		}
-		
+
 		sdmRefs := []common.SpecSemanticDataModel{}
 		usedFilenames := make(map[string]bool)
-		
+
 		for _, sdm := range sdms {
 			// Generate filename from SDM name or ID
 			var filename string
@@ -565,7 +574,7 @@ func (state *SpecState) createSemanticDataModelsDir(assistants []AgentServer.Age
 					// Sanitize filename using slugify for consistent naming
 					slugified := common.Slugify(nameStr)
 					filename = fmt.Sprintf("%s.yaml", slugified)
-					
+
 					// Handle filename collision: append short ID (first 8 chars) if name already exists
 					if usedFilenames[filename] {
 						pretty.LogIfVerbose("[createSemanticDataModelsDir] filename collision detected for '%s', appending short ID", filename)
@@ -581,10 +590,10 @@ func (state *SpecState) createSemanticDataModelsDir(assistants []AgentServer.Age
 				// Use SDM ID as fallback
 				filename = fmt.Sprintf("sdm-%s.yaml", sdm.ID)
 			}
-			
+
 			// Mark filename as used
 			usedFilenames[filename] = true
-			
+
 			// Replace data_connection_id with data_connection_name for portability
 			if tables, ok := sdm.SemanticModel["tables"].([]interface{}); ok {
 				for _, tableInterface := range tables {
@@ -607,7 +616,7 @@ func (state *SpecState) createSemanticDataModelsDir(assistants []AgentServer.Age
 											connectionCache[dcID] = dc
 										}
 									}
-									
+
 									if dc != nil {
 										// Replace ID with name
 										baseTable["data_connection_name"] = dc.Name
@@ -620,30 +629,30 @@ func (state *SpecState) createSemanticDataModelsDir(assistants []AgentServer.Age
 					}
 				}
 			}
-			
+
 			// Write SDM to file
 			sdmFilePath := filepath.Join(sdmPath, filename)
-			
+
 			// Export as YAML
 			sdmYAML, err := yaml.Marshal(sdm.SemanticModel)
 			if err != nil {
 				return fmt.Errorf("[createSemanticDataModelsDir] failed to marshal SDM: %w", err)
 			}
-			
-		if err := os.WriteFile(sdmFilePath, sdmYAML, 0o644); err != nil {
-			return fmt.Errorf("[createSemanticDataModelsDir] failed to write SDM file: %w", err)
-		}
-		
-		sdmRefs = append(sdmRefs, common.SpecSemanticDataModel{
-			Name: filename,
-		})
-			
+
+			if err := os.WriteFile(sdmFilePath, sdmYAML, 0o644); err != nil {
+				return fmt.Errorf("[createSemanticDataModelsDir] failed to write SDM file: %w", err)
+			}
+
+			sdmRefs = append(sdmRefs, common.SpecSemanticDataModel{
+				Name: filename,
+			})
+
 			pretty.LogIfVerbose("[createSemanticDataModelsDir] exported SDM: %s", filename)
 		}
-		
+
 		state.assistantSemanticDataModels[assistant.ID] = sdmRefs
 	}
-	
+
 	pretty.LogIfVerbose("[createSemanticDataModelsDir] semantic data models are ready!")
 	return nil
 }

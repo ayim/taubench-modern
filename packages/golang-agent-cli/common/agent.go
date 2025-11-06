@@ -51,6 +51,14 @@ type SpecAgentActionPackage struct {
 	Path         string                     `yaml:"path" json:"path"`
 }
 
+type SpecSelectedToolConfig struct {
+	Name string `yaml:"name" json:"name"`
+}
+
+type SpecSelectedTools struct {
+	Tools []SpecSelectedToolConfig `yaml:"tools" json:"tools"`
+}
+
 func (a *SpecAgentActionPackage) IsEqual(deployed *AgentServer.AgentActionPackage) bool {
 	return a.Name == deployed.Name &&
 		a.Organization == deployed.Organization &&
@@ -220,6 +228,7 @@ type SpecAgent struct {
 	Knowledge            []SpecAgentKnowledge                    `yaml:"knowledge" json:"knowledge"`
 	SemanticDataModels   []SpecSemanticDataModel                 `yaml:"semantic-data-models,omitempty" json:"semantic_data_models,omitempty"`
 	Metadata             AgentServer.AgentMetadata               `yaml:"metadata" json:"metadata"`
+	SelectedTools        SpecSelectedTools                       `yaml:"selected-tools,omitempty" json:"selected_tools,omitempty"`
 }
 
 func (sa *SpecAgent) IsEqual(ap *AgentProject, deployed *AgentServer.Agent) (bool, AgentChanges) {
@@ -277,6 +286,7 @@ func (sa *SpecAgent) IsEqual(ap *AgentProject, deployed *AgentServer.Agent) (boo
 		"mcpServers":           AreMcpServersEqual(specMcpServers, agentMcpServers),
 		"dockerMcpGateway":     specHasDockerMcpGateway == agentHasDockerMcpGateway,
 		"agentSettings":        AreAgentSettingsEqual(sa.AgentSettings, deployed.Extra.AgentSettings),
+		"selectedTools":        AreSelectedToolsEqual(&sa.SelectedTools, &deployed.SelectedTools),
 	}
 
 	// Collect the changes
@@ -302,4 +312,27 @@ type SpecAgentPackage struct {
 // --- top level struct that holds the entire Agent Package Spec
 type AgentSpec struct {
 	AgentPackage SpecAgentPackage `yaml:"agent-package" json:"agent_package"`
+}
+
+// AreSelectedToolsEqual compares two SelectedTools configurations
+func AreSelectedToolsEqual(spec *SpecSelectedTools, agent *AgentServer.SelectedTools) bool {
+	if len(spec.Tools) != len(agent.ToolNames) {
+		return false
+	}
+
+	// Create a map to track which tools we've found
+	specTools := make(map[string]struct{})
+	for _, specTool := range spec.Tools {
+		specTools[specTool.Name] = struct{}{}
+	}
+
+	// Check if each agent tool exists in the spec
+	for _, agentTool := range agent.ToolNames {
+		_, exists := specTools[agentTool.ToolName]
+		if !exists {
+			return false
+		}
+	}
+
+	return true
 }

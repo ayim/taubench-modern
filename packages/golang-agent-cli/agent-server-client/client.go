@@ -501,12 +501,12 @@ func (c *Client) GetAgentSemanticDataModels(agentID string) ([]SemanticDataModel
 
 func (c *Client) GetDataConnection(connectionID string) (*DataConnection, error) {
 	url := fmt.Sprintf("%s/api/v2/data-connections/%s", c.BaseURL, connectionID)
-	
+
 	var dataConnection DataConnection
 	if err := c.get(url, &dataConnection); err != nil {
 		return nil, NewAgentError(fmt.Errorf("failed to fetch data connection %s: %w", connectionID, err), http.StatusInternalServerError)
 	}
-	
+
 	return &dataConnection, nil
 }
 

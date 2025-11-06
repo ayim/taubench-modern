@@ -250,7 +250,10 @@ func FilterMcpServerSecretValuesFromSpec(spec *common.AgentSpec) *common.AgentSp
 	copySpec.AgentPackage = spec.AgentPackage
 	copySpec.AgentPackage.Agents = make([]common.SpecAgent, len(spec.AgentPackage.Agents))
 	for i, agent := range spec.AgentPackage.Agents {
+		// Create a proper deep copy of the agent, preserving all fields
 		agentCopy := agent
+
+		// Deep copy MCP servers and filter secret values
 		agentCopy.McpServers = make([]common.SpecMcpServer, len(agent.McpServers))
 		for j, mcp := range agent.McpServers {
 			mcpCopy := mcp
@@ -260,6 +263,13 @@ func FilterMcpServerSecretValuesFromSpec(spec *common.AgentSpec) *common.AgentSp
 			// done
 			agentCopy.McpServers[j] = mcpCopy
 		}
+
+		// Deep copy SelectedTools to ensure it's preserved
+		agentCopy.SelectedTools = common.SpecSelectedTools{
+			Tools: make([]common.SpecSelectedToolConfig, len(agent.SelectedTools.Tools)),
+		}
+		copy(agentCopy.SelectedTools.Tools, agent.SelectedTools.Tools)
+
 		copySpec.AgentPackage.Agents[i] = agentCopy
 	}
 	return &copySpec

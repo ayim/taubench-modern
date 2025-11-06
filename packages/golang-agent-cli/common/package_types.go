@@ -32,6 +32,7 @@ type AgentPackageMetadata struct {
 	ActionPackages       []AgentPackageActionPackageMetadata     `json:"action_packages"`
 	McpServers           []AgentPackageMcpServer                 `json:"mcp_servers,omitempty"`
 	DockerMcpGateway     *AgentPackageDockerMcpGateway           `json:"docker_mcp_gateway,omitempty"`
+	SelectedTools        SpecSelectedTools                       `json:"selected_tools"`
 
 	// Differences from external sources
 	DockerMcpGatewayChanges DockerMcpGatewayChanges `json:"docker_mcp_gateway_changes,omitempty"`

@@ -213,6 +213,33 @@ type AgentMetadata struct {
 	WelcomeMessage string         `json:"welcome_message,omitempty" yaml:"welcome-message,omitempty"`
 }
 
+type SelectedToolConfig struct {
+	ToolName string `json:"tool_name"`
+}
+
+type SelectedTools struct {
+	ToolNames []SelectedToolConfig `json:"tool_names"`
+}
+
+// NewSelectedTools creates a new SelectedTools with an empty slice
+func NewSelectedTools() SelectedTools {
+	return SelectedTools{
+		ToolNames: []SelectedToolConfig{},
+	}
+}
+
+// MarshalJSON ensures that SelectedTools always serializes with an empty array instead of null
+func (st *SelectedTools) MarshalJSON() ([]byte, error) {
+	// If ToolNames is nil, initialize it as an empty slice
+	if st.ToolNames == nil {
+		st.ToolNames = []SelectedToolConfig{}
+	}
+
+	// Create a temporary struct to avoid infinite recursion
+	type Alias SelectedTools
+	return json.Marshal(Alias(*st))
+}
+
 type AgentExtra struct {
 	DocumentIntelligence DocumentIntelligenceVersion `json:"document_intelligence,omitempty" yaml:"document-intelligence,omitempty"`
 	ConversationStarter  string                      `json:"conversation_starter,omitempty" yaml:"conversation-starter,omitempty"`
@@ -238,6 +265,7 @@ type Agent struct {
 	AgentSettings  map[string]any       `json:"agent_settings,omitempty"`
 	Files          []AgentFile          `json:"files"`
 	Public         bool                 `json:"public"`
+	SelectedTools  SelectedTools        `json:"selected_tools"`
 }
 
 type AgentPayload struct {
@@ -255,6 +283,7 @@ type AgentPayload struct {
 	AgentSettings  map[string]any       `json:"agent_settings,omitempty"`
 	Files          []AgentFile          `json:"files,omitempty"`
 	Public         bool                 `json:"public"`
+	SelectedTools  SelectedTools        `json:"selected_tools"`
 }
 
 type AgentPayloadPackage struct {

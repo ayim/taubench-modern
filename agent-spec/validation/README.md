@@ -10,7 +10,7 @@ and the examples in the repo actually match the spec.
    - You can re-use previously built dev. env or get a clean one.
    - Dependencies in [develop.yaml](./developer/develop.yaml)
    - Sets you terminal to the dev. env.
-3. Run `poetry install`
+3. Run `uv sync`
 4. Run `pytest`
 
 ## Change in agent-spec content

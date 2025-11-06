@@ -200,6 +200,7 @@ export const AgentUploadForm = () => {
             cwd: null,
             force_serial_tool_calls: false,
           })),
+          selected_tools: (data as any).selected_tools || { tool_names: [] },
         };
 
         const extracted: AgentPackageResponse = { agentTemplate, defaultValues };

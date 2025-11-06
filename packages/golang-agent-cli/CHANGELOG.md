@@ -1,5 +1,19 @@
 # agent.cli changelog
 
+## 2.3.0
+
+- Ensure exported agent packages include selected tool names
+    ```yaml
+    selected-tools:
+      tools:
+      - name: tool-a
+      - name: tool-b
+    ```
+
+## 2.2.0 - 2025-08-19
+
+- DocIntel V2 Flag in Agent Spec
+
 ## 2.1.2 - 2025-08-19
 
 - Remove unnecessary print that caused the client to fail when reading the JSON output 

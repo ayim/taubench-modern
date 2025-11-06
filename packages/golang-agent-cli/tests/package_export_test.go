@@ -287,9 +287,9 @@ func TestExportSDMWithDataConnectionName(t *testing.T) {
 				"name": "test_table",
 				"base_table": map[string]interface{}{
 					"data_connection_id": "abc-123",
-					"database": nil,
-					"schema": nil,
-					"table": "test_table",
+					"database":           nil,
+					"schema":             nil,
+					"table":              "test_table",
 				},
 			},
 		},
@@ -298,17 +298,17 @@ func TestExportSDMWithDataConnectionName(t *testing.T) {
 	// This test would require mocking the copyMap and data connection fetch
 	// For now, we verify the data structure is correct
 	assert.NotNil(t, sdmContent["tables"], "Expected tables to be present")
-	
+
 	tables, ok := sdmContent["tables"].([]interface{})
 	assert.True(t, ok, "Expected tables to be a slice")
 	assert.Len(t, tables, 1, "Expected 1 table")
-	
+
 	table, ok := tables[0].(map[string]interface{})
 	assert.True(t, ok, "Expected table to be a map")
-	
+
 	baseTable, ok := table["base_table"].(map[string]interface{})
 	assert.True(t, ok, "Expected base_table to be a map")
-	
+
 	// Verify data_connection_id exists before transformation
 	_, hasID := baseTable["data_connection_id"]
 	assert.True(t, hasID, "Expected data_connection_id to exist")
@@ -323,21 +323,21 @@ func TestExportSDMMultipleTables(t *testing.T) {
 				"name": "table1",
 				"base_table": map[string]interface{}{
 					"data_connection_id": "conn-1",
-					"table": "table1",
+					"table":              "table1",
 				},
 			},
 			map[string]interface{}{
 				"name": "table2",
 				"base_table": map[string]interface{}{
 					"data_connection_id": "conn-1", // Same connection
-					"table": "table2",
+					"table":              "table2",
 				},
 			},
 			map[string]interface{}{
 				"name": "table3",
 				"base_table": map[string]interface{}{
 					"data_connection_id": "conn-2", // Different connection
-					"table": "table3",
+					"table":              "table3",
 				},
 			},
 		},
@@ -345,15 +345,15 @@ func TestExportSDMMultipleTables(t *testing.T) {
 
 	tables, _ := sdmContent["tables"].([]interface{})
 	assert.Len(t, tables, 3, "Expected 3 tables")
-	
+
 	// Verify all tables have data_connection_id
 	for i, tableInterface := range tables {
 		table, ok := tableInterface.(map[string]interface{})
 		assert.True(t, ok, "Expected table %d to be a map", i)
-		
+
 		baseTable, ok := table["base_table"].(map[string]interface{})
 		assert.True(t, ok, "Expected table %d to have base_table", i)
-		
+
 		_, hasID := baseTable["data_connection_id"]
 		assert.True(t, hasID, "Expected table %d to have data_connection_id", i)
 	}
@@ -363,18 +363,18 @@ func TestExportSDMMultipleTables(t *testing.T) {
 func TestExportSDMCaching(t *testing.T) {
 	// Test that connection cache is properly initialized
 	connectionCache := make(map[string]*AgentServer.DataConnection)
-	
+
 	// Simulate caching
 	connectionCache["conn-1"] = &AgentServer.DataConnection{
 		ID:   "conn-1",
 		Name: "Production DB",
 	}
-	
+
 	// Verify cache works
 	conn, found := connectionCache["conn-1"]
 	assert.True(t, found, "Expected connection to be in cache")
 	assert.Equal(t, "Production DB", conn.Name, "Expected correct connection name")
-	
+
 	// Test cache miss
 	_, found = connectionCache["conn-2"]
 	assert.False(t, found, "Expected connection not to be in cache")

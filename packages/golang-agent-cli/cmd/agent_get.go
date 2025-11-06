@@ -137,7 +137,8 @@ func ConvertSpecAgentToAgentServer(agent common.SpecAgent) *AgentServer.Agent {
 			DocumentIntelligence: agent.DocumentIntelligence,
 			AgentSettings:        agent.AgentSettings,
 		},
-		Public: true,
+		Public:        true,
+		SelectedTools: convertSpecAgentSelectedToolsToAgentServerSelectedTools(agent.SelectedTools),
 	})
 	return asServerAgent
 }
@@ -234,6 +235,19 @@ func convertSpecAgentActionPackagesToAgentServer(actionPackages []common.SpecAge
 		}
 	}
 	return result
+}
+
+func convertSpecAgentSelectedToolsToAgentServerSelectedTools(selectedTools common.SpecSelectedTools) AgentServer.SelectedTools {
+	var toolConfigs []AgentServer.SelectedToolConfig
+	for _, toolConfig := range selectedTools.Tools {
+		toolConfigs = append(toolConfigs, AgentServer.SelectedToolConfig{
+			ToolName: toolConfig.Name,
+		})
+	}
+
+	return AgentServer.SelectedTools{
+		ToolNames: toolConfigs,
+	}
 }
 
 // getAgentProjects reads the agent projects from a given paths.

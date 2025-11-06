@@ -1453,3 +1453,64 @@ agent-package:
     assert any("semantic-data-models/name" in str(e).lower() for e in errors), (
         f"Expected error about missing 'name' field in SDM, got: {errors}"
     )
+
+
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_validation_selected_tools_ok(datadir: Path, v_2_1_spec: dict):
+    """Test that validation passes with properly fomatted selected tools field."""
+    from ._spec_validation import load_spec
+
+    valid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent1
+      description: Test agent with document-intelligence
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      selected-tools:
+        tools:
+          - name: tool-1
+          - name: tool-2
+    """
+    errors = validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir, raise_on_error=False)
+    assert not errors, f"Expected no errors for a valid agent-spec, got: {errors}"
+
+
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_validation_selected_tools_name_not_set(datadir: Path, v_2_1_spec: dict):
+    """Test that validation fails when name is not provided for selected tools tool field."""
+    from ._spec_validation import load_spec
+
+    valid_yaml = """
+agent-package:
+  spec-version: v2
+  agents:
+    - name: Agent with invalid SDM
+      description: Test agent with invalid SDM entry
+      version: 1.0.0
+      model:
+        provider: OpenAI
+        name: gpt-4
+      architecture: agent
+      reasoning: disabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      selected-tools:
+        tools:
+"""
+
+    errors = validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir, raise_on_error=False)
+    assert errors, "Expected errors for missing 'name' field"

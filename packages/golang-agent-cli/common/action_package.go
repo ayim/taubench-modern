@@ -88,7 +88,7 @@ func MapActionPackagesPathsFromAgentSpec(
 
 		var targetActionPackagePath string
 		var actionRelPath string
-		var actionPackageOrganization string = actionPackage.Organization
+		var actionPackageOrganization = actionPackage.Organization
 
 		// Added a fail safe in case the organization is empty for some reason
 		if actionPackageOrganization == "" {

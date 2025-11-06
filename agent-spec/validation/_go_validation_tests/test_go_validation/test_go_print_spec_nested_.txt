@@ -56,6 +56,9 @@ root (no data)
       resources (deprecated)
       runbook (required)
       runbooks (deprecated)
+      selected-tools
+        tools
+          name (required)
       semantic-data-models
         name (required)
       type (deprecated)

@@ -85,6 +85,23 @@ func getMcpServersFromMetadata(metadata []*common.AgentPackageMetadata) []AgentS
 	return servers
 }
 
+func getSelectedToolsFromMetadata(metadata []*common.AgentPackageMetadata) AgentServer.SelectedTools {
+	if len(metadata) == 0 || metadata[0] == nil {
+		return AgentServer.NewSelectedTools()
+	}
+	
+	var toolConfigs []AgentServer.SelectedToolConfig
+	for _, toolConfig := range metadata[0].SelectedTools.Tools {
+		toolConfigs = append(toolConfigs, AgentServer.SelectedToolConfig{
+			ToolName: toolConfig.Name,
+		})
+	}
+	
+	return AgentServer.SelectedTools{
+		ToolNames: toolConfigs,
+	}
+}
+
 func getDockerMCPGateway(metadata []*common.AgentPackageMetadata) *AgentServer.McpServer {
 	if len(metadata) == 0 || metadata[0] == nil || metadata[0].DockerMcpGateway == nil {
 		return nil
@@ -246,6 +263,7 @@ func BuildAgentPayload(
 		},
 		AgentSettings: common.NormalizeMap(metadata[0].AgentSettings),
 		Public:        makePublic,
+		SelectedTools: getSelectedToolsFromMetadata(metadata),
 	}
 
 	if modelConfiguration != "" {
