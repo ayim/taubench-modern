@@ -4,6 +4,7 @@ import { useNavigate } from '../../../../../hooks';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
 import type { DeleteTarget } from './useEvalSidebarState';
 import type { EvaluationItem, Scenario } from '../types';
+import { useAnalytics } from '../../../../../queries';
 
 export interface UseEvalSidebarActionsProps {
   agentId: string;
@@ -44,6 +45,7 @@ export const useEvalSidebarActions = ({
 }: UseEvalSidebarActionsProps) => {
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
+  const { track } = useAnalytics();
 
   const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
@@ -87,6 +89,7 @@ export const useEvalSidebarActions = ({
       await handleUpdateEvaluation(editingScenario.scenario_id, data);
     } else {
       await handleCreateEvaluation(data);
+      track('evals_creation.saved');
     }
     resetCreateDialogState();
   };
@@ -104,6 +107,7 @@ export const useEvalSidebarActions = ({
 
   const handleViewResults = (trial: { threadId: string }) => {
     if (trial.threadId) {
+      track(`evals_execution.view_execution_thread`);
       // Navigate to evaluations route to keep eval sidebar open
       navigate({
         to: '/thread/$agentId/$threadId/evaluations',

@@ -19,6 +19,7 @@ import {
 import { getRunStatus, hasTerminalTrials } from '../utils';
 import { getPassFailCounts } from '../helpers/evalHelpers';
 import type { Scenario, ScenarioRun } from '../types';
+import { useAnalytics } from '../../../../../queries';
 
 export interface ScenarioCardProps {
   scenario: Scenario;
@@ -51,7 +52,15 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
   onCancelTest,
   children,
 }) => {
+  const { track } = useAnalytics();
   const runStatus = isRunning ? 'EXECUTING' : currentRun?.trials && getRunStatus(currentRun.trials);
+
+  const handleResultsToggle = () => {
+    if (!expandedResults) {
+      track('evals_execution.view_results');
+    }
+    onToggleResults();
+  };
 
   const renderStatusBadges = () => {
     if (!currentRun) {
@@ -76,7 +85,7 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
             label="Results"
             iconVisible
             iconAfter={expandedResults ? IconChevronUp : IconChevronDown}
-            onClick={onToggleResults}
+            onClick={handleResultsToggle}
           />
           {passed > 0 && (
             <Badge

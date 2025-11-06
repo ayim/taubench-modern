@@ -23,6 +23,22 @@ export type NavigationArgs = {
   [K in keyof SparUIRoutes]: { to: K; params: SparUIRoutes[K]; search?: Record<string, unknown> };
 }[keyof SparUIRoutes];
 
+export type AnalyticsEvent =
+  | `evals_execution.started`
+  | `evals_execution.duration`
+  | `evals_execution.select_run`
+  | `evals_execution.view_results`
+  | `evals_execution.view_trial_details`
+  | `evals_execution.view_evaluation`
+  | `evals_execution.view_execution_thread`
+  | `evals_panel.navigate_to_view`
+  | `evals_creation.started`
+  | `evals_creation.name_modified`
+  | 'evals_creation.description_modified'
+  | 'evals_creation.expectation_modified'
+  | 'evals_creation.saved'
+  | 'evals_creation.canceled';
+
 export interface SparAPIClient {
   /**
    * Request for enabled feature at target application
@@ -115,4 +131,9 @@ export interface SparAPIClient {
    * TODO: In future, this information should be returned by Agent Server
    */
   getActionDetails?: (props: { agentId: string }) => Promise<ActionPackage[]>;
+
+  /**
+   * track analytics
+   */
+  track?: (metrics: AnalyticsEvent, value?: string) => Promise<void>;
 }

@@ -1,9 +1,10 @@
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useRef } from 'react';
 import z from 'zod';
 import { Dialog, Box, Typography, Form, Input, Button, Progress, Switch } from '@sema4ai/components';
 import { IconChemicalBottle, IconArrowRight } from '@sema4ai/icons';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAnalytics } from '../../../../../queries';
 
 const evaluationCriteriaSchema = z.object({
   responseAccuracyExpectation: z.string().max(2000, 'Expectation must be less than 2000 characters').default(''),
@@ -45,7 +46,15 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
   initialValues,
   mode = 'create',
 }) => {
+  const { track } = useAnalytics();
   const isEditMode = mode === 'edit';
+  const creationStartedRef = useRef(false);
+  const wasOpenRef = useRef(false);
+  const metricsSentRef = useRef({
+    name: false,
+    description: false,
+    expectation: false,
+  });
   const form = useForm<CreateEvalFormData>({
     resolver: zodResolver(createEvalFormSchema),
     defaultValues: {
@@ -63,7 +72,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     register,
     control,
     watch,
-    formState: { errors, isValid },
+    formState: { errors, isValid, dirtyFields },
     handleSubmit,
     reset,
   } = form;
@@ -109,6 +118,84 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     }
   }, [open, initialValues, reset]);
 
+  useEffect(() => {
+    if (!open) {
+      creationStartedRef.current = false;
+      wasOpenRef.current = false;
+      metricsSentRef.current = {
+        name: false,
+        description: false,
+        expectation: false,
+      };
+      return;
+    }
+
+    if (!wasOpenRef.current) {
+      wasOpenRef.current = true;
+      metricsSentRef.current = {
+        name: false,
+        description: false,
+        expectation: false,
+      };
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open && !isEditMode && !creationStartedRef.current) {
+      creationStartedRef.current = true;
+      track('evals_creation.started');
+    }
+    if (!open) {
+      creationStartedRef.current = false;
+    }
+  }, [open, isEditMode]);
+
+  const nameValue = watch('name');
+  const descriptionValue = watch('description');
+  const expectationValue = watch('evaluationCriteria.responseAccuracyExpectation');
+  const dirtyName = dirtyFields?.name ?? false;
+  const dirtyDescription = dirtyFields?.description ?? false;
+  const dirtyExpectation = dirtyFields?.evaluationCriteria?.responseAccuracyExpectation ?? false;
+
+  useEffect(() => {
+    if (!open || isEditMode || metricsSentRef.current.name || !dirtyName) {
+      return;
+    }
+    if ((nameValue ?? '') === initialValues?.name) {
+      return;
+    }
+    metricsSentRef.current.name = true;
+    track('evals_creation.name_modified');
+  }, [dirtyName, nameValue, open, isEditMode, initialValues?.name]);
+
+  useEffect(() => {
+    if (!open || isEditMode || metricsSentRef.current.description || !dirtyDescription) {
+      return;
+    }
+    if ((descriptionValue ?? '') === (initialValues?.description ?? '')) {
+      return;
+    }
+    metricsSentRef.current.description = true;
+    track('evals_creation.description_modified');
+  }, [dirtyDescription, descriptionValue, open, isEditMode, initialValues?.description]);
+
+  useEffect(() => {
+    if (!open || isEditMode || metricsSentRef.current.expectation || !dirtyExpectation) {
+      return;
+    }
+    if ((expectationValue ?? '') === (initialValues?.evaluationCriteria?.responseAccuracyExpectation ?? '')) {
+      return;
+    }
+    metricsSentRef.current.expectation = true;
+    track('evals_creation.expectation_modified');
+  }, [
+    dirtyExpectation,
+    expectationValue,
+    open,
+    isEditMode,
+    initialValues?.evaluationCriteria?.responseAccuracyExpectation,
+  ]);
+
   const handleFormSubmit = handleSubmit(async (data) => {
     const description = data.description || initialValues?.description || '';
     await onSubmit({ ...data, description });
@@ -120,9 +207,17 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
         responseAccuracyExpectation: '',
       },
     });
+    metricsSentRef.current = {
+      name: false,
+      description: false,
+      expectation: false,
+    };
   });
 
   const handleClose = () => {
+    if (!isEditMode) {
+      track('evals_creation.canceled');
+    }
     reset({
       name: '',
       description: '',
@@ -131,6 +226,11 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
         responseAccuracyExpectation: '',
       },
     });
+    metricsSentRef.current = {
+      name: false,
+      description: false,
+      expectation: false,
+    };
     onClose();
   };
 

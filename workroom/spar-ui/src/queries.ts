@@ -5,3 +5,4 @@ export * from './queries/workItems';
 export * from './queries/conversationGuides';
 export * from './queries/dataConnections';
 export * from './queries/semanticData';
+export * from './queries/analytics';

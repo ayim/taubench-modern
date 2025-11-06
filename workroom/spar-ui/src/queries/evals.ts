@@ -351,8 +351,8 @@ export const usePollScenarioRun = () => {
   const queryClient = useQueryClient();
 
   const pollForCompletion = useCallback(
-    async (scenarioId: string): Promise<void> => {
-      const poll = async (attempt: number): Promise<void> => {
+    async (scenarioId: string): Promise<ScenarioRun | null> => {
+      const poll = async (attempt: number): Promise<ScenarioRun | null> => {
         if (attempt >= MAX_POLLING_ATTEMPTS) {
           throw new QueryError('Trial execution timed out after 60 seconds', {
             code: 'too_many_requests',
@@ -390,14 +390,14 @@ export const usePollScenarioRun = () => {
             if (allTrialsComplete && completedTrialsHaveResults) {
               await queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', scenarioId] });
               await queryClient.invalidateQueries({ queryKey: ['scenario-runs', scenarioId] });
-              return;
+              return response.data;
             }
           }
         } catch {
           // Polling attempt failed, retry.
         }
 
-        await poll(attempt + 1);
+        return poll(attempt + 1);
       };
 
       return poll(0);

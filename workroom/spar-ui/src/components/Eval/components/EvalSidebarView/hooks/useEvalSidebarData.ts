@@ -21,6 +21,7 @@ import { useSparUIContext } from '../../../../../api/context';
 import { sortByCreatedAtDesc } from '../../../../../lib/utils';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
 import type { EvaluationItem, ScenarioRun, Scenario } from '../types';
+import { useAnalytics } from '../../../../../queries';
 
 export interface UseEvalSidebarDataProps {
   agentId: string;
@@ -45,6 +46,7 @@ export const useEvalSidebarData = ({
   expandedResults,
 }: UseEvalSidebarDataProps) => {
   const { sparAPIClient } = useSparUIContext();
+  const { track } = useAnalytics();
   const queryClient = useQueryClient();
   const { addSnackbar } = useSnackbar();
 
@@ -236,6 +238,21 @@ export const useEvalSidebarData = ({
     return evaluationCriteria;
   };
 
+  const getScenarioExecutionMode = (scenario: Scenario): 'live' | 'replay' => {
+    const metadata = (
+      typeof scenario.metadata === 'object' && scenario.metadata !== null
+        ? (scenario.metadata as Record<string, unknown>)
+        : {}
+    ) as Record<string, unknown>;
+    const driftPolicyValue = metadata?.drift_policy;
+    const driftPolicy =
+      typeof driftPolicyValue === 'object' && driftPolicyValue !== null
+        ? (driftPolicyValue as Record<string, unknown>)
+        : undefined;
+    const toolExecutionModeValue = driftPolicy?.tool_execution_mode;
+    return toolExecutionModeValue === 'live' ? 'live' : 'replay';
+  };
+
   const handleCreateEvaluation = async (data: CreateEvalFormData) => {
     const evaluationCriteria = buildEvaluationCriteria(data);
 
@@ -290,11 +307,14 @@ export const useEvalSidebarData = ({
   };
 
   const handleRunTest = async (scenario: Scenario, numTrials: number = 1) => {
+    const runStartedAt = typeof performance !== 'undefined' ? performance.now() : null;
+    const executionMode = getScenarioExecutionMode(scenario);
     try {
       const newRun = await createScenarioRunMutation.mutateAsync({
         scenarioId: scenario.scenario_id,
         body: { num_trials: numTrials },
       });
+      track(`evals_execution.started`, executionMode);
 
       // Immediately update query cache with the new run data
       queryClient.setQueryData(['scenario-run-latest', scenario.scenario_id], newRun);
@@ -304,7 +324,44 @@ export const useEvalSidebarData = ({
 
       expandResults(scenario.scenario_id);
 
-      pollForCompletion(scenario.scenario_id).then(() => {
+      pollForCompletion(scenario.scenario_id).then((completedRun) => {
+        let trackedDurationMs: number | null = null;
+
+        const trials = completedRun?.trials ?? [];
+
+        if (trials.length > 0) {
+          const largestInterval = trials.reduce<number | null>((currentMax, trial) => {
+            const startedAt = trial.execution_state?.started_at;
+            const finishedAt = trial.execution_state?.finished_at;
+
+            if (!startedAt || !finishedAt) {
+              return currentMax;
+            }
+
+            const startTimestamp = new Date(startedAt).getTime();
+            const endTimestamp = new Date(finishedAt).getTime();
+
+            if (Number.isNaN(startTimestamp) || Number.isNaN(endTimestamp) || endTimestamp < startTimestamp) {
+              return currentMax;
+            }
+
+            const interval = endTimestamp - startTimestamp;
+            if (currentMax === null || interval > currentMax) {
+              return interval;
+            }
+            return currentMax;
+          }, null);
+
+          trackedDurationMs = largestInterval;
+        }
+
+        if (trackedDurationMs === null && runStartedAt !== null && typeof performance !== 'undefined') {
+          trackedDurationMs = Math.max(Math.round(performance.now() - runStartedAt), 0);
+        }
+
+        if (trackedDurationMs !== null) {
+          track(`evals_execution.duration`, trackedDurationMs.toString());
+        }
         queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
       });
     } catch {

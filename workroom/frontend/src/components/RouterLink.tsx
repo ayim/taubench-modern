@@ -43,7 +43,7 @@ export const RouterMenuLink = createLink(
 );
 
 export const RouterSideNavigationLink = createLink(
-  forwardRef<HTMLAnchorElement, SideNavigationLinkProps>((props, ref) => {
+  forwardRef<HTMLAnchorElement, SideNavigationLinkProps & { onClick?: () => void }>((props, ref) => {
     return <SideNavigation.Link {...props} ref={ref} />;
   }),
 );

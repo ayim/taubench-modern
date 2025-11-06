@@ -12,6 +12,7 @@ import type { components } from '@sema4ai/agent-server-interface';
 import { TrialResults } from './TrialResults';
 import type { Trial, ScenarioRun } from '../types';
 import { formatDuration, getPassFailCounts, getRunAverageTrialDuration, isRunTerminated } from '../helpers/evalHelpers';
+import { useAnalytics } from '../../../../../queries';
 
 export interface ScenarioResultsProps {
   scenarioId: string;
@@ -48,6 +49,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
   onToggleEvaluationDetails,
   onViewResults,
 }) => {
+  const { track } = useAnalytics();
   const hasTrials = trials.length > 0;
 
   const runTerminated = useMemo(() => isRunTerminated(trials), [trials]);
@@ -60,6 +62,11 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
   if (!hasTrials) {
     return null;
   }
+
+  const handleSelectRun = (runIndex: number) => {
+    track(`evals_execution.select_run`);
+    onSelectRun(runIndex);
+  };
 
   return (
     <Box paddingLeft="$28" mt="$8">
@@ -148,7 +155,11 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                 }
 
                 return (
-                  <Menu.Item key={run.scenario_run_id} onClick={() => onSelectRun(index)} aria-selected={isSelected}>
+                  <Menu.Item
+                    key={run.scenario_run_id}
+                    onClick={() => handleSelectRun(index)}
+                    aria-selected={isSelected}
+                  >
                     <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
                       <Typography>
                         Test run {runNumber}

@@ -12,6 +12,7 @@ import {
 import { styled } from '@sema4ai/theme';
 import { getEvaluationResultColor, getEvaluationResultLabel, getEvaluationResultIcon, isTrialTerminal } from '../utils';
 import type { Trial } from '../types';
+import { useAnalytics } from '../../../../../queries';
 
 const ErrorMessageBox = styled.pre`
   margin: 0;
@@ -48,6 +49,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
   onToggleEvaluationDetails,
   onViewResults,
 }) => {
+  const { track } = useAnalytics();
   const trialKey = `${scenarioId}-${trial.trial_id}`;
   const isTrialExpanded = expandedTrials.has(trialKey);
   const isTrialCompleted = isTrialTerminal(trial);
@@ -115,6 +117,13 @@ export const TrialResults: FC<TrialResultsProps> = ({
   const hasTrialError = trial.status === 'ERROR' && trial.error_message;
   const hasExpandableContent = hasEvaluationResults || hasTrialError;
 
+  const handleToggleTrialDetails = () => {
+    if (!isTrialExpanded && hasExpandableContent) {
+      track(`evals_execution.view_trial_details`);
+    }
+    onToggleTrialDetails(trialKey);
+  };
+
   return (
     <Box display="flex" flexDirection="column" gap="$4">
       <Box display="flex" alignItems="center" gap="$8">
@@ -129,7 +138,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
             variant="ghost"
             size="small"
             icon={isTrialExpanded ? IconChevronDown : IconChevronRight}
-            onClick={() => onToggleTrialDetails(trialKey)}
+            onClick={handleToggleTrialDetails}
             aria-label="Toggle trial details"
           />
         )}
@@ -166,6 +175,12 @@ export const TrialResults: FC<TrialResultsProps> = ({
                 const hasDetails =
                   ('explanation' in result && result.explanation) ||
                   ('issues' in result && result.issues && result.issues.length > 0);
+                const handleToggleEvaluation = () => {
+                  if (!isExpanded && hasDetails) {
+                    track(`evals_execution.view_evaluation`);
+                  }
+                  onToggleEvaluationDetails(evaluationKey);
+                };
 
                 return (
                   <Box key={evaluationKey} display="flex" flexDirection="column" gap="$4">
@@ -181,7 +196,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
                         variant="ghost"
                         size="small"
                         icon={isExpanded ? IconChevronDown : IconChevronRight}
-                        onClick={() => onToggleEvaluationDetails(evaluationKey)}
+                        onClick={handleToggleEvaluation}
                         disabled={!hasDetails}
                         aria-label="Toggle evaluation details"
                       />

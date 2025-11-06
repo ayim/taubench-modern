@@ -1,7 +1,7 @@
 import { useParams } from '@tanstack/react-router';
 import { Button, Menu, Tooltip, useScreenSize } from '@sema4ai/components';
 import { ThreadHeader } from '@sema4ai/spar-ui';
-import { useAgentQuery } from '@sema4ai/spar-ui/queries';
+import { useAgentQuery, useAnalytics } from '@sema4ai/spar-ui/queries';
 import {
   IconChemicalBottle,
   IconDotsHorizontal,
@@ -19,6 +19,7 @@ export const Header = () => {
   const { agentId, tenantId, threadId } = useParams({ from: '/tenants/$tenantId/conversational/$agentId/$threadId' });
   const isMobile = useScreenSize('m');
   const { features } = useTenantContext();
+  const { track } = useAnalytics();
   const defaultLink = {
     to: '/tenants/$tenantId/conversational/$agentId/$threadId',
     params: { tenantId, agentId, threadId },
@@ -27,6 +28,10 @@ export const Header = () => {
   const resolveLink = useToggleRoutePath(defaultLink);
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
+
+  const handleEvaluationsClick = () => {
+    track(`evals_panel.navigate_to_view`);
+  };
 
   if (isLoading || !agent) {
     return null;
@@ -55,6 +60,7 @@ export const Header = () => {
               <RouterSideNavigationLink
                 icon={IconChemicalBottle}
                 round
+                onClick={handleEvaluationsClick}
                 {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/evaluations', {
                   tenantId,
                   agentId,
@@ -163,6 +169,7 @@ export const Header = () => {
                   threadId,
                 })}
                 params={{ tenantId, agentId, threadId }}
+                onClick={handleEvaluationsClick}
               >
                 Evaluations
               </RouterMenuLink>
