@@ -28,7 +28,7 @@ function RouteComponent() {
   });
 
   return (
-    <Page title="Sema4.ai Users">
+    <Page title="Users">
       <Box mt="$8">
         <UsersTable items={userList.users} />
       </Box>

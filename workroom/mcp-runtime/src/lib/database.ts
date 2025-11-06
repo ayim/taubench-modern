@@ -127,10 +127,13 @@ export const runMigrationsAndGetDatabaseClient = async (
     migrationLockTableName: configuration.database.migrations.lockTable,
     migrationTableName: configuration.database.migrations.recordsTable,
     migrationTableSchema: configuration.database.schema,
+    // Currently only running dockerized
+    // If needed to run locally on Windows, this logic must be updated to use a "windows-compatible" provider
+    // Related PR: https://github.com/Sema4AI/agent-platform/pull/1564
     provider: new FileMigrationProvider({
       fs,
       path,
-      migrationFolder: path.join(import.meta.dirname, 'migrations'),
+      migrationFolder: path.join(import.meta.dirname, '..', 'migrations'),
     }),
   });
 
