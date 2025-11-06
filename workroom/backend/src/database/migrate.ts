@@ -1,9 +1,43 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
-import { FileMigrationProvider, Kysely, Migrator } from 'kysely';
+import { pathToFileURL } from 'node:url';
+import type { Migration, MigrationProvider } from 'kysely';
+import { Kysely, Migrator } from 'kysely';
 import type { Database } from './DatabaseClient.js';
 import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
+
+class WindowsCompatibleFileMigrationProvider implements MigrationProvider {
+  constructor(
+    private readonly params: {
+      fs: typeof fs;
+      path: typeof path;
+      migrationFolder: string;
+    },
+  ) {}
+
+  async getMigrations(): Promise<Record<string, Migration>> {
+    const migrations: Record<string, Migration> = {};
+    const files = await this.params.fs.readdir(this.params.migrationFolder);
+
+    for (const fileName of files) {
+      if (fileName.endsWith('.d.ts')) {
+        continue;
+      }
+
+      if (fileName.endsWith('.js') || fileName.endsWith('.ts')) {
+        const migrationFilePath = this.params.path.join(this.params.migrationFolder, fileName);
+        const migrationFileUrl = pathToFileURL(migrationFilePath).href;
+        const migration = await import(migrationFileUrl);
+        const migrationKey = fileName.substring(0, fileName.lastIndexOf('.'));
+
+        migrations[migrationKey] = migration;
+      }
+    }
+
+    return migrations;
+  }
+}
 
 export const migrateDatabase = async ({
   configuration,
@@ -24,7 +58,7 @@ export const migrateDatabase = async ({
 
   const migrator = new Migrator({
     db: database,
-    provider: new FileMigrationProvider({
+    provider: new WindowsCompatibleFileMigrationProvider({
       fs,
       path,
       migrationFolder: migrationDirectory,
