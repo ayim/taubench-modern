@@ -123,7 +123,10 @@ export const TableTree: FC<Props> = ({ modelId }) => {
                     </>
                   }
                 >
-                  {dimensions.map((dimension, dimensionIndex) => {
+                  {table[type]?.map((dimension, dimensionIndex) => {
+                    const errors = validation?.tables
+                      ?.find((curr) => curr.base_table.table === table.base_table.table)
+                      ?.[type]?.find((curr) => curr.name === dimension.name)?.errors;
                     return (
                       <TableTreeItem
                         key={dimension.name}
@@ -131,8 +134,8 @@ export const TableTree: FC<Props> = ({ modelId }) => {
                         dimensions={dimensions}
                         dimensionIndex={dimensionIndex}
                         tableIndex={tableIndex}
+                        errors={errors}
                         baseTableName={table.base_table.table}
-                        validation={validation}
                       />
                     );
                   })}

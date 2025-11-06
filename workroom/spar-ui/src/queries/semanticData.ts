@@ -12,6 +12,14 @@ export const Dimension = z.object({
   description: z.string().optional(),
   synonyms: z.array(z.string()).optional(),
   sample_values: z.array(z.any()).optional(),
+  errors: z
+    .array(
+      z.object({
+        message: z.string(),
+        level: z.enum(['error', 'warning']),
+      }),
+    )
+    .optional(),
 });
 export type Dimension = z.infer<typeof Dimension>;
 
@@ -41,6 +49,14 @@ export const SemanticModel = z.object({
       time_dimensions: z.array(Dimension).optional(),
       facts: z.array(Dimension).optional(),
       metrics: z.array(Dimension).optional(),
+      errors: z
+        .array(
+          z.object({
+            message: z.string(),
+            level: z.enum(['error', 'warning']),
+          }),
+        )
+        .optional(),
     }),
   ),
 });
@@ -132,7 +148,18 @@ const agentSemanticDataValidationQueryOptions = createSparQueryOptions<{ agentId
         });
       }
 
-      return response.data.results;
+      const semanticModels = (
+        response.data.results as { semantic_data_model_id: string; semantic_data_model: SemanticModel }[]
+      ).map((curr) => {
+        return {
+          id: curr.semantic_data_model_id,
+          name: curr.semantic_data_model.name,
+          description: curr.semantic_data_model.description,
+          tables: curr.semantic_data_model.tables,
+        };
+      });
+
+      return semanticModels;
     },
   }),
 );
@@ -163,8 +190,7 @@ const semanticDataValidationQueryOptions = createSparQueryOptions<{ modelId: str
       }
 
       const validation = response.data.results.find((result) => result.semantic_data_model_id === modelId);
-
-      return validation;
+      return validation?.semantic_data_model as SemanticModel;
     },
   }),
 );
@@ -260,6 +286,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
   },
   onSuccess: (_, { agentId }) => {
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
+    queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId) });
   },
 }));
 
@@ -346,6 +373,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
   onSuccess: (_, { agentId, modelId }) => {
     queryClient.invalidateQueries({ queryKey: getSemanticModelQueryKey(modelId) });
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
+    queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId) });
   },
 }));
 
@@ -374,6 +402,7 @@ export const useDeleteSemanticDataModelMutation = createSparMutation<object, { a
     },
     onSuccess: (_, { agentId }) => {
       queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
+      queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId) });
     },
   }),
 );
@@ -436,5 +465,6 @@ export const useImportSemanticDataModelMutation = createSparMutation<
   },
   onSuccess: (_, { agentId }) => {
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
+    queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId) });
   },
 }));

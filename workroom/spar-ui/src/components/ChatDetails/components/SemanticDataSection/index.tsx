@@ -11,10 +11,12 @@ import { SemanticModelItem } from './components/SemanticModelItem';
 export const SemanticDataSection = () => {
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { agentId } = useParams('/thread/$agentId');
-  const { data: semanticDataModels, isLoading } = useAgentSemanticDataQuery({ agentId });
-  const { data: semanticDataValidation } = useAgentSemanticDataValidationQuery({ agentId });
+  const { data: semanticDataModelsWithoutValidation, isLoading } = useAgentSemanticDataQuery({ agentId });
+  const { data: semanticDataModelsWithValidation } = useAgentSemanticDataValidationQuery({ agentId });
   const { enabled: isSemanticDataModelsAvailable } = useFeatureFlag(SparUIFeatureFlag.semanticDataModels);
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
+
+  const semanticDataModels = semanticDataModelsWithValidation || semanticDataModelsWithoutValidation;
 
   const onToggleEditModel = () => {
     setIsConfigurationOpen(!isConfigurationOpen);
@@ -41,10 +43,7 @@ export const SemanticDataSection = () => {
         />
       </Box>
       {semanticDataModels?.length ? (
-        semanticDataModels.map((model) => {
-          const validation = semanticDataValidation?.find((v) => v.semantic_data_model_id === model.id);
-          return <SemanticModelItem key={model.id} model={model} validation={validation} />;
-        })
+        semanticDataModels.map((model) => <SemanticModelItem key={model.id} model={model} />)
       ) : (
         <Typography>Connect your agent to data from databases or files using Sema4.ai Data Models.</Typography>
       )}

@@ -5,19 +5,18 @@ import { IconCloseSmall, IconDbColumn } from '@sema4ai/icons';
 import { Button, Typography } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 
-import { Dimension } from '../../../../../../queries';
+import { Dimension, SemanticModel } from '../../../../../../queries';
 import { InputControlled } from '../../../../../../common/form/InputControlled';
 import { SynonymField } from './SynonymField';
 import { SampleValuesField } from './SampleValuesField';
-import { ServerResponse } from '../../../../../../queries/shared';
 import { DataConnectionFormSchema } from '../../form';
 
 type Props = {
   tableIndex: number;
   dimensionIndex: number;
+  errors?: SemanticModel['tables'][number]['errors'];
   type: 'dimensions' | 'time_dimensions' | 'facts' | 'metrics';
   dimensions: Dimension[];
-  validation?: ServerResponse<'post', '/api/v2/semantic-data-models/validate'>['results'][number];
   baseTableName: string;
 };
 
@@ -36,44 +35,19 @@ const Cell = styled.div`
   }
 `;
 
-// TODO: This is a temporary solution on how to parse an error for exact dimension, Agent Server should return the errors more structured
-const getDimensionError = (validation: Props['validation'], dimension: Dimension) => {
-  if (!validation?.errors) {
-    return undefined;
-  }
-
-  const hasNotFoundError = validation?.errors?.some((error) =>
-    error.message.includes(`Column '${dimension.expr}' is not found in table`),
-  );
-
-  if (hasNotFoundError) {
-    return 'Column not found in table';
-  }
-
-  return undefined;
-};
-
-export const TableTreeItem: FC<Props> = ({
-  baseTableName,
-  tableIndex,
-  dimensionIndex,
-  type,
-  dimensions,
-  validation,
-}) => {
+export const TableTreeItem: FC<Props> = ({ baseTableName, tableIndex, dimensionIndex, type, dimensions, errors }) => {
   const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
   const dataSelection = watch('dataSelection');
 
   const dimension = dimensions[dimensionIndex];
-  const error = getDimensionError(validation, dimension);
 
   const description = (
     <>
       {`${dimension.expr} • ${dimension.data_type.replace('!', '')}  `}{' '}
-      {error && (
+      {errors && (
         <>
           <br />
-          <Typography color="content.error">{error}</Typography>
+          <Typography color="content.error">{errors.map((error) => error.message).join(', ')}</Typography>
         </>
       )}
     </>
@@ -115,7 +89,7 @@ export const TableTreeItem: FC<Props> = ({
             <SampleValuesField
               tableIndex={tableIndex}
               dimensionIndex={dimensionIndex}
-              initialValue={dimension.synonyms}
+              initialValue={dimension.sample_values}
             />
           </Cell>
           <Cell>

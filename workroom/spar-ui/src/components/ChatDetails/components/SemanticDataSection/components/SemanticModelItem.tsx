@@ -1,8 +1,9 @@
-import { FC, Fragment, useState } from 'react';
-import { Box, Button, Typography, Menu, Tooltip, useSnackbar } from '@sema4ai/components';
-import { IconDatabase, IconDotsHorizontal, IconStatusError } from '@sema4ai/icons';
+import { FC, useCallback, useState } from 'react';
+import { Box, Button, Typography, Menu, useSnackbar } from '@sema4ai/components';
+import { IconDatabase, IconDotsHorizontal } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useDeleteConfirm } from '@sema4ai/layouts';
+import { useDropzone } from 'react-dropzone';
 
 import { SemanticDataConfiguration } from '../../../../SemanticData/SemanticDataConfiguration';
 import {
@@ -10,13 +11,13 @@ import {
   useDeleteSemanticDataModelMutation,
   useExportSemanticDataModelQuery,
 } from '../../../../../queries/semanticData';
-import { useParams } from '../../../../../hooks';
+import { useMessageStream, useParams } from '../../../../../hooks';
 import { downloadFile } from '../../../../../lib/utils';
-import { ServerResponse } from '../../../../../queries/shared';
+import { parseSemanticModelErrors } from '../../../../../lib/SemanticDataModels';
+import { ErrorPopover } from './ErrorPopover';
 
 type Props = {
   model: SemanticModel;
-  validation?: ServerResponse<'post', '/api/v2/semantic-data-models/validate'>['results'][number];
 };
 
 const Item = styled(Box)`
@@ -24,33 +25,35 @@ const Item = styled(Box)`
   align-items: center;
   height: ${({ theme }) => theme.sizes.$32};
   justify-content: space-between;
-`;
-
-const Trigger = styled.div`
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${({ theme }) => theme.space.$4};
-  width: 100%;
 
   > button {
     display: none;
   }
 
-  &:hover {
+  &:hover,
+  &:has([aria-expanded='true']) {
     > button {
       display: block;
     }
   }
 `;
 
-export const SemanticModelItem: FC<Props> = ({ model, validation }) => {
-  const { agentId } = useParams('/thread/$agentId');
+export const SemanticModelItem: FC<Props> = ({ model }) => {
+  const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { mutate: deleteSemanticDataModel } = useDeleteSemanticDataModelMutation({});
   const { mutateAsync: exportSemanticDataModel } = useExportSemanticDataModelQuery({});
   const { addSnackbar } = useSnackbar();
+  const { sendMessage } = useMessageStream({ agentId, threadId });
+
+  const onAddFile = useCallback(
+    async (files: File[]) => {
+      await sendMessage('', files);
+    },
+    [sendMessage],
+  );
+
+  const { getInputProps, open: onOpenFilePicker } = useDropzone({ onDrop: onAddFile });
 
   const onDeleteConfirm = useDeleteConfirm(
     {
@@ -97,39 +100,57 @@ export const SemanticModelItem: FC<Props> = ({ model, validation }) => {
     });
   };
 
-  const errors = validation?.errors || [];
+  const errors = parseSemanticModelErrors(model);
 
   return (
     <Item>
-      <Menu
-        trigger={
-          <Trigger>
-            <Box display="flex" alignItems="center" gap="$4">
-              <IconDatabase />
-              <Typography fontWeight="bold">{model.name}</Typography>
-              {errors.length > 0 && (
-                <Tooltip
-                  text={errors.map((error) => (
-                    <Fragment key={error.message}>
-                      {error.message}
-                      <br />
-                    </Fragment>
-                  ))}
-                >
-                  <IconStatusError color="content.error" />
-                </Tooltip>
-              )}
-            </Box>
-
-            <Button variant="outline" size="small" icon={IconDotsHorizontal} round aria-label="Actions" />
-          </Trigger>
-        }
-      >
+      <Box display="flex" alignItems="center" gap="$4">
+        <IconDatabase />
+        <Typography fontWeight="bold">{model.name}</Typography>
+        {errors.hasConnectionError && (
+          <ErrorPopover
+            title="Connection Failed"
+            description="Unable to connect to the data source. Please check your configuration settings."
+            action={
+              <Button flex={1} round onClick={onToggleEditModel}>
+                Configure Connection
+              </Button>
+            }
+            level="error"
+          />
+        )}
+        {errors.hasFileReferenceWarning && (
+          <ErrorPopover
+            title="Missing File"
+            description="This data model requires a data file to be uploaded to the chat. Once uploaded, you can use this model to work with the file’s data."
+            action={
+              <Button flex={1} round onClick={onOpenFilePicker}>
+                Upload File
+              </Button>
+            }
+            level="warning"
+          />
+        )}
+        {errors.hasMissingTableReferenceError && (
+          <ErrorPopover
+            title="Data Unavailable"
+            description="Some data could not be matched or processed. Please review your model configuration and ensure the dataset is compatible."
+            action={
+              <Button flex={1} round onClick={onToggleEditModel}>
+                Review
+              </Button>
+            }
+            level="error"
+          />
+        )}
+      </Box>
+      <Menu trigger={<Button variant="outline" size="small" icon={IconDotsHorizontal} round aria-label="Actions" />}>
         <Menu.Item onClick={onToggleEditModel}>Edit</Menu.Item>
         <Menu.Item onClick={onExportModel}>Export</Menu.Item>
         <Menu.Item onClick={onDelete}>Delete</Menu.Item>
       </Menu>
       {isConfigurationOpen && <SemanticDataConfiguration onClose={onToggleEditModel} modelId={model.id} />}
+      <input {...getInputProps()} />
     </Item>
   );
 };

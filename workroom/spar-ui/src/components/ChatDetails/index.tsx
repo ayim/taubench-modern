@@ -20,6 +20,7 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
   const { data: agent, isLoading: isAgentLoading } = useAgentQuery({ agentId });
   const { data: agentOAuthState, isLoading: isAgentOAuthStateLoading } = useAgentOAuthStateQuery({ agentId });
   const { enabled: isAgentDetailsEnabled } = useFeatureFlag(SparUIFeatureFlag.agentDetails);
+  const { enabled: areSemanticDataModelsEnabled } = useFeatureFlag(SparUIFeatureFlag.semanticDataModels);
 
   if (!isAgentDetailsEnabled) return null;
 
@@ -44,7 +45,7 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
           {agentOAuthState && agentOAuthState.length > 0 && <OAuthProviderSection agentOAuthState={agentOAuthState} />}
           {agent?.model && <LLMSection provider={agent.model.provider as string} name={agent.model.name as string} />}
 
-          <SemanticDataSection />
+          {areSemanticDataModelsEnabled && <SemanticDataSection />}
         </Box>
       )}
     </Box>

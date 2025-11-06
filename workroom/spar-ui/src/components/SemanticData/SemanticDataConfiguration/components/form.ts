@@ -3,6 +3,7 @@ import z from 'zod';
 import { components } from '@sema4ai/agent-server-interface';
 
 import { SemanticModel } from '../../../../queries/semanticData';
+import { getTableDimensions } from '../../../../lib/SemanticDataModels';
 
 export type InspectedTableInfo = components['schemas']['agent_platform__core__payloads__data_connection__TableInfo'];
 
@@ -55,13 +56,6 @@ export const DataConnectionFormSchema = z.object({
   ),
   tables: SemanticModel.shape.tables.optional(),
 });
-
-export const getTableDimensions = (table: SemanticModel['tables'][number]) => {
-  return (table.dimensions || [])
-    .concat(table.time_dimensions || [])
-    .concat(table.facts || [])
-    .concat(table.metrics || []);
-};
 
 export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
   return {

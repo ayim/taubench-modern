@@ -4,7 +4,8 @@ import { Box, Tooltip, Typography } from '@sema4ai/components';
 import { IconHelpSmall } from '@sema4ai/icons';
 import { Color } from '@sema4ai/theme';
 
-import { DataConnectionFormSchema, getTableDimensions } from '../../form';
+import { DataConnectionFormSchema } from '../../form';
+import { getTableDimensions } from '../../../../../../lib/SemanticDataModels';
 
 type Props = {
   children?: ReactNode;
