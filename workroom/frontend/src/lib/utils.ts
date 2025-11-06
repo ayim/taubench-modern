@@ -1,6 +1,6 @@
 import { UserTenant } from '~/queries/tenants';
 import { getBasePath } from '~/utils/base';
-import type { MCPServerCreate, MCPServer, MCPServerEdit } from '~/queries/mcpServers';
+import type { MCPServer, MCPServerEdit } from '~/queries/mcpServers';
 import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
 import { ListPlatformsResponse } from '~/queries/platforms';
 
@@ -148,7 +148,7 @@ export const resolveWorkroomURL = (
 
 type HeaderEntry = { key: string; value?: string; type: MCPHeaderValue['type'] };
 
-export function entriesToHeaders(
+function entriesToHeaders(
   entries: HeaderEntry[] | undefined | null,
 ): Record<string, string | { type: 'secret'; value: string }> {
   const out: Record<string, string | { type: 'secret'; value: string }> = {};
@@ -186,23 +186,6 @@ export function mcpHeadersFromRecord(
     }
   }
   return Object.keys(out).length ? out : undefined;
-}
-
-export function buildCreateMcpBody(values: {
-  name: string;
-  type: MCPServerCreate['type'];
-  transport: MCPServerCreate['transport'];
-  url?: string;
-  headerEntries?: HeaderEntry[];
-}): MCPServerCreate {
-  const headers = entriesToHeaders(values.headerEntries);
-  return {
-    name: values.name,
-    type: values.type ?? 'generic_mcp',
-    transport: values.transport,
-    url: values.url || undefined,
-    headers: Object.keys(headers).length ? (headers as MCPServerCreate['headers']) : undefined,
-  } as MCPServerCreate;
 }
 
 export function buildUpdateMcpBody(

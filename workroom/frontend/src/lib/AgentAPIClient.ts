@@ -499,21 +499,6 @@ export class AgentAPIClient {
     return this.createClient<DocumentIntelligenceSchema.paths>('documents');
   }
 
-  public async inspectAgentPackageViaGateway(
-    tenantId: string,
-    formData: FormData,
-  ): Promise<AgentServerComponents['schemas']['StatusResponse_dict_']> {
-    const response = await this.agentFetch(tenantId, 'post', '/api/v2/package/inspect/agent', {
-      body: formData as never,
-    });
-
-    if (!response.success) {
-      throw new RequestError(500, response.message);
-    }
-
-    return response.data;
-  }
-
   public async deployAgentFromPackage(
     tenantId: string,
     body: AgentServerComponents['schemas']['AgentPackagePayload'],

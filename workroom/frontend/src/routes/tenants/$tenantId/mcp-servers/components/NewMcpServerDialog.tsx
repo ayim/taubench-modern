@@ -1,65 +1,121 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
-import { IconPlus, IconTrash } from '@sema4ai/icons';
+import {
+  Banner,
+  Box,
+  Button,
+  Dialog,
+  Dropzone,
+  Form,
+  Input,
+  Select,
+  Typography,
+  useSnackbar,
+} from '@sema4ai/components';
+import { IconLightBulb, IconPlus, IconTrash } from '@sema4ai/icons';
 import { useParams } from '@tanstack/react-router';
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
-import { z } from 'zod';
-import { buildCreateMcpBody } from '~/lib/utils';
-import { useCreateMcpServerMutation, type MCPServerCreate } from '~/queries/mcpServers';
+import { getCreateMcpServerBody } from '~/lib/mcpServersUtils';
+import { useCreateMcpServerMutation } from '~/queries/mcpServers';
 import { InputControlled } from '~/components/InputControlled';
+import { ActionPackageItem } from './ActionPackageItem.tsx';
+import { useInspectAgentPackageMutation } from '@sema4ai/spar-ui/queries';
+import { useSparUIContext } from '@sema4ai/spar-ui';
+import { newMcpServerFormSchema, NewMcpServerFormInput, NewMcpServerFormValues } from '~/lib/mcpServersUtils';
 
 type Props = { open: boolean; onClose: () => void };
 
-const keyValueSchema = z.object({
-  key: z.string().min(1, 'Key is required'),
-  value: z.string().optional().default(''),
-  type: z.enum(['string', 'secret']).optional().default('string'),
-});
+type AgentActionPackages = NonNullable<
+  NonNullable<ReturnType<typeof useInspectAgentPackageMutation>['data']>['action_packages']
+>;
 
-const formSchema = z
-  .object({
-    name: z.string().min(1, 'Name is required'),
-    type: z.enum(['generic_mcp', 'sema4ai_action_server']).default('generic_mcp'),
-    transport: z.enum(['auto', 'streamable-http', 'sse', 'stdio']),
-    url: z.string().optional(),
-    headersKV: z.array(keyValueSchema).default([]),
-  })
-  .superRefine((values, ctx) => {
-    if (values.transport !== 'stdio' && (!values.url || !values.url.trim())) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['url'], message: 'URL is required for this transport' });
-    }
-  });
-
-type FormInput = z.input<typeof formSchema>;
-type FormValues = z.output<typeof formSchema>;
+type UploadState =
+  | { type: 'pending_upload' }
+  | { type: 'uploading'; file: { name: string } }
+  | { type: 'uploaded'; file: { name: string } }
+  | { type: 'introspection_succeeded'; file: { name: string }; data: AgentActionPackages }
+  | { type: 'uploading_failed'; error: Error }
+  | { type: 'introspection_failed'; error: Error };
 
 export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const mutation = useCreateMcpServerMutation();
-  const form = useForm<FormInput, unknown, FormValues>({
-    resolver: zodResolver(formSchema),
+  const { sparAPIClient } = useSparUIContext();
+  const inspectAgentPackageMutation = useInspectAgentPackageMutation({ sparAPIClient });
+  const form = useForm<NewMcpServerFormInput, unknown, NewMcpServerFormValues>({
+    resolver: zodResolver(newMcpServerFormSchema),
     defaultValues: {
       name: '',
       type: 'generic_mcp',
       transport: 'auto',
       url: '',
       headersKV: [],
+      agentPackageFile: undefined,
+      agentPackageSecrets: {},
     },
     mode: 'onChange',
   });
   const { addSnackbar } = useSnackbar();
+  const [uploadState, setUploadState] = useState<UploadState>({ type: 'pending_upload' });
 
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
+  const typeValue = form.watch('type');
+  const agentPackageFile = form.watch('agentPackageFile');
+
+  const onDrop = async (files: File[]) => {
+    const file = files[0];
+
+    if (!file) {
+      return;
+    }
+
+    const isZip = file.name.toLowerCase().endsWith('.zip');
+    if (!isZip) {
+      setUploadState({
+        type: 'uploading_failed',
+        error: new Error('File type is not valid. Only ZIP files are allowed.'),
+      });
+      return;
+    }
+
+    setUploadState({ type: 'uploading', file: { name: file.name } });
+
+    try {
+      form.setValue('agentPackageFile', file, { shouldValidate: true });
+      setUploadState({ type: 'uploaded', file: { name: file.name } });
+
+      const formData = new FormData();
+      formData.append('package_zip_file', file, file.name);
+      formData.append('name', file.name.replace(/\.zip$/i, ''));
+      formData.append('description', 'Agent package uploaded from UI');
+
+      const inspectData = await inspectAgentPackageMutation.mutateAsync({ formData });
+
+      setUploadState({
+        type: 'introspection_succeeded',
+        file: { name: file.name },
+        data: inspectData.action_packages,
+      });
+
+      if (!form.getValues('name')) {
+        form.setValue('name', `MCP server for ${inspectData.name}`);
+      }
+    } catch (err) {
+      const error =
+        err instanceof Error ? err : new Error('Failed to process agent package. Please check the file format.');
+      setUploadState({ type: 'introspection_failed', error });
+      addSnackbar({
+        message: error.message,
+        variant: 'danger',
+      });
+    }
+  };
 
   const onSubmit = form.handleSubmit((values) => {
-    const body: MCPServerCreate = buildCreateMcpBody({
-      name: values.name,
-      type: values.type,
-      transport: values.transport,
-      url: values.url,
-      headerEntries: values.headersKV,
-    });
+    console.log('values', values);
+    const body = getCreateMcpServerBody(values);
+
+    console.log('body', body);
 
     mutation.mutate(
       { tenantId, body },
@@ -75,8 +131,8 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
   });
 
   return (
-    <Dialog open={open} width={900} onClose={() => onClose()}>
-      <Form onSubmit={onSubmit} gap="$12" busy={mutation.isPending} width="100%">
+    <Dialog open={open} size="x-large" onClose={() => onClose()}>
+      <Form onSubmit={onSubmit} busy={mutation.isPending}>
         <FormProvider {...form}>
           <Dialog.Header>
             <Dialog.Header.Title title="New MCP server" />
@@ -84,7 +140,7 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
           </Dialog.Header>
           <Dialog.Content>
             <Form.Fieldset>
-              <Box display="grid" p="$4" style={{ gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+              <Box display="flex" flexDirection="column" gap="$16">
                 <Input
                   label="MCP Server Name"
                   {...form.register('name')}
@@ -100,94 +156,199 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                       label="Type"
                       items={[
                         { value: 'generic_mcp', label: 'Generic MCP' },
-                        { value: 'sema4ai_action_server', label: 'Sema4 Action Server' },
+                        { value: 'sema4ai_action_server', label: 'Sema4.ai Action Server' },
+                        { value: 'hosted', label: 'Hosted Action Server' },
                       ]}
                       {...field}
                     />
                   )}
                 />
-                <Controller
-                  control={form.control}
-                  name="transport"
-                  render={({ field }) => (
-                    <Select
-                      label="Transport"
-                      items={[
-                        { value: 'auto', label: 'Auto (Default)' },
-                        { value: 'streamable-http', label: 'STREAMABLE-HTTP' },
-                        { value: 'sse', label: 'SSE' },
-                        { value: 'stdio', label: 'STDIO' },
-                      ]}
-                      {...field}
+                {typeValue !== 'hosted' && (
+                  <>
+                    <Controller
+                      control={form.control}
+                      name="transport"
+                      render={({ field }) => (
+                        <Select
+                          label="Transport"
+                          items={[
+                            { value: 'auto', label: 'Auto (Default)' },
+                            { value: 'streamable-http', label: 'STREAMABLE-HTTP' },
+                            { value: 'sse', label: 'SSE' },
+                            { value: 'stdio', label: 'STDIO' },
+                          ]}
+                          {...field}
+                        />
+                      )}
                     />
-                  )}
-                />
-                <Box style={{ gridColumn: '1 / -1' }}>
-                  <Input
-                    label="URL"
-                    placeholder="URL"
-                    {...form.register('url')}
-                    error={form.formState.errors.url?.message}
-                  />
-                </Box>
-              </Box>
-
-              <Box p="$4">
-                <Box mb="$8">Headers</Box>
-                <Box display="grid" gap="$8">
-                  {headersArray.fields.map((f, idx) => (
-                    <Box key={f.id} display="grid" style={{ gridTemplateColumns: '1fr 160px 1fr auto', gap: '0.5rem' }}>
-                      <Input label="Header key" placeholder="Key" {...form.register(`headersKV.${idx}.key` as const)} />
-                      <Controller
-                        control={form.control}
-                        name={`headersKV.${idx}.type` as const}
-                        render={({ field }) => (
-                          <Select
-                            label="Type"
-                            items={[
-                              { value: 'string', label: 'Plain Text' },
-                              { value: 'secret', label: 'Secret' },
-                            ]}
-                            {...field}
-                          />
-                        )}
-                      />
-                      <InputControlled
-                        fieldName={`headersKV.${idx}.value` as const}
-                        label="Header value"
-                        placeholder="Value"
-                        type={
-                          (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
-                            ? 'password'
-                            : 'text'
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        size="small"
-                        icon={IconTrash}
-                        aria-label="Remove header"
-                        type="button"
-                        onClick={() => headersArray.remove(idx)}
+                    <Box style={{ gridColumn: '1 / -1' }}>
+                      <Input
+                        label="URL"
+                        placeholder="URL"
+                        {...form.register('url')}
+                        error={form.formState.errors.url?.message}
                       />
                     </Box>
-                  ))}
-                  <Button
-                    variant="outline"
-                    icon={IconPlus}
-                    type="button"
-                    onClick={() => headersArray.append({ key: '', value: '', type: 'string' })}
-                  >
-                    Add header
-                  </Button>
-                </Box>
-              </Box>
+                  </>
+                )}
 
-              {/* Simplified: no environment variables or working directory */}
+                {typeValue !== 'hosted' && (
+                  <Box>
+                    <Box mb="$8">Headers</Box>
+                    <Box display="grid" gap="$8">
+                      {headersArray.fields.map((f, idx) => (
+                        <Box
+                          key={f.id}
+                          display="grid"
+                          style={{ gridTemplateColumns: '1fr 160px 1fr auto', gap: '0.5rem' }}
+                        >
+                          <Input
+                            label="Header key"
+                            placeholder="Key"
+                            {...form.register(`headersKV.${idx}.key` as const)}
+                          />
+                          <Controller
+                            control={form.control}
+                            name={`headersKV.${idx}.type` as const}
+                            render={({ field }) => (
+                              <Select
+                                label="Type"
+                                items={[
+                                  { value: 'string', label: 'Plain Text' },
+                                  { value: 'secret', label: 'Secret' },
+                                ]}
+                                {...field}
+                              />
+                            )}
+                          />
+                          <InputControlled
+                            fieldName={`headersKV.${idx}.value` as const}
+                            label="Header value"
+                            placeholder="Value"
+                            type={
+                              (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
+                                ? 'password'
+                                : 'text'
+                            }
+                          />
+                          <Button
+                            variant="ghost"
+                            size="small"
+                            icon={IconTrash}
+                            aria-label="Remove header"
+                            type="button"
+                            onClick={() => headersArray.remove(idx)}
+                          />
+                        </Box>
+                      ))}
+                      <Button
+                        variant="outline"
+                        icon={IconPlus}
+                        type="button"
+                        onClick={() => headersArray.append({ key: '', value: '', type: 'string' })}
+                      >
+                        Add header
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+
+                {typeValue === 'hosted' && (
+                  <Box p="$4" display="flex" flexDirection="column" gap="$12">
+                    <Box display="flex" flexDirection="column" gap="$12">
+                      <Typography fontWeight="medium">
+                        {uploadState.type === 'introspection_succeeded' ? 'Action Packages' : 'Agent Package'}
+                      </Typography>
+                      {uploadState.type === 'pending_upload' && (
+                        <>
+                          <Dropzone
+                            onDrop={onDrop}
+                            title={
+                              <span>
+                                Drag & drop or{' '}
+                                <Typography color="accent" as="span">
+                                  select file
+                                </Typography>{' '}
+                                to upload
+                              </span>
+                            }
+                            dropTitle="Drop your files here"
+                            description={'Upload to validate your agent package • Only ZIP files • Max size: 100MB'}
+                          />
+                          <Box mt="$16">
+                            <Banner
+                              message="Why do I need to upload an agent package?"
+                              description={
+                                <span>
+                                  The actions in this package will be deployed as tools in this new MCP server, ready
+                                  for your agent to use.
+                                </span>
+                              }
+                              icon={IconLightBulb}
+                              variant="alert"
+                            />
+                          </Box>
+                        </>
+                      )}
+                      {(uploadState.type === 'uploading_failed' || uploadState.type === 'introspection_failed') && (
+                        <>
+                          <Dropzone
+                            onDrop={onDrop}
+                            title={
+                              <span>
+                                Drag & drop or{' '}
+                                <Typography color="accent" as="span">
+                                  select file
+                                </Typography>{' '}
+                                to upload
+                              </span>
+                            }
+                            dropTitle="Drop your files here"
+                            description={'Upload to validate your agent package • Only ZIP files • Max size: 100MB'}
+                            error={uploadState.error.message}
+                          />
+                          <Box mt="$16">
+                            <Banner
+                              message="Why do I need to upload an agent package?"
+                              description={
+                                <span>
+                                  The actions in this package will be deployed as tools in this new MCP server, ready
+                                  for your agent to use.
+                                </span>
+                              }
+                              icon={IconLightBulb}
+                              variant="alert"
+                            />
+                          </Box>
+                        </>
+                      )}
+                      {form.formState.errors.agentPackageFile && (
+                        <Box style={{ color: 'var(--color-danger)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                          {form.formState.errors.agentPackageFile.message}
+                        </Box>
+                      )}
+                    </Box>
+
+                    {uploadState.type === 'introspection_succeeded' && uploadState.data.length > 0 && (
+                      <Box display="grid" gap="$16" mt="$16">
+                        {uploadState.data.map((actionPackage, idx) => (
+                          <ActionPackageItem key={`${actionPackage.name}-${idx}`} actionPackage={actionPackage} />
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Box>
             </Form.Fieldset>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button variant="primary" type="submit" round loading={mutation.isPending}>
+            <Button
+              variant="primary"
+              type="submit"
+              round
+              loading={mutation.isPending}
+              disabled={typeValue === 'hosted' && !agentPackageFile}
+            >
               Create
             </Button>
             <Button variant="outline" type="button" round onClick={() => onClose()}>
