@@ -4,9 +4,10 @@ on:
   # Not doing branches here because that may be noisy as we don't normally allow
   # pushes to main or development anyway.
   pull_request:
-    paths-ignore:
-      - 'agent-spec/**'
-      - 'packages/**'
+    paths:
+      - 'core/**'
+      - 'server/**'
+      - '.github/workflows/main-test.yml'
     branches:
       - '*'
     types:
@@ -22,30 +23,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  detect_changes:
-    name: Check for workroom-only changes
-    runs-on: ubuntu-24.04
-    outputs:
-      workroom_only: ${{ steps.filter.outputs.workroom_only }}
-      server_modified: ${{ steps.filter.outputs.main }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            workroom_only:
-              - 'workroom/**'
-            main:
-              - '!workroom/**'
-              - '!agent-spec/**'
-              - '!client-sdks/golang/agent-cli/**'
-
   version:
     name: Determine the version suffix for the PR build
     runs-on: ubuntu-24.04
-    needs: detect_changes
-    if: needs.detect_changes.outputs.server_modified == 'true'
     outputs:
       value: ${{ steps.version.outputs.value }}
 
@@ -75,8 +55,6 @@ jobs:
   verify:
     name: Static checks
     runs-on: ubuntu-24.04
-    needs: detect_changes
-    if: needs.detect_changes.outputs.server_modified == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -109,8 +87,6 @@ jobs:
   compute-matrix:
     runs-on: ubuntu-latest
     name: Compute Matrix
-    needs: detect_changes
-    if: needs.detect_changes.outputs.server_modified == 'true'
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
