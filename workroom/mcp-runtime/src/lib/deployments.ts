@@ -1,0 +1,456 @@
+import { exec, spawn, type ChildProcess } from 'node:child_process';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import z from 'zod';
+import type { Deployment } from '../types.ts';
+import { Mutex } from '../util/mutex.ts';
+import type { AsyncResult } from '@sema4ai/robocloud-shared-utils';
+import type { Configuration } from '../configuration.ts';
+import type { DatabaseClient } from './database.ts';
+
+export const getDeploymentUrl = ({
+  configuration,
+  deploymentPort,
+}: {
+  configuration: Pick<Configuration, 'serverHttpUrl'>;
+  deploymentPort: number | null;
+}): string | null => {
+  if (deploymentPort === null) {
+    return null;
+  }
+  const deploymentUrl = new URL(configuration.serverHttpUrl);
+  deploymentUrl.port = deploymentPort.toString();
+  deploymentUrl.pathname = '/';
+  return deploymentUrl.href;
+};
+
+const execAsync = (cmd: string) => {
+  return new Promise<string>((resolve, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        console.error(stderr);
+        return reject(`Process exited with code ${error.code ?? 'UNKNOWN'}`);
+      }
+      return resolve(stdout);
+    });
+  });
+};
+
+type IntrospectionResult = z.infer<typeof IntrospectionResult>;
+const IntrospectionResult = z.array(
+  z.object({
+    action_packages: z.array(
+      z.object({
+        path: z.string(),
+        whitelist: z.string(),
+      }),
+    ),
+  }),
+);
+
+export const createActionDeployer = (ctx: { configuration: Configuration; db: DatabaseClient }) => {
+  const { configuration, db } = ctx;
+
+  const rccMutex = new Mutex();
+  const serverProcessMap = new Map<string, ChildProcess>();
+
+  const getDeploymentDir = async ({ deploymentId }: { deploymentId: string }) => {
+    const deploymentDir = join(configuration.persistentDataDirectory, 'deployments', deploymentId);
+    await mkdir(deploymentDir, { recursive: true });
+    return deploymentDir;
+  };
+
+  const getAgentPackageExtractDir = async ({ deploymentId }: { deploymentId: string }) => {
+    const deploymentDir = await getDeploymentDir({ deploymentId });
+    const agentPackageExtractDir = join(deploymentDir, 'agent');
+    await mkdir(agentPackageExtractDir, { recursive: true });
+    return agentPackageExtractDir;
+  };
+
+  const getActionServerDataDir = async ({ deploymentId }: { deploymentId: string }) => {
+    const deploymentDir = await getDeploymentDir({ deploymentId });
+    const actionServerDataDir = join(deploymentDir, 'datadir');
+    await mkdir(actionServerDataDir, { recursive: true });
+    return actionServerDataDir;
+  };
+
+  const getAgentZipPath = async ({ deploymentId }: { deploymentId: string }) => {
+    const deploymentDir = await getDeploymentDir({ deploymentId });
+    return join(deploymentDir, 'agent.zip');
+  };
+
+  const prepareEnvironment = async ({
+    deploymentId,
+    agentPackageZipPath,
+  }: {
+    deploymentId: string;
+    agentPackageZipPath: string;
+  }): AsyncResult<{
+    actionServerDataDir: string;
+  }> => {
+    console.log(`[${deploymentId}] Preparing environment for ${deploymentId}`);
+
+    await rccMutex.lock();
+
+    try {
+      const agentOutputDir = await getAgentPackageExtractDir({ deploymentId });
+
+      try {
+        await execAsync(
+          `agent-cli package extract --verbose --overwrite --package "${agentPackageZipPath}" --output-dir "${agentOutputDir}"`,
+        );
+      } catch (error) {
+        console.error(`Failed to extract Agent Package from ${agentPackageZipPath} to ${agentOutputDir}`);
+        return {
+          success: false,
+          error: {
+            code: 'failed_to_extract_agent_package',
+            message: 'Failed to extract Agent Package',
+          },
+        };
+      }
+
+      const introspectionResult = await (async (): AsyncResult<IntrospectionResult> => {
+        try {
+          const agentCliOutput = await execAsync(`agent-cli package metadata --package "${agentPackageZipPath}"`);
+          const parsedOutput = IntrospectionResult.safeParse(JSON.parse(agentCliOutput));
+          if (!parsedOutput.success) {
+            return {
+              success: false,
+              error: {
+                code: 'failed_to_parse_introspection_result',
+                message: 'Failed to parse Agent Package introspection result',
+              },
+            };
+          }
+          return {
+            success: true,
+            data: parsedOutput.data,
+          };
+        } catch (error) {
+          console.error('Agent Package introspection failed', (error as Error).message);
+          return {
+            success: false,
+            error: {
+              code: 'failed_to_introspect_agent_package',
+              message: 'Agent Package introspection failed',
+            },
+          };
+        }
+      })();
+      if (!introspectionResult.success) {
+        return introspectionResult;
+      }
+
+      const actionServerDataDir = await getActionServerDataDir({ deploymentId });
+      const agentPackageMetadata = introspectionResult.data;
+      for (const actionPackage of agentPackageMetadata[0].action_packages) {
+        const { path, whitelist } = actionPackage;
+        try {
+          await execAsync(
+            `action-server import --verbose --dir="${agentOutputDir}/actions/${path}" --datadir="${actionServerDataDir}" --whitelist="${whitelist}"`,
+          );
+        } catch (error) {
+          console.error('Failed to import Action Package', (error as Error).message);
+          return {
+            success: false,
+            error: {
+              code: 'failed_to_import_action_package',
+              message: 'Failed to import Action Package',
+            },
+          };
+        }
+      }
+
+      console.log(`Done preparing environment for ${deploymentId}`);
+
+      return {
+        success: true,
+        data: {
+          actionServerDataDir,
+        },
+      };
+    } finally {
+      rccMutex.unlock();
+    }
+  };
+
+  const runServer = async ({
+    deploymentId,
+    port,
+  }: {
+    deploymentId: string;
+    port: number;
+  }): Promise<{ port: number }> => {
+    const serverUrl = getDeploymentUrl({ configuration, deploymentPort: port });
+    const actionServerDataDir = await getActionServerDataDir({ deploymentId });
+
+    const actionServer = spawn(
+      '/usr/local/bin/action-server',
+      [
+        'start',
+        `--server-url=${serverUrl}`,
+        '--address',
+        '0.0.0.0',
+        '--port',
+        port.toString(),
+        '--verbose',
+        `--datadir=${actionServerDataDir}`,
+        '--actions-sync=false',
+        '--reuse-process',
+        '--min-processes=2',
+        '--max-processes=4',
+      ],
+      {
+        detached: true, // Required to kill the server and its (uvicorn) child processes
+        env: process.env, // TODO: *Selectively* pass environment
+      },
+    );
+    serverProcessMap.set(deploymentId, actionServer);
+
+    actionServer.stdout.setEncoding('utf-8');
+    actionServer.stderr.setEncoding('utf-8');
+    actionServer.stdout.on('data', (data: string) => {
+      data.split('\n').forEach((line: string) => {
+        console.log(`[${deploymentId}] ${line.trimEnd()}`);
+      });
+    });
+    actionServer.stderr.on('data', (data: string) => {
+      data.split('\n').forEach((line: string) => {
+        console.log(`[${deploymentId}] ${line.trimEnd()}`);
+      });
+    });
+
+    actionServer.on('close', (code) => {
+      // TODO: Reboot server if unexpected shutdown
+      console.log(`[${deploymentId}] child process exited with code ${code}`);
+    });
+
+    actionServer.on('error', (err) => {
+      console.log(`[${deploymentId}] ERROR:`, err);
+    });
+
+    return {
+      port,
+    };
+  };
+
+  const createDeployment = async ({
+    deploymentId,
+    agentPackageZip,
+  }: {
+    deploymentId: string;
+    agentPackageZip: Buffer;
+  }): AsyncResult<Deployment> => {
+    const listDeploymentsResult = await db.listDeployments();
+    if (!listDeploymentsResult.success) {
+      return listDeploymentsResult;
+    }
+    const deployments = listDeploymentsResult.data;
+
+    const currentDeploymentCount = deployments.length;
+    if (currentDeploymentCount >= configuration.maxServerCount) {
+      return {
+        success: false,
+        error: {
+          code: 'server_at_capacity',
+          message: `Server is at capacity - already running ${configuration.maxServerCount} Action Servers`,
+        },
+      };
+    }
+
+    const deploymentExists = deployments.some((deployment) => deployment.id === deploymentId);
+    if (deploymentExists) {
+      return {
+        success: false,
+        error: {
+          code: 'deployment_exists',
+          message: `Deployment ${deploymentId} already exists`,
+        },
+      };
+    }
+
+    const getAvailablePortResult = await db.getAvailablePort();
+    if (!getAvailablePortResult.success) {
+      return getAvailablePortResult;
+    }
+
+    const serverPort = getAvailablePortResult.data;
+    if (serverPort === null) {
+      return {
+        success: false,
+        error: {
+          code: 'failed_to_assign_port',
+          message: 'Failed to assign port to Action Server',
+        },
+      };
+    }
+
+    const createDeploymentResult = await db.createDeployment({
+      id: deploymentId,
+      port: serverPort,
+    });
+    if (!createDeploymentResult.success) {
+      return createDeploymentResult;
+    }
+    const deployment = createDeploymentResult.data;
+
+    const startDeployment = async () => {
+      const agentPackageZipPath = await getAgentZipPath({ deploymentId });
+
+      try {
+        await writeFile(agentPackageZipPath, agentPackageZip);
+      } catch (error) {
+        console.error(`Failed to write file to ${agentPackageZipPath}`);
+        const updateDeploymentResult = await db.updateDeployment({
+          id: deployment.id,
+          status: 'build_failed',
+        });
+        if (!updateDeploymentResult.success) {
+          console.error(`Failed to update deployment ${deployment.id}`);
+        }
+        return;
+      }
+
+      const updateDeploymentResult = await db.updateDeployment({
+        id: deployment.id,
+        status: 'building',
+        zip_path: agentPackageZipPath,
+      });
+      if (!updateDeploymentResult.success) {
+        console.error(`Failed to update deployment ${deployment.id}`);
+        return;
+      }
+
+      const environmentResult = await prepareEnvironment({ deploymentId, agentPackageZipPath });
+      if (!environmentResult.success) {
+        const updateDeploymentResult = await db.updateDeployment({
+          id: deployment.id,
+          status: 'build_failed',
+        });
+        if (!updateDeploymentResult.success) {
+          console.error(`Failed to update deployment ${deployment.id}`);
+        }
+        return;
+      }
+
+      await runServer({
+        deploymentId: deployment.id,
+        port: serverPort,
+      });
+
+      const updateDeploymentRunningResult = await db.updateDeployment({
+        id: deployment.id,
+        status: 'running',
+        zip_path: agentPackageZipPath,
+      });
+      if (!updateDeploymentRunningResult.success) {
+        console.error(`Failed to update deployment ${deployment.id}`);
+      }
+    };
+
+    startDeployment();
+
+    return {
+      success: true,
+      data: deployment,
+    };
+  };
+
+  const stopServer = async ({ deploymentId }: { deploymentId: string }): AsyncResult<{ deploymentId: string }> => {
+    const serverProcess = serverProcessMap.get(deploymentId);
+    if (!serverProcess) {
+      return {
+        success: false,
+        error: {
+          code: 'server_not_running',
+          message: `Action Server not running for deployment ${deploymentId}`,
+        },
+      };
+    }
+
+    if (serverProcess.exitCode !== null) {
+      console.log(`Server for deployment ${deploymentId} already stopped`);
+      return {
+        success: true,
+        data: {
+          deploymentId,
+        },
+      };
+    }
+
+    const success = serverProcess.kill('SIGINT'); // Kill the action-server process
+    if (success && serverProcess.pid) {
+      process.kill(-serverProcess.pid); // Kill the process *group* (uvicorn child processes)
+    } else {
+      return {
+        success: false,
+        error: {
+          code: 'failed_to_kill_action_server',
+          message: `Failed to kill Action Server for deployment ${deploymentId}`,
+        },
+      };
+    }
+
+    serverProcessMap.delete(deploymentId);
+
+    return {
+      success: true,
+      data: {
+        deploymentId,
+      },
+    };
+  };
+
+  const destroyDeployment = async ({
+    deploymentId,
+  }: {
+    deploymentId: string;
+  }): AsyncResult<{ deploymentId: string }> => {
+    if (serverProcessMap.has(deploymentId)) {
+      // The server is running, kill it
+      const stopServerResult = await stopServer({ deploymentId });
+      if (!stopServerResult.success) {
+        return stopServerResult;
+      }
+    }
+
+    const deleteDeploymentResult = await ctx.db.deleteDeployment({ id: deploymentId });
+    if (!deleteDeploymentResult.success) {
+      return deleteDeploymentResult;
+    }
+
+    return {
+      success: true,
+      data: {
+        deploymentId,
+      },
+    };
+  };
+
+  const rehydrateDeployments = async () => {
+    const listDeploymentsResult = await db.listDeployments();
+    if (!listDeploymentsResult.success) {
+      return listDeploymentsResult;
+    }
+    const deployments = listDeploymentsResult.data;
+
+    for (const deployment of deployments) {
+      if (deployment.port === null) {
+        console.warn(`Deployment ${deployment.id} has no port defined - not rehydrating`);
+        continue;
+      }
+      console.log(`Rehydrating deployment ${deployment.id}`);
+      await runServer({
+        deploymentId: deployment.id,
+        port: deployment.port,
+      });
+    }
+  };
+
+  return {
+    createDeployment,
+    destroyDeployment,
+    rehydrateDeployments,
+  };
+};

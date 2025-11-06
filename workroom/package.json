@@ -19,6 +19,7 @@
     "backend",
     "frontend",
     "spar-ui",
+    "mcp-runtime",
     "packages/*"
   ],
   "devDependencies": {

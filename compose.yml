@@ -26,6 +26,8 @@ x-env-spar: &template-env-spar
     SEMA4AI_WORKROOM_PORT_INTERNAL: 8002
     SEMA4AI_WORKROOM_TENANT_ID: spar
     SEMA4AI_WORKROOM_DATA_SERVER_HOST_OVERRIDE: http://data-server
+    # MCP Runtime
+    SEMA4AI_MCP_RUNTIME_SERVER_HOST_OVERRIDE: http://mcp-runtime
 
 x-service-spar: &template-service-spar
     build:
@@ -164,12 +166,46 @@ services:
         profiles:
             - agent-server
             - agent-server-no-auth # Deprecated: Will be removed in the futrue
+
+    mcp-runtime:
+        build:
+            context: .
+            dockerfile: ./workroom/mcp-runtime/Dockerfile
+            secrets:
+                - npmrc
+            # args:
+        environment:
+            <<: *template-env-spar
+        ports:
+            # API
+            - "8003:8003"
+            # Action Server ports
+            - "20000:20000"
+            - "20001:20001"
+            - "20002:20002"
+            - "20003:20003"
+            - "20004:20004"
+            - "20005:20005"
+            - "20006:20006"
+            - "20007:20007"
+            - "20008:20008"
+            - "20009:20009"
+        networks:
+            default:
+                aliases:
+                    - spar
+        volumes:
+            - mcp-runtime-data:/home/mcp-runtime/data
+        depends_on:
+            postgres:
+                condition: service_healthy
 #endregion
 
 volumes:
     postgres_data:
     influx-data:
     influx-config:
+    mcp-runtime-data:
 
 secrets:
     npmrc:
