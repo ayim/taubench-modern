@@ -90,6 +90,10 @@ export const createLogoutHandler =
     }
 
     // Session is present and we have the data, so clear it first
+    monitoring.logger.info('Clear session for logout', {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+    });
     const clearSessionResult = await sessionManager.clearSessionForRequest(req);
     if (!clearSessionResult.success) {
       monitoring.logger.error('Logout attempted but failed to clear session', {

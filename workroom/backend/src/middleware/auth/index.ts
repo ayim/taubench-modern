@@ -94,6 +94,8 @@ export const createAuthRedirectMiddleware =
 
     switch (authResult.error.code) {
       case 'forbidden': {
+        monitoring.logger.info('Received forbidden error when extracting OIDC identity: Clearing session');
+
         const clearResult = await sessionManager.clearSessionForRequest(req);
         if (!clearResult.success) {
           monitoring.logger.error('Failed handling forbidden authentication scenario: Failed to clear session', {

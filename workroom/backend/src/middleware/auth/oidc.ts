@@ -57,7 +57,7 @@ export const handleOIDCAuthCheck = async ({
   });
 
   if (!userIdentityResult.success) {
-    monitoring.logger.error('Failed to extract OIDC user identity', {
+    monitoring.logger.info('Could not extract OIDC user identity', {
       errorName: userIdentityResult.error.code,
       errorMessage: userIdentityResult.error.message,
       requestMethod: req.method,
@@ -141,7 +141,7 @@ export const extractOIDCUserIdentity = async ({
           },
         };
       case 'no_session':
-        monitoring.logger.error('OIDC authentication attempted but no session was found', {
+        monitoring.logger.info('OIDC authentication attempted but no session was found', {
           errorName: sessionResult.error.code,
           errorMessage: sessionResult.error.message,
         });

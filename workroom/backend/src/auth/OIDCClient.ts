@@ -123,6 +123,13 @@ export class OIDCClient {
       // 'offline_access' scope, and instead need to use non-standard parameters:
       this.scopes = this.scopes.filter((scope) => scope !== 'offline_access');
       authParams.access_type = 'offline';
+      // We need to force the consent screen if we want refresh tokens. Since we reuse
+      // Google client IDs, we cannot ensure that a user has not already consented
+      // against a client ID on another app instance, thus potentially resulting in
+      // us not having a refresh token for this login - sad path. We want to ensure that
+      // we always do, because a little time spent consenting now means a more streamlined
+      // experience later.
+      authParams.prompt = 'consent';
     }
 
     authParams.scope = this.scopes.join(' ');
@@ -172,7 +179,17 @@ export class OIDCClient {
   }): Promise<TokenEndpointResponse & TokenEndpointResponseHelpers> {
     const tokenSet = await (async () => {
       try {
-        return await oidcClient.refreshTokenGrant(this.oidcClientConfiguration, refreshToken);
+        const tokens = await oidcClient.refreshTokenGrant(this.oidcClientConfiguration, refreshToken);
+
+        if (!tokens.refresh_token) {
+          // Google, and some other providers, don't issue refresh tokens if:
+          //   - The exchange is not the first, and
+          //   - No consent screen is shown
+          // In this case we need to reuse the refresh token, which doesn't necessarily expire
+          (tokens as { refresh_token: string }).refresh_token = refreshToken;
+        }
+
+        return tokens;
       } catch (err) {
         if (err instanceof oidcClient.AuthorizationResponseError || err instanceof oidcClient.ResponseBodyError) {
           this.monitoring.logger.error('OIDC token refresh authorization error', extractLogDetailsForOIDCError(err));
