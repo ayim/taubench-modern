@@ -10,6 +10,8 @@ export interface Database {
   user_identity: UserIdentityTable;
 }
 
+export type UpdateUserPayload = Omit<UserUpdate, 'updated_at'> & { id: NonNullable<UserUpdate['id']> };
+
 const NOOP = () => {};
 
 export class DatabaseClient {
@@ -125,11 +127,7 @@ export class DatabaseClient {
     };
   }
 
-  async updateUser({
-    user,
-  }: {
-    user: Omit<UserUpdate, 'updated_at'> & { id: NonNullable<UserUpdate['id']> };
-  }): Promise<Result<void>> {
+  async updateUser({ user }: { user: UpdateUserPayload }): Promise<Result<void>> {
     return asResult(() =>
       this.database
         .updateTable('user')

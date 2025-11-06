@@ -1,5 +1,5 @@
 import z from 'zod';
-import { RoleNames } from '../auth/permissions.js';
+import { RoleIDs } from '../auth/permissions.js';
 import type { UserRole } from '../database/types/users.js';
 import { OIDCTokens } from '../interfaces.js';
 
@@ -15,7 +15,7 @@ export const Session = z.union([
         stage: z.literal('authenticated'),
         tokens: OIDCTokens,
         userId: z.string().nonempty(),
-        userRole: z.custom<UserRole>((val) => RoleNames.includes(val)),
+        userRole: z.custom<UserRole>((val) => RoleIDs.includes(val)),
       }),
     ]),
     authType: z.literal('oidc'),

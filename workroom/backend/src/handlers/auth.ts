@@ -1,14 +1,31 @@
 import type { ErrorResponse } from '@sema4ai/workroom-interface';
 import type { AuthManager } from '../auth/AuthManager.js';
+import { Roles } from '../auth/permissions.js';
 import type { Configuration } from '../configuration.js';
 import type { ExpressRequest, ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import { getRequestBaseUrl } from '../utils/request.js';
 
+type AuthMeta = { status: 'unauthenticated' } | { status: 'authenticated'; userId: string; permissions: Array<string> };
+
 export const createAuthMetaHandler =
-  ({ monitoring, sessionManager }: { monitoring: MonitoringContext; sessionManager: SessionManager }) =>
+  ({
+    configuration,
+    monitoring,
+    sessionManager,
+  }: {
+    configuration: Configuration;
+    monitoring: MonitoringContext;
+    sessionManager: SessionManager;
+  }) =>
   async (req: ExpressRequest, res: ExpressResponse) => {
+    if (!configuration.session) {
+      return res.json({
+        status: 'unauthenticated',
+      } satisfies AuthMeta);
+    }
+
     const sessionResult = await sessionManager.extractSessionFromRequest(req);
     if (!sessionResult.success) {
       monitoring.logger.error('Could not extract session for auth meta', {
@@ -22,15 +39,15 @@ export const createAuthMetaHandler =
     }
 
     res.json(
-      sessionResult.data?.auth.stage === 'authenticated'
+      (sessionResult.data?.auth.stage === 'authenticated'
         ? {
             status: 'authenticated',
             userId: sessionResult.data.auth.userId,
-            userRole: sessionResult.data.auth.userRole,
+            permissions: [...Roles[sessionResult.data.auth.userRole].permissions],
           }
         : {
             status: 'unauthenticated',
-          },
+          }) satisfies AuthMeta,
     );
   };
 

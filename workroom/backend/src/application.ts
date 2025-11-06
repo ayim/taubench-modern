@@ -130,6 +130,7 @@ export const createApplication = async ({
     '/auth/meta',
     noCache,
     createAuthMetaHandler({
+      configuration,
       monitoring,
       sessionManager,
     }),

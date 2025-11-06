@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { FC, useMemo } from 'react';
 import { RouterProvider as RouterProviderBase, createRouter } from '@tanstack/react-router';
 
 import { AgentAPIClient } from '~/lib/AgentAPIClient';
@@ -8,14 +8,20 @@ import { queryClient } from './QueryClient';
 import { useAuth } from '../ProtectedRoute';
 import { ErrorRoute } from '../ErrorRoute';
 import { NotFoundRoute } from '../NotFoundRoute';
+import { SPARRouter } from '~/lib/trpc';
+import { createTRPCQueryUtils } from '@trpc/react-query';
+import { useUserPermissionsQuery } from '~/queries/userPermissions';
+import { extractUserPermissions } from '~/lib/userPermissions';
 
 export const router = createRouter({
   routeTree,
   defaultPendingComponent: FullScreenLoader,
   defaultPendingMs: 100,
   context: {
+    trpc: undefined!,
     queryClient,
     agentAPIClient: undefined!,
+    permissions: undefined!,
   },
   defaultErrorComponent: ErrorRoute,
   defaultNotFoundComponent: NotFoundRoute,
@@ -27,8 +33,11 @@ declare module '@tanstack/react-router' {
   }
 }
 
-export const RouterProvider = () => {
+export const RouterProvider: FC<{ trpcUtils: ReturnType<typeof createTRPCQueryUtils<SPARRouter>> }> = ({
+  trpcUtils,
+}) => {
   const { getUserToken } = useAuth();
+  const { data: userPermissions, isLoading: isLoadingUserPermissions } = useUserPermissionsQuery();
 
   const context = useMemo(() => {
     const agentAPIClient = new AgentAPIClient(getUserToken);
@@ -36,10 +45,12 @@ export const RouterProvider = () => {
     return {
       queryClient,
       agentAPIClient,
+      trpc: trpcUtils,
+      permissions: extractUserPermissions(userPermissions),
     };
-  }, [getUserToken]);
+  }, [getUserToken, trpcUtils, userPermissions]);
 
-  if (!context.agentAPIClient) {
+  if (!context.agentAPIClient || isLoadingUserPermissions) {
     return <FullScreenLoader />;
   }
 

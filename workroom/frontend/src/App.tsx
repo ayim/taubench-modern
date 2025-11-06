@@ -3,7 +3,6 @@ import { ThemeProvider } from '@sema4ai/theme';
 import { Box, Button, EmptyState, Snackbar, useLocalStorage, ViewportProvider } from '@sema4ai/components';
 import { ConfirmationDialogProvider } from '@sema4ai/layouts';
 
-import { RouterProvider } from './components/providers/Router';
 import { QueryClientProvider } from './components/providers/QueryClient';
 import { AuthProvider } from './components/providers/AuthProvider';
 import { UIStateContext } from './components/providers/Theme';
@@ -71,9 +70,7 @@ export const App = () => {
               <ConfirmationDialogProvider>
                 <AuthProvider>
                   <ProtectedRoute>
-                    <TRPCProvider trpcUrl={trpcUrl}>
-                      <RouterProvider />
-                    </TRPCProvider>
+                    <TRPCProvider trpcUrl={trpcUrl} />
                   </ProtectedRoute>
                 </AuthProvider>
               </ConfirmationDialogProvider>

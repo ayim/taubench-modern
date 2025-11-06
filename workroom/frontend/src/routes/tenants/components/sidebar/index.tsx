@@ -8,9 +8,10 @@ import {
   IconMenu,
   IconSettings2,
   IconMcp,
+  IconUsers,
 } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
-import { useParams } from '@tanstack/react-router';
+import { useParams, useRouteContext } from '@tanstack/react-router';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
 
 import { EXTERNAL_LINKS } from '~/config/externalLinks';
@@ -45,6 +46,7 @@ const ScrollContainer = styled.div`
 export const Sidebar: FC = () => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { features } = useTenantContext();
+  const { permissions } = useRouteContext({ from: '/tenants/$tenantId' });
   const { width, expanded, triggerProps, triggerRef } = useSidebarMenu('main-menu');
   const isMobile = useScreenSize('m');
 
@@ -119,6 +121,12 @@ export const Sidebar: FC = () => {
                 params={{ tenantId }}
               >
                 Configuration
+              </RouterSideNavigationLink>
+            )}
+
+            {permissions['users.read'] && (
+              <RouterSideNavigationLink icon={<IconUsers />} to="/tenants/$tenantId/users" params={{ tenantId }}>
+                Users
               </RouterSideNavigationLink>
             )}
           </Box>

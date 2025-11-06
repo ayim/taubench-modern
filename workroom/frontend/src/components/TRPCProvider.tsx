@@ -1,10 +1,11 @@
 import { createTRPCQueryUtils, httpBatchLink } from '@trpc/react-query';
-import { ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { QueryClient } from '@tanstack/react-query';
 import type { SPARRouter } from '@spar-service';
 import { trpc } from '~/lib/trpc';
+import { RouterProvider } from './providers/Router';
 
-export const TRPCProvider = ({ children, trpcUrl }: { children: ReactNode; trpcUrl: string }) => {
+export const TRPCProvider = ({ trpcUrl }: { trpcUrl: string }) => {
   const queryClient = useMemo(() => new QueryClient(), []);
 
   const [trpcClient] = useState(() => {
@@ -26,7 +27,7 @@ export const TRPCProvider = ({ children, trpcUrl }: { children: ReactNode; trpcU
 
   return (
     <trpc.Provider client={trpcClient.client} queryClient={queryClient}>
-      {children}
+      <RouterProvider trpcUtils={trpcClient.utils} />
     </trpc.Provider>
   );
 };

@@ -5,11 +5,13 @@ export type Permission = WorkRoomV1['capabilities']['byTenantId'][string][number
 
 export type Role = {
   id: UserRole;
+  name: string;
   permissions: Array<Permission>;
 };
 
 const admin: Readonly<Role> = {
   id: 'admin',
+  name: 'Admin',
   permissions: [
     'agents.read',
     'agents.write',
@@ -23,16 +25,19 @@ const admin: Readonly<Role> = {
 
 const operator: Readonly<Role> = {
   id: 'operator',
+  name: 'Operator',
   permissions: ['agents.read', 'agents.write', 'deployments_monitoring.read'],
 };
 
 const knowledgeWorker: Readonly<Role> = {
   id: 'knowledgeWorker',
+  name: 'Knowledge Worker',
   permissions: ['agents.read', 'agents.write'],
 };
 
 const agentSupervisor: Readonly<Role> = {
   id: 'agentSupervisor',
+  name: 'Agent Supervisor',
   permissions: ['agents.read', 'agents.write', 'documents.read', 'documents.write'],
 };
 
@@ -44,4 +49,4 @@ export const Roles: RoleRecord = {
   agentSupervisor,
 };
 
-export const RoleNames = Object.keys(Roles) as Array<UserRole>;
+export const RoleIDs = Object.keys(Roles) as Array<UserRole>;

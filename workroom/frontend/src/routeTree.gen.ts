@@ -18,6 +18,7 @@ import { Route as TenantsTenantIdOauthRouteImport } from './routes/tenants/$tena
 import { Route as TenantsTenantIdMcpServersRouteImport } from './routes/tenants/$tenantId/mcp-servers'
 import { Route as TenantsTenantIdConfigurationRouteImport } from './routes/tenants/$tenantId/configuration'
 import { Route as TenantsTenantIdWorkItemsIndexRouteImport } from './routes/tenants/$tenantId/workItems/index'
+import { Route as TenantsTenantIdUsersIndexRouteImport } from './routes/tenants/$tenantId/users/index'
 import { Route as TenantsTenantIdHomeIndexRouteImport } from './routes/tenants/$tenantId/home/index'
 import { Route as TenantsTenantIdHelpIndexRouteImport } from './routes/tenants/$tenantId/help/index'
 import { Route as TenantsTenantIdConfigurationIndexRouteImport } from './routes/tenants/$tenantId/configuration/index'
@@ -105,6 +106,12 @@ const TenantsTenantIdWorkItemsIndexRoute =
   TenantsTenantIdWorkItemsIndexRouteImport.update({
     id: '/workItems/',
     path: '/workItems/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdUsersIndexRoute =
+  TenantsTenantIdUsersIndexRouteImport.update({
+    id: '/users/',
+    path: '/users/',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdHomeIndexRoute =
@@ -371,6 +378,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/configuration/': typeof TenantsTenantIdConfigurationIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/users': typeof TenantsTenantIdUsersIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
@@ -416,6 +424,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/configuration': typeof TenantsTenantIdConfigurationIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/users': typeof TenantsTenantIdUsersIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
@@ -465,6 +474,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/configuration/': typeof TenantsTenantIdConfigurationIndexRoute
   '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/users/': typeof TenantsTenantIdUsersIndexRoute
   '/tenants/$tenantId/workItems/': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
+    | '/tenants/$tenantId/users'
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
@@ -561,6 +572,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
+    | '/tenants/$tenantId/users'
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
@@ -609,6 +621,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/'
     | '/tenants/$tenantId/help/'
     | '/tenants/$tenantId/home/'
+    | '/tenants/$tenantId/users/'
     | '/tenants/$tenantId/workItems/'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
@@ -706,6 +719,13 @@ declare module '@tanstack/react-router' {
       path: '/workItems'
       fullPath: '/tenants/$tenantId/workItems'
       preLoaderRoute: typeof TenantsTenantIdWorkItemsIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/users/': {
+      id: '/tenants/$tenantId/users/'
+      path: '/users'
+      fullPath: '/tenants/$tenantId/users'
+      preLoaderRoute: typeof TenantsTenantIdUsersIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/home/': {
@@ -1182,6 +1202,7 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdAuditLogsIndexRoute: typeof TenantsTenantIdAuditLogsIndexRoute
   TenantsTenantIdHelpIndexRoute: typeof TenantsTenantIdHelpIndexRoute
   TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute
+  TenantsTenantIdUsersIndexRoute: typeof TenantsTenantIdUsersIndexRoute
   TenantsTenantIdWorkItemsIndexRoute: typeof TenantsTenantIdWorkItemsIndexRoute
   TenantsTenantIdDataAccessSemanticDataIndexRoute: typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
 }
@@ -1208,6 +1229,7 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdAuditLogsIndexRoute: TenantsTenantIdAuditLogsIndexRoute,
   TenantsTenantIdHelpIndexRoute: TenantsTenantIdHelpIndexRoute,
   TenantsTenantIdHomeIndexRoute: TenantsTenantIdHomeIndexRoute,
+  TenantsTenantIdUsersIndexRoute: TenantsTenantIdUsersIndexRoute,
   TenantsTenantIdWorkItemsIndexRoute: TenantsTenantIdWorkItemsIndexRoute,
   TenantsTenantIdDataAccessSemanticDataIndexRoute:
     TenantsTenantIdDataAccessSemanticDataIndexRoute,
