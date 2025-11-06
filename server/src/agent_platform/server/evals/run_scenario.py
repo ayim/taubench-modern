@@ -35,6 +35,7 @@ from agent_platform.core.evals.types import (
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.runs.run import Run
 from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.attachment import ThreadAttachmentContent
 from agent_platform.core.thread.thread import Thread
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.server.agent_architectures.arch_manager import AgentArchManager
@@ -132,6 +133,30 @@ def _collect_tool_executor_drifts(
     return []
 
 
+def _rewrite_attachment_handles(
+    messages: list[ThreadMessage],
+    file_id_map: dict[str, str],
+) -> bool:
+    """Rewrite attachment URIs in-place using the provided file ID map."""
+    if not file_id_map:
+        return False
+
+    updated = False
+    prefix = "agent-server-file://"
+
+    for message in messages:
+        for content in message.content:
+            if isinstance(content, ThreadAttachmentContent) and content.uri:
+                if content.uri.startswith(prefix):
+                    source_id = content.uri[len(prefix) :]
+                    new_id = file_id_map.get(source_id)
+                    if new_id and new_id != source_id:
+                        content.uri = f"{prefix}{new_id}"
+                        updated = True
+
+    return updated
+
+
 @dataclass(frozen=True)
 class ToolsBundle:
     action_tools: Sequence[ToolDefinition]
@@ -207,49 +232,57 @@ def _resolve_scenario_evaluation_preferences(scenario: Scenario) -> ScenarioEval
     )
 
 
-async def _copy_thread_files_to_run_thread(
+async def _copy_scenario_files_to_run_thread(
     storage: StorageDependency,
-    source_thread_id: str | None,
-    source_user_id: str,
+    scenario: Scenario,
     destination_thread: Thread,
     destination_user_id: str,
-) -> None:
-    """Copy files from the source thread to the destination thread."""
+) -> dict[str, str]:
+    """Copy files associated with the scenario to the destination thread.
 
-    if not source_thread_id:
-        logger.info("Scenario has no source thread; skipping file copy")
-        return
+    Returns a mapping from source scenario file IDs to the new thread file IDs.
+    """
 
     try:
-        source_files = await storage.get_thread_files(source_thread_id, source_user_id)
+        source_files = await storage.get_scenario_files(scenario.scenario_id, scenario.user_id)
+        logger.info(
+            "Found %s scenario file(s) for scenario %s",
+            len(source_files),
+            scenario.scenario_id,
+        )
+        source_context = f"scenario {scenario.scenario_id}"
     except Exception as exc:
         logger.warning(
-            "Unable to list files for scenario thread %s: %s",
-            source_thread_id,
+            "Unable to list files for scenario %s: %s",
+            scenario.scenario_id,
             exc,
         )
-        return
+        source_files = []
+        source_context = None
 
     if not source_files:
-        logger.info("No files to copy for scenario thread %s", source_thread_id)
-        return
+        logger.info(
+            f"No files to copy for scenario {scenario.scenario_id}",
+        )
+        return {}
 
     file_manager = FileManagerService.get_instance(storage)
 
     uploads: list[tuple[UploadFile, BinaryIO]] = []
+    source_ids: list[str] = []
     try:
         for uploaded_file in source_files:
             try:
                 file_bytes = await file_manager.read_file_contents(
                     uploaded_file.file_id,
-                    source_user_id,
+                    scenario.user_id,
                 )
             except Exception as exc:
                 logger.warning(
-                    "Failed to read file %s from thread %s: %s",
-                    uploaded_file.file_id,
-                    source_thread_id,
-                    exc,
+                    "Failed to read file"
+                    f"file_id={uploaded_file.file_id}"
+                    f"scenario=_id={scenario.scenario_id}"
+                    f"error={exc}",
                 )
                 continue
 
@@ -268,22 +301,28 @@ async def _copy_thread_files_to_run_thread(
                 ),
             )
             uploads.append((upload, file))
+            source_ids.append(uploaded_file.file_id)
 
         if not uploads:
             logger.info(
-                "No readable files found when copying scenario attachments for thread %s",
-                source_thread_id,
+                f"No readable files found when copying scenario "
+                f"attachments for {source_context or f'scenario {scenario.scenario_id}'}",
             )
-            return
+            return {}
 
         payloads = [UploadFilePayload(file=upload) for upload, _ in uploads]
-        await file_manager.upload(payloads, destination_thread, destination_user_id)
-        logger.info(
-            "Copied %s scenario thread files from %s to %s",
-            len(uploads),
-            source_thread_id,
-            destination_thread.thread_id,
+        destination_files = await file_manager.upload(
+            payloads, destination_thread, destination_user_id
         )
+        logger.info(
+            f"Copied {len(uploads)} scenario files "
+            f"from {source_context or f'scenario {scenario.scenario_id}'} to run thread",
+        )
+        return {
+            source_id: dest.file_id
+            for source_id, dest in zip(source_ids, destination_files, strict=False)
+            if dest is not None
+        }
     finally:
         for upload, temp_file in uploads:
             try:
@@ -449,17 +488,16 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
     await storage.set_trial_thread(trial_id=task.trial_id, thread_id=new_thread.thread_id)
 
     # files are scoped by thread, so we need to copy them over
-    # this is required in live mode for every action using files
-    # but also in replay mode for internal tools
-    # indeed, we don't replay internal tools,
-    # hence we cannot reuse stored information
-    await _copy_thread_files_to_run_thread(
+    scenario_file_id_map = await _copy_scenario_files_to_run_thread(
         storage=storage,
-        source_thread_id=scenario.thread_id,
-        source_user_id=scenario.user_id,
+        scenario=scenario,
         destination_thread=new_thread,
         destination_user_id=system_user.user_id,
     )
+    if scenario_file_id_map:
+        if _rewrite_attachment_handles(new_thread.messages, scenario_file_id_map):
+            await storage.overwrite_thread_messages(new_thread.thread_id, new_thread.messages)
+        new_thread = await storage.get_thread(system_user.user_id, new_thread.thread_id)
 
     current_user_message_index = len(initial_agent_messages)
     current_turn = 1
@@ -486,6 +524,10 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
             agent_messages_from_scenario, _ = _list_scenario_next_agent_messages(
                 scenario=scenario, start_index=len(user_messages_from_scenario) + offset
             )
+
+            if scenario_file_id_map:
+                _rewrite_attachment_handles(user_messages_from_scenario, scenario_file_id_map)
+                _rewrite_attachment_handles(agent_messages_from_scenario, scenario_file_id_map)
 
             tool_executor = None
 

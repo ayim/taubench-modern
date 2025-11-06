@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from agent_platform.core.agent import Agent
 from agent_platform.core.config.config import Config
 from agent_platform.core.data_connections.data_connections import DataConnection
+from agent_platform.core.evals.types import Scenario
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.integrations import Integration
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
@@ -317,7 +318,7 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def get_file_by_ref(
         self,
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         file_ref: str,
         user_id: str,
     ) -> UploadedFile | None:
@@ -326,11 +327,27 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def delete_file(
         self,
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         file_id: str,
         user_id: str,
     ) -> None:
         """Delete a file by ref."""
+
+    @abstractmethod
+    async def get_scenario_files(
+        self,
+        scenario_id: str,
+        user_id: str,
+    ) -> list[UploadedFile]:
+        """Get a list of files associated with a scenario."""
+
+    @abstractmethod
+    async def delete_scenario_files(
+        self,
+        scenario_id: str,
+        user_id: str,
+    ) -> None:
+        """Delete all files associated with a scenario."""
 
     @abstractmethod
     async def delete_thread_files(
@@ -360,7 +377,7 @@ class AbstractStorage(ABC):
         user_id: str,
         embedded: bool,
         embedding_status: None,  # TODO: add a new type for EmbeddingStatus
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         file_path_expiration: datetime | None,
     ) -> UploadedFile:
         """Add or update a file owner."""
@@ -433,6 +450,18 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def get_work_item(self, work_item_id: str) -> WorkItem:
         """Get a work item by ID."""
+
+    @abstractmethod
+    async def update_scenario_messages(
+        self,
+        scenario_id: str,
+        messages: list[ThreadMessage],
+    ) -> Scenario:
+        """Update the messages for an existing scenario."""
+
+    @abstractmethod
+    async def get_scenario(self, scenario_id: str) -> Scenario:
+        """Get a scenario by ID."""
 
     @abstractmethod
     async def get_work_items_by_ids(self, work_item_ids: list[str]) -> list[WorkItem]:

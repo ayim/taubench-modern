@@ -14,6 +14,10 @@ from agent_platform.core.thread.content.attachment import ThreadAttachmentConten
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.thread.thread import Thread
+from agent_platform.server.evals.run_scenario import (
+    _copy_scenario_files_to_run_thread,
+    _rewrite_attachment_handles,
+)
 from agent_platform.server.file_manager import FileManagerService
 
 
@@ -76,79 +80,169 @@ async def test_export_agent_scenarios_returns_zip_with_payload(
     assert "scenario_id" not in metadata["files"][0]
 
 
-async def test_export_agent_scenarios_includes_thread_files(
+async def test_export_agent_scenarios_includes_scenario_files(
     client, storage, seed_agents, stub_user
 ):
-    agent = seed_agents[0]
-    thread = Thread(
-        user_id=stub_user.user_id,
-        agent_id=agent.agent_id,
-        name="Source thread",
-    )
-    await storage.upsert_thread(stub_user.user_id, thread)
-
-    file_manager = FileManagerService.get_instance(storage)
-    file_bytes = b"id,name\n1,Alice\n"
-    upload = UploadFile(filename="data.csv", file=io.BytesIO(file_bytes))
+    FileManagerService.reset()
     try:
-        uploaded_files = await file_manager.upload(
-            [UploadFilePayload(file=upload)],
-            thread,
-            stub_user.user_id,
+        agent = seed_agents[0]
+        scenario = Scenario(
+            scenario_id=str(uuid4()),
+            name="With attachment",
+            description="Scenario with scenario file",
+            thread_id=None,
+            agent_id=agent.agent_id,
+            user_id=stub_user.user_id,
+            messages=[
+                ThreadMessage(
+                    role="user",
+                    content=[ThreadTextContent(text="Hello")],
+                    complete=True,
+                )
+            ],
+            metadata={},
         )
+        await storage.create_scenario(scenario)
+
+        file_manager = FileManagerService.get_instance(storage)
+        file_bytes = b"id,name\n1,Alice\n"
+        upload = UploadFile(filename="data.csv", file=io.BytesIO(file_bytes))
+        try:
+            uploaded_files = await file_manager.upload(
+                [UploadFilePayload(file=upload)],
+                scenario,
+                stub_user.user_id,
+            )
+        finally:
+            await upload.close()
+
+        uploaded_file = uploaded_files[0]
+
+        response = client.get(
+            "/api/v2/evals/scenarios/export",
+            params={"agent_id": agent.agent_id},
+        )
+
+        assert response.status_code == 200
+
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            namelist = archive.namelist()
+            metadata = yaml.safe_load(archive.read("metadata.yaml"))
+            assert "agent_id" not in metadata
+            attachment_entries = [name for name in namelist if name.startswith("thread_files/")]
+            assert attachment_entries
+            exported_bytes = archive.read(attachment_entries[0])
+
+        assert exported_bytes == file_bytes
+
+        metadata_entry = metadata["files"][0]
+        assert metadata_entry["attachments"]
+        assert "scenario_id" not in metadata_entry
+        attachment_meta = metadata_entry["attachments"][0]
+        assert attachment_meta["path"] == attachment_entries[0]
+        assert attachment_meta["file_ref"] == uploaded_file.file_ref
+        assert "file_id" not in attachment_meta
     finally:
-        await upload.close()
+        FileManagerService.reset()
 
-    uploaded_file = uploaded_files[0]
 
-    attachment_message = ThreadMessage(
+def test_rewrite_attachment_handles_updates_uris():
+    old_id = str(uuid4())
+    new_id = str(uuid4())
+    message = ThreadMessage(
         role="user",
         content=[
             ThreadAttachmentContent(
-                name=uploaded_file.file_ref,
-                mime_type=uploaded_file.mime_type,
-                uri=f"agent-server-file://{uploaded_file.file_id}",
+                name="notes.txt",
+                mime_type="text/plain",
+                uri=f"agent-server-file://{old_id}",
             )
         ],
         complete=True,
     )
 
-    scenario = Scenario(
-        scenario_id=str(uuid4()),
-        name="With attachment",
-        description="Scenario with thread file",
-        thread_id=thread.thread_id,
-        agent_id=agent.agent_id,
-        user_id=stub_user.user_id,
-        messages=[attachment_message],
-        metadata={},
+    updated = _rewrite_attachment_handles([message], {old_id: new_id})
+
+    assert updated is True
+    attachment = next(
+        content for content in message.content if isinstance(content, ThreadAttachmentContent)
     )
-    await storage.create_scenario(scenario)
+    assert attachment.uri == f"agent-server-file://{new_id}"
 
-    response = client.get(
-        "/api/v2/evals/scenarios/export",
-        params={"agent_id": agent.agent_id},
-    )
 
-    assert response.status_code == 200
+async def test_create_scenario_copies_thread_files(client, storage, seed_agents, stub_user):
+    FileManagerService.reset()
+    try:
+        agent = seed_agents[0]
+        thread = Thread(
+            user_id=stub_user.user_id,
+            agent_id=agent.agent_id,
+            name="Source thread",
+        )
+        await storage.upsert_thread(stub_user.user_id, thread)
 
-    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
-        namelist = archive.namelist()
-        metadata = yaml.safe_load(archive.read("metadata.yaml"))
-        assert "agent_id" not in metadata
-        attachment_entries = [name for name in namelist if name.startswith("thread_files/")]
-        assert attachment_entries
-        exported_bytes = archive.read(attachment_entries[0])
+        file_manager = FileManagerService.get_instance(storage)
+        file_bytes = b"thread-data"
+        upload = UploadFile(filename="thread.txt", file=io.BytesIO(file_bytes))
+        try:
+            uploaded_files = await file_manager.upload(
+                [UploadFilePayload(file=upload)],
+                thread,
+                stub_user.user_id,
+            )
+        finally:
+            await upload.close()
 
-    assert exported_bytes == file_bytes
+        uploaded_file = uploaded_files[0]
+        attachment_message = ThreadMessage(
+            role="user",
+            content=[
+                ThreadAttachmentContent(
+                    name=uploaded_file.file_ref,
+                    mime_type=uploaded_file.mime_type,
+                    uri=f"agent-server-file://{uploaded_file.file_id}",
+                )
+            ],
+            complete=True,
+        )
+        await storage.overwrite_thread_messages(thread.thread_id, [attachment_message])
 
-    metadata_entry = metadata["files"][0]
-    assert metadata_entry["attachments"]
-    assert "scenario_id" not in metadata_entry
-    attachment_meta = metadata_entry["attachments"][0]
-    assert attachment_meta["path"] == attachment_entries[0]
-    assert attachment_meta["file_ref"] == uploaded_file.file_ref
-    assert "file_id" not in attachment_meta
+        response = client.post(
+            "/api/v2/evals/scenarios",
+            json={
+                "name": "Copied scenario",
+                "description": "Should include files",
+                "thread_id": thread.thread_id,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        scenario_id = payload["scenario_id"]
+
+        scenario_files = await storage.get_scenario_files(scenario_id, stub_user.user_id)
+        assert len(scenario_files) == 1
+        scenario_file = scenario_files[0]
+        assert scenario_file.file_ref == uploaded_file.file_ref
+
+        copied_bytes = await file_manager.read_file_contents(
+            scenario_file.file_id,
+            stub_user.user_id,
+        )
+        assert copied_bytes == file_bytes
+
+        stored_scenario = await storage.get_scenario(scenario_id)
+        assert stored_scenario is not None
+        stored_attachments = [
+            content
+            for message in stored_scenario.messages
+            for content in message.content
+            if isinstance(content, ThreadAttachmentContent)
+        ]
+        assert len(stored_attachments) == 1
+        assert stored_attachments[0].uri == f"agent-server-file://{scenario_file.file_id}"
+    finally:
+        FileManagerService.reset()
 
 
 async def test_export_agent_scenarios_handles_empty_set(client, seed_agents):
@@ -333,6 +427,106 @@ async def test_import_agent_scenarios_restores_used_tools(client, storage, seed_
     assert imported_tool["input_schema"] == tool_definition["input_schema"]
 
 
+async def test_import_agent_scenarios_restores_attachments(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+
+    scenario = Scenario(
+        scenario_id=str(uuid4()),
+        name="Scenario with files",
+        description="Contains thread attachments",
+        thread_id=None,
+        agent_id=agent.agent_id,
+        user_id=stub_user.user_id,
+        messages=[],
+        metadata={},
+    )
+    scenario = await storage.create_scenario(scenario)
+
+    file_manager = FileManagerService.get_instance(storage)
+    file_bytes = b"hello,world\n"
+    upload = UploadFile(filename="report.csv", file=io.BytesIO(file_bytes))
+    try:
+        uploaded_files = await file_manager.upload(
+            [UploadFilePayload(file=upload)],
+            scenario,
+            stub_user.user_id,
+        )
+    finally:
+        await upload.close()
+
+    uploaded_file = uploaded_files[0]
+
+    attachment_message = ThreadMessage(
+        role="user",
+        content=[
+            ThreadAttachmentContent(
+                name=uploaded_file.file_ref,
+                mime_type=uploaded_file.mime_type,
+                uri=f"agent-server-file://{uploaded_file.file_id}",
+            )
+        ],
+        complete=True,
+    )
+
+    await storage.update_scenario_messages(
+        scenario.scenario_id,
+        [attachment_message],
+    )
+
+    response = client.get(
+        "/api/v2/evals/scenarios/export",
+        params={"agent_id": agent.agent_id},
+    )
+    assert response.status_code == 200
+
+    files = {
+        "file": (
+            "scenarios.zip",
+            response.content,
+            "application/zip",
+        )
+    }
+
+    import_response = client.post(
+        "/api/v2/evals/scenarios/import",
+        params={"agent_id": agent.agent_id},
+        files=files,
+    )
+    assert import_response.status_code == 200
+    imported_payload = import_response.json()
+    assert imported_payload
+
+    imported_scenario_id = imported_payload[0]["scenario_id"]
+    assert imported_scenario_id != scenario.scenario_id
+
+    scenario_files = await storage.get_scenario_files(imported_scenario_id, stub_user.user_id)
+    assert len(scenario_files) == 1
+
+    imported_file = scenario_files[0]
+    assert imported_file.file_ref
+    assert imported_file.mime_type == uploaded_file.mime_type
+
+    imported_bytes = await file_manager.read_file_contents(
+        imported_file.file_id,
+        stub_user.user_id,
+    )
+    assert imported_bytes == file_bytes
+
+    stored = await storage.get_scenario(imported_scenario_id)
+    assert stored is not None
+    attachment_contents = [
+        content
+        for message in stored.messages
+        for content in message.content
+        if isinstance(content, ThreadAttachmentContent)
+    ]
+    assert attachment_contents
+    expected_uris = {f"agent-server-file://{file.file_id}" for file in scenario_files}
+    for content in attachment_contents:
+        assert content.uri in expected_uris
+        assert uploaded_file.file_id not in content.uri
+
+
 async def test_import_agent_scenarios_rejects_invalid_archive(client, storage, seed_agents):
     agent = seed_agents[0]
 
@@ -348,6 +542,145 @@ async def test_import_agent_scenarios_rejects_invalid_archive(client, storage, s
 
     after = await storage.list_scenarios(limit=None, agent_id=agent.agent_id)
     assert len(after) == len(before)
+
+
+@pytest.mark.asyncio
+async def test_copy_scenario_files_to_run_thread_prefers_scenario_files(
+    storage, seed_agents, stub_user
+):
+    FileManagerService.reset()
+    try:
+        file_manager = FileManagerService.get_instance(storage)
+
+        agent = seed_agents[0]
+        scenario = Scenario(
+            scenario_id=str(uuid4()),
+            name="Scenario attachments",
+            description="Scenario owned files",
+            thread_id=None,
+            agent_id=agent.agent_id,
+            user_id=stub_user.user_id,
+            messages=[
+                ThreadMessage(
+                    role="user",
+                    content=[ThreadTextContent(text="Hello")],
+                    complete=True,
+                )
+            ],
+            metadata={},
+        )
+        await storage.create_scenario(scenario)
+
+        file_bytes = b"scenario-data"
+        upload = UploadFile(filename="notes.txt", file=io.BytesIO(file_bytes))
+        try:
+            uploaded_files = await file_manager.upload(
+                [UploadFilePayload(file=upload)],
+                scenario,
+                stub_user.user_id,
+            )
+        finally:
+            await upload.close()
+
+        uploaded_file = uploaded_files[0]
+
+        destination_thread = Thread(
+            user_id=stub_user.user_id,
+            agent_id=agent.agent_id,
+            name="Destination thread",
+        )
+        await storage.upsert_thread(stub_user.user_id, destination_thread)
+
+        file_map = await _copy_scenario_files_to_run_thread(
+            storage=storage,
+            scenario=scenario,
+            destination_thread=destination_thread,
+            destination_user_id=stub_user.user_id,
+        )
+
+        thread_files = await storage.get_thread_files(
+            destination_thread.thread_id, stub_user.user_id
+        )
+        assert len(thread_files) == 1
+
+        copied_file = thread_files[0]
+        assert copied_file.file_ref == uploaded_file.file_ref
+        copied_bytes = await file_manager.read_file_contents(
+            copied_file.file_id,
+            stub_user.user_id,
+        )
+        assert copied_bytes == file_bytes
+        assert file_map == {uploaded_file.file_id: copied_file.file_id}
+    finally:
+        FileManagerService.reset()
+
+
+@pytest.mark.asyncio
+async def test_copy_scenario_files_to_run_thread_ignores_thread_files(
+    storage, seed_agents, stub_user
+):
+    FileManagerService.reset()
+    try:
+        file_manager = FileManagerService.get_instance(storage)
+
+        agent = seed_agents[0]
+        source_thread = Thread(
+            user_id=stub_user.user_id,
+            agent_id=agent.agent_id,
+            name="Source thread",
+        )
+        await storage.upsert_thread(stub_user.user_id, source_thread)
+
+        thread_bytes = b"thread-attachment"
+        upload = UploadFile(filename="fallback.txt", file=io.BytesIO(thread_bytes))
+        try:
+            await file_manager.upload(
+                [UploadFilePayload(file=upload)],
+                source_thread,
+                stub_user.user_id,
+            )
+        finally:
+            await upload.close()
+
+        scenario = Scenario(
+            scenario_id=str(uuid4()),
+            name="Scenario with thread files",
+            description="Fallback scenario",
+            thread_id=source_thread.thread_id,
+            agent_id=agent.agent_id,
+            user_id=stub_user.user_id,
+            messages=[
+                ThreadMessage(
+                    role="user",
+                    content=[ThreadTextContent(text="Hello")],
+                    complete=True,
+                )
+            ],
+            metadata={},
+        )
+        await storage.create_scenario(scenario)
+
+        destination_thread = Thread(
+            user_id=stub_user.user_id,
+            agent_id=agent.agent_id,
+            name="Destination thread",
+        )
+        await storage.upsert_thread(stub_user.user_id, destination_thread)
+
+        file_map = await _copy_scenario_files_to_run_thread(
+            storage=storage,
+            scenario=scenario,
+            destination_thread=destination_thread,
+            destination_user_id=stub_user.user_id,
+        )
+
+        thread_files = await storage.get_thread_files(
+            destination_thread.thread_id, stub_user.user_id
+        )
+        assert not thread_files
+        assert not file_map
+    finally:
+        FileManagerService.reset()
 
 
 async def test_update_scenario_persists_changes(client, storage, seed_agents, stub_user):

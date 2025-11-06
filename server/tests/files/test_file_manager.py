@@ -1321,5 +1321,88 @@ async def test_upload_to_work_item_thread(
     assert results[0].agent_id == sample_uploaded_file.agent_id
 
 
+@pytest.mark.asyncio
+async def test_upload_scenario_files(
+    file_manager: BaseFileManager,
+    setup_storage: SQLiteStorage | PostgresStorage,
+    sample_file: UploadFile,
+    sample_thread: Thread,
+):
+    from agent_platform.core.evals.types import Scenario
+
+    scenario = Scenario(
+        scenario_id=str(uuid4()),
+        name="Test Scenario",
+        description="Scenario description",
+        agent_id=sample_thread.agent_id,
+        user_id=sample_thread.user_id,
+        messages=[],
+        thread_id=None,
+    )
+    await setup_storage.create_scenario(scenario)
+    await sample_file.seek(0)
+
+    results = await file_manager.upload(
+        files=[UploadFilePayload(file=sample_file)],
+        owner=scenario,
+        user_id=scenario.user_id,
+    )
+
+    assert results[0].scenario_id == scenario.scenario_id
+
+    files = await setup_storage.get_scenario_files(
+        scenario.scenario_id,
+        scenario.user_id,
+    )
+    assert len(files) == 1
+    assert files[0].scenario_id == scenario.scenario_id
+
+
+@pytest.mark.asyncio
+async def test_delete_scenario_files(
+    file_manager: BaseFileManager,
+    setup_storage: SQLiteStorage | PostgresStorage,
+    sample_file: UploadFile,
+    sample_file2: UploadFile,
+    sample_thread: Thread,
+):
+    from agent_platform.core.evals.types import Scenario
+
+    scenario = Scenario(
+        scenario_id=str(uuid4()),
+        name="Test Scenario",
+        description="Scenario description",
+        agent_id=sample_thread.agent_id,
+        user_id=sample_thread.user_id,
+        thread_id=None,
+        messages=[],
+    )
+    await setup_storage.create_scenario(scenario)
+
+    await sample_file.seek(0)
+    await file_manager.upload(
+        files=[UploadFilePayload(file=sample_file)],
+        owner=scenario,
+        user_id=scenario.user_id,
+    )
+    await sample_file2.seek(0)
+    await file_manager.upload(
+        files=[UploadFilePayload(file=sample_file2)],
+        owner=scenario,
+        user_id=scenario.user_id,
+    )
+
+    await setup_storage.delete_scenario_files(
+        scenario.scenario_id,
+        scenario.user_id,
+    )
+
+    files = await setup_storage.get_scenario_files(
+        scenario.scenario_id,
+        scenario.user_id,
+    )
+    assert len(files) == 0
+
+
 if __name__ == "__main__":
     pytest.main()

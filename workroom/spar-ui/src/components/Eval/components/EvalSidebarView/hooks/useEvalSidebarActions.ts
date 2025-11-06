@@ -162,13 +162,13 @@ export const useEvalSidebarActions = ({
       addSnackbar({
         message:
           importedCount > 0
-            ? `Imported ${importedCount} scenario${importedCount === 1 ? '' : 's'} successfully`
-            : 'Imported scenarios successfully',
+            ? `Imported ${importedCount} evaluation${importedCount === 1 ? '' : 's'} successfully`
+            : 'Imported evaluations successfully',
         variant: 'success',
       });
     } catch (error) {
       addSnackbar({
-        message: 'Failed to import scenarios',
+        message: 'Failed to import evaluations',
         variant: 'danger',
       });
     }

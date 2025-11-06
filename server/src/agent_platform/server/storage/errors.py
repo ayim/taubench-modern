@@ -36,6 +36,13 @@ class ThreadNotFoundError(PlatformHTTPError):
         super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
 
 
+class ScenarioNotFoundError(PlatformHTTPError):
+    """A scenario with the given ID was not found."""
+
+    def __init__(self, message: str = "A scenario with the given ID was not found"):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
+
+
 class UserAccessDeniedError(PlatformHTTPError):
     """The user does not have access to a given resource."""
 
@@ -126,6 +133,13 @@ class ThreadFileNotFoundError(PlatformHTTPError):
     """A file with the given ID was not found."""
 
     def __init__(self, message: str = "A file with the given ID was not found"):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
+
+
+class ScenarioFileNotFoundError(PlatformHTTPError):
+    """A scenario file with the given ID was not found."""
+
+    def __init__(self, message: str = "A scenario file with the given ID was not found"):
         super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
 
 

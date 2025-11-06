@@ -7,6 +7,7 @@ import structlog
 from fastapi import HTTPException
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.evals.types import Scenario
 from agent_platform.core.files import RemoteFileUploadData, UploadedFile
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
@@ -41,7 +42,7 @@ class BaseFileManager(ABC):
     async def upload(
         self,
         files: list[UploadFilePayload],
-        owner: Thread | Agent | WorkItem,
+        owner: Thread | Agent | WorkItem | Scenario,
         user_id: str,
     ) -> list[UploadedFile]:
         """Upload files and return their metadata."""
@@ -62,7 +63,7 @@ class BaseFileManager(ABC):
     async def _upload_files(
         self,
         files: list[UploadFilePayload],
-        owner: Thread | Agent | WorkItem,
+        owner: Thread | Agent | WorkItem | Scenario,
         user_id: str,
     ) -> list[UploadedFile]:
         """Implementation specific upload logic."""
@@ -188,7 +189,7 @@ class BaseFileManager(ABC):
     @abstractmethod
     async def generate_unique_file_ref(
         self,
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         file_name: str,
     ) -> str:
         pass

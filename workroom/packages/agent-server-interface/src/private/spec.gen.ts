@@ -18858,6 +18858,17 @@ export const spec = {
             ],
             title: 'Work Item Id',
           },
+          scenario_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Scenario Id',
+          },
         },
         type: 'object',
         required: [

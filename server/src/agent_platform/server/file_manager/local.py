@@ -6,6 +6,7 @@ from uuid import uuid4
 import structlog
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.evals.types import Scenario
 from agent_platform.core.files import FileData, UploadedFile
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
@@ -39,7 +40,7 @@ class LocalFileManager(BaseFileManager):
 
     async def _revert_uploads(
         self,
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         user_id: str,
         uploads: list[tuple[str, str]],
     ) -> None:
@@ -50,7 +51,7 @@ class LocalFileManager(BaseFileManager):
     async def _upload_files(
         self,
         files: list[UploadFilePayload],
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         user_id: str,
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
@@ -61,6 +62,8 @@ class LocalFileManager(BaseFileManager):
                 owner_id = owner.thread_id
             case WorkItem():
                 owner_id = owner.work_item_id
+            case Scenario():
+                owner_id = owner.scenario_id
             case _:
                 raise ValueError()
 
@@ -233,7 +236,7 @@ class LocalFileManager(BaseFileManager):
 
     async def generate_unique_file_ref(
         self,
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         file_name: str,
     ) -> str:
         from agent_platform.server.storage.errors import UniqueFileRefError

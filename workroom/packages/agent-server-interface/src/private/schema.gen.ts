@@ -7767,6 +7767,8 @@ export interface components {
       file_url?: string | null;
       /** Work Item Id */
       work_item_id?: string | null;
+      /** Scenario Id */
+      scenario_id?: string | null;
     };
     /** UpsertAgentPayload */
     UpsertAgentPayload: {

@@ -28,6 +28,7 @@ from agent_platform.core.evals.types import (
     TrialStatus,
 )
 from agent_platform.core.integrations import Integration
+from agent_platform.core.thread import ThreadMessage
 from agent_platform.server.storage.abstract import AbstractStorage
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
@@ -584,6 +585,44 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 raise RuntimeError("Cannot insert scenario")
 
             return Scenario.model_validate(dict(row))
+
+    async def update_scenario_messages(
+        self,
+        scenario_id: str,
+        messages: list[ThreadMessage],
+    ) -> Scenario:
+        """Update the messages for an existing scenario."""
+        scenarios = self._get_table("scenarios")
+        payload = {
+            "messages": [message.model_dump() for message in messages],
+            "updated_at": datetime.now(UTC).isoformat(),
+        }
+
+        async with self._write_connection() as conn:
+            update_stmt = (
+                sa.update(scenarios)
+                .where(scenarios.c.scenario_id == scenario_id)
+                .values(payload)
+                .returning(
+                    scenarios.c.scenario_id,
+                    scenarios.c.name,
+                    scenarios.c.description,
+                    scenarios.c.thread_id,
+                    scenarios.c.agent_id,
+                    scenarios.c.user_id,
+                    scenarios.c.created_at,
+                    scenarios.c.updated_at,
+                    scenarios.c.messages,
+                    scenarios.c.metadata,
+                )
+            )
+            result = await conn.execute(update_stmt)
+            row = result.mappings().fetchone()
+
+        if row is None:
+            raise RuntimeError(f"Scenario {scenario_id} not found")
+
+        return Scenario.model_validate(dict(row))
 
     async def list_scenarios(self, limit: int | None, agent_id: str | None) -> list[Scenario]:
         """List all scenarios."""

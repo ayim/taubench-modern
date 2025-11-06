@@ -5,6 +5,7 @@ from psycopg.errors import IntegrityError, UniqueViolation
 from structlog import get_logger
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.evals.types import Scenario
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.thread import Thread
 from agent_platform.core.work_items import WorkItem
@@ -12,6 +13,8 @@ from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemCo
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
+    ScenarioFileNotFoundError,
+    ScenarioNotFoundError,
     ThreadFileNotFoundError,
     ThreadNotFoundError,
     UserPermissionError,
@@ -76,6 +79,13 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
         self._validate_uuid(owner.work_item_id)
         await self._validate_work_item_exists(owner.work_item_id)
         return owner.work_item_id
+
+    async def _validate_scenario_owner_type(self, owner: Scenario) -> str:
+        self._validate_uuid(owner.scenario_id)
+        scenario = await self.get_scenario(owner.scenario_id)
+        if scenario is None:
+            raise ScenarioNotFoundError(f"Scenario {owner.scenario_id} not found")
+        return owner.scenario_id
 
     async def _validate_agent_exists(self, user_id: str, agent_id: str) -> None:
         """Helper method to validate agent existence."""
@@ -142,13 +152,45 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             rows = [{k: v for k, v in dict(row).items() if k != "has_access"} for row in rows]
             return [UploadedFile.model_validate(row_dict) for row_dict in rows]
 
+    async def get_scenario_files(
+        self,
+        scenario_id: str,
+        user_id: str,
+    ) -> list[UploadedFile]:
+        """Get a list of files associated with a scenario."""
+        self._validate_uuid(scenario_id)
+        self._validate_uuid(user_id)
+        self._logger.debug(
+            "Getting all files for scenario",
+            scenario_id=scenario_id,
+            user_id=user_id,
+        )
+        async with self._cursor() as cur:
+            await cur.execute(
+                """SELECT f.*,
+                   v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
+                   FROM v2."file_owner" f
+                   WHERE f.scenario_id = %(scenario_id)s::uuid
+                """,
+                {"scenario_id": scenario_id, "user_id": user_id},
+            )
+            rows = await cur.fetchall()
+            self._logger.debug(f"Found {len(rows)} files for scenario {scenario_id}")
+            if not all(row["has_access"] for row in rows):
+                raise UserPermissionError(
+                    "User does not have access to one or more files",
+                )
+            rows = [{k: v for k, v in dict(row).items() if k != "has_access"} for row in rows]
+            return [UploadedFile.model_validate(row_dict) for row_dict in rows]
+
     async def get_file_by_ref(
         self,
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         file_ref: str,
         user_id: str,
     ) -> UploadedFile | None:
         """Get a file by ref."""
+        scenario_id: str | None = None
         match owner:
             case Agent() | Thread():
                 agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
@@ -158,14 +200,20 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             case WorkItem():
                 agent_id, thread_id = None, None
                 work_item_id = await self._validate_work_item_owner_type(owner)
+            case Scenario():
+                scenario_id = await self._validate_scenario_owner_type(owner)
+                agent_id = None
+                thread_id = None
+                work_item_id = None
             case _:
-                raise ValueError("Owner must be either Agent, Thread or WorkItem instance")
+                raise ValueError("Owner must be Agent, Thread, Scenario or WorkItem instance")
 
         self._logger.debug(
             "Getting file by ref",
             file_ref=file_ref,
             agent_id=agent_id,
             thread_id=thread_id,
+            scenario_id=scenario_id,
         )
 
         async with self._cursor() as cur:
@@ -196,8 +244,22 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
                         "user_id": user_id,
                     },
                 )
+            elif scenario_id:
+                await cur.execute(
+                    """SELECT f.*,
+                              v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
+                       FROM v2.file_owner f
+                       WHERE file_ref = %(file_ref)s
+                         AND scenario_id = %(scenario_id)s::uuid
+                    """,
+                    {
+                        "file_ref": file_ref,
+                        "scenario_id": scenario_id,
+                        "user_id": user_id,
+                    },
+                )
             else:
-                raise ValueError("Either thread_id or work_item_id must be provided")
+                raise ValueError("A valid owner reference must be provided")
 
             row = await cur.fetchone()
             if row and not row["has_access"]:
@@ -237,13 +299,14 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
         self._logger.debug("File by ID result", found=ret is not None)
         return ret
 
-    async def _get_file_for_deletion(
+    async def _get_file_for_deletion(  # noqa: PLR0913
         self,
         cur,
         file_id: str,
         user_id: str,
         thread_id: str | None,
         work_item_id: str | None,
+        scenario_id: str | None,
     ) -> dict:
         """Get file information for deletion with access check."""
         if thread_id:
@@ -264,16 +327,27 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
                 """,
                 {"file_id": file_id, "work_item_id": work_item_id, "user_id": user_id},
             )
+        elif scenario_id:
+            await cur.execute(
+                """SELECT f.file_path,
+                          v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
+                   FROM v2.file_owner f
+                   WHERE file_id = %(file_id)s AND scenario_id = %(scenario_id)s::uuid
+                """,
+                {"file_id": file_id, "scenario_id": scenario_id, "user_id": user_id},
+            )
         else:
-            raise ValueError("Either thread_id or work_item_id must be provided")
+            raise ValueError("A valid owner reference must be provided")
 
         row = await cur.fetchone()
         if not row:
             self._logger.error(f"File {file_id} not found")
             if thread_id:
                 raise ThreadFileNotFoundError(f"File {file_id} not found")
-            else:
+            elif work_item_id:
                 raise WorkItemFileNotFoundError(f"File {file_id} not found")
+            else:
+                raise ScenarioFileNotFoundError(f"File {file_id} not found")
 
         if not row["has_access"]:
             raise UserPermissionError("User does not have access to this file")
@@ -282,13 +356,14 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
 
     async def delete_file(
         self,
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         file_id: str,
         user_id: str,
     ) -> None:
         """Delete a file by ID."""
         self._validate_uuid(file_id)
         self._validate_uuid(user_id)
+        scenario_id: str | None = None
         match owner:
             case Agent() | Thread():
                 agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
@@ -298,12 +373,21 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             case WorkItem():
                 _, thread_id = None, None
                 work_item_id = await self._validate_work_item_owner_type(owner)
-            case _:
-                raise ValueError("Owner must be either Agent, Thread or WorkItem instance")
+            case Scenario():
+                scenario_id = await self._validate_scenario_owner_type(owner)
+                thread_id = None
+                work_item_id = None
 
         self._logger.debug("Deleting file by ID", file_id=file_id)
         async with self._cursor() as cur:
-            row = await self._get_file_for_deletion(cur, file_id, user_id, thread_id, work_item_id)
+            row = await self._get_file_for_deletion(
+                cur,
+                file_id,
+                user_id,
+                thread_id,
+                work_item_id,
+                scenario_id,
+            )
 
             if SystemConfig.file_manager_type == "local":
                 file_url = row["file_path"]
@@ -328,6 +412,20 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             self._logger.debug(f"Deleting file {file.file_id}")
             await self.delete_file(owner, file.file_id, user_id)
 
+    async def delete_scenario_files(self, scenario_id: str, user_id: str) -> None:
+        """Delete all files associated with a scenario."""
+        self._validate_uuid(scenario_id)
+        self._validate_uuid(user_id)
+        self._logger.debug("Deleting all files for scenario", scenario_id=scenario_id)
+        scenario = await self.get_scenario(scenario_id)
+        if scenario is None:
+            raise ScenarioNotFoundError(f"Scenario {scenario_id} not found")
+
+        files = await self.get_scenario_files(scenario_id, user_id)
+        for file in files:
+            self._logger.debug(f"Deleting scenario file {file.file_id}")
+            await self.delete_file(scenario, file.file_id, user_id)
+
     async def put_file_owner(  # noqa: PLR0913
         self,
         file_id: str,
@@ -339,7 +437,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
         user_id: str,
         embedded: bool,
         embedding_status: None,  # TODO: add a new type for EmbeddingStatus
-        owner: Agent | Thread | WorkItem,
+        owner: Agent | Thread | WorkItem | Scenario,
         file_path_expiration: datetime | None,
     ) -> UploadedFile:
         """Add or update a file owner."""
@@ -354,23 +452,21 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             "mime_type": mime_type,
             "user_id": user_id,
             "embedded": embedded,
+            "scenario_id": None,
             "file_path_expiration": file_path_expiration,
             "created_at": datetime.now(UTC).isoformat(),
         }
+
+        scenario_id: str | None = None
 
         match owner:
             case Agent():
                 agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
                 work_item_id = None
-                file_dict |= {"agent_id": agent_id, "thread_id": thread_id, "work_item_id": None}
             case Thread():
                 agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
                 work_item_id = None
-                file_dict |= {"agent_id": agent_id, "thread_id": thread_id, "work_item_id": None}
 
-                # For Thread file-attachments, if the thread was created by a work-item, overwrite
-                # the user_id such that all users can access the file because all users can access
-                # work-item threads.
                 thread: Thread = owner
                 if thread.work_item_id:
                     system_user, _ = await self.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
@@ -383,9 +479,18 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             case WorkItem():
                 work_item_id = await self._validate_work_item_owner_type(owner)
                 agent_id, thread_id = None, None
-                file_dict |= {"agent_id": None, "thread_id": None, "work_item_id": work_item_id}
-            case _:
-                raise ValueError("Owner must be either Agent, Thread or WorkItem instance")
+            case Scenario():
+                scenario_id = await self._validate_scenario_owner_type(owner)
+                agent_id = None
+                thread_id = None
+                work_item_id = None
+
+        file_dict |= {
+            "agent_id": agent_id,
+            "thread_id": thread_id,
+            "work_item_id": work_item_id,
+            "scenario_id": scenario_id,
+        }
 
         self._logger.debug(
             "Putting file owner",
@@ -393,6 +498,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             file_ref=file_ref,
             agent_id=agent_id,
             thread_id=thread_id,
+            scenario_id=scenario_id,
             mime_type=mime_type,
             work_item_id=work_item_id,
             file_size_raw=file_size_raw,
@@ -407,14 +513,15 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
                     INSERT INTO v2.file_owner (
                         file_id, file_path, file_ref, file_hash,
                         file_size_raw, mime_type, user_id, embedded,
-                        agent_id, thread_id, work_item_id, file_path_expiration,
+                        agent_id, thread_id, work_item_id, scenario_id,
+                        file_path_expiration,
                         created_at
                     )
                     VALUES (
                         %(file_id)s, %(file_path)s, %(file_ref)s, %(file_hash)s,
                         %(file_size_raw)s, %(mime_type)s, %(user_id)s::uuid,
                         %(embedded)s, %(agent_id)s::uuid, %(thread_id)s::uuid,
-                        %(work_item_id)s::uuid,
+                        %(work_item_id)s::uuid, %(scenario_id)s::uuid,
                         %(file_path_expiration)s, %(created_at)s
                     )
                     ON CONFLICT(file_id) DO UPDATE SET
@@ -427,6 +534,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
                         agent_id = EXCLUDED.agent_id,
                         thread_id = EXCLUDED.thread_id,
                         work_item_id = EXCLUDED.work_item_id,
+                        scenario_id = EXCLUDED.scenario_id,
                         file_path_expiration = EXCLUDED.file_path_expiration,
                         created_at = EXCLUDED.created_at
                     """,
@@ -440,26 +548,44 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
                 # Rollback to the savepoint so we can continue using this transaction
                 await cur.execute("ROLLBACK TO SAVEPOINT savepoint1")
 
-                # Check if the unique file_ref per thread constraint failed
-                if "unique_file_ref_thread_v2" not in str(e):
-                    raise e
-
-                await cur.execute(
-                    """
-                    UPDATE v2.file_owner SET
-                    file_id = %(file_id)s,
-                    file_path = %(file_path)s,
-                    file_hash = %(file_hash)s,
-                    file_size_raw = %(file_size_raw)s,
-                    mime_type = %(mime_type)s,
-                    embedded = %(embedded)s,
-                    agent_id = %(agent_id)s::uuid,
-                    user_id = %(user_id)s::uuid,
-                    file_path_expiration = %(file_path_expiration)s
-                    WHERE file_ref = %(file_ref)s and thread_id = %(thread_id)s::uuid
-                """,
-                    file_dict,
-                )
+                violation = str(e)
+                if "unique_file_ref_thread_v2" in violation:
+                    await cur.execute(
+                        """
+                        UPDATE v2.file_owner SET
+                            file_id = %(file_id)s,
+                            file_path = %(file_path)s,
+                            file_hash = %(file_hash)s,
+                            file_size_raw = %(file_size_raw)s,
+                            mime_type = %(mime_type)s,
+                            embedded = %(embedded)s,
+                            agent_id = %(agent_id)s::uuid,
+                            user_id = %(user_id)s::uuid,
+                            scenario_id = %(scenario_id)s::uuid,
+                            file_path_expiration = %(file_path_expiration)s
+                        WHERE file_ref = %(file_ref)s AND thread_id = %(thread_id)s::uuid
+                    """,
+                        file_dict,
+                    )
+                elif "unique_file_ref_scenario_v2" in violation:
+                    await cur.execute(
+                        """
+                        UPDATE v2.file_owner SET
+                            file_id = %(file_id)s,
+                            file_path = %(file_path)s,
+                            file_hash = %(file_hash)s,
+                            file_size_raw = %(file_size_raw)s,
+                            mime_type = %(mime_type)s,
+                            embedded = %(embedded)s,
+                            agent_id = %(agent_id)s::uuid,
+                            user_id = %(user_id)s::uuid,
+                            file_path_expiration = %(file_path_expiration)s
+                        WHERE file_ref = %(file_ref)s AND scenario_id = %(scenario_id)s::uuid
+                    """,
+                        file_dict,
+                    )
+                else:
+                    raise
                 # Fall through to outer return statement
             except IntegrityError as e:
                 self._logger.exception(

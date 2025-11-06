@@ -53,6 +53,9 @@ class UploadedFile:
     work_item_id: str | None = None
     """The ID of the work item that uploaded the file."""
 
+    scenario_id: str | None = None
+    """The ID of the scenario that uploaded the file."""
+
     @classmethod
     def model_validate(cls, data: dict) -> "UploadedFile":
         """Create an UploadedFile from a dictionary."""
@@ -67,6 +70,8 @@ class UploadedFile:
             data["thread_id"] = str(data["thread_id"])
         if "work_item_id" in data and isinstance(data["work_item_id"], UUID):
             data["work_item_id"] = str(data["work_item_id"])
+        if "scenario_id" in data and isinstance(data["scenario_id"], UUID):
+            data["scenario_id"] = str(data["scenario_id"])
         if "file_path_expiration" in data and isinstance(
             data["file_path_expiration"],
             str,
