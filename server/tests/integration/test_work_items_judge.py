@@ -149,7 +149,7 @@ async def test_work_item_judge_with_recorded_threads(
     """
 
     from agent_platform.server.storage import StorageService
-    from agent_platform.server.work_items.background_worker import _validate_success
+    from agent_platform.server.work_items.judge import _validate_success
 
     # Load test data
     work_item_resources_dir = resources_dir / "work-item-threads-to-judge"
@@ -180,7 +180,7 @@ async def test_work_item_judge_with_recorded_threads(
         with (
             unittest.mock.patch.object(StorageService, "get_instance", return_value=mock_storage),
             unittest.mock.patch(
-                "agent_platform.server.work_items.background_worker.prompt_generate",
+                "agent_platform.server.work_items.judge.prompt_generate",
                 side_effect=capture_function,
             ),
         ):

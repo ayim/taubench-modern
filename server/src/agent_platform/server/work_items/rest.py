@@ -470,7 +470,7 @@ async def preview_work_item(
     storage: StorageDependency,
 ):
     """Preview the status of a work item during a dry run."""
-    from agent_platform.server.work_items.background_worker import _validate_success
+    from agent_platform.server.work_items.judge import _validate_success
 
     system_user, _created = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     work_item = CreateWorkItemPayload.to_work_item(

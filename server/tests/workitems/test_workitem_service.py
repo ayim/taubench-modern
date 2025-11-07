@@ -15,20 +15,17 @@ from agent_platform.core.thread.messages import ThreadAgentMessage, ThreadUserMe
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
 from agent_platform.core.work_items.work_item import WorkItemStatusUpdatedBy
 from agent_platform.server.storage.option import StorageService
-from agent_platform.server.work_items import background_worker as bw
+from agent_platform.server.work_items.judge import _validate_success
+from agent_platform.server.work_items.service import WorkItemsService
 from agent_platform.server.work_items.settings import Settings as WorkerSettings
 
 pytest_plugins = ("server.tests.endpoints.conftest",)
 
-# ---------------------------------------------------------------------------
-# Helper: create a minimal WorkItem in the PENDING state
-# ---------------------------------------------------------------------------
 
-
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def stub_validate_work_item_result(mocker):
     return mocker.patch(
-        "agent_platform.server.work_items.background_worker._validate_success",
+        "agent_platform.server.work_items.judge._validate_success",
         return_value=WorkItemStatus.COMPLETED,
     )
 
@@ -69,8 +66,32 @@ async def configured_storage(storage):
 def patch_worker_settings(monkeypatch):
     """Shrink worker settings so tests run quickly (small sleeps, small batches)."""
     test_settings = WorkerSettings(worker_interval=0, max_batch_size=5, work_item_timeout=1.0)
-    monkeypatch.setattr(bw, "WORK_ITEMS_SETTINGS", test_settings, raising=False)
+    # Patch settings where they are imported
+    monkeypatch.setattr(
+        "agent_platform.server.work_items.settings.WORK_ITEMS_SETTINGS", test_settings
+    )
+
+    # Mock the quotas service's get_max_parallel_work_items_in_process to return 5
+    async def mock_get_instance():
+        from unittest.mock import Mock
+
+        mock_quotas = Mock()
+        mock_quotas.get_max_parallel_work_items_in_process.return_value = 5
+        return mock_quotas
+
+    monkeypatch.setattr(
+        "agent_platform.core.configurations.quotas.QuotasService.get_instance",
+        mock_get_instance,
+    )
+
     return test_settings
+
+
+@pytest.fixture
+def work_items_service():
+    """Get a fresh WorkItemsService instance for each test."""
+    # Reset the singleton
+    return WorkItemsService()
 
 
 @pytest.fixture
@@ -100,7 +121,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
@@ -116,7 +137,9 @@ class TestBackgroundWorker:
         async def mock_agent_func(wi: WorkItem) -> bool:
             return True
 
-        result = await bw.execute_work_item(item, mock_agent_func)
+        # Set the custom work function on the service
+        work_items_service._work_func = mock_agent_func
+        result = await work_items_service.execute_work_item(item, mock_agent_func)
         assert result is True
 
         updated = await configured_storage.get_work_item(item.work_item_id)
@@ -132,6 +155,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
+        work_items_service,
     ):
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
@@ -147,7 +171,8 @@ class TestBackgroundWorker:
         async def error_agent_func(_: WorkItem) -> bool:
             raise Exception("Test error")
 
-        result = await bw.execute_work_item(item, error_agent_func)
+        work_items_service._work_func = error_agent_func
+        result = await work_items_service.execute_work_item(item, error_agent_func)
         assert result is False
 
         updated = await configured_storage.get_work_item(item.work_item_id)
@@ -163,6 +188,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
+        work_items_service,
     ):
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
@@ -178,7 +204,8 @@ class TestBackgroundWorker:
         async def fail_agent_func(_: WorkItem) -> bool:
             return False
 
-        result = await bw.execute_work_item(item, fail_agent_func)
+        work_items_service._work_func = fail_agent_func
+        result = await work_items_service.execute_work_item(item, fail_agent_func)
         assert result is False
 
         updated = await configured_storage.get_work_item(item.work_item_id)
@@ -194,7 +221,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         num_work_items = 5
         counter = itertools.count()
@@ -226,7 +253,9 @@ class TestBackgroundWorker:
                 WorkItemStatusUpdatedBy.SYSTEM,
             )
 
-        results = await bw.run_batch(work_item_ids, sometimes_fail_agent, batch_timeout=2.0)
+        # Set the custom work function on the service
+        work_items_service._work_func = sometimes_fail_agent
+        results = await work_items_service.run_batch(work_item_ids, batch_timeout=2.0)
 
         # Expectations: 3 successes, 2 handled failures (False)
         assert len(results) == num_work_items
@@ -252,10 +281,10 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         num_work_items = 21
-        max_batch_size = bw.WORK_ITEMS_SETTINGS.max_batch_size  # 5 in fixture
+        max_batch_size = 5  # From fixture
 
         async def always_succeed(_: WorkItem) -> bool:
             return True
@@ -266,10 +295,13 @@ class TestBackgroundWorker:
                 _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
             )
 
+        # Set the custom work function on the service
+        work_items_service._work_func = always_succeed
+
         # Run enough iterations to pick them all up
         iterations = math.ceil(num_work_items / max_batch_size)
         for _ in range(iterations):
-            await bw.worker_iteration(always_succeed)
+            await work_items_service._worker_iteration()
 
         # All should be COMPLETED
         items = await configured_storage.list_work_items()
@@ -286,7 +318,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         call_count = 0
 
@@ -309,7 +341,9 @@ class TestBackgroundWorker:
         for wi in items:
             await configured_storage.create_work_item(wi)
 
-        await bw.worker_iteration(slow_agent)
+        # Set the custom work function on the service
+        work_items_service._work_func = slow_agent
+        await work_items_service._worker_iteration()
 
         statuses = {
             wi.work_item_id: (await configured_storage.get_work_item(wi.work_item_id)).status
@@ -332,7 +366,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         processed_ids: set[str] = set()
         lock = asyncio.Lock()
@@ -355,9 +389,12 @@ class TestBackgroundWorker:
 
         expected_ids = {wi.work_item_id for wi in work_items}
 
+        # Set the custom work function on the service
+        work_items_service._work_func = tracking_agent
+
         await asyncio.gather(
-            bw.worker_iteration(tracking_agent),
-            bw.worker_iteration(tracking_agent),
+            work_items_service._worker_iteration(),
+            work_items_service._worker_iteration(),
         )
 
         # Post-conditions
@@ -366,17 +403,17 @@ class TestBackgroundWorker:
         assert processed_ids == expected_ids
 
     @pytest.mark.asyncio
-    async def test_work_item_validate_success__needs_review(  # noqa: PLR0913
+    async def test_work_item_validate_success_needs_review(  # noqa: PLR0913
         self,
         configured_storage,
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
         mocker,
+        work_items_service,
     ):
         mocker.patch(
-            "agent_platform.server.work_items.background_worker._validate_success",
+            "agent_platform.server.work_items.judge._validate_success",
             return_value=WorkItemStatus.NEEDS_REVIEW,
         )
 
@@ -394,7 +431,8 @@ class TestBackgroundWorker:
         async def mock_agent_func(wi: WorkItem) -> bool:
             return True
 
-        result = await bw.execute_work_item(item, mock_agent_func)
+        work_items_service._work_func = mock_agent_func
+        result = await work_items_service.execute_work_item(item, mock_agent_func)
         assert result is True
 
         updated = await configured_storage.get_work_item(item.work_item_id)
@@ -429,10 +467,10 @@ class TestBackgroundWorker:
         )
 
         with patch(
-            "agent_platform.server.work_items.background_worker.prompt_generate",
+            "agent_platform.server.work_items.judge.prompt_generate",
             return_value=mock_response,
         ):
-            result = await bw._validate_success(item)
+            result = await _validate_success(item)
             assert result == WorkItemStatus.COMPLETED
 
     @pytest.mark.asyncio
@@ -458,10 +496,10 @@ class TestBackgroundWorker:
         )
 
         with patch(
-            "agent_platform.server.work_items.background_worker.prompt_generate",
+            "agent_platform.server.work_items.judge.prompt_generate",
             return_value=mock_response,
         ):
-            result = await bw._validate_success(item)
+            result = await _validate_success(item)
             assert result == WorkItemStatus.NEEDS_REVIEW
 
     @pytest.mark.asyncio
@@ -478,10 +516,10 @@ class TestBackgroundWorker:
         )
 
         with patch(
-            "agent_platform.server.work_items.background_worker.prompt_generate",
+            "agent_platform.server.work_items.judge.prompt_generate",
             return_value=mock_response,
         ):
-            result = await bw._validate_success(item)
+            result = await _validate_success(item)
             # Should default to INDETERMINATE for invalid responses
             assert result == WorkItemStatus.INDETERMINATE
 
@@ -497,10 +535,10 @@ class TestBackgroundWorker:
         mock_response = ResponseMessage(content=[], role="agent")
 
         with patch(
-            "agent_platform.server.work_items.background_worker.prompt_generate",
+            "agent_platform.server.work_items.judge.prompt_generate",
             return_value=mock_response,
         ):
-            result = await bw._validate_success(item)
+            result = await _validate_success(item)
             assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
@@ -523,10 +561,10 @@ class TestBackgroundWorker:
         )
 
         with patch(
-            "agent_platform.server.work_items.background_worker.prompt_generate",
+            "agent_platform.server.work_items.judge.prompt_generate",
             return_value=mock_response,
         ):
-            result = await bw._validate_success(item)
+            result = await _validate_success(item)
             assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
@@ -543,10 +581,10 @@ class TestBackgroundWorker:
         )
 
         with patch(
-            "agent_platform.server.work_items.background_worker.prompt_generate",
+            "agent_platform.server.work_items.judge.prompt_generate",
             return_value=mock_response,
         ):
-            result = await bw._validate_success(item)
+            result = await _validate_success(item)
             assert result == WorkItemStatus.COMPLETED
 
     @pytest.mark.asyncio
@@ -569,10 +607,10 @@ class TestBackgroundWorker:
         )
 
         with patch(
-            "agent_platform.server.work_items.background_worker.prompt_generate",
+            "agent_platform.server.work_items.judge.prompt_generate",
             return_value=mock_response,
         ):
-            result = await bw._validate_success(item)
+            result = await _validate_success(item)
             # Should return INDETERMINATE because ThreadTextContent isn't parsed
             assert result == WorkItemStatus.INDETERMINATE
 
@@ -600,10 +638,10 @@ class TestBackgroundWorker:
         )
 
         with patch(
-            "agent_platform.server.work_items.background_worker.prompt_generate",
+            "agent_platform.server.work_items.judge.prompt_generate",
             return_value=mock_response,
         ):
-            result = await bw._validate_success(item)
+            result = await _validate_success(item)
             # Should parse the last ResponseTextContent and get COMPLETED
             assert result == WorkItemStatus.COMPLETED
 
@@ -637,10 +675,10 @@ class TestBackgroundWorker:
             )
 
             with patch(
-                "agent_platform.server.work_items.background_worker.prompt_generate",
+                "agent_platform.server.work_items.judge.prompt_generate",
                 return_value=mock_response,
             ):
-                result = await bw._validate_success(item)
+                result = await _validate_success(item)
                 assert result == WorkItemStatus.INDETERMINATE, f"Failed for text: '{invalid_text}'"
 
     # --------------------------------------------------
@@ -653,7 +691,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         """Test that when a work item is processed,
         the thread is created with system user ownership."""
@@ -672,10 +710,8 @@ class TestBackgroundWorker:
         # Mock agent server calls since we don't want to actually invoke the agent
         with (
             patch.object(configured_storage, "upsert_thread", side_effect=track_upsert_thread),
-            patch("agent_platform.server.work_items.background_worker.async_run") as mock_async_run,
-            patch(
-                "agent_platform.server.work_items.background_worker.get_run_status"
-            ) as mock_get_status,
+            patch("agent_platform.server.api.private_v2.runs.async_run") as mock_async_run,
+            patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
@@ -687,7 +723,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await bw.execute_work_item(item, bw.run_agent)
+            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
             assert result is True
 
             # Verify thread was created with system user
@@ -710,7 +746,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         """Test that file upload messages are properly added to the work item during processing."""
         from datetime import UTC, datetime
@@ -766,12 +802,10 @@ class TestBackgroundWorker:
         # Mock agent server calls and file operations
         with (
             patch(
-                "agent_platform.server.work_items.background_worker.async_run",
+                "agent_platform.server.api.private_v2.runs.async_run",
                 side_effect=track_async_run,
             ),
-            patch(
-                "agent_platform.server.work_items.background_worker.get_run_status"
-            ) as mock_get_status,
+            patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
             mock_get_status.return_value = AsyncMock(
@@ -783,7 +817,7 @@ class TestBackgroundWorker:
             configured_storage.associate_work_item_file = AsyncMock()
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await bw.execute_work_item(item, bw.run_agent)
+            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
             assert result is True
 
             # Verify that the agent was called with messages including file uploads
@@ -811,7 +845,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         """Test that work item thread_id is properly updated after thread creation."""
 
@@ -832,10 +866,8 @@ class TestBackgroundWorker:
         # Mock agent server calls
         with (
             patch.object(configured_storage, "upsert_thread", side_effect=track_upsert_thread),
-            patch("agent_platform.server.work_items.background_worker.async_run") as mock_async_run,
-            patch(
-                "agent_platform.server.work_items.background_worker.get_run_status"
-            ) as mock_get_status,
+            patch("agent_platform.server.api.private_v2.runs.async_run") as mock_async_run,
+            patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
@@ -847,7 +879,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await bw.execute_work_item(item, bw.run_agent)
+            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
             assert result is True
 
             # Verify work item was updated with the exact thread_id that was created
@@ -868,7 +900,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         """Test that work item messages are properly used when creating the thread."""
 
@@ -890,12 +922,10 @@ class TestBackgroundWorker:
         # Mock agent server calls
         with (
             patch(
-                "agent_platform.server.work_items.background_worker.async_run",
+                "agent_platform.server.api.private_v2.runs.async_run",
                 side_effect=track_async_run,
             ),
-            patch(
-                "agent_platform.server.work_items.background_worker.get_run_status"
-            ) as mock_get_status,
+            patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
             mock_get_status.return_value = AsyncMock(
@@ -906,7 +936,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await bw.execute_work_item(item, bw.run_agent)
+            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
             assert result is True
 
             # Verify that the agent was called with the work item messages
@@ -921,7 +951,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         """Test that when a work item is processed, the thread has the correct work_item_id."""
 
@@ -939,10 +969,8 @@ class TestBackgroundWorker:
         # Mock agent server calls since we don't want to actually invoke the agent
         with (
             patch.object(configured_storage, "upsert_thread", side_effect=track_upsert_thread),
-            patch("agent_platform.server.work_items.background_worker.async_run") as mock_async_run,
-            patch(
-                "agent_platform.server.work_items.background_worker.get_run_status"
-            ) as mock_get_status,
+            patch("agent_platform.server.api.private_v2.runs.async_run") as mock_async_run,
+            patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
@@ -954,7 +982,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await bw.execute_work_item(item, bw.run_agent)
+            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
             assert result is True
 
             # Verify thread was created with the correct work_item_id
@@ -969,7 +997,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         """Test that the work_item_id persists when the thread is retrieved from storage."""
 
@@ -987,10 +1015,8 @@ class TestBackgroundWorker:
         # Mock agent server calls
         with (
             patch.object(configured_storage, "upsert_thread", side_effect=track_upsert_thread),
-            patch("agent_platform.server.work_items.background_worker.async_run") as mock_async_run,
-            patch(
-                "agent_platform.server.work_items.background_worker.get_run_status"
-            ) as mock_get_status,
+            patch("agent_platform.server.api.private_v2.runs.async_run") as mock_async_run,
+            patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
@@ -1002,7 +1028,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await bw.execute_work_item(item, bw.run_agent)
+            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
             assert result is True
 
             # Verify thread was created and stored with work_item_id
@@ -1024,7 +1050,7 @@ class TestBackgroundWorker:
         stub_user,
         system_user,
         seed_agents,
-        stub_validate_work_item_result,
+        work_items_service,
     ):
         """Test that the work_item_id is preserved when copying a Thread object."""
 
@@ -1042,10 +1068,8 @@ class TestBackgroundWorker:
         # Mock agent server calls
         with (
             patch.object(configured_storage, "upsert_thread", side_effect=track_upsert_thread),
-            patch("agent_platform.server.work_items.background_worker.async_run") as mock_async_run,
-            patch(
-                "agent_platform.server.work_items.background_worker.get_run_status"
-            ) as mock_get_status,
+            patch("agent_platform.server.api.private_v2.runs.async_run") as mock_async_run,
+            patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
@@ -1057,7 +1081,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await bw.execute_work_item(item, bw.run_agent)
+            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
             assert result is True
 
             # Verify thread was created with work_item_id
@@ -1066,13 +1090,14 @@ class TestBackgroundWorker:
             assert created_thread.work_item_id == item.work_item_id
 
     @pytest.mark.asyncio
-    async def test_execute_work_item_skips_validation_when_status_changed_during_execution(
+    async def test_execute_work_item_skips_validation_when_status_changed_during_execution(  # noqa: PLR0913
         self,
         configured_storage,
         stub_user,
         system_user,
         seed_agents,
         mocker,
+        work_items_service,
     ):
         """Test that _validate_success is not called when work item status changes during execution.
         This is to prevent the agent from overwriting the status set by a step in the runbook.
@@ -1082,13 +1107,13 @@ class TestBackgroundWorker:
 
         # Mock _validate_success to track if it's called
         validate_success_mock = mocker.patch(
-            "agent_platform.server.work_items.background_worker._validate_success",
+            "agent_platform.server.work_items.judge._validate_success",
             return_value=WorkItemStatus.COMPLETED,
         )
 
         # Mock execute_callbacks to track what status it's called with
         execute_callbacks_mock = mocker.patch(
-            "agent_platform.server.work_items.background_worker.execute_callbacks"
+            "agent_platform.server.work_items.callbacks.execute_callbacks"
         )
 
         async def agent_func_that_changes_status(wi: WorkItem) -> bool:
@@ -1102,7 +1127,8 @@ class TestBackgroundWorker:
             )
             return True
 
-        result = await bw.execute_work_item(item, agent_func_that_changes_status)
+        work_items_service._work_func = agent_func_that_changes_status
+        result = await work_items_service.execute_work_item(item, agent_func_that_changes_status)
         assert result is True
 
         # Verify that _validate_success was NOT called because status changed during execution

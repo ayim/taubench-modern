@@ -31,12 +31,10 @@ from agent_platform.server.shutdown_manager import ShutdownManager
 from agent_platform.server.storage import StorageService
 from agent_platform.server.storage.pool_monitor import pool_monitor_loop
 from agent_platform.server.telemetry import setup_telemetry
-from agent_platform.server.work_items.background_worker import (
+from agent_platform.server.work_items.service import (
     WORKER_NAME as WORK_ITEMS_WORKER_NAME,
 )
-from agent_platform.server.work_items.background_worker import (
-    worker_loop,
-)
+from agent_platform.server.work_items.service import WorkItemsService
 
 logger = structlog.get_logger(__name__)
 
@@ -44,7 +42,8 @@ logger = structlog.get_logger(__name__)
 def _start_work_items_background_worker() -> None:
     logger.info("Starting work-items background worker")
 
-    ShutdownManager.register_drainable_background_worker(WORK_ITEMS_WORKER_NAME, worker_loop)
+    service = WorkItemsService.get_instance()
+    ShutdownManager.register_drainable_background_worker(WORK_ITEMS_WORKER_NAME, service.run)
 
 
 def _start_evals_background_worker() -> None:
@@ -132,7 +131,6 @@ async def lifespan(app: FastAPI):
     if SystemConfig.db_type == "postgres":
         pool_monitor_task, pool_monitor_shutdown_event = _start_pool_monitor()
 
-    # Start the work-items background worker only if enabled in configuration
     _start_work_items_background_worker()
 
     _start_evals_background_worker()
