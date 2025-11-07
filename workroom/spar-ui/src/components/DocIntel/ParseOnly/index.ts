@@ -5,3 +5,4 @@
 
 export { ParseOnlyDialog } from './ParseOnlyDialog';
 export { ParseResultsPanel } from './ParseResultsPanel';
+export { ParseResultsSummary } from './ParseResultsSummary';

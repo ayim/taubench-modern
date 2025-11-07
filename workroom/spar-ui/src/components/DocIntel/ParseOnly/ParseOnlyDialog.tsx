@@ -121,7 +121,12 @@ export const ParseOnlyDialog: FC<ParseOnlyDialogProps> = ({ isOpen, onClose, fil
                     msOverflowStyle: 'none',
                   }}
                 >
-                  <ParseResultsPanel parseResult={parseResult} isLoading={isPending} error={error?.message || null} />
+                  <ParseResultsPanel
+                    parseResult={parseResult}
+                    isLoading={isPending}
+                    error={error?.message || null}
+                    showRawJson={showRawJson}
+                  />
                 </Box>
 
                 {/* FOOTER */}

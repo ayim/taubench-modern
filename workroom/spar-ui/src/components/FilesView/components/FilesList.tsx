@@ -8,7 +8,7 @@ import { ThreadFiles, useThreadFilesQuery, useDownloadThreadFileMutation } from 
 import { getSnackbarContent } from '../../../queries/shared';
 import { useFeatureFlag } from '../../../hooks/useFeatureFlag';
 import { SparUIFeatureFlag } from '../../../api';
-import { useAgentDocIntelCapabilities, useDocIntelDialogRouter } from '../../DocIntel/shared/hooks';
+import { useAgentDocIntelCapabilities, useDocIntelDialogManager } from '../../DocIntel/shared/hooks';
 import { getDocIntelLabel } from '../../DocIntel/shared/constants/interfaceLabels';
 
 type props = {
@@ -36,7 +36,8 @@ const FileListItem = ({
   const { mutateAsync: getFileForDocumentIntelligence } = useDownloadThreadFileMutation({ type: 'inline' });
   const { addSnackbar } = useSnackbar();
 
-  const shouldDisplayDocIntelButton = docIntelFeatureEnabled && docIntelInterfaces.length > 0;
+  const isPdfFile = file.mime_type === 'application/pdf' || file.file_ref.toLowerCase().endsWith('.pdf');
+  const shouldDisplayDocIntelButton = docIntelFeatureEnabled && docIntelInterfaces.length > 0 && isPdfFile;
 
   const onDownload = async () => {
     await downloadThreadFile(
@@ -128,8 +129,8 @@ const FilesListContent = styled.div`
 export const FilesList: FC<props> = ({ agentId, threadId }) => {
   const { data: files, isLoading: isFilesLoading } = useThreadFilesQuery({ threadId });
 
-  // Use the dialog router hook - handles all dialog routing logic
-  const { openDialog, DocIntelDialog } = useDocIntelDialogRouter(threadId);
+  // Use the dialog manager hook - handles dialog state and rendering logic
+  const { openDialog, DocIntelDialog } = useDocIntelDialogManager(threadId);
 
   if (isFilesLoading) {
     return (

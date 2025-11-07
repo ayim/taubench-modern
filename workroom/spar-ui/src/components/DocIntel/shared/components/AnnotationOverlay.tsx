@@ -96,28 +96,12 @@ const BoundingBoxComponent: FC<BoundingBoxComponentProps> = ({ box, isParseBox, 
 
   const getTooltipText = () => {
     if (isParseBox && box.type) {
-      return (
-        <span style={{ fontSize: '12px', lineHeight: '1.3' }}>
-          Type: {box.type}
-          {box.confidence && box.confidence !== 'high' && (
-            <>
-              <br />
-              Confidence: {box.confidence}
-            </>
-          )}
-        </span>
-      );
+      return <span style={{ fontSize: '12px', lineHeight: '1.3' }}>Type: {box.type}</span>;
     }
 
     return (
       <span style={{ fontSize: '12px', lineHeight: '1.3' }}>
         {box.fieldName}: {box.fieldValue}
-        {box.confidence && box.confidence !== 'high' && (
-          <>
-            <br />
-            Confidence: {box.confidence}
-          </>
-        )}
       </span>
     );
   };
