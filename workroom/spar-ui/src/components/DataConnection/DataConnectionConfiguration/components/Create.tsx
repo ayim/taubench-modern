@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { Button, Dialog, Form, useSnackbar } from '@sema4ai/components';
 import { DataConnection } from '@sema4ai/data-interface';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, Resolver } from 'react-hook-form';
 
 import { useCreateDataConnectionMutation } from '../../../../queries';
 import { DataConnectionForm } from './DataConnectionForm';
@@ -16,7 +16,7 @@ export const CreateDataConnection: FC<Props> = ({ onClose }) => {
   const { mutateAsync: createDataConnectionAsync, isPending } = useCreateDataConnectionMutation({});
 
   const formMethods = useForm<DataConnection>({
-    resolver: zodResolver(DataConnection),
+    resolver: zodResolver(DataConnection) as Resolver<DataConnection>,
     defaultValues: {
       engine: 'postgres',
     },

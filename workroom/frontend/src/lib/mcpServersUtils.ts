@@ -22,7 +22,7 @@ export const newMcpServerFormSchema = z
       )
       .default([]),
     agentPackageFile: z.instanceof(File).optional(),
-    agentPackageSecrets: z.record(z.string()).optional(),
+    agentPackageSecrets: z.record(z.string(), z.string()).optional(),
   })
   .superRefine((values, ctx) => {
     if (values.type === 'hosted') {

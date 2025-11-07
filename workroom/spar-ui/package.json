@@ -58,12 +58,11 @@
     "@sema4ai/icons": "*",
     "@sema4ai/layouts": "*",
     "@sema4ai/oauth-client": "^0.4.7",
-    "@sema4ai/sai-sdk": "*",
     "@sema4ai/theme": "*",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-pdf": "^10.2.0",
-    "zod": "^3.25.76",
+    "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
@@ -73,12 +72,13 @@
     "@types/qs": "^6.14.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "@types/uuid": "^10.0.0",
     "eslint": "^8.57.0",
     "typescript": "^5.9.2",
     "vite-node": "^3.2.4"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "^5.2.2",
     "@jsonjoy.com/json-pointer": "^1.0.1",
     "@lexical/code": "0.17.0",
     "@lexical/link": "0.17.0",
@@ -88,8 +88,8 @@
     "@lexical/rich-text": "0.17.0",
     "@lexical/utils": "0.17.0",
     "@sema4ai/agent-server-interface": "*",
-    "@sema4ai/data-interface": "^2.2.3",
-    "@sema4ai/robocloud-shared-utils": "1.10.1",
+    "@sema4ai/data-interface": "^3.0.0",
+    "@sema4ai/robocloud-shared-utils": "^2.0.0",
     "@tanstack/react-query": "^5.85.3",
     "@tanstack/react-virtual": "^3.13.12",
     "dompurify": "^3.3.0",
@@ -98,6 +98,7 @@
     "mark.js": "^8.11.1",
     "openapi-fetch": "^0.14.0",
     "openapi-typescript-helpers": "^0.0.13",
+    "prismjs": "^1.30.0",
     "qs": "^6.14.0",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.62.0",
@@ -105,6 +106,6 @@
     "vega": "^6.1.2",
     "vega-embed": "^7.0.2",
     "yaml": "^2.8.1",
-    "zod": "^3.25.76"
+    "zod": "^4.1.12"
   }
 }

@@ -42,3 +42,5 @@ export * from './components/ChatDetails/WorkItemAPIUrl';
 
 export * from './components/WorkItemsTable';
 export * from './components/WorkItemsOverview';
+
+export * from './common/form/SchemaFormFields';

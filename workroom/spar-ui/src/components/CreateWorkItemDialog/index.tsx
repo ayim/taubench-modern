@@ -17,7 +17,7 @@ interface CreateWorkItemDialogProps {
 }
 
 type WorkerItemFormValues = {
-  workItemName: string;
+  workItemName?: string | undefined;
   message: string;
   payload?: string;
   files?: File[];

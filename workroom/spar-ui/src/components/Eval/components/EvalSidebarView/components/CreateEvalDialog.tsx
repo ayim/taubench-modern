@@ -2,7 +2,7 @@ import { FC, useEffect, useRef } from 'react';
 import z from 'zod';
 import { Dialog, Box, Typography, Form, Input, Button, Progress, Switch } from '@sema4ai/components';
 import { IconChemicalBottle, IconArrowRight } from '@sema4ai/icons';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, Resolver, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAnalytics } from '../../../../../queries';
 
@@ -56,7 +56,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     expectation: false,
   });
   const form = useForm<CreateEvalFormData>({
-    resolver: zodResolver(createEvalFormSchema),
+    resolver: zodResolver(createEvalFormSchema) as Resolver<CreateEvalFormData>,
     defaultValues: {
       name: initialValues?.name || '',
       description: initialValues?.description || '',

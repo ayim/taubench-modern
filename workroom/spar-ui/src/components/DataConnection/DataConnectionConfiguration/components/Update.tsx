@@ -2,7 +2,7 @@ import { FC, useEffect } from 'react';
 import { Button, Dialog, Form, Progress, useSnackbar } from '@sema4ai/components';
 import { DataConnection } from '@sema4ai/data-interface';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, Resolver, useForm } from 'react-hook-form';
 
 import { useDataConnectionQuery, useUpdateDataConnectionMutation } from '../../../../queries';
 import { DataConnectionForm } from './DataConnectionForm';
@@ -28,7 +28,7 @@ export const UpdateDataConnection: FC<Props> = ({ dataConnectionId, onClose }) =
   const { data: dataConnection, isFetching } = useDataConnectionQuery({ dataConnectionId });
 
   const formMethods = useForm<DataConnection>({
-    resolver: zodResolver(DataConnection),
+    resolver: zodResolver(DataConnection) as Resolver<DataConnection>,
     defaultValues: {},
   });
 

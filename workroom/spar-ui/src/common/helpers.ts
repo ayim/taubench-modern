@@ -1,6 +1,17 @@
 import { IconTableRows, IconType } from '@sema4ai/icons';
-import { IconAnyFile, IconExcel, IconPDF, IconWord } from '@sema4ai/icons/logos';
+import {
+  IconAnyFile,
+  IconExcel,
+  IconPDF,
+  IconWord,
+  IconAzure,
+  IconBedrock,
+  IconOpenAI,
+  IconGoogle,
+  IconAnyModel,
+} from '@sema4ai/icons/logos';
 import { Accept } from 'react-dropzone';
+import { ServerResponse } from '../queries/shared';
 
 export function getFileTypeIcon(fileType: string): IconType {
   switch (fileType) {
@@ -24,6 +35,28 @@ export function getFileTypeIcon(fileType: string): IconType {
       return IconAnyFile;
   }
 }
+
+export type LLMProvider = ServerResponse<'get', '/api/v2/platforms/'>[number]['kind'];
+
+export const getLLMProviderIcon = (provider: LLMProvider): IconType | undefined => {
+  switch (provider) {
+    case 'openai':
+      return IconOpenAI;
+    case 'azure':
+      return IconAzure;
+    case 'bedrock':
+      return IconBedrock;
+    case 'google':
+      return IconGoogle;
+    case 'groq':
+    case 'reducto':
+    case 'cortex':
+      return IconAnyModel;
+    default:
+      provider satisfies never;
+      return undefined;
+  }
+};
 
 export const snakeCaseToTitleCase = (str: string) => {
   return str.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());

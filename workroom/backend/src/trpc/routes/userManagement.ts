@@ -10,7 +10,7 @@ export const listAvailableRoles = authedProcedure(['users.read'])
     z.object({
       roles: z.array(
         z.object({
-          id: z.custom<UserRole>((val) => RoleIDs.includes(val)),
+          id: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)),
           name: z.string(),
         }),
       ),
@@ -40,7 +40,7 @@ export const listUsers = authedProcedure(['users.read'])
             id: z.string().uuid(),
             firstName: z.string(),
             lastName: z.string(),
-            role: z.custom<UserRole>((val) => RoleIDs.includes(val)),
+            role: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)),
           })
           .strict(),
       ),
@@ -78,7 +78,7 @@ export const updateUser = authedProcedure(['users.write'])
   .input(
     z.object({
       update: z.object({
-        role: z.custom<UserRole>((val) => RoleIDs.includes(val)).optional(),
+        role: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)).optional(),
       }),
       userId: z.string().uuid(),
     }),

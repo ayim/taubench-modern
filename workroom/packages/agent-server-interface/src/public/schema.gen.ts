@@ -507,8 +507,10 @@ export interface paths {
                 )[];
           };
         };
-        /** @description Accepted (notifications-only input)
-         *     Server returns no body when input is purely notifications */
+        /**
+         * @description Accepted (notifications-only input)
+         *     Server returns no body when input is purely notifications
+         */
         202: {
           headers: {
             [name: string]: unknown;

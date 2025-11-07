@@ -15,7 +15,7 @@ export const Session = z.union([
         stage: z.literal('authenticated'),
         tokens: OIDCTokens,
         userId: z.string().nonempty(),
-        userRole: z.custom<UserRole>((val) => RoleIDs.includes(val)),
+        userRole: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)),
       }),
     ]),
     authType: z.literal('oidc'),

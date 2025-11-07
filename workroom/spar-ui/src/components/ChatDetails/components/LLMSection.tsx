@@ -1,28 +1,5 @@
-import { components } from '@sema4ai/agent-server-interface';
 import { Typography, Box } from '@sema4ai/components';
-import { IconAzure, IconBedrock, IconOpenAI } from '@sema4ai/icons/logos';
-import React from 'react';
-
-type AllPlatformParameters =
-  | components['schemas']['OpenAIPlatformParameters']
-  | components['schemas']['AzureOpenAIPlatformParameters']
-  | components['schemas']['BedrockPlatformParameters'];
-
-export type Provider = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock'>;
-
-const getProviderIcon = (provider: Provider): React.ReactNode | null => {
-  switch (provider) {
-    case 'openai':
-      return <IconOpenAI />;
-    case 'azure':
-      return <IconAzure />;
-    case 'bedrock':
-      return <IconBedrock />;
-    default:
-      provider satisfies never;
-      return null;
-  }
-};
+import { getLLMProviderIcon, LLMProvider } from '../../../common/helpers';
 
 const getModelName = (model: string) => {
   return model
@@ -32,14 +9,14 @@ const getModelName = (model: string) => {
 };
 
 export const LLMSection = ({ provider, name }: { provider: string; name: string }) => {
-  const providerIcon = getProviderIcon(provider.toLowerCase() as Provider);
+  const ProviderIcon = getLLMProviderIcon(provider.toLowerCase() as LLMProvider);
   return (
     <Box display="flex" flexDirection="column" gap="$10">
       <Typography variant="body-medium" fontWeight="bold">
         LLM
       </Typography>
       <Box display="flex" gap="$4">
-        {providerIcon}
+        {ProviderIcon && <ProviderIcon />}
         <Typography variant="body-medium">
           {provider} ({getModelName(name)})
         </Typography>
