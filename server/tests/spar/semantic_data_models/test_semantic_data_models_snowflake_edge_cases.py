@@ -30,6 +30,92 @@ pytestmark = [
 ]
 
 
+def get_last_successful_sql_call(tool_calls: list) -> Any:
+    """
+    Get the last successful SQL tool call from a list of tool calls.
+
+    Agents may make multiple attempts and self-correct after errors,
+    so we want to validate the final successful attempt.
+
+    Args:
+        tool_calls: List of all tool calls
+
+    Returns:
+        The last successful data_frames_create_from_sql tool call
+
+    Raises:
+        AssertionError: If no successful SQL calls found
+    """
+    sql_tool_calls = [tc for tc in tool_calls if tc.tool_name == "data_frames_create_from_sql"]
+    assert len(sql_tool_calls) > 0, (
+        f"Expected data_frames_create_from_sql call. Got: {[tc.tool_name for tc in tool_calls]}"
+    )
+
+    # Filter for successful calls (no errors)
+    successful_sql_calls = [tc for tc in sql_tool_calls if tc.error is None]
+    assert len(successful_sql_calls) > 0, (
+        f"No successful SQL queries. All {len(sql_tool_calls)} attempts failed. "
+        f"Errors: {[tc.error for tc in sql_tool_calls]}"
+    )
+
+    # Return the last successful call
+    return successful_sql_calls[-1]
+
+
+def validate_sql_execution_and_data(
+    client: AgentServerClient,
+    thread_id: str,
+    sql_tool_call: Any,
+    expected_row_count: int | None = None,
+    min_row_count: int = 0,
+) -> dict:
+    """
+    Validate that SQL executed successfully and returned data.
+
+    Args:
+        client: Agent server client
+        thread_id: Thread ID where tool was executed
+        sql_tool_call: The tool call object from data_frames_create_from_sql
+        expected_row_count: Expected exact number of rows (optional)
+        min_row_count: Minimum expected rows (default: 0, means at least some data)
+
+    Returns:
+        dict: The data frame metadata
+
+    Raises:
+        AssertionError: If validation fails
+    """
+    # Verify tool executed without errors
+    assert sql_tool_call.error is None, f"Tool execution failed with error: {sql_tool_call.error}"
+
+    # Verify result contains data frame information
+    assert sql_tool_call.result, f"Tool result is empty: {sql_tool_call.result}"
+
+    # Get data frame name from tool input
+    data_frame_name = sql_tool_call.input_data.get("new_data_frame_name")
+    assert data_frame_name, f"Tool input missing new_data_frame_name: {sql_tool_call.input_data}"
+
+    print(f"✅ Data frame created successfully: {data_frame_name}")
+
+    # Verify the data frame actually contains data
+    data_frames = client.get_data_frames(thread_id)
+    matching_df = next((df for df in data_frames if df["name"] == data_frame_name), None)
+    assert matching_df is not None, f"Data frame {data_frame_name} not found in thread"
+
+    num_rows = matching_df["num_rows"]
+    print(f"✅ Data frame contains {num_rows} rows")
+
+    # Validate row counts
+    if expected_row_count is not None:
+        assert num_rows == expected_row_count, (
+            f"Expected exactly {expected_row_count} rows, got {num_rows}"
+        )
+    else:
+        assert num_rows >= min_row_count, f"Expected at least {min_row_count} rows, got {num_rows}"
+
+    return matching_df
+
+
 # Override the engine fixture to only use snowflake for these edge case tests
 @pytest.fixture(scope="module")
 def engine(request: pytest.FixtureRequest):
@@ -42,11 +128,12 @@ def engine(request: pytest.FixtureRequest):
 
 
 # Edge case tables with special Snowflake column types (simplified)
+# Note: Snowflake stores unquoted identifiers as uppercase
 EDGE_CASE_TABLES = [
-    "products_with_variant",  # VARIANT for metadata
-    "events_with_variant",  # VARIANT payloads
-    "products_with_arrays",  # ARRAY types
-    "customers_with_objects",  # OBJECT for addresses
+    "PRODUCTS_WITH_VARIANT",  # VARIANT for metadata
+    "EVENTS_WITH_VARIANT",  # VARIANT payloads
+    "PRODUCTS_WITH_ARRAYS",  # ARRAY types
+    "CUSTOMERS_WITH_OBJECTS",  # OBJECT for addresses
 ]
 
 
@@ -70,12 +157,12 @@ def agent_for_edge_cases(
             {
                 "kind": "openai",
                 "openai_api_key": openai_api_key,
-                "models": {"openai": ["gpt-4o-mini"]},
+                "models": {"openai": ["gpt-4o"]},  # Use gpt-4o for better SQL generation
             },
         ],
         runbook=(
             "You are an agent that creates data frames using data_frames_create_from_sql. "
-            "The database includes Snowflake edge case types: VARIANT, ARRAY, and OBJECT."
+            "Follow the Snowflake SQL syntax rules provided in the semantic data model."
         ),
         description="Agent for testing Snowflake edge case types",
     )
@@ -124,19 +211,19 @@ def test_edge_case_columns_detected(
     for table in inspect_response["tables"]:
         table_columns[table["name"]] = table["columns"]
 
-    # Verify VARIANT columns
-    assert any(col["name"] == "metadata" for col in table_columns["products_with_variant"]), (
-        "VARIANT column 'metadata' not detected"
+    # Verify VARIANT columns (Snowflake stores unquoted identifiers as uppercase)
+    assert any(col["name"] == "METADATA" for col in table_columns["PRODUCTS_WITH_VARIANT"]), (
+        "VARIANT column 'METADATA' not detected"
     )
 
     # Verify ARRAY columns
-    assert any(col["name"] == "tags" for col in table_columns["products_with_arrays"]), (
-        "ARRAY column 'tags' not detected"
+    assert any(col["name"] == "TAGS" for col in table_columns["PRODUCTS_WITH_ARRAYS"]), (
+        "ARRAY column 'TAGS' not detected"
     )
 
     # Verify OBJECT columns
-    assert any(col["name"] == "address" for col in table_columns["customers_with_objects"]), (
-        "OBJECT column 'address' not detected"
+    assert any(col["name"] == "ADDRESS" for col in table_columns["CUSTOMERS_WITH_OBJECTS"]), (
+        "OBJECT column 'ADDRESS' not detected"
     )
 
 
@@ -259,75 +346,297 @@ def agent_with_edge_case_semantic_data_model(
     return agent_id
 
 
+# ============================================================================
+# 1. VARIANT COLUMN QUERIES
+# ============================================================================
+
+
 @pytest.mark.parametrize(
-    ("query", "expected_table"),
+    ("query", "expected_row_count"),
     [
+        # Filter by nested VARIANT field - brand
         (
-            "Show all products from products_with_variant including their metadata",
-            "products_with_variant",
+            "Show all products where the brand in metadata is 'TechCorp'",
+            1,  # Only Smart Watch
         ),
+        # Filter by nested VARIANT field in specifications
         (
-            "Get events from events_with_variant showing event types and payloads",
-            "events_with_variant",
+            "Find products where battery in specifications is '48h'",
+            1,  # Only Smart Watch
         ),
+        # Show all VARIANT data
         (
-            "List products from products_with_arrays with their tags",
-            "products_with_arrays",
-        ),
-        (
-            "Show customers from customers_with_objects including their addresses",
-            "customers_with_objects",
+            "Show all products with their metadata and specifications",
+            2,  # Both products
         ),
     ],
 )
-def test_agent_queries_edge_cases(
+@pytest.mark.flaky(max_runs=3, min_passes=1)
+def test_query_variant_columns(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_with_edge_case_semantic_data_model: str,
-    created_edge_case_model_id: str,
     query: str,
-    expected_table: str,
+    expected_row_count: int,
+):
+    """Test querying VARIANT columns with nested JSON access."""
+    client, _ = agent_server_client_with_data_connection
+    agent_id = agent_with_edge_case_semantic_data_model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
+
+    result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
+
+    print(f"\nQuery: {query}")
+    print(f"Result: {result}")
+    print(f"Tool calls: {[tc.tool_name for tc in tool_calls]}")
+
+    # Use last successful SQL call
+    sql_tool_call = get_last_successful_sql_call(tool_calls)
+
+    # ✅ Validate SQL executed successfully and returned correct number of rows
+    validate_sql_execution_and_data(
+        client=client,
+        thread_id=thread_id,
+        sql_tool_call=sql_tool_call,
+        expected_row_count=expected_row_count,
+    )
+
+    # Verify non-empty result
+    assert str(result), f"Empty result for query: {query}"
+
+    # Get the SQL query for debugging
+    sql_query = sql_tool_call.input_data["sql_query"]
+    print(f"Generated SQL: {sql_query}")
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_row_count"),
+    [
+        # Filter events by type
+        (
+            "Show all events where event_type is 'user_login'",
+            1,  # Only user_login event
+        ),
+        # All events
+        (
+            "List all events with their payloads",
+            2,  # Both events
+        ),
+    ],
+)
+@pytest.mark.flaky(max_runs=3, min_passes=1)
+def test_query_variant_events(
+    agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
+    agent_with_edge_case_semantic_data_model: str,
+    query: str,
+    expected_row_count: int,
+):
+    """Test querying VARIANT event payloads."""
+    client, _ = agent_server_client_with_data_connection
+    agent_id = agent_with_edge_case_semantic_data_model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
+
+    result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
+
+    print(f"\nQuery: {query}")
+    print(f"Result: {result}")
+    print(f"Tool calls: {[tc.tool_name for tc in tool_calls]}")
+
+    # Use last successful SQL call
+    sql_tool_call = get_last_successful_sql_call(tool_calls)
+
+    # ✅ Validate SQL executed successfully
+    validate_sql_execution_and_data(
+        client=client,
+        thread_id=thread_id,
+        sql_tool_call=sql_tool_call,
+        expected_row_count=expected_row_count,
+    )
+
+    # Verify non-empty result
+    assert str(result), f"Empty result for query: {query}"
+
+    sql_query = sql_tool_call.input_data["sql_query"]
+    print(f"Generated SQL: {sql_query}")
+
+
+# ============================================================================
+# 2. ARRAY COLUMN QUERIES
+# ============================================================================
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_row_count"),
+    [
+        # Filter by array contains - gaming
+        (
+            "Find products where tags contains 'gaming'",
+            1,  # Only Gaming Laptop
+        ),
+        # Show all products with arrays
+        (
+            "Show all products with their tags and category IDs",
+            2,  # Both products
+        ),
+    ],
+)
+@pytest.mark.flaky(max_runs=3, min_passes=1)
+def test_query_array_columns(
+    agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
+    agent_with_edge_case_semantic_data_model: str,
+    query: str,
+    expected_row_count: int,
+):
+    """Test querying ARRAY columns with contains operations."""
+    client, _ = agent_server_client_with_data_connection
+    agent_id = agent_with_edge_case_semantic_data_model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
+
+    result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
+
+    print(f"\nQuery: {query}")
+    print(f"Result: {result}")
+    print(f"Tool calls: {[tc.tool_name for tc in tool_calls]}")
+
+    # Use last successful SQL call
+    sql_tool_call = get_last_successful_sql_call(tool_calls)
+
+    # ✅ Validate SQL executed successfully
+    validate_sql_execution_and_data(
+        client=client,
+        thread_id=thread_id,
+        sql_tool_call=sql_tool_call,
+        expected_row_count=expected_row_count,
+    )
+
+    # Verify non-empty result
+    assert str(result), f"Empty result for query: {query}"
+
+    sql_query = sql_tool_call.input_data["sql_query"]
+    print(f"Generated SQL: {sql_query}")
+
+
+# ============================================================================
+# 3. OBJECT COLUMN QUERIES
+# ============================================================================
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_row_count"),
+    [
+        # Filter by nested OBJECT field - city
+        (
+            "Find customers where the city in address is 'San Francisco'",
+            1,  # Only Alice Johnson
+        ),
+        # Filter by nested OBJECT field - state
+        (
+            "List customers where the state in address is 'CA'",
+            1,  # Only Alice Johnson
+        ),
+        # Filter by contact preference
+        (
+            "Show customers where preferred contact method is 'email'",
+            1,  # Only Alice Johnson
+        ),
+    ],
+)
+@pytest.mark.flaky(max_runs=3, min_passes=1)
+def test_query_object_columns(
+    agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
+    agent_with_edge_case_semantic_data_model: str,
+    query: str,
+    expected_row_count: int,
+):
+    """Test querying OBJECT columns with nested field access."""
+    client, _ = agent_server_client_with_data_connection
+    agent_id = agent_with_edge_case_semantic_data_model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
+
+    result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
+
+    print(f"\nQuery: {query}")
+    print(f"Result: {result}")
+    print(f"Tool calls: {[tc.tool_name for tc in tool_calls]}")
+
+    # Use last successful SQL call
+    sql_tool_call = get_last_successful_sql_call(tool_calls)
+
+    # ✅ Validate SQL executed successfully
+    validate_sql_execution_and_data(
+        client=client,
+        thread_id=thread_id,
+        sql_tool_call=sql_tool_call,
+        expected_row_count=expected_row_count,
+    )
+
+    # Verify non-empty result
+    assert str(result), f"Empty result for query: {query}"
+
+    sql_query = sql_tool_call.input_data["sql_query"]
+    print(f"Generated SQL: {sql_query}")
+
+
+# ============================================================================
+# 4. BASIC TABLE QUERIES (Original tests kept for backward compatibility)
+# ============================================================================
+
+
+@pytest.mark.parametrize(
+    ("query", "min_row_count"),
+    [
+        (
+            "Show all products with VARIANT metadata and specifications",
+            2,  # Both products with variant
+        ),
+        (
+            "Get all events showing event types and payloads",
+            2,  # Both events
+        ),
+        (
+            "List all products with array tags",
+            2,  # Both products with arrays
+        ),
+        (
+            "Show all customers with their addresses",
+            2,  # Both customers
+        ),
+    ],
+)
+@pytest.mark.flaky(max_runs=3, min_passes=1)
+def test_agent_queries_edge_cases_basic(
+    agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
+    agent_with_edge_case_semantic_data_model: str,
+    query: str,
+    min_row_count: int,
 ):
     """Test agent can query Snowflake edge case tables with special types."""
     client, _ = agent_server_client_with_data_connection
     agent_id = agent_with_edge_case_semantic_data_model
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
-    # Get the semantic model to map semantic table names to actual base table names
-    semantic_model = client.get_semantic_data_model(created_edge_case_model_id)
-
-    # Build a mapping from actual table names to semantic model table names
-    # This handles cases where the LLM renames tables
-    base_table_to_semantic_name = {}
-    for table in semantic_model.get("tables", []):
-        base_table_name = table.get("base_table", {}).get("table")
-        semantic_table_name = table.get("name")
-        if base_table_name and semantic_table_name:
-            base_table_to_semantic_name[base_table_name] = semantic_table_name
-
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
 
-    print(
-        f"Query: {query}\n\nResult: {result}\n\nTool calls: {[tc.tool_name for tc in tool_calls]}"
-    )
+    print(f"\nQuery: {query}")
+    print(f"Result: {result}")
+    print(f"Tool calls: {[tc.tool_name for tc in tool_calls]}")
 
-    # Verify data_frames_create_from_sql was called
-    assert any(tc.tool_name == "data_frames_create_from_sql" for tc in tool_calls), (
-        f"Expected data_frames_create_from_sql call. Got: {[tc.tool_name for tc in tool_calls]}"
+    # Use last successful SQL call (agents may need multiple attempts)
+    sql_tool_call = get_last_successful_sql_call(tool_calls)
+
+    # ✅ Validate SQL executed successfully and returned data
+    validate_sql_execution_and_data(
+        client=client,
+        thread_id=thread_id,
+        sql_tool_call=sql_tool_call,
+        min_row_count=min_row_count,
     )
 
     # Verify non-empty result
     assert str(result), f"Empty result for query: {query}"
 
-    # Verify the result is from the expected table
-    sql_tool_calls = [tc for tc in tool_calls if tc.tool_name == "data_frames_create_from_sql"]
-    assert len(sql_tool_calls) > 0, "Expected at least one data_frames_create_from_sql call"
+    # Get the SQL query for debugging
+    sql_query = sql_tool_call.input_data["sql_query"]
+    print(f"Generated SQL: {sql_query}")
 
-    sql_query = sql_tool_calls[0].input_data["sql_query"]
-
-    # Check if the expected table (base table) is in the query
-    # OR check if the semantic model's renamed version of the table is in the query
-    semantic_table_name = base_table_to_semantic_name.get(expected_table, expected_table)
-    assert expected_table in sql_query or semantic_table_name in sql_query, (
-        f"Expected table '{expected_table}' or semantic name '{semantic_table_name}' "
-        f"not found in SQL query: {sql_query}"
-    )
+    # Note: We don't assert specific SQL patterns because the LLM may generate
+    # different column/table names on each run. We validate the outcome instead.

@@ -1,5 +1,5 @@
 -- Test Data for E-commerce Schema (Snowflake)
--- Uses quoted identifiers to maintain lowercase table/column names
+-- Using QUOTED identifiers to preserve lowercase names for test compatibility
 -- Insert customers
 INSERT INTO
   "customers" ("name", "email", "created_at")

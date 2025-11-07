@@ -206,6 +206,93 @@ def _get_postgres_json_guidance(model: "SemanticDataModel") -> str:  # noqa: C90
     return "\n".join(guidance_parts)
 
 
+def _get_snowflake_variant_guidance(model: "SemanticDataModel") -> str:  # noqa: C901, PLR0912
+    """
+    Generate Snowflake-specific VARIANT/ARRAY/OBJECT column guidance for a semantic data model.
+    Scans the model for these special Snowflake types and returns targeted guidance
+    on how to query them properly.
+    Args:
+        model: The semantic data model to scan for Snowflake-specific columns
+    Returns:
+        A formatted guidance string if special columns are found, empty string otherwise
+    """
+    variant_columns = []
+    array_columns = []
+    object_columns = []
+    tables = model.get("tables", [])
+
+    # Scan for Snowflake-specific column types in the semantic data model
+    if tables:
+        for table in tables:
+            if not isinstance(table, dict):
+                continue
+            table_name = table.get("name", "")
+
+            # Check all column categories
+            for category in ["dimensions", "facts", "metrics", "time_dimensions"]:
+                columns = table.get(category, [])
+                if isinstance(columns, list) and columns:
+                    for col in columns:
+                        if isinstance(col, dict):
+                            data_type = col.get("data_type", "").upper()
+                            col_name = col.get("name", "")
+                            if "VARIANT" in data_type and col_name:
+                                variant_columns.append(f"{table_name}.{col_name}")
+                            elif "ARRAY" in data_type and col_name:
+                                array_columns.append(f"{table_name}.{col_name}")
+                            elif "OBJECT" in data_type and col_name:
+                                object_columns.append(f"{table_name}.{col_name}")
+
+    # Generate guidance if Snowflake-specific columns are detected
+    if not variant_columns and not array_columns and not object_columns:
+        return ""
+
+    all_special_cols = variant_columns + array_columns + object_columns
+    guidance_parts = [
+        "\n⚠️  SYNTAX REQUIREMENT: BRACKET NOTATION ONLY ⚠️",
+        f"For columns: {', '.join(all_special_cols)}",
+        "NEVER use colon notation (col:field) - it will cause 'Invalid expression' errors",
+        "ALWAYS use bracket notation: col['field']\n",
+    ]
+
+    if variant_columns:
+        cols = ", ".join(variant_columns)
+        guidance_parts.append(
+            f"• VARIANT columns ({cols}):\n"
+            f"  - Syntax: col['field'] NOT col:field\n"
+            f"  - Extract string: col['field']::TEXT or CAST(col['field'] AS TEXT)\n"
+            f"  - Nested: col['field']['subfield']\n"
+            f"  - Array element: col['field'][0]\n"
+            f"  - Filter: WHERE col['brand']::TEXT = 'value'\n"
+            f"  - WRONG: WHERE {cols}:brand = 'value'\n"
+            f"  - CORRECT: WHERE {cols}['brand']::TEXT = 'value'"
+        )
+
+    if array_columns:
+        cols = ", ".join(array_columns)
+        guidance_parts.append(
+            f"• ARRAY columns ({cols}):\n"
+            f"  - Check if contains value: ARRAY_CONTAINS('value'::VARIANT, col)\n"
+            f"  - Get array size: ARRAY_SIZE(col)\n"
+            f"  - Access element by index: col[0] for first element (0-indexed)\n"
+            f"  - Iterate/expand array: Use FLATTEN(col) in a lateral join or subquery"
+        )
+
+    if object_columns:
+        cols = ", ".join(object_columns)
+        guidance_parts.append(
+            f"• OBJECT columns ({cols}):\n"
+            f"  - Syntax: col['field'] NOT col:field\n"
+            f"  - Extract string: col['field']::TEXT or CAST(col['field'] AS TEXT)\n"
+            f"  - Nested: col['field']['subfield']\n"
+            f"  - Filter: WHERE col['city']::TEXT = 'value'\n"
+            f"  - WRONG: WHERE {cols}:city = 'value'\n"
+            f"  - CORRECT: WHERE {cols}['city']::TEXT = 'value'"
+        )
+
+    return "\n".join(guidance_parts)
+
+
 def _convert_semantic_data_model_to_context_string(  # noqa: C901 PLR0912
     data: "list[tuple[SemanticDataModel, str]]",
 ) -> str:
@@ -223,7 +310,7 @@ def _convert_semantic_data_model_to_context_string(  # noqa: C901 PLR0912
 
     result = []
 
-    for model, engine in data:
+    for _idx, (model, engine) in enumerate(data):
         if not isinstance(model, dict):
             continue
 
@@ -239,8 +326,17 @@ def _convert_semantic_data_model_to_context_string(  # noqa: C901 PLR0912
             model_header += f"\nDescription: {description}"
         result.append(model_header)
 
-        # Add PostgreSQL-specific JSON guidance if applicable
-        if engine == "postgres":
+        # Add database-specific guidance IMMEDIATELY after header for maximum visibility
+        if engine == "snowflake":
+            snowflake_guidance = _get_snowflake_variant_guidance(model)
+            if snowflake_guidance:
+                # Add prominent banner to make it unmissable
+                result.append("\n" + "=" * 80)
+                result.append("🚨 CRITICAL: SNOWFLAKE VARIANT/OBJECT/ARRAY COLUMN SYNTAX 🚨")
+                result.append("=" * 80)
+                result.append(snowflake_guidance)
+                result.append("=" * 80 + "\n")
+        elif engine == "postgres":
             postgres_guidance = _get_postgres_json_guidance(model)
             if postgres_guidance:
                 result.append(postgres_guidance)
@@ -274,7 +370,8 @@ def _convert_semantic_data_model_to_context_string(  # noqa: C901 PLR0912
 
         result.append("")  # Empty line between models
 
-    return "\n".join(result)
+    context_string = "\n".join(result)
+    return context_string
 
 
 class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):

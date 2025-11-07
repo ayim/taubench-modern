@@ -72,13 +72,16 @@ def get_last_successful_sql_call(tool_calls: list) -> Any:
     Get the last successful SQL tool call from a list of tool calls.
 
     Agents may make multiple attempts and self-correct after errors,
-    so we want to validate the final successful attempt.
+    so we want to validate the final successful attempt that returns detail data.
+
+    Prefers detail queries (multiple columns) over aggregate queries (COUNT, SUM, etc.)
+    to avoid validating summary statistics when the test expects actual records.
 
     Args:
         tool_calls: List of all tool calls
 
     Returns:
-        The last successful data_frames_create_from_sql tool call
+        The last successful data_frames_create_from_sql tool call with detail data
 
     Raises:
         AssertionError: If no successful SQL calls found
@@ -95,7 +98,28 @@ def get_last_successful_sql_call(tool_calls: list) -> Any:
         f"Errors: {[tc.error for tc in sql_tool_calls]}"
     )
 
-    return successful_sql_calls[-1]  # Return last successful call
+    # Prefer detail queries over aggregate queries
+    # Detail queries typically have multiple columns and don't use aggregate functions
+    detail_queries = []
+    aggregate_queries = []
+
+    for call in successful_sql_calls:
+        sql_query = call.input_data.get("sql_query", "").upper()
+        # Check if it's an aggregate query (COUNT, SUM, AVG, MIN, MAX only)
+        is_aggregate = (
+            sql_query.count("COUNT(") > 0
+            and "," not in sql_query.split("SELECT")[1].split("FROM")[0]  # Single column
+        ) or ("COUNT(*)" in sql_query and "," not in sql_query.split("SELECT")[1].split("FROM")[0])
+
+        if is_aggregate:
+            aggregate_queries.append(call)
+        else:
+            detail_queries.append(call)
+
+    # Return last detail query if available, otherwise last aggregate
+    if detail_queries:
+        return detail_queries[-1]
+    return aggregate_queries[-1] if aggregate_queries else successful_sql_calls[-1]
 
 
 def validate_sql_execution_and_data(

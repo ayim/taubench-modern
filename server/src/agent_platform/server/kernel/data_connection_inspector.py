@@ -336,7 +336,12 @@ class DataConnectionInspector:
                 table = await self._get_table(table_spec)
             # We try to get the schema to verify the table is accessible.
             # TODO: Is this enough or should we call `info()`, `describe()` or `head(1)`?
-            table.schema()
+            # For Snowflake, use columns attribute instead of schema() to avoid Arrow errors
+            if getattr(self.data_connection, "engine", None) == "snowflake":
+                # Just check if columns attribute exists
+                _ = table.columns
+            else:
+                table.schema()
         except TableNotFoundError as e:
             return str(e)
         except Exception as e:
@@ -590,6 +595,8 @@ class DataConnectionInspector:
                 )
             elif isinstance(config, SnowflakeCustomKeyPairConfiguration):
                 # For custom key pair authentication
+                # Disable Arrow format to avoid compatibility issues with VARIANT/OBJECT types
+                # Pass as kwargs to underlying snowflake connector
                 ret = ibis.snowflake.connect(
                     account=config.account,
                     user=config.user,
@@ -599,6 +606,11 @@ class DataConnectionInspector:
                     schema=config.schema,
                     role=config.role,
                     private_key_passphrase=config.private_key_passphrase,
+                    session_parameters={
+                        "PYTHON_CONNECTOR_QUERY_RESULT_FORMAT": "JSON",
+                        "PYTHON_CONNECTOR_USE_NANOARROW": False,  # Disable nanoarrow (Arrow format)
+                    },
+                    use_pandas=False,  # Force JSON format, not Arrow
                 )
             else:
                 # For password-based authentication
@@ -610,6 +622,11 @@ class DataConnectionInspector:
                     database=config.database,
                     schema=config.schema,
                     role=config.role,
+                    session_parameters={
+                        "PYTHON_CONNECTOR_QUERY_RESULT_FORMAT": "JSON",
+                        "PYTHON_CONNECTOR_USE_NANOARROW": False,
+                    },
+                    use_pandas=False,
                 )
 
             elapsed = time.monotonic() - initial_time
@@ -674,7 +691,11 @@ class DataConnectionInspector:
         # Get column information
         columns = []
         columns_to_inspect = []
-        for column_name in table.schema().names:
+
+        # Get column names from table schema
+        column_names = table.schema().names
+
+        for column_name in column_names:
             # Skip columns if specific columns are requested and this one isn't in the list
             if (
                 table_spec.columns_to_inspect is not None
@@ -691,8 +712,18 @@ class DataConnectionInspector:
                     table, columns_to_inspect, self.request.n_sample_rows
                 )
 
-                sample_table_arrow: pyarrow.Table = sample_query.to_pyarrow()
-                sample_table = sample_table_arrow
+                # For Snowflake, use raw cursor to avoid Arrow format issues
+                # with VARIANT/OBJECT types
+                from agent_platform.server.utils.snowflake_utils import (
+                    execute_snowflake_query_raw,
+                    is_snowflake_backend,
+                )
+
+                if is_snowflake_backend(sample_query):
+                    sample_table = execute_snowflake_query_raw(sample_query)
+                else:
+                    sample_table_arrow: pyarrow.Table = sample_query.to_pyarrow()
+                    sample_table = sample_table_arrow
             except Exception as e:
                 logger.error(f"Error inspecting table {table_spec.name}: {e!r}")
 
@@ -705,11 +736,20 @@ class DataConnectionInspector:
                 # Error inspecting table film column release_year column type: unknown(
                 #   DataType(this=Type.USERDEFINED, kind=year)): ArrowTypeError("Expected bytes,
                 #   got a 'int' object")
+                from agent_platform.server.utils.snowflake_utils import (
+                    execute_snowflake_query_raw,
+                    is_snowflake_backend,
+                )
+
                 sample_table_dict: dict[str, pyarrow.Table | None] = {}
                 for column_name in columns_to_inspect:
                     try:
                         sample_query = table.select(column_name).limit(self.request.n_sample_rows)
-                        sample_table_dict[column_name] = sample_query.to_pyarrow()
+                        if is_snowflake_backend(sample_query):
+                            result = execute_snowflake_query_raw(sample_query)
+                            sample_table_dict[column_name] = result
+                        else:
+                            sample_table_dict[column_name] = sample_query.to_pyarrow()
                     except Exception as e:
                         logger.error(
                             f"Error inspecting table {table_spec.name} column {column_name} "
@@ -743,7 +783,21 @@ class DataConnectionInspector:
         )
 
         # Get column type
-        column_type = str(table[column_name].type())
+        try:
+            column_type = str(table[column_name].type())
+        except Exception as e:
+            # For Snowflake, if .type() fails with Arrow error, use a fallback
+            # Error 255003: "Conversion from Snowflake VARIANT/OBJECT/ARRAY to Arrow not supported"
+            if "255003" in str(e) or "Arrow" in str(e):
+                logger.warning(
+                    f"Arrow error for column {column_name}, marking column with 'unknown' type",
+                    column=column_name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                column_type = "unknown"
+            else:
+                raise
         if sample_table is not None:
             if isinstance(sample_table, dict):
                 sample_table = sample_table[column_name]

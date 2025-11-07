@@ -226,7 +226,16 @@ def _convert_ibis_slice_to_format(  # noqa: PLR0913
             result = result[offset : offset + limit]
 
     # Convert to pyarrow table
-    table = result.to_pyarrow()
+    # For Snowflake, use raw SQL execution to avoid Arrow errors with VARIANT types
+    from agent_platform.server.utils.snowflake_utils import (
+        execute_snowflake_query_raw,
+        is_snowflake_backend,
+    )
+
+    if is_snowflake_backend(result):
+        table = execute_snowflake_query_raw(result)
+    else:
+        table = result.to_pyarrow()
     return _convert_arrow_to_format(table, output_format)
 
 
@@ -519,18 +528,42 @@ class DataNodeFromIbisResult(DataNodeResult):
         self._platform_data_frame = platform_data_frame
         self._ibis_result = ibis_result
 
+    def _is_snowflake(self) -> bool:
+        """Check if the ibis result is from a Snowflake backend."""
+        from agent_platform.server.utils.snowflake_utils import is_snowflake_backend
+
+        return is_snowflake_backend(self._ibis_result)
+
+    def _to_arrow_safe(self, ibis_expr: Any) -> Any:
+        """Convert ibis expression to Arrow, using raw SQL for Snowflake to avoid Arrow errors."""
+        from agent_platform.server.utils.snowflake_utils import execute_snowflake_query_raw
+
+        if self._is_snowflake():
+            return execute_snowflake_query_raw(ibis_expr)
+        else:
+            return ibis_expr.to_pyarrow()
+
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
         if num_samples == 0:
             return []
         if num_samples == -1:
-            table = self._ibis_result.to_pyarrow()
+            table = self._to_arrow_safe(self._ibis_result)
         else:
-            table = self._ibis_result.limit(num_samples).to_pyarrow()
+            table = self._to_arrow_safe(self._ibis_result.limit(num_samples))
         return [list(row) for row in table.to_pylist()]
 
     @property
     def num_rows(self) -> int:
-        return self._ibis_result.count().to_pyarrow().as_py()
+        count_result = self._ibis_result.count()
+        if self._is_snowflake():
+            # For Snowflake, use raw SQL execution to avoid Arrow
+            from agent_platform.server.utils.snowflake_utils import execute_snowflake_query_raw
+
+            table = execute_snowflake_query_raw(count_result)
+            # Count result is a single-row, single-column table
+            return table.to_pylist()[0][table.column_names[0]]
+        else:
+            return count_result.to_pyarrow().as_py()
 
     @property
     def num_columns(self) -> int:

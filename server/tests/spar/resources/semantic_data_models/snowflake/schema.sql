@@ -1,6 +1,6 @@
 -- E-commerce Test Schema for Semantic Data Models (Snowflake)
 --
--- Note: All identifiers are quoted to preserve lowercase names (Snowflake converts unquoted to UPPERCASE)
+-- Note: Using QUOTED identifiers to preserve lowercase names for test compatibility
 -- Snowflake limitations: No CHECK constraints, no indexes on regular tables, foreign keys informational only
 -- Customers table
 CREATE TABLE "customers" (
