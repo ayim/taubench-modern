@@ -193,6 +193,22 @@ async def _parse_json_payload(request: Request, payload_model: type[T]) -> T:
     if dataclasses.is_dataclass(payload_model):
         field_names = {f.name for f in dataclasses.fields(payload_model)}  # type: ignore[arg-type]
         filtered_data = {k: v for k, v in json_data.items() if k in field_names}
+
+        # Handle selected_tools deserialization
+        if "selected_tools" in filtered_data:
+            from agent_platform.core.selected_tools import SelectedTools
+
+            selected_tools_data = filtered_data["selected_tools"]
+            if isinstance(selected_tools_data, dict):
+                filtered_data["selected_tools"] = SelectedTools.model_validate(selected_tools_data)
+            elif selected_tools_data is None:
+                filtered_data["selected_tools"] = SelectedTools()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="selected_tools must be an object or null",
+                )
+
         return payload_model(**filtered_data)
 
     # Last resort - direct constructor
@@ -211,6 +227,33 @@ async def _create_payload_from_form_data(payload_model: type[T], form_data: dict
     if dataclasses.is_dataclass(payload_model):
         field_names = {f.name for f in dataclasses.fields(payload_model)}  # type: ignore[arg-type]
         filtered_data = {k: v for k, v in form_data.items() if k in field_names}
+
+        # Handle selected_tools deserialization
+        if "selected_tools" in filtered_data:
+            from agent_platform.core.selected_tools import SelectedTools
+
+            selected_tools_data = filtered_data["selected_tools"]
+            if isinstance(selected_tools_data, str):
+                if selected_tools_data:
+                    try:
+                        selected_tools_data = json.loads(selected_tools_data)
+                    except json.JSONDecodeError as exc:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Invalid JSON for selected_tools: {exc}",
+                        ) from exc
+                else:
+                    selected_tools_data = {}
+            if isinstance(selected_tools_data, dict):
+                filtered_data["selected_tools"] = SelectedTools.model_validate(selected_tools_data)
+            elif selected_tools_data is None:
+                filtered_data["selected_tools"] = SelectedTools()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="selected_tools must be an object or null",
+                )
+
         return payload_model(**filtered_data)
 
     # Last resort - direct constructor

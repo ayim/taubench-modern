@@ -15,8 +15,13 @@ from agent_platform.core.payloads.agent_package import (
     AgentPackagePayloadActionServer,
     AgentPackagePayloadLangsmith,
 )
+from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.user import User
 from agent_platform.core.utils import SecretString
+from agent_platform.server.api.package_content_handler import (
+    _create_payload_from_form_data,
+    _parse_json_payload,
+)
 from agent_platform.server.api.private_v2.agents import (
     create_agent_from_package,
     update_agent_from_package,
@@ -127,6 +132,151 @@ def sample_agent_package_payload_base64():
         action_servers=[],
         mcp_servers=[],
     )
+
+
+@pytest.mark.asyncio
+async def test_parse_json_payload_selected_tools_dict():
+    body_json = {
+        "name": "Selected Tools JSON Agent",
+        "selected_tools": {"tool_names": [{"tool_name": "weather"}]},
+    }
+    body_bytes = json.dumps(body_json).encode()
+
+    async def receive():
+        return {"type": "http.request", "body": body_bytes, "more_body": False}
+
+    scope = {
+        "type": "http",
+        "http_version": "1.1",
+        "method": "POST",
+        "path": "/",
+        "headers": [(b"content-type", b"application/json")],
+        "query_string": b"",
+        "client": ("testclient", 1234),
+        "server": ("testserver", 80),
+        "scheme": "http",
+    }
+    request = Request(scope, receive)
+
+    payload = await _parse_json_payload(request, AgentPackagePayload)
+
+    assert isinstance(payload.selected_tools, SelectedTools)
+    assert [tool.tool_name for tool in payload.selected_tools.tool_names] == ["weather"]
+
+
+@pytest.mark.asyncio
+async def test_create_payload_from_form_data_selected_tools_str():
+    form_data = {
+        "name": "Selected Tools Form Agent",
+        "selected_tools": json.dumps({"tool_names": ["calendar"]}),
+    }
+
+    payload = await _create_payload_from_form_data(AgentPackagePayload, form_data)
+
+    assert isinstance(payload.selected_tools, SelectedTools)
+    assert [tool.tool_name for tool in payload.selected_tools.tool_names] == ["calendar"]
+
+
+@pytest.mark.asyncio
+async def test_create_payload_from_form_data_selected_tools_null():
+    form_data = {
+        "name": "Selected Tools Null Form Agent",
+        "selected_tools": json.dumps(None),
+    }
+
+    payload = await _create_payload_from_form_data(AgentPackagePayload, form_data)
+
+    assert isinstance(payload.selected_tools, SelectedTools)
+    assert payload.selected_tools.tool_names == []
+
+
+@pytest.mark.asyncio
+async def test_parse_json_payload_selected_tools_null():
+    body_json = {
+        "name": "Selected Tools Null Agent",
+        "selected_tools": None,
+    }
+    body_bytes = json.dumps(body_json).encode()
+
+    async def receive():
+        return {"type": "http.request", "body": body_bytes, "more_body": False}
+
+    scope = {
+        "type": "http",
+        "http_version": "1.1",
+        "method": "POST",
+        "path": "/",
+        "headers": [(b"content-type", b"application/json")],
+        "query_string": b"",
+        "client": ("testclient", 1234),
+        "server": ("testserver", 80),
+        "scheme": "http",
+    }
+    request = Request(scope, receive)
+
+    payload = await _parse_json_payload(request, AgentPackagePayload)
+
+    assert isinstance(payload.selected_tools, SelectedTools)
+    assert payload.selected_tools.tool_names == []
+
+
+@pytest.mark.asyncio
+async def test_create_payload_from_form_data_selected_tools_invalid_json():
+    form_data = {
+        "name": "Selected Tools Invalid Form Agent",
+        "selected_tools": "not-json",
+    }
+
+    with pytest.raises(HTTPException) as exc_info:
+        await _create_payload_from_form_data(AgentPackagePayload, form_data)
+
+    assert exc_info.value.status_code == 400
+    assert "Invalid JSON for selected_tools" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_parse_json_payload_selected_tools_invalid_type():
+    body_json = {
+        "name": "Selected Tools Invalid JSON Agent",
+        "selected_tools": 1234,
+    }
+    body_bytes = json.dumps(body_json).encode()
+
+    async def receive():
+        return {"type": "http.request", "body": body_bytes, "more_body": False}
+
+    scope = {
+        "type": "http",
+        "http_version": "1.1",
+        "method": "POST",
+        "path": "/",
+        "headers": [(b"content-type", b"application/json")],
+        "query_string": b"",
+        "client": ("testclient", 1234),
+        "server": ("testserver", 80),
+        "scheme": "http",
+    }
+    request = Request(scope, receive)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await _parse_json_payload(request, AgentPackagePayload)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "selected_tools must be an object or null"
+
+
+@pytest.mark.asyncio
+async def test_create_payload_from_form_data_selected_tools_invalid_type():
+    form_data = {
+        "name": "Selected Tools Invalid Type Agent",
+        "selected_tools": json.dumps(1234),
+    }
+
+    with pytest.raises(HTTPException) as exc_info:
+        await _create_payload_from_form_data(AgentPackagePayload, form_data)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "selected_tools must be an object or null"
 
 
 class TestCreateAgentFromPackage:
@@ -306,6 +456,7 @@ class TestCreateAgentFromPackage:
                     "project_name": "proj",
                 }
             ),
+            "selected_tools": json.dumps({"tool_names": ["calendar"]}),
         }
 
         # Compose raw multipart payload
@@ -346,6 +497,8 @@ class TestCreateAgentFromPackage:
         assert created_agent.mcp_servers[0].url == "https://mcp.example.com/mcp"
         # action server propagated
         assert created_agent.action_packages[0].url == "https://actions.example.com"
+        assert isinstance(created_agent.selected_tools, SelectedTools)
+        assert [tool.tool_name for tool in created_agent.selected_tools.tool_names] == ["calendar"]
 
     async def test_create_agent_from_real_package_openai(
         self,
