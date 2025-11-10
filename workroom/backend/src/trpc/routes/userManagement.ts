@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server';
 import z from 'zod';
 import { RoleIDs, Roles } from '../../auth/permissions.js';
 import type { UpdateUserPayload } from '../../database/DatabaseClient.js';
-import type { UserRole } from '../../database/types/users.js';
+import type { UserRole } from '../../database/types/user.js';
 import { authedProcedure } from '../trpc.js';
 
 export const listAvailableRoles = authedProcedure(['users.read'])

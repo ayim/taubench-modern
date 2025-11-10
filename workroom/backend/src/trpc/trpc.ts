@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import { Roles, type Permission } from '../auth/permissions.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
-import type { UserRole } from '../database/types/users.js';
+import type { UserRole } from '../database/types/user.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 
 export type RouterContext = {

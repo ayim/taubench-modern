@@ -1,5 +1,5 @@
 import { Kysely, sql } from 'kysely';
-import type { Database } from '../DatabaseClient.js';
+import type { Database } from '../types/index.js';
 
 export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema

@@ -1,6 +1,6 @@
 import z from 'zod';
 import { RoleIDs } from '../auth/permissions.js';
-import type { UserRole } from '../database/types/users.js';
+import type { UserRole } from '../database/types/user.js';
 import { OIDCTokens } from '../interfaces.js';
 
 export type Session = z.infer<typeof Session>;

@@ -3,11 +3,17 @@ import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Migration, MigrationProvider } from 'kysely';
 import { Kysely, Migrator } from 'kysely';
-import type { Database } from './DatabaseClient.js';
 import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
+import type { Database } from './types/index.js';
 
-class WindowsCompatibleFileMigrationProvider implements MigrationProvider {
+/**
+ * A custom, cross-platform compatible file migrator for Kysely.
+ * Needed as we run migrations via files on all OSes, and Windows
+ * has some issues with the built in one (re pathing).
+ * @see {@link https://github.com/kysely-org/kysely/issues/254} GitHub issue
+ */
+class CrossPlatformFileMigrationProvider implements MigrationProvider {
   constructor(
     private readonly params: {
       fs: typeof fs;
@@ -58,7 +64,7 @@ export const migrateDatabase = async ({
 
   const migrator = new Migrator({
     db: database,
-    provider: new WindowsCompatibleFileMigrationProvider({
+    provider: new CrossPlatformFileMigrationProvider({
       fs,
       path,
       migrationFolder: migrationDirectory,

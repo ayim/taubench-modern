@@ -1,12 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import session, { type MemoryStore as ExpressSessionMemoryStore } from 'express-session';
-import createMemoryStore from 'memorystore';
+import session from 'express-session';
 import type { Configuration } from '../configuration.js';
 import type { ExpressNextFunction, ExpressRequest, ExpressResponse } from '../interfaces.js';
 import type { SessionManager } from './SessionManager.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-
-const SESSION_PRUNE_PERIOD = 1 * 60 * 60 * 1000; // 1 hour
 
 export const createSessionMiddleware = ({
   configuration,
@@ -36,17 +33,9 @@ export const createSessionMiddleware = ({
     genid: () => randomUUID(),
     cookie: {
       httpOnly: true,
-      maxAge: configuration.session.cookieMaxAgeMs,
+      maxAge: configuration.sessionCookieMaxAgeMs,
       secure: configuration.allowInsecureRequests ? false : true,
       sameSite: 'lax',
     },
-  });
-};
-
-export const createSessionMemoryStore = (): ExpressSessionMemoryStore => {
-  const MemoryStore = createMemoryStore(session);
-
-  return new MemoryStore({
-    checkPeriod: SESSION_PRUNE_PERIOD,
   });
 };

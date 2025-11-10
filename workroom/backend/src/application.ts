@@ -27,7 +27,8 @@ import { createRequestLogger } from './middleware/logging.js';
 import { serverHeaders } from './middleware/server.js';
 import { createTenantExtractionMiddleware } from './middleware/tenant.js';
 import type { MonitoringContext } from './monitoring/index.js';
-import { createSessionMemoryStore, createSessionMiddleware } from './session/middleware.js';
+import { DatabaseSessionStore } from './session/DatabaseSessionStore.js';
+import { createSessionMiddleware } from './session/middleware.js';
 import { SessionManager } from './session/SessionManager.js';
 import { createRouterContext, sparRouter } from './trpc/index.js';
 
@@ -68,7 +69,7 @@ export const createApplication = async ({
   const sessionManager = new SessionManager({
     monitoring,
     secret: configuration.session?.secret ?? '__SESSION_MANAGER_NOT_ACTIVE__',
-    store: createSessionMemoryStore(),
+    store: new DatabaseSessionStore({ database, sessionExpirySeconds: configuration.sessionCookieMaxAgeMs / 1000 }),
   });
 
   const appPublic = express();

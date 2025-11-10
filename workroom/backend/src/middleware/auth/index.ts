@@ -8,7 +8,7 @@ import type { AuthManager } from '../../auth/AuthManager.js';
 import type { Permission } from '../../auth/permissions.js';
 import type { Configuration } from '../../configuration.js';
 import type { DatabaseClient } from '../../database/DatabaseClient.js';
-import type { UserRole } from '../../database/types/users.js';
+import type { UserRole } from '../../database/types/user.js';
 import type { ErrorResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/SessionManager.js';

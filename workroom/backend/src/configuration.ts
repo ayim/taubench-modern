@@ -92,9 +92,9 @@ export interface Configuration {
     public: number;
   };
   session: {
-    cookieMaxAgeMs: number;
     secret: string;
   } | null;
+  sessionCookieMaxAgeMs: number;
   tenant: {
     tenantId: string;
     tenantName: string;
@@ -246,7 +246,6 @@ export const getConfiguration = (): Configuration => {
     switch (authMode) {
       case 'oidc':
         return {
-          cookieMaxAgeMs: 24 * 60 * 60 * 1000, // 1 day
           secret: parseEnvVariable('SEMA4AI_WORKROOM_SESSION_SECRET'),
         };
 
@@ -259,6 +258,7 @@ export const getConfiguration = (): Configuration => {
         exhaustiveCheck(authMode);
     }
   })();
+  const sessionCookieMaxAgeMs = 24 * 60 * 60 * 1000; // 1 day
 
   const tenant = ((): Configuration['tenant'] => {
     const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
@@ -341,6 +341,7 @@ export const getConfiguration = (): Configuration => {
       public: portPublic,
     },
     session,
+    sessionCookieMaxAgeMs,
     tenant,
     userIdentity: {
       cacheTTL: 30 * 1000, // 30 seconds

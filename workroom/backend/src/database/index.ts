@@ -1,9 +1,10 @@
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool, type PoolConfig } from 'pg';
 import type { Configuration } from '../configuration.js';
-import { DatabaseClient, type Database } from './DatabaseClient.js';
+import { DatabaseClient } from './DatabaseClient.js';
 import { migrateDatabase } from './migrate.js';
 import type { MonitoringContext } from '../monitoring/index.js';
+import type { Database } from './types/index.js';
 
 export const createDatabaseClient = async ({
   configuration,

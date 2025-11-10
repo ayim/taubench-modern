@@ -1,14 +1,11 @@
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import { omitProperties, sqlNow } from './helpers.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { NewUserIdentity, UserIdentityTable, UserIdentityType } from './types/userIdentities.js';
-import type { NewUser, User, UserTable, UserUpdate } from './types/users.js';
+import type { Database } from './types/index.js';
+import type { NewUser, User, UserUpdate } from './types/user.js';
+import type { NewUserIdentity, UserIdentityType } from './types/userIdentity.js';
 import { asResult, type Result } from '../utils/result.js';
-
-export interface Database {
-  user: UserTable;
-  user_identity: UserIdentityTable;
-}
+import type { Session, StoredSession } from './types/session.js';
 
 export type UpdateUserPayload = Omit<UserUpdate, 'updated_at'> & { id: NonNullable<UserUpdate['id']> };
 
@@ -49,6 +46,28 @@ export class DatabaseClient {
         .values(userIdentity)
         .execute()
         .then(NOOP),
+    );
+  }
+
+  async deleteSession({ id }: { id: string }): Promise<Result<void>> {
+    return asResult(() =>
+      this.database //
+        .deleteFrom('session')
+        .where('id', '=', id)
+        .execute()
+        .then(NOOP),
+    );
+  }
+
+  async findActiveSession({ id }: { id: string }): Promise<Result<Session | null>> {
+    return asResult(() =>
+      this.database
+        .selectFrom('session')
+        .selectAll()
+        .where('id', '=', id)
+        .where('expires', '>=', new Date())
+        .executeTakeFirst()
+        .then((res) => res ?? null),
     );
   }
 
@@ -125,6 +144,51 @@ export class DatabaseClient {
       success: true,
       data: count,
     };
+  }
+
+  async setSession({
+    id,
+    data,
+    expires,
+  }: {
+    id: string;
+    data: StoredSession;
+    expires: Date;
+  }): Promise<Result<Session>> {
+    const dataString = JSON.stringify(data);
+
+    return asResult(() =>
+      this.database
+        .insertInto('session')
+        .values({
+          id,
+          data: dataString,
+          expires: expires.toISOString(),
+        })
+        .onConflict((oc) =>
+          oc.column('id').doUpdateSet({
+            data: dataString,
+            expires: expires.toISOString(),
+            updated_at: sql`NOW()`,
+          }),
+        )
+        .returningAll()
+        .executeTakeFirstOrThrow(),
+    );
+  }
+
+  async setSessionExpiry({ expires, id }: { expires: Date; id: string }): Promise<Result<void>> {
+    return asResult(() =>
+      this.database
+        .updateTable('session')
+        .set({
+          expires: expires.toISOString(),
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', id)
+        .execute()
+        .then(NOOP),
+    );
   }
 
   async updateUser({ user }: { user: UpdateUserPayload }): Promise<Result<void>> {

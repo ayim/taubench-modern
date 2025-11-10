@@ -2,7 +2,7 @@ import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { AuthManager } from '../../auth/AuthManager.js';
 import { upsertOIDCUser } from '../../auth/utils/oidcUserRegistration.js';
 import type { DatabaseClient } from '../../database/DatabaseClient.js';
-import type { UserRole } from '../../database/types/users.js';
+import type { UserRole } from '../../database/types/user.js';
 import type { ErrorResponse, ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/SessionManager.js';

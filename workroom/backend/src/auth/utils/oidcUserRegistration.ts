@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getNextUserRole } from './userRegistration.js';
 import type { DatabaseClient } from '../../database/DatabaseClient.js';
-import type { UserRole } from '../../database/types/users.js';
+import type { UserRole } from '../../database/types/user.js';
 import type { OIDCTokenClaims } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { type Result } from '../../utils/result.js';

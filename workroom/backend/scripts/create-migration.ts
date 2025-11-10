@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { createInterface as createReadlineInterface } from 'node:readline/promises';
 
 const MIGRATION_TEMPLATE = `import { Kysely } from 'kysely';
-import type { Database } from '../DatabaseClient.js';
+import type { Database } from '../types/index.js';
 
 export async function up(db: Kysely<Database>): Promise<void> {
   // Migration code

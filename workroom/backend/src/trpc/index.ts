@@ -47,7 +47,12 @@ export const createRouterContext =
       monitoring.logger.error('TRPC authentication failed: Failed extracting user identity', {
         errorMessage: userIdentityResult.error.message,
         errorName: userIdentityResult.error.code,
+        requestUrl: req.originalUrl,
       });
+
+      // @TODO: We still get failed auth here when the access token expires, so we should
+      // minutely-refactor the auth management a tad to support a more unified "auth refresh"
+      // in TRPC as well as REST middleware.
 
       throw new TRPCError({
         code: 'UNAUTHORIZED',
@@ -57,6 +62,7 @@ export const createRouterContext =
 
     if (!userIdentityResult.data.userId || !userIdentityResult.data.userRole) {
       monitoring.logger.error('TRPC authentication failed: Incomplete user information', {
+        requestUrl: req.originalUrl,
         userId: userIdentityResult.data.userId ?? '',
         userRole: userIdentityResult.data.userRole ?? '',
       });

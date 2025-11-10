@@ -1,6 +1,6 @@
 import type { Insertable, Selectable, Updateable } from 'kysely';
 import type { ResourceTimestampTrait } from './traits.js';
-import type { UserTable } from './users.js';
+import type { UserTable } from './user.js';
 
 export type UserIdentityType = 'oidc_sub';
 

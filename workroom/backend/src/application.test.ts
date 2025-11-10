@@ -61,6 +61,7 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
     public: 'NOT_USED_IN_TESTS' as unknown as number,
   },
   session: null,
+  sessionCookieMaxAgeMs: 60 * 60 * 1000,
   tenant: {
     tenantId: 'spar-test',
     tenantName: 'SPAR test',

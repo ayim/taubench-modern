@@ -1,10 +1,17 @@
-import type { SessionData, Store } from 'express-session';
+import session, { type MemoryStore, type SessionData, Store } from 'express-session';
+import createMemoryStore from 'memorystore';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createSessionMemoryStore } from './middleware.js';
 import type { Session } from './payload.js';
 import { SessionManager } from './SessionManager.js';
 
 const SESSION_ID = '4a6786f6-76b7-44b6-9c72-a5f79ad344ec';
+
+const createSessionMemoryStore = (): MemoryStore => {
+  const MemoryStore = createMemoryStore(session);
+  return new MemoryStore({
+    checkPeriod: 1 * 60 * 60 * 1000, // one hour
+  });
+};
 
 describe('SessionManager', () => {
   describe('instance', () => {
