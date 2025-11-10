@@ -71,6 +71,18 @@ export class DatabaseClient {
     );
   }
 
+  async findActiveSessionsForUser({ userId }: { userId: string }): Promise<Result<Array<{ sessionId: string }>>> {
+    return asResult(() =>
+      this.database
+        .selectFrom('session')
+        .select('id')
+        .where('expires', '>=', new Date())
+        .where(sql`data->'auth'->>'userId'`, '=', userId)
+        .execute()
+        .then((results) => results.map((result) => ({ sessionId: result.id }))),
+    );
+  }
+
   async findUserIdForIdentity({
     authority,
     identityValue,

@@ -76,6 +76,7 @@ export const createRouterContext =
     return {
       database,
       monitoring,
+      sessionManager,
       user: {
         id: userIdentityResult.data.userId,
         role: userIdentityResult.data.userRole,

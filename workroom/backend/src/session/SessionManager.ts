@@ -43,6 +43,21 @@ export class SessionManager {
     );
   }
 
+  async destroySessionForId(sessionId: string): Promise<Result<void>> {
+    return asResult(
+      () =>
+        new Promise((resolve, reject) => {
+          this.store.destroy(sessionId, (err) => {
+            if (err) {
+              return reject(err instanceof Error ? err : new Error(`Failed destroying session: ${err}`));
+            }
+
+            resolve();
+          });
+        }),
+    );
+  }
+
   async extractSessionFromHeaders(headers: Headers | Record<string, string>): Promise<ExtractSessionResult> {
     const cookies = parseCookies(
       (headers instanceof Headers ? headers.get('cookie') : caseless(headers)['cookie']) ?? '',

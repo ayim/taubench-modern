@@ -3,6 +3,7 @@ import z from 'zod';
 import { RoleIDs, Roles } from '../../auth/permissions.js';
 import type { UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
+import { destroySessionsForUser } from '../../session/utils.js';
 import { authedProcedure } from '../trpc.js';
 
 export const listAvailableRoles = authedProcedure(['users.read'])
@@ -122,7 +123,7 @@ export const updateUser = authedProcedure(['users.write'])
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const { database, monitoring } = ctx;
+    const { database, monitoring, sessionManager } = ctx;
 
     monitoring.logger.info('Update user', {
       userId: input.userId,
@@ -156,11 +157,36 @@ export const updateUser = authedProcedure(['users.write'])
       monitoring.logger.error('Failed updating user', {
         errorMessage: updateResult.error.message,
         errorName: updateResult.error.code,
+        userId: input.userId,
       });
 
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to update user',
       });
+    }
+
+    // Follow up: If a role was changed, kill any active sessions that user may have
+    // to ensure that they get a clean environment.
+    if (updatePayload.role) {
+      const destroySessionsResult = await destroySessionsForUser({
+        database,
+        monitoring,
+        sessionManager,
+        userId: input.userId,
+      });
+
+      if (!destroySessionsResult.success) {
+        monitoring.logger.error('Failed updating user', {
+          errorMessage: destroySessionsResult.error.message,
+          errorName: destroySessionsResult.error.code,
+          userId: input.userId,
+        });
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to clean up',
+        });
+      }
     }
   });
