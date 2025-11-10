@@ -21,14 +21,14 @@ const extractNamesFromClaims = (claims: OIDCTokenClaims): { first: string; last:
     }
   }
 
-  return claims.given_name
+  return claims.given_name || claims.name
     ? {
-        first: claims.given_name,
+        first: (claims.given_name || claims.name) as string,
         last: claims.family_name ?? '',
       }
     : {
         first: 'User',
-        last: 'Unspecified',
+        last: '',
       };
 };
 
