@@ -94,6 +94,12 @@ Please improve the following specific tables "inventory_data", "sales_data", col
   - Column: store_country
 **Enhancement Requirements:**
 
+**For the semantic model:**
+   - Choose a domain-specific name that reflects what the data represents
+     (e.g., 'Product Catalog', 'Sales Transactions', 'Customer Database')
+   - Do NOT use generic names like 'Semantic Data Model' or 'Data Model'
+   - Add/improve the description explaining the business purpose and analytical use cases
+
 **For each table:**
    - Improve the logical name
    - Add/improve the description explaining the table's purpose

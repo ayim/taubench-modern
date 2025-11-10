@@ -180,9 +180,14 @@ class SemanticDataModelForLLM(BaseModel):
     # Required fields
     name: Annotated[
         str,
-        """A descriptive name for this semantic model. Must be unique and follow the
-        unquoted identifiers requirements. It also cannot conflict with SQL reserved
-        keywords. Can be changed if the current name can be improved.""",
+        """A descriptive, domain-specific name for this semantic model that clearly indicates
+        what business domain or data subject it represents. Must be unique and follow the
+        unquoted identifiers requirements. It also cannot conflict with SQL reserved keywords.
+
+        Examples of GOOD names: 'Product_Catalog', 'Sales_Analytics', 'Customer_Orders'
+        Examples of BAD names: 'Semantic_Data_Model', 'Data_Model', 'Model'
+
+        Can be changed if the current name can be improved to better reflect the domain.""",
     ]
 
     # Optional fields

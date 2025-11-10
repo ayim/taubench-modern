@@ -8,10 +8,16 @@ and proper categorization (dimension, fact, metric, time_dimension).
 Notes:
 
 Only check for quality the following fields:
-- name
+- name (at model, table, and column levels)
 - description
 - synonyms
 - category in which the column is (dimension, fact, metric, time_dimension)
+
+**Special attention for the semantic model name:**
+The model's top-level name MUST be domain-specific and describe what business data it represents.
+REJECT generic names like "Semantic Data Model", "Data Model", or just "Model".
+ACCEPT names that clearly indicate the domain like "Product_Catalog", "Sales_Analytics",
+"Customer_Orders".
 
 All the other fields MUST NOT be checked for quality (as they are immutable and just
 presented as information to build the fields above).

@@ -45,6 +45,22 @@ def render_system_prompt(  # noqa
 
     parts.append(" by improving:\n")
 
+    # Add model-level information section
+    if mode == "full":
+        parts.append("\n**Model-Level Information:**\n")
+        parts.append(
+            "   - A descriptive, domain-specific name for the semantic model that clearly indicates\n"
+        )
+        parts.append(
+            "     what business domain or data subject it represents (e.g., 'Product Catalog',\n"
+        )
+        parts.append(
+            "     'Sales Analytics', 'Customer Orders', NOT generic names like 'Semantic Data Model')\n"
+        )
+        parts.append(
+            "   - An improved description that explains the business purpose and use cases\n"
+        )
+
     # Add table information section
     if mode in {"full", "tables"}:
         parts.append("\n**Table Information:**\n")

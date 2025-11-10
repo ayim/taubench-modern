@@ -65,6 +65,12 @@ Please improve the following semantic data model by improving table and column i
 
 **Enhancement Requirements:**
 
+**For the semantic model:**
+   - Choose a domain-specific name that reflects what the data represents
+     (e.g., 'Product Catalog', 'Sales Transactions', 'Customer Database')
+   - Do NOT use generic names like 'Semantic Data Model' or 'Data Model'
+   - Add/improve the description explaining the business purpose and analytical use cases
+
 **For each table:**
    - Improve the logical name
    - Add/improve the description explaining the table's purpose

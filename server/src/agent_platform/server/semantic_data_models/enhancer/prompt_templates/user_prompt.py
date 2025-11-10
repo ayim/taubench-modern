@@ -117,6 +117,17 @@ def render_user_prompt(  # noqa
 
     # Build enhancement requirements
     requirements = "**Enhancement Requirements:**\n\n"
+    if mode == "full":
+        requirements += "**For the semantic model:**\n"
+        requirements += (
+            "   - Choose a domain-specific name that reflects what the data represents\n"
+        )
+        requirements += (
+            "     (e.g., 'Product Catalog', 'Sales Transactions', 'Customer Database')\n"
+        )
+        requirements += "   - Do NOT use generic names like 'Semantic Data Model' or 'Data Model'\n"
+        requirements += "   - Add/improve the description explaining the business purpose and analytical use cases\n"
+        requirements += "\n"
     if mode in {"full", "tables"}:
         table_text = "each table" if mode == "full" else "the specified table(s)"
         requirements += f"**For {table_text}:**\n"
