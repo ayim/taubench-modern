@@ -31,6 +31,44 @@ export const listAvailableRoles = authedProcedure(['users.read'])
     };
   });
 
+export const getUserDetails = authedProcedure(['users.read'])
+  .input(
+    z.object({
+      userId: z.string().uuid(),
+    }),
+  )
+  .output(
+    z.object({
+      id: z.string().uuid(),
+      firstName: z.string(),
+      lastName: z.string(),
+      role: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)),
+    }),
+  )
+  .query(async ({ ctx, input: { userId } }) => {
+    const { database, monitoring } = ctx;
+
+    const userResult = await database.getUser({ id: userId });
+    if (!userResult.success) {
+      monitoring.logger.error('Failed retrieve users', {
+        errorMessage: userResult.error.message,
+        errorName: userResult.error.code,
+      });
+
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed retrieve user',
+      });
+    }
+
+    return {
+      id: userResult.data.id,
+      firstName: userResult.data.first_name,
+      lastName: userResult.data.last_name,
+      role: userResult.data.role,
+    };
+  });
+
 export const listUsers = authedProcedure(['users.read'])
   .output(
     z.object({

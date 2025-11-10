@@ -1,11 +1,11 @@
-import { Box } from '@sema4ai/components';
+import { createFileRoute, redirect, Outlet } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { Box } from '@sema4ai/components';
 import { Page } from '~/components/layout/Page';
 import { trpc } from '~/lib/trpc';
-import { UsersTable } from './components/UsersTable';
+import { UsersTable } from './users/components/UsersTable';
 
-export const Route = createFileRoute('/tenants/$tenantId/users/')({
+export const Route = createFileRoute('/tenants/$tenantId/users')({
   beforeLoad: async ({ context: { permissions }, params: { tenantId } }) => {
     if (!permissions['users.read']) {
       throw redirect({ to: '/tenants/$tenantId/home', params: { tenantId } });
@@ -21,6 +21,9 @@ export const Route = createFileRoute('/tenants/$tenantId/users/')({
 function RouteComponent() {
   const trpcUtils = trpc.useUtils();
   const initialData = Route.useLoaderData();
+  const { tenantId } = Route.useParams();
+  const { permissions } = Route.useRouteContext();
+  const canUpdateUsers = permissions['users.write'];
 
   const { data: userList } = useQuery({
     ...trpcUtils.userManagement.listUsers.queryOptions(),
@@ -30,8 +33,9 @@ function RouteComponent() {
   return (
     <Page title="Users">
       <Box mt="$8">
-        <UsersTable items={userList.users} />
+        <UsersTable items={userList.users} tenantId={tenantId} canUpdateUsers={canUpdateUsers} />
       </Box>
+      <Outlet />
     </Page>
   );
 }

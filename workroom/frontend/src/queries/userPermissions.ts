@@ -27,17 +27,23 @@ const getAuthMeta = async (): Promise<AuthMeta> => {
   return __metaPromise;
 };
 
-export const useUserPermissionsQuery = () => {
+export const userPermissionsQueryKey = ['me'];
+
+/**
+ * TODO: move to TRPC
+ */
+export const useUserPermissionsQuery = (options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: ['me'],
-    queryFn: async (): Promise<Array<UserPermission>> => {
+    queryKey: userPermissionsQueryKey,
+    queryFn: async (): Promise<{ permissions: Array<UserPermission>; userId?: string }> => {
       const result = await getAuthMeta();
 
       if (result?.status === 'authenticated') {
-        return result.permissions;
+        return { permissions: result.permissions, userId: result.userId };
       }
 
-      return [];
+      return { permissions: [] };
     },
+    ...options,
   });
 };

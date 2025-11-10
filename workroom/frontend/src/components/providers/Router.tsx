@@ -39,6 +39,7 @@ export const RouterProvider: FC<{ trpcUtils: ReturnType<typeof createTRPCQueryUt
   const { getUserToken } = useAuth();
   const { data: userPermissions, isLoading: isLoadingUserPermissions } = useUserPermissionsQuery();
 
+  const permissions = userPermissions?.permissions;
   const context = useMemo(() => {
     const agentAPIClient = new AgentAPIClient(getUserToken);
 
@@ -46,9 +47,9 @@ export const RouterProvider: FC<{ trpcUtils: ReturnType<typeof createTRPCQueryUt
       queryClient,
       agentAPIClient,
       trpc: trpcUtils,
-      permissions: extractUserPermissions(userPermissions),
+      permissions: extractUserPermissions(permissions),
     };
-  }, [getUserToken, trpcUtils, userPermissions]);
+  }, [getUserToken, trpcUtils, permissions]);
 
   if (!context.agentAPIClient || isLoadingUserPermissions) {
     return <FullScreenLoader />;

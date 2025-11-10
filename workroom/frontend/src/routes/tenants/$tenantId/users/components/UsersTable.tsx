@@ -1,12 +1,22 @@
-import type { TableRowProps } from '@sema4ai/components';
-import { Box, Table } from '@sema4ai/components';
+import { FC, useMemo } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { Box, Button, Menu, Table, TableRowProps } from '@sema4ai/components';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
-import { FC } from 'react';
+import { IconDotsVertical } from '@sema4ai/icons';
 import { TrpcOutput } from '~/lib/trpc';
 
 type Users = TrpcOutput['userManagement']['listUsers']['users'];
 type Props = {
+  tenantId: string;
   items: Users;
+  canUpdateUsers: boolean;
+};
+
+const roleLabels: Record<Users[number]['role'], string> = {
+  admin: 'Admin',
+  operator: 'Operator',
+  knowledgeWorker: 'Knowledge Worker',
+  agentSupervisor: 'Agent Supervisor',
 };
 
 const filterConfiguration: TableWithFilterConfiguration<Users[number]> = {
@@ -30,20 +40,70 @@ const filterConfiguration: TableWithFilterConfiguration<Users[number]> = {
   },
 };
 
-const TableRow: FC<TableRowProps<Users[number]>> = ({ rowData }) => {
+const TableRow: FC<TableRowProps<Users[number], { canUpdateUsers: boolean; tenantId: string }>> = ({
+  rowData,
+  props: { canUpdateUsers, tenantId },
+}) => {
+  const navigate = useNavigate();
   return (
     <Table.Row>
       <Table.Cell>{rowData.firstName}</Table.Cell>
       <Table.Cell>{rowData.lastName}</Table.Cell>
-      <Table.Cell>{rowData.role}</Table.Cell>
+      <Table.Cell>{roleLabels[rowData.role] ?? rowData.role}</Table.Cell>
+      {canUpdateUsers && (
+        <Table.Cell controls>
+          <Menu trigger={<Button aria-label="action" icon={IconDotsVertical} variant="ghost" size="small" />}>
+            <Menu.Item
+              onClick={() =>
+                navigate({
+                  to: '/tenants/$tenantId/users/$userId/update',
+                  params: { tenantId, userId: rowData.id },
+                })
+              }
+            >
+              Update
+            </Menu.Item>
+          </Menu>
+        </Table.Cell>
+      )}
     </Table.Row>
   );
 };
 
-export const UsersTable: FC<Props> = ({ items }) => {
+export const UsersTable: FC<Props> = ({ items, tenantId, canUpdateUsers }) => {
+  const enhancedFilterConfiguration = useMemo(() => {
+    return {
+      ...filterConfiguration,
+      columns: [
+        ...filterConfiguration.columns,
+        ...(canUpdateUsers ? [{ id: 'actions', title: '', width: 32, required: true }] : []),
+      ],
+      filters: {
+        role: {
+          label: 'Role',
+          searchable: true,
+          closeMenuOnItemSelect: true,
+          options: Array.from(new Set(items.map((item) => item.role))).map((role) => ({
+            label: roleLabels[role] ?? role,
+            value: role,
+            itemType: 'checkbox',
+          })),
+        },
+      },
+    };
+  }, [items, canUpdateUsers]);
+
+  const rowProps = useMemo(
+    () => ({
+      tenantId,
+      canUpdateUsers,
+    }),
+    [tenantId, canUpdateUsers],
+  );
+
   return (
     <Box>
-      <TableWithFilter {...filterConfiguration} data={items} row={TableRow} />
+      <TableWithFilter {...enhancedFilterConfiguration} data={items} row={TableRow} rowProps={rowProps} />
     </Box>
   );
 };
