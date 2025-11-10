@@ -5,7 +5,7 @@ on:
     types: [unlabeled, closed]
 
 concurrency:
-  group: spar-${{ github.ref_name }}
+  group: spar-teardown-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
