@@ -1,10 +1,20 @@
 import { TRPCError } from '@trpc/server';
 import z from 'zod';
-import { RoleIDs, Roles } from '../../auth/permissions.js';
+import { AllPermissions, RoleIDs, Roles, type Permission } from '../../auth/permissions.js';
 import type { UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import { destroySessionsForUser } from '../../session/utils.js';
 import { authedProcedure } from '../trpc.js';
+
+export const listAvailablePermissions = authedProcedure(['users.read'])
+  .output(
+    z.object({
+      permissions: z.array(z.custom<Permission>()),
+    }),
+  )
+  .query(async () => ({
+    permissions: [...AllPermissions],
+  }));
 
 export const listAvailableRoles = authedProcedure(['users.read'])
   .output(

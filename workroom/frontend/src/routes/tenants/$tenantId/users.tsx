@@ -1,9 +1,10 @@
+import { useMemo } from 'react';
 import { createFileRoute, redirect, Outlet } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box } from '@sema4ai/components';
 import { Page } from '~/components/layout/Page';
 import { trpc } from '~/lib/trpc';
-import { UsersTable } from './users/components/UsersTable';
+import { RoleLabels, UsersTable } from './users/components/UsersTable';
 
 export const Route = createFileRoute('/tenants/$tenantId/users')({
   beforeLoad: async ({ context: { permissions }, params: { tenantId } }) => {
@@ -13,7 +14,10 @@ export const Route = createFileRoute('/tenants/$tenantId/users')({
   },
   loader: async ({ context: { trpc } }) => {
     const users = await trpc.userManagement.listUsers.ensureData();
-    return { users };
+
+    const roles = await trpc.userManagement.listAvailableRoles.ensureData();
+
+    return { roles, users };
   },
   component: RouteComponent,
 });
@@ -30,10 +34,27 @@ function RouteComponent() {
     initialData: initialData.users,
   });
 
+  const roleLabels = useMemo(
+    () =>
+      initialData.roles.roles.reduce(
+        (output, role) => ({
+          ...output,
+          [role.id]: role.name,
+        }),
+        {} as RoleLabels,
+      ),
+    [initialData.roles],
+  );
+
   return (
     <Page title="Users">
       <Box mt="$8">
-        <UsersTable items={userList.users} tenantId={tenantId} canUpdateUsers={canUpdateUsers} />
+        <UsersTable
+          canUpdateUsers={canUpdateUsers}
+          items={userList.users}
+          roleLabels={roleLabels}
+          tenantId={tenantId}
+        />
       </Box>
       <Outlet />
     </Page>

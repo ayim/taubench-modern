@@ -1,7 +1,7 @@
 import type { Insertable, Selectable, Updateable } from 'kysely';
 import type { ResourceTimestampTrait } from './traits.js';
 
-export type UserRole = 'admin' | 'operator' | 'knowledgeWorker' | 'agentSupervisor';
+export type UserRole = 'admin' | 'knowledgeWorker';
 
 export type UserTable = {
   id: string;

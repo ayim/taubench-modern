@@ -40,7 +40,17 @@ export const createAuthMiddleware =
       case 'sema4-oidc-sso':
         return handleSema4OIDCAuthCheck({ authentication, authManager, configuration, monitoring, next, req, res });
       case 'oidc':
-        return handleOIDCAuthCheck({ authManager, database, monitoring, next, req, res, sessionManager });
+        return handleOIDCAuthCheck({
+          authentication,
+          authManager,
+          configuration,
+          database,
+          monitoring,
+          next,
+          req,
+          res,
+          sessionManager,
+        });
 
       default:
         exhaustiveCheck(configuration.auth);

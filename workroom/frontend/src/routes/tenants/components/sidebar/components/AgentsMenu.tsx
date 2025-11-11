@@ -1,14 +1,16 @@
 import { Box, Typography } from '@sema4ai/components';
 import { AgentIcon } from '@sema4ai/layouts';
-import { useParams } from '@tanstack/react-router';
+import { useParams, useRouteContext } from '@tanstack/react-router';
 import { AgentContextMenu, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 
 import { RouterSideNavigationLink } from '~/components/RouterLink';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
+import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
 
 export const AgentsMenu = () => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
+  const { permissions } = useRouteContext({ from: '/tenants/$tenantId' });
   const { data: agents } = useAgentsQuery({});
 
   if (!agents) {
@@ -35,7 +37,7 @@ export const AgentsMenu = () => {
               key={agent.id}
               to="/tenants/$tenantId/conversational/$agentId"
               params={{ tenantId, agentId: agent.id }}
-              action={<AgentContextMenu agent={agent} />}
+              action={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentContextMenu agent={agent} /> : null}
             >
               {agent.name}
             </RouterSideNavigationLink>
@@ -59,7 +61,7 @@ export const AgentsMenu = () => {
               key={agent.id}
               to="/tenants/$tenantId/worker/$agentId"
               params={{ tenantId, agentId: agent.id }}
-              action={<AgentContextMenu agent={agent} />}
+              action={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentContextMenu agent={agent} /> : null}
             >
               {agent.name}
             </RouterSideNavigationLink>

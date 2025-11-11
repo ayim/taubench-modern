@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
 import {
   Box,
   Button,
@@ -23,6 +23,7 @@ import { Page } from '~/components/layout/Page';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
 import { AgentUploadForm } from './components/AgentUploadForm';
+import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
 
 export const Route = createFileRoute('/tenants/$tenantId/home/')({
   component: HomePage,
@@ -37,6 +38,7 @@ const Grid = styled(GridBase)`
 function HomePage() {
   const { tenantId } = Route.useParams();
   const { data: allAgents = [], isLoading } = useAgentsQuery({});
+  const { permissions } = useRouteContext({ from: '/tenants/$tenantId' });
   const [search, setSearch] = useState<string>('');
   const [filters, setFilters] = useState({
     type: [] as string[],
@@ -103,14 +105,18 @@ function HomePage() {
           description="Agents will appear here once someone deploys one and shares it with you."
           illustration="agents"
           docsLink="MAIN_WORKROOM_HELP"
-          action={<AgentUploadForm />}
+          action={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentUploadForm /> : null}
         />
       </Box>
     );
   }
 
   return (
-    <Page title="Sema4.ai Agents" icon={IconAgents} actions={<AgentUploadForm />}>
+    <Page
+      title="Sema4.ai Agents"
+      icon={IconAgents}
+      actions={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentUploadForm /> : null}
+    >
       <Filter
         contentBefore={searchInput}
         options={filterOptions}
@@ -147,7 +153,7 @@ function HomePage() {
                 >
                   <AgentCard.Footer>
                     <Box display="flex" justifyContent="flex-end" gap="$4">
-                      <AgentContextMenu agent={agent} />
+                      {permissions[ADMINISTRATION_ACCESS_PERMISSION] && <AgentContextMenu agent={agent} />}
                       <Button size="small" icon={IconArrowRight} aria-label="publish" round />
                     </Box>
                   </AgentCard.Footer>

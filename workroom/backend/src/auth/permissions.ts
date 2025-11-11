@@ -1,5 +1,6 @@
 import type { WorkRoomV1 } from '@sema4ai/robocloud-sign-interface';
 import type { UserRole } from '../database/types/user.js';
+import { exhaustiveUnionArray } from '../utils/types.js';
 
 export type Permission = WorkRoomV1['capabilities']['byTenantId'][string][number] | 'users.read' | 'users.write';
 
@@ -8,6 +9,16 @@ export type Role = {
   name: string;
   permissions: Array<Permission>;
 };
+
+export const AllPermissions = exhaustiveUnionArray<Permission>()([
+  'agents.read',
+  'agents.write',
+  'documents.read',
+  'documents.write',
+  'deployments_monitoring.read',
+  'users.read',
+  'users.write',
+] as const);
 
 const admin: Readonly<Role> = {
   id: 'admin',
@@ -23,30 +34,16 @@ const admin: Readonly<Role> = {
   ],
 };
 
-const operator: Readonly<Role> = {
-  id: 'operator',
-  name: 'Operator',
-  permissions: ['agents.read', 'agents.write', 'deployments_monitoring.read'],
-};
-
 const knowledgeWorker: Readonly<Role> = {
   id: 'knowledgeWorker',
   name: 'Knowledge Worker',
   permissions: ['agents.read', 'agents.write'],
 };
 
-const agentSupervisor: Readonly<Role> = {
-  id: 'agentSupervisor',
-  name: 'Agent Supervisor',
-  permissions: ['agents.read', 'agents.write', 'documents.read', 'documents.write'],
-};
-
 type RoleRecord = Readonly<Record<Role['id'], Role>>;
 export const Roles: RoleRecord = {
   admin,
-  operator,
   knowledgeWorker,
-  agentSupervisor,
 };
 
 export const RoleIDs = Object.keys(Roles) as Array<UserRole>;

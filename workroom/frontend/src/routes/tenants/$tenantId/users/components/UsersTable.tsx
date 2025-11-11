@@ -7,17 +7,13 @@ import { TrpcOutput } from '~/lib/trpc';
 
 type Users = TrpcOutput['userManagement']['listUsers']['users'];
 type Props = {
-  tenantId: string;
-  items: Users;
   canUpdateUsers: boolean;
+  items: Users;
+  roleLabels: RoleLabels;
+  tenantId: string;
 };
 
-const roleLabels: Record<Users[number]['role'], string> = {
-  admin: 'Admin',
-  operator: 'Operator',
-  knowledgeWorker: 'Knowledge Worker',
-  agentSupervisor: 'Agent Supervisor',
-};
+export type RoleLabels = Record<Users[number]['role'], string>;
 
 const filterConfiguration: TableWithFilterConfiguration<Users[number]> = {
   id: 'users',
@@ -40,10 +36,9 @@ const filterConfiguration: TableWithFilterConfiguration<Users[number]> = {
   },
 };
 
-const TableRow: FC<TableRowProps<Users[number], { canUpdateUsers: boolean; tenantId: string }>> = ({
-  rowData,
-  props: { canUpdateUsers, tenantId },
-}) => {
+const TableRow: FC<
+  TableRowProps<Users[number], { canUpdateUsers: boolean; roleLabels: RoleLabels; tenantId: string }>
+> = ({ rowData, props: { canUpdateUsers, roleLabels, tenantId } }) => {
   const navigate = useNavigate();
   return (
     <Table.Row>
@@ -70,7 +65,7 @@ const TableRow: FC<TableRowProps<Users[number], { canUpdateUsers: boolean; tenan
   );
 };
 
-export const UsersTable: FC<Props> = ({ items, tenantId, canUpdateUsers }) => {
+export const UsersTable: FC<Props> = ({ canUpdateUsers, items, roleLabels, tenantId }) => {
   const enhancedFilterConfiguration = useMemo(() => {
     return {
       ...filterConfiguration,
@@ -91,14 +86,15 @@ export const UsersTable: FC<Props> = ({ items, tenantId, canUpdateUsers }) => {
         },
       },
     };
-  }, [items, canUpdateUsers]);
+  }, [canUpdateUsers, items, roleLabels]);
 
   const rowProps = useMemo(
     () => ({
-      tenantId,
       canUpdateUsers,
+      roleLabels,
+      tenantId,
     }),
-    [tenantId, canUpdateUsers],
+    [canUpdateUsers, roleLabels, tenantId],
   );
 
   return (

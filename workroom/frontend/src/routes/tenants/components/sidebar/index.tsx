@@ -22,6 +22,7 @@ import { RouterSideNavigationLink } from '~/components/RouterLink';
 import { AgentsMenu } from './components/AgentsMenu';
 import { UserMenu } from './components/UserMenu';
 import { useTenantContext, shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
+import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
 
 type Props = {
   profilePictureUrl?: string;
@@ -92,7 +93,7 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
               Agents
             </RouterSideNavigationLink>
 
-            {features.deploymentWizard.enabled && (
+            {permissions[ADMINISTRATION_ACCESS_PERMISSION] && features.deploymentWizard.enabled && (
               <RouterSideNavigationLink
                 icon={<IconAgents />}
                 to="/tenants/$tenantId/data-access/data-connections"
@@ -102,7 +103,7 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
               </RouterSideNavigationLink>
             )}
 
-            {features.mcpServersManagement.enabled && (
+            {permissions[ADMINISTRATION_ACCESS_PERMISSION] && features.mcpServersManagement.enabled && (
               <RouterSideNavigationLink icon={<IconMcp />} to="/tenants/$tenantId/mcp-servers" params={{ tenantId }}>
                 MCP Servers
               </RouterSideNavigationLink>
@@ -118,7 +119,7 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
               </RouterSideNavigationLink>
             )}
 
-            {shouldDisplayConfigurationSidebarLink({ features }) && (
+            {permissions[ADMINISTRATION_ACCESS_PERMISSION] && shouldDisplayConfigurationSidebarLink({ features }) && (
               <RouterSideNavigationLink
                 icon={<IconSettings2 />}
                 to="/tenants/$tenantId/configuration"

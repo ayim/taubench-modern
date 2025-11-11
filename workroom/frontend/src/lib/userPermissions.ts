@@ -1,11 +1,6 @@
-export type UserPermission =
-  | 'agents.read'
-  | 'agents.write'
-  | 'documents.read'
-  | 'documents.write'
-  | 'deployments_monitoring.read'
-  | 'users.read'
-  | 'users.write';
+import { TrpcOutput } from './trpc';
+
+export type UserPermission = TrpcOutput['userManagement']['listAvailablePermissions']['permissions'][number];
 
 const defaultPermissions: Record<UserPermission, boolean> = {
   'agents.read': false,
@@ -16,6 +11,13 @@ const defaultPermissions: Record<UserPermission, boolean> = {
   'users.read': false,
   'users.write': false,
 };
+
+/**
+ * @TODO: Use explicit permissions, once we've had time to think on these,
+ *  rather than relying on `users.write` to differentiate admins from
+ *  regular users.
+ */
+export const ADMINISTRATION_ACCESS_PERMISSION: UserPermission = 'users.write';
 
 /**
  * Requires to know available permissions beforehand

@@ -4,6 +4,9 @@ import { upsertOIDCUser } from '../../auth/utils/oidcUserRegistration.js';
 import type { DatabaseClient } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import type { ErrorResponse, ExpressNextFunction, ExpressRequest, ExpressResponse } from '../../interfaces.js';
+import { extractRoutePermissions } from './helpers/permissions.js';
+import { Roles } from '../../auth/permissions.js';
+import type { Configuration } from '../../configuration.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/SessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
@@ -33,7 +36,9 @@ type OIDCUserIdentityResult = Result<
 >;
 
 export const handleOIDCAuthCheck = async ({
+  authentication,
   authManager,
+  configuration,
   database,
   monitoring,
   next,
@@ -41,7 +46,9 @@ export const handleOIDCAuthCheck = async ({
   res,
   sessionManager,
 }: {
+  authentication: 'with-permissions-check' | 'without-permissions-check';
   authManager: AuthManager;
+  configuration: Configuration;
   database: DatabaseClient;
   monitoring: MonitoringContext;
   next: ExpressNextFunction;
@@ -49,6 +56,15 @@ export const handleOIDCAuthCheck = async ({
   res: ExpressResponse;
   sessionManager: SessionManager;
 }) => {
+  const permissions =
+    authentication === 'without-permissions-check'
+      ? []
+      : await extractRoutePermissions({ configuration, monitoring, req });
+
+  if (permissions === null) {
+    return res.status(401).json({ error: { code: 'unauthorized', message: 'Unauthorized' } } satisfies ErrorResponse);
+  }
+
   const userIdentityResult: OIDCUserIdentityResult = await extractOIDCUserIdentity({
     authManager,
     headers: extractHeadersFromRequest(req.headers),
@@ -105,7 +121,21 @@ export const handleOIDCAuthCheck = async ({
     }
   }
 
-  res.locals.authSub = userIdentityResult.data.userId;
+  const { userId, userRole } = userIdentityResult.data;
+
+  const userPermissions = Roles[userRole]?.permissions ?? [];
+  if (!permissions.every((requiredPermission) => userPermissions.includes(requiredPermission))) {
+    monitoring.logger.error('User does not have the required permissions to access this resource', {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      userId,
+      userRole,
+    });
+
+    return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
+  }
+
+  res.locals.authSub = userId;
 
   return next();
 };
