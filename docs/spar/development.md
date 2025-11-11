@@ -63,6 +63,7 @@ The docker stack comes in several flavours:
 |     Yes      |    No    |      Yes       | `COMPOSE_PROFILES=agent-server docker compose -f compose.yml -f compose.override.auth.yml up --build`                  |
 |     Yes      |   Yes    |       No       | `COMPOSE_PROFILES=spar docker compose up --build`                                                                      |
 |     Yes      |   Yes    |      Yes       | `COMPOSE_PROFILES=spar docker compose -f compose.yml -f compose.override.auth.yml --env-file workroom/.env up --build` |
+|      No      |   Yes    |       No       | `COMPOSE_PROFILES=spar-ui docker compose up --build`                                                                   |
 
 > [!TIP]
 > Compose profiles are just like "tags". You can set one or more by either using `COMPOSE_PROFILES=one,two docker compose up` or `docker compose --profile one --profile two up`.

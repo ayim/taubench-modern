@@ -103,6 +103,39 @@ services:
             start_period: 60s
         restart: unless-stopped
 
+    mcp-runtime:
+        build:
+            context: .
+            dockerfile: ./workroom/mcp-runtime/Dockerfile
+            secrets:
+                - npmrc
+            # args:
+        environment:
+            <<: *template-env-spar
+        ports:
+            # API
+            - "8003:8003"
+            # Action Server ports
+            - "20000:20000"
+            - "20001:20001"
+            - "20002:20002"
+            - "20003:20003"
+            - "20004:20004"
+            - "20005:20005"
+            - "20006:20006"
+            - "20007:20007"
+            - "20008:20008"
+            - "20009:20009"
+        networks:
+            default:
+                aliases:
+                    - spar
+        volumes:
+            - mcp-runtime-data:/home/mcp-runtime/data
+        depends_on:
+            postgres:
+                condition: service_healthy
+
 #region Telemetry
     influx-db:
         image: influxdb:2
@@ -153,6 +186,7 @@ services:
             - spar
             - spar-no-auth # Deprecated: Will be removed in the futrue
 
+    # Run Agent-Server only
     agent-server:
         <<: *template-service-spar
         environment:
@@ -165,40 +199,22 @@ services:
             - "8000"
         profiles:
             - agent-server
-            - agent-server-no-auth # Deprecated: Will be removed in the futrue
+            - agent-server-no-auth # Deprecated: Will be removed in the future
 
-    mcp-runtime:
-        build:
-            context: .
-            dockerfile: ./workroom/mcp-runtime/Dockerfile
-            secrets:
-                - npmrc
-            # args:
+    # Run SPAR frontend only (workroom)
+    spar-ui:
+        <<: *template-service-spar
         environment:
             <<: *template-env-spar
+            DISABLED_SERVICE: agent-server
         ports:
-            # API
-            - "8003:8003"
-            # Action Server ports
-            - "20000:20000"
-            - "20001:20001"
-            - "20002:20002"
-            - "20003:20003"
-            - "20004:20004"
-            - "20005:20005"
-            - "20006:20006"
-            - "20007:20007"
-            - "20008:20008"
-            - "20009:20009"
-        networks:
-            default:
-                aliases:
-                    - spar
-        volumes:
-            - mcp-runtime-data:/home/mcp-runtime/data
-        depends_on:
-            postgres:
-                condition: service_healthy
+            - "8001:8001"
+            - "8002:8002"
+        expose:
+            - "8001"
+            - "8002"
+        profiles:
+            - spar-ui
 #endregion
 
 volumes:
