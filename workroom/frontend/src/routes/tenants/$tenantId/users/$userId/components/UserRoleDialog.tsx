@@ -2,7 +2,8 @@ import { FC, useMemo } from 'react';
 import z from 'zod';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Dialog, Form, Select } from '@sema4ai/components';
+import { IconDatabaseError } from '@sema4ai/icons';
+import { Button, Dialog, Form, Select, useSnackbar } from '@sema4ai/components';
 import { trpc, TrpcOutput } from '~/lib/trpc';
 import { useUserPermissionsQuery } from '~/queries/userPermissions';
 
@@ -32,7 +33,17 @@ interface Props {
 export const UserRoleDialog: FC<Props> = ({ user, roles, onClose, open }) => {
   const { data: userPermissions, refetch: refetchUserPermissions } = useUserPermissionsQuery({ enabled: false });
   const trpcUtils = trpc.useUtils();
+
+  const snackbar = useSnackbar();
+
   const { mutateAsync: onUpdateUserRole } = trpc.userManagement.updateUser.useMutation({
+    onError: (error) => {
+      snackbar.addSnackbar({
+        message: error.message
+        variant: 'danger',
+        icon: IconDatabaseError,
+      });
+    },
     onSuccess: async (_, data) => {
       trpcUtils.userManagement.getUserDetails.invalidate({ userId: user.id });
       trpcUtils.userManagement.listUsers.invalidate();

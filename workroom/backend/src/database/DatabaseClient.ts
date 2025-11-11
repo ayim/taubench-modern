@@ -111,6 +111,17 @@ export class DatabaseClient {
     };
   }
 
+  async getAdminUserIds(): Promise<Result<Array<string>>> {
+    return asResult(() =>
+      this.database
+        .selectFrom('user')
+        .select('id')
+        .where('role', '=', 'admin')
+        .execute()
+        .then((results) => results.map((result) => result.id)),
+    );
+  }
+
   async getUser({ id }: { id: string }): Promise<Result<User>> {
     return asResult(() =>
       this.database //

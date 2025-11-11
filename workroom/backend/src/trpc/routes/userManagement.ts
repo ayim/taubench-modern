@@ -147,6 +147,36 @@ export const updateUser = authedProcedure(['users.write'])
     };
 
     if (input.update.role) {
+      if (input.update.role !== 'admin') {
+        // User is being demoted, so we need to ensure that they're not demoting themselves
+        // while potentially being the LAST admin user..
+        const currentAdminIdsResult = await database.getAdminUserIds();
+        if (!currentAdminIdsResult.success) {
+          monitoring.logger.error('Failed retrieving admin user IDs', {
+            errorMessage: currentAdminIdsResult.error.message,
+            errorName: currentAdminIdsResult.error.code,
+            userId: input.userId,
+          });
+
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to update user role',
+          });
+        }
+
+        if (currentAdminIdsResult.data.length === 1 && currentAdminIdsResult.data.includes(input.userId)) {
+          // Target user is the only administrator
+          monitoring.logger.error('User demotion failed: User is last administrator', {
+            userId: input.userId,
+          });
+
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'At least one user must be admin: promote another user to admin before demoting yourself',
+          });
+        }
+      }
+
       updatePayload.role = input.update.role;
     }
 
