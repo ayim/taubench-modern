@@ -82,6 +82,16 @@ export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
   } satisfies DataConnectionFormSchema;
 };
 
+export const defaultFormDataValues: DataConnectionFormSchema = {
+  dataConnectionId: undefined,
+  dataConnectionName: undefined,
+  fileRefId: undefined,
+  description: undefined,
+  name: undefined,
+  dataSelection: [],
+  tables: undefined,
+};
+
 export type DataConnectionFormSchema = z.infer<typeof DataConnectionFormSchema>;
 
 export enum ConfigurationStep {
@@ -129,4 +139,20 @@ export const hasDataSelectionChanged = (payload: DataConnectionFormSchema) => {
   });
 
   return dataSelectionAdded || dataSelectionRemoved;
+};
+
+export const tablesToDataSelection = (tables: InspectedTableInfo[]): DataConnectionFormSchema['dataSelection'] => {
+  return tables.map((table) => {
+    return {
+      name: table.name,
+      columns: table.columns.map((column) => {
+        return {
+          name: column.name,
+          data_type: column.data_type,
+          sample_values: column.sample_values || undefined,
+          synonyms: column.synonyms || undefined,
+        };
+      }),
+    };
+  });
 };

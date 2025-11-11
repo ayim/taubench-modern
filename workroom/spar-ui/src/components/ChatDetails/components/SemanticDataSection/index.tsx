@@ -30,7 +30,7 @@ export const SemanticDataSection = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb="$4">
         <Typography variant="body-medium" fontWeight="bold">
-          Data Models
+          Data
         </Typography>
         <Button
           disabled={!isChatInteractive}

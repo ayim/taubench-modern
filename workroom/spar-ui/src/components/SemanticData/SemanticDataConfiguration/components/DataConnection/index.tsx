@@ -19,26 +19,26 @@ export const DataConnection: ConfigurationStepView<Props> = ({
   dataSourceType,
 }) => {
   if (dataSourceType === DataSourceType.Database) {
-    return <DatabaseSource onClose={onClose} setActiveStep={setActiveStep} />;
+    return <DatabaseSource onClose={onClose} setActiveStep={setActiveStep} setDataSourceType={setDataSourceType} />;
   }
 
   if (dataSourceType === DataSourceType.File) {
-    return <FileSource onClose={onClose} setActiveStep={setActiveStep} />;
+    return <FileSource onClose={onClose} setActiveStep={setActiveStep} setDataSourceType={setDataSourceType} />;
   }
 
   if (dataSourceType === DataSourceType.Import) {
-    return <ImportSource onClose={onClose} setActiveStep={setActiveStep} />;
+    return <ImportSource onClose={onClose} setActiveStep={setActiveStep} setDataSourceType={setDataSourceType} />;
   }
 
   return (
     <>
       <Dialog.Content maxWidth={768}>
-        <Typography variant="display-large" mb="$12">
-          Create Data Model
+        <Typography variant="display-medium" mb="$12">
+          Add Data
         </Typography>
         <Typography variant="body-large" color="content.subtle" mb="$40">
-          Choose whether to link a database or upload files to define your data model. The model provides structure and
-          context, helping your agent accurately interpret and work with your data.{' '}
+          Choose whether to link a database, upload files, or import an existing data model. We&apos;ll create a data
+          model that provides structure and context, helping your agent accurately interpret and work with your data..{' '}
           <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
             Learn more
           </Link>

@@ -10,9 +10,14 @@ import {
   ConfigurationStepView,
   DataConnectionFormContext,
   DataConnectionFormSchema,
+  DataSourceType,
 } from '../../form';
 
-export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
+type Props = {
+  setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
+};
+
+export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveStep, setDataSourceType }) => {
   const { addSnackbar } = useSnackbar();
   const { setDatabaseInspectionState, databaseInspectionState } = useContext(DataConnectionFormContext);
   const { mutateAsync: inspectFile } = useDataConnectionFileInspectMutation({
@@ -49,14 +54,19 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
     setValue('fileRefId', undefined);
   };
 
+  const onResetSourceSelection = () => {
+    setDataSourceType(undefined);
+    setValue('fileRefId', undefined);
+  };
+
   return (
     <>
       <Dialog.Content maxWidth={768}>
-        <Typography variant="display-large" mb="$12">
+        <Typography variant="display-medium" mb="$12">
           Upload Files
         </Typography>
         <Typography variant="body-large" color="content.subtle" mb="$40">
-          Upload your data files (.xlsx, .xls, or .csv) to start building your data model.The file will be used to
+          Upload your data files (.xlsx, .xls, or .csv) to start building your data model. The file will be used to
           extract its structure and columns in the next step — it won’t be stored in your agent.{' '}
           <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
             Learn more
@@ -90,6 +100,9 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
         </Button>
         <Button variant="secondary" round onClick={onClose}>
           Cancel
+        </Button>
+        <Button variant="secondary" align="secondary" onClick={onResetSourceSelection} round>
+          Back
         </Button>
       </Dialog.Actions>
     </>

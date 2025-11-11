@@ -19,7 +19,7 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
     <>
       <Dialog.Content>
         <Box maxWidth={768} margin="0 auto">
-          <Typography variant="display-large" mb="$12">
+          <Typography variant="display-medium" mb="$12">
             Select Data
           </Typography>
           <Typography variant="body-large" color="content.subtle" mb="$40">

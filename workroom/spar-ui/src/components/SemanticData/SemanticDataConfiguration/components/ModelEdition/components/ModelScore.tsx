@@ -76,7 +76,7 @@ export const ModelScore: FC<Props> = ({ children }) => {
       gap="$36"
       flex="1"
       backgroundColor="background.panels"
-      p="$24"
+      p="$20"
       borderColor="border.subtle"
       borderWidth={1}
       borderRadius="$16"
@@ -85,7 +85,7 @@ export const ModelScore: FC<Props> = ({ children }) => {
         <Box display="flex" alignItems="center" gap="$8" mb="$4">
           <Typography color="content.subtle.light">Data Understanding</Typography>
           <Tooltip text="The data understanding score is a measure of how well the data model captures the data.">
-            <IconHelpSmall color="background.subtle.light" />
+            <IconHelpSmall color="background.subtle" />
           </Tooltip>
         </Box>
         <Typography fontWeight="medium" mb="$8">

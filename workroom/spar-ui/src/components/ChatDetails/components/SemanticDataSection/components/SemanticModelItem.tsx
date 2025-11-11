@@ -1,6 +1,7 @@
 import { FC, useCallback, useState } from 'react';
 import { Box, Button, Typography, Menu, useSnackbar } from '@sema4ai/components';
-import { IconDatabase, IconDotsHorizontal } from '@sema4ai/icons';
+import { IconDotsHorizontal } from '@sema4ai/icons';
+import { IconDataAccess, IconFileBrand } from '@sema4ai/icons/logos';
 import { styled } from '@sema4ai/theme';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 import { useDropzone } from 'react-dropzone';
@@ -13,7 +14,7 @@ import {
 } from '../../../../../queries/semanticData';
 import { useMessageStream, useParams } from '../../../../../hooks';
 import { downloadFile } from '../../../../../lib/utils';
-import { parseSemanticModelErrors } from '../../../../../lib/SemanticDataModels';
+import { parseSemanticModelErrors, requiresDataConnection } from '../../../../../lib/SemanticDataModels';
 import { ErrorPopover } from './ErrorPopover';
 
 type Props = {
@@ -102,10 +103,12 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
 
   const errors = parseSemanticModelErrors(model);
 
+  const Icon = requiresDataConnection(model) ? IconDataAccess : IconFileBrand;
+
   return (
     <Item>
       <Box display="flex" alignItems="center" gap="$4">
-        <IconDatabase />
+        <Icon />
         <Typography fontWeight="bold">{model.name}</Typography>
         {errors.hasConnectionError && (
           <ErrorPopover

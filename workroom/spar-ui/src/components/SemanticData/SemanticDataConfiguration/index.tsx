@@ -17,8 +17,10 @@ import {
   DataConnectionFormContext,
   DataConnectionFormSchema,
   DataSourceType,
+  defaultFormDataValues,
   hasDataSelectionChanged,
   semanticModelToFormSchema,
+  tablesToDataSelection,
 } from './components/form';
 import { DataConnection } from './components/DataConnection';
 import { DataSelection } from './components/DataSelection';
@@ -60,11 +62,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
 
   const formMethods = useForm<DataConnectionFormSchema>({
     resolver: zodResolver(DataConnectionFormSchema),
-    defaultValues: {
-      dataConnectionId: '',
-      description: '',
-      dataSelection: [],
-    },
+    defaultValues: defaultFormDataValues,
   });
 
   useEffect(() => {
@@ -164,6 +162,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
                 error: undefined,
                 dataTables: result,
               });
+              formMethods.setValue('dataSelection', tablesToDataSelection(result));
             },
           },
         );
@@ -173,13 +172,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
   }, [dataConnectionId]);
 
   const onResetImport = () => {
-    formMethods.reset({
-      dataConnectionId: undefined,
-      fileRefId: undefined,
-      tables: undefined,
-      dataSelection: [],
-      description: '',
-    });
+    formMethods.reset(defaultFormDataValues);
   };
 
   const connectionStepProps: StepProps & { label: string } = (() => {

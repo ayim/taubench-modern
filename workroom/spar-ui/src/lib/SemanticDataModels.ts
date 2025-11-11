@@ -36,3 +36,9 @@ export const parseSemanticModelErrors = (model: SemanticModel) => {
     hasMissingTableReferenceError,
   };
 };
+
+export const requiresDataConnection = (semanticModel: SemanticModel): boolean => {
+  return semanticModel.tables.some(
+    (table) => !!table.base_table.data_connection_id || !!table.base_table.data_connection_name,
+  );
+};

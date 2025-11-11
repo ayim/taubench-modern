@@ -39,10 +39,12 @@ export const Processing: FC = () => {
       <Box display="flex" flexDirection="column" gap="$12">
         {steps.map((step, index) => (
           <Box key={step} display="flex" alignItems="center" gap="$8">
-            {currentStep < index && <IconStatusTimeout />}
+            {currentStep < index && <IconStatusTimeout color="content.subtle.light" />}
             {currentStep === index && <IconLoading />}
             {currentStep > index && <IconStatusCompleted color="content.success" />}
-            <Typography variant="body-large">{step}</Typography>
+            <Typography variant="body-large" color={currentStep < index ? 'content.subtle.light' : 'content.primary'}>
+              {step}
+            </Typography>
           </Box>
         ))}
       </Box>

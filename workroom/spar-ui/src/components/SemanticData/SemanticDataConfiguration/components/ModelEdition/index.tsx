@@ -63,7 +63,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
             }
           />
         )}
-        <Box display="flex" mb="$40" width="100%">
+        <Box display="flex" flexDirection={['column', 'column', 'column', 'row']} gap="$16" mb="$40" width="100%">
           <Box display="flex" flexDirection="column" gap="$8">
             <Box display="flex" alignItems="center" gap="$8">
               <Typography variant="display-medium">{name}</Typography>
@@ -86,7 +86,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
               </Typography>
             </Box>
           </Box>
-          <Box ml="auto">
+          <Box ml={[0, 0, 0, 'auto']}>
             <ModelScore />
           </Box>
         </Box>

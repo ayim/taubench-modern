@@ -9,10 +9,15 @@ import {
   ConfigurationStepView,
   DataConnectionFormContext,
   DataConnectionFormSchema,
+  DataSourceType,
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
 
-export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
+type Props = {
+  setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
+};
+
+export const DatabaseSource: ConfigurationStepView<Props> = ({ onClose, setActiveStep, setDataSourceType }) => {
   const {
     databaseInspectionState: { isLoading, error, dataTables },
   } = useContext(DataConnectionFormContext);
@@ -20,10 +25,14 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
   const { watch } = useFormContext<DataConnectionFormSchema>();
   const dataConnectionId = watch('dataConnectionId');
 
+  const onResetSourceSelection = () => {
+    setDataSourceType(undefined);
+  };
+
   return (
     <>
       <Dialog.Content maxWidth={768}>
-        <Typography variant="display-large" mb="$12">
+        <Typography variant="display-medium" mb="$12">
           Connect to Your Database
         </Typography>
         <Typography variant="body-large" color="content.subtle" mb="$40">
@@ -55,6 +64,9 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
         </Button>
         <Button variant="secondary" onClick={onClose} round>
           Cancel
+        </Button>
+        <Button variant="secondary" align="secondary" onClick={onResetSourceSelection} round>
+          Back
         </Button>
       </Dialog.Actions>
     </>

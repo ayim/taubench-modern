@@ -9,10 +9,16 @@ import {
   DataConnectionFormContext,
   DataConnectionFormSchema,
   semanticModelToFormSchema,
+  DataSourceType,
+  defaultFormDataValues,
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
 
-export const ImportSource: ConfigurationStepView = ({ onClose }) => {
+type Props = {
+  setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
+};
+
+export const ImportSource: ConfigurationStepView<Props> = ({ onClose, setDataSourceType }) => {
   const { addSnackbar } = useSnackbar();
   const { reset, watch } = useFormContext<DataConnectionFormSchema>();
   const { onSubmit } = useContext(DataConnectionFormContext);
@@ -43,6 +49,11 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
     }
   };
 
+  const onResetSourceSelection = () => {
+    reset(defaultFormDataValues);
+    setDataSourceType(undefined);
+  };
+
   const isModelImported = !!state.tables;
   const requiresDataConnection = isModelImported && !state.fileRefId;
   const isSubmitDisabled = !isModelImported || (!state.fileRefId && !state.dataConnectionId);
@@ -52,7 +63,7 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
       <Dialog.Content maxWidth={768}>
         {!requiresDataConnection && (
           <>
-            <Typography variant="display-large" mb="$12">
+            <Typography variant="display-medium" mb="$12">
               Upload File
             </Typography>
             <Typography variant="body-large" color="content.subtle" mb="$40">
@@ -106,6 +117,9 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
         </Button>
         <Button variant="secondary" round onClick={onClose}>
           Cancel
+        </Button>
+        <Button variant="secondary" align="secondary" onClick={onResetSourceSelection} round>
+          Back
         </Button>
       </Dialog.Actions>
     </>
