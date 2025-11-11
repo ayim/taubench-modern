@@ -1,0 +1,121 @@
+name: Build and publish MCP Runtime Docker image
+
+on:
+  pull_request:
+    types:
+      - synchronize
+      - opened
+    paths: &workflow-paths
+      - '.github/workflows/mcp-runtime-build.yaml'
+      - 'workroom/mcp-runtime/**'
+  push:
+    paths: *workflow-paths
+    branches:
+      - main
+
+concurrency:
+  group: mcp-runtime-build-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  ECR_REGION: 'us-east-1'
+  ECR_ACCOUNT: '024848458368' # releases-dev
+  AWS_ROLE_ARN: 'arn:aws:iam::024848458368:role/github-action-for-ace-repositories-ci'
+  BRANCH_NAME: '${{ github.head_ref || github.ref_name }}'
+  RELEASE_CHANNEL: ${{ github.ref_name == 'main' && 'ci' || 'manual' }}
+
+jobs:
+  build:
+    name: Build MCP Runtime
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate build metadata
+        id: build-metadata
+        run: |
+          mcp_runtime_version="$(jq -r '.version' workroom/mcp-runtime/package.json)"
+          commit_hash="$(git rev-parse --short HEAD)"
+          timestamp="$(date -u +"%Y%m%dT%H%M%SZ")"
+          build_details="${commit_hash}.${timestamp}"
+
+          echo "Preparing metadata for version: ${mcp_runtime_version}"
+
+          if [[ "${{ github.event_name }}" == "push" && "${BRANCH_NAME}" == "main" ]]; then
+            # Merge to main; Publish a CI ACE release
+            mcp_runtime_tag="${mcp_runtime_version}+${build_details}"
+          else
+            # Push to dev branch; Publish a "manual" / dev ACE release
+            repo_name="$(
+              echo "${{ github.event.repository.name }}" |
+                tr '[:upper:]' '[:lower:]' |
+                tr -cd 'a-z-'
+            )"
+            branch_name="$(
+              echo "${BRANCH_NAME}" |
+                tr '[:upper:]' '[:lower:]' |
+                tr -cd 'a-z' |
+                cut -c -20
+            )"
+
+            mcp_runtime_tag="${mcp_runtime_version}-${repo_name}-${branch_name}+${build_details}"
+          fi
+
+          mcp_runtime_tag_sanitized="${mcp_runtime_tag//+/_}" # Replace + with _ for the tag to be valid
+          echo "version=${mcp_runtime_tag}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${mcp_runtime_tag_sanitized}" >> "${GITHUB_OUTPUT}"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.ECR_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: GHA-JOB-${{ github.run_id }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registries: '${{ env.ECR_ACCOUNT }}'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create .npmrc file
+        shell: bash
+        run: |
+          cat << EOF > .npmrc
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_READ_PACKAGES }}
+          EOF
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+          NODE_OPTIONS: '--max_old_space_size=4096'
+          repository: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/mcp-runtime'
+          cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/ace/mcp-runtime' # Note: Caches live on the manual channel
+          version: ${{ steps.build-metadata.outputs.version }}
+          tag: ${{ steps.build-metadata.outputs.tag }}
+        with:
+          file: './workroom/mcp-runtime/Dockerfile'
+          context: '.'
+          push: true
+          tags: '${{ env.repository }}:${{ env.tag }}'
+          cache-from: type=registry,ref=${{ env.cache-repository }}:build-cache,timeout=1m
+          cache-to: type=registry,mode=max,image-manifest=true,oci-mediatypes=true,compression=zstd,compression-level=3,ref=${{ env.cache-repository }}:build-cache,ignore-error=true,timeout=3m
+          provenance: false
+          secret-files: |
+            "npmrc=./.npmrc"
