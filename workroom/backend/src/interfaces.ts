@@ -34,7 +34,7 @@ export const OIDCTokenClaims = z
     name: z.string().optional(),
     given_name: z.string().optional(),
     family_name: z.string().optional(),
-    picture: z.string().url().optional(),
+    picture: z.url().optional(),
     locale: z.string().optional(),
     // Email scope claims
     email: z.string().email().optional(),

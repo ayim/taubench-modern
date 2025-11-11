@@ -2,7 +2,7 @@ import { FC, useMemo } from 'react';
 import z from 'zod';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { IconDatabaseError } from '@sema4ai/icons';
+import { IconDatabaseError, IconStatusCompleted } from '@sema4ai/icons';
 import { Button, Dialog, Form, Select, useSnackbar } from '@sema4ai/components';
 import { trpc, TrpcOutput } from '~/lib/trpc';
 import { useUserPermissionsQuery } from '~/queries/userPermissions';
@@ -34,12 +34,12 @@ export const UserRoleDialog: FC<Props> = ({ user, roles, onClose, open }) => {
   const { data: userPermissions, refetch: refetchUserPermissions } = useUserPermissionsQuery({ enabled: false });
   const trpcUtils = trpc.useUtils();
 
-  const snackbar = useSnackbar();
+  const { addSnackbar } = useSnackbar();
 
   const { mutateAsync: onUpdateUserRole } = trpc.userManagement.updateUser.useMutation({
     onError: (error) => {
-      snackbar.addSnackbar({
-        message: error.message
+      addSnackbar({
+        message: error.message,
         variant: 'danger',
         icon: IconDatabaseError,
       });
@@ -53,6 +53,12 @@ export const UserRoleDialog: FC<Props> = ({ user, roles, onClose, open }) => {
         await refetchUserPermissions();
       }
       onClose();
+
+      addSnackbar({
+        message: 'Successfully updated user role',
+        variant: 'success',
+        icon: IconStatusCompleted,
+      });
     },
   });
 

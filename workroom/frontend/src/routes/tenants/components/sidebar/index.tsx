@@ -13,6 +13,7 @@ import {
 import { styled } from '@sema4ai/theme';
 import { useParams, useRouteContext } from '@tanstack/react-router';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
+import { SIDEBAR_STARTING_WIDTH_PX } from '@sema4ai/spar-ui';
 
 import { EXTERNAL_LINKS } from '~/config/externalLinks';
 import { TenantMenu } from './components/TenantMenu';
@@ -21,7 +22,10 @@ import { RouterSideNavigationLink } from '~/components/RouterLink';
 import { AgentsMenu } from './components/AgentsMenu';
 import { UserMenu } from './components/UserMenu';
 import { useTenantContext, shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
-import { SIDEBAR_STARTING_WIDTH_PX } from '@sema4ai/spar-ui';
+
+type Props = {
+  profilePictureUrl?: string;
+};
 
 const MenuOuterToggle = styled(Button)<{ $expanded?: boolean }>`
   display: block;
@@ -43,7 +47,7 @@ const ScrollContainer = styled.div`
   flex: 1;
 `;
 
-export const Sidebar: FC = () => {
+export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { features } = useTenantContext();
   const { permissions } = useRouteContext({ from: '/tenants/$tenantId' });
@@ -135,7 +139,7 @@ export const Sidebar: FC = () => {
         </ScrollContainer>
 
         <Box display="flex" justifyContent="space-between" mt="auto">
-          <UserMenu />
+          <UserMenu profilePictureUrl={profilePictureUrl} />
 
           <Link
             href={EXTERNAL_LINKS.MAIN_WORKROOM_HELP}

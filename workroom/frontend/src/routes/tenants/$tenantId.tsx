@@ -8,6 +8,7 @@ import errorIllustration from '~/assets/error.svg';
 import { createSparAPIClient } from '~/lib/SparAPIClient';
 import { TenantContext } from '~/lib/tenantContext';
 import { getMeta } from '~/lib/meta';
+import { trpc } from '~/lib/trpc';
 import { Main } from './components/Main';
 import { Sidebar } from './components/sidebar';
 import { router } from '../../components/providers/Router';
@@ -33,6 +34,9 @@ function View() {
   const { tenantId } = Route.useParams();
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const { tenantMeta } = Route.useLoaderData();
+
+  const profileData = trpc.profile.getProfile.useQuery();
+  const profilePicture = (profileData.isSuccess && profileData.data.user.profilePicture) || undefined;
 
   const sparUIContext = useMemo(() => {
     return tenantMeta
@@ -64,7 +68,7 @@ function View() {
       <SparUIContext.Provider value={sparUIContext}>
         <Main>
           <SidebarMenuProvider>
-            <Sidebar />
+            <Sidebar profilePictureUrl={profilePicture} />
             <Outlet />
           </SidebarMenuProvider>
         </Main>

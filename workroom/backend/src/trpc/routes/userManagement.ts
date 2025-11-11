@@ -51,7 +51,7 @@ export const getUserDetails = authedProcedure(['users.read'])
 
     const userResult = await database.getUser({ id: userId });
     if (!userResult.success) {
-      monitoring.logger.error('Failed retrieve users', {
+      monitoring.logger.error('Failed to retrieve users', {
         errorMessage: userResult.error.message,
         errorName: userResult.error.code,
       });

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getNextUserRole } from './userRegistration.js';
-import type { DatabaseClient } from '../../database/DatabaseClient.js';
+import type { DatabaseClient, UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import type { OIDCTokenClaims } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
@@ -48,6 +48,7 @@ export const upsertOIDCUser = async ({
 > => {
   const oidcUserId = claims.sub;
   const names = extractNamesFromClaims(claims);
+  const profilePicture = claims.picture ?? null;
 
   monitoring.logger.info('Ingest OIDC user', {
     oidcUserId,
@@ -66,12 +67,18 @@ export const upsertOIDCUser = async ({
 
   if (existingUserId) {
     // Update the names in the parent table
+    const updatePayload: UpdateUserPayload = {
+      id: existingUserId,
+      first_name: names.first,
+      last_name: names.last,
+    };
+
+    if (profilePicture) {
+      updatePayload.profile_picture_url = profilePicture;
+    }
+
     const updateResult = await database.updateUser({
-      user: {
-        id: existingUserId,
-        first_name: names.first,
-        last_name: names.last,
-      },
+      user: updatePayload,
     });
     if (!updateResult.success) {
       return updateResult;
@@ -123,6 +130,7 @@ export const upsertOIDCUser = async ({
       first_name: names.first,
       last_name: names.last,
       role: nextUserRoleResult.data,
+      profile_picture_url: profilePicture,
     },
   });
   if (!newUserResult.success) {

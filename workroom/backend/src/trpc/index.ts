@@ -6,11 +6,15 @@ import type { Configuration } from '../configuration.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/SessionManager.js';
+import * as profileRoutes from './routes/profile.js';
 import * as userManagementRoutes from './routes/userManagement.js';
 import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import { extractHeadersFromRequest } from '../utils/request.js';
 
 export const sparRouter = trpc.router({
+  profile: {
+    ...profileRoutes,
+  },
   userManagement: {
     ...userManagementRoutes,
   },

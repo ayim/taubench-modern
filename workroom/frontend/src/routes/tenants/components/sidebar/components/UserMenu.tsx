@@ -1,14 +1,18 @@
-import { Box, Divider, Menu } from '@sema4ai/components';
+import { Avatar, Box, Divider, Menu } from '@sema4ai/components';
 import { IconLogOut, IconMoon, IconSun, IconUserCircle } from '@sema4ai/icons';
 import { useAuth } from '@sema4ai/robocloud-ui-utils';
-import { useCallback, useMemo } from 'react';
+import { FC, useCallback, useMemo } from 'react';
 
 import { useAuth as useAuthContext } from '~/components/ProtectedRoute';
 import { useUIState } from '~/components/providers/Theme';
 import { useMeta } from '~/hooks/meta';
 import { resolveWorkroomURL } from '~/lib/utils';
 
-export const UserMenu = () => {
+type Props = {
+  profilePictureUrl?: string;
+};
+
+export const UserMenu: FC<Props> = ({ profilePictureUrl }) => {
   const { logout } = useAuth();
   const { bypassAuth } = useAuthContext();
   const { theme, setTheme } = useUIState();
@@ -42,7 +46,9 @@ export const UserMenu = () => {
           backgroundColor={theme == 'dark' ? 'magenta-dark80' : 'magenta90'}
           borderRadius="30px"
         >
-          <IconUserCircle color="content.inverted" />
+          {(profilePictureUrl && <Avatar alt="User" src={profilePictureUrl} />) || (
+            <IconUserCircle color="content.inverted" />
+          )}
         </Box>
       }
     >

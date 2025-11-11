@@ -160,10 +160,11 @@ export const getConfiguration = (): Configuration => {
         // Standard, required scopes:
         //  offline_access  => Refresh tokens
         //  openid          => ID tokens
-        //  profile         => User info, like name, picture etc.
+        //  profile         => User info, like name etc.
+        //  email           => Email, profile picture etc.
         const scopes = process.env.SEMA4AI_WORKROOM_OIDC_SCOPES
           ? parseEnvVariable('SEMA4AI_WORKROOM_OIDC_SCOPES').split(/\s+/g)
-          : ['offline_access', 'openid', 'profile'];
+          : ['offline_access', 'openid', 'email', 'profile'];
 
         return {
           clientId: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_ID'),
