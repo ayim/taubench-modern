@@ -145,6 +145,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
         )}
       </Box>
       <Menu trigger={<Button variant="outline" size="small" icon={IconDotsHorizontal} round aria-label="Actions" />}>
+        <Menu.Item onClick={onToggleEditModel}>View</Menu.Item>
         <Menu.Item onClick={onToggleEditModel}>Edit</Menu.Item>
         <Menu.Item onClick={onExportModel}>Export</Menu.Item>
         <Menu.Item onClick={onDelete}>Delete</Menu.Item>

@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { Box, Button, Dialog, Link, Typography } from '@sema4ai/components';
+import { Box, Button, Dialog, Form, Link, Typography } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 
 import { EXTERNAL_LINKS } from '../../../../lib/constants';
@@ -30,13 +30,21 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
             </Link>
           </Typography>
 
-          <InputControlled
-            fieldName="description"
-            label="Business Context"
-            rows={4}
-            autoGrow
-            placeholder="Paste or write here anything that helps us understand the business context of your data."
-          />
+          <Form.Fieldset>
+            <InputControlled
+              fieldName="name"
+              label="Data Model Name"
+              placeholder="Enter a name for your data model for easy identification."
+            />
+
+            <InputControlled
+              fieldName="description"
+              label="Business Context"
+              rows={4}
+              autoGrow
+              placeholder="Paste or write here anything that helps us understand the business context of your data."
+            />
+          </Form.Fieldset>
 
           <Typography my="$16">Select data</Typography>
           <DataSelector data={dataTables} />

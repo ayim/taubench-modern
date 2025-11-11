@@ -228,7 +228,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
 
     const generateResponse = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/generate', {
       body: {
-        name: 'Semantic Data Model',
+        name: payload.name || 'Semantic Data Model',
         description: payload.description || '',
         agent_id: payload.agentId,
         ...tableData,
