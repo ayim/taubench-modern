@@ -44,20 +44,17 @@ ADD --chmod=755 https://cdn.sema4.ai/agent-cli/releases/v${AGENT_CLI_VERSION}/li
 ARG USERNAME=mcp-runtime
 # Directory for data persisted across container reboots
 ENV SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR=/home/${USERNAME}/data
-# Override RCC home directory (default = ~/.sema4ai) to be under the persistent directory
-ENV SEMA4AI_HOME=${SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR}/sema4ai
 # Maximum Agent Package payload size
 ENV SEMA4AI_MCP_RUNTIME_MAXIMUM_PACKAGE_SIZE="50mb"
 
 RUN useradd -m ${USERNAME} \
     && mkdir -p \
-        ${SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR} \
-        ${SEMA4AI_HOME} \
+        ${SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR}/sema4ai \
         /app \
     && chown -R ${USERNAME}:${USERNAME} \
         ${SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR} \
-        ${SEMA4AI_HOME} \
-        /app
+        /app \
+    && ln -s ${SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR}/sema4ai /home/${USERNAME}/.sema4ai
 
 USER ${USERNAME}
 WORKDIR /app

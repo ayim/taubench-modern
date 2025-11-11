@@ -43,7 +43,8 @@ const getDatabaseClient = ({
         .selectFrom('deployment')
         .selectAll()
         .where('id', '=', id)
-        .executeTakeFirstOrThrow(),
+        .executeTakeFirst()
+        .then((item) => item ?? null),
     );
   },
 
@@ -123,7 +124,7 @@ export const runMigrationsAndGetDatabaseClient = async (
   const kysely = new Kysely<Database>({ dialect }).withSchema(configuration.database.schema);
   const migrator = new Migrator({
     db: kysely,
-    allowUnorderedMigrations: false,
+    allowUnorderedMigrations: true,
     migrationLockTableName: configuration.database.migrations.lockTable,
     migrationTableName: configuration.database.migrations.recordsTable,
     migrationTableSchema: configuration.database.schema,

@@ -8,6 +8,13 @@ import type { AsyncResult } from '@sema4ai/robocloud-shared-utils';
 import type { Configuration } from '../configuration.ts';
 import type { DatabaseClient } from './database.ts';
 
+// How long to delay the reboot of an Action Server process in case it stops unexpectedly
+const ACTION_SERVER_REBOOT_DELAY_IN_MS = 5000;
+
+// Timeout / interval for polling for Action Server responsiveness
+const ACTION_SERVER_RESPONSIVENESS_TIMEOUT_IN_MS = 30_000;
+const ACTION_SERVER_RESPONSIVENESS_POLL_INTERVAL_IN_MS = 1000;
+
 export const getDeploymentUrl = ({
   configuration,
   deploymentPort,
@@ -178,11 +185,17 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
   const runServer = async ({
     deploymentId,
     port,
+    waitForServer = false,
   }: {
     deploymentId: string;
     port: number;
+    waitForServer?: boolean;
   }): Promise<{ port: number }> => {
     const serverUrl = getDeploymentUrl({ configuration, deploymentPort: port });
+    if (serverUrl === null) {
+      throw new Error(`Unexpected: Could not get deployment URL for deployment ${deploymentId}`);
+    }
+
     const actionServerDataDir = await getActionServerDataDir({ deploymentId });
 
     const actionServer = spawn(
@@ -221,18 +234,50 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
       });
     });
 
-    actionServer.on('close', (code) => {
-      // TODO: Reboot server if unexpected shutdown
-      console.log(`[${deploymentId}] child process exited with code ${code}`);
+    actionServer.on('close', () => {
+      console.log(
+        `Action Server for deployment ${deploymentId} stopped unexpectedly. Will restart the server in ${ACTION_SERVER_REBOOT_DELAY_IN_MS} ms`,
+      );
+      setTimeout(() => {
+        runServer({ deploymentId, port });
+      }, ACTION_SERVER_REBOOT_DELAY_IN_MS);
     });
 
     actionServer.on('error', (err) => {
       console.log(`[${deploymentId}] ERROR:`, err);
     });
 
-    return {
-      port,
-    };
+    return new Promise((resolve, reject) => {
+      if (!waitForServer) {
+        return resolve({ port });
+      }
+
+      const startTime = Date.now();
+
+      const checkServerResponsive = async () => {
+        try {
+          const serverUrlWithoutTrailingSlash = serverUrl.replace(/\/$/, '');
+          const response = await fetch(`${serverUrlWithoutTrailingSlash}/openapi.json`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(500),
+          });
+
+          if (response.ok) {
+            clearInterval(serverPollIntervalId);
+            return resolve({ port });
+          }
+        } catch (err) {
+          // Server not ready yet, continue polling
+        }
+
+        if (Date.now() - startTime > ACTION_SERVER_RESPONSIVENESS_TIMEOUT_IN_MS) {
+          clearInterval(serverPollIntervalId);
+          reject(new Error(`Server failed to start within ${ACTION_SERVER_RESPONSIVENESS_TIMEOUT_IN_MS}ms`));
+        }
+      };
+
+      const serverPollIntervalId = setInterval(checkServerResponsive, ACTION_SERVER_RESPONSIVENESS_POLL_INTERVAL_IN_MS);
+    });
   };
 
   const createDeployment = async ({
@@ -358,13 +403,15 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
   };
 
   const stopServer = async ({ deploymentId }: { deploymentId: string }): AsyncResult<{ deploymentId: string }> => {
+    console.log(`Stopping server for deployment ${deploymentId}`);
+
     const serverProcess = serverProcessMap.get(deploymentId);
     if (!serverProcess) {
+      console.log(`No server found for deployment ${deploymentId}, not stopping`);
       return {
-        success: false,
-        error: {
-          code: 'server_not_running',
-          message: `Action Server not running for deployment ${deploymentId}`,
+        success: true,
+        data: {
+          deploymentId,
         },
       };
     }
@@ -378,6 +425,9 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
         },
       };
     }
+
+    // Remove the server's "close" listener to disable automatic reboots
+    serverProcess.removeAllListeners('close');
 
     const success = serverProcess.kill('SIGINT'); // Kill the action-server process
     if (success && serverProcess.pid) {
@@ -407,17 +457,14 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
   }: {
     deploymentId: string;
   }): AsyncResult<{ deploymentId: string }> => {
-    if (serverProcessMap.has(deploymentId)) {
-      // The server is running, kill it
-      const stopServerResult = await stopServer({ deploymentId });
-      if (!stopServerResult.success) {
-        return stopServerResult;
-      }
-    }
-
     const deleteDeploymentResult = await ctx.db.deleteDeployment({ id: deploymentId });
     if (!deleteDeploymentResult.success) {
       return deleteDeploymentResult;
+    }
+
+    const stopServerResult = await stopServer({ deploymentId });
+    if (!stopServerResult.success) {
+      return stopServerResult;
     }
 
     return {
@@ -444,6 +491,7 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
       await runServer({
         deploymentId: deployment.id,
         port: deployment.port,
+        waitForServer: true,
       });
     }
   };

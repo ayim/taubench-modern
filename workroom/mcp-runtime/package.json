@@ -9,18 +9,16 @@
   },
   "devDependencies": {
     "@trpc/client": "^11.6.0",
-    "@types/express": "^5.0.3",
+    "@types/express": "^4.17.25",
     "@types/node": "^24.9.1",
     "@types/pg": "^8.15.6",
-    "esbuild": "^0.25.11",
-    "postject": "^1.0.0-alpha.6",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@sema4ai/robocloud-shared-utils": "^2.1.0",
     "@trpc/server": "^11.6.0",
-    "express": "^5.1.0",
+    "express": "^4.21.2",
     "kysely": "^0.28.8",
     "pg": "^8.16.3",
     "trpc-to-openapi": "^3.1.0",
