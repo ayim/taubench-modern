@@ -1,5 +1,9 @@
 # agent.cli changelog
 
+## 2.3.1
+
+- Fixed an issue where agent creation failed due to selected tools being null in created agent payload
+
 ## 2.3.0
 
 - Ensure exported agent packages include selected tool names

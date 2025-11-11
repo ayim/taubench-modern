@@ -22,6 +22,7 @@ func BuildAgentPayload(agent *Agent) AgentPayload {
 		Extra:          agent.Extra,
 		Files:          agent.Files,
 		Public:         agent.Public,
+		SelectedTools:  agent.SelectedTools,
 	}
 }
 
@@ -51,5 +52,6 @@ func BuildAgent(payload *AgentPayload) *Agent {
 		Extra:          extra,
 		Files:          payload.Files,
 		Public:         payload.Public,
+		SelectedTools:  payload.SelectedTools,
 	}
 }

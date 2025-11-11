@@ -26,6 +26,7 @@ var newCmd = &cobra.Command{
 			ActionPackages: []AgentServer.AgentActionPackage{},
 			Files:          []AgentServer.AgentFile{},
 			Metadata:       AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+			SelectedTools:  AgentServer.SelectedTools{},
 		}
 
 		return createAgentProject([]AgentServer.Agent{*agent}, agentProjectPath)
