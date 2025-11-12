@@ -14,7 +14,7 @@ const createEvalFormSchema = z
   .object({
     name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
     description: z.string().max(500, 'Description must be less than 500 characters').default(''),
-    useLiveExecution: z.boolean().default(false),
+    useLiveExecution: z.boolean().default(true),
     evaluationCriteria: evaluationCriteriaSchema,
   })
   .superRefine((value, ctx) => {
@@ -55,12 +55,13 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     description: false,
     expectation: false,
   });
+  const defaultUseLiveExecution = initialValues?.useLiveExecution ?? !isEditMode;
   const form = useForm<CreateEvalFormData>({
     resolver: zodResolver(createEvalFormSchema) as Resolver<CreateEvalFormData>,
     defaultValues: {
       name: initialValues?.name || '',
       description: initialValues?.description || '',
-      useLiveExecution: initialValues?.useLiveExecution ?? false,
+      useLiveExecution: defaultUseLiveExecution,
       evaluationCriteria: {
         responseAccuracyExpectation: initialValues?.evaluationCriteria?.responseAccuracyExpectation ?? '',
       },
@@ -81,7 +82,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     register('description');
   }, [register]);
 
-  const liveActionsEnabled = watch('useLiveExecution', false);
+  const liveActionsEnabled = watch('useLiveExecution', defaultUseLiveExecution);
 
   const evaluationSummaryItems = liveActionsEnabled
     ? [
@@ -110,13 +111,13 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
       reset({
         name: initialValues.name || '',
         description: initialValues.description || '',
-        useLiveExecution: initialValues.useLiveExecution ?? false,
+        useLiveExecution: initialValues.useLiveExecution ?? defaultUseLiveExecution,
         evaluationCriteria: {
           responseAccuracyExpectation: initialValues.evaluationCriteria?.responseAccuracyExpectation ?? '',
         },
       });
     }
-  }, [open, initialValues, reset]);
+  }, [open, initialValues, reset, defaultUseLiveExecution]);
 
   useEffect(() => {
     if (!open) {
@@ -202,7 +203,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     reset({
       name: '',
       description: '',
-      useLiveExecution: false,
+      useLiveExecution: defaultUseLiveExecution,
       evaluationCriteria: {
         responseAccuracyExpectation: '',
       },
@@ -221,7 +222,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
     reset({
       name: '',
       description: '',
-      useLiveExecution: false,
+      useLiveExecution: defaultUseLiveExecution,
       evaluationCriteria: {
         responseAccuracyExpectation: '',
       },
