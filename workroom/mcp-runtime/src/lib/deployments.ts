@@ -210,13 +210,18 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
         '--verbose',
         `--datadir=${actionServerDataDir}`,
         '--actions-sync=false',
-        '--reuse-process',
+        '--reuse-processes',
         '--min-processes=2',
         '--max-processes=4',
+        '--kill-lock-holder',
       ],
       {
         detached: true, // Required to kill the server and its (uvicorn) child processes
-        env: process.env, // TODO: *Selectively* pass environment
+        killSignal: 'SIGKILL',
+        env: {
+          ...process.env,
+          SEMA4AI_SKIP_UPDATE_CHECK: '1',
+        }, // TODO: *Selectively* pass environment
       },
     );
     serverProcessMap.set(deploymentId, actionServer);
