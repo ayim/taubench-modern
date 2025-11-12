@@ -415,6 +415,11 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         )
         from agent_platform.server.storage.option import StorageService
 
+        # If data frames are not enabled, don't create any tools
+        if not self.is_enabled():
+            return ()
+
+        # Initialize tools
         previous_state: Literal["enabled", ""] = state.data_frames_tools_state
 
         try:
@@ -701,6 +706,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         """
         import keyword
 
+        # If data frames are not enabled, don't auto create a data frame
         if not self.is_enabled():
             return result_output
 
