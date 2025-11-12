@@ -66,7 +66,7 @@ class SemanticDataModelCollector:
         storage: "BaseStorage",
         references: "References",
         semantic_data_model: "SemanticDataModel",
-        updated_at: str,
+        updated_at: str | None,
     ) -> MatchingInfo | None:
         from agent_platform.server.api.private_v2.threads_data_frames import (
             inspect_file_as_data_frame,
@@ -87,7 +87,8 @@ class SemanticDataModelCollector:
             user_id=self.user.user_id,
         )
 
-        if self.state is not None:
+        # Try to use cache if both state and updated_at are available
+        if self.state is not None and updated_at is not None:
             cache_key_lst = [f"{self.thread_id}:{updated_at}"]
             for empty_file_reference in tables_with_unresolved_file_references:
                 cache_key_lst.append(
@@ -193,7 +194,8 @@ class SemanticDataModelCollector:
                                 uploaded_file_file_ref=inspected_data_frame.file_ref,
                                 sheet_name_to_logical_table_names=sheet_name_to_logical_table_names,
                             )
-                            if self.state is not None:
+                            # Save to cache if both state and updated_at are available
+                            if self.state is not None and updated_at is not None:
                                 self.state.empty_file_cache_key_to_matching_info[cache_key] = (
                                     matching_info.model_dump()
                                 )
@@ -289,6 +291,94 @@ class SemanticDataModelCollector:
                     columns.add(column_info["name"].lower())
         return columns
 
+    async def resolve_file_references_for_semantic_data_model(  # noqa: C901
+        self,
+        storage: "BaseStorage",
+        semantic_data_model: "SemanticDataModel",
+        updated_at: str | None = None,
+    ) -> tuple["SemanticDataModel", "References"]:
+        """Resolve file references for a single semantic data model.
+
+        This method can be used for both stored and unsaved semantic data models.
+        It will attempt to find matching files in the thread for any unresolved
+        file references and update the semantic data model IN PLACE.
+
+        Note: This method mutates the input semantic_data_model. If you need the
+        original unchanged, deepcopy it before calling this method.
+
+        Args:
+            storage: The storage instance
+            semantic_data_model: The semantic data model to resolve references for (will be mutated)
+            updated_at: Optional timestamp for cache key generation. If None, caching is skipped.
+
+        Returns:
+            A tuple of (semantic_data_model, updated_references)
+        """
+        from agent_platform.core.data_frames.semantic_data_model_validation import (
+            validate_semantic_model_payload_and_extract_references,
+        )
+
+        references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
+
+        if references.errors:
+            logger.error(
+                f"Error: semantic data model: {semantic_data_model.get('name')} has errors",
+                errors=references.errors,
+            )
+            return semantic_data_model, references
+
+        if not references.tables_with_unresolved_file_references:
+            # No unresolved references, return as-is
+            return semantic_data_model, references
+
+        # Try to find matching files for unresolved references
+        found = await self._find_file_which_matches_unresolved_file_reference(
+            storage, references, semantic_data_model, updated_at
+        )
+
+        if found is not None:
+            logical_table_name_to_logical_table: dict[str, LogicalTable] = {}
+            for logical_table in semantic_data_model.get("tables") or []:
+                name = logical_table.get("name")
+                if not name:
+                    continue
+                logical_table_name_to_logical_table[name] = logical_table
+
+            # Update the file information in the base_table to match the found file
+            matched_all = True
+            for (
+                sheet_name,
+                logical_table_names,
+            ) in found.sheet_name_to_logical_table_names.items():
+                for logical_table_name in logical_table_names:
+                    logical_table = logical_table_name_to_logical_table.get(logical_table_name)
+                    if not logical_table:
+                        matched_all = False
+                        break
+
+                    base_table = logical_table.get("base_table")
+                    if base_table is None:
+                        base_table = logical_table["base_table"] = {}
+
+                    assert base_table is not None
+                    assert found.uploaded_file_thread_id is not None
+                    file_reference: FileReference = {
+                        "thread_id": found.uploaded_file_thread_id,
+                        "file_ref": found.uploaded_file_file_ref,
+                        "sheet_name": sheet_name,
+                    }
+                    base_table["file_reference"] = file_reference
+
+            if matched_all:
+                # Re-validate to get fresh references that reflect the newly-populated
+                # file references. The old references still have unresolved file references;
+                # the new ones will show them as resolved in the file_references set.
+                references = validate_semantic_model_payload_and_extract_references(
+                    semantic_data_model
+                )
+
+        return semantic_data_model, references
+
     async def collect_semantic_data_models(
         self, storage: "BaseStorage"
     ) -> "list[SemanticDataModelAndReferences]":
@@ -298,13 +388,9 @@ class SemanticDataModelCollector:
             logger.exception("Error collecting semantic data models")
             return []
 
-    async def _collect_semantic_data_models(  # noqa
+    async def _collect_semantic_data_models(
         self, storage: "BaseStorage"
     ) -> "list[SemanticDataModelAndReferences]":
-        from agent_platform.core.data_frames.semantic_data_model_validation import (
-            validate_semantic_model_payload_and_extract_references,
-        )
-
         semantic_data_model_infos: list[
             BaseStorage.SemanticDataModelInfo
         ] = await storage.list_semantic_data_models(
@@ -320,71 +406,33 @@ class SemanticDataModelCollector:
 
         for semantic_data_model_info in semantic_data_model_infos:
             semantic_data_model: SemanticDataModel = semantic_data_model_info["semantic_data_model"]
-            references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
+
+            # Use the new helper to resolve file references and get updated references
+            resolved_sdm, references = await self.resolve_file_references_for_semantic_data_model(
+                storage, semantic_data_model, semantic_data_model_info["updated_at"]
+            )
+
             if references.errors:
                 logger.error(
-                    f"Error: semantic data model: {semantic_data_model.get('name')} has errors"
+                    f"Error: semantic data model: {resolved_sdm.get('name')} has errors"
                     f" (unable to use it in the kernel)",
                     errors=references.errors,
                 )
                 continue
 
-            if not references.tables_with_unresolved_file_references:
-                resolved_semantic_data_model_infos.append(
-                    SemanticDataModelAndReferences(
-                        semantic_data_model_info=semantic_data_model_info, references=references
-                    )
-                )
+            # Check if all file references were resolved
+            if references.tables_with_unresolved_file_references:
+                # Still have unresolved references, skip this SDM
                 continue
 
-            # Ok, we have some unresolved file references, we need to collect the files
-            # in the thread and check if they may be able to satisfy the requirements
-            # for the semantic data model to be applied to. If they do, update the
-            # semantic data model info with the proper file references.
+            # Note: resolved_sdm is the same object as
+            # semantic_data_model_info["semantic_data_model"] since
+            # resolve_file_references_for_semantic_data_model mutates in place
 
-            found = await self._find_file_which_matches_unresolved_file_reference(
-                storage, references, semantic_data_model, semantic_data_model_info["updated_at"]
+            resolved_semantic_data_model_infos.append(
+                SemanticDataModelAndReferences(
+                    semantic_data_model_info=semantic_data_model_info, references=references
+                )
             )
-
-            if found is not None:
-                logical_table_name_to_logical_table: dict[str, LogicalTable] = {}
-                for logical_table in semantic_data_model.get("tables") or []:
-                    name = logical_table.get("name")
-                    if not name:
-                        continue
-                    logical_table_name_to_logical_table[name] = logical_table
-
-                # Update the file information in the base_table to match the found file
-                matched_all = True
-                for (
-                    sheet_name,
-                    logical_table_names,
-                ) in found.sheet_name_to_logical_table_names.items():
-                    for logical_table_name in logical_table_names:
-                        logical_table = logical_table_name_to_logical_table.get(logical_table_name)
-                        if not logical_table:
-                            matched_all = False
-                            break
-
-                        base_table = logical_table.get("base_table")
-                        if base_table is None:
-                            base_table = logical_table["base_table"] = {}
-
-                        assert base_table is not None
-                        assert found.uploaded_file_thread_id is not None
-                        file_reference: FileReference = {
-                            "thread_id": found.uploaded_file_thread_id,
-                            "file_ref": found.uploaded_file_file_ref,
-                            "sheet_name": sheet_name,
-                        }
-                        base_table["file_reference"] = file_reference
-
-                if matched_all:
-                    # We've mutated the semantic data model info in the code above!
-                    resolved_semantic_data_model_infos.append(
-                        SemanticDataModelAndReferences(
-                            semantic_data_model_info=semantic_data_model_info, references=references
-                        )
-                    )
 
         return resolved_semantic_data_model_infos

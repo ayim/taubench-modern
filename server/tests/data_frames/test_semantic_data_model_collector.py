@@ -228,3 +228,136 @@ async def test_semantic_data_model_collector_with_state_dict_access(
 
     # Verify the cache dict is still accessible and empty
     assert state.empty_file_cache_key_to_matching_info == {}, "Cache should remain empty dict"
+
+
+async def test_resolve_file_references_for_unsaved_semantic_data_model(
+    sqlite_storage: "SQLiteStorage", tmpdir: Path
+):
+    """
+    Test that the collector can resolve file references for an unsaved semantic data model.
+    This tests the new resolve_file_references_for_semantic_data_model method.
+    """
+    from agent_platform.core.user import User
+    from agent_platform.server.auth.handlers import AuthedUser
+    from agent_platform.server.data_frames.semantic_data_model_collector import (
+        SemanticDataModelCollector,
+    )
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await model_creator.setup()
+    user_id = await model_creator.get_user_id()
+    agent = await model_creator.obtain_sample_agent()
+    thread = await model_creator.obtain_sample_thread()
+
+    # Create an unsaved semantic data model with unresolved file reference
+    unsaved_sdm: SemanticDataModel = {
+        "name": "test_unsaved_semantic_model",
+        "description": "An unsaved test semantic model with unresolved file reference",
+        "tables": [
+            {
+                "name": "customer_data",
+                "base_table": {
+                    "table": "customer_data_table",
+                    "file_reference": {
+                        "thread_id": "",
+                        "file_ref": "",
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {
+                        "name": "customer_name",
+                        "expr": "customer_name",
+                        "data_type": "TEXT",
+                        "description": "The name of the customer",
+                    },
+                    {
+                        "name": "region",
+                        "expr": "region",
+                        "data_type": "TEXT",
+                        "description": "The region of the customer",
+                    },
+                ],
+                "facts": [
+                    {
+                        "name": "total_purchases",
+                        "expr": "total_purchases",
+                        "data_type": "NUMBER",
+                        "description": "Total purchases amount",
+                    },
+                ],
+            },
+        ],
+    }
+
+    collector = SemanticDataModelCollector(
+        agent_id=agent.agent_id,
+        thread_id=thread.thread_id,
+        user=typing.cast(AuthedUser, User(user_id=user_id, sub="")),
+        state=None,  # No state, so no caching
+    )
+
+    # First attempt without file: should return SDM with unresolved references
+    resolved_sdm, references = await collector.resolve_file_references_for_semantic_data_model(
+        storage=sqlite_storage,
+        semantic_data_model=unsaved_sdm,
+        updated_at=None,  # No updated_at for unsaved SDM
+    )
+
+    # Verify it has unresolved file references
+    assert len(references.tables_with_unresolved_file_references) == 1
+    assert not references.errors
+    assert len(references.file_references) == 0
+
+    # Create a CSV file with matching columns
+    csv_content = (
+        b"customer_name,region,total_purchases\n"
+        b"John Doe,North,1500.00\n"
+        b"Jane Smith,South,2000.00\n"
+        b"Bob Johnson,East,1750.50"
+    )
+    csv_file = await model_creator.obtain_sample_file(
+        file_content=csv_content,
+        file_name="customer_data.csv",
+        mime_type="text/csv",
+    )
+
+    # Second attempt with file: should resolve file references
+    resolved_sdm, references = await collector.resolve_file_references_for_semantic_data_model(
+        storage=sqlite_storage,
+        semantic_data_model=unsaved_sdm,
+        updated_at=None,  # Still no updated_at for unsaved SDM
+    )
+
+    # Verify file references are resolved
+    assert len(references.tables_with_unresolved_file_references) == 0
+    assert not references.errors
+    assert len(references.file_references) == 1
+
+    # Verify the resolved SDM has the file reference populated
+    tables = resolved_sdm.get("tables")
+    assert tables is not None
+    table = tables[0]
+    base_table = table.get("base_table")
+    assert base_table is not None
+    file_reference = base_table.get("file_reference")
+    assert file_reference is not None
+
+    assert file_reference.get("thread_id") == thread.thread_id
+    assert file_reference.get("file_ref") == csv_file.file_ref
+    assert file_reference.get("sheet_name") is None
+
+    # Verify the original SDM WAS mutated (the method mutates in place)
+    # Both resolved_sdm and unsaved_sdm should point to the same object
+    assert resolved_sdm is unsaved_sdm
+
+    # Verify the mutation happened by checking the original object
+    unsaved_tables = unsaved_sdm.get("tables")
+    assert unsaved_tables is not None
+    unsaved_base_table = unsaved_tables[0].get("base_table")
+    assert unsaved_base_table is not None
+    unsaved_file_ref = unsaved_base_table.get("file_reference")
+    assert unsaved_file_ref is not None
+    assert unsaved_file_ref.get("thread_id") == thread.thread_id
+    assert unsaved_file_ref.get("file_ref") == csv_file.file_ref

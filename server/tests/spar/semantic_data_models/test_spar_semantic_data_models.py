@@ -1089,3 +1089,128 @@ def test_enhancer_handles_new_tables(
             KeyForBaseTable.from_base_table(updated_table["base_table"])
         ]
         assert_table_metadata_unchanged(initial_table_value.table, updated_table_value.table)
+
+
+def test_validation_resolves_file_references_with_thread_context(
+    agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
+):
+    """Test that the validate endpoint resolves file references when given thread context.
+
+    This test verifies the fix for SDM validation where file references should be
+    resolved against thread files when a thread_id is provided in the validation request.
+
+    This is a SPAR integration test that runs against the actual compose stack.
+    """
+    import uuid
+    from urllib.parse import urljoin
+
+    import requests
+
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
+    client, _ = agent_server_client_with_data_connection
+
+    # Create agent and thread
+    agent_id = client.create_agent_and_return_agent_id(
+        name=f"Validation Test Agent {uuid.uuid4().hex[:8]}",
+        action_packages=[],
+        platform_configs=[
+            {
+                "kind": "openai",
+                "openai_api_key": "unused",
+                "models": {"openai": ["gpt-4o-mini"]},
+            }
+        ],
+    )
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
+
+    # Create a semantic model with UNRESOLVED file references (empty thread_id/file_ref)
+    semantic_model: SemanticDataModel = {
+        "name": "test_validation_with_file_resolution",
+        "description": "Test model for validation with file reference resolution",
+        "tables": [
+            {
+                "name": "test_data",
+                "base_table": {
+                    "table": "data_frame_test_data",
+                    "file_reference": {
+                        "thread_id": "",  # Empty - should be resolved
+                        "file_ref": "",  # Empty - should be resolved
+                        "sheet_name": "",
+                    },
+                },
+                "dimensions": [
+                    {
+                        "name": "customer_name",
+                        "expr": "customer_name",
+                        "data_type": "TEXT",
+                        "description": "Customer name column",
+                    },
+                    {
+                        "name": "revenue",
+                        "expr": "revenue",
+                        "data_type": "NUMBER",
+                        "description": "Revenue column",
+                    },
+                ],
+            },
+        ],
+    }
+
+    # Validate BEFORE uploading file - should have unresolved file reference warnings
+    base_url = urljoin(client.base_url + "/", "semantic-data-models/validate")
+
+    response_before = requests.post(
+        base_url,
+        json={"semantic_data_model": semantic_model, "thread_id": thread_id},
+        headers={"Content-Type": "application/json"},
+    )
+    assert response_before.status_code == 200, (
+        f"Validation request failed with status {response_before.status_code}: "
+        f"{response_before.text}"
+    )
+    validation_result_before = response_before.json()
+
+    assert len(validation_result_before["results"]) == 1
+    result_before = validation_result_before["results"][0]
+    # Should have warnings about unresolved file references
+    assert len(result_before.get("warnings", [])) > 0, (
+        f"Expected warnings about unresolved file references before upload, "
+        f"but got: {result_before.get('warnings', [])}"
+    )
+
+    # Upload matching CSV file
+    csv_content = b"""customer_name,revenue
+Acme Corp,150000
+TechStart Inc,250000
+GlobalTrade Ltd,180000"""
+
+    client.upload_file_to_thread(
+        thread_id,
+        "test_data.csv",
+        embedded=False,
+        content=csv_content,
+    )
+
+    # Validate AFTER uploading file - file references should be resolved
+    response_after = requests.post(
+        base_url,
+        json={"semantic_data_model": semantic_model, "thread_id": thread_id},
+        headers={"Content-Type": "application/json"},
+    )
+    assert response_after.status_code == 200, (
+        f"Validation request failed with status {response_after.status_code}: {response_after.text}"
+    )
+    validation_result_after = response_after.json()
+
+    assert len(validation_result_after["results"]) == 1
+    result_after = validation_result_after["results"][0]
+
+    # Should have NO warnings about unresolved file references now
+    unresolved_warnings_after = [
+        w for w in result_after.get("warnings", []) if "unresolved" in w.get("message", "").lower()
+    ]
+    assert len(unresolved_warnings_after) == 0, (
+        f"Expected no unresolved file reference warnings after upload, "
+        f"but got: {unresolved_warnings_after}"
+    )
