@@ -32,7 +32,7 @@ type AgentPackageMetadata struct {
 	ActionPackages       []AgentPackageActionPackageMetadata     `json:"action_packages"`
 	McpServers           []AgentPackageMcpServer                 `json:"mcp_servers,omitempty"`
 	DockerMcpGateway     *AgentPackageDockerMcpGateway           `json:"docker_mcp_gateway,omitempty"`
-	SelectedTools        SpecSelectedTools                       `json:"selected_tools"`
+	SelectedTools        SpecSelectedTools                       `json:"selected_tools,omitempty"`
 
 	// Differences from external sources
 	DockerMcpGatewayChanges DockerMcpGatewayChanges `json:"docker_mcp_gateway_changes,omitempty"`
@@ -53,7 +53,7 @@ type AgentPackageMcpServer struct {
 	Arguments            []string                       `json:"args,omitempty"`
 	Env                  AgentPackageMcpServerVariables `json:"env,omitempty"`
 	Cwd                  string                         `json:"cwd,omitempty"`
-	ForceSerialToolCalls bool                           `json:"force_serial_tool_calls"`
+	ForceSerialToolCalls bool                           `json:"force_serial_tool_calls,omitempty"`
 }
 
 type AgentPackageMcpServerVariables = map[string]AgentPackageMcpServerVariable

@@ -218,14 +218,12 @@ type SelectedToolConfig struct {
 }
 
 type SelectedTools struct {
-	ToolNames []SelectedToolConfig `json:"tool_names"`
+	ToolNames []SelectedToolConfig `json:"tool_names,omitempty"`
 }
 
 // NewSelectedTools creates a new SelectedTools with an empty slice
 func NewSelectedTools() SelectedTools {
-	return SelectedTools{
-		ToolNames: []SelectedToolConfig{},
-	}
+	return SelectedTools{}
 }
 
 // MarshalJSON ensures that SelectedTools always serializes with an empty array instead of null
@@ -248,42 +246,44 @@ type AgentExtra struct {
 }
 
 type Agent struct {
-	ID             string               `json:"id"`
-	UserID         string               `json:"user_id"`
-	Name           string               `json:"name"`
-	Description    string               `json:"description"`
-	Version        string               `json:"version"`
-	Runbook        string               `json:"runbook"`
-	Model          AgentModel           `json:"model"`
-	AdvancedConfig AgentAdvancedConfig  `json:"advanced_config"`
-	ActionPackages []AgentActionPackage `json:"action_packages"`
-	McpServers     []McpServer          `json:"mcp_servers"`
-	UpdatedAt      time.Time            `json:"updated_at"`
-	QuestionGroups QuestionGroups       `json:"question_groups,omitempty"`
-	Metadata       AgentMetadata        `json:"metadata,omitempty"`
-	Extra          AgentExtra           `json:"extra,omitempty"`
-	AgentSettings  map[string]any       `json:"agent_settings,omitempty"`
-	Files          []AgentFile          `json:"files"`
-	Public         bool                 `json:"public"`
-	SelectedTools  SelectedTools        `json:"selected_tools"`
+	ID                   string                      `json:"id"`
+	UserID               string                      `json:"user_id"`
+	Name                 string                      `json:"name"`
+	Description          string                      `json:"description"`
+	Version              string                      `json:"version"`
+	Runbook              string                      `json:"runbook"`
+	Model                AgentModel                  `json:"model"`
+	AdvancedConfig       AgentAdvancedConfig         `json:"advanced_config"`
+	ActionPackages       []AgentActionPackage        `json:"action_packages"`
+	McpServers           []McpServer                 `json:"mcp_servers"`
+	UpdatedAt            time.Time                   `json:"updated_at"`
+	QuestionGroups       QuestionGroups              `json:"question_groups,omitempty"`
+	Metadata             AgentMetadata               `json:"metadata,omitempty"`
+	Extra                AgentExtra                  `json:"extra,omitempty"`
+	AgentSettings        map[string]any              `json:"agent_settings,omitempty"`
+	DocumentIntelligence DocumentIntelligenceVersion `json:"document_intelligence,omitempty"`
+	Files                []AgentFile                 `json:"files"`
+	Public               bool                        `json:"public"`
+	SelectedTools        SelectedTools               `json:"selected_tools,omitempty"`
 }
 
 type AgentPayload struct {
-	Name           string               `json:"name"`
-	Description    string               `json:"description"`
-	Version        string               `json:"version"`
-	Runbook        string               `json:"runbook"`
-	Model          AgentModel           `json:"model"`
-	AdvancedConfig AgentAdvancedConfig  `json:"advanced_config,omitempty"`
-	ActionPackages []AgentActionPackage `json:"action_packages"`
-	McpServers     []McpServer          `json:"mcp_servers,omitempty"`
-	QuestionGroups QuestionGroups       `json:"question_groups,omitempty"`
-	Metadata       AgentMetadata        `json:"metadata,omitempty"` // TODO: remove this as Metadata is deprecated
-	Extra          AgentExtra           `json:"extra,omitempty"`
-	AgentSettings  map[string]any       `json:"agent_settings,omitempty"`
-	Files          []AgentFile          `json:"files,omitempty"`
-	Public         bool                 `json:"public"`
-	SelectedTools  SelectedTools        `json:"selected_tools"`
+	Name                 string                      `json:"name"`
+	Description          string                      `json:"description"`
+	Version              string                      `json:"version"`
+	Runbook              string                      `json:"runbook"`
+	Model                AgentModel                  `json:"model"`
+	AdvancedConfig       AgentAdvancedConfig         `json:"advanced_config,omitempty"`
+	ActionPackages       []AgentActionPackage        `json:"action_packages"`
+	McpServers           []McpServer                 `json:"mcp_servers,omitempty"`
+	QuestionGroups       QuestionGroups              `json:"question_groups,omitempty"`
+	Metadata             AgentMetadata               `json:"metadata,omitempty"` // TODO: remove this as Metadata is deprecated
+	Extra                AgentExtra                  `json:"extra,omitempty"`
+	AgentSettings        map[string]any              `json:"agent_settings,omitempty"`
+	DocumentIntelligence DocumentIntelligenceVersion `json:"document_intelligence,omitempty"`
+	Files                []AgentFile                 `json:"files,omitempty"`
+	Public               bool                        `json:"public"`
+	SelectedTools        SelectedTools               `json:"selected_tools,omitempty"`
 }
 
 type AgentPayloadPackage struct {

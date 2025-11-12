@@ -89,14 +89,14 @@ func getSelectedToolsFromMetadata(metadata []*common.AgentPackageMetadata) Agent
 	if len(metadata) == 0 || metadata[0] == nil {
 		return AgentServer.NewSelectedTools()
 	}
-	
+
 	var toolConfigs []AgentServer.SelectedToolConfig
 	for _, toolConfig := range metadata[0].SelectedTools.Tools {
 		toolConfigs = append(toolConfigs, AgentServer.SelectedToolConfig{
 			ToolName: toolConfig.Name,
 		})
 	}
-	
+
 	return AgentServer.SelectedTools{
 		ToolNames: toolConfigs,
 	}
@@ -249,21 +249,25 @@ func BuildAgentPayload(
 	}
 
 	payload := AgentServer.AgentPayload{
-		Name:           getAgentNameFromMetadata(metadata),
-		Description:    metadata[0].Description,
-		Version:        metadata[0].Version,
-		Runbook:        runbook,
-		Model:          getAgentModelFromMetadata(metadata),
-		ActionPackages: actionPackages,
-		McpServers:     getMcpServersFromMetadata(metadata),
-		Metadata:       metadata[0].Metadata,
+		Name:                 getAgentNameFromMetadata(metadata),
+		Description:          metadata[0].Description,
+		Version:              metadata[0].Version,
+		Runbook:              runbook,
+		Model:                getAgentModelFromMetadata(metadata),
+		ActionPackages:       actionPackages,
+		McpServers:           getMcpServersFromMetadata(metadata),
+		Metadata:             metadata[0].Metadata,
+		DocumentIntelligence: metadata[0].DocumentIntelligence,
+		QuestionGroups:       metadata[0].QuestionGroups,
+		AgentSettings:        common.NormalizeMap(metadata[0].AgentSettings),
+		Public:               makePublic,
+		SelectedTools:        getSelectedToolsFromMetadata(metadata),
 		Extra: AgentServer.AgentExtra{
-			WelcomeMessage:      metadata[0].WelcomeMessage,
-			ConversationStarter: metadata[0].ConversationStarter,
+			WelcomeMessage:       metadata[0].WelcomeMessage,
+			ConversationStarter:  metadata[0].ConversationStarter,
+			DocumentIntelligence: metadata[0].DocumentIntelligence,
+			AgentSettings:        common.NormalizeMap(metadata[0].AgentSettings),
 		},
-		AgentSettings: common.NormalizeMap(metadata[0].AgentSettings),
-		Public:        makePublic,
-		SelectedTools: getSelectedToolsFromMetadata(metadata),
 	}
 
 	if modelConfiguration != "" {
@@ -342,6 +346,7 @@ func createOrUpdateAgent(
 	}
 
 	var agent *AgentServer.Agent
+
 	if existingAgentID != "" {
 		pretty.LogIfVerbose("[createOrUpdateAgent] found existing agent. will update: %s", payload.Name)
 		agent, err = client.UpdateAgent(existingAgentID, payload)

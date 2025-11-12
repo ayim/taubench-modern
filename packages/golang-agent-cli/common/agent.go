@@ -56,7 +56,7 @@ type SpecSelectedToolConfig struct {
 }
 
 type SpecSelectedTools struct {
-	Tools []SpecSelectedToolConfig `yaml:"tools" json:"tools"`
+	Tools []SpecSelectedToolConfig `yaml:"tools,omitempty" json:"tools,omitempty"`
 }
 
 func (a *SpecAgentActionPackage) IsEqual(deployed *AgentServer.AgentActionPackage) bool {

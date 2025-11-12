@@ -487,7 +487,7 @@ func (c *Client) GetAgentSemanticDataModels(agentID string) ([]SemanticDataModel
 				// If it's null or unexpected type, use empty map
 				semanticModel = map[string]interface{}{}
 			}
-			
+
 			sdms = append(sdms, SemanticDataModel{
 				ID:            id,
 				SemanticModel: semanticModel,
