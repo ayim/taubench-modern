@@ -1,5 +1,5 @@
 import { exec, spawn, type ChildProcess } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import z from 'zod';
 import type { Deployment } from '../types.ts';
@@ -465,6 +465,22 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
     const stopServerResult = await stopServer({ deploymentId });
     if (!stopServerResult.success) {
       return stopServerResult;
+    }
+
+    const deploymentDir = await getDeploymentDir({ deploymentId });
+    try {
+      await rm(deploymentDir, {
+        recursive: true,
+        force: true,
+      });
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: 'failed_to_delete_deployment_data',
+          message: `Failed to destroy deployment ${deploymentId} - removing deployment data failed`,
+        },
+      };
     }
 
     return {
