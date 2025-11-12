@@ -8022,16 +8022,42 @@ export interface components {
       /** Warnings */
       warnings?: components['schemas']['ValidationMessage'][];
     };
-    /** ValidationMessage */
+    /**
+     * ValidationMessage
+     * @description A validation message.
+     */
     ValidationMessage: {
       /** Message */
       message: string;
-      /**
-       * Level
-       * @enum {string}
-       */
-      level: 'error' | 'warning';
+      level: components['schemas']['ValidationMessageLevel'];
+      kind: components['schemas']['ValidationMessageKind'];
     };
+    /**
+     * ValidationMessageKind
+     * @description The kind of a validation message.
+     * @enum {string}
+     */
+    ValidationMessageKind:
+      | 'semantic_model_missing_required_field'
+      | 'semantic_model_duplicate_table'
+      | 'data_connection_not_found'
+      | 'data_connection_connection_failed'
+      | 'data_connection_table_not_found'
+      | 'data_connection_table_access_error'
+      | 'data_connection_column_invalid_expression'
+      | 'file_reference_unresolved'
+      | 'file_missing_thread_context'
+      | 'file_not_found'
+      | 'file_inspection_error'
+      | 'file_sheet_missing'
+      | 'file_column_missing'
+      | 'validation_execution_error';
+    /**
+     * ValidationMessageLevel
+     * @description The level of a validation message.
+     * @enum {string}
+     */
+    ValidationMessageLevel: 'error' | 'warning';
     /**
      * ValidationResult
      * @description Result of a single validation rule check.

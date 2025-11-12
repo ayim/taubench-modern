@@ -127,6 +127,7 @@ async def test_data_frames_interface(file_regression):
                 file_reference_to_logical_table_names={},
                 logical_table_name_to_connection_info={},
                 errors=[],
+                _structured_errors=[],
                 tables_with_unresolved_file_references=set(),
                 semantic_data_model_with_errors=None,
             ),

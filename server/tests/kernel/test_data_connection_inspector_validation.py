@@ -54,6 +54,7 @@ async def test_validate_tables_exist_success():
 async def test_validate_tables_exist_with_missing_table():
     """Test validate_tables_exist when a table is missing."""
     from agent_platform.core.data_connections.data_connections import DataConnection
+    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageKind
     from agent_platform.core.payloads.data_connection import (
         DataConnectionsInspectRequest,
         TableToInspect,
@@ -88,20 +89,21 @@ async def test_validate_tables_exist_with_missing_table():
     errors = await inspector.validate_tables_exist()
     assert len(errors) == 1
     assert "missing_table" in errors
-    assert "not found" in errors["missing_table"].lower()
+    assert "not found" in errors["missing_table"]["message"].lower()
+    # Verify error kind
+    assert errors["missing_table"]["kind"] == ValidationMessageKind.DATA_CONNECTION_TABLE_NOT_FOUND
 
 
 @pytest.mark.asyncio
 async def test_validate_tables_exist_with_access_error():
     """Test validate_tables_exist when table access fails."""
     from agent_platform.core.data_connections.data_connections import DataConnection
+    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageKind
     from agent_platform.core.payloads.data_connection import (
         DataConnectionsInspectRequest,
         TableToInspect,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
-        DataConnectionInspector,
-    )
+    from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
 
     data_connection = Mock(spec=DataConnection)
     request = DataConnectionsInspectRequest(
@@ -125,7 +127,9 @@ async def test_validate_tables_exist_with_access_error():
     errors = await inspector.validate_tables_exist()
     assert len(errors) == 1
     assert "error_table" in errors
-    assert "error accessing table" in errors["error_table"].lower()
+    assert "error accessing table" in errors["error_table"]["message"].lower()
+    # Verify error kind
+    assert errors["error_table"]["kind"] == ValidationMessageKind.DATA_CONNECTION_TABLE_ACCESS_ERROR
 
 
 @pytest.mark.asyncio
@@ -229,8 +233,18 @@ async def test_validate_column_expressions_with_invalid_expression():
 
     # Mock validate_column_expression to fail for invalid_expr
     async def mock_validate_column_expression(table, column_expression):
+        from agent_platform.core.data_frames.semantic_data_model_types import (
+            ValidationMessage,
+            ValidationMessageKind,
+            ValidationMessageLevel,
+        )
+
         if column_expression == "invalid_expr":
-            return "Invalid column expression: Column not found"
+            return ValidationMessage(
+                message="Invalid column expression: Column not found",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.DATA_CONNECTION_COLUMN_INVALID_EXPRESSION,
+            )
         return None
 
     async def mock_get_table(table_spec):
@@ -243,7 +257,7 @@ async def test_validate_column_expressions_with_invalid_expression():
     assert len(errors) == 1
     assert "table1" in errors
     assert "invalid_expr" in errors["table1"]
-    assert "invalid column expression" in errors["table1"]["invalid_expr"].lower()
+    assert "invalid column expression" in errors["table1"]["invalid_expr"]["message"].lower()
 
 
 @pytest.mark.asyncio
@@ -286,7 +300,14 @@ async def test_validate_column_expressions_with_table_error():
     assert len(errors) == 1
     assert "missing_table" in errors
     assert TABLE_VALIDATION_ERROR_KEY in errors["missing_table"]
-    assert "not found" in errors["missing_table"][TABLE_VALIDATION_ERROR_KEY].lower()
+    assert "not found" in errors["missing_table"][TABLE_VALIDATION_ERROR_KEY]["message"].lower()
+    # Verify error kind
+    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageKind
+
+    assert (
+        errors["missing_table"][TABLE_VALIDATION_ERROR_KEY]["kind"]
+        == ValidationMessageKind.DATA_CONNECTION_TABLE_NOT_FOUND
+    )
 
 
 @pytest.mark.asyncio
@@ -349,12 +370,11 @@ async def test_validate_column_expressions_no_tables_specified():
 async def test_validate_column_expression_method():
     """Test _validate_column_expression method directly."""
     from agent_platform.core.data_connections.data_connections import DataConnection
+    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageKind
     from agent_platform.core.payloads.data_connection import (
         DataConnectionsInspectRequest,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
-        DataConnectionInspector,
-    )
+    from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
 
     data_connection = Mock(spec=DataConnection)
     request = DataConnectionsInspectRequest(
@@ -386,4 +406,6 @@ async def test_validate_column_expression_method():
 
     error = await inspector._validate_column_expression(mock_table_error, "invalid_column")
     assert error is not None
-    assert "invalid column expression" in error.lower()
+    assert "invalid column expression" in error["message"].lower()
+    # Verify error kind
+    assert error["kind"] == ValidationMessageKind.DATA_CONNECTION_COLUMN_INVALID_EXPRESSION

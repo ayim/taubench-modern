@@ -19285,14 +19285,43 @@
             "title": "Message"
           },
           "level": {
-            "type": "string",
-            "enum": ["error", "warning"],
-            "title": "Level"
+            "$ref": "#/components/schemas/ValidationMessageLevel"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ValidationMessageKind"
           }
         },
         "type": "object",
-        "required": ["message", "level"],
-        "title": "ValidationMessage"
+        "required": ["message", "level", "kind"],
+        "title": "ValidationMessage",
+        "description": "A validation message."
+      },
+      "ValidationMessageKind": {
+        "type": "string",
+        "enum": [
+          "semantic_model_missing_required_field",
+          "semantic_model_duplicate_table",
+          "data_connection_not_found",
+          "data_connection_connection_failed",
+          "data_connection_table_not_found",
+          "data_connection_table_access_error",
+          "data_connection_column_invalid_expression",
+          "file_reference_unresolved",
+          "file_missing_thread_context",
+          "file_not_found",
+          "file_inspection_error",
+          "file_sheet_missing",
+          "file_column_missing",
+          "validation_execution_error"
+        ],
+        "title": "ValidationMessageKind",
+        "description": "The kind of a validation message."
+      },
+      "ValidationMessageLevel": {
+        "type": "string",
+        "enum": ["error", "warning"],
+        "title": "ValidationMessageLevel",
+        "description": "The level of a validation message."
       },
       "ValidationResult": {
         "properties": {

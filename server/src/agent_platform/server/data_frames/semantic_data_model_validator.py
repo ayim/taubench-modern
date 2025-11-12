@@ -102,30 +102,26 @@ class SemanticDataModelValidator:
             self._references = self._get_references()
         return self._references
 
-    def _add_validation_message(  # noqa: C901
+    def _attach_validation_message(  # noqa: C901
         self,
-        message: str,
-        level: Literal["error", "warning"],
+        validation_message: ValidationMessage,
         *,
         logical_table_name: str | None = None,
         logical_column_name: str | None = None,
     ):
-        """Adds a validation message with the specified level. It applies it to the
-        semantic data model to the `errors` field depending on the additional arguments:
+        """Attaches a validation message to the semantic data model at the appropriate location.
 
-        - If `logical_table_name` is provided, it applies to the logical table with the given name.
+        - If `logical_table_name` is provided, attaches to the logical table with the given name.
         - If `logical_column_name` is provided, you must also provide `logical_table_name` and then
-        it applies it to the dimension, time_dimencion, fact, or metric with the given name.
-        - If neither `logical_table_name` nor `logical_column_name` are provided, it applies it
-        to the semantic data model itself.
+          it attaches to the dimension, time_dimension, fact, or metric with the given name.
+        - If neither `logical_table_name` nor `logical_column_name` are provided, attaches to
+          the semantic data model itself.
         """
-        if level not in ["error", "warning"]:
-            raise ValueError(f"Invalid level: {level}")
         if logical_column_name is not None and logical_table_name is None:
             raise ValueError(
                 "`logical_table_name` is required when `logical_column_name` is provided"
             )
-        validation_message = ValidationMessage(message=message, level=level)
+
         self._errors.append(validation_message)
 
         from copy import deepcopy
@@ -173,34 +169,6 @@ class SemanticDataModelValidator:
                 )
             table.setdefault("errors", []).append(validation_message)  # type: ignore
 
-    def _add_error(
-        self,
-        msg: str,
-        *,
-        logical_table_name: str | None = None,
-        logical_column_name: str | None = None,
-    ):
-        self._add_validation_message(
-            msg,
-            "error",
-            logical_table_name=logical_table_name,
-            logical_column_name=logical_column_name,
-        )
-
-    def _add_warning(
-        self,
-        msg: str,
-        *,
-        logical_table_name: str | None = None,
-        logical_column_name: str | None = None,
-    ):
-        self._add_validation_message(
-            msg,
-            "warning",
-            logical_table_name=logical_table_name,
-            logical_column_name=logical_column_name,
-        )
-
     @property
     def errors(self) -> list[ValidationMessage]:
         """
@@ -208,9 +176,11 @@ class SemanticDataModelValidator:
 
         If validation has not been run yet, raises a ValueError.
         """
+        from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageLevel
+
         if not self._validation_ran:
             raise ValueError("Validation has not been run yet")
-        return [e for e in self._errors if e.get("level") == "error"]
+        return [e for e in self._errors if e.get("level") == ValidationMessageLevel.ERROR]
 
     @property
     def warnings(self) -> list[ValidationMessage]:
@@ -219,9 +189,11 @@ class SemanticDataModelValidator:
 
         If validation has not been run yet, raises a ValueError.
         """
+        from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageLevel
+
         if not self._validation_ran:
             raise ValueError("Validation has not been run yet")
-        return [w for w in self._errors if w.get("level") == "warning"]
+        return [w for w in self._errors if w.get("level") == ValidationMessageLevel.WARNING]
 
     @property
     def is_valid(self) -> bool:
@@ -250,6 +222,11 @@ class SemanticDataModelValidator:
         return self.semantic_data_model
 
     async def _get_data_connection(self, data_connection_id: str) -> DataConnection | None:
+        from agent_platform.core.data_frames.semantic_data_model_types import (
+            ValidationMessageKind,
+            ValidationMessageLevel,
+        )
+
         if data_connection_id in self._data_connections_by_id:
             return self._data_connections_by_id[data_connection_id]
         try:
@@ -259,10 +236,14 @@ class SemanticDataModelValidator:
                 data_connection_id
             ]
             for logical_table_name in logical_table_names:
-                self._add_error(
-                    f"Data connection {data_connection_id} not found for logical table "
+                validation_message = ValidationMessage(
+                    message=f"Data connection {data_connection_id} not found for logical table "
                     f"name {logical_table_name}",
-                    logical_table_name=logical_table_name,
+                    level=ValidationMessageLevel.ERROR,
+                    kind=ValidationMessageKind.DATA_CONNECTION_NOT_FOUND,
+                )
+                self._attach_validation_message(
+                    validation_message, logical_table_name=logical_table_name
                 )
             return None
         self._data_connections_by_id[data_connection_id] = data_connection
@@ -352,6 +333,11 @@ class SemanticDataModelValidator:
         return tables_to_validate
 
     async def _validate_logical_tables_with_data_connection(self, data_connection_id: str):
+        from agent_platform.core.data_frames.semantic_data_model_types import (
+            ValidationMessageKind,
+            ValidationMessageLevel,
+        )
+
         data_connection = await self._get_data_connection(data_connection_id)
         if not data_connection:
             return False
@@ -365,24 +351,30 @@ class SemanticDataModelValidator:
         try:
             errors = await inspector.validate_tables_exist()
         except Exception as e:
-            self._add_error(
-                f"Tables in data connection {data_connection.name} "
+            validation_message = ValidationMessage(
+                message=f"Tables in data connection {data_connection.name} "
                 f"could not be validated due to an error: {e}",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.DATA_CONNECTION_CONNECTION_FAILED,
             )
+            self._attach_validation_message(validation_message)
             return
 
         for real_table_name, error in errors.items():
             logical_table_name = self._get_logical_table_name_from_real_table_name(real_table_name)
-            self._add_error(error, logical_table_name=logical_table_name)
+            self._attach_validation_message(error, logical_table_name=logical_table_name)
 
         # Now we validate the columns
         try:
             errors = await inspector.validate_column_expressions()
         except Exception as e:
-            self._add_error(
-                f"Columns in data connection {data_connection.name} "
+            validation_message = ValidationMessage(
+                message=f"Columns in data connection {data_connection.name} "
                 f"could not be validated due to an error: {e}",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.DATA_CONNECTION_CONNECTION_FAILED,
             )
+            self._attach_validation_message(validation_message)
             return
 
         for real_table_name, column_errors in errors.items():
@@ -391,24 +383,30 @@ class SemanticDataModelValidator:
 
             for real_column_expr, error in column_errors.items():
                 if real_column_expr == TABLE_VALIDATION_ERROR_KEY:
-                    self._add_error(error, logical_table_name=logical_table_name)
+                    # Table-level error from column validation
+                    self._attach_validation_message(error, logical_table_name=logical_table_name)
                     continue
                 logical_column_name = self._get_logical_column_name_from_real_column_expr(
                     real_table_name, real_column_expr
                 )
-                self._add_error(
+                self._attach_validation_message(
                     error,
                     logical_table_name=logical_table_name,
                     logical_column_name=logical_column_name,
                 )
 
-    def _add_validation_message_for_file_reference(
-        self, file_reference: _FileReference, message: str, level: Literal["error", "warning"]
+    def _attach_validation_message_for_file_reference(
+        self,
+        file_reference: _FileReference,
+        validation_message: ValidationMessage,
     ):
-        """Adds a valiation message for a file reference to all logical tables that reference it."""
+        """Attaches a validation message for a file reference to all logical tables that
+        reference it."""
         logical_table_names = self.references.file_reference_to_logical_table_names[file_reference]
         for logical_table_name in logical_table_names:
-            self._add_validation_message(message, level, logical_table_name=logical_table_name)
+            self._attach_validation_message(
+                validation_message, logical_table_name=logical_table_name
+            )
 
     async def _get_uploaded_file(self, file_ref: str) -> UploadedFile | None:
         if self.thread_id is None:
@@ -429,20 +427,31 @@ class SemanticDataModelValidator:
         self,
         file_reference: _FileReference,
     ):
+        from agent_platform.core.data_frames.semantic_data_model_types import (
+            ValidationMessageKind,
+            ValidationMessageLevel,
+        )
+
         uploaded_file = await self._get_uploaded_file(file_reference.file_ref)
         if not uploaded_file:
             if self.thread_id is None:
-                self._add_validation_message_for_file_reference(
-                    file_reference,
-                    f"File {file_reference.file_ref} cannot be resolved and validated "
+                validation_message = ValidationMessage(
+                    message=f"File {file_reference.file_ref} cannot be resolved and validated "
                     f"without thread ID",
-                    level="warning",
+                    level=ValidationMessageLevel.WARNING,
+                    kind=ValidationMessageKind.FILE_MISSING_THREAD_CONTEXT,
+                )
+                self._attach_validation_message_for_file_reference(
+                    file_reference, validation_message
                 )
             else:
-                self._add_validation_message_for_file_reference(
-                    file_reference,
-                    f"File {file_reference.file_ref} not found in thread {self.thread_id}",
-                    level="warning",
+                validation_message = ValidationMessage(
+                    message=f"File {file_reference.file_ref} not found in thread {self.thread_id}",
+                    level=ValidationMessageLevel.WARNING,
+                    kind=ValidationMessageKind.FILE_NOT_FOUND,
+                )
+                self._attach_validation_message_for_file_reference(
+                    file_reference, validation_message
                 )
             return
         assert self.thread_id is not None  # it must be because we got an uploaded file above
@@ -457,11 +466,13 @@ class SemanticDataModelValidator:
                 file_ref=uploaded_file.file_ref,
             )
         except Exception as e:
-            self._add_validation_message_for_file_reference(
-                file_reference,
-                f"File {file_reference.file_ref} could not be inspected due to an error: {e}",
-                level="error",
+            validation_message = ValidationMessage(
+                message=f"File {file_reference.file_ref} could not be inspected due to an "
+                f"error: {e}",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.FILE_INSPECTION_ERROR,
             )
+            self._attach_validation_message_for_file_reference(file_reference, validation_message)
             return
 
         # Validate each logical table that references this file
@@ -484,9 +495,13 @@ class SemanticDataModelValidator:
 
             if not matching_inspected_df:
                 sheet_info = f" (sheet: {expected_sheet_name})" if expected_sheet_name else ""
-                self._add_error(
-                    f"Sheet not found in file {file_reference.file_ref}{sheet_info}",
-                    logical_table_name=logical_table_name,
+                validation_message = ValidationMessage(
+                    message=f"Sheet not found in file {file_reference.file_ref}{sheet_info}",
+                    level=ValidationMessageLevel.ERROR,
+                    kind=ValidationMessageKind.FILE_SHEET_MISSING,
+                )
+                self._attach_validation_message(
+                    validation_message, logical_table_name=logical_table_name
                 )
                 continue
 
@@ -498,8 +513,14 @@ class SemanticDataModelValidator:
                 # Column expr should match a column in the inspected data frame
                 column_expr_lower = column.expr.lower()
                 if column_expr_lower not in inspected_columns:
-                    self._add_error(
-                        f"Column '{column.expr}' not found in file {file_reference.file_ref}",
+                    validation_message = ValidationMessage(
+                        message=f"Column '{column.expr}' not found in file "
+                        f"{file_reference.file_ref}",
+                        level=ValidationMessageLevel.ERROR,
+                        kind=ValidationMessageKind.FILE_COLUMN_MISSING,
+                    )
+                    self._attach_validation_message(
+                        validation_message,
                         logical_table_name=logical_table_name,
                         logical_column_name=column.name,
                     )
@@ -510,27 +531,29 @@ class SemanticDataModelValidator:
         and return the semantic data model with errors attached to it, if any. If there are no
         errors, returns the original semantic data model.
         """
+        from agent_platform.core.data_frames.semantic_data_model_types import (
+            ValidationMessageKind,
+            ValidationMessageLevel,
+        )
 
         self._validation_ran = True
         self._is_valid = False
 
         # We see if there are already errors in the semantic data model
         if self.references.errors:
-            for error in self.references.errors:
-                # The initial validator does not use ValidationMessage, so we convert it to one.
-                self._errors.append(ValidationMessage(message=error, level="error"))
-
-            # We set the semantic data model with errors if there are any errors
-            semantic_data_model_with_errors = self.references.semantic_data_model_with_errors
-            if semantic_data_model_with_errors is not None:
-                self._validated_semantic_data_model = semantic_data_model_with_errors
+            self._errors.extend(e for e in self.references._structured_errors)
 
         # We add unresolved file references as warnings
         if self.references.tables_with_unresolved_file_references:
             for unresolved_file_reference in self.references.tables_with_unresolved_file_references:
-                self._add_warning(
-                    f"Logical table name {unresolved_file_reference.logical_table_name} has an "
-                    f"unresolved file reference.",
+                validation_message = ValidationMessage(
+                    message=f"Logical table name {unresolved_file_reference.logical_table_name} "
+                    f"has an unresolved file reference.",
+                    level=ValidationMessageLevel.WARNING,
+                    kind=ValidationMessageKind.FILE_REFERENCE_UNRESOLVED,
+                )
+                self._attach_validation_message(
+                    validation_message,
                     logical_table_name=unresolved_file_reference.logical_table_name,
                 )
 

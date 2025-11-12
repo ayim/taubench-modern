@@ -227,6 +227,11 @@ async def validator_checker(sqlite_storage, tmpdir):
 
 def test_add_validation_message_at_model_level(validator_checker):
     """Test adding a validation message at model level."""
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
+    )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
     )
@@ -257,7 +262,12 @@ def test_add_validation_message_at_model_level(validator_checker):
         user=validator_checker.user,
     )
 
-    validator._add_error("Model level error")
+    validation_message = ValidationMessage(
+        message="Model level error",
+        level=ValidationMessageLevel.ERROR,
+        kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+    )
+    validator._attach_validation_message(validation_message)
 
     assert len(validator._errors) == 1
     error = next(iter(validator._errors))
@@ -267,6 +277,11 @@ def test_add_validation_message_at_model_level(validator_checker):
 
 def test_add_validation_message_at_table_level(validator_checker):
     """Test adding a validation message at table level."""
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
+    )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
     )
@@ -297,7 +312,12 @@ def test_add_validation_message_at_table_level(validator_checker):
         user=validator_checker.user,
     )
 
-    validator._add_error("Table level error", logical_table_name="sales_data")
+    validation_message = ValidationMessage(
+        message="Table level error",
+        level=ValidationMessageLevel.ERROR,
+        kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+    )
+    validator._attach_validation_message(validation_message, logical_table_name="sales_data")
 
     assert len(validator._errors) == 1
     validated_model = validator._validated_semantic_data_model
@@ -311,6 +331,11 @@ def test_add_validation_message_at_table_level(validator_checker):
 
 def test_add_validation_message_at_column_level(validator_checker):
     """Test adding a validation message at column level."""
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
+    )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
     )
@@ -341,10 +366,13 @@ def test_add_validation_message_at_column_level(validator_checker):
         user=validator_checker.user,
     )
 
-    validator._add_error(
-        "Column level error",
-        logical_table_name="sales_data",
-        logical_column_name="product",
+    validation_message = ValidationMessage(
+        message="Column level error",
+        level=ValidationMessageLevel.ERROR,
+        kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+    )
+    validator._attach_validation_message(
+        validation_message, logical_table_name="sales_data", logical_column_name="product"
     )
 
     assert len(validator._errors) == 1
@@ -361,6 +389,11 @@ def test_add_validation_message_at_column_level(validator_checker):
 
 def test_add_warning_vs_error(validator_checker):
     """Test adding warnings vs errors."""
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
+    )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
     )
@@ -377,20 +410,36 @@ def test_add_warning_vs_error(validator_checker):
         user=validator_checker.user,
     )
 
-    validator._add_error("This is an error")
-    validator._add_warning("This is a warning")
+    error_msg = ValidationMessage(
+        message="This is an error",
+        level=ValidationMessageLevel.ERROR,
+        kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+    )
+    validator._attach_validation_message(error_msg)
+
+    warning_msg = ValidationMessage(
+        message="This is a warning",
+        level=ValidationMessageLevel.WARNING,
+        kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+    )
+    validator._attach_validation_message(warning_msg)
 
     assert len(validator._errors) == 2
     errors_list = list(validator._errors)
-    error_msg = next(e for e in errors_list if e["level"] == "error")
-    warning_msg = next(e for e in errors_list if e["level"] == "warning")
+    error_entry = next(e for e in errors_list if e["level"] == "error")
+    warning_entry = next(e for e in errors_list if e["level"] == "warning")
 
-    assert error_msg["message"] == "This is an error"
-    assert warning_msg["message"] == "This is a warning"
+    assert error_entry["message"] == "This is an error"
+    assert warning_entry["message"] == "This is a warning"
 
 
 def test_errors_and_warnings_properties(validator_checker):
     """Test the errors and warnings properties."""
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
+    )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
     )
@@ -415,11 +464,41 @@ def test_errors_and_warnings_properties(validator_checker):
         _ = validator.warnings
 
     # Add mixed validation messages
-    validator._add_error("Error 1")
-    validator._add_error("Error 2")
-    validator._add_warning("Warning 1")
-    validator._add_warning("Warning 2")
-    validator._add_warning("Warning 3")
+    validator._attach_validation_message(
+        ValidationMessage(
+            message="Error 1",
+            level=ValidationMessageLevel.ERROR,
+            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+        )
+    )
+    validator._attach_validation_message(
+        ValidationMessage(
+            message="Error 2",
+            level=ValidationMessageLevel.ERROR,
+            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+        )
+    )
+    validator._attach_validation_message(
+        ValidationMessage(
+            message="Warning 1",
+            level=ValidationMessageLevel.WARNING,
+            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+        )
+    )
+    validator._attach_validation_message(
+        ValidationMessage(
+            message="Warning 2",
+            level=ValidationMessageLevel.WARNING,
+            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+        )
+    )
+    validator._attach_validation_message(
+        ValidationMessage(
+            message="Warning 3",
+            level=ValidationMessageLevel.WARNING,
+            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+        )
+    )
     validator._validation_ran = True
 
     # Test errors property
@@ -437,6 +516,11 @@ def test_errors_and_warnings_properties(validator_checker):
 
 def test_add_validation_message_column_without_table_raises_error(validator_checker):
     """Test that adding column error without table name raises ValueError."""
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
+    )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
     )
@@ -453,8 +537,13 @@ def test_add_validation_message_column_without_table_raises_error(validator_chec
         user=validator_checker.user,
     )
 
-    with pytest.raises(ValueError, match="logical_table_name.*required"):
-        validator._add_error("Error", logical_column_name="product")
+    validation_message = ValidationMessage(
+        message="Error",
+        level=ValidationMessageLevel.ERROR,
+        kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+    )
+    with pytest.raises(ValueError, match=r"logical_table_name.*required"):
+        validator._attach_validation_message(validation_message, logical_column_name="product")
 
 
 def test_properties_before_validation_raise_error(validator_checker):

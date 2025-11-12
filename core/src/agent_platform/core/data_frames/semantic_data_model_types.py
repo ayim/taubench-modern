@@ -4,13 +4,61 @@ This module defines typed dictionaries for representing semantic models,
 which describe collections of tables with their relationships and metadata.
 """
 
+from enum import StrEnum
 from types import NoneType
 from typing import Annotated, Literal, TypedDict
 
 
+class ValidationMessageLevel(StrEnum):
+    """The level of a validation message."""
+
+    ERROR = "error"
+    WARNING = "warning"
+
+
+class ValidationMessageKind(StrEnum):
+    """The kind of a validation message."""
+
+    SEMANTIC_MODEL_MISSING_REQUIRED_FIELD = "semantic_model_missing_required_field"
+    """Raised for missing top-level/table/base-table fields such as `name`,
+    `tables`, `base_table`, connection identifiers, etc."""
+    SEMANTIC_MODEL_DUPLICATE_TABLE = "semantic_model_duplicate_table"
+    """Raised when the same logical table name is declared twice in the model."""
+    DATA_CONNECTION_NOT_FOUND = "data_connection_not_found"
+    """Raised when a referenced data connection id cannot be found."""
+    DATA_CONNECTION_CONNECTION_FAILED = "data_connection_connection_failed"
+    """Raised when connecting to a data connection fails (includes connection
+    and authentication errors)."""
+    DATA_CONNECTION_TABLE_NOT_FOUND = "data_connection_table_not_found"
+    """Raised when a referenced table does not exist in the data connection."""
+    DATA_CONNECTION_TABLE_ACCESS_ERROR = "data_connection_table_access_error"
+    """Raised when a table exists but cannot be accessed or queried."""
+    DATA_CONNECTION_COLUMN_INVALID_EXPRESSION = "data_connection_column_invalid_expression"
+    """Raised when a column expression is invalid or cannot be evaluated."""
+    FILE_REFERENCE_UNRESOLVED = "file_reference_unresolved"
+    """Raised when a table references an empty or missing file reference."""
+    FILE_MISSING_THREAD_CONTEXT = "file_missing_thread_context"
+    """Raised when a file cannot be resolved because no `thread_id` was provided."""
+    FILE_NOT_FOUND = "file_not_found"
+    """Raised when the referenced file cannot be found in the specified thread."""
+    FILE_INSPECTION_ERROR = "file_inspection_error"
+    """Raised when file inspection fails (e.g., malformed file or read error)."""
+    FILE_SHEET_MISSING = "file_sheet_missing"
+    """Raised when the expected worksheet/tab is not present in the file."""
+    FILE_COLUMN_MISSING = "file_column_missing"
+    """Raised when a required column is absent in the file."""
+    VALIDATION_EXECUTION_ERROR = "validation_execution_error"
+    """Raised when validation fails due to an unexpected error."""
+
+
 class ValidationMessage(TypedDict):
-    message: str
-    level: Literal["error", "warning"]
+    """A validation message."""
+
+    message: Annotated[str, "A human-readable message describing the validation error or warning"]
+    level: Annotated[
+        ValidationMessageLevel, "The level of the validation message (error or warning)"
+    ]
+    kind: Annotated[ValidationMessageKind, "The kind of the validation message"]
 
 
 class CortexSearchService(TypedDict, total=False):

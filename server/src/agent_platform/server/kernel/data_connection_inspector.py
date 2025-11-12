@@ -3,6 +3,8 @@ from typing import Any
 
 from structlog import get_logger
 
+from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessage
+
 if typing.TYPE_CHECKING:
     import pyarrow
     from ibis import Table
@@ -325,12 +327,17 @@ class DataConnectionInspector:
 
     async def _validate_table(
         self, table_spec: "TableToInspect", table: "Table | None" = None
-    ) -> str | None:
+    ) -> ValidationMessage | None:
         """
-        Validate a table and return an error message if it is not found or an error
+        Validate a table and return a structured error if it is not found or an error
         occurs accessing it. If a table is provided, it will be used instead of
         getting it from the connection.
         """
+        from agent_platform.core.data_frames.semantic_data_model_types import (
+            ValidationMessageKind,
+            ValidationMessageLevel,
+        )
+
         try:
             if table is None:
                 table = await self._get_table(table_spec)
@@ -343,23 +350,31 @@ class DataConnectionInspector:
             else:
                 table.schema()
         except TableNotFoundError as e:
-            return str(e)
+            return ValidationMessage(
+                message=str(e),
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.DATA_CONNECTION_TABLE_NOT_FOUND,
+            )
         except Exception as e:
-            return f"Error accessing table: {e!s}"
+            return ValidationMessage(
+                message=f"Error accessing table: {e!s}",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.DATA_CONNECTION_TABLE_ACCESS_ERROR,
+            )
         return None
 
-    async def validate_tables_exist(self) -> dict[str, str]:
+    async def validate_tables_exist(self) -> dict[str, ValidationMessage]:
         """
         Validate that tables specified in the request exist in the connection.
 
         Returns:
-            Dictionary mapping table names to error messages.
+            Dictionary mapping table names to structured validation messages.
         """
         # Check if tables are specified in the request
         if not self.request.tables_to_inspect:
             raise ValueError("No tables specified in request for validation")
 
-        errors: dict[str, str] = {}
+        errors: dict[str, ValidationMessage] = {}
         # Validate each table in the request
         for table_spec in self.request.tables_to_inspect:
             error = await self._validate_table(table_spec)
@@ -370,15 +385,24 @@ class DataConnectionInspector:
 
     async def _validate_column_expression(
         self, table: "Table", column_expression: str
-    ) -> str | None:
+    ) -> ValidationMessage | None:
         """Extracted for testing purposes."""
+        from agent_platform.core.data_frames.semantic_data_model_types import (
+            ValidationMessageKind,
+            ValidationMessageLevel,
+        )
+
         try:
             table.select(column_expression).limit(0).execute()
         except Exception as e:
-            return f"Invalid column expression: {e!s}"
+            return ValidationMessage(
+                message=f"Invalid column expression: {e!s}",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.DATA_CONNECTION_COLUMN_INVALID_EXPRESSION,
+            )
         return None
 
-    async def validate_column_expressions(self) -> dict[str, dict[str, str]]:
+    async def validate_column_expressions(self) -> dict[str, dict[str, ValidationMessage]]:
         """
         Validate that column expressions specified in the request can be evaluated.
 
@@ -387,10 +411,10 @@ class DataConnectionInspector:
         nothing to validate).
 
         Returns:
-            Dictionary mapping table names to a dict of column names to error messages.
-            Empty dict if all columns are valid. If a table is not found, the
-            error message will be stored in the `_table` key and columns
-            will not be validated.
+            Dictionary mapping table names to a dict of column names to structured
+            validation messages. Empty dict if all columns are valid. If a table is not
+            found, the error will be stored in the `_table` key and columns will not be
+            validated.
         """
         # Check if tables are specified in the request
         if not self.request.tables_to_inspect:
@@ -403,11 +427,11 @@ class DataConnectionInspector:
                     f"Table '{table_spec.name}' has no columns_to_inspect specified for validation"
                 )
 
-        errors: dict[str, dict[str, str]] = {}
+        errors: dict[str, dict[str, ValidationMessage]] = {}
 
         # Validate columns for each table in the request
         for table_spec in self.request.tables_to_inspect:
-            table_errors: dict[str, str] = {}
+            table_errors: dict[str, ValidationMessage] = {}
             columns_to_validate = table_spec.columns_to_inspect
             assert columns_to_validate is not None  # Already checked above
 

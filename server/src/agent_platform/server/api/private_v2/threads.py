@@ -703,6 +703,8 @@ async def validate_thread_semantic_data_models(
     from agent_platform.core.data_frames.semantic_data_model_types import (
         SemanticDataModel,
         ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
     )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
@@ -728,7 +730,13 @@ async def validate_thread_semantic_data_models(
                 ValidateSemanticDataModelResultItem(
                     semantic_data_model_id=semantic_data_model_id,
                     semantic_data_model={},
-                    errors=[ValidationMessage(message=str(e), level="error")],
+                    errors=[
+                        ValidationMessage(
+                            message=str(e),
+                            level=ValidationMessageLevel.ERROR,
+                            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+                        )
+                    ],
                     warnings=[],
                 )
             )

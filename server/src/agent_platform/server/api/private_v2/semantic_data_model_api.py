@@ -9,7 +9,12 @@ from fastapi import APIRouter
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.data_frames.semantic_data_model_types import (
+    SemanticDataModel,
+    ValidationMessage,
+    ValidationMessageKind,
+    ValidationMessageLevel,
+)
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads import (
@@ -969,7 +974,6 @@ async def _validate_single_sdm(
     """
     from agent_platform.core.data_frames.semantic_data_model_types import (
         SemanticDataModel,
-        ValidationMessage,
     )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
@@ -997,7 +1001,13 @@ async def _validate_single_sdm(
         return ValidateSemanticDataModelResultItem(
             semantic_data_model_id=sdm_id,
             semantic_data_model=sdm,
-            errors=[ValidationMessage(message=str(e), level="error")],
+            errors=[
+                ValidationMessage(
+                    message=str(e),
+                    level=ValidationMessageLevel.ERROR,
+                    kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+                )
+            ],
             warnings=[],
         )
 
