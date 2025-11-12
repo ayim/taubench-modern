@@ -75,18 +75,6 @@ export const createApplication = async ({
   const appPublic = express();
   const serverPublic = http.createServer(appPublic);
 
-  try {
-    await database.updateUser({
-      user: {
-        id: '3d82ecbc-e224-47e9-8b33-ab1d494094d6',
-        role: 'admin',
-      },
-    });
-  } catch (e) {
-    const error = e as Error;
-    monitoring.logger.error(`failed to update Ben: ${error.name}:${error.message}`);
-  }
-
   const appInternal = express();
   const serverInternal = http.createServer(appInternal);
 
