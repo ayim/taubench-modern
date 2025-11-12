@@ -15,7 +15,7 @@ set -euo pipefail
 ##############################################################################
 
 # Tag + repos for `spar` image
-spar_tag="2.1.16_1353d933.20251104T201455Z"
+spar_tag="2.1.17_c45d66514.20251111T145931Z"
 spar_ecr_repository="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/ace/spar"
 spar_ghcr_repository="ghcr.io/sema4ai-external/s4te-spar"
 
