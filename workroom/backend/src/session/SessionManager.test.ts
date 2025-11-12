@@ -31,7 +31,12 @@ describe('SessionManager', () => {
         },
         secret: 'this-is-a-secret-2',
         store,
+        tenantId: 'test-tenant',
       });
+    });
+
+    it('uses a dynamic tenant-based cookie name', () => {
+      expect(sessionManager.sessionCookieName).toEqual('s4spar.test-tenant');
     });
 
     describe('extractSessionFromHeaders', () => {
@@ -58,7 +63,7 @@ describe('SessionManager', () => {
 
         const result = await sessionManager.extractSessionFromHeaders({
           Cookie:
-            'test=123;s4spar=s%3A4a6786f6-76b7-44b6-9c72-a5f79ad344ec.%2BzgyNtwcuiuZm%2BgiVWvZoShobLVCkrpJTM%2BDZPw0esY',
+            'test=123;s4spar.test-tenant=s%3A4a6786f6-76b7-44b6-9c72-a5f79ad344ec.%2BzgyNtwcuiuZm%2BgiVWvZoShobLVCkrpJTM%2BDZPw0esY',
         });
 
         expect(result.success).toEqual(true);

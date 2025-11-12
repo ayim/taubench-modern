@@ -9,21 +9,30 @@ import { asResult, type Result } from '../utils/result.js';
 
 export type ExtractSessionResult = Result<Session, { code: 'invalid_session' | 'no_session'; message: string }>;
 
-const COOKIE_NAME = 's4spar';
+const COOKIE_PREFIX = 's4spar.';
 
 export class SessionManager {
   protected monitoring: MonitoringContext;
   private secret: string;
+
+  public readonly sessionCookieName: string;
   public readonly store: Store;
 
-  constructor({ monitoring, secret, store }: { monitoring: MonitoringContext; secret: string; store: Store }) {
+  constructor({
+    monitoring,
+    secret,
+    store,
+    tenantId,
+  }: {
+    monitoring: MonitoringContext;
+    secret: string;
+    store: Store;
+    tenantId: string;
+  }) {
     this.monitoring = monitoring;
     this.secret = secret;
+    this.sessionCookieName = `${COOKIE_PREFIX}${tenantId}`.toLowerCase().replace(/[^a-z0-9._-]+/g, '_');
     this.store = store;
-  }
-
-  get sessionCookieName(): string {
-    return COOKIE_NAME;
   }
 
   async clearSessionForRequest(req: ExpressRequest): Promise<Result<void>> {
@@ -63,7 +72,7 @@ export class SessionManager {
       (headers instanceof Headers ? headers.get('cookie') : caseless(headers)['cookie']) ?? '',
     );
 
-    if (!cookies[COOKIE_NAME]) {
+    if (!cookies[this.sessionCookieName]) {
       return {
         success: false,
         error: {
@@ -73,7 +82,7 @@ export class SessionManager {
       };
     }
 
-    const sessionData = cookies[COOKIE_NAME].replace(/^s:/, '');
+    const sessionData = cookies[this.sessionCookieName].replace(/^s:/, '');
     const sessionId = cookieSigning.unsign(sessionData, this.secret);
     if (!sessionId) {
       this.monitoring.logger.error('No session found for session cookie');

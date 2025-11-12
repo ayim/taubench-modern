@@ -75,6 +75,7 @@ export const createApplication = async ({
     monitoring,
     secret: configuration.session?.secret ?? '__SESSION_MANAGER_NOT_ACTIVE__',
     store: new DatabaseSessionStore({ database, sessionExpirySeconds: configuration.sessionCookieMaxAgeMs / 1000 }),
+    tenantId: configuration.tenant.tenantId,
   });
 
   const appPublic = express();
