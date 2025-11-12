@@ -1,4 +1,4 @@
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import express, { type NextFunction, type Request, type Response } from 'express';
@@ -10,6 +10,35 @@ export const createAssetServe = ({ root }: { root: string }) =>
     index: 'index.html', // Don't serve index.html
     fallthrough: true, // Fall-through to next handler
   });
+
+export const createCompressionMiddleware =
+  ({ root }: { root: string }) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const acceptEncoding = req.header('Accept-Encoding') ?? '';
+
+    const metadata = getFileTypeMetadataForPath(req.path);
+    if (!metadata) {
+      return next();
+    }
+
+    if (acceptEncoding.includes('gzip')) {
+      const gzipPath = resolve(root, req.path.slice(1) + '.gz');
+
+      if (existsSync(gzipPath)) {
+        res.set({
+          'Content-Encoding': 'gzip',
+          'Content-Type': metadata.contentType,
+          Vary: 'Accept-Encoding',
+        });
+
+        const gzipStream = createReadStream(gzipPath);
+        gzipStream.pipe(res);
+        return;
+      }
+    }
+
+    next();
+  };
 
 export const createIndexServe =
   ({ root }: { root: string }) =>
@@ -28,6 +57,28 @@ export const createIndexServe =
 
     return next();
   };
+
+const getFileTypeMetadataForPath = (path: string): null | { contentType: string } => {
+  const ext = path.split('.').pop() ?? '';
+
+  switch (ext.toLowerCase()) {
+    case 'mjs':
+    case 'js':
+      return {
+        contentType: 'application/javascript',
+      };
+    case 'css':
+      return {
+        contentType: 'text/css',
+      };
+    case 'svg':
+      return {
+        contentType: 'image/svg+xml',
+      };
+    default:
+      return null;
+  }
+};
 
 export const initializeFrontendPlaceholders = async ({
   configuration,

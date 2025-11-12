@@ -1,8 +1,9 @@
+import path from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { tanstackRouter } from '@tanstack/router-vite-plugin';
 import tsconfigPaths from 'vite-tsconfig-paths';
-import path from 'node:path';
+import { compression } from 'vite-plugin-compression2';
 
 const tenantReplacementPlugin = () => ({
   name: 'tenant-replacement',
@@ -28,5 +29,10 @@ export default defineConfig({
     }),
     react(),
     ...(process.env.NODE_ENV === 'production' ? [] : [tenantReplacementPlugin()]),
+    compression({
+      algorithms: ['gzip'],
+      deleteOriginalAssets: false,
+      include: /\.(js|mjs|css|svg)$/i,
+    }),
   ],
 });

@@ -16,7 +16,12 @@ import { createFilesRouter } from './handlers/files.js';
 import { createHealthCheck, createReadinessCheck } from './handlers/health.js';
 import { createGetMeta, createGetSparTenantsList } from './handlers/meta.js';
 import { createOIDCCallbackHandler } from './handlers/oidc.js';
-import { createAssetServe, createIndexServe, initializeFrontendPlaceholders } from './handlers/static.js';
+import {
+  createAssetServe,
+  createCompressionMiddleware,
+  createIndexServe,
+  initializeFrontendPlaceholders,
+} from './handlers/static.js';
 import { initializeWebSocketProxying } from './handlers/websocket.js';
 import { createGetWorkroomMeta } from './handlers/workroom.js';
 import type { ErrorResponse } from './interfaces.js';
@@ -390,7 +395,7 @@ export const createApplication = async ({
 
     await initializeFrontendPlaceholders({ configuration, root });
 
-    tenantRouter.use('/', createAssetServe({ root }));
+    tenantRouter.use('/', createCompressionMiddleware({ root }), createAssetServe({ root }));
     tenantRouter.get('/*', createIndexServe({ root }));
   } else if (configuration.frontendMode === 'middleware') {
     monitoring.logger.info('Frontend will be processed using Vite middlewares');
