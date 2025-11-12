@@ -8,7 +8,7 @@ import type { SessionManager } from '../session/SessionManager.js';
 import { getRequestBaseUrl } from '../utils/request.js';
 
 type AuthMeta =
-  | { status: 'unauthenticated' }
+  | { status: 'unauthenticated'; permissions: Array<string> }
   | { status: 'authenticated'; userId: string; permissions: Array<string>; claims: OIDCTokenClaims };
 
 export const createAuthMetaHandler =
@@ -22,9 +22,17 @@ export const createAuthMetaHandler =
     sessionManager: SessionManager;
   }) =>
   async (req: ExpressRequest, res: ExpressResponse) => {
+    if (!configuration.auth.roleManagement) {
+      return res.json({
+        permissions: [...Roles['admin'].permissions],
+        status: 'unauthenticated',
+      } satisfies AuthMeta);
+    }
+
     if (!configuration.session) {
       return res.json({
         status: 'unauthenticated',
+        permissions: [],
       } satisfies AuthMeta);
     }
 
@@ -49,6 +57,7 @@ export const createAuthMetaHandler =
             claims: sessionResult.data.auth.tokens.claims,
           }
         : {
+            permissions: [],
             status: 'unauthenticated',
           }) satisfies AuthMeta,
     );

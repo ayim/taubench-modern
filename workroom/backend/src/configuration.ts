@@ -13,6 +13,13 @@ export interface Configuration {
   agentServerInternalUrl: string;
   allowInsecureRequests: boolean;
   auth: {
+    /**
+     * Transitionary flag to know if an auth type should handle permissions
+     * and role management, provided by SPAR itself. Once our own SSO-OIDC
+     * is removed in the future, in favour of OIDC, this may be refactored
+     * to only check `auth.type` vs 'none'.
+     */
+    roleManagement: boolean;
     tokenIssuer: string;
   } & (
     | {
@@ -136,10 +143,11 @@ export const getConfiguration = (): Configuration => {
 
     switch (mode) {
       case 'none':
-        return { tokenIssuer, type: 'none' };
+        return { roleManagement: false, tokenIssuer, type: 'none' };
       case 'snowflake': {
         return {
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
+          roleManagement: false,
           tokenIssuer,
           type: 'snowflake',
         };
@@ -148,6 +156,7 @@ export const getConfiguration = (): Configuration => {
         return {
           controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
+          roleManagement: false,
           tokenIssuer,
           tokenIssuers: parseEnvVariable('SEMA4AI_WORKROOM_TOKEN_ISSUERS')
             .split(';')
@@ -173,6 +182,7 @@ export const getConfiguration = (): Configuration => {
             ? parseEnvVariable('SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL')
             : null,
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
+          roleManagement: true,
           oidcServer,
           scopes,
           tokenIssuer,

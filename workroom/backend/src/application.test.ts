@@ -15,6 +15,7 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   agentServerInternalUrl,
   allowInsecureRequests: true,
   auth: {
+    roleManagement: false,
     tokenIssuer: 'spar',
     type: 'none',
   },
@@ -198,6 +199,7 @@ describe('application', () => {
         configuration: {
           ...generateConfiguration({ agentServerInternalUrl: '' }),
           auth: {
+            roleManagement: false,
             jwtPrivateKeyB64: TEST_PRIVATE_KEY_BASE64,
             tokenIssuer: 'spar',
             type: 'snowflake',
@@ -257,6 +259,7 @@ describe('application', () => {
           auth: {
             controlPlaneUrl: targetServerUrl,
             jwtPrivateKeyB64: TEST_PRIVATE_KEY_BASE64,
+            roleManagement: false,
             tokenIssuer: 'ace',
             tokenIssuers: [],
             type: 'sema4-oidc-sso',

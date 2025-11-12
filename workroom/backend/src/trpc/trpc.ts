@@ -10,7 +10,7 @@ export type RouterContext = {
   monitoring: MonitoringContext;
   sessionManager: SessionManager;
   user: Readonly<{
-    id: string;
+    id: string | null;
     role: UserRole;
   }>;
 };

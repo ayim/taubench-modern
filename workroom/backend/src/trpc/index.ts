@@ -64,17 +64,33 @@ export const createRouterContext =
       });
     }
 
-    if (!userIdentityResult.data.userId || !userIdentityResult.data.userRole) {
-      monitoring.logger.error('TRPC authentication failed: Incomplete user information', {
-        requestUrl: req.originalUrl,
-        userId: userIdentityResult.data.userId ?? '',
-        userRole: userIdentityResult.data.userRole ?? '',
-      });
+    const requiresUserIdentifier = configuration.auth.roleManagement;
 
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'Invalid or missing authorization',
-      });
+    if (!userIdentityResult.data.userId || !userIdentityResult.data.userRole) {
+      if (requiresUserIdentifier) {
+        monitoring.logger.error('TRPC authentication failed: Incomplete user information', {
+          requestUrl: req.originalUrl,
+          userId: userIdentityResult.data.userId ?? '',
+          userRole: userIdentityResult.data.userRole ?? '',
+        });
+
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Invalid or missing authorization',
+        });
+      } else {
+        // No user identification required for this auth setup, so simply mark
+        // the current user as an administrator
+        return {
+          database,
+          monitoring,
+          sessionManager,
+          user: {
+            id: null,
+            role: 'admin',
+          },
+        };
+      }
     }
 
     return {

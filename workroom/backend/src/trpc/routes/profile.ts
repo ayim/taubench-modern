@@ -15,25 +15,35 @@ export const getProfile = authedProcedure([])
   .query(async ({ ctx }) => {
     const { database, monitoring, user } = ctx;
 
-    const userResult = await database.getUser({ id: user.id });
-    if (!userResult.success) {
-      monitoring.logger.error('Failed retrieve user', {
-        errorMessage: userResult.error.message,
-        errorName: userResult.error.code,
-        userId: user.id,
-      });
+    if (user.id) {
+      const userResult = await database.getUser({ id: user.id });
+      if (!userResult.success) {
+        monitoring.logger.error('Failed retrieve user', {
+          errorMessage: userResult.error.message,
+          errorName: userResult.error.code,
+          userId: user.id,
+        });
 
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed retrieve user',
-      });
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed retrieve user',
+        });
+      }
+
+      return {
+        user: {
+          firstName: userResult.data.first_name,
+          lastName: userResult.data.last_name,
+          profilePicture: userResult.data.profile_picture_url,
+        },
+      };
     }
 
     return {
       user: {
-        firstName: userResult.data.first_name,
-        lastName: userResult.data.last_name,
-        profilePicture: userResult.data.profile_picture_url,
+        firstName: 'User',
+        lastName: '',
+        profilePicture: null,
       },
     };
   });

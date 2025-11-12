@@ -3,7 +3,7 @@ import { resolveWorkroomURL } from '~/lib/utils';
 import type { UserPermission } from '~/lib/userPermissions';
 
 type AuthMeta =
-  | { status: 'unauthenticated' }
+  | { status: 'unauthenticated'; permissions: Array<UserPermission> }
   | { status: 'authenticated'; userId: string; permissions: Array<UserPermission> };
 
 let __metaPromise: Promise<AuthMeta> | null = null;
@@ -42,7 +42,7 @@ export const useUserPermissionsQuery = (options?: { enabled?: boolean }) => {
         return { permissions: result.permissions, userId: result.userId };
       }
 
-      return { permissions: [] };
+      return { permissions: result.permissions };
     },
     ...options,
   });
