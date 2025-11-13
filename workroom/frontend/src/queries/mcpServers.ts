@@ -120,3 +120,45 @@ export const useUpdateMcpServerMutation = () => {
     },
   });
 };
+
+type FIX_ME = any;
+
+export const useCreateHostedMcpServerMutation = () => {
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      tenantId,
+      name,
+      file,
+      headers,
+    }: {
+      tenantId: string;
+      name: string;
+      file: File;
+      headers: MCPServerCreate['headers'];
+    }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', name);
+      if (headers) {
+        formData.append('headers', JSON.stringify(headers));
+      }
+
+      const response = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/mcp-servers/mcp-servers-hosted', {
+        body: formData as FIX_ME,
+        errorMsg: 'Failed to create hosted MCP server',
+      });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      return response.data;
+    },
+    onSuccess: async (_data, { tenantId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });
+    },
+  });
+};

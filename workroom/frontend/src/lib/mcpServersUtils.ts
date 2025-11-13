@@ -67,11 +67,13 @@ const formHeadersToApiHeaders = (entries: NewMcpServerFormValues['headersKV']) =
 const getAgentPackageSecrets = (input: { agentPackageSecrets: NewMcpServerFormValues['agentPackageSecrets'] }) => {
   const secretEntries = Object.entries(input.agentPackageSecrets ?? {})
     .filter(([_, value]) => value && value.trim() !== '')
-    .map(([key, value]) => ({
-      key,
-      value,
-      type: 'secret' as const,
-    }));
+    .map(([key, value]) => {
+      return {
+        key,
+        value,
+        type: 'secret' as const,
+      };
+    });
   return secretEntries;
 };
 

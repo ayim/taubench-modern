@@ -3286,6 +3286,48 @@ export const spec = {
         },
       },
     },
+    '/api/v2/mcp-servers/mcp-servers-hosted': {
+      post: {
+        tags: ['mcp-servers'],
+        summary: 'Create Hosted Mcp Server',
+        description:
+          'Create a hosted MCP server by uploading a package file.\n\nThis endpoint accepts multipart/form-data for deploying sema4ai_action_server\ntype MCP servers that require a package file.\n\nArgs:\n    file: The .zip package file (max 50MB)\n    name: Name of the MCP server\n    headers: Optional JSON string of headers for the MCP server\n    storage: Storage dependency\n    _: Quota check dependency\n\nReturns:\n    MCPServerResponse with the created server details',
+        operationId:
+          'create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post',
+        requestBody: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/MCPServerResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/mcp-servers/{mcp_server_id}': {
       get: {
         tags: ['mcp-servers'],
@@ -9531,6 +9573,34 @@ export const spec = {
         type: 'object',
         required: ['project_id', 'dataset'],
         title: 'BigqueryDataConnectionConfiguration',
+      },
+      Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
+        properties: {
+          file: {
+            type: 'string',
+            format: 'binary',
+            title: 'File',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          headers: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Headers',
+          },
+        },
+        type: 'object',
+        required: ['file', 'name'],
+        title:
+          'Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post',
       },
       Body_generate_data_model_from_document_document_intelligence_data_models_generate_post:
         {

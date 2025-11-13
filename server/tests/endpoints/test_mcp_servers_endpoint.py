@@ -635,3 +635,300 @@ def test_list_mcp_servers_with_partial_decryption_failure(
         assert len(data) == 1
         assert "working-server-id" in data
         assert data["working-server-id"]["name"] == "working-server"
+
+
+def test_upload_mcp_server_success(client: TestClient):
+    """Test uploading an MCP server package successfully."""
+    import io
+    from unittest.mock import AsyncMock, patch
+
+    from agent_platform.server.api.private_v2.mcp_servers import MCPRuntimeDeploymentResponse
+
+    # Create a minimal zip file content
+    zip_content = io.BytesIO()
+    import zipfile
+
+    with zipfile.ZipFile(zip_content, "w") as zf:
+        zf.writestr("test.txt", "test content")
+    zip_content.seek(0)
+
+    # Prepare the multipart form data
+    files = {"file": ("test-package.zip", zip_content, "application/zip")}
+    data = {
+        "name": "test-action-server",
+        "headers": '{"X-API-Key": "test-key"}',
+    }
+
+    # Mock the MCP Runtime API call function
+    mock_deployment_response = MCPRuntimeDeploymentResponse(
+        url="https://deployed-mcp-server.example.com/endpoint",
+        status="running",
+        deployment_id="test-deployment-123",
+    )
+
+    with patch(
+        "agent_platform.server.api.private_v2.mcp_servers.call_mcp_runtime_deployment_api",
+        new_callable=AsyncMock,
+        return_value=mock_deployment_response,
+    ) as mock_api_call:
+        response = client.post(
+            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+        )
+
+        # Verify the API call function was called
+        assert mock_api_call.called
+        call_args = mock_api_call.call_args
+        # Check that URL contains /api/deployments/{uuid}
+        assert "/api/deployments/" in call_args[0][0]
+        # Check that file content was passed
+        assert len(call_args[0][1]) > 0
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert response_data["name"] == "test-action-server"
+    assert response_data["type"] == "sema4ai_action_server"
+    assert response_data["url"] == "https://deployed-mcp-server.example.com/endpoint"
+    assert response_data["headers"] == {"X-API-Key": "test-key"}
+    assert response_data["source"] == "API"
+    assert "mcp_server_id" in response_data
+
+
+def test_upload_mcp_server_without_headers(client: TestClient):
+    """Test uploading an MCP server package without optional headers."""
+    import io
+    import zipfile
+    from unittest.mock import AsyncMock, patch
+
+    from agent_platform.server.api.private_v2.mcp_servers import MCPRuntimeDeploymentResponse
+
+    zip_content = io.BytesIO()
+    with zipfile.ZipFile(zip_content, "w") as zf:
+        zf.writestr("test.txt", "test content")
+    zip_content.seek(0)
+
+    files = {"file": ("test-package.zip", zip_content, "application/zip")}
+    data = {"name": "test-action-server-no-headers"}
+
+    # Mock the MCP Runtime API call function
+    mock_deployment_response = MCPRuntimeDeploymentResponse(
+        url="https://deployed-mcp-server.example.com/endpoint",
+        status="running",
+        deployment_id="test-deployment-456",
+    )
+
+    with patch(
+        "agent_platform.server.api.private_v2.mcp_servers.call_mcp_runtime_deployment_api",
+        new_callable=AsyncMock,
+        return_value=mock_deployment_response,
+    ):
+        response = client.post(
+            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+        )
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert response_data["name"] == "test-action-server-no-headers"
+    assert response_data["headers"] is None
+
+
+def test_upload_mcp_server_invalid_file_extension(client: TestClient):
+    """Test that uploading a non-zip file is rejected."""
+    import io
+    from unittest.mock import patch
+
+    file_content = io.BytesIO(b"not a zip file")
+    files = {"file": ("test-package.txt", file_content, "text/plain")}
+    data = {"name": "test-action-server"}
+
+    with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
+        response = client.post(
+            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+        )
+
+    assert response.status_code == 400
+    response_data = response.json()
+    error_message = response_data.get("detail") or response_data.get("error", {}).get("message", "")
+    assert "zip" in error_message.lower()
+
+
+def test_upload_mcp_server_file_too_large(client: TestClient):
+    """Test that uploading a file exceeding 50MB is rejected."""
+    import io
+    import zipfile
+    from unittest.mock import patch
+
+    # Create a zip file larger than 50MB
+    zip_content = io.BytesIO()
+    with zipfile.ZipFile(zip_content, "w", zipfile.ZIP_STORED) as zf:
+        # Add a file with 51MB of data
+        large_data = b"x" * (51 * 1024 * 1024)
+        zf.writestr("large_file.bin", large_data)
+    zip_content.seek(0)
+
+    files = {"file": ("large-package.zip", zip_content, "application/zip")}
+    data = {"name": "test-action-server"}
+
+    with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
+        response = client.post(
+            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+        )
+
+    assert response.status_code == 413
+    response_data = response.json()
+    error_message = response_data.get("detail") or response_data.get("error", {}).get("message", "")
+    assert "exceeds maximum allowed size" in error_message
+
+
+def test_upload_mcp_server_invalid_headers_json(client: TestClient):
+    """Test that invalid JSON in headers field is rejected."""
+    import io
+    import zipfile
+    from unittest.mock import patch
+
+    zip_content = io.BytesIO()
+    with zipfile.ZipFile(zip_content, "w") as zf:
+        zf.writestr("test.txt", "test content")
+    zip_content.seek(0)
+
+    files = {"file": ("test-package.zip", zip_content, "application/zip")}
+    data = {
+        "name": "test-action-server",
+        "headers": "not valid json",
+    }
+
+    with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
+        response = client.post(
+            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+        )
+
+    assert response.status_code == 400
+    response_data = response.json()
+    error_message = response_data.get("detail") or response_data.get("error", {}).get("message", "")
+    assert "Invalid JSON" in error_message
+
+
+def test_upload_mcp_server_headers_not_object(client: TestClient):
+    """Test that headers must be a JSON object, not an array or string."""
+    import io
+    import zipfile
+    from unittest.mock import patch
+
+    zip_content = io.BytesIO()
+    with zipfile.ZipFile(zip_content, "w") as zf:
+        zf.writestr("test.txt", "test content")
+    zip_content.seek(0)
+
+    files = {"file": ("test-package.zip", zip_content, "application/zip")}
+    data = {
+        "name": "test-action-server",
+        "headers": '["not", "an", "object"]',
+    }
+
+    with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
+        response = client.post(
+            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+        )
+
+    assert response.status_code == 400
+    response_data = response.json()
+    error_message = response_data.get("detail") or response_data.get("error", {}).get("message", "")
+    assert "must be a JSON object" in error_message
+
+
+def test_upload_mcp_server_duplicate_name(client: TestClient):
+    """Test that uploading with duplicate name returns 409."""
+    import io
+    import zipfile
+    from unittest.mock import AsyncMock, patch
+
+    from agent_platform.server.api.private_v2.mcp_servers import MCPRuntimeDeploymentResponse
+
+    zip_content = io.BytesIO()
+    with zipfile.ZipFile(zip_content, "w") as zf:
+        zf.writestr("test.txt", "test content")
+    zip_content.seek(0)
+
+    files = {"file": ("test-package.zip", zip_content, "application/zip")}
+    data = {"name": "duplicate-server"}
+
+    # Mock the MCP Runtime API call function
+    mock_deployment_response = MCPRuntimeDeploymentResponse(
+        url="https://deployed-mcp-server.example.com/endpoint",
+        status="running",
+        deployment_id="test-deployment-789",
+    )
+
+    with (
+        patch(
+            "agent_platform.server.api.private_v2.mcp_servers.call_mcp_runtime_deployment_api",
+            new_callable=AsyncMock,
+            return_value=mock_deployment_response,
+        ),
+        patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"),
+    ):
+        # First upload
+        response1 = client.post(
+            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+        )
+        assert response1.status_code == 200
+
+        # Second upload with same name
+        zip_content.seek(0)
+        response2 = client.post(
+            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+        )
+
+    assert response2.status_code == 409
+    response_data = response2.json()
+    error_message = response_data.get("detail") or response_data.get("error", {}).get("message", "")
+    assert "already exists" in error_message
+
+
+def test_upload_mcp_server_quota_check(fastapi_app):
+    """Test that upload endpoint has quota check."""
+    import io
+    import zipfile
+    from unittest.mock import AsyncMock, patch
+
+    from starlette.testclient import TestClient
+
+    from agent_platform.core.errors.quotas import MCPServerQuotaExceededError
+    from agent_platform.server.api.dependencies import check_mcp_server_quota
+    from agent_platform.server.api.private_v2.mcp_servers import MCPRuntimeDeploymentResponse
+
+    # Mock the quota check to raise quota exceeded error
+    async def mock_quota_check_exceeded():
+        raise MCPServerQuotaExceededError(current_count=3, quota_limit=2)
+
+    fastapi_app.dependency_overrides[check_mcp_server_quota] = mock_quota_check_exceeded
+
+    try:
+        client = TestClient(fastapi_app)
+
+        zip_content = io.BytesIO()
+        with zipfile.ZipFile(zip_content, "w") as zf:
+            zf.writestr("test.txt", "test content")
+        zip_content.seek(0)
+
+        files = {"file": ("test-package.zip", zip_content, "application/zip")}
+        data = {"name": "test-action-server"}
+
+        # Mock the MCP Runtime API call function (even though quota check fails first)
+        mock_deployment_response = MCPRuntimeDeploymentResponse(
+            url="https://deployed-mcp-server.example.com/endpoint",
+            status="running",
+            deployment_id="test-deployment-quota",
+        )
+
+        with patch(
+            "agent_platform.server.api.private_v2.mcp_servers.call_mcp_runtime_deployment_api",
+            new_callable=AsyncMock,
+            return_value=mock_deployment_response,
+        ):
+            response = client.post(
+                "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
+            )
+
+        assert response.status_code == 429
+    finally:
+        fastapi_app.dependency_overrides.clear()

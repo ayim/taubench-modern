@@ -16,7 +16,7 @@ import { useParams } from '@tanstack/react-router';
 import { FC, useState } from 'react';
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
 import { getCreateMcpServerBody } from '~/lib/mcpServersUtils';
-import { useCreateMcpServerMutation } from '~/queries/mcpServers';
+import { useCreateMcpServerMutation, useCreateHostedMcpServerMutation } from '~/queries/mcpServers';
 import { InputControlled } from '~/components/InputControlled';
 import { ActionPackageItem } from './ActionPackageItem.tsx';
 import { useInspectAgentPackageMutation } from '@sema4ai/spar-ui/queries';
@@ -39,7 +39,8 @@ type UploadState =
 
 export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
-  const mutation = useCreateMcpServerMutation();
+  const createMutation = useCreateMcpServerMutation();
+  const createHostedMutation = useCreateHostedMcpServerMutation();
   const { sparAPIClient } = useSparUIContext();
   const inspectAgentPackageMutation = useInspectAgentPackageMutation({ sparAPIClient });
   const form = useForm<NewMcpServerFormInput, unknown, NewMcpServerFormValues>({
@@ -115,20 +116,39 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
     console.log('values', values);
     const body = getCreateMcpServerBody(values);
 
-    console.log('body', body);
-
-    mutation.mutate(
-      { tenantId, body },
-      {
-        onSuccess: () => {
-          addSnackbar({ message: 'MCP server created', variant: 'success' });
-          onClose();
+    if (values.type === 'hosted' && values.agentPackageFile) {
+      createHostedMutation.mutate(
+        {
+          tenantId,
+          name: body.name,
+          file: values.agentPackageFile,
+          headers: body.headers,
         },
-        onError: (e) =>
-          addSnackbar({ message: e instanceof Error ? e.message : 'Failed to save MCP server', variant: 'danger' }),
-      },
-    );
+        {
+          onSuccess: () => {
+            addSnackbar({ message: 'MCP server created', variant: 'success' });
+            onClose();
+          },
+          onError: (e) =>
+            addSnackbar({ message: e instanceof Error ? e.message : 'Failed to save MCP server', variant: 'danger' }),
+        },
+      );
+    } else {
+      createMutation.mutate(
+        { tenantId, body },
+        {
+          onSuccess: () => {
+            addSnackbar({ message: 'MCP server created', variant: 'success' });
+            onClose();
+          },
+          onError: (e) =>
+            addSnackbar({ message: e instanceof Error ? e.message : 'Failed to save MCP server', variant: 'danger' }),
+        },
+      );
+    }
   });
+
+  const mutation = typeValue === 'hosted' ? createHostedMutation : createMutation;
 
   return (
     <Dialog open={open} size="x-large" onClose={() => onClose()}>
@@ -189,70 +209,67 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                         error={form.formState.errors.url?.message}
                       />
                     </Box>
+
+                    <Box>
+                      <Box mb="$8">Headers</Box>
+                      <Box display="grid" gap="$8">
+                        {headersArray.fields.map((f, idx) => (
+                          <Box
+                            key={f.id}
+                            display="grid"
+                            style={{ gridTemplateColumns: '1fr 160px 1fr auto', gap: '0.5rem' }}
+                          >
+                            <Input
+                              label="Header key"
+                              placeholder="Key"
+                              {...form.register(`headersKV.${idx}.key` as const)}
+                            />
+                            <Controller
+                              control={form.control}
+                              name={`headersKV.${idx}.type` as const}
+                              render={({ field }) => (
+                                <Select
+                                  label="Type"
+                                  items={[
+                                    { value: 'string', label: 'Plain Text' },
+                                    { value: 'secret', label: 'Secret' },
+                                  ]}
+                                  {...field}
+                                />
+                              )}
+                            />
+                            <InputControlled
+                              fieldName={`headersKV.${idx}.value` as const}
+                              label="Header value"
+                              placeholder="Value"
+                              type={
+                                (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
+                                  ? 'password'
+                                  : 'text'
+                              }
+                            />
+                            <Button
+                              variant="ghost"
+                              size="small"
+                              icon={IconTrash}
+                              aria-label="Remove header"
+                              type="button"
+                              onClick={() => headersArray.remove(idx)}
+                            />
+                          </Box>
+                        ))}
+                        <Button
+                          variant="outline"
+                          icon={IconPlus}
+                          type="button"
+                          onClick={() => headersArray.append({ key: '', value: '', type: 'string' })}
+                        >
+                          Add header
+                        </Button>
+                      </Box>
+                    </Box>
                   </>
                 )}
-
-                {typeValue !== 'hosted' && (
-                  <Box>
-                    <Box mb="$8">Headers</Box>
-                    <Box display="grid" gap="$8">
-                      {headersArray.fields.map((f, idx) => (
-                        <Box
-                          key={f.id}
-                          display="grid"
-                          style={{ gridTemplateColumns: '1fr 160px 1fr auto', gap: '0.5rem' }}
-                        >
-                          <Input
-                            label="Header key"
-                            placeholder="Key"
-                            {...form.register(`headersKV.${idx}.key` as const)}
-                          />
-                          <Controller
-                            control={form.control}
-                            name={`headersKV.${idx}.type` as const}
-                            render={({ field }) => (
-                              <Select
-                                label="Type"
-                                items={[
-                                  { value: 'string', label: 'Plain Text' },
-                                  { value: 'secret', label: 'Secret' },
-                                ]}
-                                {...field}
-                              />
-                            )}
-                          />
-                          <InputControlled
-                            fieldName={`headersKV.${idx}.value` as const}
-                            label="Header value"
-                            placeholder="Value"
-                            type={
-                              (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
-                                ? 'password'
-                                : 'text'
-                            }
-                          />
-                          <Button
-                            variant="ghost"
-                            size="small"
-                            icon={IconTrash}
-                            aria-label="Remove header"
-                            type="button"
-                            onClick={() => headersArray.remove(idx)}
-                          />
-                        </Box>
-                      ))}
-                      <Button
-                        variant="outline"
-                        icon={IconPlus}
-                        type="button"
-                        onClick={() => headersArray.append({ key: '', value: '', type: 'string' })}
-                      >
-                        Add header
-                      </Button>
-                    </Box>
-                  </Box>
-                )}
-
                 {typeValue === 'hosted' && (
                   <Box p="$4" display="flex" flexDirection="column" gap="$12">
                     <Box display="flex" flexDirection="column" gap="$12">

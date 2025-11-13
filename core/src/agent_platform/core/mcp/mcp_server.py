@@ -108,34 +108,44 @@ class MCPServer:
     """The type of MCP server. If 'sema4ai_action_server', X-Action-Context
     headers will be added for secret handling."""
 
-    def __post_init__(self):
-        # If neither url nor command are provided, raise an error
+    def _validate_url_command(self) -> None:
+        """Validate url and command configuration."""
         if not self.url and not self.command:
             raise ValueError("Either url or command must be provided")
-
-        # If both url and command are provided, raise an error
         if self.url and self.command:
             raise ValueError("Provide *either* url=* or command=*, but not both")
 
-        # When in auto mode
-        if self.transport == "auto":
-            if self.url and "/sse" in self.url.lower():
-                # If "sse" is in the url, use sse
-                object.__setattr__(self, "transport", "sse")
-            elif self.url:
-                # Otherwise, use streamable-http (default when url set)
-                object.__setattr__(self, "transport", "streamable-http")
-            elif self.command:
-                # Otherwise, use stdio (default when no url or command)
-                object.__setattr__(self, "transport", "stdio")
+    def _resolve_transport(self) -> str:
+        """Resolve transport type based on url/command."""
+        if self.transport != "auto":
+            return self.transport
+        if self.url and "/sse" in self.url.lower():
+            return "sse"
+        if self.url:
+            return "streamable-http"
+        if self.command:
+            return "stdio"
+        return self.transport
 
-        # If url is provided, we must be sse or streamble-http
+    def _validate_transport(self) -> None:
+        """Validate transport matches url/command."""
         if self.url and self.transport not in ["sse", "streamable-http"]:
             raise ValueError("'url' transport requires transport=sse or transport=streamable-http")
-
-        # If command is provided, we must be stdio
         if self.command and self.transport != "stdio":
             raise ValueError("'command' transport requires transport=stdio")
+
+    def __post_init__(self):
+        # Skip url/command validation for sema4ai_action_server type
+        if self.type == "sema4ai_action_server" and not self.url and not self.command:
+            if self.transport == "auto":
+                object.__setattr__(self, "transport", "streamable-http")
+            return
+
+        self._validate_url_command()
+        resolved_transport = self._resolve_transport()
+        if resolved_transport != self.transport:
+            object.__setattr__(self, "transport", resolved_transport)
+        self._validate_transport()
 
     @property
     def is_stdio(self) -> bool:

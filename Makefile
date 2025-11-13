@@ -176,6 +176,9 @@ else
 DB_ENV =
 endif
 
+# MCP Runtime environment
+MCP_RUNTIME_ENV = SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL=$${SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL:-http://localhost:8003}
+
 run-server-hot-reload: sync  ## Run the agent server with hot reloading (uvicorn --reload)
 	@echo "Starting agent server with hot reloading... (DB: $(DB))"
 	@echo "Server will automatically restart when you change files in:"
@@ -192,6 +195,7 @@ ifeq ($(DB),postgres)
 endif
 	LOG_LEVEL=$${LOG_LEVEL:-DEBUG} \
 	$(DB_ENV) \
+	$(MCP_RUNTIME_ENV) \
 	uv run uvicorn agent_platform.server.dev:create_dev_app \
 		--factory \
 		--host 127.0.0.1 \

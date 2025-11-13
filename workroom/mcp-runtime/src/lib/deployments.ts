@@ -27,7 +27,7 @@ export const getDeploymentUrl = ({
   }
   const deploymentUrl = new URL(configuration.serverHttpUrl);
   deploymentUrl.port = deploymentPort.toString();
-  deploymentUrl.pathname = '/';
+  deploymentUrl.pathname = '/mcp/';
   return deploymentUrl.href;
 };
 
@@ -261,8 +261,9 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
 
       const checkServerResponsive = async () => {
         try {
-          const serverUrlWithoutTrailingSlash = serverUrl.replace(/\/$/, '');
-          const response = await fetch(`${serverUrlWithoutTrailingSlash}/openapi.json`, {
+          const serverOpenApiSpecUrl = new URL(serverUrl);
+          serverOpenApiSpecUrl.pathname = '/openapi.json';
+          const response = await fetch(serverOpenApiSpecUrl.href, {
             method: 'GET',
             signal: AbortSignal.timeout(500),
           });

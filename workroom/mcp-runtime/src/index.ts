@@ -15,6 +15,10 @@ const run = async () => {
 
   const app = express();
 
+  app.get('/api/health', (_req, res) => {
+    return res.status(200).json({ status: 'ok' });
+  });
+
   app.post(
     '/api/deployments/:deploymentId',
     express.raw({

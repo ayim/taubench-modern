@@ -1,13 +1,20 @@
 import json
+from dataclasses import dataclass
+from http import HTTPStatus
 from pathlib import Path
+from typing import Annotated
+from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+import httpx
+from fastapi import APIRouter, Form, HTTPException, UploadFile
 from structlog import get_logger
 
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
+from agent_platform.core.mcp.mcp_types import deserialize_mcp_variables
 from agent_platform.core.payloads import MCPServerResponse
 from agent_platform.server.api.dependencies import MCPQuotaCheck, StorageDependency
 from agent_platform.server.env_vars import SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE
+from agent_platform.server.mcp_runtime import MCPRuntimeConfig
 from agent_platform.server.storage import (
     ConfigDecryptionError,
     MCPServerNotFoundError,
@@ -16,6 +23,206 @@ from agent_platform.server.storage import (
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50MB
+
+
+@dataclass
+class MCPRuntimeDeploymentResponse:
+    """Response from MCP Runtime API deployment endpoint."""
+
+    url: str
+    status: str
+    deployment_id: str
+
+
+def parse_mcp_headers_from_form(headers_json: str | None) -> dict[str, str] | None:
+    """Parse and validate headers from JSON string in form data.
+
+    Args:
+        headers_json: Optional JSON string containing headers
+
+    Returns:
+        Parsed headers dictionary or None if not provided
+
+    Raises:
+        HTTPException: If JSON is invalid or not a dictionary
+    """
+    if not headers_json:
+        return None
+
+    try:
+        parsed_headers = json.loads(headers_json)
+        if not isinstance(parsed_headers, dict):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="Headers must be a JSON object",
+            )
+        return parsed_headers
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Invalid JSON in headers field: {e}",
+        ) from e
+
+
+async def call_mcp_runtime_deployment_api(
+    deployment_endpoint: str, file_content: bytes
+) -> MCPRuntimeDeploymentResponse:
+    """Call MCP Runtime API to deploy a package.
+
+    This function is extracted to enable easier testing by allowing
+    tests to mock this function without mocking the entire httpx client.
+
+    Args:
+        deployment_endpoint: Full URL to the deployment endpoint
+        file_content: Binary content of the package file
+
+    Returns:
+        Parsed deployment response from MCP Runtime API
+
+    Raises:
+        Exception: Various exceptions from httpx or response parsing
+    """
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        response = await client.post(
+            deployment_endpoint,
+            content=file_content,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        response.raise_for_status()
+
+        response_data = response.json()
+
+        if not isinstance(response_data, dict):
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail="MCP Runtime API returned invalid response format",
+            )
+
+        deployment_url = response_data.get("url")
+        deployment_status = response_data.get("status")
+        returned_deployment_id = response_data.get("deploymentId")
+
+        if not deployment_url or not deployment_status or not returned_deployment_id:
+            missing_fields = []
+            if not deployment_url:
+                missing_fields.append("url")
+            if not deployment_status:
+                missing_fields.append("status")
+            if not returned_deployment_id:
+                missing_fields.append("deploymentId")
+            missing_fields_str = ", ".join(missing_fields)
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail=f"MCP Runtime API response missing required fields: {missing_fields_str}",
+            )
+
+        return MCPRuntimeDeploymentResponse(
+            url=deployment_url,
+            status=deployment_status,
+            deployment_id=returned_deployment_id,
+        )
+
+
+async def deploy_mcp_server(file: UploadFile, deployment_id: str) -> str:
+    """Deploy an MCP server package and return the deployment URL.
+
+    Uploads the package to the MCP Runtime API which deploys it and returns
+    a URL where the deployed MCP server can be accessed.
+
+    Args:
+        file: The uploaded .zip file containing the MCP server package
+        deployment_id: Unique identifier for this deployment
+
+    Returns:
+        Deployment URL for the MCP server
+
+    Raises:
+        HTTPException: If file validation fails or deployment fails
+    """
+    # Validate file extension
+    if not file.filename or not file.filename.endswith(".zip"):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="File must be a .zip archive",
+        )
+
+    # Validate file size
+    file_content = await file.read()
+    file_size = len(file_content)
+
+    if file_size > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            detail=(
+                f"File size ({file_size} bytes) exceeds maximum allowed size "
+                f"({MAX_FILE_SIZE_BYTES} bytes)"
+            ),
+        )
+
+    # Reset file pointer for the actual upload
+    await file.seek(0)
+
+    # Get MCP Runtime API configuration from the singleton instance
+    # (which has environment variables applied by ConfigurationManager)
+    runtime_api_base_url = MCPRuntimeConfig.mcp_runtime_api_url
+
+    # Construct deployment endpoint URL
+    deployment_endpoint = f"{runtime_api_base_url}/api/deployments/{deployment_id}"
+
+    logger.info(
+        "Deploying MCP server package to runtime",
+        filename=file.filename,
+        file_size=file_size,
+        deployment_id=deployment_id,
+        deployment_endpoint=deployment_endpoint,
+    )
+
+    # Upload package to MCP Runtime API
+    try:
+        deployment_response = await call_mcp_runtime_deployment_api(
+            deployment_endpoint, file_content
+        )
+
+        logger.info(
+            "MCP server package deployed successfully",
+            filename=file.filename,
+            deployment_id=deployment_response.deployment_id,
+            deployment_status=deployment_response.status,
+            deployment_url=deployment_response.url,
+        )
+
+        return deployment_response.url
+
+    except Exception as e:
+        error_message = f"Failed to deploy MCP server: {e!s}"
+        status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+
+        # Extract more specific error information if available
+        if isinstance(e, httpx.HTTPStatusError):
+            status_code = HTTPStatus(e.response.status_code)
+            try:
+                error_data = e.response.json()
+                if isinstance(error_data, dict) and "error" in error_data:
+                    extracted_message = error_data["error"].get("message")
+                    if extracted_message:
+                        error_message = f"MCP Runtime API error: {extracted_message}"
+            except Exception:
+                pass
+
+        logger.error(
+            "Failed to deploy MCP server package",
+            error=str(e),
+            deployment_id=deployment_id,
+            filename=file.filename,
+            deployment_endpoint=deployment_endpoint,
+        )
+
+        raise HTTPException(
+            status_code=status_code,
+            detail=error_message,
+        ) from e
 
 
 def _read_mcp_servers_config_file() -> list[MCPServer]:
@@ -150,11 +357,57 @@ async def upsert_mcp_server(
         mcp_server_id = await storage.create_mcp_server(payload, source=MCPServerSource.API)
     except MCPServerWithNameAlreadyExistsError as e:
         raise HTTPException(
-            status_code=409,
+            status_code=HTTPStatus.CONFLICT,
             detail=f"MCP server with name '{payload.name}' and source 'API' already exists",
         ) from e
 
     return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, payload)
+
+
+@router.post("/mcp-servers-hosted", response_model=MCPServerResponse)
+async def create_hosted_mcp_server(
+    file: UploadFile,
+    name: Annotated[str, Form()],
+    storage: StorageDependency,
+    _: MCPQuotaCheck,
+    headers: Annotated[str | None, Form()] = None,
+) -> MCPServerResponse:
+    """Create a hosted MCP server by uploading a package file.
+
+    This endpoint accepts multipart/form-data for deploying sema4ai_action_server
+    type MCP servers that require a package file.
+
+    Args:
+        file: The .zip package file (max 50MB)
+        name: Name of the MCP server
+        headers: Optional JSON string of headers for the MCP server
+        storage: Storage dependency
+        _: Quota check dependency
+
+    Returns:
+        MCPServerResponse with the created server details
+    """
+    parsed_headers = parse_mcp_headers_from_form(headers)
+
+    deployment_id = str(uuid4())
+    deployment_url = await deploy_mcp_server(file, deployment_id)
+
+    mcp_server = MCPServer(
+        name=name,
+        type="sema4ai_action_server",
+        url=deployment_url,
+        headers=deserialize_mcp_variables(parsed_headers),
+    )
+
+    try:
+        mcp_server_id = await storage.create_mcp_server(mcp_server, source=MCPServerSource.API)
+    except MCPServerWithNameAlreadyExistsError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail=f"MCP server with name '{name}' and source 'API' already exists",
+        ) from e
+
+    return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, mcp_server)
 
 
 @router.get("/", response_model=dict[str, MCPServerResponse])
@@ -197,13 +450,13 @@ async def get_mcp_server(
         return MCPServerResponse.from_mcp_server(mcp_server_id, source, mcp_server)
     except MCPServerNotFoundError as e:
         raise HTTPException(
-            status_code=404,
+            status_code=HTTPStatus.NOT_FOUND,
             detail=f"MCP server {mcp_server_id} not found",
         ) from e
     except ConfigDecryptionError as e:
         logger.error(f"Failed to decrypt MCP server configuration for {mcp_server_id}: {e}")
         raise HTTPException(
-            status_code=500,
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"Configuration data for MCP server {mcp_server_id} is corrupted and cannot be "
             "decrypted",
         ) from e
@@ -221,17 +474,17 @@ async def update_mcp_server(
         return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, payload)
     except MCPServerNotFoundError as e:
         raise HTTPException(
-            status_code=404,
+            status_code=HTTPStatus.NOT_FOUND,
             detail=f"MCP server {mcp_server_id} not found",
         ) from e
     except MCPServerWithNameAlreadyExistsError as e:
         raise HTTPException(
-            status_code=409,
+            status_code=HTTPStatus.CONFLICT,
             detail=f"MCP server with name '{payload.name}' and source 'API' already exists",
         ) from e
 
 
-@router.delete("/{mcp_server_id}", status_code=204)
+@router.delete("/{mcp_server_id}", status_code=HTTPStatus.NO_CONTENT)
 async def delete_mcp_server(
     mcp_server_id: str,
     storage: StorageDependency,
@@ -241,6 +494,6 @@ async def delete_mcp_server(
         await storage.delete_mcp_server([mcp_server_id])
     except MCPServerNotFoundError as e:
         raise HTTPException(
-            status_code=404,
+            status_code=HTTPStatus.NOT_FOUND,
             detail=f"MCP server {mcp_server_id} not found",
         ) from e

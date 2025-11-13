@@ -1054,6 +1054,39 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/mcp-servers/mcp-servers-hosted': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Hosted Mcp Server
+     * @description Create a hosted MCP server by uploading a package file.
+     *
+     *     This endpoint accepts multipart/form-data for deploying sema4ai_action_server
+     *     type MCP servers that require a package file.
+     *
+     *     Args:
+     *         file: The .zip package file (max 50MB)
+     *         name: Name of the MCP server
+     *         headers: Optional JSON string of headers for the MCP server
+     *         storage: Storage dependency
+     *         _: Quota check dependency
+     *
+     *     Returns:
+     *         MCPServerResponse with the created server details
+     */
+    post: operations['create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/mcp-servers/{mcp_server_id}': {
     parameters: {
       query?: never;
@@ -3489,6 +3522,18 @@ export interface components {
       service_account_keys?: string | null;
       /** Service Account Json */
       service_account_json?: string | null;
+    };
+    /** Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post */
+    Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
+      /**
+       * File
+       * Format: binary
+       */
+      file: string;
+      /** Name */
+      name: string;
+      /** Headers */
+      headers?: string | null;
     };
     /** Body_generate_data_model_from_document_document_intelligence_data_models_generate_post */
     Body_generate_data_model_from_document_document_intelligence_data_models_generate_post: {
@@ -13683,6 +13728,39 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['MCPServer'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MCPServerResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post'];
       };
     };
     responses: {
