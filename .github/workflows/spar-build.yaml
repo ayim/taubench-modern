@@ -6,6 +6,7 @@ on:
       - labeled
       - synchronize
       - opened
+    # When updating paths, update spar-dev-deploy-message.yaml as well
     paths: &workflow-paths
       - '.github/workflows/spar-build.yaml'
       - 'Dockerfile.spar'
@@ -239,21 +240,6 @@ jobs:
         with:
           aws-region: us-east-1
           role-to-assume: arn:aws:iam::017820691865:role/github-deployer-team-edition-1
-
-      - name: Comment on PR
-        uses: actions/github-script@v8
-        if: github.event.action == 'labeled' && github.event.label.name == 'dev_deploy_aws'
-        with:
-          script: |
-            const branchName = '${{ env.BRANCH_NAME }}';
-            const cleanBranchName = branchName.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const url = `https://team-edition-1.sema4ai.dev/tenants/${cleanBranchName}/home`
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `\`dev_deploy_aws\` label added!\n\nThe PR will now deploy to AWS. Once deployed, the application will be available on ${url}. Subsequent pushes to this branch will update the deployment.`
-            })
 
       - name: Run CodeBuild
         uses: aws-actions/aws-codebuild-run-build@4d15a47425739ac2296ba5e7eee3bdd4bfbdd767 # v1
