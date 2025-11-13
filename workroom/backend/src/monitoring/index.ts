@@ -51,6 +51,7 @@ interface DebugLogAttributes extends LogAttributes {
   dbName: string;
   dbPort: number;
   dbSchema: string;
+  emailAddress: string;
   oidcClaims: string;
   oidcHasRefresh: boolean;
 }

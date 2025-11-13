@@ -11,6 +11,13 @@ The target OIDC service must support the following features for it to be a viabl
   - `openid`
   - `email`
   - `offline_access`
+  - `profile`
+
+### Behaviour
+
+When setting up a new OIDC-enabled SPAR instance, the **first user** to sign in will be granted the role of `admin`. All subsequent users will be granted the `knowledgeWorker` role, which has the lowest privilege level.
+
+This behaviour can pose problems when those with development/infrastructure access need to login. An additional environment variable, `SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE`, can be used to automatically promote users to `admin` role status when the **server starts up**.
 
 ## Auth Payload Examples
 
@@ -71,10 +78,4 @@ oidc-provider:
       }
 ```
 
-Environment variables:
-
-```
-SEMA4AI_WORKROOM_OIDC_CLIENT_ID=foo
-SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET=bar
-SEMA4AI_WORKROOM_OIDC_SERVER=http://localhost:9000/default
-```
+For required environment variables, see [Configuration](configuration.md).

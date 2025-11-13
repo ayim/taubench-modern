@@ -6,6 +6,7 @@ import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
 import { AuthManager } from './auth/AuthManager.js';
+import { autoPromoteUsersWithEmailsToAdmin } from './auth/utils/promotion.js';
 import type { Configuration } from './configuration.js';
 import type { DatabaseClient } from './database/DatabaseClient.js';
 import { createFilesManager } from './files/filesManagement.js';
@@ -76,6 +77,13 @@ export const createApplication = async ({
     secret: configuration.session?.secret ?? '__SESSION_MANAGER_NOT_ACTIVE__',
     store: new DatabaseSessionStore({ database, sessionExpirySeconds: configuration.sessionCookieMaxAgeMs / 1000 }),
     tenantId: configuration.tenant.tenantId,
+  });
+
+  await autoPromoteUsersWithEmailsToAdmin({
+    database,
+    emails: configuration.auth.autoPromoteEmails,
+    monitoring,
+    sessionManager,
   });
 
   const appPublic = express();

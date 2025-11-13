@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { caseless, parseCookies } from './parse.js';
+import { caseless, isEmail, parseCookies } from './parse.js';
 
 describe('caseless', () => {
   it('renders upper-case object properties as lower-case', () => {
@@ -14,6 +14,19 @@ describe('caseless', () => {
       upper: 456,
       'content-type': 'text/plain',
     });
+  });
+});
+
+describe('isEmail', () => {
+  it('returns true for valid emails', () => {
+    expect(isEmail('test@sema4.ai')).toEqual(true);
+    expect(isEmail('test+user@sema4.ai')).toEqual(true);
+  });
+
+  it('returns false for invalid emails', () => {
+    expect(isEmail('test@sema4')).toEqual(false);
+    expect(isEmail('')).toEqual(false);
+    expect(isEmail(' @ ')).toEqual(false);
   });
 });
 

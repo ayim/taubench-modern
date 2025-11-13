@@ -15,6 +15,7 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   agentServerInternalUrl,
   allowInsecureRequests: true,
   auth: {
+    autoPromoteEmails: [],
     roleManagement: false,
     tokenIssuer: 'spar',
     type: 'none',
@@ -199,6 +200,7 @@ describe('application', () => {
         configuration: {
           ...generateConfiguration({ agentServerInternalUrl: '' }),
           auth: {
+            autoPromoteEmails: [],
             roleManagement: false,
             jwtPrivateKeyB64: TEST_PRIVATE_KEY_BASE64,
             tokenIssuer: 'spar',
@@ -257,6 +259,7 @@ describe('application', () => {
         configuration: {
           ...generateConfiguration({ agentServerInternalUrl: targetServerUrl }),
           auth: {
+            autoPromoteEmails: [],
             controlPlaneUrl: targetServerUrl,
             jwtPrivateKeyB64: TEST_PRIVATE_KEY_BASE64,
             roleManagement: false,

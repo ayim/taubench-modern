@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { getNextUserRole } from './userRegistration.js';
-import type { DatabaseClient, UpdateUserPayload } from '../../database/DatabaseClient.js';
+import type { DatabaseClient, UpdateUserIdentityPayload, UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import type { OIDCTokenClaims } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
+import { isEmail } from '../../utils/parse.js';
 import { type Result } from '../../utils/result.js';
+
+export const extractEmailFromClaims = (claims: OIDCTokenClaims): string | null => {
+  return [claims.email, claims.sub, claims.preferred_username].find((value) => value && isEmail(value)) ?? null;
+};
 
 const extractNamesFromClaims = (claims: OIDCTokenClaims): { first: string; last: string } => {
   if (claims.given_name && claims.family_name) {
@@ -49,12 +54,19 @@ export const upsertOIDCUser = async ({
   const oidcUserId = claims.sub;
   const names = extractNamesFromClaims(claims);
   const profilePicture = claims.picture ?? null;
+  const email = extractEmailFromClaims(claims);
 
   monitoring.logger.info('Ingest OIDC user', {
     oidcUserId,
   });
 
-  const existingUserIdentityResult = await database.findUserIdForIdentity({
+  monitoring.logger.debug('Ingesting OIDC user with claims', {
+    emailAddress: email ?? undefined,
+    oidcClaims: JSON.stringify(claims),
+    oidcUserId,
+  });
+
+  const existingUserIdentityResult = await database.findUserIdentity({
     authority: claims.iss,
     identityValue: oidcUserId,
     type: 'oidc_sub',
@@ -63,22 +75,22 @@ export const upsertOIDCUser = async ({
     return existingUserIdentityResult;
   }
 
-  const existingUserId = existingUserIdentityResult.data;
+  if (existingUserIdentityResult.data) {
+    const existingUserId = existingUserIdentityResult.data.user_id;
 
-  if (existingUserId) {
-    // Update the names in the parent table
-    const updatePayload: UpdateUserPayload = {
+    // Update the properties in the parent table
+    const updateUserPayload: UpdateUserPayload = {
       id: existingUserId,
       first_name: names.first,
       last_name: names.last,
     };
 
     if (profilePicture) {
-      updatePayload.profile_picture_url = profilePicture;
+      updateUserPayload.profile_picture_url = profilePicture;
     }
 
     const updateResult = await database.updateUser({
-      user: updatePayload,
+      user: updateUserPayload,
     });
     if (!updateResult.success) {
       return updateResult;
@@ -92,6 +104,27 @@ export const upsertOIDCUser = async ({
     const existingUserResult = await database.getUser({ id: existingUserId });
     if (!existingUserResult.success) {
       return existingUserResult;
+    }
+
+    if (!existingUserIdentityResult.data.email && email) {
+      monitoring.logger.debug('Updating user email address', {
+        emailAddress: email,
+        userId: existingUserIdentityResult.data.user_id,
+      });
+
+      // Update the email in the identity table
+      const updateIdentityPayload: UpdateUserIdentityPayload = {
+        authority: existingUserIdentityResult.data.authority,
+        email,
+        type: existingUserIdentityResult.data.type,
+        user_id: existingUserIdentityResult.data.user_id,
+        value: existingUserIdentityResult.data.value,
+      };
+
+      const updateIdentityResult = await database.updateUserIdentity({ userIdentity: updateIdentityPayload });
+      if (!updateIdentityResult.success) {
+        return updateIdentityResult;
+      }
     }
 
     return {
@@ -139,6 +172,7 @@ export const upsertOIDCUser = async ({
 
   const newUserIdentityResult = await database.createUserIdentity({
     userIdentity: {
+      email,
       user_id: newUserId,
       authority: claims.iss,
       type: 'oidc_sub',

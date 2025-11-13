@@ -1,8 +1,10 @@
 import z from 'zod';
 import type { AuthManager } from '../auth/AuthManager.js';
 import { upsertOIDCUser } from '../auth/utils/oidcUserRegistration.js';
+import { checkOIDCUserForAutoPromotion } from '../auth/utils/promotion.js';
 import type { Configuration } from '../configuration.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
+import type { UserRole } from '../database/types/user.js';
 import type { ErrorResponse, ExpressRequest, ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/SessionManager.js';
@@ -140,12 +142,30 @@ export const createOIDCCallbackHandler =
       } satisfies ErrorResponse);
     }
 
+    const targetUserRole = await (async (): Promise<UserRole> => {
+      if (userResult.data.userRole !== 'admin') {
+        const newUserRole = await checkOIDCUserForAutoPromotion({
+          configuration,
+          database,
+          monitoring,
+          oidcTokenClaims: tokensResult.data.claims,
+          userId: userResult.data.userId,
+        });
+
+        if (newUserRole !== null) {
+          return newUserRole;
+        }
+      }
+
+      return userResult.data.userRole;
+    })();
+
     const sessionUpdateResult = await sessionManager.setSessionOnRequest(req, {
       auth: {
         stage: 'authenticated',
         tokens: tokensResult.data,
         userId: userResult.data.userId,
-        userRole: userResult.data.userRole,
+        userRole: targetUserRole,
       },
       authType: 'oidc',
     });

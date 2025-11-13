@@ -1,3 +1,5 @@
+import z from 'zod';
+
 export const caseless = <T extends Record<string, unknown>>(
   map: T,
 ): { [K in keyof T as Lowercase<string & K>]: T[K] } => {
@@ -12,6 +14,12 @@ export const caseless = <T extends Record<string, unknown>>(
   }
 
   return output;
+};
+
+export const isEmail = (value: string): boolean => {
+  const result = z.email().safeParse(value);
+
+  return result.success;
 };
 
 /**

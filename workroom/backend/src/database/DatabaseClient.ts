@@ -1,13 +1,20 @@
 import { sql, type Kysely } from 'kysely';
-import { omitProperties, sqlNow } from './helpers.js';
+import { omitProperties, pickProperties, sqlNow } from './helpers.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { Database } from './types/index.js';
 import type { NewUser, User, UserUpdate } from './types/user.js';
-import type { NewUserIdentity, UserIdentityType } from './types/userIdentity.js';
+import type { NewUserIdentity, UserIdentity, UserIdentityType, UserIdentityUpdate } from './types/userIdentity.js';
 import { asResult, type Result } from '../utils/result.js';
 import type { Session, StoredSession } from './types/session.js';
 
 export type UpdateUserPayload = Omit<UserUpdate, 'updated_at'> & { id: NonNullable<UserUpdate['id']> };
+export type UpdateUserIdentityPayload = {
+  authority: NonNullable<UserIdentityUpdate['authority']>;
+  email: UserIdentityUpdate['email'];
+  type: NonNullable<UserIdentityUpdate['type']>;
+  user_id: NonNullable<UserIdentityUpdate['user_id']>;
+  value: NonNullable<UserIdentityUpdate['value']>;
+};
 
 const NOOP = () => {};
 
@@ -83,7 +90,17 @@ export class DatabaseClient {
     );
   }
 
-  async findUserIdForIdentity({
+  async findUserIdentitiesWithEmail({ email }: { email: string }): Promise<Result<Array<UserIdentity>>> {
+    return asResult(() =>
+      this.database //
+        .selectFrom('user_identity')
+        .selectAll()
+        .where('email', '=', email)
+        .execute(),
+    );
+  }
+
+  async findUserIdentity({
     authority,
     identityValue,
     type,
@@ -91,11 +108,11 @@ export class DatabaseClient {
     authority: string;
     identityValue: string;
     type: UserIdentityType;
-  }): Promise<Result<string | null>> {
+  }): Promise<Result<UserIdentity | null>> {
     const result = await asResult(() =>
       this.database
         .selectFrom('user_identity')
-        .select('user_id')
+        .selectAll()
         .where('type', '=', type)
         .where('authority', '=', authority)
         .where('value', '=', identityValue)
@@ -107,7 +124,7 @@ export class DatabaseClient {
 
     return {
       success: true,
-      data: result.data?.user_id ?? null,
+      data: result.data ?? null,
     };
   }
 
@@ -221,6 +238,18 @@ export class DatabaseClient {
         .set(omitProperties(user, ['id']))
         .set('updated_at', sqlNow())
         .where('id', '=', user.id)
+        .execute()
+        .then(NOOP),
+    );
+  }
+
+  async updateUserIdentity({ userIdentity }: { userIdentity: UpdateUserIdentityPayload }): Promise<Result<void>> {
+    return asResult(() =>
+      this.database
+        .updateTable('user_identity')
+        .set(pickProperties(userIdentity, ['email']))
+        .set('updated_at', sqlNow())
+        .where((eb) => eb.and(pickProperties(userIdentity, ['user_id', 'authority', 'type', 'value'])))
         .execute()
         .then(NOOP),
     );

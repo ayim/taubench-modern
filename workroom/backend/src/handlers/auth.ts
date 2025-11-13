@@ -2,6 +2,7 @@ import type { ErrorResponse } from '@sema4ai/workroom-interface';
 import type { AuthManager } from '../auth/AuthManager.js';
 import { Roles } from '../auth/permissions.js';
 import type { Configuration } from '../configuration.js';
+import type { UserRole } from '../database/types/user.js';
 import type { ExpressRequest, ExpressResponse, OIDCTokenClaims } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/SessionManager.js';
@@ -9,7 +10,13 @@ import { getRequestBaseUrl } from '../utils/request.js';
 
 type AuthMeta =
   | { status: 'unauthenticated'; permissions: Array<string> }
-  | { status: 'authenticated'; userId: string; permissions: Array<string>; claims: OIDCTokenClaims };
+  | {
+      status: 'authenticated';
+      userId: string;
+      userRole: UserRole;
+      permissions: Array<string>;
+      claims: OIDCTokenClaims;
+    };
 
 export const createAuthMetaHandler =
   ({
@@ -51,10 +58,11 @@ export const createAuthMetaHandler =
     res.json(
       (sessionResult.data?.auth.stage === 'authenticated'
         ? {
+            claims: sessionResult.data.auth.tokens.claims,
+            permissions: [...Roles[sessionResult.data.auth.userRole].permissions],
             status: 'authenticated',
             userId: sessionResult.data.auth.userId,
-            permissions: [...Roles[sessionResult.data.auth.userRole].permissions],
-            claims: sessionResult.data.auth.tokens.claims,
+            userRole: sessionResult.data.auth.userRole,
           }
         : {
             permissions: [],

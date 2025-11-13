@@ -13,6 +13,7 @@ export interface Configuration {
   agentServerInternalUrl: string;
   allowInsecureRequests: boolean;
   auth: {
+    autoPromoteEmails: Array<string>;
     /**
      * Transitionary flag to know if an auth type should handle permissions
      * and role management, provided by SPAR itself. Once our own SSO-OIDC
@@ -140,12 +141,19 @@ export const getConfiguration = (): Configuration => {
     const tokenIssuer = process.env.SEMA4AI_WORKROOM_AGENT_SERVER_TOKEN_ISSUER
       ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_TOKEN_ISSUER')
       : 'spar';
+    const autoPromoteEmails = process.env.SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE
+      ? parseEnvVariable('SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE')
+          .split(/[,;]/g)
+          .map((email) => email.trim())
+          .filter((email) => email.length > 0)
+      : [];
 
     switch (mode) {
       case 'none':
-        return { roleManagement: false, tokenIssuer, type: 'none' };
+        return { autoPromoteEmails, roleManagement: false, tokenIssuer, type: 'none' };
       case 'snowflake': {
         return {
+          autoPromoteEmails,
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
           roleManagement: false,
           tokenIssuer,
@@ -154,6 +162,7 @@ export const getConfiguration = (): Configuration => {
       }
       case 'sema4-oidc-sso':
         return {
+          autoPromoteEmails,
           controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
           roleManagement: false,
@@ -176,6 +185,7 @@ export const getConfiguration = (): Configuration => {
           : ['offline_access', 'openid', 'email', 'profile'];
 
         return {
+          autoPromoteEmails,
           clientId: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_ID'),
           clientSecret: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET'),
           intermediaryCallbackRedirectUrl: process.env.SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL

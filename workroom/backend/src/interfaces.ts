@@ -39,6 +39,8 @@ export const OIDCTokenClaims = z
     // Email scope claims
     email: z.string().email().optional(),
     email_verified: z.boolean().optional(),
+    // Maybe email:
+    preferred_username: z.string().optional(), // Microsoft OIDC
   })
   .passthrough();
 

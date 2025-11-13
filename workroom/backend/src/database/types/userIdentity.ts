@@ -17,6 +17,10 @@ export type UserIdentityTable = {
    * in an OIDC `sub` field, for instance. This value
    */
   value: string;
+  /**
+   * User email address associated with this provider, if available
+   */
+  email: string | null;
 } & ResourceTimestampTrait;
 
 export type UserIdentity = Selectable<UserIdentityTable>;
