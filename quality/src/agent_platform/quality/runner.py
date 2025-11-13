@@ -6,7 +6,7 @@ import shutil
 import sys
 import traceback
 from collections import defaultdict
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
@@ -33,6 +33,13 @@ from agent_platform.quality.orchestrator import QualityOrchestrator
 from agent_platform.quality.results_manager import QualityResultsManager
 
 logger = structlog.get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class AgentRunContext:
+    platform_agent_ids: dict[str, str]
+    package_oauth_secrets: list[ActionPackageSecret]
+    action_server_url: str
 
 
 class QualityTestRunner:
@@ -113,12 +120,16 @@ class QualityTestRunner:
         return test_cases
 
     async def run_tests_for_all_agents_fully_parallel(  # noqa: C901 PLR0915
-        self, selected_agents: list[str], max_concurrent_agents: int = 2
+        self,
+        selected_agents: list[str],
+        max_concurrent_agents: int = 2,
+        platform_filter: str | None = None,
     ) -> dict[str, list[ThreadResult]]:
         """Run tests for all agents with full parallelization (agents + platforms).
 
         Args:
             max_concurrent_agents: Maximum number of agents to run concurrently
+            platform_filter: Optional platform name to limit execution to.
         """
         agents = self.discover_agents()
         if not agents:
@@ -167,7 +178,9 @@ class QualityTestRunner:
                         action_server_url = action_server_urls.get(agent.name, "")
 
                         agent_results = await self._run_agent_fully_parallel(
-                            agent, action_server_url
+                            agent,
+                            action_server_url,
+                            platform_filter,
                         )
                         logger.info(
                             f"Completed agent: {agent.name} with {len(agent_results)} results"
@@ -214,8 +227,11 @@ class QualityTestRunner:
                 logger.info("Stopping shared infrastructure")
                 await self.orchestrator.stop_infrastructure()
 
-    async def _run_agent_fully_parallel(  # noqa: C901
-        self, agent_package: AgentPackage, action_server_url: str
+    async def _run_agent_fully_parallel(
+        self,
+        agent_package: AgentPackage,
+        action_server_url: str,
+        platform_filter: str | None,
     ) -> list[ThreadResult]:
         """Run all tests for a single agent with full parallelization."""
         logger.info(f"Running agent tests (fully parallel): {agent_package.name}")
@@ -227,85 +243,55 @@ class QualityTestRunner:
                 logger.error(f"No test cases found for agent {agent_package.name}. Terminating...")
                 sys.exit(1)
 
-            # Collect all unique platforms across all test cases
-            all_platforms = set()
-            for test_case in test_cases:
-                all_platforms.update(test_case.target_platforms)
-            all_platforms = list(all_platforms)
-
-            package_oauth_secrets = []
-
             agent_package_metadata = await agent_package.extract_package_metadata()
-            for agent_meta in agent_package_metadata:
-                for pkg in agent_meta.get("action_packages", []):
-                    package_action_oauth_secrets = []
-                    for _, action in pkg.get("secrets", {}).items():
-                        secrets = action.get("secrets", {})
-                        action_name = action.get("action")
-                        oauth_secrets = []
-                        for secret_name, secret_info in secrets.items():
-                            if secret_info.get("type") == "OAuth2Secret":
-                                provider = secret_info.get("provider")
-                                # TODO remove from loop
-                                credentials = await self.oauth.get_oauth_credentials(
-                                    provider=provider
-                                )
+            target_platforms = self._collect_target_platforms(
+                test_cases, platform_filter, agent_package.name
+            )
+            package_oauth_secrets = await self._build_package_oauth_secrets(agent_package_metadata)
 
-                                if credentials is None:
-                                    raise ValueError(
-                                        f"No oauth credentials for provider {provider}"
-                                    )
-
-                                access_token = OAuthAccessToken(
-                                    provider=provider,
-                                    scopes=credentials.get("scope").split(" "),
-                                    access_token=credentials.get("access_token"),
-                                )
-                                oauth_secrets.append(
-                                    ActionSecret(name=secret_name, value=access_token)
-                                )
-                        package_action_oauth_secrets.append(
-                            ActionSecrets(name=action_name, secrets=oauth_secrets)
-                        )
-
-                    package_oauth_secrets.append(
-                        ActionPackageSecret(
-                            name=pkg.get("name"), actions=package_action_oauth_secrets
-                        )
-                    )
-
-            logger.info(f"Creating agent variants for platforms: {[p.name for p in all_platforms]}")
+            logger.info(
+                "Creating agent variants for platforms: %s",
+                [p.name for p in target_platforms],
+            )
 
             # Upload agent variants (one per platform)
             platform_agent_ids = await self.orchestrator.upload_agent_with_platform_variants(
-                agent_package.zip_path, all_platforms, action_server_url, agent_package_metadata[0]
+                agent_package.zip_path,
+                target_platforms,
+                action_server_url,
+                agent_package_metadata[0],
+            )
+            run_context = AgentRunContext(
+                platform_agent_ids=platform_agent_ids,
+                package_oauth_secrets=package_oauth_secrets,
+                action_server_url=action_server_url,
             )
 
             # Initialize agent testing in results manager
-            self.results_manager.start_agent_testing(agent_package, test_cases)
+            self.results_manager.start_agent_testing(
+                agent_package, test_cases, platform_filter=platform_filter
+            )
 
             # Run each test case with all its platforms in parallel
             # (But we are _sequential_ at the level of a test case!!)
             all_results = []
             for test_case in test_cases:
-                if test_case.sf_auth_override:
-                    async with self._sf_auth_override(test_case.sf_auth_override):
-                        case_results = await self._run_test_case_with_platforms(
-                            agent_package,
-                            test_case,
-                            platform_agent_ids,
-                            package_oauth_secrets,
-                            action_server_url,
-                        )
-                else:
-                    case_results = await self._run_test_case_with_platforms(
-                        agent_package,
-                        test_case,
-                        platform_agent_ids,
-                        package_oauth_secrets,
-                        action_server_url,
+                platforms_to_run = self._get_platforms_for_test_case(test_case, platform_filter)
+                if not platforms_to_run:
+                    logger.info(
+                        "Skipping test case %s for agent %s because platform '%s' is not targeted.",
+                        test_case.name,
+                        agent_package.name,
+                        platform_filter,
                     )
+                    continue
 
+                case_results = await self._run_test_case_with_optional_override(
+                    agent_package,
+                    test_case,
+                    platforms_to_run,
+                    run_context,
+                )
                 all_results.extend(case_results)
 
             # Mark agent testing as complete
@@ -318,26 +304,119 @@ class QualityTestRunner:
             self.results_manager.complete_agent_testing(agent_package.name, str(e))
             raise
 
+    def _get_platforms_for_test_case(
+        self, test_case: TestCase, platform_filter: str | None
+    ) -> list[Platform]:
+        """Return the list of platforms to run for a test case given the filter."""
+        if platform_filter is None:
+            return list(test_case.target_platforms)
+        return [p for p in test_case.target_platforms if p.name == platform_filter]
+
+    def _collect_target_platforms(
+        self,
+        test_cases: list[TestCase],
+        platform_filter: str | None,
+        agent_name: str,
+    ) -> list[Platform]:
+        """Aggregate and validate platforms for the provided test cases."""
+        all_platforms = set()
+        for test_case in test_cases:
+            all_platforms.update(self._get_platforms_for_test_case(test_case, platform_filter))
+
+        if platform_filter and not all_platforms:
+            raise ValueError(
+                f"No test targets found for platform '{platform_filter}' in agent '{agent_name}'."
+            )
+
+        if not all_platforms:
+            raise ValueError(
+                f"No target platforms defined for tests associated with agent '{agent_name}'."
+            )
+
+        return list(all_platforms)
+
+    async def _run_test_case_with_optional_override(
+        self,
+        agent_package: AgentPackage,
+        test_case: TestCase,
+        platforms_to_run: list[Platform],
+        run_context: AgentRunContext,
+    ) -> list[ThreadResult]:
+        """Run a test case, applying sf-auth overrides when required."""
+        if not test_case.sf_auth_override:
+            return await self._run_test_case_with_platforms(
+                agent_package,
+                test_case,
+                platforms_to_run,
+                run_context,
+            )
+
+        async with self._sf_auth_override(test_case.sf_auth_override):
+            return await self._run_test_case_with_platforms(
+                agent_package,
+                test_case,
+                platforms_to_run,
+                run_context,
+            )
+
+    async def _build_package_oauth_secrets(
+        self, agent_package_metadata: list[dict[str, Any]]
+    ) -> list[ActionPackageSecret]:
+        """Construct OAuth secrets defined in the package metadata."""
+        package_oauth_secrets: list[ActionPackageSecret] = []
+        for agent_meta in agent_package_metadata:
+            for pkg in agent_meta.get("action_packages", []):
+                package_action_oauth_secrets: list[ActionSecrets] = []
+                for _, action in pkg.get("secrets", {}).items():
+                    action_name = action.get("action")
+                    secrets = action.get("secrets", {})
+                    oauth_secrets: list[ActionSecret] = []
+
+                    for secret_name, secret_info in secrets.items():
+                        if secret_info.get("type") != "OAuth2Secret":
+                            continue
+
+                        provider = secret_info.get("provider")
+                        credentials = await self.oauth.get_oauth_credentials(provider=provider)
+                        if credentials is None:
+                            raise ValueError(f"No oauth credentials for provider {provider}")
+
+                        access_token = OAuthAccessToken(
+                            provider=provider,
+                            scopes=credentials.get("scope").split(" "),
+                            access_token=credentials.get("access_token"),
+                        )
+                        oauth_secrets.append(ActionSecret(name=secret_name, value=access_token))
+
+                    package_action_oauth_secrets.append(
+                        ActionSecrets(name=action_name, secrets=oauth_secrets)
+                    )
+
+                package_oauth_secrets.append(
+                    ActionPackageSecret(name=pkg.get("name"), actions=package_action_oauth_secrets)
+                )
+
+        return package_oauth_secrets
+
     async def _run_test_case_with_platforms(
         self,
         agent_package: AgentPackage,
         test_case: TestCase,
-        platform_agent_ids: dict[str, str],
-        package_oauth_secrets: list[ActionPackageSecret],
-        action_server_url: str,
+        platforms: list[Platform],
+        run_context: AgentRunContext,
     ) -> list[ThreadResult]:
         """Run a single test case across all of its target platforms."""
 
         all_results: list[ThreadResult] = []
         platform_tasks = []
 
-        for platform in test_case.target_platforms:
-            agent_id = platform_agent_ids[platform.name]
+        for platform in platforms:
+            agent_id = run_context.platform_agent_ids[platform.name]
 
             await self.update_action_secrets(
                 agent_id,
-                test_case.action_secrets + package_oauth_secrets,
-                action_server_url,
+                test_case.action_secrets + run_context.package_oauth_secrets,
+                run_context.action_server_url,
             )
 
             self.results_manager.start_test(agent_package.name, test_case, platform)
@@ -350,7 +429,7 @@ class QualityTestRunner:
 
             for i, result in enumerate(test_results):
                 if isinstance(result, Exception):
-                    platform = test_case.target_platforms[i]
+                    platform = platforms[i]
                     logger.error(
                         f"Test case failed: {test_case.file_path} on platform {platform.name}",
                         error=str(result),
@@ -361,7 +440,7 @@ class QualityTestRunner:
                         agent_messages=[],
                         evaluation_results=[],
                         success=False,
-                        agent_id=platform_agent_ids.get(platform.name),
+                        agent_id=run_context.platform_agent_ids.get(platform.name),
                         error=str(result),
                     )
                     all_results.append(error_result)
@@ -373,14 +452,14 @@ class QualityTestRunner:
 
         except Exception as e:
             logger.error(f"Failed to execute test case {test_case.name} in parallel: {e}")
-            for platform in test_case.target_platforms:
+            for platform in platforms:
                 error_result = ThreadResult(
                     test_case=test_case,
                     platform=platform,
                     agent_messages=[],
                     evaluation_results=[],
                     success=False,
-                    agent_id=platform_agent_ids.get(platform.name),
+                    agent_id=run_context.platform_agent_ids.get(platform.name),
                     error=str(e),
                 )
                 all_results.append(error_result)

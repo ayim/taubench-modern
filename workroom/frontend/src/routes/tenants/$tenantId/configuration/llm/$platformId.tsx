@@ -4,7 +4,7 @@ import { getPlatformQueryOptions } from '~/queries/platforms';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/$platformId')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId, platformId } }) => {
-    const data = await queryClient.ensureQueryData(getPlatformQueryOptions({ agentAPIClient, tenantId, platformId }));
+    const data = await queryClient.fetchQuery(getPlatformQueryOptions({ agentAPIClient, tenantId, platformId }));
     return data;
   },
   component: View,

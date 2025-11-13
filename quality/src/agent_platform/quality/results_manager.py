@@ -107,12 +107,22 @@ class QualityResultsManager:
             except Exception as e:
                 logger.error(f"Failed to write summary file: {e}")
 
-    def start_agent_testing(self, agent_package: AgentPackage, test_cases: list[TestCase]):
+    def start_agent_testing(
+        self,
+        agent_package: AgentPackage,
+        test_cases: list[TestCase],
+        platform_filter: str | None = None,
+    ):
         """Initialize tracking for an agent's test run."""
         logger.info(f"Starting agent testing: {agent_package.name}")
 
-        # Calculate total tests for this agent
-        total_tests = sum(len(tc.target_platforms) * tc.trials for tc in test_cases)
+        def filtered_platforms(test_case: TestCase) -> list[Platform]:
+            if platform_filter is None:
+                return list(test_case.target_platforms)
+            return [p for p in test_case.target_platforms if p.name == platform_filter]
+
+        # Calculate total tests for this agent (respecting platform filter)
+        total_tests = sum(len(filtered_platforms(tc)) * tc.trials for tc in test_cases)
 
         # Initialize agent status
         self.current_status["agents"][agent_package.name] = {
@@ -140,7 +150,7 @@ class QualityResultsManager:
                     "name": tc.name,
                     "description": tc.description,
                     "file_path": str(tc.file_path),
-                    "target_platforms": [p.name for p in tc.target_platforms],
+                    "target_platforms": [p.name for p in filtered_platforms(tc)],
                     "evaluations": [
                         {"kind": e.kind, "expected": str(e.expected), "description": e.description}
                         for e in tc.evaluations

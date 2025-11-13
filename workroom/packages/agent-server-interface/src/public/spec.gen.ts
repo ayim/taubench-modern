@@ -2850,7 +2850,6 @@ export const spec = {
             'google/google/gemini-2-5-pro',
             'google/google/gemini-2-0-flash',
             'google/google/gemini-2-0-flash-lite',
-            'groq/meta/llama-3-3-instruct-70b',
             'groq/meta/llama-4-scout',
             'groq/meta/llama-4-maverick',
             'groq/moonshotai/kimi-k2',
@@ -2986,10 +2985,11 @@ export const spec = {
             'google/google/gemini-2-0-flash': 'gemini-2.0-flash',
             'google/google/gemini-2-0-flash-lite': 'gemini-2.0-flash-lite',
             'google/google/text-embedding-004': 'text-embedding-004',
-            'groq/meta/llama-3-3-instruct-70b': 'llama-3.3-70b-versatile',
-            'groq/meta/llama-4-scout': 'llama-4-scout-17b-16e-instruct',
-            'groq/meta/llama-4-maverick': 'llama-4-maverick-17b-128e-instruct',
-            'groq/moonshotai/kimi-k2': 'moonshotai/kimi-k2-instruct',
+            'groq/meta/llama-4-scout':
+              'meta-llama/llama-4-scout-17b-16e-instruct',
+            'groq/meta/llama-4-maverick':
+              'meta-llama/llama-4-maverick-17b-128e-instruct',
+            'groq/moonshotai/kimi-k2': 'moonshotai/kimi-k2-instruct-0905',
             'groq/openai/gpt-oss-120b': 'openai/gpt-oss-120b',
             'groq/openai/gpt-oss-20b': 'openai/gpt-oss-20b',
             'reducto/reducto/reducto-standard-parse': 'standard:parse',
@@ -3092,7 +3092,6 @@ export const spec = {
             'google/google/gemini-2-0-flash': 'gemini',
             'google/google/gemini-2-0-flash-lite': 'gemini',
             'google/google/text-embedding-004': 'google-embeddings',
-            'groq/meta/llama-3-3-instruct-70b': 'llama',
             'groq/meta/llama-4-scout': 'llama',
             'groq/meta/llama-4-maverick': 'llama',
             'groq/moonshotai/kimi-k2': 'moonshotai',
@@ -3198,7 +3197,6 @@ export const spec = {
             'google/google/gemini-2-0-flash': 'llm',
             'google/google/gemini-2-0-flash-lite': 'llm',
             'google/google/text-embedding-004': 'embedding',
-            'groq/meta/llama-3-3-instruct-70b': 'llm',
             'groq/meta/llama-4-scout': 'llm',
             'groq/meta/llama-4-maverick': 'llm',
             'groq/moonshotai/kimi-k2': 'llm',
@@ -3304,7 +3302,6 @@ export const spec = {
             'google/google/gemini-2-0-flash': 1000000,
             'google/google/gemini-2-0-flash-lite': 1000000,
             'google/google/text-embedding-004': 8000,
-            'groq/meta/llama-3-3-instruct-70b': 128000,
             'groq/meta/llama-4-scout': 128000,
             'groq/meta/llama-4-maverick': 128000,
             'groq/moonshotai/kimi-k2': 128000,
@@ -3443,6 +3440,21 @@ export const spec = {
             'cortex/openai/gpt-5-nano': [
               'agent_platform.architectures.experimental_1==2.0.0',
             ],
+            'groq/openai/gpt-oss-120b': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/openai/gpt-oss-20b': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/moonshotai/kimi-k2': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/meta/llama-4-scout': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/meta/llama-4-maverick': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
           },
         },
         examples: [
@@ -3519,7 +3531,6 @@ export const spec = {
               'google/google/gemini-2-5-pro',
               'google/google/gemini-2-0-flash',
               'google/google/gemini-2-0-flash-lite',
-              'groq/meta/llama-3-3-instruct-70b',
               'groq/meta/llama-4-scout',
               'groq/meta/llama-4-maverick',
               'groq/moonshotai/kimi-k2',
@@ -3660,11 +3671,11 @@ export const spec = {
               'google/google/gemini-2-0-flash': 'gemini-2.0-flash',
               'google/google/gemini-2-0-flash-lite': 'gemini-2.0-flash-lite',
               'google/google/text-embedding-004': 'text-embedding-004',
-              'groq/meta/llama-3-3-instruct-70b': 'llama-3.3-70b-versatile',
-              'groq/meta/llama-4-scout': 'llama-4-scout-17b-16e-instruct',
+              'groq/meta/llama-4-scout':
+                'meta-llama/llama-4-scout-17b-16e-instruct',
               'groq/meta/llama-4-maverick':
-                'llama-4-maverick-17b-128e-instruct',
-              'groq/moonshotai/kimi-k2': 'moonshotai/kimi-k2-instruct',
+                'meta-llama/llama-4-maverick-17b-128e-instruct',
+              'groq/moonshotai/kimi-k2': 'moonshotai/kimi-k2-instruct-0905',
               'groq/openai/gpt-oss-120b': 'openai/gpt-oss-120b',
               'groq/openai/gpt-oss-20b': 'openai/gpt-oss-20b',
               'reducto/reducto/reducto-standard-parse': 'standard:parse',
@@ -3770,7 +3781,6 @@ export const spec = {
               'google/google/gemini-2-0-flash': 'gemini',
               'google/google/gemini-2-0-flash-lite': 'gemini',
               'google/google/text-embedding-004': 'google-embeddings',
-              'groq/meta/llama-3-3-instruct-70b': 'llama',
               'groq/meta/llama-4-scout': 'llama',
               'groq/meta/llama-4-maverick': 'llama',
               'groq/moonshotai/kimi-k2': 'moonshotai',
@@ -3876,7 +3886,6 @@ export const spec = {
               'google/google/gemini-2-0-flash': 'llm',
               'google/google/gemini-2-0-flash-lite': 'llm',
               'google/google/text-embedding-004': 'embedding',
-              'groq/meta/llama-3-3-instruct-70b': 'llm',
               'groq/meta/llama-4-scout': 'llm',
               'groq/meta/llama-4-maverick': 'llm',
               'groq/moonshotai/kimi-k2': 'llm',
@@ -3982,7 +3991,6 @@ export const spec = {
               'google/google/gemini-2-0-flash': 1000000,
               'google/google/gemini-2-0-flash-lite': 1000000,
               'google/google/text-embedding-004': 8000,
-              'groq/meta/llama-3-3-instruct-70b': 128000,
               'groq/meta/llama-4-scout': 128000,
               'groq/meta/llama-4-maverick': 128000,
               'groq/moonshotai/kimi-k2': 128000,
@@ -4119,6 +4127,21 @@ export const spec = {
                 'agent_platform.architectures.experimental_1==2.0.0',
               ],
               'cortex/openai/gpt-5-nano': [
+                'agent_platform.architectures.experimental_1==2.0.0',
+              ],
+              'groq/openai/gpt-oss-120b': [
+                'agent_platform.architectures.experimental_1==2.0.0',
+              ],
+              'groq/openai/gpt-oss-20b': [
+                'agent_platform.architectures.experimental_1==2.0.0',
+              ],
+              'groq/moonshotai/kimi-k2': [
+                'agent_platform.architectures.experimental_1==2.0.0',
+              ],
+              'groq/meta/llama-4-scout': [
+                'agent_platform.architectures.experimental_1==2.0.0',
+              ],
+              'groq/meta/llama-4-maverick': [
                 'agent_platform.architectures.experimental_1==2.0.0',
               ],
             },
@@ -4259,7 +4282,6 @@ export const spec = {
           'google/google/gemini-2-0-flash-lite',
           'google/google/gemini-2-5-pro',
           'google/google/text-embedding-004',
-          'groq/meta/llama-3-3-instruct-70b',
           'groq/meta/llama-4-maverick',
           'groq/meta/llama-4-scout',
           'groq/moonshotai/kimi-k2',
@@ -4512,7 +4534,6 @@ export const spec = {
             'google/google/text-embedding-004',
           ],
           groq: [
-            'groq/meta/llama-3-3-instruct-70b',
             'groq/meta/llama-4-maverick',
             'groq/meta/llama-4-scout',
             'groq/moonshotai/kimi-k2',
@@ -4633,7 +4654,6 @@ export const spec = {
               'google/google/text-embedding-004',
             ],
             groq: [
-              'groq/meta/llama-3-3-instruct-70b',
               'groq/meta/llama-4-maverick',
               'groq/meta/llama-4-scout',
               'groq/moonshotai/kimi-k2',
@@ -4888,7 +4908,6 @@ export const spec = {
             'google/google/text-embedding-004',
           ],
           'groq/meta': [
-            'groq/meta/llama-3-3-instruct-70b',
             'groq/meta/llama-4-maverick',
             'groq/meta/llama-4-scout',
           ],
@@ -5023,7 +5042,6 @@ export const spec = {
               'google/google/text-embedding-004',
             ],
             'groq/meta': [
-              'groq/meta/llama-3-3-instruct-70b',
               'groq/meta/llama-4-maverick',
               'groq/meta/llama-4-scout',
             ],
@@ -5238,7 +5256,6 @@ export const spec = {
               'google/google/text-embedding-004',
             ],
             groq: [
-              'groq/meta/llama-3-3-instruct-70b',
               'groq/meta/llama-4-maverick',
               'groq/meta/llama-4-scout',
               'groq/moonshotai/kimi-k2',
@@ -5370,7 +5387,6 @@ export const spec = {
               'google/google/text-embedding-004',
             ],
             'groq/meta': [
-              'groq/meta/llama-3-3-instruct-70b',
               'groq/meta/llama-4-maverick',
               'groq/meta/llama-4-scout',
             ],
@@ -5543,7 +5559,6 @@ export const spec = {
                 'google/google/text-embedding-004',
               ],
               groq: [
-                'groq/meta/llama-3-3-instruct-70b',
                 'groq/meta/llama-4-maverick',
                 'groq/meta/llama-4-scout',
                 'groq/moonshotai/kimi-k2',
@@ -5675,7 +5690,6 @@ export const spec = {
                 'google/google/text-embedding-004',
               ],
               'groq/meta': [
-                'groq/meta/llama-3-3-instruct-70b',
                 'groq/meta/llama-4-maverick',
                 'groq/meta/llama-4-scout',
               ],
@@ -5829,7 +5843,6 @@ export const spec = {
             'google/google/gemini-2-5-pro',
             'google/google/gemini-2-0-flash',
             'google/google/gemini-2-0-flash-lite',
-            'groq/meta/llama-3-3-instruct-70b',
             'groq/meta/llama-4-scout',
             'groq/meta/llama-4-maverick',
             'groq/moonshotai/kimi-k2',
@@ -5965,10 +5978,11 @@ export const spec = {
             'google/google/gemini-2-0-flash': 'gemini-2.0-flash',
             'google/google/gemini-2-0-flash-lite': 'gemini-2.0-flash-lite',
             'google/google/text-embedding-004': 'text-embedding-004',
-            'groq/meta/llama-3-3-instruct-70b': 'llama-3.3-70b-versatile',
-            'groq/meta/llama-4-scout': 'llama-4-scout-17b-16e-instruct',
-            'groq/meta/llama-4-maverick': 'llama-4-maverick-17b-128e-instruct',
-            'groq/moonshotai/kimi-k2': 'moonshotai/kimi-k2-instruct',
+            'groq/meta/llama-4-scout':
+              'meta-llama/llama-4-scout-17b-16e-instruct',
+            'groq/meta/llama-4-maverick':
+              'meta-llama/llama-4-maverick-17b-128e-instruct',
+            'groq/moonshotai/kimi-k2': 'moonshotai/kimi-k2-instruct-0905',
             'groq/openai/gpt-oss-120b': 'openai/gpt-oss-120b',
             'groq/openai/gpt-oss-20b': 'openai/gpt-oss-20b',
             'reducto/reducto/reducto-standard-parse': 'standard:parse',
@@ -6071,7 +6085,6 @@ export const spec = {
             'google/google/gemini-2-0-flash': 'gemini',
             'google/google/gemini-2-0-flash-lite': 'gemini',
             'google/google/text-embedding-004': 'google-embeddings',
-            'groq/meta/llama-3-3-instruct-70b': 'llama',
             'groq/meta/llama-4-scout': 'llama',
             'groq/meta/llama-4-maverick': 'llama',
             'groq/moonshotai/kimi-k2': 'moonshotai',
@@ -6177,7 +6190,6 @@ export const spec = {
             'google/google/gemini-2-0-flash': 'llm',
             'google/google/gemini-2-0-flash-lite': 'llm',
             'google/google/text-embedding-004': 'embedding',
-            'groq/meta/llama-3-3-instruct-70b': 'llm',
             'groq/meta/llama-4-scout': 'llm',
             'groq/meta/llama-4-maverick': 'llm',
             'groq/moonshotai/kimi-k2': 'llm',
@@ -6283,7 +6295,6 @@ export const spec = {
             'google/google/gemini-2-0-flash': 1000000,
             'google/google/gemini-2-0-flash-lite': 1000000,
             'google/google/text-embedding-004': 8000,
-            'groq/meta/llama-3-3-instruct-70b': 128000,
             'groq/meta/llama-4-scout': 128000,
             'groq/meta/llama-4-maverick': 128000,
             'groq/moonshotai/kimi-k2': 128000,
@@ -6420,6 +6431,21 @@ export const spec = {
               'agent_platform.architectures.experimental_1==2.0.0',
             ],
             'cortex/openai/gpt-5-nano': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/openai/gpt-oss-120b': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/openai/gpt-oss-20b': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/moonshotai/kimi-k2': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/meta/llama-4-scout': [
+              'agent_platform.architectures.experimental_1==2.0.0',
+            ],
+            'groq/meta/llama-4-maverick': [
               'agent_platform.architectures.experimental_1==2.0.0',
             ],
           },
@@ -6564,7 +6590,6 @@ export const spec = {
               'google/google/text-embedding-004',
             ],
             groq: [
-              'groq/meta/llama-3-3-instruct-70b',
               'groq/meta/llama-4-maverick',
               'groq/meta/llama-4-scout',
               'groq/moonshotai/kimi-k2',
@@ -6696,7 +6721,6 @@ export const spec = {
               'google/google/text-embedding-004',
             ],
             'groq/meta': [
-              'groq/meta/llama-3-3-instruct-70b',
               'groq/meta/llama-4-maverick',
               'groq/meta/llama-4-scout',
             ],

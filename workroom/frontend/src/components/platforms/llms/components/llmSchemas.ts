@@ -31,16 +31,43 @@ export const BEDROCK_MODEL_VALUES = [
   'bedrock:claude-4-opus',
   'bedrock:claude-4-sonnet',
 ] as const;
+export const GROQ_MODEL_VALUES = [
+  'groq:llama-4-scout',
+  'groq:llama-4-maverick',
+  'groq:kimi-k2',
+  'groq:gpt-oss-120b',
+  'groq:gpt-oss-20b',
+] as const;
+
+export const GROQ_MODEL_PROVIDER_MAP = {
+  'groq:llama-4-scout': 'meta',
+  'groq:llama-4-maverick': 'meta',
+  'groq:kimi-k2': 'moonshotai',
+  'groq:gpt-oss-120b': 'openai',
+  'groq:gpt-oss-20b': 'openai',
+} as const satisfies Record<(typeof GROQ_MODEL_VALUES)[number], string>;
+
+export const getGroqProviderForModel = (value: string): string | undefined => {
+  if (value in GROQ_MODEL_PROVIDER_MAP) {
+    return GROQ_MODEL_PROVIDER_MAP[value as (typeof GROQ_MODEL_VALUES)[number]];
+  }
+  const key = `groq:${value}` as (typeof GROQ_MODEL_VALUES)[number];
+  return GROQ_MODEL_PROVIDER_MAP[key];
+};
 
 type AllPlatformParameters =
   | components['schemas']['OpenAIPlatformParameters']
   | components['schemas']['AzureOpenAIPlatformParameters']
-  | components['schemas']['BedrockPlatformParameters'];
+  | components['schemas']['BedrockPlatformParameters']
+  | components['schemas']['GroqPlatformParameters'];
 
-export type Platform = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock'>;
+export type Platform = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock' | 'groq'>;
 
-export const PLATFORMS = ['openai', 'azure', 'bedrock'] as const satisfies readonly Platform[];
+export const PLATFORMS = ['openai', 'azure', 'bedrock', 'groq'] as const satisfies readonly Platform[];
 
+export const isPlatformValue = (value: string): value is Platform => {
+  return PLATFORMS.includes(value as Platform);
+};
 // TODO: [fix-type] Backend returns string | null for fields that are required when editing
 const baseLLMSchema = z.object({
   platform: z.enum(PLATFORMS),
@@ -75,6 +102,9 @@ export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ct
     if (!values.aws_secret_access_key)
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['aws_secret_access_key'], message: 'Required' });
     if (!values.region_name) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['region_name'], message: 'Required' });
+  }
+  if (values.platform === 'groq') {
+    if (!values.apiKey) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['apiKey'], message: 'API key is required' });
   }
 });
 

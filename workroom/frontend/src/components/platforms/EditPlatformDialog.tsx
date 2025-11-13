@@ -1,15 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, Checkbox, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
-import { FC, useMemo } from 'react';
+import { FC, useEffect, useMemo } from 'react';
+import { useRouter } from '@tanstack/react-router';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { InputControlled } from '~/components/InputControlled';
 import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
+  GROQ_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
   editLLMFormSchema,
   type EditLLMFormSchema,
   type Platform,
+  getGroqProviderForModel,
 } from '~/components/platforms/llms/components/llmSchemas';
 import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
 import { type PlatformForEditing } from '~/queries/agent-interface-patches';
@@ -26,11 +29,12 @@ type Props = {
 export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdated, tenantId }) => {
   const { addSnackbar } = useSnackbar();
   const kind: Platform = platform.kind;
+  const router = useRouter();
 
   const firstModel = getAlowedModelFromPlatform(platform);
   const currentModel = firstModel ? `${kind}:${firstModel}` : `${kind}:unknown`;
 
-  const getPlatformConfig = () => {
+  const platformConfig = useMemo(() => {
     const base = { name: platform.name, platform: kind, model: currentModel, validateLLM: true };
 
     return {
@@ -49,22 +53,32 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
       ...(platform.kind === 'openai' && {
         apiKey: platform.openai_api_key?.value,
       }),
+      ...(platform.kind === 'groq' && {
+        apiKey: platform.groq_api_key?.value,
+      }),
     };
-  };
+  }, [platform, kind, currentModel]);
 
   const form = useForm<EditLLMFormSchema>({
     resolver: zodResolver(editLLMFormSchema),
-    defaultValues: getPlatformConfig(),
+    defaultValues: platformConfig,
     mode: 'onChange',
   });
 
+  useEffect(() => {
+    form.reset(platformConfig);
+  }, [platformConfig, form]);
+
   const isAzure = kind === 'azure';
   const isBedrock = kind === 'bedrock';
+  const isGroq = kind === 'groq';
 
   const mutation = useUpdateLLMMutation();
 
   const onSubmit = form.handleSubmit((values) => {
-    const [, modelId] = String(values.model).split(':');
+    const modelValue = String(values.model);
+    const [, modelIdRaw] = modelValue.split(':');
+    const modelId = modelIdRaw ?? modelValue;
 
     const credentials: Record<string, unknown> = {};
     let provider = null;
@@ -83,15 +97,23 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     } else if (kind === 'openai') {
       if (values.apiKey) credentials.openai_api_key = values.apiKey;
       provider = 'openai';
+    } else if (kind === 'groq') {
+      if (values.apiKey) credentials.groq_api_key = values.apiKey;
+      provider = getGroqProviderForModel(modelValue) ?? null;
     } else {
       kind satisfies never;
+    }
+
+    if (!provider) {
+      addSnackbar({ message: 'Unable to determine provider for selected model.', variant: 'danger' });
+      return;
     }
 
     const payload = {
       id: platform.platform_id,
       name: values.name,
       kind: kind,
-      models: { [provider ?? '']: [modelId] },
+      models: { [provider]: [modelId] },
       credentials: Object.keys(credentials).length ? credentials : undefined,
     } satisfies UpdatePlatformBody;
 
@@ -100,6 +122,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
       {
         onSuccess: async (updated) => {
           addSnackbar({ message: 'LLM updated', variant: 'success' });
+          await router.invalidate();
           onUpdated?.(updated);
           onClose();
         },
@@ -118,6 +141,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     if (kind === 'azure') return forPlatform(AZURE_MODEL_VALUES);
     if (kind === 'bedrock') return forPlatform(BEDROCK_MODEL_VALUES);
     if (kind === 'openai') return forPlatform(OPENAI_MODEL_VALUES);
+    if (kind === 'groq') return forPlatform(GROQ_MODEL_VALUES);
     else {
       kind satisfies never;
       return [];
@@ -162,6 +186,8 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
               />
 
               {kind === 'openai' && <InputControlled fieldName="apiKey" label="OpenAI API Key" type="password" />}
+
+              {isGroq && <InputControlled fieldName="apiKey" label="Groq API Key" type="password" />}
 
               {isAzure && (
                 <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

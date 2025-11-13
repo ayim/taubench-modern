@@ -86,6 +86,7 @@ target-platforms:
   - name: azure
   - name: bedrock
   - name: cortex
+  - name: groq
   # - name: google
 
 evaluations:

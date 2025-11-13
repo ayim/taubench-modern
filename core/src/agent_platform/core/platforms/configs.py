@@ -201,7 +201,6 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-2-0-flash",
             "google/google/gemini-2-0-flash-lite",
             # Groq
-            "groq/meta/llama-3-3-instruct-70b",
             "groq/meta/llama-4-scout",
             "groq/meta/llama-4-maverick",
             "groq/moonshotai/kimi-k2",
@@ -345,10 +344,9 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-2-0-flash-lite": "gemini-2.0-flash-lite",
             "google/google/text-embedding-004": "text-embedding-004",
             # Groq (has no date/version pinning!?)
-            "groq/meta/llama-3-3-instruct-70b": "llama-3.3-70b-versatile",
-            "groq/meta/llama-4-scout": "llama-4-scout-17b-16e-instruct",
-            "groq/meta/llama-4-maverick": "llama-4-maverick-17b-128e-instruct",
-            "groq/moonshotai/kimi-k2": "moonshotai/kimi-k2-instruct",
+            "groq/meta/llama-4-scout": "meta-llama/llama-4-scout-17b-16e-instruct",
+            "groq/meta/llama-4-maverick": "meta-llama/llama-4-maverick-17b-128e-instruct",
+            "groq/moonshotai/kimi-k2": "moonshotai/kimi-k2-instruct-0905",
             "groq/openai/gpt-oss-120b": "openai/gpt-oss-120b",
             "groq/openai/gpt-oss-20b": "openai/gpt-oss-20b",
             # Reducto (has no date/version pinning!?)
@@ -467,7 +465,6 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-2-0-flash-lite": "gemini",
             "google/google/text-embedding-004": "google-embeddings",
             # Groq (has no date/version pinning!?)
-            "groq/meta/llama-3-3-instruct-70b": "llama",
             "groq/meta/llama-4-scout": "llama",
             "groq/meta/llama-4-maverick": "llama",
             "groq/moonshotai/kimi-k2": "moonshotai",
@@ -589,7 +586,6 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-2-0-flash-lite": "llm",
             "google/google/text-embedding-004": "embedding",
             # Groq
-            "groq/meta/llama-3-3-instruct-70b": "llm",
             "groq/meta/llama-4-scout": "llm",
             "groq/meta/llama-4-maverick": "llm",
             "groq/moonshotai/kimi-k2": "llm",
@@ -715,7 +711,6 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-2-0-flash-lite": 1_000_000,
             "google/google/text-embedding-004": 8_000,
             # Groq
-            "groq/meta/llama-3-3-instruct-70b": 128_000,
             "groq/meta/llama-4-scout": 128_000,
             "groq/meta/llama-4-maverick": 128_000,
             "groq/moonshotai/kimi-k2": 128_000,
@@ -783,6 +778,12 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0],
             "cortex/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0],
             "cortex/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0],
+            # groq
+            "groq/openai/gpt-oss-120b": [EXPERIMENTAL_ARCH_2_0_0],
+            "groq/openai/gpt-oss-20b": [EXPERIMENTAL_ARCH_2_0_0],
+            "groq/moonshotai/kimi-k2": [EXPERIMENTAL_ARCH_2_0_0],
+            "groq/meta/llama-4-scout": [EXPERIMENTAL_ARCH_2_0_0],
+            "groq/meta/llama-4-maverick": [EXPERIMENTAL_ARCH_2_0_0],
         },
         metadata=FieldMetadata(
             description="A mapping of model IDs to the architectures they require to be used with.",

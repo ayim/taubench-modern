@@ -56,6 +56,7 @@ class Platform:
 
                 return GroqPlatformParameters(
                     groq_api_key=SecretString(os.environ["GROQ_API_KEY"]),
+                    models={"groq": ["openai/gpt-oss-120b"]},
                 ).model_dump()
             case "google":
                 from agent_platform.core.platforms.google import GooglePlatformParameters

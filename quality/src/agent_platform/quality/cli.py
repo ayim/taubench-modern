@@ -314,6 +314,12 @@ def list_tests(ctx: Context, agent_name: str | None):
         "'agent_platform.architectures.experimental_1'"
     ),
 )
+@click.option(
+    "--platform",
+    required=False,
+    type=str,
+    help="Run tests only for this target platform (e.g. 'groq', 'azure').",
+)
 @click.pass_obj
 async def run(  # noqa: PLR0913
     ctx: Context,
@@ -323,6 +329,7 @@ async def run(  # noqa: PLR0913
     selected_agents: str,
     agent_server_version: str | None,
     agent_arch: str | None,
+    platform: str | None,
 ):
     """Run quality tests for agents."""
     runner = QualityTestRunner(
@@ -339,13 +346,16 @@ async def run(  # noqa: PLR0913
 
     try:
         click.echo(
-            f"🚀 Running tests for all agents (fully parallel, max {max_agents} concurrent agents)"
+            "🚀 Running tests for all agents "
+            f"(fully parallel, max {max_agents} concurrent agents"
+            f"{f', platform={platform}' if platform else ''})"
         )
         all_results = await runner.run_tests_for_all_agents_fully_parallel(
             selected_agents=[
                 selected.strip() for selected in selected_agents.split(",") if selected.strip()
             ],
             max_concurrent_agents=max_agents,
+            platform_filter=platform,
         )
 
         # Report results

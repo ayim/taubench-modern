@@ -356,6 +356,7 @@ check-env:  ## Check that all required environment variables are set in the .env
 			echo "❌ GROQ_API_KEY is not set"; \
 			exit 1; \
 		fi; \
+		echo "  ✅ All Groq variables are set!"; \
 		echo "Checking for Snowflake configuration..."; \
 		if [ -f ~/.sema4ai/sf-auth.json ]; then \
 			echo "  ✅ Snowflake linking file exists, no environment variables needed!"; \

@@ -191,6 +191,9 @@ quality-test run --detailed
 # Generate platform-focused summary
 quality-test run --platform-summary
 
+# Run only for a single platform (e.g., Groq)
+quality-test run --platform groq
+
 # Save results to JSON
 quality-test run --output results.json
 
@@ -209,6 +212,7 @@ quality-test run --max-agents 3
 - `--server-url`: Override agent server URL (default: `http://localhost:8000`)
 - `--test-threads-dir`: Directory containing test definitions (default: `quality/test-threads`)
 - `--test-agents-dir`: Directory containing agent packages (default: `quality/test-agents`)
+- `--platform`: Run tests only for the specified target platform (default: run all platforms in each test)
 - `--verbose, -v`: Enable detailed logging
 
 ## 📊 Reporting

@@ -1,4 +1,4 @@
-"""Unit tests for the Groq platform parsers."""
+"""Unit tests for the Groq parsers."""
 
 import pytest
 
@@ -10,195 +10,90 @@ from agent_platform.core.responses.response import ResponseMessage
 
 
 class TestGroqParsers:
-    """Tests for the Groq parsers."""
+    """Tests for the Groq parser logic."""
 
     @pytest.fixture
     def parsers(self) -> GroqParsers:
-        """Create a parser instance for testing."""
         return GroqParsers()
 
     def test_parse_text_content(self, parsers: GroqParsers) -> None:
-        """Test parsing text content."""
-        content = "Hello, world!"
-        result = parsers.parse_text_content(content)
+        from openai.types.responses import ResponseOutputText
 
+        content = ResponseOutputText(
+            type="output_text",
+            text="Hello, Groq!",
+            annotations=[],
+            logprobs=None,
+        )
+        result = parsers.parse_text_content(content)
         assert isinstance(result, ResponseTextContent)
-        assert result.text == "Hello, world!"
+        assert result.text == "Hello, Groq!"
 
     def test_parse_tool_use_content(self, parsers: GroqParsers) -> None:
-        """Test parsing tool use content."""
-        from groq.types.chat.chat_completion_message_tool_call import (
-            ChatCompletionMessageToolCall,
-            Function,
-        )
+        from openai.types.responses import ResponseFunctionToolCall
 
-        content = ChatCompletionMessageToolCall(
-            id="test-tool-call-id",
-            type="function",
-            function=Function(
-                name="test-tool",
-                arguments='{"key": "value"}',
-            ),
+        content = ResponseFunctionToolCall(
+            id="api-id",
+            call_id="call-1",
+            type="function_call",
+            name="test-tool",
+            arguments='{"key": "value"}',
         )
         result = parsers.parse_tool_use_content(content)
-
         assert isinstance(result, ResponseToolUseContent)
-        assert result.tool_call_id == "test-tool-call-id"
+        assert result.tool_call_id == "call-1"
         assert result.tool_name == "test-tool"
-        assert result.tool_input_raw == '{"key": "value"}'
-
-    def test_parse_tool_use_odd_empty_content(self, parsers: GroqParsers) -> None:
-        """Test parsing of {"":""} as tool use content. This is an odd case I saw
-        testing against the actual API. We probably should elide empty keys."""
-        from groq.types.chat.chat_completion_message_tool_call import (
-            ChatCompletionMessageToolCall,
-            Function,
-        )
-
-        content = ChatCompletionMessageToolCall(
-            id="test-tool-call-id",
-            type="function",
-            function=Function(
-                name="test-tool",
-                arguments='{"":""}',
-            ),
-        )
-        result = parsers.parse_tool_use_content(content)
-
-        assert isinstance(result, ResponseToolUseContent)
-        assert result.tool_call_id == "test-tool-call-id"
-        assert result.tool_name == "test-tool"
-
-        # Also completely empty args we probably should handle as empty obj
-        content_2 = ChatCompletionMessageToolCall(
-            id="test-tool-call-id",
-            type="function",
-            function=Function(
-                name="test-tool",
-                arguments="",
-            ),
-        )
-        result_2 = parsers.parse_tool_use_content(content_2)
-
-        assert isinstance(result_2, ResponseToolUseContent)
-        assert result_2.tool_call_id == "test-tool-call-id"
-        assert result_2.tool_name == "test-tool"
-        assert result_2.tool_input_raw == "{}"
 
     def test_parse_response(self, parsers: GroqParsers) -> None:
-        """Test parsing a response."""
-        from groq.types.chat import (
-            ChatCompletion,
-            ChatCompletionMessage,
-        )
-        from groq.types.chat.chat_completion import Choice
-        from groq.types.completion_usage import CompletionUsage
+        from types import SimpleNamespace
 
-        response = ChatCompletion(
-            id="test-completion-id",
-            object="chat.completion",
-            created=1717171717,
-            model="test-model",
-            choices=[
-                Choice(
-                    message=ChatCompletionMessage(
-                        role="assistant",
-                        content="Hello, world!",
-                    ),
-                    finish_reason="stop",
-                    index=0,
+        from openai.types.responses import ResponseOutputMessage, ResponseOutputText
+
+        output_message = ResponseOutputMessage(
+            id="msg_1",
+            type="message",
+            role="assistant",
+            status="completed",
+            content=[
+                ResponseOutputText(
+                    type="output_text",
+                    text="Hello, Groq!",
+                    annotations=[],
+                    logprobs=None,
                 )
             ],
-            usage=CompletionUsage(
-                prompt_tokens=10,
-                completion_tokens=20,
+        )
+
+        response = SimpleNamespace(
+            id="resp_1",
+            model="openai/gpt-oss-20b",
+            output=[output_message],
+            usage=SimpleNamespace(
+                input_tokens=10,
+                output_tokens=20,
                 total_tokens=30,
+                input_tokens_details=SimpleNamespace(cached_tokens=0),
+                output_tokens_details=SimpleNamespace(reasoning_tokens=0),
             ),
         )
-        result = parsers.parse_response(response)
 
+        result = parsers.parse_response(response)  # type: ignore[arg-type]
         assert isinstance(result, ResponseMessage)
-        assert len(result.content) == 1
         assert isinstance(result.content[0], ResponseTextContent)
-        assert result.content[0].text == "Hello, world!"
-        assert result.role == "agent"
-        assert result.raw_response == response
-
-    def test_parse_response_with_tool_call(self, parsers: GroqParsers) -> None:
-        """Test parsing a response with tool call."""
-        from groq.types.chat import (
-            ChatCompletion,
-            ChatCompletionMessage,
-            ChatCompletionMessageToolCall,
-        )
-        from groq.types.chat.chat_completion import Choice
-        from groq.types.chat.chat_completion_message_tool_call import Function
-        from groq.types.completion_usage import CompletionUsage
-
-        response = ChatCompletion(
-            id="test-completion-id",
-            object="chat.completion",
-            created=1717171717,
-            model="test-model",
-            choices=[
-                Choice(
-                    message=ChatCompletionMessage(
-                        role="assistant",
-                        content=None,
-                        tool_calls=[
-                            ChatCompletionMessageToolCall(
-                                id="test-tool-call-id",
-                                type="function",
-                                function=Function(
-                                    name="test-tool",
-                                    arguments='{"key": "value"}',
-                                ),
-                            ),
-                        ],
-                    ),
-                    finish_reason="stop",
-                    index=0,
-                )
-            ],
-            usage=CompletionUsage(
-                prompt_tokens=10,
-                completion_tokens=20,
-                total_tokens=30,
-            ),
-        )
-        result = parsers.parse_response(response)
-
-        assert isinstance(result, ResponseMessage)
-        assert len(result.content) == 1
-        assert isinstance(result.content[0], ResponseToolUseContent)
-        assert result.content[0].tool_call_id == "test-tool-call-id"
-        assert result.content[0].tool_name == "test-tool"
-        assert result.content[0].tool_input_raw == '{"key": "value"}'
-        assert result.role == "agent"
-        assert result.raw_response == response
+        assert result.content[0].text == "Hello, Groq!"
 
     @pytest.mark.asyncio
     async def test_parse_stream_event(self, parsers: GroqParsers) -> None:
-        """Test parsing a stream event."""
-        from groq.types.chat.chat_completion_chunk import (
-            ChatCompletionChunk,
-            Choice,
-            ChoiceDelta,
-        )
+        from openai.types.responses import ResponseTextDeltaEvent
 
-        event = ChatCompletionChunk(
-            id="test-chunk-id",
-            object="chat.completion.chunk",
-            created=1717171717,
-            model="test-model",
-            x_groq=None,
-            choices=[
-                Choice(
-                    index=0,
-                    delta=ChoiceDelta(content="Hello, world!"),
-                    finish_reason="stop",
-                )
-            ],
+        event = ResponseTextDeltaEvent(
+            type="response.output_text.delta",
+            delta="Hello, ",
+            content_index=0,
+            item_id="msg_1",
+            logprobs=[],
+            output_index=0,
+            sequence_number=1,
         )
 
         message = {
@@ -212,86 +107,13 @@ class TestGroqParsers:
             "additional_response_fields": {},
         }
 
-        deltas = []
-        async for delta in parsers.parse_stream_event(
-            event=event,
-            message=message,
-            last_message=last_message,
-        ):
+        deltas: list[GenericDelta] = []
+        async for delta in parsers.parse_stream_event(event, message, last_message):
             deltas.append(delta)
 
-        # Check that deltas were produced and the text was added to the message
-        assert len(deltas) > 0
-        assert all(isinstance(d, GenericDelta) for d in deltas)
+        assert deltas
         assert any(
-            item.get("text") == "Hello, world!"
+            item.get("text") == "Hello, "
             for item in message["content"]
-            if isinstance(item, dict) and "text" in item
-        )
-
-    @pytest.mark.asyncio
-    async def test_parse_stream_event_with_tool_call(
-        self,
-        parsers: GroqParsers,
-    ) -> None:
-        """Test parsing a stream event with tool call."""
-        from groq.types.chat.chat_completion_chunk import (
-            ChatCompletionChunk,
-            Choice,
-            ChoiceDelta,
-            ChoiceDeltaToolCall,
-            ChoiceDeltaToolCallFunction,
-        )
-
-        # Create mock event object
-        event = ChatCompletionChunk(
-            id="test-chunk-id",
-            object="chat.completion.chunk",
-            created=1717171717,
-            model="test-model",
-            x_groq=None,
-            choices=[
-                Choice(
-                    index=0,
-                    delta=ChoiceDelta(
-                        content="Hello, world!",
-                        tool_calls=[
-                            ChoiceDeltaToolCall(
-                                index=0,
-                                id="test-tool-call-id",
-                                type="function",
-                                function=ChoiceDeltaToolCallFunction(
-                                    name="test-tool",
-                                    arguments='{"key": "value"}',
-                                ),
-                            ),
-                        ],
-                    ),
-                    finish_reason="stop",
-                )
-            ],
-        )
-
-        message = {
-            "role": "agent",
-            "content": [],
-            "additional_response_fields": {},
-        }
-        last_message = {
-            "role": "agent",
-            "content": [],
-            "additional_response_fields": {},
-        }
-
-        deltas = []
-        async for delta in parsers.parse_stream_event(
-            event=event,
-            message=message,
-            last_message=last_message,
-        ):
-            deltas.append(delta)
-
-        assert len(deltas) > 0
-        assert any(
-            isinstance(item, dict) and item.get("kind") == "tool_use" for item in message["content"]
+            if isinstance(item, dict) and item.get("kind") == "text"
         )

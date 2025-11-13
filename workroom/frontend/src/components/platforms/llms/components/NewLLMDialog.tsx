@@ -6,10 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
+  GROQ_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
   Platform,
   createOrUpdateLLMFormSchema,
   type CreateOrUpdateLLMFormSchema,
+  getGroqProviderForModel,
+  isPlatformValue,
 } from './llmSchemas';
 import { beautifyLabel } from '~/lib/utils';
 import { useCreateLLMMutation, type CreatePlatformBody } from '~/queries/platforms';
@@ -36,13 +39,21 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
         return { optgroup: providerPrefix.toUpperCase(), value: modelValue, label: beautifyLabel(modelValue) };
       });
 
-    return [...makeItems(OPENAI_MODEL_VALUES), ...makeItems(AZURE_MODEL_VALUES), ...makeItems(BEDROCK_MODEL_VALUES)];
+    return [
+      ...makeItems(OPENAI_MODEL_VALUES),
+      ...makeItems(AZURE_MODEL_VALUES),
+      ...makeItems(BEDROCK_MODEL_VALUES),
+      ...makeItems(GROQ_MODEL_VALUES),
+    ];
   }, []);
 
   const onSubmit = form.handleSubmit((values) => {
-    const [platform, modelId] = String(values.model).split(':');
+    const modelValue = String(values.model);
+    const [platformRaw, modelIdRaw] = modelValue.split(':');
+    const platform = isPlatformValue(platformRaw ?? '') ? platformRaw : selectedPlatform;
+    const modelId = modelIdRaw ?? modelValue;
     const credentials: Record<string, unknown> = {};
-    let provider = null;
+    let provider: string | null = null;
     if (platform === 'openai' && values.apiKey) {
       credentials.openai_api_key = values.apiKey;
       provider = 'openai';
@@ -62,10 +73,22 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
       // bedrock is a platform
       provider = 'anthropic';
     }
+    if (platform === 'groq') {
+      if (values.apiKey) credentials.groq_api_key = values.apiKey;
+      provider = getGroqProviderForModel(modelValue) ?? null;
+    }
+
+    if (!provider) {
+      addSnackbar({
+        message: 'Unable to determine provider for selected model.',
+        variant: 'danger',
+      });
+      return;
+    }
     const payload: CreatePlatformBody = {
       name: values.name,
       kind: platform,
-      models: { [provider ?? '']: [modelId] },
+      models: { [provider]: [modelId] },
       credentials: Object.keys(credentials).length ? credentials : undefined,
     };
 
@@ -122,7 +145,7 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
                       onChange={(selectedModel) => {
                         field.onChange(selectedModel);
                         const [platformPrefix] = String(selectedModel).split(':');
-                        if (platformPrefix === 'openai' || platformPrefix === 'azure' || platformPrefix === 'bedrock') {
+                        if (isPlatformValue(platformPrefix)) {
                           setSelectedPlatform(platformPrefix);
                           form.setValue('platform', platformPrefix);
                         }
@@ -147,6 +170,15 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
                   <InputControlled
                     fieldName="apiKey"
                     label="OpenAI API Key"
+                    type="password"
+                    placeholder="Enter API key"
+                  />
+                )}
+
+                {selectedPlatform === 'groq' && (
+                  <InputControlled
+                    fieldName="apiKey"
+                    label="Groq API Key"
                     type="password"
                     placeholder="Enter API key"
                   />

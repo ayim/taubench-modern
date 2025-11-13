@@ -4,7 +4,7 @@ import { IconDotsHorizontal, IconPlus } from '@sema4ai/icons';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 import { FC, useState } from 'react';
 import { formatDatetime } from '~/lib/utils';
-import { PLATFORMS } from './llmSchemas';
+import { PLATFORMS, isPlatformValue } from './llmSchemas';
 
 export type LLMTableItem = {
   id: string;
@@ -97,7 +97,7 @@ export const LLMsTable: FC<Props> = ({
           value={platformFilter}
           onChange={(selectedPlatform) => {
             const isValidPlatform = (value: string): value is 'all' | Platform => {
-              return value === 'all' || value === 'openai' || value === 'azure' || value === 'bedrock';
+              return value === 'all' || isPlatformValue(value);
             };
             if (isValidPlatform(selectedPlatform)) {
               setPlatformFilter(selectedPlatform);
