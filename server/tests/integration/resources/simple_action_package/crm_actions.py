@@ -1,14 +1,16 @@
 import time
 import uuid
-from typing import TypedDict
+from typing import Required, TypedDict
 
-from sema4ai.actions import ActionError, Response, action  # type: ignore
+from pydantic import BaseModel
+from sema4ai.actions import ActionError, Response, Secret, action  # type: ignore
 
 
-class CustomerData(TypedDict):
-    name: str
-    email: str
-    phone: str
+class CustomerData(TypedDict, total=False):
+    name: Required[str]
+    email: Required[str]
+    phone: Required[str]
+    some_secret: str | None
 
 
 contact_details: dict[str, CustomerData] = {
@@ -33,6 +35,41 @@ def add_contact(name: str, email: str, phone: str) -> Response[str]:
     contact_id = str(uuid.uuid4())
     contact_details[contact_id] = {"name": name, "email": email, "phone": phone}
     return Response(result=contact_id)
+
+
+class ResponseType(BaseModel):
+    contact_id: str
+    message: str
+
+
+@action
+def add_contact_with_secret(
+    name: str, email: str, phone: str, some_secret: Secret
+) -> Response[ResponseType]:
+    """
+    Adds a new contact to the CRM along with an additional secret.
+
+    Args:
+        name: The name of the contact.
+        email: The email address of the contact.
+        phone: The phone number of the contact.
+
+    Returns:
+        True if the contact was added successfully.
+    """
+    contact_id = str(uuid.uuid4())
+    contact_details[contact_id] = {
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "some_secret": some_secret.value,
+    }
+    return Response(
+        result=ResponseType(
+            contact_id=contact_id,
+            message=f"Added contact with secret {some_secret.value}",
+        )
+    )
 
 
 @action

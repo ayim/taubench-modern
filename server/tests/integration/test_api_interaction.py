@@ -289,6 +289,86 @@ def test_api_interaction_with_action_server(
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
+def test_mcp_calling_with_action_server(
+    base_url_agent_server_session,
+    openai_api_key,
+    action_server_process,
+    logs_dir,
+    resources_dir,
+):
+    from agent_platform.core.mcp.mcp_server import MCPServer
+
+    # Bootstrap the action server
+    cwd = resources_dir / "simple_action_package"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,
+        logs_dir=logs_dir,
+    )
+
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            runbook="""
+            You are a test agent that must call the tool/action that the user asks for.
+            Pay attention to the tool/action name and call it exactly as requested.
+            If it fails just return the failure.
+            """,
+            mcp_servers=[
+                MCPServer(
+                    url=url + "/mcp",
+                    name="ActionServer",
+                    headers={"X-some-secret": "my-secret-test"},
+                )
+            ],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-5-low"]},
+                },
+            ],
+        )
+
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        _, tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            """Please call the add_contact_with_secret with
+
+            name=John Doe
+            email=john.doe@example.com
+            phone=1234567890
+
+            Call it as fast as possible without doing or requesting anything else.",
+            """,
+        )
+        tool_call = tool_calls[0] if tool_calls else None
+        assert tool_call is not None, "No tool calls returned"
+        result = tool_call.result
+        structured_content = result.get("structuredContent")
+        assert structured_content is not None, f"No structured content found in result: {result}"
+        assert not result.get("content"), f"Content found in result: {result}"
+        assert isinstance(structured_content, dict), (
+            f"Structured content is not a dictionary: {structured_content}"
+        )
+        assert set(structured_content.keys()) == {"error", "result"}, (
+            f"Structured content keys are not {'error', 'result'}: {structured_content}"
+        )
+        assert structured_content["error"] is None, f"Error is not None: {structured_content}"
+        assert structured_content["result"] is not None, f"Result is not None: {structured_content}"
+        assert structured_content["result"]["message"] == "Added contact with secret my-secret-test"
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_action_error_handling(
     base_url_agent_server,
     openai_api_key,

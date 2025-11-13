@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 import requests
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
+from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
     ExtractJobResult,
@@ -446,10 +447,10 @@ class AgentServerClient:
         description: str = "This is a test agent",
         platform_configs: list[dict] | None = None,
         document_intelligence: str | None = None,
+        mcp_servers: list[MCPServer] | None = None,
+        **kwargs,
     ) -> str:
         print_header("CREATING AGENT")
-
-        from dataclasses import asdict
 
         url = urljoin(self.base_url + "/", "agents")
         headers = {
@@ -462,6 +463,7 @@ class AgentServerClient:
         action_packages_raw: list[dict] = (
             [asdict(ap) for ap in action_packages] if action_packages else []
         )
+        mcp_servers_raw: list[dict] = [asdict(ms) for ms in mcp_servers] if mcp_servers else []
         data = {
             "mode": "conversational",
             "name": name,
@@ -469,6 +471,7 @@ class AgentServerClient:
             "description": description,
             "runbook": runbook,
             "action_packages": action_packages_raw,
+            "mcp_servers": mcp_servers_raw,
             "agent_architecture": {
                 "name": "agent_platform.architectures.default",
                 "version": "1.0.0",
@@ -483,6 +486,8 @@ class AgentServerClient:
 
         if document_intelligence:
             data["document_intelligence"] = document_intelligence
+
+        data.update(kwargs)
 
         response = requests.post(url, headers=headers, json=data)
         if response.status_code == requests.codes.ok:

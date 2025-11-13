@@ -88,7 +88,7 @@ def action_server_executable_path() -> Path:
         get_action_server_executable_path,
     )
 
-    action_server_path = get_action_server_executable_path("2.10.0", download=True)
+    action_server_path = get_action_server_executable_path("2.17.0", download=True)
     return action_server_path
 
 
