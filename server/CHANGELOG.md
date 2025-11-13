@@ -1,3 +1,11 @@
+# Sema4.ai Agent Server 2.1.19 (2025-11-13)
+
+- [GPT-1394] Codex/transition groq client to responses api kkuspa4 (#1628)
+- Observability CRUD API (#1615)
+- GPT-1453 GPT-1405 Show Overall Test Results and Consistency for evals (#1574)
+- [SDM-80] Add typed `kind` field to validation messages (#1570)
+- fix(sdm-96): Resolve file references during semantic data model validation (#1591)
+
 # Sema4.ai Agent Server 2.1.18 (2025-11-12)
 
 - SDM-82: Disable Dataframes (#1609)
