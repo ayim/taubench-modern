@@ -23,9 +23,38 @@ type SuggestScenarioPayload =
 export type ScenarioSuggestion = components['schemas']['ScenarioSuggestion'];
 export type Trial = components['schemas']['Trial'];
 type ScenarioRun = components['schemas']['ScenarioRun'];
+export type ScenarioBatchRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELED';
+export interface ScenarioBatchRunStatistics {
+  total_scenarios: number;
+  completed_scenarios: number;
+  failed_scenarios: number;
+  total_trials: number;
+  completed_trials: number;
+  failed_trials: number;
+  evaluation_totals: Record<
+    string,
+    {
+      total: number;
+      passed: number;
+    }
+  >;
+}
+
+export interface ScenarioBatchRun {
+  batch_run_id: string;
+  agent_id: string;
+  user_id: string;
+  scenario_ids: string[];
+  status: ScenarioBatchRunStatus;
+  statistics: ScenarioBatchRunStatistics;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
+}
 
 const MAX_POLLING_ATTEMPTS = 60;
 const POLLING_INTERVAL = 2000;
+const TERMINAL_BATCH_STATUSES: ScenarioBatchRunStatus[] = ['COMPLETED', 'FAILED', 'CANCELED'];
 
 const getListScenariosQueryKey = ({ agentId, limit }: { agentId: string; limit?: number }) => [
   'scenarios',
@@ -44,6 +73,12 @@ const getScenarioRunQueryKey = ({ scenarioId, scenarioRunId }: { scenarioId: str
   scenarioId,
   scenarioRunId,
 ];
+const getBatchRunQueryKey = ({ agentId, batchRunId }: { agentId: string; batchRunId: string }) => [
+  'scenario-batch-run',
+  agentId,
+  batchRunId,
+];
+const getLatestBatchRunQueryKey = ({ agentId }: { agentId: string }) => ['scenario-batch-run-latest', agentId];
 
 export const listScenariosQueryOptions = createSparQueryOptions<{
   agentId: string;
@@ -140,11 +175,32 @@ export const scenarioRunQueryOptions = createSparQueryOptions<{
   },
 }));
 
+export const latestBatchRunQueryOptions = createSparQueryOptions<{
+  agentId: string;
+}>()(({ sparAPIClient, agentId }) => ({
+  queryKey: getLatestBatchRunQueryKey({ agentId }),
+  queryFn: async (): Promise<ScenarioBatchRun | null> => {
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/evals/agents/{agent_id}/batches/latest', {
+      params: { path: { agent_id: agentId } },
+    });
+
+    if (!response.success) {
+      if (response.code === 'not_found') {
+        return null;
+      }
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
+    }
+
+    return response.data as ScenarioBatchRun;
+  },
+}));
+
 export const useListScenariosQuery = createSparQuery(listScenariosQueryOptions);
 export const useScenarioQuery = createSparQuery(scenarioQueryOptions);
 export const useLatestScenarioRunQuery = createSparQuery(latestScenarioRunQueryOptions);
 export const useScenarioRunsQuery = createSparQuery(scenarioRunsQueryOptions);
 export const useScenarioRunQuery = createSparQuery(scenarioRunQueryOptions);
+export const useLatestBatchRunQuery = createSparQuery(latestBatchRunQueryOptions);
 
 export const useCreateScenarioMutation = createSparMutation<Record<string, never>, { body: CreateScenarioPayload }>()(
   ({ sparAPIClient, queryClient }) => ({
@@ -221,6 +277,22 @@ export const useCreateScenarioRunMutation = createSparMutation<
   },
 }));
 
+export const useCreateBatchRunMutation = createSparMutation<
+  Record<string, never>,
+  { agentId: string; body: { num_trials: number } }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async ({ agentId, body }): Promise<ScenarioBatchRun> => {
+    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/evals/agents/{agent_id}/batches', {
+      params: { path: { agent_id: agentId } },
+      body,
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
+    }
+    return response.data as ScenarioBatchRun;
+  },
+}));
+
 export const useSuggestScenarioMutation = createSparMutation<Record<string, never>, { body: SuggestScenarioPayload }>()(
   ({ sparAPIClient }) => ({
     mutationFn: async ({ body }): Promise<ScenarioSuggestion> => {
@@ -266,14 +338,10 @@ export const useCancelScenarioRunMutation = createSparMutation<
 export const useExportScenariosMutation = createSparMutation<Record<string, never>, { agentId: string }>()(
   ({ sparAPIClient }) => ({
     mutationFn: async ({ agentId }): Promise<{ blob: Blob; filename: string }> => {
-      const response = await sparAPIClient.queryAgentServer(
-        'get',
-        '/api/v2/evals/scenarios/export' as never,
-        {
-          params: { query: { agent_id: agentId } },
-          parseAs: 'stream',
-        } as never,
-      );
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/evals/scenarios/export', {
+        params: { query: { agent_id: agentId } },
+        parseAs: 'stream',
+      });
 
       if (!response.success) {
         throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
@@ -323,13 +391,13 @@ export const useImportScenariosMutation = createSparMutation<Record<string, neve
     mutationFn: async ({ agentId, file }): Promise<Scenario[]> => {
       const response = await sparAPIClient.queryAgentServer('post', '/api/v2/evals/scenarios/import', {
         params: { query: { agent_id: agentId } },
-        body: { file },
+        body: { file } as never,
         bodySerializer(body: { file: string }) {
           const formData = new FormData();
           formData.append('file', body.file);
           return formData;
         },
-      } as never);
+      });
 
       if (!response.success) {
         throw new QueryError(response.message || 'Failed to import scenarios', {
@@ -406,4 +474,56 @@ export const usePollScenarioRun = () => {
   );
 
   return { pollForCompletion };
+};
+
+export const usePollBatchRun = () => {
+  const { sparAPIClient } = useSparUIContext();
+  const queryClient = useQueryClient();
+
+  const pollBatchRun = useCallback(
+    async ({ agentId, batchRunId }: { agentId: string; batchRunId: string }): Promise<ScenarioBatchRun | null> => {
+      const poll = async (attempt: number): Promise<ScenarioBatchRun | null> => {
+        if (attempt >= MAX_POLLING_ATTEMPTS) {
+          throw new QueryError('Batch execution timed out after 60 seconds', {
+            code: 'too_many_requests',
+            resource: ResourceType.Evaluation,
+          });
+        }
+
+        if (attempt > 0) {
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), POLLING_INTERVAL);
+          });
+        }
+
+        try {
+          const response = await sparAPIClient.queryAgentServer(
+            'get',
+            '/api/v2/evals/agents/{agent_id}/batches/{batch_run_id}',
+            {
+              params: { path: { agent_id: agentId, batch_run_id: batchRunId } },
+            },
+          );
+
+          if (response.success) {
+            const batchRun = response.data as ScenarioBatchRun;
+            queryClient.setQueryData(getBatchRunQueryKey({ agentId, batchRunId }), batchRun);
+            if (TERMINAL_BATCH_STATUSES.includes(batchRun.status)) {
+              await queryClient.invalidateQueries({ queryKey: getBatchRunQueryKey({ agentId, batchRunId }) });
+              return batchRun;
+            }
+          }
+        } catch {
+          // retry
+        }
+
+        return poll(attempt + 1);
+      };
+
+      return poll(0);
+    },
+    [sparAPIClient, queryClient],
+  );
+
+  return { pollBatchRun };
 };

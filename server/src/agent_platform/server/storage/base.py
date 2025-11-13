@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from types import TracebackType
-from typing import Protocol, TypedDict, cast, runtime_checkable
+from typing import Any, Protocol, TypedDict, cast, runtime_checkable
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
@@ -23,6 +23,9 @@ from agent_platform.core.evals.types import (
     EvaluationResult,
     ExecutionState,
     Scenario,
+    ScenarioBatchRun,
+    ScenarioBatchRunStatistics,
+    ScenarioBatchRunStatus,
     ScenarioRun,
     Trial,
     TrialStatus,
@@ -754,6 +757,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     scenario_runs.c.scenario_run_id,
                     scenario_runs.c.scenario_id,
                     scenario_runs.c.user_id,
+                    scenario_runs.c.batch_run_id,
                     scenario_runs.c.num_trials,
                     scenario_runs.c.configuration,
                     scenario_runs.c.created_at,
@@ -802,6 +806,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             scenario_runs.c.scenario_run_id,
             scenario_runs.c.scenario_id,
             scenario_runs.c.user_id,
+            scenario_runs.c.batch_run_id,
             scenario_runs.c.num_trials,
             scenario_runs.c.configuration,
             scenario_runs.c.created_at,
@@ -849,6 +854,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 scenario_runs.c.scenario_run_id,
                 scenario_runs.c.scenario_id,
                 scenario_runs.c.user_id,
+                scenario_runs.c.batch_run_id,
                 scenario_runs.c.num_trials,
                 scenario_runs.c.configuration,
                 scenario_runs.c.created_at,
@@ -864,6 +870,187 @@ class BaseStorage(AbstractStorage, CommonMixin):
             rows = result.mappings().fetchall()
 
         return [ScenarioRun.model_validate(dict(row)) for row in rows]
+
+    async def list_scenario_runs_for_batch(self, batch_run_id: str) -> list[ScenarioRun]:
+        """List all scenario runs associated with a batch."""
+        scenario_runs = self._get_table("scenario_runs")
+
+        stmt = (
+            sa.select(
+                scenario_runs.c.scenario_run_id,
+                scenario_runs.c.scenario_id,
+                scenario_runs.c.user_id,
+                scenario_runs.c.batch_run_id,
+                scenario_runs.c.num_trials,
+                scenario_runs.c.configuration,
+                scenario_runs.c.created_at,
+            )
+            .where(scenario_runs.c.batch_run_id == batch_run_id)
+            .order_by(scenario_runs.c.created_at.asc())
+        )
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [ScenarioRun.model_validate(dict(row)) for row in rows]
+
+    async def create_scenario_batch_run(self, batch_run: ScenarioBatchRun) -> ScenarioBatchRun:
+        """Persist a new scenario batch run."""
+        batches = self._get_table("scenario_run_batches")
+        stmt = (
+            sa.insert(batches)
+            .values(batch_run.model_dump())
+            .returning(
+                batches.c.batch_run_id,
+                batches.c.agent_id,
+                batches.c.user_id,
+                batches.c.scenario_ids,
+                batches.c.status,
+                batches.c.statistics,
+                batches.c.created_at,
+                batches.c.updated_at,
+                batches.c.completed_at,
+            )
+        )
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        if row is None:
+            raise RuntimeError("Cannot insert scenario batch run")
+
+        return ScenarioBatchRun.model_validate(dict(row))
+
+    async def get_scenario_batch_run(self, batch_run_id: str) -> ScenarioBatchRun | None:
+        """Retrieve a scenario batch run by id."""
+        batches = self._get_table("scenario_run_batches")
+        stmt = sa.select(
+            batches.c.batch_run_id,
+            batches.c.agent_id,
+            batches.c.user_id,
+            batches.c.scenario_ids,
+            batches.c.status,
+            batches.c.statistics,
+            batches.c.created_at,
+            batches.c.updated_at,
+            batches.c.completed_at,
+        ).where(batches.c.batch_run_id == batch_run_id)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        return ScenarioBatchRun.model_validate(dict(row)) if row is not None else None
+
+    async def update_scenario_batch_run(
+        self,
+        batch_run_id: str,
+        *,
+        status: ScenarioBatchRunStatus | None = None,
+        statistics: ScenarioBatchRunStatistics | None = None,
+        completed_at: datetime | None = None,
+    ) -> ScenarioBatchRun | None:
+        """Update status/statistics of a scenario batch run."""
+        if not any([status, statistics, completed_at]):
+            return await self.get_scenario_batch_run(batch_run_id)
+
+        batches = self._get_table("scenario_run_batches")
+        values: dict[str, Any] = {"updated_at": datetime.now(UTC)}
+        if status is not None:
+            values["status"] = status.value
+        if statistics is not None:
+            values["statistics"] = statistics.model_dump()
+        if completed_at is not None:
+            values["completed_at"] = completed_at
+
+        stmt = (
+            sa.update(batches)
+            .where(batches.c.batch_run_id == batch_run_id)
+            .values(values)
+            .returning(
+                batches.c.batch_run_id,
+                batches.c.agent_id,
+                batches.c.user_id,
+                batches.c.scenario_ids,
+                batches.c.status,
+                batches.c.statistics,
+                batches.c.created_at,
+                batches.c.updated_at,
+                batches.c.completed_at,
+            )
+        )
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        return ScenarioBatchRun.model_validate(dict(row)) if row is not None else None
+
+    async def list_scenario_batch_runs(
+        self, agent_id: str, limit: int | None = None
+    ) -> list[ScenarioBatchRun]:
+        """List batch runs for a given agent."""
+        batches = self._get_table("scenario_run_batches")
+        stmt = (
+            sa.select(
+                batches.c.batch_run_id,
+                batches.c.agent_id,
+                batches.c.user_id,
+                batches.c.scenario_ids,
+                batches.c.status,
+                batches.c.statistics,
+                batches.c.created_at,
+                batches.c.updated_at,
+                batches.c.completed_at,
+            )
+            .where(batches.c.agent_id == agent_id)
+            .order_by(batches.c.created_at.desc())
+            .limit(limit)
+        )
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [ScenarioBatchRun.model_validate(dict(row)) for row in rows]
+
+    async def get_active_scenario_batch_run(self, agent_id: str) -> ScenarioBatchRun | None:
+        """Return the most recent non-terminal batch run for an agent, if any."""
+        batches = self._get_table("scenario_run_batches")
+        active_statuses = (
+            ScenarioBatchRunStatus.PENDING.value,
+            ScenarioBatchRunStatus.RUNNING.value,
+        )
+
+        stmt = (
+            sa.select(
+                batches.c.batch_run_id,
+                batches.c.agent_id,
+                batches.c.user_id,
+                batches.c.scenario_ids,
+                batches.c.status,
+                batches.c.statistics,
+                batches.c.created_at,
+                batches.c.updated_at,
+                batches.c.completed_at,
+            )
+            .where(
+                sa.and_(
+                    batches.c.agent_id == agent_id,
+                    batches.c.status.in_(active_statuses),
+                )
+            )
+            .order_by(batches.c.created_at.desc())
+            .limit(1)
+        )
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        return ScenarioBatchRun.model_validate(dict(row)) if row is not None else None
 
     async def list_scenario_run_trials(self, scenario_run_id: str) -> list[Trial]:
         """Get a run trial."""

@@ -17,15 +17,16 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     setSelectedRunIndices: state.setSelectedRunIndices,
     expandResults: state.expandResults,
     expandedResults: state.expandedResults,
+    setLastBatchSummary: state.setLastBatchSummary,
+    setBatchSummaryOutdated: state.setBatchSummaryOutdated,
   });
 
   const actions = useEvalSidebarActions({
     agentId,
-    evaluations: data.evaluations,
     handleCreateEvaluation: data.handleCreateEvaluation,
     handleUpdateEvaluation: data.handleUpdateEvaluation,
     handleSuggestEvaluation: data.handleSuggestEvaluation,
-    handleRunTest: data.handleRunTest,
+    handleRunBatch: data.handleRunBatch,
     handleDeleteScenario: data.handleDeleteScenario,
     handleCancelScenarioRun: data.handleCancelScenarioRun,
     exportScenariosMutation: data.exportScenariosMutation,
@@ -55,6 +56,8 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     selectedTrialsForAll: state.selectedTrialsForAll,
     selectedRunIndices: state.selectedRunIndices,
     editingScenario: state.editingScenario,
+    lastBatchSummary: state.lastBatchSummary,
+    isBatchSummaryOutdated: state.isBatchSummaryOutdated,
 
     // State actions
     setDeleteTarget: state.setDeleteTarget,
@@ -79,6 +82,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     evaluations: data.evaluations,
     loading: data.loading,
     isAnyTestRunning: data.isAnyTestRunning,
+    isCancelingAll: data.isCancelingAll,
     createScenarioMutation: data.createScenarioMutation,
     updateScenarioMutation: data.updateScenarioMutation,
     deleteScenarioMutation: data.deleteScenarioMutation,
@@ -93,6 +97,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     handleUpdateEvaluation: data.handleUpdateEvaluation,
     handleSuggestEvaluation: data.handleSuggestEvaluation,
     handleDeleteScenario: data.handleDeleteScenario,
+    handleCancelAllRunning: data.handleCancelAllRunning,
 
     // User action handlers
     handleAddEvaluation: actions.handleAddEvaluation,

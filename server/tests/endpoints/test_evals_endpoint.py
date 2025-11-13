@@ -7,7 +7,12 @@ import pytest
 import yaml
 from fastapi import UploadFile
 
-from agent_platform.core.evals.types import Scenario
+from agent_platform.core.evals.types import (
+    FlowAdherenceResult,
+    ResponseAccuracyResult,
+    Scenario,
+    TrialStatus,
+)
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.attachment import ThreadAttachmentContent
@@ -743,3 +748,86 @@ async def test_update_scenario_persists_changes(client, storage, seed_agents, st
     assert evaluations.get("action_calling", {}).get("enabled") is True
     drift_policy = metadata.get("drift_policy", {})
     assert "tool_execution_mode" not in drift_policy
+
+
+async def test_create_agent_batch_run_creates_runs_for_all_scenarios(
+    client, storage, seed_agents, stub_user
+):
+    agent = seed_agents[0]
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 1")
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 2")
+
+    response = client.post(
+        f"/api/v2/evals/agents/{agent.agent_id}/batches",
+        json={"num_trials": 2},
+    )
+
+    assert response.status_code == 200
+    batch = response.json()
+    assert batch["status"] == "RUNNING"
+    assert batch["statistics"]["total_scenarios"] == 2
+
+    runs = await storage.list_scenario_runs_for_batch(batch["batch_run_id"])
+    assert len(runs) == 2
+    assert all(run.batch_run_id == batch["batch_run_id"] for run in runs)
+
+    for run in runs:
+        trials = await storage.list_scenario_run_trials(run.scenario_run_id)
+        assert len(trials) == 2
+        assert all(trial.status == TrialStatus.PENDING for trial in trials)
+
+
+async def test_get_agent_batch_run_reports_statistics(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Happy path")
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Sad path")
+
+    response = client.post(
+        f"/api/v2/evals/agents/{agent.agent_id}/batches",
+        json={"num_trials": 1},
+    )
+    assert response.status_code == 200
+    batch = response.json()
+
+    runs = await storage.list_scenario_runs_for_batch(batch["batch_run_id"])
+    assert len(runs) == 2
+
+    completed_trial = (await storage.list_scenario_run_trials(runs[0].scenario_run_id))[0]
+    failed_trial = (await storage.list_scenario_run_trials(runs[1].scenario_run_id))[0]
+
+    await storage.update_trial_status(
+        completed_trial.trial_id,
+        stub_user.user_id,
+        TrialStatus.COMPLETED,
+    )
+    await storage.update_trial_evaluation_results(
+        completed_trial.trial_id,
+        [FlowAdherenceResult(explanation="ok", score=1, passed=True)],
+    )
+
+    await storage.update_trial_status(
+        failed_trial.trial_id,
+        stub_user.user_id,
+        TrialStatus.ERROR,
+        error="boom",
+    )
+    await storage.update_trial_evaluation_results(
+        failed_trial.trial_id,
+        [ResponseAccuracyResult(explanation="nope", score=0, passed=False)],
+    )
+
+    result = client.get(f"/api/v2/evals/agents/{agent.agent_id}/batches/{batch['batch_run_id']}")
+    assert result.status_code == 200
+    batch_status = result.json()
+
+    assert batch_status["status"] == "COMPLETED"
+    stats = batch_status["statistics"]
+    assert stats["completed_scenarios"] == 1
+    assert stats["failed_scenarios"] == 1
+    assert stats["completed_trials"] == 1
+    assert stats["failed_trials"] == 1
+
+    eval_totals = stats["evaluation_totals"]
+    assert eval_totals["flow_adherence"]["passed"] == 1
+    assert eval_totals["response_accuracy"]["total"] == 1
+    assert eval_totals["response_accuracy"]["passed"] == 0

@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from '@sema4ai/components';
 import type { components } from '@sema4ai/agent-server-interface';
@@ -8,19 +8,23 @@ import {
   scenarioRunQueryOptions,
   useCreateScenarioMutation,
   useCreateScenarioRunMutation,
+  useCreateBatchRunMutation,
   useDeleteScenarioMutation,
   useListScenariosQuery,
   usePollScenarioRun,
+  usePollBatchRun,
+  useLatestBatchRunQuery,
   useSuggestScenarioMutation,
   useCancelScenarioRunMutation,
   useExportScenariosMutation,
   useImportScenariosMutation,
   useUpdateScenarioMutation,
 } from '../../../../../queries/evals';
+import type { ScenarioBatchRun } from '../../../../../queries/evals';
 import { useSparUIContext } from '../../../../../api/context';
 import { sortByCreatedAtDesc } from '../../../../../lib/utils';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
-import type { EvaluationItem, ScenarioRun, Scenario } from '../types';
+import type { BatchSummary, EvaluationItem, ScenarioRun, Scenario } from '../types';
 import { useAnalytics } from '../../../../../queries';
 
 export interface UseEvalSidebarDataProps {
@@ -30,6 +34,8 @@ export interface UseEvalSidebarDataProps {
   setSelectedRunIndices: (value: Map<string, number> | ((prev: Map<string, number>) => Map<string, number>)) => void;
   expandResults: (scenarioId: string) => void;
   expandedResults: Set<string>;
+  setLastBatchSummary: Dispatch<SetStateAction<BatchSummary | null>>;
+  setBatchSummaryOutdated: Dispatch<SetStateAction<boolean>>;
 }
 
 type EvaluationCriterionConfig =
@@ -44,14 +50,18 @@ export const useEvalSidebarData = ({
   setSelectedRunIndices,
   expandResults,
   expandedResults,
+  setLastBatchSummary,
+  setBatchSummaryOutdated,
 }: UseEvalSidebarDataProps) => {
   const { sparAPIClient } = useSparUIContext();
   const { track } = useAnalytics();
   const queryClient = useQueryClient();
   const { addSnackbar } = useSnackbar();
+  const [isCancelingAll, setIsCancelingAll] = useState(false);
 
   const deleteScenarioMutation = useDeleteScenarioMutation({});
   const createScenarioRunMutation = useCreateScenarioRunMutation({});
+  const createBatchRunMutation = useCreateBatchRunMutation({});
   const createScenarioMutation = useCreateScenarioMutation({});
   const updateScenarioMutation = useUpdateScenarioMutation({});
   const suggestScenarioMutation = useSuggestScenarioMutation({});
@@ -59,10 +69,49 @@ export const useEvalSidebarData = ({
   const exportScenariosMutation = useExportScenariosMutation({});
   const importScenariosMutation = useImportScenariosMutation({});
   const { pollForCompletion } = usePollScenarioRun();
+  const { pollBatchRun } = usePollBatchRun();
 
   const { data: scenarios = [], isLoading: scenariosLoading } = useListScenariosQuery({
     agentId,
   });
+  const { data: latestBatchRun } = useLatestBatchRunQuery({ agentId });
+  const scenarioMap = useMemo(
+    () => new Map(scenarios.map((scenario) => [scenario.scenario_id, scenario])),
+    [scenarios],
+  );
+  const buildBatchSummary = useCallback((batchRun: ScenarioBatchRun, fallbackNumTrials?: number): BatchSummary => {
+    const totalScenarios = batchRun.statistics.total_scenarios ?? 0;
+    const totalTrials = batchRun.statistics.total_trials ?? 0;
+    const inferredNumTrials =
+      fallbackNumTrials ??
+      (totalScenarios > 0 ? Math.max(1, Math.round(totalTrials / Math.max(totalScenarios, 1))) : 1);
+
+    return {
+      batchRunId: batchRun.batch_run_id,
+      createdAt: batchRun.created_at,
+      status: batchRun.status,
+      statistics: batchRun.statistics,
+      numTrials: inferredNumTrials,
+    };
+  }, []);
+  useEffect(() => {
+    if (latestBatchRun === undefined) {
+      return;
+    }
+    if (latestBatchRun === null) {
+      setLastBatchSummary(null);
+      setBatchSummaryOutdated(false);
+      return;
+    }
+
+    setLastBatchSummary((prev) => {
+      if (prev && prev.batchRunId === latestBatchRun.batch_run_id) {
+        return buildBatchSummary(latestBatchRun, prev.numTrials);
+      }
+      return buildBatchSummary(latestBatchRun);
+    });
+    setBatchSummaryOutdated(false);
+  }, [latestBatchRun, setLastBatchSummary, buildBatchSummary, setBatchSummaryOutdated]);
 
   const latestRunQueries = useQueries({
     queries: scenarios.map((scenario) =>
@@ -253,6 +302,57 @@ export const useEvalSidebarData = ({
     return toolExecutionModeValue === 'live' ? 'live' : 'replay';
   };
 
+  const monitorScenarioRun = useCallback(
+    (scenario: Scenario, runStartedAt: number | null) => {
+      pollForCompletion(scenario.scenario_id)
+        .then((completedRun) => {
+          if (!completedRun) {
+            return;
+          }
+
+          let trackedDurationMs: number | null = null;
+          const trials = completedRun.trials ?? [];
+
+          if (trials.length > 0) {
+            const largestInterval = trials.reduce<number | null>((currentMax, trial) => {
+              const startedAt = trial.execution_state?.started_at;
+              const finishedAt = trial.execution_state?.finished_at;
+
+              if (!startedAt || !finishedAt) {
+                return currentMax;
+              }
+
+              const startTimestamp = new Date(startedAt).getTime();
+              const endTimestamp = new Date(finishedAt).getTime();
+
+              if (Number.isNaN(startTimestamp) || Number.isNaN(endTimestamp) || endTimestamp < startTimestamp) {
+                return currentMax;
+              }
+
+              const interval = endTimestamp - startTimestamp;
+              if (currentMax === null || interval > currentMax) {
+                return interval;
+              }
+              return currentMax;
+            }, null);
+
+            trackedDurationMs = largestInterval;
+          }
+
+          if (trackedDurationMs === null && runStartedAt !== null && typeof performance !== 'undefined') {
+            trackedDurationMs = Math.max(Math.round(performance.now() - runStartedAt), 0);
+          }
+
+          if (trackedDurationMs !== null) {
+            track(`evals_execution.duration`, trackedDurationMs.toString());
+          }
+          queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
+        })
+        .catch(() => {});
+    },
+    [agentId, pollForCompletion, queryClient, track],
+  );
+
   const handleCreateEvaluation = async (data: CreateEvalFormData) => {
     const evaluationCriteria = buildEvaluationCriteria(data);
 
@@ -310,6 +410,7 @@ export const useEvalSidebarData = ({
     const runStartedAt = typeof performance !== 'undefined' ? performance.now() : null;
     const executionMode = getScenarioExecutionMode(scenario);
     try {
+      setBatchSummaryOutdated(true);
       const newRun = await createScenarioRunMutation.mutateAsync({
         scenarioId: scenario.scenario_id,
         body: { num_trials: numTrials },
@@ -324,51 +425,68 @@ export const useEvalSidebarData = ({
 
       expandResults(scenario.scenario_id);
 
-      pollForCompletion(scenario.scenario_id).then((completedRun) => {
-        let trackedDurationMs: number | null = null;
-
-        const trials = completedRun?.trials ?? [];
-
-        if (trials.length > 0) {
-          const largestInterval = trials.reduce<number | null>((currentMax, trial) => {
-            const startedAt = trial.execution_state?.started_at;
-            const finishedAt = trial.execution_state?.finished_at;
-
-            if (!startedAt || !finishedAt) {
-              return currentMax;
-            }
-
-            const startTimestamp = new Date(startedAt).getTime();
-            const endTimestamp = new Date(finishedAt).getTime();
-
-            if (Number.isNaN(startTimestamp) || Number.isNaN(endTimestamp) || endTimestamp < startTimestamp) {
-              return currentMax;
-            }
-
-            const interval = endTimestamp - startTimestamp;
-            if (currentMax === null || interval > currentMax) {
-              return interval;
-            }
-            return currentMax;
-          }, null);
-
-          trackedDurationMs = largestInterval;
-        }
-
-        if (trackedDurationMs === null && runStartedAt !== null && typeof performance !== 'undefined') {
-          trackedDurationMs = Math.max(Math.round(performance.now() - runStartedAt), 0);
-        }
-
-        if (trackedDurationMs !== null) {
-          track(`evals_execution.duration`, trackedDurationMs.toString());
-        }
-        queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
-      });
+      monitorScenarioRun(scenario, runStartedAt);
     } catch {
       addSnackbar({
         message: `Failed to run test for "${scenario.name}"`,
         variant: 'danger',
       });
+    }
+  };
+
+  const handleRunBatch = async (numTrials: number = 1) => {
+    try {
+      const batchRun = await createBatchRunMutation.mutateAsync({
+        agentId,
+        body: { num_trials: numTrials },
+      });
+
+      setLastBatchSummary(buildBatchSummary(batchRun, numTrials));
+      setBatchSummaryOutdated(false);
+      queryClient.setQueryData(['scenario-batch-run-latest', agentId], batchRun);
+
+      (batchRun.scenario_ids ?? []).forEach((scenarioId) => {
+        const scenario = scenarioMap.get(scenarioId);
+        if (!scenario) {
+          return;
+        }
+
+        track(`evals_execution.started`, getScenarioExecutionMode(scenario));
+
+        setSelectedRunIndices((prev) => new Map(prev).set(scenarioId, 0));
+        expandResults(scenarioId);
+
+        const runStartedAt = typeof performance !== 'undefined' ? performance.now() : null;
+        monitorScenarioRun(scenario, runStartedAt);
+      });
+
+      pollBatchRun({ agentId, batchRunId: batchRun.batch_run_id })
+        .then((result) => {
+          if (!result) {
+            return;
+          }
+
+          setLastBatchSummary((prev) =>
+            buildBatchSummary(result, prev?.batchRunId === result.batch_run_id ? prev?.numTrials : numTrials),
+          );
+          setBatchSummaryOutdated(false);
+          queryClient.setQueryData(['scenario-batch-run-latest', agentId], result);
+
+          if (result.status === 'COMPLETED') {
+            addSnackbar({
+              message: 'Batch run completed successfully',
+              variant: 'success',
+            });
+          }
+        })
+        .catch(() => {});
+    } catch {
+      addSnackbar({
+        message: 'Failed to run all tests',
+        variant: 'danger',
+      });
+      setLastBatchSummary(null);
+      setBatchSummaryOutdated(false);
     }
   };
 
@@ -378,24 +496,83 @@ export const useEvalSidebarData = ({
     });
   };
 
-  const handleCancelScenarioRun = async (scenarioId: string, scenarioRunId: string) => {
-    try {
-      await cancelScenarioRunMutation.mutateAsync({
-        scenarioId,
-        scenarioRunId,
-      });
+  const handleCancelScenarioRun = useCallback(
+    async (scenarioId: string, scenarioRunId: string, options?: { suppressToast?: boolean }): Promise<boolean> => {
+      try {
+        await cancelScenarioRunMutation.mutateAsync({
+          scenarioId,
+          scenarioRunId,
+        });
 
+        if (!options?.suppressToast) {
+          addSnackbar({
+            message: 'Test run cancelled successfully',
+            variant: 'success',
+          });
+        }
+        return true;
+      } catch (error) {
+        if (!options?.suppressToast) {
+          addSnackbar({
+            message: 'Failed to cancel test run',
+            variant: 'danger',
+          });
+        }
+        return false;
+      }
+    },
+    [cancelScenarioRunMutation, addSnackbar],
+  );
+
+  const handleCancelAllRunning = useCallback(async () => {
+    if (isCancelingAll) {
+      return;
+    }
+
+    const targets = evaluations
+      .filter(({ isRunning, latestRun }) => isRunning && Boolean(latestRun?.scenario_run_id))
+      .map(({ scenario, latestRun }) => ({
+        scenarioId: scenario.scenario_id,
+        scenarioRunId: latestRun?.scenario_run_id as string,
+      }));
+
+    if (targets.length === 0) {
       addSnackbar({
-        message: 'Test run cancelled successfully',
-        variant: 'success',
-      });
-    } catch (error) {
-      addSnackbar({
-        message: 'Failed to cancel test run',
+        message: 'No running tests to cancel',
         variant: 'danger',
       });
+      return;
     }
-  };
+
+    setIsCancelingAll(true);
+    try {
+      const results = await Promise.all(
+        targets.map(({ scenarioId, scenarioRunId }) =>
+          handleCancelScenarioRun(scenarioId, scenarioRunId, { suppressToast: true }),
+        ),
+      );
+      const successCount = results.filter(Boolean).length;
+
+      if (successCount === targets.length) {
+        addSnackbar({
+          message: 'Cancelled all running tests',
+          variant: 'success',
+        });
+      } else if (successCount === 0) {
+        addSnackbar({
+          message: 'Failed to cancel running tests',
+          variant: 'danger',
+        });
+      } else {
+        addSnackbar({
+          message: 'Some tests failed to cancel',
+          variant: 'danger',
+        });
+      }
+    } finally {
+      setIsCancelingAll(false);
+    }
+  }, [evaluations, handleCancelScenarioRun, addSnackbar, isCancelingAll]);
 
   return {
     // Data
@@ -403,6 +580,7 @@ export const useEvalSidebarData = ({
     scenarios,
     loading,
     isAnyTestRunning,
+    isCancelingAll,
 
     // Mutations
     createScenarioMutation,
@@ -418,7 +596,9 @@ export const useEvalSidebarData = ({
     handleUpdateEvaluation,
     handleSuggestEvaluation,
     handleRunTest,
+    handleRunBatch,
     handleDeleteScenario,
     handleCancelScenarioRun,
+    handleCancelAllRunning,
   };
 };

@@ -11,7 +11,16 @@ from structlog import get_logger
 
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
-from agent_platform.core.evals.types import Scenario, ScenarioRun, Trial, TrialStatus
+from agent_platform.core.evals.types import (
+    EvaluationAggregate,
+    Scenario,
+    ScenarioBatchRun,
+    ScenarioBatchRunStatistics,
+    ScenarioBatchRunStatus,
+    ScenarioRun,
+    Trial,
+    TrialStatus,
+)
 from agent_platform.core.thread.thread import Thread
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth.handlers import AuthedUser
@@ -355,7 +364,12 @@ class CreateScenarioRunPayload:
 
     @classmethod
     def to_scenario_run(
-        cls, payload: Self, user_id: str, scenario_id: str, configuration: dict[str, Any]
+        cls,
+        payload: Self,
+        user_id: str,
+        scenario_id: str,
+        configuration: dict[str, Any],
+        batch_run_id: str | None = None,
     ) -> ScenarioRun:
         scenario_run_id = str(uuid4())
         trials = [
@@ -375,7 +389,17 @@ class CreateScenarioRunPayload:
             trials=trials,
             user_id=user_id,
             configuration=configuration,
+            batch_run_id=batch_run_id,
         )
+
+
+@dataclass(frozen=True)
+class CreateScenarioBatchRunPayload:
+    num_trials: int = 1
+
+    def __post_init__(self) -> None:
+        if self.num_trials < 1:
+            raise ValueError("'num_trials' must be >= 1")
 
 
 @router.post("/scenarios/{scenario_id}/runs", response_model=ScenarioRun)
@@ -479,3 +503,243 @@ async def cancel_run(
         logger.info(f"Run trial {trial.index_in_run} has been canceled.")
 
     return {"status": "ok"}
+
+
+@router.post("/agents/{agent_id}/batches", response_model=ScenarioBatchRun)
+async def create_agent_batch_run(
+    agent_id: str,
+    payload: CreateScenarioBatchRunPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    agent = await storage.get_agent(user_id=user.user_id, agent_id=agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    scenarios = await storage.list_scenarios(limit=None, agent_id=agent_id)
+    if not scenarios:
+        raise HTTPException(status_code=400, detail="Agent has no scenarios to run")
+
+    existing_batch = await storage.get_active_scenario_batch_run(agent_id=agent_id)
+    if existing_batch is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Another batch run is already in progress for this agent",
+        )
+
+    scenario_ids = [scenario.scenario_id for scenario in scenarios]
+    configuration = {
+        "models": agent.get_agent_models(),
+        "architecture_version": agent.agent_architecture.version,
+        "architecture_name": agent.agent_architecture.name,
+        "agent_updated_at": agent.updated_at.isoformat(),
+        "runbook_updated_at": agent.runbook_structured.updated_at.isoformat(),
+    }
+
+    batch_run = ScenarioBatchRun(
+        batch_run_id=str(uuid4()),
+        agent_id=agent_id,
+        user_id=user.user_id,
+        scenario_ids=scenario_ids,
+        status=ScenarioBatchRunStatus.RUNNING,
+        statistics=ScenarioBatchRunStatistics(total_scenarios=len(scenario_ids)),
+    )
+    created_batch = await storage.create_scenario_batch_run(batch_run)
+
+    scenario_run_payload = CreateScenarioRunPayload(num_trials=payload.num_trials)
+    try:
+        for scenario in scenarios:
+            scenario_run = CreateScenarioRunPayload.to_scenario_run(
+                scenario_run_payload,
+                user.user_id,
+                scenario.scenario_id,
+                configuration,
+                batch_run_id=created_batch.batch_run_id,
+            )
+            await storage.create_scenario_run(scenario_run)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.exception(
+            "Failed to enqueue batch scenario runs",
+            batch_run_id=created_batch.batch_run_id,
+            agent_id=agent_id,
+            error=str(exc),
+        )
+        await storage.update_scenario_batch_run(
+            created_batch.batch_run_id,
+            status=ScenarioBatchRunStatus.FAILED,
+        )
+        raise HTTPException(status_code=500, detail="Failed to schedule batch runs") from exc
+
+    return await _refresh_batch_run_statistics(created_batch, storage)
+
+
+@router.get("/agents/{agent_id}/batches/latest", response_model=ScenarioBatchRun)
+async def get_latest_agent_batch_run(
+    agent_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    agent = await storage.get_agent(user_id=user.user_id, agent_id=agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    batches = await storage.list_scenario_batch_runs(agent_id=agent_id, limit=1)
+    if not batches:
+        raise HTTPException(status_code=404, detail="Batch run not found")
+
+    return await _refresh_batch_run_statistics(batches[0], storage)
+
+
+@router.get("/agents/{agent_id}/batches/{batch_run_id}", response_model=ScenarioBatchRun)
+async def get_agent_batch_run(
+    agent_id: str,
+    batch_run_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    agent = await storage.get_agent(user_id=user.user_id, agent_id=agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    batch_run = await storage.get_scenario_batch_run(batch_run_id=batch_run_id)
+    if batch_run is None or batch_run.agent_id != agent_id:
+        raise HTTPException(status_code=404, detail="Batch run not found")
+
+    return await _refresh_batch_run_statistics(batch_run, storage)
+
+
+TERMINAL_BATCH_STATUSES = {
+    ScenarioBatchRunStatus.COMPLETED,
+    ScenarioBatchRunStatus.CANCELED,
+    ScenarioBatchRunStatus.FAILED,
+}
+
+
+async def _refresh_batch_run_statistics(
+    batch_run: ScenarioBatchRun, storage: StorageDependency
+) -> ScenarioBatchRun:
+    scenario_runs = await storage.list_scenario_runs_for_batch(batch_run.batch_run_id)
+    if not scenario_runs:
+        return batch_run
+
+    trials_per_run: dict[str, list[Trial]] = {}
+    for run in scenario_runs:
+        trials = await storage.list_scenario_run_trials(scenario_run_id=run.scenario_run_id)
+        trials_per_run[run.scenario_run_id] = trials
+
+    statistics, derived_status = _calculate_batch_statistics(
+        trials_per_run,
+        expected_scenarios=len(batch_run.scenario_ids) or len(scenario_runs),
+    )
+
+    should_update = (
+        statistics != batch_run.statistics
+        or derived_status != batch_run.status
+        or (batch_run.completed_at is None and derived_status in TERMINAL_BATCH_STATUSES)
+    )
+    completed_at = (
+        datetime.now(UTC)
+        if batch_run.completed_at is None and derived_status in TERMINAL_BATCH_STATUSES
+        else None
+    )
+
+    if not should_update:
+        return batch_run
+
+    updated = await storage.update_scenario_batch_run(
+        batch_run.batch_run_id,
+        status=derived_status if derived_status != batch_run.status else None,
+        statistics=statistics if statistics != batch_run.statistics else None,
+        completed_at=completed_at,
+    )
+
+    return updated if updated is not None else batch_run
+
+
+def _calculate_batch_statistics(  # noqa: PLR0912, PLR0915, C901
+    trials_per_run: dict[str, list[Trial]],
+    expected_scenarios: int,
+) -> tuple[ScenarioBatchRunStatistics, ScenarioBatchRunStatus]:
+    total_scenarios = expected_scenarios or len(trials_per_run)
+    completed_scenarios = 0
+    failed_scenarios = 0
+    total_trials = 0
+    completed_trials = 0
+    failed_trials = 0
+    canceled_trials = 0
+    missing_runs = expected_scenarios > len(trials_per_run)
+    has_pending_trials = False
+    has_executing = False
+    evaluation_totals: dict[str, EvaluationAggregate] = {}
+
+    for trials in trials_per_run.values():
+        if not trials:
+            continue
+
+        scenario_failed = False
+        scenario_completed = True
+        scenario_canceled = True
+
+        for trial in trials:
+            total_trials += 1
+
+            if trial.status == TrialStatus.COMPLETED:
+                completed_trials += 1
+                scenario_canceled = False
+            elif trial.status == TrialStatus.ERROR:
+                failed_trials += 1
+                scenario_failed = True
+                scenario_completed = False
+                scenario_canceled = False
+            elif trial.status == TrialStatus.CANCELED:
+                canceled_trials += 1
+                scenario_completed = False
+            elif trial.status == TrialStatus.EXECUTING:
+                has_executing = True
+                scenario_completed = False
+                scenario_canceled = False
+            elif trial.status == TrialStatus.PENDING:
+                has_pending_trials = True
+                scenario_completed = False
+                scenario_canceled = False
+
+            for result in trial.evaluation_results:
+                current = evaluation_totals.get(result.kind)
+                if current is None:
+                    current = EvaluationAggregate()
+                evaluation_totals[result.kind] = EvaluationAggregate(
+                    total=current.total + 1,
+                    passed=current.passed + (1 if getattr(result, "passed", False) else 0),
+                )
+
+        if scenario_failed or scenario_canceled:
+            failed_scenarios += 1
+        elif scenario_completed:
+            completed_scenarios += 1
+
+    if total_trials == 0:
+        derived_status = ScenarioBatchRunStatus.PENDING
+    elif completed_trials + failed_trials + canceled_trials == total_trials:
+        derived_status = (
+            ScenarioBatchRunStatus.CANCELED
+            if canceled_trials == total_trials and completed_trials == 0
+            else ScenarioBatchRunStatus.COMPLETED
+        )
+    elif has_executing or has_pending_trials:
+        derived_status = ScenarioBatchRunStatus.RUNNING
+    elif missing_runs:
+        derived_status = ScenarioBatchRunStatus.PENDING
+    else:
+        derived_status = ScenarioBatchRunStatus.RUNNING
+
+    statistics = ScenarioBatchRunStatistics(
+        total_scenarios=total_scenarios,
+        completed_scenarios=completed_scenarios,
+        failed_scenarios=failed_scenarios,
+        total_trials=total_trials,
+        completed_trials=completed_trials,
+        failed_trials=failed_trials,
+        evaluation_totals=evaluation_totals,
+    )
+
+    return statistics, derived_status

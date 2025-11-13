@@ -3,18 +3,21 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import { useNavigate } from '../../../../../hooks';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
 import type { DeleteTarget } from './useEvalSidebarState';
-import type { EvaluationItem, Scenario } from '../types';
+import type { Scenario, ScenarioRun } from '../types';
 import { useAnalytics } from '../../../../../queries';
 
 export interface UseEvalSidebarActionsProps {
   agentId: string;
-  evaluations: EvaluationItem[];
   handleCreateEvaluation: (data: CreateEvalFormData) => Promise<void>;
   handleUpdateEvaluation: (scenarioId: string, data: CreateEvalFormData) => Promise<void>;
   handleSuggestEvaluation: () => Promise<Partial<CreateEvalFormData> | null>;
-  handleRunTest: (scenario: Scenario, numTrials: number) => Promise<void>;
+  handleRunBatch: (numTrials: number) => Promise<void>;
   handleDeleteScenario: (scenarioId: string) => Promise<void>;
-  handleCancelScenarioRun: (scenarioId: string, scenarioRunId: string) => Promise<void>;
+  handleCancelScenarioRun: (
+    scenarioId: string,
+    scenarioRunId: string,
+    options?: { suppressToast?: boolean },
+  ) => Promise<boolean>;
   exportScenariosMutation: UseMutationResult<{ blob: Blob; filename: string }, unknown, { agentId: string }, unknown>;
   importScenariosMutation: UseMutationResult<Scenario[], unknown, { agentId: string; file: File }, unknown>;
   setCreateDialogOpen: (open: boolean) => void;
@@ -27,11 +30,10 @@ export interface UseEvalSidebarActionsProps {
 
 export const useEvalSidebarActions = ({
   agentId,
-  evaluations,
   handleCreateEvaluation,
   handleUpdateEvaluation,
   handleSuggestEvaluation,
-  handleRunTest,
+  handleRunBatch,
   handleDeleteScenario,
   handleCancelScenarioRun,
   exportScenariosMutation,
@@ -94,9 +96,7 @@ export const useEvalSidebarActions = ({
     resetCreateDialogState();
   };
 
-  const handleRunAll = (numTrials: number = 1) => {
-    evaluations.forEach(({ scenario }) => handleRunTest(scenario, numTrials));
-  };
+  const handleRunAll = (numTrials: number = 1) => handleRunBatch(numTrials);
 
   const handleDeleteConfirm = async (deleteTarget: DeleteTarget | null) => {
     if (!deleteTarget) return;
@@ -119,7 +119,7 @@ export const useEvalSidebarActions = ({
     }
   };
 
-  const handleCancelTest = (scenario: Scenario, currentRun: EvaluationItem['currentRun']) => {
+  const handleCancelTest = (scenario: Scenario, currentRun: ScenarioRun | null) => {
     return async () => {
       if (!currentRun?.scenario_run_id) {
         addSnackbar({

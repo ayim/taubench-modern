@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
-import type { Scenario } from '../types';
+import type { BatchSummary, Scenario } from '../types';
 
 export interface DeleteTarget {
   scenario_id: string;
@@ -23,7 +23,8 @@ export const useEvalSidebarState = () => {
   const [selectedTrials, setSelectedTrials] = useState<Map<string, number>>(new Map());
   const [selectedTrialsForAll, setSelectedTrialsForAll] = useState<number>(1);
   const [selectedRunIndices, setSelectedRunIndices] = useState<Map<string, number>>(new Map());
-
+  const [lastBatchSummary, setLastBatchSummary] = useState<BatchSummary | null>(null);
+  const [isBatchSummaryOutdated, setBatchSummaryOutdated] = useState(false);
   const toggleResults = (scenarioId: string) => {
     setExpandedResultsOrder((prev) => {
       // If already expanded, collapse it
@@ -124,7 +125,8 @@ export const useEvalSidebarState = () => {
     selectedTrials,
     selectedTrialsForAll,
     selectedRunIndices,
-
+    lastBatchSummary,
+    isBatchSummaryOutdated,
     // State setters
     setDeleteTarget,
     setCreateDialogOpen,
@@ -134,6 +136,8 @@ export const useEvalSidebarState = () => {
     setSelectedTrials,
     setSelectedTrialsForAll,
     setSelectedRunIndices,
+    setLastBatchSummary,
+    setBatchSummaryOutdated,
 
     // Helper functions
     toggleResults,

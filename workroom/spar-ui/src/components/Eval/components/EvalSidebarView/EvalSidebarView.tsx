@@ -4,7 +4,7 @@ import { useThreadMessagesQuery } from '../../../../queries';
 import { useParams } from '../../../../hooks';
 import { CreateEvalDialog } from './components/CreateEvalDialog';
 import { useEvalSidebar } from './hooks/useEvalSidebar';
-import { EvalHeader, EvalFooter, EvalEmptyState, ScenarioCard, ScenarioResults } from './components';
+import { EvalHeader, EvalEmptyState, ScenarioCard, ScenarioResults } from './components';
 
 export interface EvalSidebarViewProps {
   agentId: string;
@@ -113,6 +113,14 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           isFetchingSuggestion={sidebar.isFetchingSuggestion}
           onImportScenarios={handleImportClick}
           isImporting={sidebar.importScenariosMutation.isPending}
+          onRunAll={sidebar.handleRunAll}
+          onSetSelectedTrialsForAll={sidebar.setSelectedTrialsForAll}
+          selectedTrialsForAll={sidebar.selectedTrialsForAll}
+          isAnyTestRunning={sidebar.isAnyTestRunning}
+          onCancelAll={sidebar.handleCancelAllRunning}
+          isCancelingAll={sidebar.isCancelingAll}
+          batchSummary={sidebar.lastBatchSummary}
+          isBatchSummaryOutdated={sidebar.isBatchSummaryOutdated}
         />
 
         <Box display="flex" flexDirection="column" gap="$12" flex="1" overflow="auto" minHeight="0">
@@ -167,14 +175,6 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
             );
           })}
         </Box>
-
-        <EvalFooter
-          hasEvaluations={sidebar.evaluations.length > 0}
-          isAnyTestRunning={sidebar.isAnyTestRunning}
-          selectedTrialsForAll={sidebar.selectedTrialsForAll}
-          onRunAll={sidebar.handleRunAll}
-          onSetSelectedTrialsForAll={sidebar.setSelectedTrialsForAll}
-        />
       </Box>
 
       {sidebar.deleteTarget && (

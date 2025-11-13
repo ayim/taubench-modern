@@ -2418,6 +2418,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/evals/agents/{agent_id}/batches': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Create Agent Batch Run */
+    post: operations['create_agent_batch_run_evals_agents__agent_id__batches_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/evals/agents/{agent_id}/batches/latest': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Latest Agent Batch Run */
+    get: operations['get_latest_agent_batch_run_evals_agents__agent_id__batches_latest_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/evals/agents/{agent_id}/batches/{batch_run_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Agent Batch Run */
+    get: operations['get_agent_batch_run_evals_agents__agent_id__batches__batch_run_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/semantic-data-models/{semantic_data_model_id}': {
     parameters: {
       query?: never;
@@ -3760,6 +3811,14 @@ export interface components {
     CreateDataModelRequest: {
       data_model: components['schemas']['DataModelPayload'];
     };
+    /** CreateScenarioBatchRunPayload */
+    CreateScenarioBatchRunPayload: {
+      /**
+       * Num Trials
+       * @default 1
+       */
+      num_trials: number;
+    };
     /** CreateScenarioPayload */
     CreateScenarioPayload: {
       /** Name */
@@ -4240,6 +4299,19 @@ export interface components {
       sheet_name: string | null;
       /** Base Table Table */
       base_table_table: string;
+    };
+    /** EvaluationAggregate */
+    EvaluationAggregate: {
+      /**
+       * Total
+       * @default 0
+       */
+      total: number;
+      /**
+       * Passed
+       * @default 0
+       */
+      passed: number;
     };
     /** ExecuteDataQualityChecksRequest */
     ExecuteDataQualityChecksRequest: {
@@ -6627,6 +6699,79 @@ export interface components {
        */
       updated_at?: string;
     };
+    /** ScenarioBatchRun */
+    ScenarioBatchRun: {
+      /** Batch Run Id */
+      batch_run_id: string;
+      /** Agent Id */
+      agent_id: string;
+      /** User Id */
+      user_id: string;
+      /** Scenario Ids */
+      scenario_ids?: string[];
+      /** @default PENDING */
+      status: components['schemas']['ScenarioBatchRunStatus'];
+      statistics?: components['schemas']['ScenarioBatchRunStatistics'];
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at?: string;
+      /** Completed At */
+      completed_at?: string | null;
+    };
+    /** ScenarioBatchRunStatistics */
+    ScenarioBatchRunStatistics: {
+      /**
+       * Total Scenarios
+       * @default 0
+       */
+      total_scenarios: number;
+      /**
+       * Completed Scenarios
+       * @default 0
+       */
+      completed_scenarios: number;
+      /**
+       * Failed Scenarios
+       * @default 0
+       */
+      failed_scenarios: number;
+      /**
+       * Total Trials
+       * @default 0
+       */
+      total_trials: number;
+      /**
+       * Completed Trials
+       * @default 0
+       */
+      completed_trials: number;
+      /**
+       * Failed Trials
+       * @default 0
+       */
+      failed_trials: number;
+      /** Evaluation Totals */
+      evaluation_totals?: {
+        [key: string]: components['schemas']['EvaluationAggregate'];
+      };
+    };
+    /**
+     * ScenarioBatchRunStatus
+     * @enum {string}
+     */
+    ScenarioBatchRunStatus:
+      | 'PENDING'
+      | 'RUNNING'
+      | 'COMPLETED'
+      | 'FAILED'
+      | 'CANCELED';
     /** ScenarioRun */
     ScenarioRun: {
       /** Scenario Run Id */
@@ -6635,6 +6780,8 @@ export interface components {
       scenario_id: string;
       /** User Id */
       user_id: string;
+      /** Batch Run Id */
+      batch_run_id?: string | null;
       /**
        * Num Trials
        * @default 1
@@ -16222,6 +16369,104 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_agent_batch_run_evals_agents__agent_id__batches_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateScenarioBatchRunPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioBatchRun'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_latest_agent_batch_run_evals_agents__agent_id__batches_latest_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioBatchRun'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_agent_batch_run_evals_agents__agent_id__batches__batch_run_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+        batch_run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioBatchRun'];
         };
       };
       /** @description Validation Error */

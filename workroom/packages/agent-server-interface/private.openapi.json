@@ -7619,6 +7619,145 @@
         }
       }
     },
+    "/evals/agents/{agent_id}/batches": {
+      "post": {
+        "tags": ["evals"],
+        "summary": "Create Agent Batch Run",
+        "operationId": "create_agent_batch_run_evals_agents__agent_id__batches_post",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScenarioBatchRunPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioBatchRun"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evals/agents/{agent_id}/batches/latest": {
+      "get": {
+        "tags": ["evals"],
+        "summary": "Get Latest Agent Batch Run",
+        "operationId": "get_latest_agent_batch_run_evals_agents__agent_id__batches_latest_get",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioBatchRun"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evals/agents/{agent_id}/batches/{batch_run_id}": {
+      "get": {
+        "tags": ["evals"],
+        "summary": "Get Agent Batch Run",
+        "operationId": "get_agent_batch_run_evals_agents__agent_id__batches__batch_run_id__get",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          },
+          {
+            "name": "batch_run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioBatchRun"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/semantic-data-models/{semantic_data_model_id}": {
       "put": {
         "tags": ["semantic-data-models"],
@@ -10192,6 +10331,17 @@
         "required": ["data_model"],
         "title": "CreateDataModelRequest"
       },
+      "CreateScenarioBatchRunPayload": {
+        "properties": {
+          "num_trials": {
+            "type": "integer",
+            "title": "Num Trials",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "title": "CreateScenarioBatchRunPayload"
+      },
       "CreateScenarioPayload": {
         "properties": {
           "name": {
@@ -11441,6 +11591,22 @@
         "type": "object",
         "required": ["logical_table_name", "sheet_name", "base_table_table"],
         "title": "EmptyFileReference"
+      },
+      "EvaluationAggregate": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 0
+          },
+          "passed": {
+            "type": "integer",
+            "title": "Passed",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "EvaluationAggregate"
       },
       "ExecuteDataQualityChecksRequest": {
         "properties": {
@@ -16572,6 +16738,109 @@
         ],
         "title": "Scenario"
       },
+      "ScenarioBatchRun": {
+        "properties": {
+          "batch_run_id": {
+            "type": "string",
+            "title": "Batch Run Id"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "scenario_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scenario Ids"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScenarioBatchRunStatus",
+            "default": "PENDING"
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/ScenarioBatchRunStatistics"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": ["batch_run_id", "agent_id", "user_id"],
+        "title": "ScenarioBatchRun"
+      },
+      "ScenarioBatchRunStatistics": {
+        "properties": {
+          "total_scenarios": {
+            "type": "integer",
+            "title": "Total Scenarios",
+            "default": 0
+          },
+          "completed_scenarios": {
+            "type": "integer",
+            "title": "Completed Scenarios",
+            "default": 0
+          },
+          "failed_scenarios": {
+            "type": "integer",
+            "title": "Failed Scenarios",
+            "default": 0
+          },
+          "total_trials": {
+            "type": "integer",
+            "title": "Total Trials",
+            "default": 0
+          },
+          "completed_trials": {
+            "type": "integer",
+            "title": "Completed Trials",
+            "default": 0
+          },
+          "failed_trials": {
+            "type": "integer",
+            "title": "Failed Trials",
+            "default": 0
+          },
+          "evaluation_totals": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EvaluationAggregate"
+            },
+            "type": "object",
+            "title": "Evaluation Totals"
+          }
+        },
+        "type": "object",
+        "title": "ScenarioBatchRunStatistics"
+      },
+      "ScenarioBatchRunStatus": {
+        "type": "string",
+        "enum": ["PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELED"],
+        "title": "ScenarioBatchRunStatus"
+      },
       "ScenarioRun": {
         "properties": {
           "scenario_run_id": {
@@ -16585,6 +16854,17 @@
           "user_id": {
             "type": "string",
             "title": "User Id"
+          },
+          "batch_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Run Id"
           },
           "num_trials": {
             "type": "integer",

@@ -94,6 +94,72 @@ class TrialStatus(str, Enum):
     CANCELED = "CANCELED"
 
 
+class ScenarioBatchRunStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELED = "CANCELED"
+
+
+@dataclass(frozen=True)
+class EvaluationAggregate:
+    total: int = 0
+    passed: int = 0
+
+    def model_dump(self) -> dict[str, int]:
+        return {"total": self.total, "passed": self.passed}
+
+    @classmethod
+    def model_validate(cls, data: dict | None) -> "EvaluationAggregate":
+        if not data:
+            return cls()
+        return cls(total=int(data.get("total", 0)), passed=int(data.get("passed", 0)))
+
+
+@dataclass(frozen=True)
+class ScenarioBatchRunStatistics:
+    total_scenarios: int = 0
+    completed_scenarios: int = 0
+    failed_scenarios: int = 0
+    total_trials: int = 0
+    completed_trials: int = 0
+    failed_trials: int = 0
+    evaluation_totals: dict[str, EvaluationAggregate] = field(default_factory=dict)
+
+    def model_dump(self) -> dict:
+        return {
+            "total_scenarios": self.total_scenarios,
+            "completed_scenarios": self.completed_scenarios,
+            "failed_scenarios": self.failed_scenarios,
+            "total_trials": self.total_trials,
+            "completed_trials": self.completed_trials,
+            "failed_trials": self.failed_trials,
+            "evaluation_totals": {
+                key: value.model_dump() for key, value in self.evaluation_totals.items()
+            },
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict | None) -> "ScenarioBatchRunStatistics":
+        if not data:
+            return cls()
+        evaluation_totals = data.get("evaluation_totals") or {}
+        parsed_totals = {
+            key: EvaluationAggregate.model_validate(value)
+            for key, value in evaluation_totals.items()
+        }
+        return cls(
+            total_scenarios=int(data.get("total_scenarios", 0)),
+            completed_scenarios=int(data.get("completed_scenarios", 0)),
+            failed_scenarios=int(data.get("failed_scenarios", 0)),
+            total_trials=int(data.get("total_trials", 0)),
+            completed_trials=int(data.get("completed_trials", 0)),
+            failed_trials=int(data.get("failed_trials", 0)),
+            evaluation_totals=parsed_totals,
+        )
+
+
 def parse_evaluation_result(data: dict) -> "EvaluationResult":
     kind = data.get("kind")
     if kind == "flow_adherence":
@@ -314,6 +380,7 @@ class ScenarioRun:
     scenario_run_id: str
     scenario_id: str
     user_id: str
+    batch_run_id: str | None = None
     num_trials: int = 1
     configuration: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
@@ -333,6 +400,8 @@ class ScenarioRun:
             data["scenario_id"] = str(data["scenario_id"])
         if "user_id" in data and isinstance(data["user_id"], UUID):
             data["user_id"] = str(data["user_id"])
+        if "batch_run_id" in data and isinstance(data["batch_run_id"], UUID):
+            data["batch_run_id"] = str(data["batch_run_id"])
 
         if "created_at" in data and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
@@ -349,6 +418,7 @@ class ScenarioRun:
             "scenario_run_id": self.scenario_run_id,
             "scenario_id": self.scenario_id,
             "user_id": self.user_id,
+            "batch_run_id": self.batch_run_id,
             "num_trials": self.num_trials,
             "configuration": self.configuration,
             "created_at": self.created_at,
@@ -356,3 +426,69 @@ class ScenarioRun:
 
     def with_trials(self, trials: list[Trial]) -> "ScenarioRun":
         return replace(self, trials=trials)
+
+
+@dataclass(frozen=True)
+class ScenarioBatchRun:
+    batch_run_id: str
+    agent_id: str
+    user_id: str
+    scenario_ids: list[str] = field(default_factory=list)
+    status: ScenarioBatchRunStatus = ScenarioBatchRunStatus.PENDING
+    statistics: ScenarioBatchRunStatistics = field(default_factory=ScenarioBatchRunStatistics)
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+    completed_at: datetime | None = None
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "ScenarioBatchRun":  # noqa: C901
+        data = data.copy()
+
+        if "batch_run_id" in data and isinstance(data["batch_run_id"], UUID):
+            data["batch_run_id"] = str(data["batch_run_id"])
+        if "agent_id" in data and isinstance(data["agent_id"], UUID):
+            data["agent_id"] = str(data["agent_id"])
+        if "user_id" in data and isinstance(data["user_id"], UUID):
+            data["user_id"] = str(data["user_id"])
+
+        for key in ("created_at", "updated_at", "completed_at"):
+            value = data.get(key)
+            if isinstance(value, str):
+                data[key] = datetime.fromisoformat(value)
+
+        scenario_ids = data.get("scenario_ids")
+        if isinstance(scenario_ids, str):
+            try:
+                scenario_ids = json.loads(scenario_ids)
+            except json.JSONDecodeError:
+                scenario_ids = []
+        if scenario_ids is None:
+            scenario_ids = []
+        data["scenario_ids"] = [str(sid) for sid in scenario_ids]
+
+        statistics = data.get("statistics")
+        if isinstance(statistics, str):
+            try:
+                statistics = json.loads(statistics)
+            except json.JSONDecodeError:
+                statistics = {}
+        data["statistics"] = ScenarioBatchRunStatistics.model_validate(statistics)
+
+        status = data.get("status")
+        if isinstance(status, str):
+            data["status"] = ScenarioBatchRunStatus(status)
+
+        return cls(**data)
+
+    def model_dump(self) -> dict:
+        return {
+            "batch_run_id": self.batch_run_id,
+            "agent_id": self.agent_id,
+            "user_id": self.user_id,
+            "scenario_ids": self.scenario_ids,
+            "status": self.status.value,
+            "statistics": self.statistics.model_dump(),
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "completed_at": self.completed_at,
+        }

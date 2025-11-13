@@ -1,4 +1,5 @@
 import type { components } from '@sema4ai/agent-server-interface';
+import type { ScenarioBatchRunStatistics, ScenarioBatchRunStatus } from '../../../../queries/evals';
 
 // Use raw API types directly
 export type Scenario = components['schemas']['Scenario'];
@@ -18,4 +19,12 @@ export interface EvaluationItem {
   currentRunIndex: number;
   currentRun: ScenarioRun | null;
   isRunning: boolean;
+}
+
+export interface BatchSummary {
+  batchRunId: string;
+  createdAt: string;
+  status: ScenarioBatchRunStatus;
+  statistics: ScenarioBatchRunStatistics;
+  numTrials: number;
 }
