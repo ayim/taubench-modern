@@ -285,6 +285,10 @@
             {
               "name": "SEMA4AI_WORKROOM_FILES_AZURE_CLIENT_ID",
               "secretRef": "uai-client-id"
+            },
+            {
+              "name": "SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL",
+              "value": ""
             }
           ],
           "resources": {
