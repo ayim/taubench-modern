@@ -4,6 +4,9 @@ from typing import Any, ClassVar
 
 from agent_platform.core.integrations.settings.base import IntegrationSettings
 from agent_platform.core.integrations.settings.data_server import DataServerSettings
+from agent_platform.core.integrations.settings.observability import (
+    ObservabilityIntegrationSettings,
+)
 from agent_platform.core.integrations.settings.reducto import ReductoSettings
 from agent_platform.core.integrations.settings.unhandled import UnhandledIntegrationSettings
 
@@ -13,6 +16,7 @@ class IntegrationSettingsFactory:
 
     _settings_classes: ClassVar[dict[str, type[IntegrationSettings]]] = {
         "data_server": DataServerSettings,
+        "observability": ObservabilityIntegrationSettings,
         "reducto": ReductoSettings,
     }
 

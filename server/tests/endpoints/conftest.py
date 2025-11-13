@@ -11,6 +11,7 @@ from agent_platform.server.api.private_v2 import (
     data_connections,
     evals,
     mcp_servers,
+    observability,
     platforms,
 )
 from agent_platform.server.api.private_v2 import (
@@ -88,6 +89,7 @@ def fastapi_app(storage, stub_user) -> FastAPI:
     app.include_router(mcp_servers.router, prefix="/api/v2/private/mcp-servers")
     app.include_router(platforms.router, prefix="/api/v2/private/platforms")
     app.include_router(data_connections.router, prefix="/api/v2/private/data-connections")
+    app.include_router(observability.router, prefix="/api/v2")
     app.include_router(evals.router, prefix="/api/v2/evals")
     app.dependency_overrides[auth_user] = lambda: stub_user
     add_exception_handlers(app)

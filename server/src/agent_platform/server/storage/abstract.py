@@ -691,13 +691,25 @@ class AbstractStorage(ABC):
         """Update (or insert) an integration."""
 
     @abstractmethod
+    async def get_integration(self, integration_id: str) -> Integration:
+        """Get an integration by its ID."""
+
+    @abstractmethod
     async def get_integration_by_kind(self, kind: str) -> Integration:
         """Get an integration by its kind."""
+
+    @abstractmethod
+    async def delete_integration_by_id(self, integration_id: str) -> None:
+        """Delete an integration by its ID."""
 
     @abstractmethod
     async def delete_integration(self, kind: str) -> None:
         """Delete an integration by its kind."""
 
     @abstractmethod
-    async def list_integrations(self) -> list[Integration]:
-        """List all integrations."""
+    async def list_integrations(
+        self,
+        *,
+        kind: str | None = None,
+    ) -> list[Integration]:
+        """List integrations optionally filtered by kind."""

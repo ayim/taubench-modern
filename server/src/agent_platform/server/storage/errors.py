@@ -252,9 +252,19 @@ class TrialNotFoundError(PlatformHTTPError):
 
 
 class IntegrationNotFoundError(PlatformHTTPError):
-    """An integration with the given kind was not found."""
+    """Raised when an integration cannot be found by the requested identifier."""
 
     def __init__(
-        self, kind: str, message: str = "An integration with the given kind was not found"
+        self,
+        identifier: str,
+        *,
+        by: str = "kind",
+        message: str | None = None,
     ):
-        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message, data={"kind": kind})
+        if by not in {"kind", "id"}:
+            raise ValueError("IntegrationNotFoundError 'by' must be either 'kind' or 'id'")
+
+        if message is None:
+            message = f"An integration with the given {by} was not found"
+
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message, data={by: identifier})

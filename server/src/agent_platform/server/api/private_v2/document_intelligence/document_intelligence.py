@@ -261,8 +261,15 @@ async def upsert_document_intelligence(
         endpoints=data_server_endpoints,
     )
 
+    try:
+        existing_data_server = await storage.get_integration_by_kind(IntegrationKind.DATA_SERVER)
+        data_server_id = existing_data_server.id
+    except IntegrationNotFoundError:
+        # We don't have an existing data server integration, so create a new one.
+        data_server_id = str(uuid4())
+
     data_server_integration = Integration(
-        id=str(uuid4()), kind="data_server", settings=data_server_settings
+        id=data_server_id, kind="data_server", settings=data_server_settings
     )
     await storage.upsert_integration(data_server_integration)
 
@@ -281,8 +288,18 @@ async def upsert_document_intelligence(
             external_id=integration_input.external_id,
         )
 
+        integration_kind = str(integration_input.type)
+        try:
+            existing_integration = await storage.get_integration_by_kind(integration_kind)
+            integration_id = existing_integration.id
+        except IntegrationNotFoundError:
+            # We don't have an existing reducto integration, so create a new one.
+            integration_id = str(uuid4())
+
         doc_int_integration = Integration(
-            id=str(uuid4()), kind=str(integration_input.type), settings=reducto_settings
+            id=integration_id,
+            kind=integration_kind,
+            settings=reducto_settings,
         )
         await storage.upsert_integration(doc_int_integration)
 

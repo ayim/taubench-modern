@@ -173,6 +173,17 @@ function getRouteMap(): {
     'get /api/v2/agents/{aid}/data-connections': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/agents/{aid}/data-connections': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
 
+    'get /api/v2/observability/integrations': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/observability/integrations': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'get /api/v2/observability/integrations/{integration_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'put /api/v2/observability/integrations/{integration_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'delete /api/v2/observability/integrations/{integration_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/observability/integrations/{integration_id}/validate': [
+      ALLOWED,
+      SIGN_WITH_USER,
+      agentReadPermissions,
+    ],
+
     'get /api/v2/semantic-data-models/{semantic_data_model_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/semantic-data-models/{semantic_data_model_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'delete /api/v2/semantic-data-models/{semantic_data_model_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],

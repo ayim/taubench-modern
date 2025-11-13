@@ -50,11 +50,29 @@ class Integration(TolerantDataclass):
     )
     """Timestamp when the integration was last updated"""
 
+    description: str | None = field(
+        default=None,
+        metadata={
+            "description": "Optional human-friendly description for the integration",
+        },
+    )
+    """Optional human-friendly description for the integration"""
+
+    version: str | None = field(
+        default=None,
+        metadata={
+            "description": "Optional version identifier for the integration",
+        },
+    )
+    """Optional version identifier for the integration"""
+
     def model_dump(self, *, mode: str = "python") -> dict[str, Any]:
         """Convert the integration to a dictionary."""
         result = {
             "id": self.id,
             "kind": self.kind,
+            "description": self.description,
+            "version": self.version,
             "settings": self.settings.model_dump(),
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -89,6 +107,8 @@ class Integration(TolerantDataclass):
         return cls(
             id=data["id"],
             kind=data["kind"],
+            description=data.get("description"),
+            version=data.get("version"),
             settings=settings,
             created_at=created_at,
             updated_at=updated_at,

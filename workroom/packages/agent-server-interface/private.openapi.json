@@ -3690,6 +3690,276 @@
         }
       }
     },
+    "/observability/integrations": {
+      "get": {
+        "tags": ["observability-integrations", "observability-integrations"],
+        "summary": "List Observability Integrations",
+        "description": "List observability integrations, optionally filtered by provider.",
+        "operationId": "list_observability_integrations_observability_integrations_get",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ObservabilityIntegrationResponse"
+                  },
+                  "title": "Response List Observability Integrations Observability Integrations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["observability-integrations", "observability-integrations"],
+        "summary": "Create Observability Integration",
+        "description": "Create a new observability integration.",
+        "operationId": "create_observability_integration_observability_integrations_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObservabilityIntegrationUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservabilityIntegrationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/observability/integrations/{integration_id}": {
+      "get": {
+        "tags": ["observability-integrations", "observability-integrations"],
+        "summary": "Get Observability Integration",
+        "description": "Get an observability integration by ID.",
+        "operationId": "get_observability_integration_observability_integrations__integration_id__get",
+        "parameters": [
+          {
+            "name": "integration_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Integration Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservabilityIntegrationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["observability-integrations", "observability-integrations"],
+        "summary": "Update Observability Integration",
+        "description": "Update an observability integration.",
+        "operationId": "update_observability_integration_observability_integrations__integration_id__put",
+        "parameters": [
+          {
+            "name": "integration_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Integration Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObservabilityIntegrationUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservabilityIntegrationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["observability-integrations", "observability-integrations"],
+        "summary": "Delete Observability Integration",
+        "description": "Delete an observability integration.",
+        "operationId": "delete_observability_integration_observability_integrations__integration_id__delete",
+        "parameters": [
+          {
+            "name": "integration_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Integration Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/observability/integrations/{integration_id}/validate": {
+      "post": {
+        "tags": ["observability-integrations", "observability-integrations"],
+        "summary": "Validate Observability Integration",
+        "description": "Validate an observability integration (placeholder implementation).",
+        "operationId": "validate_observability_integration_observability_integrations__integration_id__validate_post",
+        "parameters": [
+          {
+            "name": "integration_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Integration Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ObservabilityValidateOverride"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Override"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservabilityValidateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/document-intelligence/ok": {
       "get": {
         "tags": ["document-intelligence"],
@@ -12427,6 +12697,41 @@
         "title": "GooglePlatformParameters",
         "required": ["platform_id"]
       },
+      "GrafanaObservabilitySettings": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Full OTLP traces endpoint"
+          },
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/SecretString"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key",
+            "description": "Grafana API key or token."
+          },
+          "custom_attributes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Custom Attributes",
+            "description": "Optional custom attributes appended to telemetry payloads."
+          }
+        },
+        "type": "object",
+        "required": ["url"],
+        "title": "GrafanaObservabilitySettings"
+      },
       "GroqPlatformParameters": {
         "properties": {
           "kind": {
@@ -12795,6 +13100,38 @@
         "enum": ["parse", "extract", "split"],
         "title": "JobType",
         "description": "Types of jobs that can be submitted for async processing."
+      },
+      "LangSmithObservabilitySettings": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "LangSmith OTLP endpoint"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name",
+            "description": "LangSmith project name."
+          },
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/SecretString"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key",
+            "description": "LangSmith API key."
+          }
+        },
+        "type": "object",
+        "required": ["url", "project_name"],
+        "title": "LangSmithObservabilitySettings"
       },
       "ListMCPToolsRequest": {
         "properties": {
@@ -14161,6 +14498,189 @@
         "type": "object",
         "required": ["type"],
         "title": "ObservabilityConfig"
+      },
+      "ObservabilityIntegrationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "The UUID of the integration."
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ObservabilitySettings",
+            "description": "Provider settings."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Timestamp when the integration was created."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Timestamp when the integration was last updated."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional description for the integration."
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "Optional version of the integration."
+          },
+          "kind": {
+            "type": "string",
+            "const": "observability",
+            "title": "Kind",
+            "description": "Integration kind (always observability).",
+            "default": "observability"
+          }
+        },
+        "type": "object",
+        "required": ["id", "settings", "created_at", "updated_at"],
+        "title": "ObservabilityIntegrationResponse"
+      },
+      "ObservabilityIntegrationUpsertRequest": {
+        "properties": {
+          "settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservabilitySettings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Provider settings."
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "Optional version of the integration."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional description for the integration."
+          }
+        },
+        "type": "object",
+        "title": "ObservabilityIntegrationUpsertRequest"
+      },
+      "ObservabilitySettings": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["grafana", "langsmith"],
+            "title": "Kind"
+          },
+          "provider_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GrafanaObservabilitySettings"
+              },
+              {
+                "$ref": "#/components/schemas/LangSmithObservabilitySettings"
+              }
+            ],
+            "title": "Provider Settings"
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": ["kind", "provider_settings"],
+        "title": "ObservabilitySettings"
+      },
+      "ObservabilityValidateOverride": {
+        "properties": {
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Optional override for OTLP endpoint during validation."
+          }
+        },
+        "type": "object",
+        "title": "ObservabilityValidateOverride"
+      },
+      "ObservabilityValidateResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether validation succeeded."
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Human-readable summary of validation outcome."
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details",
+            "description": "Provider-specific diagnostics (e.g., status code, latency)."
+          }
+        },
+        "type": "object",
+        "required": ["success"],
+        "title": "ObservabilityValidateResponse"
       },
       "OpenAIEmbeddingModel": {
         "properties": {

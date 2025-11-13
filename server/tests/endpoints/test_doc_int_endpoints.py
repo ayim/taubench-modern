@@ -46,6 +46,9 @@ from agent_platform.core.payloads.document_intelligence import (
     ParseDocumentResponsePayload,
     ParseJobResult,
 )
+from agent_platform.core.payloads.document_intelligence_config import (
+    DocumentIntelligenceConfigPayload,
+)
 from agent_platform.core.payloads.upsert_document_layout import DocumentLayoutPayload
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import (
@@ -169,6 +172,113 @@ def create_mock_get_integration_by_kind(
             raise IntegrationNotFoundError(kind)
 
     return AsyncMock(side_effect=mock_get_integration_by_kind)
+
+
+@pytest.mark.asyncio
+async def test_upsert_document_intelligence_reuses_singleton_integrations(storage, monkeypatch):
+    """Ensure the upsert endpoint logic keeps a single data_server and reducto integration."""
+
+    StorageService.reset()
+    StorageService.set_for_testing(storage)
+
+    monkeypatch.setattr(
+        document_intelligence,
+        "_build_datasource",
+        AsyncMock(),
+    )
+
+    payload_template = {
+        "data_server": {
+            "credentials": {"username": "docint-user", "password": None},
+            "api": {
+                "http": {"url": "http://127.0.0.1", "port": 47334},
+                "mysql": {"host": "127.0.0.1", "port": 5432},
+            },
+        },
+        "integrations": [
+            {
+                "type": IntegrationKind.REDUCTO.value,
+                "endpoint": "https://reducto.example.com",
+                "api_key": None,
+                "external_id": "workspace-123",
+            }
+        ],
+    }
+
+    first_payload_dict = {
+        **payload_template,
+        "data_server": {
+            **payload_template["data_server"],
+            "credentials": {"username": "docint-user", "password": "pass-1"},
+        },
+        "integrations": [
+            {
+                **payload_template["integrations"][0],
+                "api_key": "secret-1",
+            }
+        ],
+    }
+    first_payload = DocumentIntelligenceConfigPayload.model_validate(first_payload_dict)
+    await document_intelligence.upsert_document_intelligence(first_payload, storage)
+
+    integrations_after_first = await storage.list_integrations()
+    data_server_first = [
+        integration
+        for integration in integrations_after_first
+        if IntegrationKind(integration.kind) == IntegrationKind.DATA_SERVER
+    ]
+    reducto_first = [
+        integration
+        for integration in integrations_after_first
+        if IntegrationKind(integration.kind) == IntegrationKind.REDUCTO
+    ]
+
+    assert len(data_server_first) == 1
+    assert len(reducto_first) == 1
+
+    data_server_id = data_server_first[0].id
+    reducto_id = reducto_first[0].id
+
+    second_payload_dict = {
+        **payload_template,
+        "data_server": {
+            **payload_template["data_server"],
+            "credentials": {"username": "docint-user", "password": "pass-2"},
+        },
+        "integrations": [
+            {
+                **payload_template["integrations"][0],
+                "api_key": "secret-2",
+            }
+        ],
+    }
+    second_payload = DocumentIntelligenceConfigPayload.model_validate(second_payload_dict)
+    await document_intelligence.upsert_document_intelligence(second_payload, storage)
+
+    integrations_after_second = await storage.list_integrations()
+    data_server_second = [
+        integration
+        for integration in integrations_after_second
+        if IntegrationKind(integration.kind) == IntegrationKind.DATA_SERVER
+    ]
+    reducto_second = [
+        integration
+        for integration in integrations_after_second
+        if IntegrationKind(integration.kind) == IntegrationKind.REDUCTO
+    ]
+
+    assert len(data_server_second) == 1
+    assert len(reducto_second) == 1
+
+    updated_data_server = data_server_second[0]
+    updated_reducto = reducto_second[0]
+
+    assert updated_data_server.id == data_server_id
+    assert updated_reducto.id == reducto_id
+    assert updated_data_server.settings.password == "pass-2"
+    assert updated_reducto.settings.api_key == "secret-2"
+
+    StorageService.reset()
 
 
 @pytest.fixture

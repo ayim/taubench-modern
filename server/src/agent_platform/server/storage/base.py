@@ -10,6 +10,8 @@ from types import TracebackType
 from typing import Any, Protocol, TypedDict, cast, runtime_checkable
 
 import sqlalchemy as sa
+from sqlalchemy.engine import RowMapping
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import JSON
@@ -19,6 +21,7 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_frames import PlatformDataFrame
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.evals.types import (
     EvaluationResult,
     ExecutionState,
@@ -1827,6 +1830,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
         integrations = self._get_table("integration")
         integration_dict = integration.model_dump()
 
+        # Normalize optional fields
+        integration_dict["description"] = integration_dict.get("description")
+        integration_dict["version"] = integration_dict.get("version")
+
         # Encrypt the settings
         integration_dict["enc_settings"] = self._encrypt_config(integration_dict["settings"])
         integration_dict.pop("settings")
@@ -1843,38 +1850,77 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
             upsert_stmt = insert(integrations).values(integration_dict)
             upsert_stmt = upsert_stmt.on_conflict_do_update(
-                index_elements=[integrations.c.kind],
+                index_elements=[integrations.c.id],
                 set_={
                     "enc_settings": upsert_stmt.excluded.enc_settings,
+                    "description": upsert_stmt.excluded.description,
+                    "version": upsert_stmt.excluded.version,
                     "updated_at": upsert_stmt.excluded.updated_at,
                 },
             )
 
-            await conn.execute(upsert_stmt)
+            try:
+                await conn.execute(upsert_stmt)
+            except IntegrityError as exc:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="Unexpected database integrity error",
+                    data={
+                        "error": str(exc),
+                    },
+                ) from exc
+
+    def _row_to_integration(self, row: RowMapping) -> Integration:
+        row_dict = dict(row)
+        settings_dict = self._decrypt_config(row_dict["enc_settings"])
+        return Integration.model_validate(
+            {
+                "id": str(row_dict["id"]),
+                "kind": row_dict["kind"],
+                "description": row_dict.get("description"),
+                "version": row_dict.get("version"),
+                "settings": settings_dict,
+                "created_at": row_dict["created_at"],
+                "updated_at": row_dict["updated_at"],
+            }
+        )
+
+    async def get_integration(self, integration_id: str) -> Integration:
+        integrations = self._get_table("integration")
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(
+                sa.select(integrations).where(integrations.c.id == integration_id)
+            )
+            row = result.mappings().fetchone()
+
+        if row is None:
+            raise IntegrationNotFoundError(integration_id, by="id")
+
+        return self._row_to_integration(row)
 
     async def get_integration_by_kind(self, kind: str) -> Integration:
         """Get an integration by its kind."""
         integrations = self._get_table("integration")
 
-        async with self._write_connection() as conn:
+        async with self._read_connection() as conn:
             result = await conn.execute(sa.select(integrations).where(integrations.c.kind == kind))
             row = result.mappings().fetchone()
 
             if row is None:
-                raise IntegrationNotFoundError(kind)
+                raise IntegrationNotFoundError(kind, by="kind")
 
-        # Decrypt settings
-        settings_dict = self._decrypt_config(row["enc_settings"])
+        return self._row_to_integration(row)
 
-        return Integration.model_validate(
-            {
-                "id": str(row["id"]),
-                "kind": row["kind"],
-                "settings": settings_dict,
-                "created_at": row["created_at"],
-                "updated_at": row["updated_at"],
-            }
-        )
+    async def delete_integration_by_id(self, integration_id: str) -> None:
+        integrations = self._get_table("integration")
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(
+                sa.delete(integrations).where(integrations.c.id == integration_id)
+            )
+            if result.rowcount == 0:
+                raise IntegrationNotFoundError(integration_id, by="id")
 
     async def delete_integration(self, kind: str) -> None:
         """Delete an integration by its kind."""
@@ -1883,32 +1929,23 @@ class BaseStorage(AbstractStorage, CommonMixin):
         async with self._write_connection() as conn:
             result = await conn.execute(sa.delete(integrations).where(integrations.c.kind == kind))
             if result.rowcount == 0:
-                raise IntegrationNotFoundError(kind)
+                raise IntegrationNotFoundError(kind, by="kind")
 
-    async def list_integrations(self) -> list[Integration]:
-        """List all integrations."""
+    async def list_integrations(self, *, kind: str | None = None) -> list[Integration]:
+        """List integrations optionally filtered by kind."""
         integrations = self._get_table("integration")
 
-        async with self._write_connection() as conn:
-            result = await conn.execute(sa.select(integrations))
+        query = sa.select(integrations)
+        if kind is not None:
+            query = query.where(integrations.c.kind == kind)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(query)
             rows = result.mappings().fetchall()
 
         integration_list = []
         for row in rows:
-            # Decrypt settings
-            settings_dict = self._decrypt_config(row["enc_settings"])
-
-            integration_list.append(
-                Integration.model_validate(
-                    {
-                        "id": str(row["id"]),
-                        "kind": row["kind"],
-                        "settings": settings_dict,
-                        "created_at": row["created_at"],
-                        "updated_at": row["updated_at"],
-                    }
-                )
-            )
+            integration_list.append(self._row_to_integration(row))
 
         return integration_list
 

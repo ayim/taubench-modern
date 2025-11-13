@@ -14,6 +14,9 @@ from agent_platform.server.api.private_v2.document_intelligence.document_intelli
 )
 from agent_platform.server.api.private_v2.evals import router as evals_router
 from agent_platform.server.api.private_v2.mcp_servers import router as mcp_servers_router
+from agent_platform.server.api.private_v2.observability import (
+    router as observability_router,
+)
 from agent_platform.server.api.private_v2.package import router as package_router
 from agent_platform.server.api.private_v2.platforms import router as platforms_router
 from agent_platform.server.api.private_v2.prompt import router as prompt_router
@@ -84,6 +87,10 @@ router.include_router(
     config_router,
     prefix="/config",
     tags=["config"],
+)
+router.include_router(
+    observability_router,
+    tags=["observability-integrations"],
 )
 router.include_router(
     document_intelligence_router,

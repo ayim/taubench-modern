@@ -1139,6 +1139,78 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/observability/integrations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Observability Integrations
+     * @description List observability integrations, optionally filtered by provider.
+     */
+    get: operations['list_observability_integrations_observability_integrations_get'];
+    put?: never;
+    /**
+     * Create Observability Integration
+     * @description Create a new observability integration.
+     */
+    post: operations['create_observability_integration_observability_integrations_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/observability/integrations/{integration_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Observability Integration
+     * @description Get an observability integration by ID.
+     */
+    get: operations['get_observability_integration_observability_integrations__integration_id__get'];
+    /**
+     * Update Observability Integration
+     * @description Update an observability integration.
+     */
+    put: operations['update_observability_integration_observability_integrations__integration_id__put'];
+    post?: never;
+    /**
+     * Delete Observability Integration
+     * @description Delete an observability integration.
+     */
+    delete: operations['delete_observability_integration_observability_integrations__integration_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/observability/integrations/{integration_id}/validate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Validate Observability Integration
+     * @description Validate an observability integration (placeholder implementation).
+     */
+    post: operations['validate_observability_integration_observability_integrations__integration_id__validate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/ok': {
     parameters: {
       query?: never;
@@ -4654,6 +4726,26 @@ export interface components {
       /** @description The Google API key. If not provided, it will be attempted to be inferred from the environment. */
       google_api_key?: components['schemas']['SecretString'] | null;
     };
+    /** GrafanaObservabilitySettings */
+    GrafanaObservabilitySettings: {
+      /**
+       * Url
+       * @description Full OTLP traces endpoint
+       */
+      url: string;
+      /**
+       * Api Key
+       * @description Grafana API key or token.
+       */
+      api_key?: string | components['schemas']['SecretString'] | null;
+      /**
+       * Custom Attributes
+       * @description Optional custom attributes appended to telemetry payloads.
+       */
+      custom_attributes?: {
+        [key: string]: string;
+      };
+    };
     /** GroqPlatformParameters */
     GroqPlatformParameters: {
       /**
@@ -4837,6 +4929,24 @@ export interface components {
      * @enum {string}
      */
     JobType: 'parse' | 'extract' | 'split';
+    /** LangSmithObservabilitySettings */
+    LangSmithObservabilitySettings: {
+      /**
+       * Url
+       * @description LangSmith OTLP endpoint
+       */
+      url: string;
+      /**
+       * Project Name
+       * @description LangSmith project name.
+       */
+      project_name: string;
+      /**
+       * Api Key
+       * @description LangSmith API key.
+       */
+      api_key?: string | components['schemas']['SecretString'] | null;
+    };
     /** ListMCPToolsRequest */
     ListMCPToolsRequest: {
       /**
@@ -5365,6 +5475,105 @@ export interface components {
       settings?: {
         [key: string]: unknown;
       };
+    };
+    /** ObservabilityIntegrationResponse */
+    ObservabilityIntegrationResponse: {
+      /**
+       * Id
+       * @description The UUID of the integration.
+       */
+      id: string;
+      /** @description Provider settings. */
+      settings: components['schemas']['ObservabilitySettings'];
+      /**
+       * Created At
+       * Format: date-time
+       * @description Timestamp when the integration was created.
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description Timestamp when the integration was last updated.
+       */
+      updated_at: string;
+      /**
+       * Description
+       * @description Optional description for the integration.
+       */
+      description?: string | null;
+      /**
+       * Version
+       * @description Optional version of the integration.
+       */
+      version?: string | null;
+      /**
+       * Kind
+       * @description Integration kind (always observability).
+       * @default observability
+       * @constant
+       */
+      kind: 'observability';
+    };
+    /** ObservabilityIntegrationUpsertRequest */
+    ObservabilityIntegrationUpsertRequest: {
+      /** @description Provider settings. */
+      settings?: components['schemas']['ObservabilitySettings'] | null;
+      /**
+       * Version
+       * @description Optional version of the integration.
+       */
+      version?: string | null;
+      /**
+       * Description
+       * @description Optional description for the integration.
+       */
+      description?: string | null;
+    };
+    /** ObservabilitySettings */
+    ObservabilitySettings: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'grafana' | 'langsmith';
+      /** Provider Settings */
+      provider_settings:
+        | components['schemas']['GrafanaObservabilitySettings']
+        | components['schemas']['LangSmithObservabilitySettings'];
+      /**
+       * Is Enabled
+       * @default true
+       */
+      is_enabled: boolean;
+    };
+    /** ObservabilityValidateOverride */
+    ObservabilityValidateOverride: {
+      /**
+       * Url
+       * @description Optional override for OTLP endpoint during validation.
+       */
+      url?: string | null;
+    };
+    /** ObservabilityValidateResponse */
+    ObservabilityValidateResponse: {
+      /**
+       * Success
+       * @description Whether validation succeeded.
+       */
+      success: boolean;
+      /**
+       * Message
+       * @description Human-readable summary of validation outcome.
+       */
+      message?: string | null;
+      /**
+       * Details
+       * @description Provider-specific diagnostics (e.g., status code, latency).
+       */
+      details?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** OpenAIEmbeddingModel */
     OpenAIEmbeddingModel: {
@@ -13921,6 +14130,202 @@ export interface operations {
           'application/json': {
             [key: string]: string;
           };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_observability_integrations_observability_integrations_get: {
+    parameters: {
+      query?: {
+        provider?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityIntegrationResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_observability_integration_observability_integrations_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ObservabilityIntegrationUpsertRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityIntegrationResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_observability_integration_observability_integrations__integration_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        integration_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityIntegrationResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  update_observability_integration_observability_integrations__integration_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        integration_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ObservabilityIntegrationUpsertRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityIntegrationResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_observability_integration_observability_integrations__integration_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        integration_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  validate_observability_integration_observability_integrations__integration_id__validate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        integration_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json':
+          | components['schemas']['ObservabilityValidateOverride']
+          | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityValidateResponse'];
         };
       };
       /** @description Validation Error */

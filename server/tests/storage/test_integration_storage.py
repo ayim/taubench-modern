@@ -38,7 +38,11 @@ async def test_integration_crud_operations(storage) -> None:
     )
 
     data_server_integration = Integration(
-        id=integration_id, kind="data_server", settings=data_server_settings
+        id=integration_id,
+        kind="data_server",
+        settings=data_server_settings,
+        description="Primary data server",
+        version="1",
     )
 
     await storage.upsert_integration(data_server_integration)
@@ -47,6 +51,11 @@ async def test_integration_crud_operations(storage) -> None:
     assert fetched_integration.kind == IntegrationKind.DATA_SERVER
     assert fetched_integration.settings.model_dump() == data_server_settings.model_dump()
     assert fetched_integration.id == integration_id
+    assert fetched_integration.description == "Primary data server"
+    assert fetched_integration.version == "1"
+
+    fetched_by_id = await storage.get_integration(integration_id)
+    assert fetched_by_id.id == integration_id
 
     integrations = await storage.list_integrations()
     assert len(integrations) == 1
@@ -58,14 +67,25 @@ async def test_integration_crud_operations(storage) -> None:
         endpoints=[DataServerEndpoint(host="new-api.dataserver.com", port=443, kind="http")],
     )
     updated_integration = Integration(
-        id=integration_id, kind="data_server", settings=updated_settings
+        id=integration_id,
+        kind="data_server",
+        settings=updated_settings,
+        description="Primary data server",
+        version="2",
     )
     await storage.upsert_integration(updated_integration)
 
     fetched_updated = await storage.get_integration_by_kind("data_server")
     assert fetched_updated.settings.model_dump() == updated_settings.model_dump()
+    assert fetched_updated.version == "2"
 
-    reducto_integration = Integration(id=str(uuid4()), kind="reducto", settings=reducto_settings)
+    reducto_integration = Integration(
+        id=str(uuid4()),
+        kind="reducto",
+        settings=reducto_settings,
+        description="Agent level observability",
+        version="beta",
+    )
     await storage.upsert_integration(reducto_integration)
 
     all_integrations = await storage.list_integrations()
@@ -73,11 +93,19 @@ async def test_integration_crud_operations(storage) -> None:
     kinds = {integration.kind for integration in all_integrations}
     assert kinds == {IntegrationKind.DATA_SERVER, IntegrationKind.REDUCTO}
 
+    filtered_data_server = await storage.list_integrations(kind="data_server")
+    assert len(filtered_data_server) == 1
+    assert filtered_data_server[0].version == "2"
+
     await storage.delete_integration(IntegrationKind.DATA_SERVER)
 
     remaining_integrations = await storage.list_integrations()
     assert len(remaining_integrations) == 1
     assert remaining_integrations[0].kind == IntegrationKind.REDUCTO
+
+    await storage.delete_integration_by_id(reducto_integration.id)
+
+    assert await storage.list_integrations() == []
 
     with pytest.raises(IntegrationNotFoundError):
         await storage.get_integration_by_kind(IntegrationKind.DATA_SERVER)
@@ -85,10 +113,13 @@ async def test_integration_crud_operations(storage) -> None:
     with pytest.raises(IntegrationNotFoundError):
         await storage.delete_integration("non_existent_kind")
 
+    with pytest.raises(IntegrationNotFoundError):
+        await storage.delete_integration_by_id(str(uuid4()))
+
 
 @pytest.mark.asyncio
-async def test_integration_unique_kind_constraint(storage) -> None:
-    """Test that only one integration per kind can exist."""
+async def test_integration_allows_multiple_same_kind(storage) -> None:
+    """Test that duplicate kind rows are permitted for different integrations."""
 
     settings1 = DataServerSettings(
         username="user1",
@@ -108,17 +139,46 @@ async def test_integration_unique_kind_constraint(storage) -> None:
         endpoints=[DataServerEndpoint(host="api2.com", port=443, kind="http")],
     )
     integration2 = Integration(
-        id=str(uuid4()),
+        id=integration1.id,
         kind="data_server",
         settings=settings2,
     )
 
     await storage.upsert_integration(integration2)
 
+    agent_settings = DataServerSettings(
+        username="agent",
+        password="agent-pass",
+        endpoints=[DataServerEndpoint(host="api-agent.com", port=443, kind="http")],
+    )
+    agent_integration = Integration(
+        id=str(uuid4()),
+        kind="data_server",
+        settings=agent_settings,
+    )
+    await storage.upsert_integration(agent_integration)
+
+    another_agent_settings = DataServerSettings(
+        username="second-agent",
+        password="agent-pass-2",
+        endpoints=[DataServerEndpoint(host="api-agent-2.com", port=443, kind="http")],
+    )
+    another_agent_integration = Integration(
+        id=str(uuid4()),
+        kind="data_server",
+        settings=another_agent_settings,
+    )
+    await storage.upsert_integration(another_agent_integration)
+
     integrations = await storage.list_integrations()
-    assert len(integrations) == 1
-    assert integrations[0].settings.model_dump() == settings2.model_dump()
-    assert integrations[0].id == integration1.id
+    assert len(integrations) == 3
+
+    assert any(i.id == integration1.id for i in integrations)
+    assert {i.settings.model_dump_json() for i in integrations} == {
+        settings2.model_dump_json(),
+        agent_settings.model_dump_json(),
+        another_agent_settings.model_dump_json(),
+    }
 
 
 @pytest.mark.asyncio
