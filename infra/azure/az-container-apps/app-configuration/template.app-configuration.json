@@ -203,6 +203,10 @@
               "value": "DEBUG"
             },
             {
+              "name": "SEMA4AI_WORKROOM_LOG_LEVEL",
+              "value": "DEBUG"
+            },
+            {
               "name": "POSTGRES_DB",
               "value": "${DB_NAME}"
             },
@@ -237,6 +241,10 @@
             {
               "name": "SEMA4AI_WORKROOM_AUTH_MODE",
               "value": "oidc"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE",
+              "value": "perry@sema4.ai;karri@sema4.ai;ben@sema4.ai"
             },
             {
               "name": "AUTH_TYPE",
