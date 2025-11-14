@@ -138,7 +138,7 @@ def _build_work_item_url(work_item: WorkItem) -> str | None:
         url = getenv("SEMA4AI_AGENT_SERVER_WORKROOM_URL")
         if url:
             return _build_legacy_work_item_url(url, pieces)
-    logger.warning("No workroom URL found. Returning None.")
+    # No workroom URL is expected in Studio.
     return None
 
 

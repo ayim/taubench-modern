@@ -1,6 +1,4 @@
-import asyncio
 import itertools
-import math
 from collections import defaultdict
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -91,7 +89,7 @@ def patch_worker_settings(monkeypatch):
 def work_items_service():
     """Get a fresh WorkItemsService instance for each test."""
     # Reset the singleton
-    return WorkItemsService()
+    return WorkItemsService(execution_mode="slots")
 
 
 @pytest.fixture
@@ -104,12 +102,16 @@ async def system_user(storage):
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Tests for WorkItemsService
 # ---------------------------------------------------------------------------
 
 
-class TestBackgroundWorker:
-    """Port of the legacy work-items worker tests to the new background_worker."""
+class TestWorkItemsService:
+    """Tests specifically for the WorkItemsService.
+
+    These tests focus on the service-level functionality including work item execution,
+    validation, thread handling, and file operations.
+    """
 
     # --------------------------------------------------
     # execute_work_item
@@ -138,8 +140,8 @@ class TestBackgroundWorker:
             return True
 
         # Set the custom work function on the service
-        work_items_service._work_func = mock_agent_func
-        result = await work_items_service.execute_work_item(item, mock_agent_func)
+        work_items_service.run_agent = mock_agent_func
+        result = await work_items_service.execute_work_item(item)
         assert result is True
 
         updated = await configured_storage.get_work_item(item.work_item_id)
@@ -171,8 +173,8 @@ class TestBackgroundWorker:
         async def error_agent_func(_: WorkItem) -> bool:
             raise Exception("Test error")
 
-        work_items_service._work_func = error_agent_func
-        result = await work_items_service.execute_work_item(item, error_agent_func)
+        work_items_service.run_agent = error_agent_func
+        result = await work_items_service.execute_work_item(item)
         assert result is False
 
         updated = await configured_storage.get_work_item(item.work_item_id)
@@ -204,8 +206,8 @@ class TestBackgroundWorker:
         async def fail_agent_func(_: WorkItem) -> bool:
             return False
 
-        work_items_service._work_func = fail_agent_func
-        result = await work_items_service.execute_work_item(item, fail_agent_func)
+        work_items_service.run_agent = fail_agent_func
+        result = await work_items_service.execute_work_item(item)
         assert result is False
 
         updated = await configured_storage.get_work_item(item.work_item_id)
@@ -254,8 +256,11 @@ class TestBackgroundWorker:
             )
 
         # Set the custom work function on the service
-        work_items_service._work_func = sometimes_fail_agent
-        results = await work_items_service.run_batch(work_item_ids, batch_timeout=2.0)
+        work_items_service.run_agent = sometimes_fail_agent
+        # Act as an executor and run the work item
+        results = []
+        for wi in work_items:
+            results.append(await work_items_service.execute_work_item(wi))
 
         # Expectations: 3 successes, 2 handled failures (False)
         assert len(results) == num_work_items
@@ -270,137 +275,6 @@ class TestBackgroundWorker:
 
         assert len(rows_by_status[WorkItemStatus.ERROR]) == 2
         assert len(rows_by_status[WorkItemStatus.COMPLETED]) == 3
-
-    # --------------------------------------------------
-    # worker_iteration multiple passes
-    # --------------------------------------------------
-    @pytest.mark.asyncio
-    async def test_worker_iteration(
-        self,
-        configured_storage,
-        stub_user,
-        system_user,
-        seed_agents,
-        work_items_service,
-    ):
-        num_work_items = 21
-        max_batch_size = 5  # From fixture
-
-        async def always_succeed(_: WorkItem) -> bool:
-            return True
-
-        # Add work-items
-        for _ in range(num_work_items):
-            await configured_storage.create_work_item(
-                _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
-            )
-
-        # Set the custom work function on the service
-        work_items_service._work_func = always_succeed
-
-        # Run enough iterations to pick them all up
-        iterations = math.ceil(num_work_items / max_batch_size)
-        for _ in range(iterations):
-            await work_items_service._worker_iteration()
-
-        # All should be COMPLETED
-        items = await configured_storage.list_work_items()
-        assert len(items) == num_work_items
-        assert all(item.status == WorkItemStatus.COMPLETED for item in items)
-
-    # --------------------------------------------------
-    # timeout_work_item
-    # --------------------------------------------------
-    @pytest.mark.asyncio
-    async def test_timeout_work_item(
-        self,
-        configured_storage,
-        stub_user,
-        system_user,
-        seed_agents,
-        work_items_service,
-    ):
-        call_count = 0
-
-        async def slow_agent(wi: WorkItem) -> bool:
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                await asyncio.sleep(5)  # exceeds timeout
-            return True
-
-        # Two work-items: first will timeout, second succeeds
-        items = [
-            _make_work_item(
-                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, "timeout-1"
-            ),
-            _make_work_item(
-                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, "timeout-2"
-            ),
-        ]
-        for wi in items:
-            await configured_storage.create_work_item(wi)
-
-        # Set the custom work function on the service
-        work_items_service._work_func = slow_agent
-        await work_items_service._worker_iteration()
-
-        statuses = {
-            wi.work_item_id: (await configured_storage.get_work_item(wi.work_item_id)).status
-            for wi in items
-        }
-        status_counts: defaultdict[WorkItemStatus, int] = defaultdict(int)
-        for st in statuses.values():
-            status_counts[st] += 1
-
-        assert status_counts[WorkItemStatus.ERROR] == 1
-        assert status_counts[WorkItemStatus.COMPLETED] == 1
-
-    # --------------------------------------------------
-    # concurrent_worker_iterations
-    # --------------------------------------------------
-    @pytest.mark.asyncio
-    async def test_concurrent_worker_iterations(
-        self,
-        configured_storage,
-        stub_user,
-        system_user,
-        seed_agents,
-        work_items_service,
-    ):
-        processed_ids: set[str] = set()
-        lock = asyncio.Lock()
-
-        async def tracking_agent(wi: WorkItem) -> bool:
-            async with lock:
-                processed_ids.add(wi.work_item_id)
-            await asyncio.sleep(0.05)
-            return True
-
-        # Create 10 work-items
-        work_items = [
-            _make_work_item(
-                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, f"msg-{i}"
-            )
-            for i in range(10)
-        ]
-        for wi in work_items:
-            await configured_storage.create_work_item(wi)
-
-        expected_ids = {wi.work_item_id for wi in work_items}
-
-        # Set the custom work function on the service
-        work_items_service._work_func = tracking_agent
-
-        await asyncio.gather(
-            work_items_service._worker_iteration(),
-            work_items_service._worker_iteration(),
-        )
-
-        # Post-conditions
-        items = await configured_storage.get_work_items_by_ids(list(expected_ids))
-        assert all(item.status == WorkItemStatus.COMPLETED for item in items)
-        assert processed_ids == expected_ids
 
     @pytest.mark.asyncio
     async def test_work_item_validate_success_needs_review(  # noqa: PLR0913
@@ -431,8 +305,8 @@ class TestBackgroundWorker:
         async def mock_agent_func(wi: WorkItem) -> bool:
             return True
 
-        work_items_service._work_func = mock_agent_func
-        result = await work_items_service.execute_work_item(item, mock_agent_func)
+        work_items_service.run_agent = mock_agent_func
+        result = await work_items_service.execute_work_item(item)
         assert result is True
 
         updated = await configured_storage.get_work_item(item.work_item_id)
@@ -723,7 +597,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
+            result = await work_items_service.execute_work_item(item)
             assert result is True
 
             # Verify thread was created with system user
@@ -817,7 +691,7 @@ class TestBackgroundWorker:
             configured_storage.associate_work_item_file = AsyncMock()
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
+            result = await work_items_service.execute_work_item(item)
             assert result is True
 
             # Verify that the agent was called with messages including file uploads
@@ -879,7 +753,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
+            result = await work_items_service.execute_work_item(item)
             assert result is True
 
             # Verify work item was updated with the exact thread_id that was created
@@ -936,7 +810,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
+            result = await work_items_service.execute_work_item(item)
             assert result is True
 
             # Verify that the agent was called with the work item messages
@@ -982,7 +856,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
+            result = await work_items_service.execute_work_item(item)
             assert result is True
 
             # Verify thread was created with the correct work_item_id
@@ -1028,7 +902,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
+            result = await work_items_service.execute_work_item(item)
             assert result is True
 
             # Verify thread was created and stored with work_item_id
@@ -1081,7 +955,7 @@ class TestBackgroundWorker:
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
             configured_storage.update_work_item_from_thread = AsyncMock()
 
-            result = await work_items_service.execute_work_item(item, work_items_service.run_agent)
+            result = await work_items_service.execute_work_item(item)
             assert result is True
 
             # Verify thread was created with work_item_id
@@ -1127,8 +1001,8 @@ class TestBackgroundWorker:
             )
             return True
 
-        work_items_service._work_func = agent_func_that_changes_status
-        result = await work_items_service.execute_work_item(item, agent_func_that_changes_status)
+        work_items_service.run_agent = agent_func_that_changes_status
+        result = await work_items_service.execute_work_item(item)
         assert result is True
 
         # Verify that _validate_success was NOT called because status changed during execution

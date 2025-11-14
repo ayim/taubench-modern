@@ -1463,3 +1463,57 @@ async def test_get_work_items_summary_multiple_agents(
     # Verify second agent has 1 EXECUTING work item
     assert second_agent.agent_id in agent_data
     assert agent_data[second_agent.agent_id]["EXECUTING"] == 1
+
+
+@pytest.mark.asyncio
+async def test_return_work_item_to_pool_success(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test returning an executing work item to the pool."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    wi = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        status=WorkItemStatus.EXECUTING,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(wi)
+
+    result = await storage.return_work_item_to_pool(wi.work_item_id)
+    assert result is True
+
+    updated = await storage.get_work_item(wi.work_item_id)
+    assert updated.status == WorkItemStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_return_work_item_to_pool_no_update_when_not_executing(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test that non-executing work items are not updated."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    wi = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        created_by=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        status=WorkItemStatus.PENDING,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(wi)
+
+    result = await storage.return_work_item_to_pool(wi.work_item_id)
+    assert result is False
+
+    unchanged = await storage.get_work_item(wi.work_item_id)
+    assert unchanged.status == WorkItemStatus.PENDING

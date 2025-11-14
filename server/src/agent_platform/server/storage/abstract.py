@@ -514,6 +514,10 @@ class AbstractStorage(ABC):
         Returns a list of AgentWorkItemsSummaryResponse objects.
         """
 
+    @abstractmethod
+    async def return_work_item_to_pool(self, work_item_id: str) -> None:
+        """Return a work item to the pool."""
+
     # -------------------------
     # Methods for MCP servers
     # -------------------------

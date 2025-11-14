@@ -10,13 +10,12 @@ This service encapsulates all business logic for work items processing, includin
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import Request
 
-from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.attachment import ThreadAttachmentContent
 from agent_platform.core.thread.thread import Thread
@@ -26,7 +25,11 @@ from agent_platform.core.work_items import (
     WorkItemStatus,
 )
 from agent_platform.core.work_items.work_item import WorkItemStatusUpdatedBy
+from agent_platform.server.log_config import get_work_items_transaction_logger
 from agent_platform.server.storage import StorageService
+from agent_platform.server.work_items.batch_executor import BatchExecutor
+from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
+from agent_platform.server.work_items.slot_executor import SlotExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +48,45 @@ class WorkItemsService:
 
     _instance: "WorkItemsService | None" = None
 
-    def __init__(self):
+    def __init__(self, execution_mode: Literal["batch", "slots"]):
         """Initialize the WorkItemsService."""
-        self._work_func = self.run_agent
+        self._executor = (
+            SlotExecutor(self.execute_work_item)
+            if execution_mode == "slots"
+            else BatchExecutor(self.execute_work_item)
+        )
+
+        if WORK_ITEMS_SETTINGS.enable_transaction_log:
+            self._transaction_logger = get_work_items_transaction_logger()
+        else:
+            from sema4ai.common.null import NULL
+
+            self._transaction_logger = NULL
 
     @classmethod
     def get_instance(cls) -> "WorkItemsService":
         """Get the global WorkItemsService instance."""
         if cls._instance is None:
-            cls._instance = WorkItemsService()
+            from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
+
+            # TODO move proper into configuration/quotas service.
+            execution_mode = WORK_ITEMS_SETTINGS.execution_mode
+            if execution_mode not in ["batch", "slots"]:
+                raise ValueError(f"Invalid execution mode: {execution_mode}")
+            cls._instance = WorkItemsService(execution_mode)  # type: ignore[arg-type]
         return cls._instance
+
+    def get_slot_status(self) -> list[dict] | None:
+        """
+        Get the current status of all execution slots.
+
+        Returns:
+            List of slot status dictionaries if slot-based mode is active, None otherwise.
+            Each dict contains: slot_id, status ("idle" or "executing"), and work_item_id.
+        """
+        if self._executor is None or not isinstance(self._executor, SlotExecutor):
+            return None
+        return self._executor.get_slot_status()
 
     async def run(
         self,
@@ -64,52 +96,16 @@ class WorkItemsService:
 
         Dispatches to either batch-based or slot-based execution based on the
         execution_mode setting.
-
-        Args:
-            work_func: Function to execute for each work item. Defaults to self.run_agent.
         """
         from agent_platform.server.shutdown_manager import ShutdownManager
-        from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
 
         shutdown_task = ShutdownManager.get_shutdown_task(WORKER_NAME)
         if shutdown_task is None:
             raise RuntimeError(f"Shutdown task not found for {WORKER_NAME} worker")
 
-        logger.info("Using batch-based execution mode")
-        # Batch mode: traditional behavior
-        while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
-            try:
-                await self._worker_iteration()
-            except Exception as exc:
-                logger.error(f"Error processing work items: {exc}", exc_info=exc)
-
-            await asyncio.wait([shutdown_task], timeout=WORK_ITEMS_SETTINGS.worker_interval)
+        await self._executor.run(shutdown_task)
 
         logger.debug("finished work-items worker loop")
-
-    async def _worker_iteration(
-        self,
-    ) -> None:
-        """
-        Reads a batch of "PENDING" work_item rows from the database and
-        marks them as "EXECUTING" and processes them as a batch.
-        """
-        from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
-
-        quotas_service = await QuotasService.get_instance()
-        max_batch_size = quotas_service.get_max_parallel_work_items_in_process()
-
-        work_item_ids = await self.get_pending_work_items(max_batch_size)
-
-        if work_item_ids:
-            logger.info(f"Found {len(work_item_ids)} work items to process. {work_item_ids!r}")
-            logger.info(f"Dispatching work items {work_item_ids}")
-            batch_results = await self.run_batch(
-                work_item_ids, WORK_ITEMS_SETTINGS.work_item_timeout
-            )
-            logger.info(f"Completed {len(batch_results)} work items concurrently")
-        else:
-            logger.debug("Found no work items to process.")
 
     async def _get_system_user_id(self) -> str:
         """Get or create the system user for work items."""
@@ -242,14 +238,13 @@ class WorkItemsService:
     async def execute_work_item(
         self,
         item: WorkItem,
-        agent_func: Callable[[WorkItem], Awaitable[bool]],
     ) -> bool:
         """
-        Execute a single work item with validation and status updates.
+        Execute a single work item, runs the Judge, and invokes any callbacks. This method
+        updates the status in the database as execution progresses.
 
         Args:
             item: The work item to execute
-            agent_func: The function to execute the agent (typically self.run_agent)
 
         Returns:
             True if the work item was executed successfully, False otherwise
@@ -260,10 +255,28 @@ class WorkItemsService:
         storage = StorageService.get_instance()
         system_user_id = await self._get_system_user_id()
 
+        # Get transaction logger with work_item_id bound for context
+        txn_logger = self._transaction_logger.bind(work_item_id=item.work_item_id)
+
         try:
             logger.info(f"Starting execution on work item {item.work_item_id}")
 
-            result = await agent_func(item)
+            # Transaction log: work item started
+            txn_logger.info(
+                None,
+                event_type="work_item_started",
+                status=item.status.value if item.status else None,
+            )
+
+            # Run the WorkItem through the LLM.
+            result = await self.run_agent(item)
+
+            # Transaction log: agent completed
+            txn_logger.info(
+                None,
+                event_type="agent_completed",
+                result=result,
+            )
 
             try:
                 item = await storage.get_work_item(item.work_item_id)
@@ -280,7 +293,21 @@ class WorkItemsService:
                     result,
                 )
 
+                # Transaction log: judge started
+                txn_logger.info(
+                    None,
+                    event_type="judge_started",
+                    agent_result=result,
+                )
+
                 new_status = (await _validate_success(item)) if result else WorkItemStatus.ERROR
+
+                # Transaction log: judge completed
+                txn_logger.info(
+                    None,
+                    event_type="judge_completed",
+                    judge_result=new_status.value,
+                )
 
                 if new_status == WorkItemStatus.COMPLETED:
                     await storage.complete_work_item(
@@ -308,7 +335,24 @@ class WorkItemsService:
                     item.work_item_id,
                     item.status,
                 )
+
+                # Transaction log: judge skipped
+                txn_logger.info(
+                    None,
+                    event_type="judge_skipped",
+                    current_status=item.status.value,
+                    reason="status_already_set",
+                )
+
                 await execute_callbacks(item, item.status)
+
+            # Transaction log: work item finished (success path)
+            txn_logger.info(
+                None,
+                event_type="work_item_finished",
+                final_status=item.status.value,
+                result=result,
+            )
 
             return result
         except Exception as e:
@@ -321,97 +365,13 @@ class WorkItemsService:
                 WorkItemStatusUpdatedBy.SYSTEM,
             )
 
-            return False
-
-    async def run_batch(
-        self,
-        work_item_ids: Sequence[str],
-        batch_timeout: float,
-    ) -> Sequence[bool | BaseException]:
-        """
-        Execute a batch of work items concurrently.
-
-        Args:
-            work_item_ids: List of work item IDs to execute
-            work_func: The function to execute for each work item
-            batch_timeout: Maximum time to wait for all items to complete
-
-        Returns:
-            List of results (True/False/Exception) for each work item
-        """
-        storage = StorageService.get_instance()
-
-        # Get all work items in a single query
-        items = await storage.get_work_items_by_ids(list(work_item_ids))
-
-        # Failed to find any work_items in the database to operate on.
-        if not items:
-            return []
-
-        # Create tasks for each work item
-        tasks = {}
-        for item in items:
-            logger.info(f"Dispatching work item (batch run) {item.work_item_id}")
-            task = asyncio.create_task(self.execute_work_item(item, self._work_func))
-            tasks[item.work_item_id] = task
-
-        # Run all tasks concurrently until they are all completed or a timeout is reached.
-        results: list[bool | BaseException] = []
-        incomplete_work_item_ids = []
-
-        done, pending = await asyncio.wait(
-            tasks.values(), timeout=batch_timeout, return_when=asyncio.ALL_COMPLETED
-        )
-
-        # Collect the pending tasks.
-        if pending:
-            # Some tasks didn't complete within timeout
-            logger.warning(
-                f"Batch timeout ({batch_timeout}s) exceeded for "
-                f"{len(pending)} of {len(tasks)} work items"
+            # Transaction log: work item finished (error path)
+            txn_logger.error(
+                None,
+                event_type="work_item_finished",
+                final_status=WorkItemStatus.ERROR.value,
+                result=False,
+                error=str(e),
             )
 
-            # Cancel pending tasks
-            for task in pending:
-                task.cancel()
-
-        for task, item in zip(tasks.values(), items, strict=True):
-            if task in done:
-                # Task completed before timeout - get its result
-                try:
-                    results.append(task.result())
-                    logger.info(f"Work item {item.work_item_id} completed normally")
-                except Exception as e:
-                    results.append(e)
-                    logger.warning(
-                        f"Work item {item.work_item_id} failed with error: {e}", exc_info=e
-                    )
-            else:
-                # Task didn't complete - mark as ERROR
-                incomplete_work_item_ids.append(item.work_item_id)
-                results.append(TimeoutError("Work item timeout exceeded"))
-                logger.error(f"Work item {item.work_item_id} timed out, marking as ERROR")
-
-        # For all timed out work items which are still PENDING/EXECUTING,
-        # mark them as having ERROR'ed.
-        # We do this to prevent races between the task writing to the DB after we signaled
-        # the cancellation
-        if incomplete_work_item_ids:
-            await storage.mark_incomplete_work_items_as_error(incomplete_work_item_ids)
-
-        return results
-
-    async def get_pending_work_items(self, limit: int) -> Sequence[str]:
-        """
-        Get pending work item IDs from storage.
-
-        Args:
-            limit: Maximum number of work item IDs to retrieve
-
-        Returns:
-            List of work item IDs
-        """
-        from agent_platform.server.storage import StorageService
-
-        storage = StorageService.get_instance()
-        return await storage.get_pending_work_item_ids(limit)
+            return False

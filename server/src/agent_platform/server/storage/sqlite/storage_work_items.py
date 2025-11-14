@@ -427,3 +427,25 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
 
         # Transform raw rows into response objects
         return self._transform_work_items_summary_rows(rows)
+
+    async def return_work_item_to_pool(self, work_item_id: str) -> bool:
+        """The system can return a work item to the pool."""
+        self._validate_uuid(work_item_id)
+
+        async with self._transaction() as cur:
+            await cur.execute(
+                """
+                UPDATE v2_work_items
+                SET status = :pending,
+                    status_updated_by = 'SYSTEM',
+                    status_updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                WHERE work_item_id = :work_item_id and status = :executing
+                """,
+                {
+                    "work_item_id": work_item_id,
+                    "pending": WorkItemStatus.PENDING.value,
+                    "executing": WorkItemStatus.EXECUTING.value,
+                },
+            )
+            return cur.rowcount == 1

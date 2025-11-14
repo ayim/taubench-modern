@@ -81,6 +81,7 @@ markers = [
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
     "postgresql: marks tests that require PostgreSQL (deselect with '-m \"not postgresql\"')",
     "cloud: marks tests that require cloud storage (deselect with '-m \"not cloud\"')",
+    "parallel_work_items: marks tests that run work items across multiple parallel servers (must be explicitly requested with '-m parallel_work_items')",
     "spar: marks tests that run against an active spar-no-auth docker SPAR profile (deselect with '-m \"not spar\"')",
     "real_selector: run with the real DefaultModelSelector implementation",
     "semantic_data_models: marks tests that run against semantic data models (deselect with '-m \"not semantic_data_models\"')",
@@ -133,6 +134,7 @@ select = [
 fixable = ["ALL"]
 unfixable = []
 ignore = ["COM812"]
+exclude = ["scripts/*.py"]
 
 [tool.ruff.lint.per-file-ignores]
 "core/examples/**/*.ipynb" = ["PLE1142", "TID253"]

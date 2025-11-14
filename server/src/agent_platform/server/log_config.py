@@ -58,12 +58,10 @@ def _get_access_handler() -> logging.StreamHandler:
 def _get_file_handler() -> RotatingFileHandler:
     """Set up file handler for logging."""
     # If LOG_FILE_PATH does not exist, create it (recursively)
-    try:
-        path = Path(SystemPaths.log_file_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        pass
+    path = Path(SystemPaths.log_file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Assumption is that we can expect that log_file_path already exists.
     file_handler = RotatingFileHandler(
         SystemPaths.log_file_path,
         maxBytes=SystemConfig.log_file_size,
@@ -132,11 +130,57 @@ def _setup_additional_loggers(
     mcp_client_http_logger.addHandler(default_handler)
     mcp_client_http_logger.addHandler(file_handler)
 
-    # # Prevents getting spammed with watchfiles logs when
-    # # --reload is used in development
-    # watchfiles_logger = logging.getLogger("watchfiles.main")
-    # watchfiles_logger.setLevel(logging.WARNING)
-    # watchfiles_logger.propagate = False
+    # Suppress verbose HTTP/2 and HTTP client library logs
+    for name in ["hpack.hpack", "httpcore", "httpx"]:
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.INFO)
+        logger.handlers.clear()
+        logger.addHandler(default_handler)
+        logger.addHandler(file_handler)
+        logger.propagate = False
+
+
+def get_work_items_transaction_logger() -> structlog.stdlib.BoundLogger:
+    """Get or create the dedicated transaction logger for work items.
+
+    This logger outputs JSON-formatted logs to a dedicated file for tracking
+    work item execution state transitions. The logger is cached after first creation.
+
+    Returns:
+        A structlog BoundLogger configured for work items transaction logging.
+    """
+    path = Path(SystemPaths.log_file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Create a dedicated file handler for transaction logs. We assume the log directory
+    # already exists as the primary logger created it.
+    transaction_file_handler = RotatingFileHandler(
+        Path(SystemPaths.log_dir) / "work_items_transaction.log",
+        maxBytes=SystemConfig.log_file_size,
+        backupCount=SystemConfig.log_max_backup_files,
+    )
+
+    # Create a standard library logger for structlog to wrap
+    stdlib_logger = logging.getLogger("work_items.transaction")
+    stdlib_logger.setLevel(logging.INFO)
+    stdlib_logger.handlers.clear()
+    stdlib_logger.addHandler(transaction_file_handler)
+    stdlib_logger.propagate = False
+
+    # Create a structlog logger with JSON rendering
+    _work_items_transaction_logger = structlog.wrap_logger(
+        stdlib_logger,
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            structlog.processors.JSONRenderer(),
+        ],
+    )
+
+    return _work_items_transaction_logger
 
 
 def disable_logging() -> None:

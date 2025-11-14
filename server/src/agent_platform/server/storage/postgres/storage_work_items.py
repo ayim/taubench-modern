@@ -446,3 +446,25 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
 
         # Transform raw rows into response objects
         return self._transform_work_items_summary_rows(rows)
+
+    async def return_work_item_to_pool(self, work_item_id: str) -> bool:
+        """The system can return a work item to the pool."""
+        self._validate_uuid(work_item_id)
+
+        async with self._cursor() as cur:
+            await cur.execute(
+                """
+                UPDATE v2.work_items
+                SET status = %(pending)s,
+                    status_updated_by = 'SYSTEM',
+                    status_updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+                    updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
+                WHERE work_item_id = %(work_item_id)s::uuid and status = %(executing)s
+                """,
+                {
+                    "work_item_id": work_item_id,
+                    "pending": WorkItemStatus.PENDING.value,
+                    "executing": WorkItemStatus.EXECUTING.value,
+                },
+            )
+            return cur.rowcount == 1
