@@ -1,3 +1,10 @@
+# Sema4.ai Agent Server 2.1.20 (2025-11-14)
+
+- [GPT-1499] Add support for sending traces to Grafana (#1641)
+- GPT-1470 Migrate WorkItemsService into Slot and Batch Executor (#1580)
+- GPT-1500 Unredact observability integration configuration secrets (#1645)
+- [GPT-1485] [GPT-1486] OTELOrchestrator implementation (#1630)
+
 # Sema4.ai Agent Server 2.1.19 (2025-11-13)
 
 - [GPT-1394] Codex/transition groq client to responses api kkuspa4 (#1628)
