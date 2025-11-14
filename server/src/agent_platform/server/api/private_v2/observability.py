@@ -32,8 +32,9 @@ def _integration_to_observability(integration: Integration) -> ObservabilityInte
     if not isinstance(integration_settings, ObservabilityIntegrationSettings):
         raise ValueError("Unexpected integration settings for observability integration.")
     settings = integration_settings.settings
-    # Instantiate a new ObservabilitySettings object, with a redacted secret.
-    public_settings = ObservabilitySettings.model_validate(settings.model_dump(redact_secret=True))
+    # Ensure that the secret is not redacted, else the UI will be unable to submit future
+    # forms as it doesn't know what the value of the secret is.
+    public_settings = ObservabilitySettings.model_validate(settings.model_dump(redact_secret=False))
     return ObservabilityIntegrationResponse(
         id=integration.id,
         settings=public_settings,

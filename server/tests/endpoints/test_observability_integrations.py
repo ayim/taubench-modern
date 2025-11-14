@@ -45,7 +45,7 @@ def test_create_integration_success(client):
     assert settings["is_enabled"] is True
     assert settings["provider_settings"]["url"] == "https://example.com/v1/traces"
     assert settings["provider_settings"]["custom_attributes"] == {"environment": "test"}
-    assert settings["provider_settings"]["api_key"] == "**********"
+    assert settings["provider_settings"]["api_key"] == "secret-key-1"
 
 
 def test_list_integrations_with_filter(client):
@@ -111,7 +111,7 @@ def test_update_integration_partial_and_secret_redaction(client):
     assert data["settings"]["is_enabled"] is False
     assert data["settings"]["provider_settings"]["url"] == "https://updated.example.com/v1/traces"
     assert data["settings"]["provider_settings"]["custom_attributes"] == {"service": "demo"}
-    assert data["settings"]["provider_settings"]["api_key"] == "**********"
+    assert data["settings"]["provider_settings"]["api_key"] == "updated-key"
 
     missing_resp = client.put(
         f"/api/v2/observability/integrations/{uuid.uuid4()}",
