@@ -7,9 +7,20 @@ import pytest
 from agent_platform.core.data_connections import DataConnection
 from agent_platform.core.document_intelligence.integrations import IntegrationKind
 from agent_platform.core.integrations import Integration
+from agent_platform.core.integrations.observability.integration import (
+    ObservabilityIntegration,
+)
+from agent_platform.core.integrations.observability.models import (
+    GrafanaObservabilitySettings,
+    LangSmithObservabilitySettings,
+    ObservabilitySettings,
+)
 from agent_platform.core.integrations.settings.data_server import (
     DataServerEndpoint,
     DataServerSettings,
+)
+from agent_platform.core.integrations.settings.observability import (
+    ObservabilityIntegrationSettings,
 )
 from agent_platform.core.integrations.settings.reducto import ReductoSettings
 from agent_platform.core.payloads.data_connection import (
@@ -317,3 +328,104 @@ async def test_remove_data_connection_tag(storage) -> None:
 
     other_tag_connections_after = [c for c in all_connections_after if "other_tag" in c.tags]
     assert len(other_tag_connections_after) == 1
+
+
+@pytest.mark.asyncio
+async def test_list_enabled_observability_integrations(storage) -> None:
+    """Test that list_enabled_observability_integrations returns only
+    enabled observability integrations."""
+
+    # Create an enabled Grafana observability integration
+    grafana_settings = ObservabilitySettings(
+        kind="grafana",
+        provider_settings=GrafanaObservabilitySettings(
+            url="https://grafana.example.com/v1/traces",
+            api_key="secret_key_123",
+            custom_attributes={"environment": "test"},
+        ),
+        is_enabled=True,
+    )
+    enabled_grafana_integration = ObservabilityIntegration(
+        id=str(uuid4()),
+        kind="observability",
+        settings=ObservabilityIntegrationSettings.from_observability_settings(grafana_settings),
+        description="Enabled Grafana integration",
+    )
+    await storage.upsert_integration(enabled_grafana_integration)
+
+    # Create a disabled LangSmith observability integration
+    langsmith_settings = ObservabilitySettings(
+        kind="langsmith",
+        provider_settings=LangSmithObservabilitySettings(
+            url="https://api.langsmith.example.com",
+            project_name="test-project",
+            api_key="langsmith_key_456",
+        ),
+        is_enabled=False,  # Disabled
+    )
+    disabled_langsmith_integration = ObservabilityIntegration(
+        id=str(uuid4()),
+        kind="observability",
+        settings=ObservabilityIntegrationSettings.from_observability_settings(langsmith_settings),
+        description="Disabled LangSmith integration",
+    )
+    await storage.upsert_integration(disabled_langsmith_integration)
+
+    # Create another enabled LangSmith integration
+    langsmith_settings_2 = ObservabilitySettings(
+        kind="langsmith",
+        provider_settings=LangSmithObservabilitySettings(
+            url="https://api.langsmith2.example.com",
+            project_name="test-project-2",
+            api_key="langsmith_key_789",
+        ),
+        is_enabled=True,
+    )
+    enabled_langsmith_integration = ObservabilityIntegration(
+        id=str(uuid4()),
+        kind="observability",
+        settings=ObservabilityIntegrationSettings.from_observability_settings(langsmith_settings_2),
+        description="Enabled LangSmith integration",
+    )
+    await storage.upsert_integration(enabled_langsmith_integration)
+
+    # Create a non-observability integration (should not be included)
+    data_server_settings = DataServerSettings(
+        username="test_user",
+        password="secret_password_123",
+        endpoints=[DataServerEndpoint(host="api.dataserver.com", port=443, kind="http")],
+    )
+    data_server_integration = Integration(
+        id=str(uuid4()),
+        kind="data_server",
+        settings=data_server_settings,
+        description="Data server integration",
+    )
+    await storage.upsert_integration(data_server_integration)
+
+    # Call the method under test
+    enabled_obs_integrations = await storage.list_enabled_observability_integrations()
+
+    # Verify we only get the two enabled observability integrations
+    assert len(enabled_obs_integrations) == 2
+
+    # Verify they are all ObservabilityIntegration instances
+    assert all(isinstance(i, ObservabilityIntegration) for i in enabled_obs_integrations)
+
+    # Verify they all have ObservabilityIntegrationSettings
+    assert all(
+        isinstance(i.settings, ObservabilityIntegrationSettings) for i in enabled_obs_integrations
+    )
+
+    # Verify they are all enabled
+    assert all(i.settings.is_enabled for i in enabled_obs_integrations)
+
+    # Verify we got the right integrations (by ID)
+    integration_ids = {i.id for i in enabled_obs_integrations}
+    assert integration_ids == {enabled_grafana_integration.id, enabled_langsmith_integration.id}
+
+    # Verify the disabled integration is not included
+    assert disabled_langsmith_integration.id not in integration_ids
+
+    # Verify the non-observability integration is not included
+    assert data_server_integration.id not in integration_ids

@@ -1,12 +1,16 @@
+from typing import cast
 from uuid import uuid4
 
+import structlog
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.integrations import Integration
+from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
 from agent_platform.core.integrations.settings.observability import (
     ObservabilityIntegrationSettings,
 )
+from agent_platform.core.otel_orchestrator import OtelOrchestrator
 from agent_platform.core.payloads.observability import (
     ObservabilityIntegrationResponse,
     ObservabilityIntegrationUpsertRequest,
@@ -18,6 +22,8 @@ from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
 
 router = APIRouter(prefix="/observability", tags=["observability-integrations"])
+
+logger = structlog.get_logger(__name__)
 
 
 def _integration_to_observability(integration: Integration) -> ObservabilityIntegrationResponse:
@@ -88,6 +94,14 @@ async def create_observability_integration(
     )
     await storage.upsert_integration(integration)
     created = await storage.get_integration(integration.id)
+    # We are positive that we have an observability integration, cast it.
+    created_obs = cast(ObservabilityIntegration, created)
+
+    # Hot-reload in orchestrator
+    orchestrator = OtelOrchestrator.get_instance()
+    orchestrator.reload_integration(created_obs)
+    logger.info(f"Hot-reloaded observability integration: {created.id}")
+
     return _integration_to_observability(created)
 
 
@@ -140,6 +154,14 @@ async def update_observability_integration(
 
     await storage.upsert_integration(updated_integration)
     refreshed = await storage.get_integration(integration_id)
+    # We are positive that we have an observability integration, cast it.
+    refreshed_obs = cast(ObservabilityIntegration, refreshed)
+
+    # Hot-reload in orchestrator
+    orchestrator = OtelOrchestrator.get_instance()
+    orchestrator.reload_integration(refreshed_obs)
+    logger.info(f"Hot-reloaded observability integration: {refreshed.id}")
+
     return _integration_to_observability(refreshed)
 
 
@@ -156,6 +178,12 @@ async def delete_observability_integration(
 ) -> Response:
     """Delete an observability integration."""
     await storage.delete_integration_by_id(integration_id)
+
+    # Remove from orchestrator
+    orchestrator = OtelOrchestrator.get_instance()
+    orchestrator.remove_integration(integration_id)
+    logger.info(f"Removed observability integration from orchestrator: {integration_id}")
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

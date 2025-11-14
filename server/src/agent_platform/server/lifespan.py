@@ -85,6 +85,8 @@ def _start_pool_monitor() -> tuple[asyncio.Task, asyncio.Event]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from agent_platform.core.otel_orchestrator import OtelOrchestrator
+
     # Set up our v2 telemetry
     tracer_provider, meter_provider = setup_telemetry()
 
@@ -111,6 +113,13 @@ async def lifespan(app: FastAPI):
     # Initialize QuotasService singleton with configuration values from storage
     await QuotasService.get_instance()
     logger.info("QuotasService initialized")
+
+    # Load enabled observability integrations into orchestrator
+    logger.info("Loading observability integrations...")
+    storage = StorageService.get_instance()
+    observability_integrations = await storage.list_enabled_observability_integrations()
+    orchestrator = OtelOrchestrator.get_instance()
+    orchestrator.load_integrations(observability_integrations)
 
     # IMPORTANT: Order of operations is critical here!
     # Current sequence: DB Migrations (create v2 tables) -> Data migration (v1 to v2)

@@ -23,6 +23,7 @@ class TestLifespan:
         storage_instance = MagicMock()
         storage_instance.setup = AsyncMock()
         storage_instance.teardown = AsyncMock()
+        storage_instance.list_enabled_observability_integrations = AsyncMock(return_value=[])
 
         # Create quotas service mock
         quotas_service = AsyncMock()

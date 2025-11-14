@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
 import structlog
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
 from agent_platform.core.utils import SecretString
 
@@ -49,6 +50,18 @@ class GrafanaObservabilitySettings:
             data["custom_attributes"] = self.custom_attributes
         return data
 
+    def make_exporter(self, network_session) -> OTLPSpanExporter:
+        """Create an OTLPSpanExporter for Grafana.
+
+        Args:
+            network_session: Requests session with enterprise SSL/proxy config
+
+        Returns:
+            Configured OTLPSpanExporter ready for use
+        """
+        # TODO: Implement Grafana exporter creation
+        raise NotImplementedError("Grafana support not yet implemented")
+
 
 @dataclass(frozen=True)
 class LangSmithObservabilitySettings:
@@ -79,6 +92,33 @@ class LangSmithObservabilitySettings:
         if self.api_key:
             data["api_key"] = "**********" if redact_secret else _to_plain_str(self.api_key)
         return data
+
+    def make_exporter(self, network_session) -> OTLPSpanExporter:
+        """Create an OTLPSpanExporter for LangSmith.
+
+        Args:
+            network_session: Requests session with enterprise SSL/proxy config
+
+        Returns:
+            Configured OTLPSpanExporter ready for use
+        """
+
+        # Normalize endpoint (ensure /otel/v1/traces suffix)
+        endpoint = self.url.rstrip("/")
+        if not endpoint.endswith("/otel/v1/traces"):
+            endpoint = f"{endpoint}/otel/v1/traces"
+
+        # Build LangSmith-specific headers
+        headers = {
+            "x-api-key": _to_plain_str(self.api_key),
+            "Langsmith-Project": self.project_name,
+        }
+
+        return OTLPSpanExporter(
+            endpoint=endpoint,
+            headers=headers,
+            session=network_session,
+        )
 
 
 ObservabilityProviderSettings = GrafanaObservabilitySettings | LangSmithObservabilitySettings

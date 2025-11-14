@@ -10,6 +10,7 @@ from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.evals.types import Scenario
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.integrations import Integration
+from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.memory import Memory
 from agent_platform.core.platforms.base import PlatformParameters
@@ -713,3 +714,11 @@ class AbstractStorage(ABC):
         kind: str | None = None,
     ) -> list[Integration]:
         """List integrations optionally filtered by kind."""
+
+    @abstractmethod
+    async def list_enabled_observability_integrations(self) -> list[ObservabilityIntegration]:
+        """List all enabled observability integrations.
+
+        Returns:
+            List of ObservabilityIntegration instances that are enabled.
+        """

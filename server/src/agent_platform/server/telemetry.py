@@ -1,44 +1,21 @@
-from dataclasses import dataclass, field
-
 import structlog
 from agent_platform import server
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from agent_platform.core.conditional_langsmith_processor import ConditionalLangSmithProcessor
-from agent_platform.core.configurations import Configuration, FieldMetadata
+from agent_platform.core.otel_orchestrator import OtelOrchestrator
+from agent_platform.core.telemetry.telemetry import OTELConfig
 
 logger = structlog.get_logger(__name__)
 
 # Global variables to store providers
 _tracer_provider = None
 _meter_provider = None
-
-
-@dataclass(frozen=True)
-class OTELConfig(Configuration):
-    """Configuration for OpenTelemetry."""
-
-    collector_url: str = field(
-        default="",
-        metadata=FieldMetadata(
-            description="The URL of the OpenTelemetry collector.",
-            env_vars=["SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL", "OTEL_COLLECTOR_URL"],
-        ),
-    )
-    is_enabled: bool = field(
-        default=False,
-        metadata=FieldMetadata(
-            description="Whether to enable OpenTelemetry.",
-            env_vars=["SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "OTEL_ENABLED"],
-        ),
-    )
 
 
 # TODO: Make this more configurable (export interval, etc.). Make sure we're using the
@@ -84,21 +61,17 @@ def setup_telemetry():
     # Create and configure trace provider
     _tracer_provider = TracerProvider(resource=resource)
 
-    try:
-        if collector_url_set:
-            otlp_trace_exporter = OTLPSpanExporter(endpoint=f"{collector_url}/v1/traces")
-            span_processor = BatchSpanProcessor(otlp_trace_exporter)
-            _tracer_provider.add_span_processor(span_processor)
-            logger.info(f"Successfully configured trace exporter for {collector_url}/v1/traces")
-        else:
-            logger.warning("Collector URL is not set. Skipping trace exporter configuration.")
-    except Exception as e:
-        logger.error(f"Failed to create trace exporter for {collector_url}/v1/traces: {e}")
+    # Initialize and add the OtelOrchestrator
+    # (handles collector and global observability integrations from DB)
+    orchestrator = OtelOrchestrator.get_instance()
+    _tracer_provider.add_span_processor(orchestrator)
+    logger.info("Added OtelOrchestrator to global trace provider")
 
-    # Initialize and add the conditional LangSmith processor
+    # Initialize and add ConditionalLangSmithProcessor for backward compatibility
+    # (handles per-agent observability_configs until fully migrated to orchestrator)
     langsmith_processor = ConditionalLangSmithProcessor.get_instance()
     _tracer_provider.add_span_processor(langsmith_processor)
-    logger.debug("Added ConditionalLangSmithProcessor to global trace provider")
+    logger.debug("Added ConditionalLangSmithProcessor for per-agent configs")
 
     # Important: Set as the global tracer provider so AgentServerContext can use it
     trace.set_tracer_provider(_tracer_provider)

@@ -34,6 +34,7 @@ from agent_platform.core.evals.types import (
     TrialStatus,
 )
 from agent_platform.core.integrations import Integration
+from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
 from agent_platform.core.thread import ThreadMessage
 from agent_platform.server.storage.abstract import AbstractStorage
 from agent_platform.server.storage.common import CommonMixin
@@ -1948,6 +1949,29 @@ class BaseStorage(AbstractStorage, CommonMixin):
             integration_list.append(self._row_to_integration(row))
 
         return integration_list
+
+    async def list_enabled_observability_integrations(self) -> list[ObservabilityIntegration]:
+        """List all enabled observability integrations.
+
+        Returns:
+            List of ObservabilityIntegration instances that are enabled.
+        """
+        from agent_platform.core.integrations.observability.integration import (
+            ObservabilityIntegration,
+        )
+        from agent_platform.core.integrations.settings.observability import (
+            ObservabilityIntegrationSettings,
+        )
+
+        integrations = await self.list_integrations(kind="observability")
+        enabled_obs_integrations = []
+        for i in integrations:
+            # isinstance check to filter only enabled observability integrations
+            if isinstance(i.settings, ObservabilityIntegrationSettings) and i.settings.is_enabled:
+                # Convert Integration to ObservabilityIntegration using model_validate
+                obs_integration = ObservabilityIntegration.model_validate(i.model_dump())
+                enabled_obs_integrations.append(obs_integration)
+        return enabled_obs_integrations
 
     # Methods for listing semantic data models with associations
     # -------------------------------------------------------------------------
