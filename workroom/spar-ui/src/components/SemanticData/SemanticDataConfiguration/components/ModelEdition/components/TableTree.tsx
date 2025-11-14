@@ -16,6 +16,7 @@ type Props = {
 };
 
 const columns = [
+  'Semantic Name',
   'Description',
   <Typography>
     Synonyms{' '}

@@ -1,6 +1,7 @@
-import { Button, Dialog, Link, Typography } from '@sema4ai/components';
+import { Box, Button, Dialog, Link, Typography } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 import { useContext } from 'react';
+import { IconLoading } from '@sema4ai/icons';
 
 import { Link as RouterLink } from '../../../../../../common/link';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
@@ -44,20 +45,24 @@ export const DatabaseSource: ConfigurationStepView<Props> = ({ onClose, setActiv
         </Typography>
 
         <DataConnectionSelect errorMessage={error} />
-
         <Typography color="content.subtle.light" mt="$12">
           Use one of existing data connections or{' '}
           <RouterLink to="/data-connections/create" params={{}}>
             Create New
           </RouterLink>
         </Typography>
+
+        {isLoading ? (
+          <Box display="flex" alignItems="center" gap="$8" pt="$16">
+            <IconLoading /> <Typography>Validating connection...</Typography>
+          </Box>
+        ) : null}
       </Dialog.Content>
 
       <Dialog.Actions>
         <Button
           onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
           disabled={!dataConnectionId || dataTables.length === 0}
-          loading={isLoading}
           round
         >
           Continue
