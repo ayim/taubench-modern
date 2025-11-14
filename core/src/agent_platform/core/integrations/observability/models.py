@@ -1,9 +1,11 @@
+import base64
 from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
 import structlog
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
+from agent_platform.core.network.utils import build_network_session
 from agent_platform.core.utils import SecretString
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -17,18 +19,34 @@ def _to_plain_str(value: str | SecretString | None) -> str | None:
     return value
 
 
+def _secret_or_redact(value: str | SecretString | None, redact_secret: bool = True) -> str | None:
+    """Gets the plain string value from a SecretString/str or redacts it if requested."""
+    if value is None:
+        return None
+
+    if redact_secret:
+        return "**********"
+
+    return _to_plain_str(value)
+
+
 @dataclass(frozen=True)
 class GrafanaObservabilitySettings:
-    """Grafana observability configuration."""
+    """Grafana Cloud observability configuration."""
 
+    # Minimum required fields to authenticate with Grafana Cloud
     url: str = field(metadata={"description": "Full OTLP traces endpoint"})
-    api_key: str | SecretString | None = field(
-        default=None,
-        metadata={"description": "Grafana API key or token."},
+    api_token: str | SecretString = field(
+        metadata={"description": "Grafana API token."},
     )
-    custom_attributes: dict[str, str] = field(
-        default_factory=dict,
-        metadata={"description": "Optional custom attributes appended to telemetry payloads."},
+    grafana_instance_id: str = field(
+        metadata={"description": "Grafana instance ID."},
+    )
+    additional_headers: dict[str, str] | None = field(
+        default=None,
+        metadata={
+            "description": "Optional HTTP headers to send with the request to Grafana Cloud."
+        },
     )
 
     @classmethod
@@ -37,30 +55,74 @@ class GrafanaObservabilitySettings:
             raise ValueError("Grafana settings payload must be an object.")
         if "url" not in data:
             raise ValueError("Grafana settings require 'url'.")
+        if "api_token" not in data:
+            raise ValueError("Grafana settings require 'api_token'.")
+        if "grafana_instance_id" not in data:
+            raise ValueError("Grafana settings require 'grafana_instance_id'.")
+        additional_headers = data.get("additional_headers", None)
+        if additional_headers is not None and not isinstance(additional_headers, dict):
+            raise ValueError("Grafana settings 'additional_headers' must be an object.")
 
-        custom_attrs = data.get("custom_attributes", {})
-        api_key = data.get("api_key")
-        return cls(str(data["url"]), api_key, custom_attrs)
+        return cls(
+            url=str(data["url"]),
+            api_token=str(data["api_token"]),
+            grafana_instance_id=str(data["grafana_instance_id"]),
+            additional_headers=additional_headers,
+        )
 
     def model_dump(self, *, redact_secret: bool = True) -> dict[str, Any]:
         data: dict[str, Any] = {"url": self.url}
-        if self.api_key:
-            data["api_key"] = "**********" if redact_secret else _to_plain_str(self.api_key)
-        if self.custom_attributes:
-            data["custom_attributes"] = self.custom_attributes
+        data["api_token"] = _secret_or_redact(self.api_token, redact_secret)
+        data["grafana_instance_id"] = self.grafana_instance_id
+
         return data
 
-    def make_exporter(self, network_session) -> OTLPSpanExporter:
+    def make_exporter(self):
         """Create an OTLPSpanExporter for Grafana.
-
-        Args:
-            network_session: Requests session with enterprise SSL/proxy config
 
         Returns:
             Configured OTLPSpanExporter ready for use
         """
-        # TODO: Implement Grafana exporter creation
-        raise NotImplementedError("Grafana support not yet implemented")
+        # Normalize endpoint (ensure /v1/traces suffix)
+        endpoint = self.url.rstrip("/")
+        if not endpoint.endswith("/v1/traces"):
+            endpoint = f"{endpoint}/v1/traces"
+
+        # Authorization value should be "base64<grafana_instance_id:api_token>"
+        api_key = (
+            self.api_token.get_secret_value()
+            if isinstance(self.api_token, SecretString)
+            else self.api_token
+        )
+        basic_auth_value = base64.b64encode(
+            f"{self.grafana_instance_id}:{api_key}".encode()
+        ).decode()
+
+        # Sent as HTTP Basic Auth
+        headers = {"Authorization": f"Basic {basic_auth_value}"}
+
+        # If the user provided more headers, include them
+        if self.additional_headers:
+            # Disallow certain headers which are likely to break things if set.
+            _disallowed_headers = {"Authorization", "Content-Type", "Host"}
+
+            filtered_headers = {
+                key: value
+                for key, value in self.additional_headers.items()
+                if key not in _disallowed_headers
+            }
+            headers.update(filtered_headers)
+
+        # Build fresh session for this exporter
+        # (each exporter needs its own to avoid header conflicts)
+        session = build_network_session()
+
+        exporter = OTLPSpanExporter(
+            endpoint=endpoint,
+            headers=headers,
+            session=session,
+        )
+        return exporter
 
 
 @dataclass(frozen=True)
@@ -90,14 +152,11 @@ class LangSmithObservabilitySettings:
             "project_name": self.project_name,
         }
         if self.api_key:
-            data["api_key"] = "**********" if redact_secret else _to_plain_str(self.api_key)
+            data["api_key"] = _secret_or_redact(self.api_key, redact_secret)
         return data
 
-    def make_exporter(self, network_session) -> OTLPSpanExporter:
+    def make_exporter(self):
         """Create an OTLPSpanExporter for LangSmith.
-
-        Args:
-            network_session: Requests session with enterprise SSL/proxy config
 
         Returns:
             Configured OTLPSpanExporter ready for use
@@ -114,10 +173,14 @@ class LangSmithObservabilitySettings:
             "Langsmith-Project": self.project_name,
         }
 
+        # Build fresh session for this exporter
+        # (each exporter needs its own to avoid header conflicts)
+        session = build_network_session()
+
         return OTLPSpanExporter(
             endpoint=endpoint,
             headers=headers,
-            session=network_session,
+            session=session,
         )
 
 

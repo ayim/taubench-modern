@@ -53,11 +53,6 @@ class OtelOrchestrator(SpanProcessor):
         self._collector_processor: BatchSpanProcessor | None = None  # OTEL collector
         self._lock = threading.Lock()
 
-        # Build network session once for all processors (enterprise SSL/proxy support)
-        from agent_platform.core.network.utils import build_network_session
-
-        self._network_session = build_network_session()
-
         # Load OTEL collector from environment variables
         self._load_collector_from_env()
 
@@ -104,7 +99,7 @@ class OtelOrchestrator(SpanProcessor):
             ValueError: If provider unsupported
         """
         # Create OTEL exporter
-        exporter = integration.settings.provider_settings.make_exporter(self._network_session)
+        exporter = integration.settings.provider_settings.make_exporter()
         logger.debug(f"Created OTEL exporter for {integration.settings.provider_kind}")
 
         # Wrap in BatchSpanProcessor

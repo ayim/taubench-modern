@@ -12714,7 +12714,7 @@ export const spec = {
             title: 'Url',
             description: 'Full OTLP traces endpoint',
           },
-          api_key: {
+          api_token: {
             anyOf: [
               {
                 type: 'string',
@@ -12722,25 +12722,34 @@ export const spec = {
               {
                 $ref: '#/components/schemas/SecretString',
               },
+            ],
+            title: 'Api Token',
+            description: 'Grafana API token.',
+          },
+          grafana_instance_id: {
+            type: 'string',
+            title: 'Grafana Instance Id',
+            description: 'Grafana instance ID.',
+          },
+          additional_headers: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  type: 'string',
+                },
+                type: 'object',
+              },
               {
                 type: 'null',
               },
             ],
-            title: 'Api Key',
-            description: 'Grafana API key or token.',
-          },
-          custom_attributes: {
-            additionalProperties: {
-              type: 'string',
-            },
-            type: 'object',
-            title: 'Custom Attributes',
+            title: 'Additional Headers',
             description:
-              'Optional custom attributes appended to telemetry payloads.',
+              'Optional HTTP headers to send with the request to Grafana Cloud.',
           },
         },
         type: 'object',
-        required: ['url'],
+        required: ['url', 'api_token', 'grafana_instance_id'],
         title: 'GrafanaObservabilitySettings',
       },
       GroqPlatformParameters: {

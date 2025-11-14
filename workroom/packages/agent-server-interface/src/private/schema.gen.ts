@@ -4734,17 +4734,22 @@ export interface components {
        */
       url: string;
       /**
-       * Api Key
-       * @description Grafana API key or token.
+       * Api Token
+       * @description Grafana API token.
        */
-      api_key?: string | components['schemas']['SecretString'] | null;
+      api_token: string | components['schemas']['SecretString'];
       /**
-       * Custom Attributes
-       * @description Optional custom attributes appended to telemetry payloads.
+       * Grafana Instance Id
+       * @description Grafana instance ID.
        */
-      custom_attributes?: {
+      grafana_instance_id: string;
+      /**
+       * Additional Headers
+       * @description Optional HTTP headers to send with the request to Grafana Cloud.
+       */
+      additional_headers?: {
         [key: string]: string;
-      };
+      } | null;
     };
     /** GroqPlatformParameters */
     GroqPlatformParameters: {

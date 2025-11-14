@@ -340,8 +340,8 @@ async def test_list_enabled_observability_integrations(storage) -> None:
         kind="grafana",
         provider_settings=GrafanaObservabilitySettings(
             url="https://grafana.example.com/v1/traces",
-            api_key="secret_key_123",
-            custom_attributes={"environment": "test"},
+            api_token="glc_secret_key_123",
+            grafana_instance_id="123456",
         ),
         is_enabled=True,
     )

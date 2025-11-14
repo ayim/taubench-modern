@@ -5,8 +5,8 @@ def _make_payload(provider: str = "grafana", *, api_key: str = "secret-key-1") -
     if provider == "grafana":
         provider_settings = {
             "url": "https://example.com/v1/traces",
-            "api_key": api_key,
-            "custom_attributes": {"environment": "test"},
+            "api_token": f"glc_{api_key}",
+            "grafana_instance_id": "123456",
         }
     elif provider == "langsmith":
         provider_settings = {
@@ -44,8 +44,8 @@ def test_create_integration_success(client):
     assert settings["kind"] == "grafana"
     assert settings["is_enabled"] is True
     assert settings["provider_settings"]["url"] == "https://example.com/v1/traces"
-    assert settings["provider_settings"]["custom_attributes"] == {"environment": "test"}
-    assert settings["provider_settings"]["api_key"] == "secret-key-1"
+    assert settings["provider_settings"]["api_token"] == "glc_secret-key-1"
+    assert settings["provider_settings"]["grafana_instance_id"] == "123456"
 
 
 def test_list_integrations_with_filter(client):
@@ -93,8 +93,8 @@ def test_update_integration_partial_and_secret_redaction(client):
             "is_enabled": False,
             "provider_settings": {
                 "url": "https://updated.example.com/v1/traces",
-                "api_key": "updated-key",
-                "custom_attributes": {"service": "demo"},
+                "api_token": "glc_updated-key",
+                "grafana_instance_id": "654321",
             },
         },
     }
@@ -110,8 +110,8 @@ def test_update_integration_partial_and_secret_redaction(client):
     assert data["settings"]["kind"] == "grafana"
     assert data["settings"]["is_enabled"] is False
     assert data["settings"]["provider_settings"]["url"] == "https://updated.example.com/v1/traces"
-    assert data["settings"]["provider_settings"]["custom_attributes"] == {"service": "demo"}
-    assert data["settings"]["provider_settings"]["api_key"] == "updated-key"
+    assert data["settings"]["provider_settings"]["api_token"] == "glc_updated-key"
+    assert data["settings"]["provider_settings"]["grafana_instance_id"] == "654321"
 
     missing_resp = client.put(
         f"/api/v2/observability/integrations/{uuid.uuid4()}",
