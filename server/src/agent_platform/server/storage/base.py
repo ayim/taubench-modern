@@ -815,6 +815,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     trials.c.status_updated_at,
                     trials.c.status_updated_by,
                     trials.c.error_message,
+                    trials.c.metadata,
+                    trials.c.retry_after_at,
+                    trials.c.reschedule_attempts,
                 )
             )
 
@@ -857,6 +860,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.error_message,
             trials.c.evaluation_results,
             trials.c.execution_state,
+            trials.c.metadata,
+            trials.c.retry_after_at,
+            trials.c.reschedule_attempts,
         ).where(trials.c.scenario_run_id == scenario_run_id)
 
         async with self._read_connection() as conn:
@@ -1087,7 +1093,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Get a run trial."""
         trials = self._get_table("trials")
 
-        stmt = sa.select(
+        columns = [
             trials.c.trial_id,
             trials.c.scenario_run_id,
             trials.c.scenario_id,
@@ -1101,7 +1107,12 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.error_message,
             trials.c.evaluation_results,
             trials.c.execution_state,
-        ).where(trials.c.scenario_run_id == scenario_run_id)
+            trials.c.metadata,
+            trials.c.retry_after_at,
+            trials.c.reschedule_attempts,
+        ]
+
+        stmt = sa.select(*columns).where(trials.c.scenario_run_id == scenario_run_id)
 
         async with self._read_connection() as conn:
             result = await conn.execute(stmt)
@@ -1113,12 +1124,12 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Get a run trial."""
         trials = self._get_table("trials")
 
-        stmt = sa.select(
+        columns = [
             trials.c.trial_id,
             trials.c.scenario_run_id,
             trials.c.scenario_id,
-            trials.c.thread_id,
             trials.c.index_in_run,
+            trials.c.thread_id,
             trials.c.status,
             trials.c.created_at,
             trials.c.updated_at,
@@ -1127,7 +1138,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.error_message,
             trials.c.evaluation_results,
             trials.c.execution_state,
-        ).where(
+            trials.c.metadata,
+            trials.c.retry_after_at,
+            trials.c.reschedule_attempts,
+        ]
+        stmt = sa.select(*columns).where(
             sa.and_(
                 trials.c.scenario_run_id == scenario_run_id, trials.c.index_in_run == trial_index
             )
@@ -1157,10 +1172,14 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Atomically claim a batch of PENDING trials and mark them EXECUTING."""
         trials = self._get_table("trials")
         now = datetime.now(UTC)
+        eligible = sa.and_(
+            trials.c.status == TrialStatus.PENDING,
+            sa.or_(trials.c.retry_after_at.is_(None), trials.c.retry_after_at <= now),
+        )
         pending_trial_ids = (
             sa.select(trials.c.trial_id)
-            .where(trials.c.status == TrialStatus.PENDING)
-            .order_by(trials.c.created_at.asc())
+            .where(eligible)
+            .order_by(sa.func.coalesce(trials.c.retry_after_at, trials.c.created_at).asc())
             .limit(limit)
             .subquery()
         )
@@ -1177,6 +1196,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 status=TrialStatus.EXECUTING,
                 updated_at=now,
                 status_updated_at=now,
+                retry_after_at=None,
             )
             .returning(
                 trials.c.trial_id,
@@ -1192,16 +1212,25 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def get_trials_by_ids(self, trials_ids: list[str]) -> list[Trial]:
         """Retrieve multiple trials given their IDs."""
         trials = self._get_table("trials")
-        get_trials_by_ids = sa.select(
+        columns = [
             trials.c.trial_id,
             trials.c.scenario_run_id,
             trials.c.scenario_id,
             trials.c.index_in_run,
+            trials.c.thread_id,
             trials.c.status,
             trials.c.created_at,
             trials.c.updated_at,
+            trials.c.status_updated_at,
+            trials.c.status_updated_by,
             trials.c.error_message,
-        ).where(trials.c.trial_id.in_(trials_ids))
+            trials.c.evaluation_results,
+            trials.c.execution_state,
+            trials.c.metadata,
+            trials.c.retry_after_at,
+            trials.c.reschedule_attempts,
+        ]
+        get_trials_by_ids = sa.select(*columns).where(trials.c.trial_id.in_(trials_ids))
 
         async with self._read_connection() as conn:
             result = await conn.execute(get_trials_by_ids)
@@ -1211,19 +1240,25 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def get_trial(self, trial_id: str) -> Trial | None:
         trials = self._get_table("trials")
-        get_trials_by_ids = sa.select(
+        columns = [
             trials.c.trial_id,
             trials.c.scenario_run_id,
             trials.c.scenario_id,
             trials.c.index_in_run,
+            trials.c.thread_id,
             trials.c.status,
             trials.c.created_at,
             trials.c.updated_at,
+            trials.c.status_updated_at,
+            trials.c.status_updated_by,
             trials.c.error_message,
-            trials.c.thread_id,
             trials.c.evaluation_results,
             trials.c.execution_state,
-        ).where(trials.c.trial_id == trial_id)
+            trials.c.metadata,
+            trials.c.retry_after_at,
+            trials.c.reschedule_attempts,
+        ]
+        get_trials_by_ids = sa.select(*columns).where(trials.c.trial_id == trial_id)
 
         async with self._read_connection() as conn:
             result = await conn.execute(get_trials_by_ids)
@@ -1271,6 +1306,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 error_message=error,
                 updated_at=now,
                 status_updated_at=now,
+                retry_after_at=None,
             )
             .returning(
                 trials.c.trial_id,
@@ -1297,6 +1333,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 error_message=error,
                 updated_at=now,
                 status_updated_at=now,
+                retry_after_at=None,
             )
             .returning(
                 trials.c.trial_id,
@@ -1343,6 +1380,51 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self._write_connection() as conn:
             result = await conn.execute(update_trials_stmt)
+            row = result.mappings().fetchone()
+
+        return row["trial_id"] if row is not None else None
+
+    async def requeue_trial(
+        self,
+        trial_id: str,
+        reason: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        retry_after_at: datetime | None = None,
+        reschedule_attempts: int | None = None,
+    ) -> str | None:
+        trials = self._get_table("trials")
+        now = datetime.now(UTC)
+        default_execution_state = ExecutionState().model_dump()
+
+        values: dict[str, Any] = {
+            "status": TrialStatus.PENDING,
+            "error_message": reason,
+            "thread_id": None,
+            "evaluation_results": [],
+            "execution_state": default_execution_state,
+            "updated_at": now,
+            "status_updated_at": now,
+            "retry_after_at": retry_after_at,
+        }
+        if metadata is not None:
+            values["metadata"] = metadata
+        if reschedule_attempts is not None:
+            values["reschedule_attempts"] = reschedule_attempts
+
+        stmt = (
+            sa.update(trials)
+            .where(
+                sa.and_(
+                    trials.c.trial_id == trial_id,
+                    trials.c.status == TrialStatus.EXECUTING,
+                )
+            )
+            .values(**values)
+            .returning(trials.c.trial_id)
+        )
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(stmt)
             row = result.mappings().fetchone()
 
         return row["trial_id"] if row is not None else None

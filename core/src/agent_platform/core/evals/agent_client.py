@@ -10,6 +10,7 @@ from agent_platform.core.delta.combine_delta import combine_generic_deltas
 from agent_platform.core.evals.session import Session
 from agent_platform.core.streaming.delta import (
     StreamingDelta,
+    StreamingDeltaAgentError,
     StreamingDeltaMessageBegin,
     StreamingDeltaMessageContent,
     StreamingDeltaRequestToolExecution,
@@ -79,6 +80,15 @@ class AgentClient:
             self._message_chunks.append([])
         elif isinstance(event, StreamingDeltaMessageContent):
             self._message_chunks[-1].append(event.delta)
+        elif isinstance(event, StreamingDeltaAgentError):
+            from agent_platform.core.errors.streaming import StreamingError
+
+            data = {"agent_error": event.error.model_dump(), **(event.context or {})}
+            raise StreamingError(
+                error_code=event.error.error_code,
+                message=event.error.message,
+                data=data,
+            )
         elif isinstance(event, StreamingDeltaRequestToolExecution):
             try:
                 logger.info(f"Executing tool {event.tool_name}")

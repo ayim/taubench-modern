@@ -125,6 +125,14 @@ class StreamingDeltaAgentError(StreamingDeltaAgent):
     )
     """The error information following the agreed upon error response."""
 
+    context: dict[str, Any] = field(
+        default_factory=dict,
+        metadata={
+            "description": "Additional structured context for the error (not exposed to clients)."
+        },
+    )
+    """Additional structured context for the error."""
+
     event_type: Literal["agent_error"] = field(
         metadata={"description": "The type of streaming event."},
         default="agent_error",
@@ -136,6 +144,7 @@ class StreamingDeltaAgentError(StreamingDeltaAgent):
         return {
             **super().model_dump(),
             "error": self.error.model_dump(mode="json"),
+            "context": self.context,
         }
 
 

@@ -15,8 +15,9 @@ import {
   IconCloseCircle,
   IconArrowRightCircle,
   IconEdit,
+  IconClock,
 } from '@sema4ai/icons';
-import { getRunStatus, hasTerminalTrials } from '../utils';
+import { getRunStatus, hasTerminalTrials, isRunThrottled } from '../utils';
 import { getPassFailCounts } from '../helpers/evalHelpers';
 import type { Scenario, ScenarioRun } from '../types';
 import { useAnalytics } from '../../../../../queries';
@@ -67,8 +68,17 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
       return null;
     }
 
+    const throttleBadge = isRunThrottled(currentRun.trials ?? []) ? (
+      <Badge icon={IconClock} iconColor="yellow80" variant="yellow" size="small" label="Throttled" />
+    ) : null;
+
     if (isRunning) {
-      return <Badge icon={IconLoading} iconColor="yellow80" variant="yellow" label="Running" />;
+      return (
+        <Box display="flex" alignItems="center" gap="$4">
+          <Badge icon={IconLoading} iconColor="yellow80" variant="yellow" label="Running" />
+          {throttleBadge}
+        </Box>
+      );
     }
 
     const hasCompletedTrials = hasTerminalTrials(currentRun.trials ?? []);
@@ -108,11 +118,12 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
               size="small"
             />
           )}
+          {throttleBadge}
         </Box>
       );
     }
 
-    return null;
+    return throttleBadge;
   };
 
   return (

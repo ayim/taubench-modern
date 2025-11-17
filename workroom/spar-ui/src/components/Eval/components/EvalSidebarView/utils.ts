@@ -108,3 +108,15 @@ export const isTrialTerminal = (trial: Trial): boolean => {
 export const hasTerminalTrials = (trials: Trial[]): boolean => {
   return trials.some(isTrialTerminal);
 };
+
+export const isTrialThrottled = (trial: Trial): boolean => {
+  if (trial.status !== 'PENDING' || trial.reschedule_attempts === 0) {
+    return false;
+  }
+
+  return true;
+};
+
+export const isRunThrottled = (trials: Trial[] = []): boolean => {
+  return trials.some(isTrialThrottled);
+};

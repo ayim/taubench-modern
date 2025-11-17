@@ -12,6 +12,8 @@ from starlette.datastructures import Headers
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.context import AgentServerContext
+from agent_platform.core.errors.responses import ErrorCode
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.evals.agent_client import (
     AgentClient,
     ToolExecutionError,
@@ -42,7 +44,10 @@ from agent_platform.server.agent_architectures.arch_manager import AgentArchMana
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
-from agent_platform.server.evals.errors import log_and_format_error
+from agent_platform.server.evals.errors import (
+    TrialRateLimitedError,
+    log_and_format_error,
+)
 from agent_platform.server.evals.evaluations.flow_adherence import evaluate_flow_adherence
 from agent_platform.server.evals.evaluations.response_accuracy import evaluate_response_accuracy
 from agent_platform.server.file_manager import FileManagerService
@@ -51,6 +56,28 @@ from agent_platform.server.kernel.tools import AgentServerToolsInterface
 from agent_platform.server.storage.option import StorageService
 
 logger = logging.getLogger(__name__)
+
+
+def _is_rate_limit_exception(exc: Exception) -> bool:
+    if isinstance(exc, StreamingError):
+        return exc.response.error_code == ErrorCode.TOO_MANY_REQUESTS
+    return False
+
+
+def _retry_after_from_exception(exc: Exception) -> float | None:
+    data: dict[str, Any] | None = None
+    if isinstance(exc, StreamingError):
+        data = getattr(exc, "data", None)
+
+    if not isinstance(data, dict):
+        return None
+    value = data.get("retry_after_seconds")
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):  # pragma: no cover - defensive
+        return None
 
 
 def _list_scenario_next_user_messages(
@@ -612,6 +639,18 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 await agent_client.run_once()
                 tool_executor.finalize()
             except Exception as e:
+                if _is_rate_limit_exception(e):
+                    retry_after = _retry_after_from_exception(e)
+                    logger.warning(
+                        "Trial %s turn=%s rate limited; scheduling retry.",
+                        task.trial_id,
+                        current_turn,
+                    )
+                    raise TrialRateLimitedError(
+                        "Trial rate limited; will retry later.",
+                        retry_after_seconds=retry_after,
+                    ) from e
+
                 logger.info(f"Turn {current_turn}: {e}.")
                 state.termination = _get_termination_reason(e)
                 state.status = "ERROR"
@@ -639,6 +678,8 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
             current_user_message_index = next_user_message_index
             if tool_executor is not None:
                 drifts.extend(_collect_tool_executor_drifts(tool_executor))
+    except TrialRateLimitedError:
+        raise
     except Exception as e:
         logger.error(f"Unexpected error when processing evals: {e}.")
         state.termination = _get_termination_reason(e)

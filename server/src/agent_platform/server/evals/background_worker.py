@@ -12,11 +12,14 @@ Design:
 
 import asyncio
 import logging
+import random
 import traceback
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
-from typing import Generic, Protocol, TypeVar, runtime_checkable
+from datetime import UTC, datetime, timedelta
+from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
+from agent_platform.server.evals.errors import TrialRateLimitedError
 from agent_platform.server.shutdown_manager import ShutdownManager
 from agent_platform.server.storage.errors import TrialAlreadyCanceledError
 
@@ -30,6 +33,7 @@ WORKER_NAME = "evals"
 class Task(Protocol):
     def get_status(self) -> str: ...
     def get_unique_identifier(self) -> str: ...
+    def get_reschedule_attempts(self) -> int: ...
 
 
 T = TypeVar("T", bound=Task)
@@ -61,6 +65,16 @@ class TaskRepository(Protocol[T]):
         """
         ...
 
+    async def requeue_task(
+        self,
+        task: T,
+        *,
+        reason: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        retry_after_at: datetime | None = None,
+        reschedule_attempts: int | None = None,
+    ) -> None: ...
+
 
 class TaskRunner(Protocol[T]):  # type: ignore
     """Runs a task. Return True on success, False on failure."""
@@ -90,6 +104,11 @@ class QueueSettings:
     worker_interval: float = 5.0
     batch_timeout: float = 300.0
     max_parallel_in_process: int = 8
+    retry_after_seconds: float = 60.0
+    retry_attempts_limit: int = 3
+    max_retry_after_seconds: float = 900.0
+    retry_jitter_ratio: float = 0.2
+    rate_limited_quota: int = 1
 
 
 class WorkQueue(Generic[T]):
@@ -133,18 +152,40 @@ class WorkQueue(Generic[T]):
 
         logger.info("Dispatching eval tasks %s", task_ids)
         results = await self._run_batch(task_ids, self.settings.batch_timeout)
-        logger.info("Completed %d eval tasks concurrently", len(results))
+        if results:
+            summary = self._summarize_batch_results(results)
+            logger.info(
+                (
+                    "Completed batch: total=%d succeeded=%d failed=%d "
+                    "rescheduled=%d canceled=%d timeouts=%d"
+                ),
+                summary["total"],
+                summary["succeeded"],
+                summary["failed"],
+                summary["rescheduled"],
+                summary["canceled"],
+                summary["timeouts"],
+            )
+        else:
+            logger.info("Completed 0 eval tasks")
 
-    async def _run_batch(  # noqa: C901, PLR0912
+    async def _run_batch(  # noqa: C901, PLR0912, PLR0915
         self,
         task_ids: Sequence[str],
         batch_timeout: float,
-    ) -> Sequence[bool | BaseException]:
+    ) -> Sequence[bool | str | BaseException]:
         tasks = await self.repo.get_tasks_by_ids(list(task_ids))
         if not tasks:
             return []
 
-        task_map: dict[str, asyncio.Task[bool]] = {}
+        tasks, overflow_rate_limited = self._filter_rate_limited_tasks(tasks)
+        if overflow_rate_limited:
+            await self._reschedule_overflow_rate_limited_tasks(overflow_rate_limited)
+
+        if not tasks:
+            return []
+
+        task_map: dict[str, asyncio.Task[bool | str]] = {}
 
         for t in tasks:
             status = t.get_status()
@@ -173,7 +214,7 @@ class WorkQueue(Generic[T]):
             )
         )
 
-        results: list[bool | BaseException] = []
+        results: list[bool | str | BaseException] = []
         incomplete_ids: list[str] = []
 
         if pending:
@@ -197,7 +238,12 @@ class WorkQueue(Generic[T]):
                 try:
                     res = await asyncio.shield(async_task)
                     results.append(res)
-                    logger.info("Task %s completed normally", task_id)
+                    if res == "rescheduled":
+                        logger.info("Task %s rescheduled after rate limit", task_id)
+                    elif res is True:
+                        logger.info("Task %s completed normally", task_id)
+                    else:
+                        logger.info("Task %s completed with result=%s", task_id, res)
                 except asyncio.CancelledError:
                     if task_id in canceled_by_db:
                         results.append(asyncio.CancelledError())
@@ -219,12 +265,108 @@ class WorkQueue(Generic[T]):
 
         return results
 
-    async def _execute_task(self, task_obj: T) -> bool:
+    def _filter_rate_limited_tasks(self, tasks: Sequence[T]) -> tuple[list[T], list[T]]:
+        remaining: list[T] = []
+        overflow: list[T] = []
+        rate_limited_quota = self.settings.rate_limited_quota
+
+        for task in tasks:
+            if self._is_rate_limited_task(task):
+                if rate_limited_quota > 0:
+                    remaining.append(task)
+                    rate_limited_quota -= 1
+                else:
+                    overflow.append(task)
+            else:
+                remaining.append(task)
+
+        return remaining, overflow
+
+    async def _reschedule_overflow_rate_limited_tasks(self, tasks: Sequence[T]) -> None:
+        for task in tasks:
+            metadata = getattr(task, "metadata", {})
+            current_attempts = task.get_reschedule_attempts()
+            # attempts is not incremented because
+            # in this case we didn't hit a rate limit
+            # but we are enforcing rate-limited tasks per batch
+            next_attempt = current_attempts if current_attempts > 0 else 1
+            delay = self.settings.retry_after_seconds
+
+            try:
+                retry_after_at = self._compute_retry_after_at(
+                    base_delay=delay, next_attempt=next_attempt
+                )
+                logger.info(
+                    "Task %s requeued immediately, delay %.2fs (next run at %s)",
+                    task.get_unique_identifier(),
+                    delay,
+                    retry_after_at.isoformat(),
+                )
+                await self.repo.requeue_task(
+                    task,
+                    reason="Rescheduled to enforce rate-limited tasks per batch",
+                    metadata=metadata,
+                    retry_after_at=retry_after_at,
+                    reschedule_attempts=current_attempts,
+                )
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.error(
+                    "Failed to requeue rate-limited task %s: %s",
+                    task.get_unique_identifier(),
+                    exc,
+                    exc_info=exc,
+                )
+            else:
+                logger.info(
+                    "Rate-limited task %s rescheduled for later batch",
+                    task.get_unique_identifier(),
+                )
+
+    def _is_rate_limited_task(self, task: T) -> bool:
+        return task.get_reschedule_attempts() > 0
+
+    def _summarize_batch_results(
+        self, results: Sequence[bool | str | BaseException]
+    ) -> dict[str, int]:
+        summary = {
+            "total": len(results),
+            "succeeded": 0,
+            "failed": 0,
+            "rescheduled": 0,
+            "canceled": 0,
+            "timeouts": 0,
+        }
+
+        for result in results:
+            if result is True:
+                summary["succeeded"] += 1
+            elif result is False:
+                summary["failed"] += 1
+            elif result == "rescheduled":
+                summary["rescheduled"] += 1
+            elif isinstance(result, asyncio.CancelledError):
+                summary["canceled"] += 1
+            elif isinstance(result, TimeoutError):
+                summary["timeouts"] += 1
+            else:
+                summary["failed"] += 1
+
+        return summary
+
+    async def _execute_task(self, task_obj: T) -> bool | str:  # noqa: PLR0915, C901, PLR0912
         """Run the task, compute final status, persist, and trigger callbacks."""
         ran_ok = False
+        rate_limited_error: TrialRateLimitedError | None = None
         try:
             logger.info("Starting execution on task")
             ran_ok = await self.runner(task_obj)
+        except TrialRateLimitedError as rate_exc:
+            logger.warning(
+                "Task %s hit rate limits; scheduling retry.",
+                task_obj.get_unique_identifier(),
+            )
+            rate_limited_error = rate_exc
+            ran_ok = False
         except Exception as e:  # pragma: no cover - defensive
             logger.error("Error executing task: %s", e, exc_info=e)
             # fall through; we'll set ERROR below
@@ -245,6 +387,61 @@ class WorkQueue(Generic[T]):
             if self.callbacks:
                 await _safe_call(self.callbacks.on_complete, refreshed_task, "CANCELED")
             return ran_ok
+
+        if rate_limited_error is not None:
+            metadata_source = getattr(refreshed_task, "metadata", {}) or {}
+            if not isinstance(metadata_source, dict):
+                metadata_source = {}
+            metadata = dict(metadata_source)
+            current_attempts = refreshed_task.get_reschedule_attempts()
+            next_attempt = current_attempts + 1
+            max_attempts = self.settings.retry_attempts_limit
+            if max_attempts > 0 and next_attempt > max_attempts:
+                message = f"Rate limit retries exceeded after {next_attempt - 1} attempts"
+                await self.repo.set_status_if_not_canceled(
+                    refreshed_task,
+                    "ERROR",
+                    message,
+                )
+                logger.error(
+                    "Task %s exceeded rate-limit reschedule cap (%d)",
+                    refreshed_task.get_unique_identifier(),
+                    max_attempts,
+                )
+                return False
+
+            custom_delay = rate_limited_error.retry_after_seconds
+            delay = custom_delay if custom_delay is not None else self.settings.retry_after_seconds
+            retry_after_at = self._compute_retry_after_at(
+                base_delay=delay, next_attempt=next_attempt
+            )
+
+            try:
+                await self.repo.requeue_task(
+                    refreshed_task,
+                    reason=str(rate_limited_error) if str(rate_limited_error) else None,
+                    metadata=metadata,
+                    retry_after_at=retry_after_at,
+                    reschedule_attempts=next_attempt,
+                )
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.error(
+                    "Failed to requeue rate-limited task %s: %s",
+                    refreshed_task.get_unique_identifier(),
+                    exc,
+                    exc_info=exc,
+                )
+                # fallback: mark as error so it won't loop forever
+            else:
+                logger.info(
+                    "Task %s requeued after rate limit (%d/%s), delay %.2fs (next run at %s)",
+                    refreshed_task.get_unique_identifier(),
+                    next_attempt,
+                    max_attempts if max_attempts > 0 else "∞",
+                    delay,
+                    retry_after_at.isoformat(),
+                )
+                return "rescheduled"
 
         # Determine final status
         if self.validator is not None:
@@ -316,6 +513,21 @@ class WorkQueue(Generic[T]):
         except asyncio.CancelledError:
             # shutting down watcher
             pass
+
+    def _compute_retry_after_at(self, base_delay: float, next_attempt: int):
+        """Compute retry after date"""
+        backoff_multiplier = 2 ** max(next_attempt - 1, 0)
+        delay = base_delay * backoff_multiplier
+        max_delay = self.settings.max_retry_after_seconds
+        if max_delay:
+            delay = min(delay, max_delay)
+        jitter_ratio = max(self.settings.retry_jitter_ratio, 0)
+        if jitter_ratio > 0:
+            jitter = random.uniform(1 - jitter_ratio, 1 + jitter_ratio)
+            delay = delay * jitter
+        if max_delay:
+            delay = min(delay, max_delay)
+        return datetime.now(UTC) + timedelta(seconds=delay)
 
 
 async def _safe_call(fn: Callable[[T, str], Awaitable[None]] | None, task: T, status: str) -> None:

@@ -12,6 +12,7 @@ from agent_platform.core.platforms.azure.parsers import AzureOpenAIParsers
 from agent_platform.core.platforms.azure.prompts import AzureOpenAIPrompt
 from agent_platform.core.platforms.base import PlatformClient
 from agent_platform.core.platforms.openai.utils import build_llm_async_http_client, log_token_usage
+from agent_platform.core.platforms.retry import _parse_retry_after_header
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
@@ -281,12 +282,26 @@ class AzureOpenAIClient(
                 # Handle Rate Limit errors here.
                 # Azure might return a RateLimitError, handled above;
                 # or it might return an APIError with code "429" / "rate_limit_exceeded".
+
                 if error.code in {"rate_limit_exceeded", "429"}:
+                    response = getattr(error, "response", None)
+
+                    if not response:
+                        logger.warning(
+                            "Received a rate limit error."
+                            "But we cannot get retry-after because response is missing"
+                        )
+
+                    headers = getattr(response, "headers", None) or {}
+                    retry_after_seconds = _parse_retry_after_header(
+                        headers.get("retry-after") or headers.get("Retry-After")
+                    )
+
                     return error_type(
                         error_code=ErrorCode.TOO_MANY_REQUESTS,
                         message=f"LLM usage limit reached. Please increase the limit for '{model}' "
                         f"or switch to an available model.",
-                        data={"model": model},
+                        data={"model": model, "retry_after_seconds": retry_after_seconds},
                     )
                 return error_type(
                     error_code=ErrorCode.UNEXPECTED,

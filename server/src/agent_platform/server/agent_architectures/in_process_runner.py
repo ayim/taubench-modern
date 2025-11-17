@@ -66,11 +66,13 @@ class InProcessAgentRunner(BaseAgentRunner):
         except Exception as e:
             if isinstance(e, PlatformError):
                 error_response = e.response
+                context = e.data
             else:
                 error_response = ErrorResponse(
                     error_code=ErrorCode.UNEXPECTED,
                     message_override="An internal error occurred during agent execution",
                 )
+                context = {}
             # if we don't log here, we rely on the architecture to do it, which is not ideal
             logger.error(
                 "Error during agent architecture invocation",
@@ -80,6 +82,7 @@ class InProcessAgentRunner(BaseAgentRunner):
             await kernel.outgoing_events.dispatch(
                 StreamingDeltaAgentError(
                     error=error_response,
+                    context=context,
                     run_id=kernel.run.run_id,
                     thread_id=kernel.run.thread_id,
                     agent_id=kernel.run.agent_id,

@@ -8,9 +8,16 @@ import {
   IconShare,
   IconInformation,
   IconLoading,
+  IconClock,
 } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
-import { getEvaluationResultColor, getEvaluationResultLabel, getEvaluationResultIcon, isTrialTerminal } from '../utils';
+import {
+  getEvaluationResultColor,
+  getEvaluationResultLabel,
+  getEvaluationResultIcon,
+  isTrialTerminal,
+  isTrialThrottled,
+} from '../utils';
 import type { Trial } from '../types';
 import { useAnalytics } from '../../../../../queries';
 
@@ -56,8 +63,17 @@ export const TrialResults: FC<TrialResultsProps> = ({
   const hasEvaluationResults = isTrialCompleted && trial.evaluation_results && trial.evaluation_results.length > 0;
 
   const getTrialStatusBadges = () => {
+    const throttleBadge = isTrialThrottled(trial) ? (
+      <Badge key="throttled" icon={IconClock} iconColor="yellow80" variant="yellow" size="small" label="Throttled" />
+    ) : null;
+
     if (trial.status === 'PENDING') {
-      return <Badge icon={IconLoading} iconColor="blue80" variant="info" size="small" label="Pending" />;
+      return (
+        <>
+          <Badge icon={IconLoading} iconColor="blue80" variant="info" size="small" label="Pending" />
+          {throttleBadge}
+        </>
+      );
     }
 
     if (trial.status === 'EXECUTING') {

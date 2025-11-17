@@ -8386,6 +8386,13 @@ export interface components {
       metadata?: {
         [key: string]: unknown;
       };
+      /** Retry After At */
+      retry_after_at?: string | null;
+      /**
+       * Reschedule Attempts
+       * @default 0
+       */
+      reschedule_attempts: number;
     };
     /**
      * TrialStatus

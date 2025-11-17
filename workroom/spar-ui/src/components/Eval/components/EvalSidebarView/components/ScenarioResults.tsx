@@ -7,12 +7,14 @@ import {
   IconStatusCompleted,
   IconStatusError,
   IconLoading,
+  IconClock,
 } from '@sema4ai/icons';
 import type { components } from '@sema4ai/agent-server-interface';
 import { TrialResults } from './TrialResults';
 import type { Trial, ScenarioRun } from '../types';
 import { formatDuration, getPassFailCounts, getRunAverageTrialDuration, isRunTerminated } from '../helpers/evalHelpers';
 import { useAnalytics } from '../../../../../queries';
+import { isRunThrottled } from '../utils';
 
 export interface ScenarioResultsProps {
   scenarioId: string;
@@ -128,9 +130,18 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                 const runIsRunning =
                   run.trials?.some((trial) => trial.status === 'PENDING' || trial.status === 'EXECUTING') ?? false;
 
+                const throttled = isRunThrottled(run.trials ?? []);
+
                 let statusBadge = null;
                 if (runIsRunning) {
-                  statusBadge = <Badge icon={IconLoading} iconColor="blue80" variant="blue" size="small" label="" />;
+                  statusBadge = (
+                    <Box display="flex" alignItems="center" gap="$4">
+                      <Badge icon={IconLoading} iconColor="blue80" variant="blue" size="small" label="" />
+                      {throttled && (
+                        <Badge icon={IconClock} iconColor="yellow80" variant="yellow" size="small" label="" />
+                      )}
+                    </Box>
+                  );
                 } else if (run.trials && run.trials.length > 0) {
                   const { passed, failed, canceled } = getPassFailCounts(run.trials);
                   const hasResults = passed > 0 || failed > 0 || canceled > 0;
@@ -138,20 +149,34 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                   if (hasResults) {
                     if (failed > 0 || canceled > 0) {
                       statusBadge = (
-                        <Badge icon={IconStatusError} iconColor="content.error" variant="red" size="small" label="" />
+                        <Box display="flex" alignItems="center" gap="$4">
+                          <Badge icon={IconStatusError} iconColor="content.error" variant="red" size="small" label="" />
+                          {throttled && (
+                            <Badge icon={IconClock} iconColor="yellow80" variant="yellow" size="small" label="" />
+                          )}
+                        </Box>
                       );
                     } else if (passed > 0) {
                       statusBadge = (
-                        <Badge
-                          icon={IconStatusCompleted}
-                          iconColor="content.success"
-                          variant="green"
-                          size="small"
-                          label=""
-                        />
+                        <Box display="flex" alignItems="center" gap="$4">
+                          <Badge
+                            icon={IconStatusCompleted}
+                            iconColor="content.success"
+                            variant="green"
+                            size="small"
+                            label=""
+                          />
+                          {throttled && (
+                            <Badge icon={IconClock} iconColor="yellow80" variant="yellow" size="small" label="" />
+                          )}
+                        </Box>
                       );
                     }
                   }
+                }
+
+                if (!statusBadge && throttled) {
+                  statusBadge = <Badge icon={IconClock} iconColor="yellow80" variant="yellow" size="small" label="" />;
                 }
 
                 return (

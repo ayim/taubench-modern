@@ -1,4 +1,6 @@
 from collections.abc import Sequence
+from datetime import datetime
+from typing import Any
 
 from agent_platform.core.evals.types import Trial, TrialStatus
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
@@ -35,4 +37,21 @@ class ScenarioRunTrialRepository(TaskRepository[Trial]):
 
         await self.storage.update_trial_status_if_not_canceled(
             task.trial_id, system_user_id, TrialStatus(status), error
+        )
+
+    async def requeue_task(
+        self,
+        task: Trial,
+        *,
+        reason: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        retry_after_at: datetime | None = None,
+        reschedule_attempts: int | None = None,
+    ) -> None:
+        await self.storage.requeue_trial(
+            task.trial_id,
+            reason,
+            metadata=metadata,
+            retry_after_at=retry_after_at,
+            reschedule_attempts=reschedule_attempts,
         )

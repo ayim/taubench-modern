@@ -294,6 +294,8 @@ class Trial:
         default_factory=dict,
         metadata={"description": "Arbitrary trial metadata."},
     )
+    retry_after_at: datetime | None = None
+    reschedule_attempts: int = 0
 
     def __repr__(self) -> str:
         base = (
@@ -316,8 +318,11 @@ class Trial:
     def get_status(self):
         return str(self.status.value)
 
+    def get_reschedule_attempts(self):
+        return self.reschedule_attempts
+
     @classmethod
-    def model_validate(cls, data: dict) -> "Trial":  # noqa: C901
+    def model_validate(cls, data: dict) -> "Trial":  # noqa: C901, PLR0912
         """Create a trial from a dictionary."""
         data = data.copy()
 
@@ -336,6 +341,8 @@ class Trial:
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         if "status_updated_at" in data and isinstance(data["status_updated_at"], str):
             data["status_updated_at"] = datetime.fromisoformat(data["status_updated_at"])
+        if "retry_after_at" in data and isinstance(data["retry_after_at"], str):
+            data["retry_after_at"] = datetime.fromisoformat(data["retry_after_at"])
 
         if "messages" in data and isinstance(data["messages"], list):
             data["messages"] = [
@@ -347,6 +354,21 @@ class Trial:
             ]
         if "execution_state" in data and isinstance(data["execution_state"], dict):
             data["execution_state"] = parse_execution_state(data["execution_state"])
+        metadata = data.get("metadata")
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except json.JSONDecodeError:
+                metadata = {}
+        elif metadata is None:
+            metadata = {}
+        data["metadata"] = metadata
+
+        reschedule_attempts = data.get("reschedule_attempts", 0)
+        try:
+            data["reschedule_attempts"] = int(reschedule_attempts)
+        except (TypeError, ValueError):
+            data["reschedule_attempts"] = 0
 
         if "status" in data and isinstance(data["status"], str):
             data["status"] = TrialStatus(data["status"])
@@ -372,6 +394,9 @@ class Trial:
             "status_updated_at": self.status_updated_at,
             "status_updated_by": self.status_updated_by,
             "error_message": self.error_message,
+            "metadata": self.metadata,
+            "retry_after_at": self.retry_after_at.isoformat() if self.retry_after_at else None,
+            "reschedule_attempts": self.reschedule_attempts,
         }
 
 

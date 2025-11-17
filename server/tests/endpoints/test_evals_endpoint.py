@@ -1,6 +1,7 @@
 import io
 import json
 import zipfile
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -831,6 +832,52 @@ async def test_get_agent_batch_run_reports_statistics(client, storage, seed_agen
     assert eval_totals["flow_adherence"]["passed"] == 1
     assert eval_totals["response_accuracy"]["total"] == 1
     assert eval_totals["response_accuracy"]["passed"] == 0
+
+
+async def test_retry_after_at_persists_through_api(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    scenario = await _create_scenario(
+        storage, stub_user.user_id, agent.agent_id, name="Throttle me"
+    )
+
+    run_response = client.post(
+        f"/api/v2/evals/scenarios/{scenario.scenario_id}/runs",
+        json={"num_trials": 1},
+    )
+    assert run_response.status_code == 200
+    run_payload = run_response.json()
+    scenario_run_id = run_payload["scenario_run_id"]
+    trial_id = run_payload["trials"][0]["trial_id"]
+
+    await storage.update_trial_status(
+        trial_id,
+        stub_user.user_id,
+        TrialStatus.EXECUTING,
+    )
+
+    retry_after_at = datetime.now(UTC) + timedelta(seconds=90)
+    metadata = {"rescheduled": True}
+    await storage.requeue_trial(
+        trial_id,
+        reason="Rate limited",
+        metadata=metadata,
+        retry_after_at=retry_after_at,
+        reschedule_attempts=3,
+    )
+
+    run_detail = client.get(
+        f"/api/v2/evals/scenarios/{scenario.scenario_id}/runs/{scenario_run_id}"
+    )
+    assert run_detail.status_code == 200
+    run_detail_payload = run_detail.json()
+    trial_payload = run_detail_payload["trials"][0]
+
+    assert trial_payload["status"] == "PENDING"
+    serialized_retry_after = trial_payload["retry_after_at"]
+    assert serialized_retry_after.replace("Z", "+00:00") == retry_after_at.isoformat()
+    assert trial_payload["reschedule_attempts"] == 3
+    assert trial_payload["error_message"] == "Rate limited"
+    assert trial_payload["metadata"] == metadata
 
 
 async def test_cancel_agent_batch_run_marks_trials_canceled(

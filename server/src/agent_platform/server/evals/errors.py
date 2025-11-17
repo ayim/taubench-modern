@@ -5,6 +5,14 @@ from agent_platform.core.errors.responses import ErrorCode, ErrorResponse
 logger = logging.getLogger(__name__)
 
 
+class TrialRateLimitedError(Exception):
+    """Signal that a trial hit rate limits and should be retried."""
+
+    def __init__(self, message: str, retry_after_seconds: float | None = None) -> None:
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
+
+
 def log_and_format_error(
     *,
     log_message: str,

@@ -20102,6 +20102,23 @@ export const spec = {
             title: 'Metadata',
             description: 'Arbitrary trial metadata.',
           },
+          retry_after_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Retry After At',
+          },
+          reschedule_attempts: {
+            type: 'integer',
+            title: 'Reschedule Attempts',
+            default: 0,
+          },
         },
         type: 'object',
         required: [
