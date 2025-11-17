@@ -28,6 +28,7 @@ export enum ResourceType {
   Thread = 'thread',
   WorkItem = 'work_item',
   ThreadFile = 'thread_file',
+  Integration = 'integration',
 }
 
 const KnownErrorCodes = new Set<string>(Object.values(QueryErrorCode));

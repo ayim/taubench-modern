@@ -7,3 +7,4 @@ export * from './queries/dataConnections';
 export * from './queries/semanticData';
 export * from './queries/agentPackageInspection';
 export * from './queries/analytics';
+export * from './queries/integrations';

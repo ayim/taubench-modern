@@ -25,6 +25,7 @@ const ACTION_MAP: Record<ResourceType, { to: keyof SparUIRoutes; label: string }
     to: '/data-connections',
     label: 'Return to Data Access',
   },
+  integration: DEFAULT_ACTION,
 };
 
 const getAction = (resourceType?: ResourceType) => {

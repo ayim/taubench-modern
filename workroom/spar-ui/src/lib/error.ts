@@ -60,6 +60,7 @@ const RESOURCE_TYPE_TITLE: Record<ResourceType, string> = {
   thread: 'Conversation',
   thread_file: 'File',
   work_item: 'Work Item',
+  integration: 'Integration',
 };
 
 const ILLUSTRATION_NAME: Record<ResourceType, IllustrationName> = {
@@ -73,6 +74,7 @@ const ILLUSTRATION_NAME: Record<ResourceType, IllustrationName> = {
   thread: 'agents',
   thread_file: 'generic',
   work_item: 'generic',
+  integration: 'generic',
 };
 
 type ResourceDetails = { type?: ResourceType; title?: string; illustration: IllustrationName };

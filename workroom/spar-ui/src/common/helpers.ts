@@ -156,3 +156,6 @@ export const snakeCaseToCamelCase = (str: string): string => {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 };
+
+export const apiSecretValueToString = (value: string | { value: string }): string =>
+  typeof value === 'string' ? value : value.value;

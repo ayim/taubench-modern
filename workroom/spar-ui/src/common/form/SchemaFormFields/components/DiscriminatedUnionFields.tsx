@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 import { getLLMProviderIcon, snakeToCapitalCase } from '../../../helpers';
 import { SelectControlled } from '../../SelectControlled';
-import { SchemaFormFields } from '..';
+import { SchemaFormFields } from '../index';
 
 type Props = {
   schema:
