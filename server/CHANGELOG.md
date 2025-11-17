@@ -1,3 +1,15 @@
+# Sema4.ai Agent Server 2.1.21 (2025-11-17)
+
+- [GPT-1489] New "Planning" Agent Architecture (#1633)
+- DIN-750: litellm/openai/gpt-5-low model name (#1661)
+- [GPT-1513] Return `additional_headers` in `model_dump` (#1657)
+- GPT-1474 Reschedule evaluation runs when we hit rate limits (#1636)
+- fix(sdm-100): Translate logical column names to actual column expr when executing queries (#1626)
+- [SDM-73] feat(sdm): add metadata field for inspection snapshots and provenance (#1581)
+- GPT-1495 New cancel endpoint for canceling eval batches (#1644)
+- Verified queries, Data frame lineage, SDM can reference data frames directly (#1533)
+- [GPT-1490] Add LiteLLM Platform (#1621)
+
 # Sema4.ai Agent Server 2.1.20 (2025-11-14)
 
 - [GPT-1499] Add support for sending traces to Grafana (#1641)
