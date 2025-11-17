@@ -70,15 +70,31 @@ export const apiResponseToFormValues = (data: ObservabilitySettings): Observabil
   };
 };
 
-export const toObservabilitySettings = (data: ObservabilitySettingsFormSchema): ObservabilitySettings => ({
-  is_enabled: true,
-  kind: data.kind,
-  provider_settings: {
-    url: data.provider_settings.url || '',
-    api_key: data.provider_settings.api_key || '',
-    project_name: data.provider_settings.project_name || '',
-    api_token: data.provider_settings.api_token || '',
-    grafana_instance_id: data.provider_settings.grafana_instance_id || '',
-    additional_headers: data.provider_settings.additional_headers || {},
-  },
-});
+export const toObservabilitySettings = (data: ObservabilitySettingsFormSchema): ObservabilitySettings => {
+  if (data.kind === 'langsmith') {
+    return {
+      is_enabled: true,
+      kind: data.kind,
+      provider_settings: {
+        url: data.provider_settings.url || '',
+        api_key: data.provider_settings.api_key || '',
+        project_name: data.provider_settings.project_name || '',
+      },
+    };
+  }
+
+  if (data.kind === 'grafana') {
+    return {
+      is_enabled: true,
+      kind: data.kind,
+      provider_settings: {
+        url: data.provider_settings.url || '',
+        api_token: data.provider_settings.api_token || '',
+        grafana_instance_id: data.provider_settings.grafana_instance_id || '',
+        additional_headers: data.provider_settings.additional_headers || {},
+      },
+    };
+  }
+
+  throw new Error('Invalid observability provider');
+};
