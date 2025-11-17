@@ -1,31 +1,30 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { useContext, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { Box, Button, Dialog, Typography, Link, Banner } from '@sema4ai/components';
-import { IconInformation, IconPencil, IconPlus, IconWriteNote } from '@sema4ai/icons';
+import { IconInformation, IconPencil, IconPlus, IconSearch } from '@sema4ai/icons';
+import { Box, Button, Dialog, Typography, Link, Banner, Input, Tabs } from '@sema4ai/components';
 
 import { RenameDialog } from '../../../../../common/dialogs/RenameDialog';
 import { EXTERNAL_LINKS } from '../../../../../lib/constants';
 import { ConfigurationStep, ConfigurationStepView, DataConnectionFormContext, DataConnectionFormSchema } from '../form';
 import { TableTree } from './components/TableTree';
 import { ModelScore } from './components/ModelScore';
+import { VerifiedQueriesTable } from './components/VerifiedQueriesTable';
+import { EditVerifiedQueryDialog } from './components/EditVerifiedQueryDialog';
 
 type Props = {
   modelId: string;
 };
 
 export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, setActiveStep }) => {
-  const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
+  const { watch, setValue, register } = useFormContext<DataConnectionFormSchema>();
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
-  const [isUpdateContextDialogOpen, setIsUpdateContextDialogOpen] = useState(false);
+  const [verifiedQueriesSearch, setVerifiedQueriesSearch] = useState('');
+  const [isCreateQueryDialogOpen, setIsCreateQueryDialogOpen] = useState(false);
   const { databaseInspectionState } = useContext(DataConnectionFormContext);
 
   const onToggleRenameDialog = () => {
     setIsRenameDialogOpen(!isRenameDialogOpen);
-  };
-
-  const onToggleUpdateContextDialog = () => {
-    setIsUpdateContextDialogOpen(!isUpdateContextDialogOpen);
   };
 
   const onModelRename = (newName: string) => {
@@ -33,12 +32,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
     setIsRenameDialogOpen(false);
   };
 
-  const onModelUpdateContext = (newContext: string) => {
-    setValue('description', newContext);
-    setIsUpdateContextDialogOpen(false);
-  };
-
-  const { name, description, dataSelection, dataConnectionId } = watch();
+  const { name, dataSelection, dataConnectionId } = watch();
 
   return (
     <>
@@ -63,7 +57,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
             }
           />
         )}
-        <Box display="flex" flexDirection={['column', 'column', 'column', 'row']} gap="$16" mb="$40" width="100%">
+        <Box display="flex" flexDirection={['column', 'column', 'column', 'row']} gap="$8" mb="$16" width="100%">
           <Box display="flex" flexDirection="column" gap="$8">
             <Box display="flex" alignItems="center" gap="$8">
               <Typography variant="display-medium">{name}</Typography>
@@ -90,22 +84,57 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
             <ModelScore />
           </Box>
         </Box>
-        <Box display="flex" gap="$8" mb="$16">
-          {dataConnectionId && (
-            <Button
-              variant="secondary"
-              onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
-              icon={IconPlus}
-              round
-            >
-              Add Data
-            </Button>
-          )}
-          <Button variant="secondary" onClick={onToggleUpdateContextDialog} icon={IconWriteNote} round>
-            Edit Business Context
-          </Button>
-        </Box>
-        <TableTree modelId={modelId} />
+        <Tabs>
+          <Tabs.Tab>Business Context</Tabs.Tab>
+          <Tabs.Tab>Data Model</Tabs.Tab>
+          <Tabs.Tab>Verified Queries</Tabs.Tab>
+          <Tabs.Panel>
+            <Box display="flex" flexDirection="column" gap="$8">
+              <Input
+                rows={20}
+                maxWidth="720px"
+                {...register('description')}
+                placeholder="Enter business context..."
+                aria-label="Business Context"
+              />
+            </Box>
+          </Tabs.Panel>
+
+          <Tabs.Panel>
+            <Box display="flex" gap="$8" mb="$16">
+              {dataConnectionId && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
+                  icon={IconPlus}
+                  round
+                >
+                  Add Data
+                </Button>
+              )}
+            </Box>
+            <TableTree modelId={modelId} />
+          </Tabs.Panel>
+          <Tabs.Panel>
+            <Box display="flex" flexDirection="column" gap="$16">
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Button variant="secondary" icon={IconPlus} round onClick={() => setIsCreateQueryDialogOpen(true)}>
+                  Verified Query
+                </Button>
+                <Input
+                  placeholder="Search"
+                  iconLeft={IconSearch}
+                  value={verifiedQueriesSearch}
+                  onChange={(e) => setVerifiedQueriesSearch(e.target.value)}
+                  aria-label="Search verified queries"
+                  style={{ maxWidth: '300px' }}
+                  round
+                />
+              </Box>
+              <VerifiedQueriesTable searchQuery={verifiedQueriesSearch} modelId={modelId} />
+            </Box>
+          </Tabs.Panel>
+        </Tabs>
       </Dialog.Content>
       <Dialog.Actions>
         <Button disabled={dataSelection.length === 0} type="submit" round>
@@ -124,16 +153,11 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
           entityType="Model Name"
         />
       )}
-
-      {isUpdateContextDialogOpen && (
-        <RenameDialog
-          onClose={onToggleUpdateContextDialog}
-          onRename={onModelUpdateContext}
-          entityName={description || ''}
-          actionType="Update"
-          actionDescription="Describe the data structure and its business context."
-          entityType="Business Context"
-          multiLine
+      {isCreateQueryDialogOpen && (
+        <EditVerifiedQueryDialog
+          open={isCreateQueryDialogOpen}
+          onClose={() => setIsCreateQueryDialogOpen(false)}
+          modelId={modelId}
         />
       )}
     </>

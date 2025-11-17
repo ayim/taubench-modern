@@ -1,0 +1,77 @@
+## Data Frame: `another_data_frame`
+
+#### Description:
+
+Another data frame (description)
+
+#### Dependency Summary:
+
+- `test_data_frame_single_column` (data frame)
+    - `test_data_frame` (data frame)
+        - `file_data` (file `test_data.csv`)
+
+#### Type: sql_computation
+
+#### SQL Query:
+
+    ```sql
+    SELECT * FROM test_data_frame_single_column
+    ```
+
+#### Full SQL Query (with dependencies resolved, referencing logical table names):
+
+    ```sql
+    WITH test_data_frame_single_column AS (
+      SELECT
+        Category
+      FROM test_data_frame
+    ), test_data_frame AS (
+      SELECT
+        *
+      FROM file_data
+    )
+    SELECT
+      *
+    FROM test_data_frame_single_column
+    ```
+
+## Dependencies
+
+## Data Frame: `test_data_frame_single_column`
+
+#### Dependency Summary:
+
+- `test_data_frame` (data frame)
+    - `file_data` (file `test_data.csv`)
+
+#### Type: sql_computation
+
+#### SQL Query:
+
+    ```sql
+    SELECT Category FROM test_data_frame
+    ```
+
+## Data Frame: `test_data_frame`
+
+#### Dependency Summary:
+
+- `file_data` (file `test_data.csv`)
+
+#### Type: sql_computation
+
+#### SQL Query:
+
+    ```sql
+    SELECT * FROM file_data
+    ```
+#### SQL Dialect: duckdb
+
+## Semantic Data Model: `file_data`
+
+#### Source: File
+- File Reference: `test_data.csv`
+- Table: `data_frame_file`
+
+
+

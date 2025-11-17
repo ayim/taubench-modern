@@ -8,6 +8,7 @@ from fastapi.routing import APIRouter
 from pydantic.main import BaseModel
 from structlog.stdlib import get_logger
 
+from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.server.api.dependencies import (
     StorageDependency,
@@ -19,6 +20,7 @@ if typing.TYPE_CHECKING:
     import pyarrow
     from sema4ai.actions import Row
 
+    from agent_platform.core.thread import Thread
     from agent_platform.server.storage.base import BaseStorage
 
 router = APIRouter()
@@ -422,8 +424,6 @@ async def inspect_file_as_data_frame(  # noqa: C901, PLR0913, PLR0912,PLR0915
 
     import time
 
-    from agent_platform.core.errors.base import PlatformError
-    from agent_platform.core.errors.responses import ErrorCode
     from agent_platform.server.data_frames.data_node import convert_pyarrow_slice_to_list_of_rows
     from agent_platform.server.data_frames.data_reader import (
         create_file_data_reader,
@@ -431,8 +431,9 @@ async def inspect_file_as_data_frame(  # noqa: C901, PLR0913, PLR0912,PLR0915
     )
 
     if num_samples < -1:
-        raise PlatformError(
-            ErrorCode.BAD_REQUEST, message="num_samples must be 0, -1 or a positive number"
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="num_samples must be 0, -1 or a positive number",
         )
 
     # Don't cache if we have dummy UploadedFile instances
@@ -631,7 +632,6 @@ async def create_data_frame_from_file(  # noqa: PLR0913
     import uuid
 
     from agent_platform.core.data_frames.data_frames import DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT
-    from agent_platform.core.errors.base import PlatformError
     from sema4ai.common.text import slugify
 
     if num_samples < 0:
@@ -683,12 +683,13 @@ async def create_data_frame_from_file(  # noqa: PLR0913
 
         if not use_name.isidentifier() or keyword.iskeyword(use_name):
             # Still not valid, let's raise an error.
-            raise PlatformError(
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
                 message=(
                     "It was not possible to generate a valid name for the data frame. "
                     f"Please provide one as a parameter to the request (auto-generated name: "
                     f"{use_name!r})."
-                )
+                ),
             )
 
     sql_dialect = "duckdb"  # For files, duckdb is the backing engine
@@ -758,7 +759,6 @@ def _generate_data_frame_name(provided_name: str | None) -> str:
     import keyword
     import uuid
 
-    from agent_platform.core.errors.base import PlatformError
     from sema4ai.common.text import slugify
 
     if not provided_name:
@@ -769,12 +769,13 @@ def _generate_data_frame_name(provided_name: str | None) -> str:
         use_name = f"data_{use_name}"
 
     if not use_name.isidentifier() or keyword.iskeyword(use_name):
-        raise PlatformError(
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
             message=(
                 "It was not possible to generate a valid name for the data frame. "
                 f"Please provide a valid Python identifier (provided name: {provided_name!r}, "
                 f"auto-generated name: {use_name!r})."
-            )
+            ),
         )
 
     return use_name
@@ -817,6 +818,11 @@ def _convert_jq_result_to_columns_rows(
         raise ValueError("JQ expression must return an object or array of objects")
 
 
+async def _verify_thread_access(base_storage: "BaseStorage", user_id: str, tid: str) -> "Thread":
+    """Verify that the user has access to the thread and return the thread."""
+    return await base_storage.get_thread(user_id, tid)
+
+
 @router.post("/{tid}/data-frames/from-json")
 async def create_data_frame_from_json(
     payload: _DataFrameFromJsonPayload,
@@ -847,9 +853,7 @@ async def create_data_frame_from_json(
     base_storage = typing.cast(BaseStorage, storage)
 
     # Get the thread to find the agent_id
-    thread = await base_storage.get_thread(user.user_id, tid)
-    if not thread:
-        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="Thread not found")
+    thread = await _verify_thread_access(base_storage, user.user_id, tid)
 
     # Apply JQ transformation
     if payload.jq_expression is None:
@@ -954,6 +958,7 @@ async def get_thread_data_frames(
     from agent_platform.server.storage.base import BaseStorage
 
     base_storage = typing.cast(BaseStorage, storage)
+    await _verify_thread_access(base_storage, user.user_id, tid)
 
     data_frames: list[PlatformDataFrame] = await base_storage.list_data_frames(tid)
     ret: list[_DataFrameCreationAPI] = []
@@ -1037,6 +1042,7 @@ async def create_data_frame_from_sql_computation(
     from agent_platform.server.storage.base import BaseStorage
 
     base_storage = typing.cast(BaseStorage, storage)
+    await _verify_thread_access(base_storage, user.user_id, tid)
 
     data_frames_kernel = DataFramesKernel(base_storage, user, tid)
 
@@ -1138,7 +1144,7 @@ async def get_data_frame(  # noqa: PLR0913
 
 
 @router.post("/{tid}/data-frames/slice")
-async def slice_data_frame(  # noqa: PLR0912,C901
+async def slice_data_frame(
     user: AuthedUser,
     tid: str,
     storage: StorageDependency,
@@ -1158,8 +1164,6 @@ async def slice_data_frame(  # noqa: PLR0912,C901
     """
     import time
 
-    from agent_platform.core.errors.base import PlatformError
-    from agent_platform.core.errors.responses import ErrorCode
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.storage.base import BaseStorage
 
@@ -1171,48 +1175,34 @@ async def slice_data_frame(  # noqa: PLR0912,C901
 
     # Validate that exactly one of data_frame_id or data_frame_name is provided
     if payload.data_frame_id is None and payload.data_frame_name is None:
-        raise PlatformError(
+        raise PlatformHTTPError(
             error_code=ErrorCode.BAD_REQUEST,
             message="Either data_frame_id or data_frame_name must be provided",
         )
 
     if payload.data_frame_id is not None and payload.data_frame_name is not None:
-        raise PlatformError(
+        raise PlatformHTTPError(
             error_code=ErrorCode.BAD_REQUEST,
             message="Only one of data_frame_id or data_frame_name can be provided",
         )
 
     base_storage = typing.cast(BaseStorage, storage)
+    await _verify_thread_access(base_storage, user.user_id, tid)
+
     data_frames_kernel = DataFramesKernel(base_storage, user, tid)
 
     # Find the data frame
     data_frame = None
     if payload.data_frame_id is not None:
         # Get by ID
-        data_frames = await base_storage.list_data_frames(tid)
-        for df in data_frames:
-            if df.data_frame_id == payload.data_frame_id:
-                data_frame = df
-                break
-        else:
-            raise PlatformError(
-                error_code=ErrorCode.NOT_FOUND,
-                message=f"Data frame with id {payload.data_frame_id} not found in thread: {tid}",
-            )
+        data_frame = await base_storage.get_data_frame(
+            thread_id=tid, data_frame_id=payload.data_frame_id
+        )
     else:
         # Get by name
-        data_frames = await base_storage.list_data_frames(tid)
-        for df in data_frames:
-            if df.name == payload.data_frame_name:
-                data_frame = df
-                break
-        else:
-            raise PlatformError(
-                error_code=ErrorCode.NOT_FOUND,
-                message=(
-                    f"Data frame with name {payload.data_frame_name} not found in thread: {tid}"
-                ),
-            )
+        data_frame = await base_storage.get_data_frame(
+            thread_id=tid, data_frame_name=payload.data_frame_name
+        )
 
     try:
         # Resolve the data frame
@@ -1241,12 +1231,240 @@ async def slice_data_frame(  # noqa: PLR0912,C901
                 headers={"Content-Disposition": f"attachment; filename={data_frame.name}.parquet"},
             )
         else:
-            raise PlatformError(
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
                 message=f"Unsupported format: {payload.output_format}",
             )
 
-    except PlatformError:
+    except PlatformHTTPError:
         raise
     except Exception as e:
         logger.error("Error slicing data frame", error=e, data_frame_id=data_frame.data_frame_id)
-        raise PlatformError(message="Internal server error while slicing data frame") from e
+        raise PlatformHTTPError(
+            error_code=ErrorCode.UNEXPECTED,
+            message="Internal server error while slicing data frame",
+        ) from e
+
+
+@dataclasses.dataclass
+class _DataFrameAssemblyInfoRequest:
+    """Request payload for getting assembly information."""
+
+    data_frame_names: Annotated[
+        list[str],
+        "The list of data frame names to get assembly information for.",
+    ]
+
+
+@router.post("/{tid}/data-frames/assembly-info")
+async def get_data_frames_assembly_info(
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+    payload: _DataFrameAssemblyInfoRequest,
+) -> dict[str, str]:
+    """Get assembly information for one or more data frames.
+
+    This endpoint returns information about how data frames were assembled, including:
+    - The SQL query used to create the data frame (if applicable)
+    - For each table referenced in the query, how it was assembled (recursively)
+
+    Args:
+        user: The user making the request.
+        tid: The ID of the thread.
+        storage: The storage to use.
+        payload: The request payload containing the list of data frame names.
+
+    Returns:
+        A dictionary of data frame names to assembly information in markdown format.
+    """
+    from agent_platform.server.data_frames.data_frames_assembly_info import AssemblyInfo
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.storage.base import BaseStorage
+
+    base_storage = typing.cast(BaseStorage, storage)
+    await _verify_thread_access(base_storage, user.user_id, tid)
+
+    df_name_to_assembly_info = {}
+    for data_frame_name in payload.data_frame_names:
+        data_frame = await base_storage.get_data_frame(
+            thread_id=tid, data_frame_name=data_frame_name
+        )
+
+        data_frames_kernel = DataFramesKernel(base_storage, user, tid)
+        assembly_info = AssemblyInfo()
+
+        await data_frames_kernel.resolve_data_frame(data_frame, assembly_info=assembly_info)
+        df_name_to_assembly_info[data_frame_name] = str(assembly_info)
+    return df_name_to_assembly_info
+
+
+@dataclasses.dataclass
+class _GetAsValidatedQueryPayload:
+    """Request payload for getting a data frame as a validated query."""
+
+    data_frame_name: Annotated[str, "The name of the data frame to get as a validated query."]
+
+
+@router.post("/{tid}/data-frames/as-validated-query")
+async def get_data_frame_as_validated_query(
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+    payload: _GetAsValidatedQueryPayload,
+) -> VerifiedQuery:
+    """Get a data frame as a validated query.
+
+    This endpoint retrieves a data frame's SQL query as a validated query object.
+    The data frame must have been created from a SQL computation.
+
+    Args:
+        user: The user making the request.
+        tid: The ID of the thread.
+        storage: The storage to use.
+        payload: The request payload containing the data frame name.
+
+    Returns:
+        A VerifiedQuery object representing the data frame.
+    """
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from agent_platform.server.data_frames.data_node import DataNodeFromIbisResult
+    from agent_platform.server.storage.base import BaseStorage
+
+    base_storage = typing.cast(BaseStorage, storage)
+    await _verify_thread_access(base_storage, user.user_id, tid)
+
+    # Get the data frame
+    data_frame = await base_storage.get_data_frame(
+        thread_id=tid, data_frame_name=payload.data_frame_name
+    )
+
+    # Verify that the data frame was created from a SQL computation
+    if data_frame.input_id_type != "sql_computation":
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=(
+                f"Data frame '{payload.data_frame_name}' was not created from a "
+                "SQL computation. Only data frames created from SQL queries can "
+                "be saved as validated queries."
+            ),
+        )
+
+    if not data_frame.computation:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=f"Data frame '{payload.data_frame_name}' does not have a SQL query.",
+        )
+
+    # Note: we have to get the full_sql_query_logical_str to be able to recreate the query later.
+    data_frames_kernel = DataFramesKernel(base_storage, user, tid)
+    resolved_df = await data_frames_kernel.resolve_data_frame(data_frame)
+    if not isinstance(resolved_df, DataNodeFromIbisResult):
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=(
+                f"Data frame '{payload.data_frame_name}' did not resolve to the expected type "
+                f"(and thus the full SQL query logical string is not available). "
+                f"Type: {type(resolved_df)}"
+            ),
+        )
+
+    full_sql_query_logical_str = resolved_df.full_sql_query_logical_str
+
+    verified_query: VerifiedQuery = {
+        "name": payload.data_frame_name,
+        "nlq": data_frame.description or "",
+        "verified_at": datetime.datetime.now(datetime.UTC).isoformat(),
+        "verified_by": user.user_id,
+        "sql": full_sql_query_logical_str,
+    }
+
+    return verified_query
+
+
+@dataclasses.dataclass
+class _SaveAsValidatedQueryPayload:
+    """Request payload for saving a validated query."""
+
+    verified_query: Annotated[VerifiedQuery, "The verified query to save (VerifiedQuery object)."]
+    semantic_data_model_id: Annotated[
+        str, "The ID of the semantic data model to add the validated query to."
+    ]
+
+
+@router.post("/{tid}/data-frames/save-as-validated-query")
+async def save_data_frame_as_validated_query(
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+    payload: _SaveAsValidatedQueryPayload,
+) -> dict[str, str]:
+    """Save a validated query in a semantic data model.
+
+    This endpoint saves a validated query in the specified semantic data model.
+
+    Args:
+        user: The user making the request.
+        tid: The ID of the thread.
+        storage: The storage to use.
+        payload: The request payload containing the verified query and semantic data model ID.
+
+    Returns:
+        A dictionary with a success message.
+    """
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+    from agent_platform.server.storage.base import BaseStorage
+
+    base_storage = typing.cast(BaseStorage, storage)
+    await _verify_thread_access(base_storage, user.user_id, tid)
+
+    # Get the semantic data model
+    semantic_data_model_dict = await base_storage.get_semantic_data_model(
+        payload.semantic_data_model_id
+    )
+
+    # Cast to SemanticDataModel type
+    semantic_data_model = typing.cast(SemanticDataModel, semantic_data_model_dict)
+
+    # Extract existing references to preserve them when updating
+    references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
+    if references.errors:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="The semantic data model is invalid: \n" + "\n".join(references.errors),
+        )
+
+    # Initialize verified_queries if it doesn't exist
+    if "verified_queries" not in semantic_data_model or not isinstance(
+        semantic_data_model["verified_queries"], list
+    ):
+        semantic_data_model["verified_queries"] = []
+
+    # Cast the verified query from the payload
+    verified_query = typing.cast(VerifiedQuery, payload.verified_query)
+
+    # Check if a verified query with this name already exists
+    verified_queries = semantic_data_model["verified_queries"]
+    existing_query_index = None
+    for i, query in enumerate(verified_queries):
+        if isinstance(query, dict) and query.get("name") == verified_query["name"]:
+            existing_query_index = i
+            break
+
+    # Add or update the verified query
+    if existing_query_index is not None:
+        verified_queries[existing_query_index] = verified_query
+    else:
+        verified_queries.append(verified_query)
+
+    await base_storage.update_semantic_data_model(
+        semantic_data_model_id=payload.semantic_data_model_id,
+        semantic_model=semantic_data_model,
+    )
+
+    return {
+        "message": f"Successfully saved validated query '{verified_query['name']}'.",
+    }

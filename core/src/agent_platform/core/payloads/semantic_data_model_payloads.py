@@ -6,6 +6,7 @@ from typing import Annotated, Any
 from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
     ValidationMessage,
+    VerifiedQuery,
 )
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
@@ -411,3 +412,43 @@ class ValidateSemanticDataModelResult:
         _ValidateSemanticDataModelResultsSummary | None,
         "Summary statistics about the validation run (e.g., total_sdms, total_errors).",
     ] = None
+
+
+@dataclass(frozen=True)
+class VerifyVerifiedQueryPayload:
+    """Payload for verifying a verified query against a semantic data model."""
+
+    semantic_data_model: Annotated[
+        SemanticDataModel | dict,
+        "The semantic data model to validate the verified query against.",
+    ]
+
+    verified_query: Annotated[
+        VerifiedQuery | dict,
+        "The verified query to validate. Must contain at least 'name', 'nlq', and 'sql' fields.",
+    ]
+
+    accept_initial_name: Annotated[
+        str,
+        "The initial name of the verified query. If the name is different from the initial name, "
+        "the name must be unique.",
+    ]
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "VerifyVerifiedQueryPayload":
+        """Validate and create payload from dict data."""
+        return VerifyVerifiedQueryPayload(
+            semantic_data_model=data.get("semantic_data_model", {}),
+            verified_query=data.get("verified_query", {}),
+            accept_initial_name=data.get("accept_initial_name", ""),
+        )
+
+
+@dataclass(frozen=True)
+class VerifyVerifiedQueryResponse:
+    """Response for verifying a verified query."""
+
+    verified_query: Annotated[
+        VerifiedQuery,
+        "The verified query with validation errors set, if any.",
+    ]

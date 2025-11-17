@@ -255,10 +255,15 @@ class PlatformDataFrame:
         """
         If changes are made outside, this method can be called to verify the data frame is valid.
         """
-        import keyword
 
+        from agent_platform.core.data_frames.data_frame_utils import (
+            DataFrameNameError,
+            is_valid_data_frame_name,
+            make_data_frame_name_valid,
+        )
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
         from agent_platform.core.utils.asserts import assert_literal_value_valid
-        from sema4ai.common.text import slugify
 
         assert_literal_value_valid(self, "input_id_type")
 
@@ -286,18 +291,24 @@ class PlatformDataFrame:
         assert isinstance(self.computation_input_sources, dict)
 
         # Verify the name is a valid variable name (so that it can be properly referenced later on).
-        if not self.name.isidentifier() or keyword.iskeyword(self.name):
-            valid_name = slugify(self.name).replace("-", "_")
-            if valid_name.isidentifier() and not keyword.iskeyword(valid_name):
-                raise ValueError(
-                    "Unable to create data frame because the data frame name provided"
-                    f" ({self.name!r}) is not a valid variable name. Please retry with a valid name"
-                    f" (example: {valid_name})."
-                )
-            raise ValueError(
-                "Unable to create data frame because the data frame name provided"
-                f" ({self.name!r}) is not a valid variable name. Please retry with a valid name."
+        if not is_valid_data_frame_name(self.name):
+            message = (
+                "Unable to create data frame because the data frame name provided "
+                f"({self.name!r}) is not a valid variable name. Please retry with a valid "
+                "name."
             )
+            try:
+                valid_name = make_data_frame_name_valid(self.name)
+            except DataFrameNameError as e:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                    message=message,
+                ) from e
+            else:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                    message=(message + f" (example: {valid_name})."),
+                )
 
         for key, source in self.computation_input_sources.items():
             assert isinstance(key, str)

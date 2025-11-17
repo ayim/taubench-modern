@@ -524,9 +524,31 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
 
 
 class DataNodeFromIbisResult(DataNodeResult):
-    def __init__(self, platform_data_frame: "PlatformDataFrame", ibis_result: Any):
+    def __init__(
+        self,
+        platform_data_frame: "PlatformDataFrame",
+        ibis_result: Any,
+        full_sql_query_str: str,
+        full_sql_query_logical_str: str,
+    ):
         self._platform_data_frame = platform_data_frame
         self._ibis_result = ibis_result
+        self._full_sql_query_str = full_sql_query_str
+        self._full_sql_query_logical_str = full_sql_query_logical_str
+
+    @property
+    def full_sql_query_str(self) -> str:
+        """
+        The full SQL query string with the actual table names.
+        """
+        return self._full_sql_query_str
+
+    @property
+    def full_sql_query_logical_str(self) -> str:
+        """
+        The full SQL query string with the logical table names.
+        """
+        return self._full_sql_query_logical_str
 
     def _is_snowflake(self) -> bool:
         """Check if the ibis result is from a Snowflake backend."""

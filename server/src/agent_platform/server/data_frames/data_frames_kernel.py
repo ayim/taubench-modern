@@ -1,3 +1,4 @@
+# ruff: noqa: PLR0912, PLR0915, C901, E501
 import json
 import typing
 
@@ -16,6 +17,7 @@ if typing.TYPE_CHECKING:
     )
     from agent_platform.server.storage.base import BaseStorage
 
+    from .data_frames_assembly_info import AssemblyInfo
     from .data_node import DataNodeResult, SupportedIbisBackends
 
 
@@ -53,7 +55,7 @@ class Dependencies:
 
         # The dependencies of the data frame
         self._data_frames: dict[str, PlatformDataFrame] = {}
-        self._sub_dependencies: list[Dependencies] = []
+        self._sub_dependencies: dict[str, Dependencies] = {}
         self._data_frames_sources: dict[str, DataFrameSource] = {}
 
     def __repr__(self) -> str:
@@ -66,8 +68,9 @@ class Dependencies:
         for name, df_source in self._data_frames_sources.items():
             lst.append(f"{name}:{json.dumps(df_source.model_dump(), default=str, indent=2)}")
         lst.append("Sub dependencies:")
-        for sub_dependency in self._sub_dependencies:
+        for name, sub_dependency in self._sub_dependencies.items():
             as_str = repr(sub_dependency)
+            as_str = f"{name}: \n{as_str}"
             as_str = as_str.replace("\n", "\n  ")
             lst.append(as_str)
         return "\n".join(lst)
@@ -88,12 +91,12 @@ class Dependencies:
         """
         self._data_frames_sources[name] = data_frame_source
 
-    def add_sub_dependencies(self, sub_dependencies: "Dependencies"):
+    def add_sub_dependencies(self, name: str, sub_dependencies: "Dependencies"):
         """
         Add a full new dependency which has its own dependencies (this is
         expected to happen when a SQL references another SQL dataframe).
         """
-        self._sub_dependencies.append(sub_dependencies)
+        self._sub_dependencies[name] = sub_dependencies
 
     def _get_backend_from_df(self, df: "PlatformDataFrame") -> "SupportedIbisBackends | None":
         from agent_platform.core.errors.base import PlatformError
@@ -128,16 +131,9 @@ class Dependencies:
             # Note that the database is actually usually part of the data connection
             if base_table_data_connection_id is not None:
                 return make_data_connection_backend(base_table_data_connection_id)
-            elif base_table.get("file_reference") is not None:
-                return DUCK_DB_BACKEND
             else:
-                logger.error(
-                    f"It's not possible to find out the backend from the data frame source"
-                    f" (semantic_data_model is expected to have a base_table with a "
-                    f" data_connection_id and database or a file_reference). "
-                    f"df_source: {df_source!r}",
-                )
-                return None
+                # Either file reference or data frame reference, both are materialized in duckdb
+                return DUCK_DB_BACKEND
 
         return None
 
@@ -155,7 +151,7 @@ class Dependencies:
             if backend is not None:
                 backends.add(backend)
 
-        for sub_dependencies in self._sub_dependencies:
+        for sub_dependencies in self._sub_dependencies.values():
             backends.update(sub_dependencies.get_required_backends_recursive())
 
         if not backends:
@@ -204,16 +200,16 @@ class Dependencies:
 
     def _iter_recursive_data_frames(self) -> "Iterator[PlatformDataFrame]":
         yield from self._data_frames.values()
-        for sub_dependencies in self._sub_dependencies:
+        for sub_dependencies in self._sub_dependencies.values():
             yield from sub_dependencies._iter_recursive_data_frames()
 
     def _iter_recursive_data_frame_sources(self) -> "Iterator[DataFrameSource]":
         yield from self._data_frames_sources.values()
-        for sub_dependencies in self._sub_dependencies:
+        for sub_dependencies in self._sub_dependencies.values():
             yield from sub_dependencies._iter_recursive_data_frame_sources()
 
     def _iter_recursive_sql_computation_data_frames(self) -> "Iterator[PlatformDataFrame]":
-        for sub_dependencies in self._sub_dependencies:
+        for sub_dependencies in self._sub_dependencies.values():
             yield sub_dependencies._data_frame
             yield from sub_dependencies._iter_recursive_sql_computation_data_frames()
 
@@ -235,7 +231,56 @@ class Dependencies:
         con = await DataConnectionInspector.create_ibis_connection(data_connection)
         return await self._resolve_sql_with_connection(kernel, data_frame, con)
 
-    async def _resolve_sql_with_connection(  # noqa: PLR0912, PLR0915, C901
+    def _build_full_sql_query(
+        self,
+        data_frame: "PlatformDataFrame",
+        sql_computation_data_frames: "list[PlatformDataFrame]",
+        logical_table_name_to_actual_table_name: dict[str, str],
+    ) -> str:
+        import sqlglot
+
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+        from agent_platform.server.data_frames.sql_manipulation import (
+            build_ctes,
+            update_table_names,
+            update_with_clause,
+        )
+
+        sql_query = data_frame.computation
+        assert sql_query is not None
+
+        name_to_cte_ast: dict[str, Any] = {}
+        for df in sql_computation_data_frames:
+            # Use sqlglot directly to parse and format the SQL for the target dialect
+            if df.computation is None:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.PRECONDITION_FAILED,
+                    message=f"SQL computation data frame has no computation: {df.name}",
+                )
+            expressions = sqlglot.parse(df.computation, dialect=df.sql_dialect)
+            if len(expressions) != 1:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=(
+                        f"SQL query must be a single expression. Found: {len(expressions)} "
+                        f"SQL query: {df.computation!r}"
+                    ),
+                )
+
+            # Now, create the cte with sqlglot
+            cte_sql_ast = expressions[0]
+            cte_sql_ast = update_table_names(cte_sql_ast, logical_table_name_to_actual_table_name)
+            name_to_cte_ast[df.name] = cte_sql_ast
+
+        ctes = build_ctes(name_to_cte_ast=name_to_cte_ast)
+        main_sql_ast = sqlglot.parse_one(sql_query, dialect=data_frame.sql_dialect)
+        main_sql_ast = update_table_names(main_sql_ast, logical_table_name_to_actual_table_name)
+        main_sql_ast = update_with_clause(main_sql_ast, ctes)
+        full_sql_query_str = main_sql_ast.sql(dialect=data_frame.sql_dialect, pretty=True)
+        return full_sql_query_str
+
+    async def _resolve_sql_with_connection(
         self,
         kernel: "DataFramesKernel",
         data_frame: "PlatformDataFrame",
@@ -245,17 +290,11 @@ class Dependencies:
         from collections.abc import Coroutine
         from typing import Any
 
-        import sqlglot
-
-        from agent_platform.core.errors.base import PlatformError
+        from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
         from agent_platform.server.data_frames.data_node import (
             DataNodeFromIbisResult,
             DataNodeResult,
-        )
-        from agent_platform.server.data_frames.sql_manipulation import (
-            build_ctes,
-            update_table_names,
-            update_with_clause,
         )
 
         # Collect in-memory and file data frames initially (those never have deps and
@@ -310,9 +349,46 @@ class Dependencies:
                             actual_table_name
                         )
                     else:
-                        raise PlatformError(
-                            message=f"Unsupported base table: {df_source.base_table}"
+                        assert df_source.logical_table_name is not None
+                        base_table = df_source.base_table
+                        if not base_table:
+                            logger.critical(
+                                f"Base table is None for semantic data model. "
+                                f"df_source: {df_source}"
+                            )
+                            continue
+                        data_frame_name = base_table.get("table")
+                        if not data_frame_name:
+                            logger.critical(
+                                f"'table' name is None for semantic data model. "
+                                f"df_source: {df_source}"
+                            )
+                            continue
+                        # Get the data frame by name from the thread
+                        name_to_data_frame = await kernel._get_name_to_data_frame()
+                        if data_frame_name not in name_to_data_frame:
+                            raise PlatformHTTPError(
+                                error_code=ErrorCode.NOT_FOUND,
+                                message=f"Data frame '{data_frame_name}' referenced in semantic data model "
+                                f"not found in thread {kernel._tid}",
+                            )
+                        df = name_to_data_frame[data_frame_name]
+                        # Resolve the data frame and map logical table name to actual data frame name
+                        name_to_coro[data_frame_name] = kernel.resolve_data_frame(df)
+                        # Map logical table name to actual data frame name for SQL queries
+                        logical_table_name_to_actual_table_name[df_source.logical_table_name] = (
+                            data_frame_name
                         )
+
+        if name_to_coro:
+            if con.name != "duckdb":
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=(
+                        f"Only duckdb is supported for materializing in-memory, file and "
+                        f"computed data frames. Current backend: {con.name}"
+                    ),
+                )
 
         results = await asyncio.gather(*name_to_coro.values())
         for variable_name, result in zip(name_to_coro.keys(), results, strict=True):
@@ -322,9 +398,6 @@ class Dependencies:
         # (we should be in duck db in this case, so, we can just create the
         # tables directly).
         for variable_name, node in name_to_node.items():
-            assert con.name == "duckdb", (
-                "Only duckdb is supported for materializing in-memory and file data frames"
-            )
             con.create_table(variable_name, node.to_ibis())
 
         # Now, we need to go on to the computation (deps should be in order already).
@@ -335,49 +408,31 @@ class Dependencies:
         # df2 AS (
         #   {dep_sql_query}
         # )
-        name_to_cte_ast: dict[str, Any] = {}
-        for df in sql_computation_data_frames:
-            # Use sqlglot directly to parse and format the SQL for the target dialect
-            assert df.computation is not None, "SQL computation data frame has no computation"
-            expressions = sqlglot.parse(df.computation, dialect=df.sql_dialect)
-            if len(expressions) != 1:
-                raise PlatformError(
-                    message=f"SQL query must be a single expression. Found: {len(expressions)} "
-                    f"SQL query: {df.computation!r}"
-                )
+        full_sql_query_str = self._build_full_sql_query(
+            data_frame, sql_computation_data_frames, logical_table_name_to_actual_table_name
+        )
 
-            # Now, create the cte with sqlglot
-            cte_sql_ast = expressions[0]
-            cte_sql_ast = update_table_names(cte_sql_ast, logical_table_name_to_actual_table_name)
-            name_to_cte_ast[df.name] = cte_sql_ast
-
-        ctes = build_ctes(name_to_cte_ast=name_to_cte_ast)
-        main_sql_ast = sqlglot.parse_one(sql_query, dialect=data_frame.sql_dialect)
-        main_sql_ast = update_table_names(main_sql_ast, logical_table_name_to_actual_table_name)
-        main_sql_ast = update_with_clause(main_sql_ast, ctes)
-        full_sql_query_str = main_sql_ast.sql(dialect=data_frame.sql_dialect, pretty=True)
+        # To get the one referencing the logical table names, build it again but with an empty mapping.
+        full_sql_query_logical_str = self._build_full_sql_query(
+            data_frame, sql_computation_data_frames, logical_table_name_to_actual_table_name={}
+        )
 
         # Execute the SQL query using ibis
         try:
             result = con.sql(full_sql_query_str, dialect=data_frame.sql_dialect)
 
-            df = DataNodeFromIbisResult(data_frame, result)
+            df = DataNodeFromIbisResult(
+                data_frame,
+                result,
+                full_sql_query_str=full_sql_query_str,
+                full_sql_query_logical_str=full_sql_query_logical_str,
+            )
             return df
         except Exception as e:
             error_msg = str(e)
-            logger.error(
-                f"❌ Error executing SQL computation | "
-                f"Error: {error_msg[:300]} | "
-                f"Data frame: {data_frame.name}",
-                error=error_msg,
-                data_frame_name=data_frame.name,
-                logical_query=sql_query,
-                actual_query=full_sql_query_str,
-                logical_to_actual_mapping=logical_table_name_to_actual_table_name,
-            )
 
             # Make errors more actionable by adding context
-            enhanced_error = str(e)
+            enhanced_error = error_msg
 
             # Column not found errors - guide LLM to check SDM
             column_not_found = "column" in error_msg.lower() and (
@@ -401,6 +456,17 @@ class Dependencies:
                     "Pattern: FROM table t, LATERAL (SELECT AGG(field) "
                     "FROM json_array_elements(...) x) AS agg"
                 )
+
+            logger.error(
+                "❌ Error executing SQL computation",
+                error=error_msg,
+                data_frame_name=data_frame.name,
+                sql_query=sql_query,
+                full_sql_query_str=full_sql_query_str,
+                full_sql_query_logical_str=full_sql_query_logical_str,
+                logical_table_name_to_actual_table_name=logical_table_name_to_actual_table_name,
+                enhanced_error=enhanced_error,
+            )
 
             raise PlatformError(message=f"Error executing SQL query: {enhanced_error}") from e
 
@@ -560,7 +626,7 @@ class DataFramesKernel:
                     sub_dependencies = await self._compute_data_frame_graph(df, name_to_data_frame)
                     # The order is important, first add dependencies and only to finish add the
                     # one that depends on them.
-                    dependencies.add_sub_dependencies(sub_dependencies)
+                    dependencies.add_sub_dependencies(name, sub_dependencies)
 
                 else:
                     if df.input_id_type not in ("in_memory", "file"):
@@ -639,7 +705,9 @@ class DataFramesKernel:
 
         raise PlatformError(message=f"Unsupported source_type: {data_source.source_type}")
 
-    async def resolve_data_frame(self, data_frame: "PlatformDataFrame") -> "DataNodeResult":
+    async def resolve_data_frame(
+        self, data_frame: "PlatformDataFrame", assembly_info: "AssemblyInfo | None" = None
+    ) -> "DataNodeResult":
         from agent_platform.core.errors.base import PlatformHTTPError
         from agent_platform.core.errors.responses import ErrorCode
         from agent_platform.server.data_frames.data_node import (
@@ -690,8 +758,13 @@ class DataFramesKernel:
                     ),
                 )
 
+            if assembly_info is not None:
+                assembly_info.set_initial_data_frame(data_frame)
+
             data_node = DataNodeFromDataReaderSheet(data_frame, next(data_reader.iter_sheets()))
             self._resolved_data_frames[data_frame.data_frame_id] = data_node
+            if assembly_info is not None:
+                assembly_info.set_final_data_node(data_node)
             return data_node
 
         elif data_frame.input_id_type == "in_memory":
@@ -704,8 +777,13 @@ class DataFramesKernel:
                     ),
                 )
 
+            if assembly_info is not None:
+                assembly_info.set_initial_data_frame(data_frame)
+
             data_node = DataNodeFromInMemoryDataFrame(data_frame)
             self._resolved_data_frames[data_frame.data_frame_id] = data_node
+            if assembly_info is not None:
+                assembly_info.set_final_data_node(data_node)
             return data_node
 
         elif data_frame.input_id_type == "sql_computation":
@@ -724,7 +802,14 @@ class DataFramesKernel:
                 data_frame, await self._get_name_to_data_frame()
             )
 
+            if assembly_info is not None:
+                assembly_info.set_initial_data_frame(data_frame)
+                assembly_info.set_dependencies(dependencies)
+
             data_node = await dependencies.resolve_graph(self, data_frame)
+            if assembly_info is not None:
+                assembly_info.set_final_data_node(data_node)
+
             self._resolved_data_frames[data_frame.data_frame_id] = data_node
             return data_node
 

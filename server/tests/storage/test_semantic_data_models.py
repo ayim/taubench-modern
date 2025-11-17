@@ -16,6 +16,8 @@ async def check_semantic_data_model_storage_crud(
     """Test semantic data model storage CRUD operations."""
     from uuid import uuid4
 
+    from agent_platform.core.errors.base import PlatformHTTPError
+
     await model_creator.setup()
 
     # Create sample data connections and file
@@ -105,7 +107,7 @@ async def check_semantic_data_model_storage_crud(
 
     # Verify the model was deleted
     with pytest.raises(
-        ValueError, match=f"Semantic data model with ID {another_model_id} not found"
+        PlatformHTTPError, match=f"Semantic data model with ID {another_model_id} not found"
     ):
         await model_creator.storage.get_semantic_data_model(another_model_id)
 
@@ -115,11 +117,11 @@ async def check_semantic_data_model_storage_crud(
 
     non_existent = str(uuid4())
     # Test deleting non-existent model
-    with pytest.raises(ValueError, match="not found"):
+    with pytest.raises(PlatformHTTPError, match="not found"):
         await model_creator.storage.delete_semantic_data_model(non_existent)
 
     # Test getting non-existent model
-    with pytest.raises(ValueError, match="not found"):
+    with pytest.raises(PlatformHTTPError, match="not found"):
         await model_creator.storage.get_semantic_data_model(non_existent)
 
 

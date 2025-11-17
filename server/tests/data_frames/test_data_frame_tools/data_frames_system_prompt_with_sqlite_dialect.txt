@@ -1,4 +1,6 @@
-## Data Frames Summary (available to be used in the `data_frames_<tool>` tools):
+## Data Frames Summary
+-- available to be used in the following tools: data_frames_slice, data_frames_delete, data_frames_create_from_sql (may be referenced by the name as tables in the SQL query)
+
 You have 1 data frames to work with. Details:
 
 ### Data Frame: ai_data_from_sql

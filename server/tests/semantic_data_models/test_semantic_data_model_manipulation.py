@@ -78,6 +78,7 @@ def test_copy_synonyms_and_descriptions_all_matches():
 
     # Create new semantic model without synonyms and descriptions
     new_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db1", "schema": "schema1", "table": "table1"},
@@ -123,7 +124,7 @@ def test_copy_synonyms_and_descriptions_all_matches():
                     }
                 ],
             },
-        ]
+        ],
     }
 
     index_from = SemanticDataModelIndex(existing_semantic_model)
@@ -191,6 +192,7 @@ def test_copy_synonyms_and_descriptions_no_matches():
 
     # Create existing semantic model
     existing_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db1", "schema": "schema1", "table": "table1"},
@@ -214,11 +216,12 @@ def test_copy_synonyms_and_descriptions_no_matches():
                     }
                 ],
             }
-        ]
+        ],
     }
 
     # Create new semantic model with completely different tables and categories
     new_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db3", "schema": "schema3", "table": "table3"},
@@ -264,7 +267,7 @@ def test_copy_synonyms_and_descriptions_no_matches():
                     }
                 ],
             },
-        ]
+        ],
     }
 
     index_from = SemanticDataModelIndex(existing_semantic_model)
@@ -301,6 +304,7 @@ def test_copy_synonyms_and_descriptions_with_recategorization():
 
     # Create existing semantic model with a dimension
     existing_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db1", "schema": "schema1", "table": "table1"},
@@ -316,11 +320,12 @@ def test_copy_synonyms_and_descriptions_with_recategorization():
                     }
                 ],
             }
-        ]
+        ],
     }
 
     # Create new semantic model where the same column is now a metric
     new_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db1", "schema": "schema1", "table": "table1"},
@@ -332,7 +337,7 @@ def test_copy_synonyms_and_descriptions_with_recategorization():
                     }
                 ],
             }
-        ]
+        ],
     }
 
     index_from = SemanticDataModelIndex(existing_semantic_model)
@@ -355,6 +360,7 @@ def test_copy_preserves_table_names():
 
     # Existing model with enhanced logical table name
     existing_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db1", "schema": "public", "table": "customers"},
@@ -370,11 +376,12 @@ def test_copy_preserves_table_names():
                     }
                 ],
             }
-        ]
+        ],
     }
 
     # New model generated from DB with default name
     new_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db1", "schema": "public", "table": "customers"},
@@ -386,7 +393,7 @@ def test_copy_preserves_table_names():
                     }
                 ],
             }
-        ]
+        ],
     }
 
     index_from = SemanticDataModelIndex(existing_semantic_model)
@@ -413,6 +420,7 @@ def test_copy_preserves_column_names():
 
     # Existing model with enhanced logical column names
     existing_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db1", "schema": "public", "table": "customers"},
@@ -432,11 +440,12 @@ def test_copy_preserves_column_names():
                     },
                 ],
             }
-        ]
+        ],
     }
 
     # New model from generator with default column names
     new_semantic_model: SemanticDataModel = {
+        "name": "my-semantic-model",
         "tables": [
             {
                 "base_table": {"database": "db1", "schema": "public", "table": "customers"},
@@ -452,7 +461,7 @@ def test_copy_preserves_column_names():
                     },
                 ],
             }
-        ]
+        ],
     }
 
     index_from = SemanticDataModelIndex(existing_semantic_model)

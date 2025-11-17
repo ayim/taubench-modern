@@ -41,7 +41,8 @@ def test_csv_file_mime_type():
 
     csv_bytes = b"name,age\nJohn,25"
     mime_type = guess_mimetype("test.csv", csv_bytes)
-    assert mime_type == "text/csv"
+    # On windows the mime type may be "application/vnd.ms-excel" even for a .csv file.
+    assert mime_type in ("application/vnd.ms-excel", "text/csv")
 
 
 def test_xlsx_without_header():

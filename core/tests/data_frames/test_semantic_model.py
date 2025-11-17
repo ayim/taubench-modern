@@ -191,11 +191,13 @@ def test_semantic_model_validation_with_empty_file_reference():
 
 def test_semantic_model_validation_missing_name():
     """Test validation when 'name' field is missing."""
+    import typing
+
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
-    semantic_model: SemanticDataModel = {
+    semantic_model: dict = {
         "description": "Missing name",
         "tables": [
             {
@@ -206,7 +208,9 @@ def test_semantic_model_validation_missing_name():
         ],
     }
 
-    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    references = validate_semantic_model_payload_and_extract_references(
+        typing.cast(SemanticDataModel, semantic_model)
+    )
     assert len(references.errors) == 1
     assert "'name' must be specified" in references.errors[0]
 
@@ -246,11 +250,13 @@ def test_semantic_model_validation_empty_tables():
 
 def test_semantic_model_validation_missing_table_name():
     """Test validation when a table is missing 'name' field."""
+    import typing
+
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
-    semantic_model: SemanticDataModel = {
+    semantic_model: dict = {
         "name": "Test Model",
         "tables": [
             {
@@ -261,18 +267,22 @@ def test_semantic_model_validation_missing_table_name():
         ],
     }
 
-    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    references = validate_semantic_model_payload_and_extract_references(
+        typing.cast(SemanticDataModel, semantic_model)
+    )
     assert len(references.errors) == 1
     assert "'name' must be specified in a semantic data model table" in references.errors[0]
 
 
 def test_semantic_model_validation_missing_base_table():
     """Test validation when a table is missing 'base_table' field."""
+    import typing
+
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
-    semantic_model: SemanticDataModel = {
+    semantic_model: dict = {
         "name": "Test Model",
         "tables": [
             {
@@ -283,7 +293,9 @@ def test_semantic_model_validation_missing_base_table():
         ],
     }
 
-    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+    references = validate_semantic_model_payload_and_extract_references(
+        typing.cast(SemanticDataModel, semantic_model)
+    )
     assert len(references.errors) == 1
     assert "'base_table' must be specified" in references.errors[0]
 
@@ -393,7 +405,7 @@ def test_semantic_model_validation_missing_data_connection_and_file_reference():
                 "name": "sales_data",
                 "base_table": {
                     "table": "sales_table",
-                    # Missing both data_connection_id and file_reference
+                    # Missing both data_connection_id and file_reference (means it's a data frame)
                 },
                 "dimensions": [],
             }
@@ -401,7 +413,4 @@ def test_semantic_model_validation_missing_data_connection_and_file_reference():
     }
 
     references = validate_semantic_model_payload_and_extract_references(semantic_model)
-    assert len(references.errors) == 1
-    assert (
-        "Either 'data_connection_id' or 'file_reference' must be specified" in references.errors[0]
-    )
+    assert len(references.errors) == 0

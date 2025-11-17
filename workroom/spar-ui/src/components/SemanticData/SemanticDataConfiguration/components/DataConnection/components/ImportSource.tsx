@@ -11,8 +11,11 @@ import {
   semanticModelToFormSchema,
   DataSourceType,
   defaultFormDataValues,
+  hasDataFrameReferences,
+  requiresDataConnection,
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
+import { SemanticModel } from '../../../../../../queries/semanticData';
 
 type Props = {
   setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
@@ -55,13 +58,19 @@ export const ImportSource: ConfigurationStepView<Props> = ({ onClose, setDataSou
   };
 
   const isModelImported = !!state.tables;
-  const requiresDataConnection = isModelImported && !state.fileRefId;
-  const isSubmitDisabled = !isModelImported || (!state.fileRefId && !state.dataConnectionId);
+  const semanticModel = state.tables ? ({ tables: state.tables } as SemanticModel) : null;
+  const hasDataFrames = semanticModel ? hasDataFrameReferences(semanticModel) : false;
+  const needsDataConnection = semanticModel ? requiresDataConnection(semanticModel) : false;
+  const requiresDataConnectionStep = isModelImported && !state.fileRefId && needsDataConnection;
+  // Can skip if model has data frames and doesn't need database connection (data frames only)
+  const canSkipConnection = isModelImported && hasDataFrames && !needsDataConnection;
+  // Submit is disabled if: no model imported OR (needs connection step AND no connection selected)
+  const isSubmitDisabled = !isModelImported || (requiresDataConnectionStep && !state.dataConnectionId);
 
   return (
     <>
       <Dialog.Content maxWidth={768}>
-        {!requiresDataConnection && (
+        {!requiresDataConnectionStep && (
           <>
             <Typography variant="display-medium" mb="$12">
               Upload File
@@ -92,9 +101,14 @@ export const ImportSource: ConfigurationStepView<Props> = ({ onClose, setDataSou
               dropTitle="Drop your files here"
               description="Supports .yml, .yaml files • Max size: 20MB"
             />
+            {canSkipConnection && (
+              <Typography variant="body-medium" color="content.subtle" mt="$16">
+                This model references data frames only. No database connection is required.
+              </Typography>
+            )}
           </>
         )}
-        {requiresDataConnection && (
+        {requiresDataConnectionStep && (
           <>
             <Typography variant="display-large" mb="$12">
               Connect to Your Database
@@ -107,6 +121,12 @@ export const ImportSource: ConfigurationStepView<Props> = ({ onClose, setDataSou
               </Link>
             </Typography>
             <DataConnectionSelect />
+            {hasDataFrames && (
+              <Typography variant="body-medium" color="content.subtle" mt="$16" mb="$8">
+                This model also references data frames. You can skip the database connection and import the model using
+                only data frames.
+              </Typography>
+            )}
           </>
         )}
       </Dialog.Content>

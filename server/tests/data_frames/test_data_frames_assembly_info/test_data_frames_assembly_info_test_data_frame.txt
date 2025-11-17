@@ -1,0 +1,31 @@
+## Data Frame: `test_data_frame`
+
+#### Dependency Summary:
+
+- `file_data` (file `test_data.csv`)
+
+#### Type: sql_computation
+
+#### SQL Query:
+
+    ```sql
+    SELECT * FROM file_data
+    ```
+#### SQL Dialect: duckdb
+
+#### Full SQL Query (with dependencies resolved, referencing logical table names):
+
+    ```sql
+    SELECT
+      *
+    FROM file_data
+    ```
+
+## Dependencies
+
+## Semantic Data Model: `file_data`
+
+#### Source: File
+- File Reference: `test_data.csv`
+- Table: `data_frame_file`
+

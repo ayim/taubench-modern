@@ -6,7 +6,7 @@ which describe collections of tables with their relationships and metadata.
 
 from enum import StrEnum
 from types import NoneType
-from typing import Annotated, Literal, TypedDict
+from typing import Annotated, Literal, Required, TypedDict
 
 
 class ValidationMessageLevel(StrEnum):
@@ -49,6 +49,24 @@ class ValidationMessageKind(StrEnum):
     """Raised when a required column is absent in the file."""
     VALIDATION_EXECUTION_ERROR = "validation_execution_error"
     """Raised when validation fails due to an unexpected error."""
+    VERIFIED_QUERY_MISSING_SQL_FIELD = "verified_query_missing_sql_field"
+    """Raised when a verified query is missing the SQL field."""
+    VERIFIED_QUERY_REFERENCES_MISSING_TABLES = "verified_query_references_missing_tables"
+    """Raised when a verified query references tables that do not exist in the semantic
+    data model."""
+    VERIFIED_QUERY_REFERENCES_DATA_FRAME = "verified_query_references_data_frame"
+    """Raised when a verified query references a data frame that is not backed by a data connection
+    nor a file reference."""
+    VERIFIED_QUERY_SQL_VALIDATION_FAILED = "verified_query_sql_validation_failed"
+    """Raised when a verified query validation fails due to an unexpected error."""
+    VERIFIED_QUERY_MISSING_NLQ_FIELD = "verified_query_missing_nlq_field"
+    """Raised when a verified query is missing the NLQ field."""
+    VERIFIED_QUERY_MISSING_NAME_FIELD = "verified_query_missing_name_field"
+    """Raised when a verified query is missing the name field."""
+    VERIFIED_QUERY_NAME_VALIDATION_FAILED = "verified_query_name_validation_failed"
+    """Raised when a verified query name validation fails."""
+    VERIFIED_QUERY_NAME_NOT_UNIQUE = "verified_query_name_not_unique"
+    """Raised when a verified query name is not unique within the semantic data model."""
 
 
 class ValidationMessage(TypedDict):
@@ -313,12 +331,15 @@ class BaseTable(TypedDict, total=False):
     """A base table represents fully qualified table names.
 
     Note that as an extension to the default snowflake model we provide a way
-    to reference either a data connection or a file reference in the following way:
+    to reference either a data connection, a file reference, or a data frame in the following way:
 
     For a database, the `data_connection_id` must be specified with the id of the data connection.
         In this case the database/schema/table must be specified as usual
 
     For a file, the `file_reference` must be specified with the thread_id and file_ref of the file.
+
+    For a data frame, just the `table` must be specified with the name of the data frame
+        in the thread (and the data_connection_id and file_reference must not be specified).
     """
 
     # Not required for all databases (not all databases have a database and schema
@@ -396,14 +417,16 @@ class LogicalTable(TypedDict, total=False):
     """A logical table represents a view over a physical database table or view."""
 
     # Required fields
-    name: Annotated[
-        str,
-        """A descriptive name for this table. Must be unique and follow the
+    name: Required[
+        Annotated[
+            str,
+            """A descriptive name for this table. Must be unique and follow the
         unquoted identifiers requirements. It also cannot conflict with Snowflake
         reserved keywords""",
+        ]
     ]
-    base_table: Annotated[
-        BaseTable, "A fully qualified name of the underlying base table in the database"
+    base_table: Required[
+        Annotated[BaseTable, "A fully qualified name of the underlying base table in the database"]
     ]
 
     # Optional fields
@@ -424,7 +447,7 @@ class LogicalTable(TypedDict, total=False):
     facts: Annotated[list[Fact] | None, "A list of fact columns in this table"]
     metrics: Annotated[list[Metric] | None, "A list of metrics in this table"]
     filters: Annotated[list[Filter] | None, "Predefined filters on this table, if any"]
-    errors: Annotated[list[ValidationMessage] | None, "Validation errors for this table, if any"]
+    errors: Annotated[list[ValidationMessage], "Validation errors for this table, if any"]
 
 
 CategoriesType = Literal["dimensions", "time_dimensions", "metrics", "facts"]
@@ -437,15 +460,41 @@ CATEGORIES: tuple[CategoriesType, CategoriesType, CategoriesType, CategoriesType
 )
 
 
+class VerifiedQuery(TypedDict, total=False):
+    """A verified query represents a validated SQL query saved from a data frame."""
+
+    name: Required[
+        Annotated[str, "The name of the data frame that was saved as a validated query."]
+    ]
+    nlq: Required[
+        Annotated[
+            str,
+            "The NLQ (Natural Language Question) that the validated query answers "
+            "(from the data frame description).",
+        ]
+    ]
+    verified_at: Required[Annotated[str, "The ISO date-time string when the query was verified."]]
+    verified_by: Required[Annotated[str, "The user ID of the user who verified the query."]]
+    sql: Required[Annotated[str, "The full SQL query that was used to create the data frame."]]
+
+    sql_errors: Annotated[
+        list[ValidationMessage] | None, "Validation errors for the SQL query, if any"
+    ]
+    nlq_errors: Annotated[list[ValidationMessage] | None, "Validation errors for the NLQ, if any"]
+    name_errors: Annotated[list[ValidationMessage] | None, "Validation errors for the name, if any"]
+
+
 class SemanticDataModel(TypedDict, total=False):
     """A semantic model represents a collection of tables with their relationships."""
 
     # Required fields
-    name: Annotated[
-        str,
-        """A descriptive name for this semantic model. Must be unique and follow the
+    name: Required[
+        Annotated[
+            str,
+            """A descriptive name for this semantic model. Must be unique and follow the
         unquoted identifiers requirements. It also cannot conflict with Snowflake reserved
         keywords""",
+        ]
     ]
 
     # Optional fields
@@ -454,8 +503,13 @@ class SemanticDataModel(TypedDict, total=False):
         "A description of this semantic model, including details of what kind of analysis "
         "it's useful for",
     ]
-    tables: Annotated[list[LogicalTable] | None, "A list of logical tables in this semantic model"]
+    tables: Annotated[list[LogicalTable], "A list of logical tables in this semantic model"]
     relationships: Annotated[list[Relationship] | None, "A list of joins between logical tables"]
     errors: Annotated[
-        list[ValidationMessage] | None, "Validation errors for this semantic data model, if any"
+        list[ValidationMessage], "Validation errors for this semantic data model, if any"
+    ]
+    verified_queries: Annotated[
+        list[VerifiedQuery] | None,
+        "A list of validated queries that were saved from data frames "
+        "created from SQL computations.",
     ]

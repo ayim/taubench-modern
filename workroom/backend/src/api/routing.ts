@@ -195,6 +195,11 @@ function getRouteMap(): {
     'post /api/v2/data-connections/{connection_id}/inspect': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/data-connections/inspect-file-as-data-connection': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
 
+    'post /api/v2/threads/{tid}/data-frames/assembly-info': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/threads/{tid}/data-frames/as-validated-query': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/threads/{tid}/data-frames/save-as-validated-query': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
+    'post /api/v2/semantic-data-models/verify-verified-query': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+
     'post /api/v2/semantic-data-models/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/agents/{aid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'put /api/v2/agents/{aid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],

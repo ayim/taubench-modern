@@ -198,41 +198,62 @@ class BaseStorage(AbstractStorage, CommonMixin):
         async with self._write_connection() as conn:
             await conn.execute(stmt)
 
-    async def get_data_frame(self, data_frame_id: str) -> "PlatformDataFrame":
+    async def get_data_frame(
+        self, thread_id: str, data_frame_id: str | None = None, data_frame_name: str | None = None
+    ) -> "PlatformDataFrame":
         """Get a data frame by ID."""
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
         data_frames = self._get_table("data_frames")
 
-        stmt = (
-            sa.select(
-                data_frames.c.data_frame_id,
-                data_frames.c.user_id,
-                data_frames.c.agent_id,
-                data_frames.c.thread_id,
-                data_frames.c.num_rows,
-                data_frames.c.num_columns,
-                data_frames.c.column_headers,
-                data_frames.c.name,
-                data_frames.c.input_id_type,
-                data_frames.c.created_at,
-                data_frames.c.computation_input_sources,
-                data_frames.c.file_id,
-                data_frames.c.description,
-                data_frames.c.computation,
-                data_frames.c.parquet_contents,
-                data_frames.c.sheet_name,
-                data_frames.c.extra_data,
-            )
-            .select_from(data_frames)
-            .where(data_frames.c.data_frame_id == data_frame_id)
-        )
+        stmt = sa.select(
+            data_frames.c.data_frame_id,
+            data_frames.c.user_id,
+            data_frames.c.agent_id,
+            data_frames.c.thread_id,
+            data_frames.c.num_rows,
+            data_frames.c.num_columns,
+            data_frames.c.column_headers,
+            data_frames.c.name,
+            data_frames.c.input_id_type,
+            data_frames.c.created_at,
+            data_frames.c.computation_input_sources,
+            data_frames.c.file_id,
+            data_frames.c.description,
+            data_frames.c.computation,
+            data_frames.c.parquet_contents,
+            data_frames.c.sheet_name,
+            data_frames.c.extra_data,
+        ).select_from(data_frames)
+
+        stmt = stmt.where(data_frames.c.thread_id == thread_id)
+
+        if data_frame_id is not None:
+            stmt = stmt.where(data_frames.c.data_frame_id == data_frame_id)
+        elif data_frame_name is not None:
+            stmt = stmt.where(data_frames.c.name == data_frame_name)
+        else:
+            raise ValueError("Either data_frame_id or data_frame_name must be provided")
 
         async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             row = result.mappings().fetchone()
 
         if row is None:
-            raise ValueError(f"Data frame {data_frame_id} not found")
-
+            if data_frame_name is not None:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Data frame with name {data_frame_name} not found "
+                    f"in thread: {thread_id}",
+                )
+            elif data_frame_id is not None:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Data frame with id {data_frame_id} not found in thread: {thread_id}",
+                )
+            else:
+                raise ValueError("Either data_frame_id or data_frame_name must be provided")
         return self._build_data_frame(row)
 
     def _build_data_frame(self, row_mapping: sa.RowMapping) -> "PlatformDataFrame":
@@ -314,6 +335,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def update_data_frame(self, data_frame: "PlatformDataFrame") -> None:
         """Update a data frame."""
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
         data_frame.verify()
 
         data_frames = self._get_table("data_frames")
@@ -332,7 +356,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
         async with self._write_connection() as conn:
             result = await conn.execute(stmt)
             if result.rowcount == 0:
-                raise ValueError(f"Data frame {data_frame.data_frame_id} not found")
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Data frame {data_frame.data_frame_id} not found",
+                )
 
     # -------------------------
     # Concrete convenience methods
@@ -1569,6 +1596,30 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Methods for Semantic Data Models
     # -------------------------------------------------------------------------
+
+    async def update_semantic_data_model(
+        self,
+        semantic_data_model_id: str,
+        semantic_model: SemanticDataModel | dict,
+    ) -> None:
+        """Update a semantic data model with a promise that the data connections and file references
+        won't change (so, references tables will not be updated, just the semantic model itself)."""
+        semantic_data_models = self._get_table("semantic_data_model")
+
+        # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
+        # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
+        semantic_model_value = (
+            json.dumps(semantic_model)
+            if self._sa_engine.dialect.name == "sqlite"
+            else semantic_model
+        )
+        async with self._write_connection() as conn:
+            await conn.execute(
+                sa.update(semantic_data_models)
+                .where(semantic_data_models.c.id == semantic_data_model_id)
+                .values(semantic_model=semantic_model_value, updated_at=datetime.now(UTC))
+            )
+
     async def set_semantic_data_model(
         self,
         semantic_data_model_id: str | None,
@@ -1672,6 +1723,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def get_semantic_data_model(self, semantic_data_model_id: str) -> dict:
         """Get a semantic data model by ID."""
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
         semantic_data_models = self._get_table("semantic_data_model")
 
         async with self._read_connection() as conn:
@@ -1682,7 +1736,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
             )
             row = result.mappings().fetchone()
             if row is None:
-                raise ValueError(f"Semantic data model with ID {semantic_data_model_id} not found")
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Semantic data model with ID {semantic_data_model_id} not found",
+                )
 
         # PostgreSQL: SQLAlchemy returns JSONB as dict (no parsing needed)
         # SQLite: SQLAlchemy returns TEXT as string (needs json.loads)
@@ -1696,6 +1753,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def delete_semantic_data_model(self, semantic_data_model_id: str) -> None:
         """Delete a semantic data model by ID."""
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
         semantic_data_models = self._get_table("semantic_data_model")
 
         async with self._write_connection() as conn:
@@ -1705,7 +1765,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 )
             )
             if result.rowcount == 0:
-                raise ValueError(f"Semantic data model with ID {semantic_data_model_id} not found")
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Semantic data model with ID {semantic_data_model_id} not found",
+                )
 
     # -------------------------------------------------------------------------
     # Methods for Agent Semantic Data Models
@@ -1734,6 +1797,9 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def get_agent_semantic_data_models(self, agent_id: str) -> list[dict]:
         """Get semantic data models associated with an agent."""
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
         # Get the semantic data model IDs first
         semantic_data_model_ids = await self.get_agent_semantic_data_model_ids(agent_id)
 
@@ -1746,6 +1812,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
             try:
                 semantic_data_model = await self.get_semantic_data_model(semantic_data_model_id)
                 semantic_data_models.append({semantic_data_model_id: semantic_data_model})
+            except PlatformHTTPError as e:
+                if e.response.code == ErrorCode.NOT_FOUND.code:
+                    continue
+                raise e
             except ValueError:
                 # Skip if semantic data model doesn't exist
                 continue

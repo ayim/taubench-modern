@@ -23,6 +23,49 @@ export const Dimension = z.object({
 });
 export type Dimension = z.infer<typeof Dimension>;
 
+const ValidationMessage = z.object({
+  message: z.string(),
+  level: z.enum(['error', 'warning']),
+  kind: z.enum([
+    // Is there a better way to reference the ValidationMessageKind from
+    // the agent-server-interface?
+    'semantic_model_missing_required_field',
+    'semantic_model_duplicate_table',
+    'data_connection_not_found',
+    'data_connection_connection_failed',
+    'data_connection_table_not_found',
+    'data_connection_table_access_error',
+    'data_connection_column_invalid_expression',
+    'file_reference_unresolved',
+    'file_missing_thread_context',
+    'file_not_found',
+    'file_inspection_error',
+    'file_sheet_missing',
+    'file_column_missing',
+    'validation_execution_error',
+    'verified_query_missing_sql_field',
+    'verified_query_references_missing_tables',
+    'verified_query_references_data_frame',
+    'verified_query_sql_validation_failed',
+    'verified_query_missing_nlq_field',
+    'verified_query_missing_name_field',
+    'verified_query_name_validation_failed',
+    'verified_query_name_not_unique',
+  ]),
+});
+
+export const VerifiedQuery = z.object({
+  name: z.string(),
+  nlq: z.string(),
+  verified_at: z.string(),
+  verified_by: z.string(),
+  sql: z.string(),
+  sql_errors: z.array(ValidationMessage).optional(),
+  nlq_errors: z.array(ValidationMessage).optional(),
+  name_errors: z.array(ValidationMessage).optional(),
+});
+export type VerifiedQuery = z.infer<typeof VerifiedQuery>;
+
 export const SemanticModel = z.object({
   id: z.string(),
   name: z.string(),
@@ -59,6 +102,7 @@ export const SemanticModel = z.object({
         .optional(),
     }),
   ),
+  verified_queries: z.array(VerifiedQuery).optional(),
 });
 export type SemanticModel = z.infer<typeof SemanticModel>;
 
@@ -87,6 +131,7 @@ const agentSemanticDataQueryOptions = createSparQueryOptions<{ agentId: string }
         name: model.name,
         description: model.description,
         tables: model.tables,
+        verified_queries: model.verified_queries,
       }));
     });
 
@@ -358,6 +403,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
             name: payload.name,
             description: payload.description,
             tables,
+            verified_queries: payload.verifiedQueries,
           },
         },
       },
@@ -451,6 +497,7 @@ export const useImportSemanticDataModelMutation = createSparMutation<
                 data_connection_id: payload.dataConnectionId,
               },
             })) || [],
+          verified_queries: payload.verifiedQueries,
         },
         agent_id: payload.agentId,
       },
@@ -468,5 +515,41 @@ export const useImportSemanticDataModelMutation = createSparMutation<
   onSuccess: (_, { agentId }) => {
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId) });
+  },
+}));
+
+/**
+ * Verify Verified Query
+ */
+export const useVerifyVerifiedQueryMutation = createSparMutation<
+  Record<string, never>,
+  {
+    semantic_data_model: SemanticModel;
+    verified_query: VerifiedQuery;
+    accept_initial_name: string;
+  }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async (payload) => {
+    const response = await sparAPIClient.queryAgentServer(
+      'post',
+      '/api/v2/semantic-data-models/verify-verified-query',
+      {
+        params: {},
+        body: {
+          semantic_data_model: payload.semantic_data_model,
+          verified_query: payload.verified_query,
+          accept_initial_name: payload.accept_initial_name || '',
+        },
+      },
+    );
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to verify verified query', {
+        code: response.code,
+        resource: ResourceType.SemanticData,
+      });
+    }
+
+    return response.data as { verified_query: VerifiedQuery };
   },
 }));

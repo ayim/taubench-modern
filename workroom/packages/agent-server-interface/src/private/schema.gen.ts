@@ -851,6 +851,102 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/data-frames/assembly-info': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get Data Frames Assembly Info
+     * @description Get assembly information for one or more data frames.
+     *
+     *     This endpoint returns information about how data frames were assembled, including:
+     *     - The SQL query used to create the data frame (if applicable)
+     *     - For each table referenced in the query, how it was assembled (recursively)
+     *
+     *     Args:
+     *         user: The user making the request.
+     *         tid: The ID of the thread.
+     *         storage: The storage to use.
+     *         payload: The request payload containing the list of data frame names.
+     *
+     *     Returns:
+     *         A dictionary of data frame names to assembly information in markdown format.
+     */
+    post: operations['get_data_frames_assembly_info_threads__tid__data_frames_assembly_info_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/data-frames/as-validated-query': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get Data Frame As Validated Query
+     * @description Get a data frame as a validated query.
+     *
+     *     This endpoint retrieves a data frame's SQL query as a validated query object.
+     *     The data frame must have been created from a SQL computation.
+     *
+     *     Args:
+     *         user: The user making the request.
+     *         tid: The ID of the thread.
+     *         storage: The storage to use.
+     *         payload: The request payload containing the data frame name.
+     *
+     *     Returns:
+     *         A VerifiedQuery object representing the data frame.
+     */
+    post: operations['get_data_frame_as_validated_query_threads__tid__data_frames_as_validated_query_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/data-frames/save-as-validated-query': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Save Data Frame As Validated Query
+     * @description Save a validated query in a semantic data model.
+     *
+     *     This endpoint saves a validated query in the specified semantic data model.
+     *
+     *     Args:
+     *         user: The user making the request.
+     *         tid: The ID of the thread.
+     *         storage: The storage to use.
+     *         payload: The request payload containing the verified query and semantic data model ID.
+     *
+     *     Returns:
+     *         A dictionary with a success message.
+     */
+    post: operations['save_data_frame_as_validated_query_threads__tid__data_frames_save_as_validated_query_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/debug/artifacts': {
     parameters: {
       query?: never;
@@ -2797,6 +2893,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/semantic-data-models/verify-verified-query': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Verify Verified Query
+     * @description Verify a verified query against a semantic data model.
+     *
+     *     This endpoint validates a verified query by:
+     *     1. Validating the SQL query syntax
+     *     2. Checking if the SQL query references valid tables from the semantic data model
+     *     3. Validating the NLQ (Natural Language Question) is not empty
+     *     4. Validating the name is valid and unique within the semantic data model
+     *
+     *     Returns a new version of the verified query with validation errors set, if any.
+     *     The errors can be in:
+     *     - sql_errors: Errors related to the SQL query
+     *     - nlq_errors: Errors related to the NLQ
+     *     - name_errors: Errors related to the name
+     *
+     *     Args:
+     *         payload: Contains the semantic_data_model and verified_query to validate
+     *         user: Authenticated user
+     *         storage: Storage instance
+     *
+     *     Returns:
+     *         VerifyVerifiedQueryResponse: Contains the verified query with errors set, if any
+     */
+    post: operations['verify_verified_query_semantic_data_models_verify_verified_query_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/metrics': {
     parameters: {
       query?: never;
@@ -3440,12 +3576,15 @@ export interface components {
      * @description A base table represents fully qualified table names.
      *
      *     Note that as an extension to the default snowflake model we provide a way
-     *     to reference either a data connection or a file reference in the following way:
+     *     to reference either a data connection, a file reference, or a data frame in the following way:
      *
      *     For a database, the `data_connection_id` must be specified with the id of the data connection.
      *         In this case the database/schema/table must be specified as usual
      *
      *     For a file, the `file_reference` must be specified with the thread_id and file_ref of the file.
+     *
+     *     For a data frame, just the `table` must be specified with the name of the data frame
+     *         in the thread (and the data_connection_id and file_reference must not be specified).
      */
     BaseTable: {
       /** Database */
@@ -5019,8 +5158,8 @@ export interface components {
      */
     LogicalTable: {
       /** Name */
-      name?: string;
-      base_table?: components['schemas']['BaseTable'];
+      name: string;
+      base_table: components['schemas']['BaseTable'];
       /** Synonyms */
       synonyms?: string[] | null;
       /** Description */
@@ -5037,7 +5176,7 @@ export interface components {
       /** Filters */
       filters?: components['schemas']['Filter'][] | null;
       /** Errors */
-      errors?: components['schemas']['ValidationMessage'][] | null;
+      errors?: components['schemas']['ValidationMessage'][];
     };
     /** MCPServer */
     MCPServer: {
@@ -7200,15 +7339,17 @@ export interface components {
      */
     SemanticDataModel: {
       /** Name */
-      name?: string;
+      name: string;
       /** Description */
       description?: string | null;
       /** Tables */
-      tables?: components['schemas']['LogicalTable'][] | null;
+      tables?: components['schemas']['LogicalTable'][];
       /** Relationships */
       relationships?: components['schemas']['Relationship'][] | null;
       /** Errors */
-      errors?: components['schemas']['ValidationMessage'][] | null;
+      errors?: components['schemas']['ValidationMessage'][];
+      /** Verified Queries */
+      verified_queries?: components['schemas']['VerifiedQuery'][] | null;
     };
     /** SemanticDataModelWithAssociations */
     SemanticDataModelWithAssociations: {
@@ -8510,7 +8651,15 @@ export interface components {
       | 'file_inspection_error'
       | 'file_sheet_missing'
       | 'file_column_missing'
-      | 'validation_execution_error';
+      | 'validation_execution_error'
+      | 'verified_query_missing_sql_field'
+      | 'verified_query_references_missing_tables'
+      | 'verified_query_references_data_frame'
+      | 'verified_query_sql_validation_failed'
+      | 'verified_query_missing_nlq_field'
+      | 'verified_query_missing_name_field'
+      | 'verified_query_name_validation_failed'
+      | 'verified_query_name_not_unique';
     /**
      * ValidationMessageLevel
      * @description The level of a validation message.
@@ -8587,6 +8736,49 @@ export interface components {
       failed: number;
       /** Errors */
       errors: number;
+    };
+    /**
+     * VerifiedQuery
+     * @description A verified query represents a validated SQL query saved from a data frame.
+     */
+    VerifiedQuery: {
+      /** Name */
+      name: string;
+      /** Nlq */
+      nlq: string;
+      /** Verified At */
+      verified_at: string;
+      /** Verified By */
+      verified_by: string;
+      /** Sql */
+      sql: string;
+      /** Sql Errors */
+      sql_errors?: components['schemas']['ValidationMessage'][] | null;
+      /** Nlq Errors */
+      nlq_errors?: components['schemas']['ValidationMessage'][] | null;
+      /** Name Errors */
+      name_errors?: components['schemas']['ValidationMessage'][] | null;
+    };
+    /** VerifyVerifiedQueryPayload */
+    VerifyVerifiedQueryPayload: {
+      /** Semantic Data Model */
+      semantic_data_model:
+        | components['schemas']['SemanticDataModel']
+        | {
+            [key: string]: unknown;
+          };
+      /** Verified Query */
+      verified_query:
+        | components['schemas']['VerifiedQuery']
+        | {
+            [key: string]: unknown;
+          };
+      /** Accept Initial Name */
+      accept_initial_name: string;
+    };
+    /** VerifyVerifiedQueryResponse */
+    VerifyVerifiedQueryResponse: {
+      verified_query: components['schemas']['VerifiedQuery'];
     };
     /** WorkItem */
     WorkItem: {
@@ -8753,6 +8945,11 @@ export interface components {
       /** Password */
       password: string | components['schemas']['SecretString'];
     };
+    /** _DataFrameAssemblyInfoRequest */
+    _DataFrameAssemblyInfoRequest: {
+      /** Data Frame Names */
+      data_frame_names: string[];
+    };
     /** _DataFrameComputationPayload */
     _DataFrameComputationPayload: {
       /** New Data Frame Name */
@@ -8864,6 +9061,11 @@ export interface components {
     } & {
       [key: string]: unknown;
     };
+    /** _GetAsValidatedQueryPayload */
+    _GetAsValidatedQueryPayload: {
+      /** Data Frame Name */
+      data_frame_name: string;
+    };
     /** _HttpConfig */
     _HttpConfig: {
       /** Url */
@@ -8877,6 +9079,12 @@ export interface components {
       host: string;
       /** Port */
       port: number;
+    };
+    /** _SaveAsValidatedQueryPayload */
+    _SaveAsValidatedQueryPayload: {
+      verified_query: components['schemas']['VerifiedQuery'];
+      /** Semantic Data Model Id */
+      semantic_data_model_id: string;
     };
     /** _SetSemanticDataModeFileReference */
     _SetSemanticDataModeFileReference: {
@@ -13718,6 +13926,115 @@ export interface operations {
       };
     };
   };
+  get_data_frames_assembly_info_threads__tid__data_frames_assembly_info_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['_DataFrameAssemblyInfoRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_data_frame_as_validated_query_threads__tid__data_frames_as_validated_query_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['_GetAsValidatedQueryPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VerifiedQuery'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  save_data_frame_as_validated_query_threads__tid__data_frames_save_as_validated_query_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['_SaveAsValidatedQueryPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   get_artifacts_debug_artifacts_get: {
     parameters: {
       query?: never;
@@ -17136,7 +17453,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': null;
         };
       };
       /** @description Validation Error */
@@ -17332,6 +17649,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ValidateSemanticDataModelResult'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  verify_verified_query_semantic_data_models_verify_verified_query_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['VerifyVerifiedQueryPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VerifyVerifiedQueryResponse'];
         };
       };
       /** @description Validation Error */

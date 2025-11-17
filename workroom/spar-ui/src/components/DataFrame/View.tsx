@@ -5,8 +5,15 @@ import { IconDotsHorizontal, IconMenu } from '@sema4ai/icons';
 import { IconDataFrames } from '@sema4ai/icons/logos';
 
 import { useMessageStream } from '../../hooks';
-import { ListDataFrames, useDataFrameSliceInfiniteQuery, useDataFramesQuery } from '../../queries/dataFrames';
+import {
+  ListDataFrames,
+  useDataFrameSliceInfiniteQuery,
+  useDataFramesQuery,
+  useDataFramesAssemblyInfoQuery,
+} from '../../queries/dataFrames';
 import { useDownloadCSV } from '../../hooks/useDownloadCSV';
+import { AssemblyInfoDialog } from './AssemblyInfoDialog';
+import { CreateVerifiedQueryFromDataFrameDialog } from './CreateVerifiedQueryFromDataFrameDialog';
 
 const MAX_DOWNLOAD_SIZE_MB = 10;
 const MAX_DOWNLOAD_SIZE = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024;
@@ -125,6 +132,8 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
   setActiveDataFrameIndex,
 }) => {
   const [isMenuListOpen, setIsMenuListOpen] = useState(false);
+  const [isAssemblyInfoDialogOpen, setIsAssemblyInfoDialogOpen] = useState(false);
+  const [isCreateVerifiedQueryDialogOpen, setIsCreateVerifiedQueryDialogOpen] = useState(false);
   const dataFrameCount = dataFrames.length;
 
   const { fetchNextPage } = useDataFrameSliceInfiniteQuery({
@@ -162,6 +171,26 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
 
   const onDownload = () => startDownload();
 
+  const {
+    data: assemblyInfoData,
+    isLoading: isLoadingAssemblyInfo,
+    refetch: fetchAssemblyInfo,
+  } = useDataFramesAssemblyInfoQuery(
+    {
+      threadId: activeDataFrame.thread_id,
+      dataFrameNames: [activeDataFrame.name],
+    },
+    { enabled: false },
+  );
+
+  const onShowAssemblyInfo = () => {
+    fetchAssemblyInfo().then(() => {
+      setIsAssemblyInfoDialogOpen(true);
+    });
+  };
+
+  const assemblyInfo = assemblyInfoData?.[activeDataFrame.name] || '';
+
   return (
     <Box display="flex" flexDirection="column" height="100%">
       <Box display="flex" flexDirection="column" flex={1}>
@@ -182,7 +211,7 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
                     icon={IconDotsHorizontal}
                     variant="outline"
                     aria-label="data frame actions"
-                    loading={isDownloading}
+                    loading={isDownloading || isLoadingAssemblyInfo}
                     round
                   />
                 }
@@ -193,6 +222,19 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
                   description={`Up to ${MAX_DOWNLOAD_SIZE_MB}MB`}
                 >
                   Download CSV
+                </Menu.Item>
+                <Menu.Item
+                  onClick={onShowAssemblyInfo}
+                  disabled={isLoadingAssemblyInfo}
+                  description="How the data frame is assembled"
+                >
+                  Show Lineage
+                </Menu.Item>
+                <Menu.Item
+                  onClick={() => setIsCreateVerifiedQueryDialogOpen(true)}
+                  description="Save in Data Model as Verified Query"
+                >
+                  Create Verified Query
                 </Menu.Item>
               </Menu>
               {dataFrameCount > 1 && (
@@ -225,6 +267,19 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
           </Container>
         )}
       </Box>
+      <AssemblyInfoDialog
+        open={isAssemblyInfoDialogOpen}
+        onClose={() => setIsAssemblyInfoDialogOpen(false)}
+        dataFrameName={activeDataFrame.name}
+        assemblyInfo={assemblyInfo}
+      />
+      <CreateVerifiedQueryFromDataFrameDialog
+        open={isCreateVerifiedQueryDialogOpen}
+        onClose={() => setIsCreateVerifiedQueryDialogOpen(false)}
+        threadId={activeDataFrame.thread_id}
+        agentId={agentId}
+        dataFrameName={activeDataFrame.name}
+      />
     </Box>
   );
 };

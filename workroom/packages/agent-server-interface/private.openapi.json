@@ -2763,6 +2763,167 @@
         }
       }
     },
+    "/threads/{tid}/data-frames/assembly-info": {
+      "post": {
+        "tags": ["threads"],
+        "summary": "Get Data Frames Assembly Info",
+        "description": "Get assembly information for one or more data frames.\n\nThis endpoint returns information about how data frames were assembled, including:\n- The SQL query used to create the data frame (if applicable)\n- For each table referenced in the query, how it was assembled (recursively)\n\nArgs:\n    user: The user making the request.\n    tid: The ID of the thread.\n    storage: The storage to use.\n    payload: The request payload containing the list of data frame names.\n\nReturns:\n    A dictionary of data frame names to assembly information in markdown format.",
+        "operationId": "get_data_frames_assembly_info_threads__tid__data_frames_assembly_info_post",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_DataFrameAssemblyInfoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Get Data Frames Assembly Info Threads  Tid  Data Frames Assembly Info Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{tid}/data-frames/as-validated-query": {
+      "post": {
+        "tags": ["threads"],
+        "summary": "Get Data Frame As Validated Query",
+        "description": "Get a data frame as a validated query.\n\nThis endpoint retrieves a data frame's SQL query as a validated query object.\nThe data frame must have been created from a SQL computation.\n\nArgs:\n    user: The user making the request.\n    tid: The ID of the thread.\n    storage: The storage to use.\n    payload: The request payload containing the data frame name.\n\nReturns:\n    A VerifiedQuery object representing the data frame.",
+        "operationId": "get_data_frame_as_validated_query_threads__tid__data_frames_as_validated_query_post",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_GetAsValidatedQueryPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiedQuery"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{tid}/data-frames/save-as-validated-query": {
+      "post": {
+        "tags": ["threads"],
+        "summary": "Save Data Frame As Validated Query",
+        "description": "Save a validated query in a semantic data model.\n\nThis endpoint saves a validated query in the specified semantic data model.\n\nArgs:\n    user: The user making the request.\n    tid: The ID of the thread.\n    storage: The storage to use.\n    payload: The request payload containing the verified query and semantic data model ID.\n\nReturns:\n    A dictionary with a success message.",
+        "operationId": "save_data_frame_as_validated_query_threads__tid__data_frames_save_as_validated_query_post",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_SaveAsValidatedQueryPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Save Data Frame As Validated Query Threads  Tid  Data Frames Save As Validated Query Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/debug/artifacts": {
       "get": {
         "tags": ["debug"],
@@ -8192,7 +8353,10 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "null",
+                  "title": "Response Delete Semantic Data Model Semantic Data Models  Semantic Data Model Id  Delete"
+                }
               }
             }
           },
@@ -8459,6 +8623,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidateSemanticDataModelResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/semantic-data-models/verify-verified-query": {
+      "post": {
+        "tags": ["semantic-data-models"],
+        "summary": "Verify Verified Query",
+        "description": "Verify a verified query against a semantic data model.\n\nThis endpoint validates a verified query by:\n1. Validating the SQL query syntax\n2. Checking if the SQL query references valid tables from the semantic data model\n3. Validating the NLQ (Natural Language Question) is not empty\n4. Validating the name is valid and unique within the semantic data model\n\nReturns a new version of the verified query with validation errors set, if any.\nThe errors can be in:\n- sql_errors: Errors related to the SQL query\n- nlq_errors: Errors related to the NLQ\n- name_errors: Errors related to the name\n\nArgs:\n    payload: Contains the semantic_data_model and verified_query to validate\n    user: Authenticated user\n    storage: Storage instance\n\nReturns:\n    VerifyVerifiedQueryResponse: Contains the verified query with errors set, if any",
+        "operationId": "verify_verified_query_semantic_data_models_verify_verified_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyVerifiedQueryPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyVerifiedQueryResponse"
                 }
               }
             }
@@ -9609,7 +9813,7 @@
         },
         "type": "object",
         "title": "BaseTable",
-        "description": "A base table represents fully qualified table names.\n\nNote that as an extension to the default snowflake model we provide a way\nto reference either a data connection or a file reference in the following way:\n\nFor a database, the `data_connection_id` must be specified with the id of the data connection.\n    In this case the database/schema/table must be specified as usual\n\nFor a file, the `file_reference` must be specified with the thread_id and file_ref of the file."
+        "description": "A base table represents fully qualified table names.\n\nNote that as an extension to the default snowflake model we provide a way\nto reference either a data connection, a file reference, or a data frame in the following way:\n\nFor a database, the `data_connection_id` must be specified with the id of the data connection.\n    In this case the database/schema/table must be specified as usual\n\nFor a file, the `file_reference` must be specified with the thread_id and file_ref of the file.\n\nFor a data frame, just the `table` must be specified with the name of the data frame\n    in the thread (and the data_connection_id and file_reference must not be specified)."
       },
       "BedrockPlatformParameters": {
         "properties": {
@@ -13377,21 +13581,15 @@
             "title": "Filters"
           },
           "errors": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ValidationMessage"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "items": {
+              "$ref": "#/components/schemas/ValidationMessage"
+            },
+            "type": "array",
             "title": "Errors"
           }
         },
         "type": "object",
+        "required": ["name", "base_table"],
         "title": "LogicalTable",
         "description": "A logical table represents a view over a physical database table or view."
       },
@@ -17823,17 +18021,10 @@
             "title": "Description"
           },
           "tables": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/LogicalTable"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "items": {
+              "$ref": "#/components/schemas/LogicalTable"
+            },
+            "type": "array",
             "title": "Tables"
           },
           "relationships": {
@@ -17851,10 +18042,17 @@
             "title": "Relationships"
           },
           "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationMessage"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "verified_queries": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ValidationMessage"
+                  "$ref": "#/components/schemas/VerifiedQuery"
                 },
                 "type": "array"
               },
@@ -17862,10 +18060,11 @@
                 "type": "null"
               }
             ],
-            "title": "Errors"
+            "title": "Verified Queries"
           }
         },
         "type": "object",
+        "required": ["name"],
         "title": "SemanticDataModel",
         "description": "A semantic model represents a collection of tables with their relationships."
       },
@@ -20293,7 +20492,15 @@
           "file_inspection_error",
           "file_sheet_missing",
           "file_column_missing",
-          "validation_execution_error"
+          "validation_execution_error",
+          "verified_query_missing_sql_field",
+          "verified_query_references_missing_tables",
+          "verified_query_references_data_frame",
+          "verified_query_sql_validation_failed",
+          "verified_query_missing_nlq_field",
+          "verified_query_missing_name_field",
+          "verified_query_name_validation_failed",
+          "verified_query_name_not_unique"
         ],
         "title": "ValidationMessageKind",
         "description": "The kind of a validation message."
@@ -20402,6 +20609,125 @@
         "required": ["overall_status", "results", "passed", "failed", "errors"],
         "title": "ValidationSummary",
         "description": "Summary of all validation results for a document.\n\nAttributes:\n    overall_status: Overall status of all validations\n    results: List of individual validation results\n    passed: Number of passed validations\n    failed: Number of failed validations\n    errors: Number of validation errors"
+      },
+      "VerifiedQuery": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "nlq": {
+            "type": "string",
+            "title": "Nlq"
+          },
+          "verified_at": {
+            "type": "string",
+            "title": "Verified At"
+          },
+          "verified_by": {
+            "type": "string",
+            "title": "Verified By"
+          },
+          "sql": {
+            "type": "string",
+            "title": "Sql"
+          },
+          "sql_errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ValidationMessage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sql Errors"
+          },
+          "nlq_errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ValidationMessage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nlq Errors"
+          },
+          "name_errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ValidationMessage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Errors"
+          }
+        },
+        "type": "object",
+        "required": ["name", "nlq", "verified_at", "verified_by", "sql"],
+        "title": "VerifiedQuery",
+        "description": "A verified query represents a validated SQL query saved from a data frame."
+      },
+      "VerifyVerifiedQueryPayload": {
+        "properties": {
+          "semantic_data_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SemanticDataModel"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "title": "Semantic Data Model"
+          },
+          "verified_query": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerifiedQuery"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "title": "Verified Query"
+          },
+          "accept_initial_name": {
+            "type": "string",
+            "title": "Accept Initial Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "semantic_data_model",
+          "verified_query",
+          "accept_initial_name"
+        ],
+        "title": "VerifyVerifiedQueryPayload"
+      },
+      "VerifyVerifiedQueryResponse": {
+        "properties": {
+          "verified_query": {
+            "$ref": "#/components/schemas/VerifiedQuery"
+          }
+        },
+        "type": "object",
+        "required": ["verified_query"],
+        "title": "VerifyVerifiedQueryResponse"
       },
       "WorkItem": {
         "properties": {
@@ -20677,6 +21003,20 @@
         "type": "object",
         "required": ["username", "password"],
         "title": "_Credentials"
+      },
+      "_DataFrameAssemblyInfoRequest": {
+        "properties": {
+          "data_frame_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Data Frame Names"
+          }
+        },
+        "type": "object",
+        "required": ["data_frame_names"],
+        "title": "_DataFrameAssemblyInfoRequest"
       },
       "_DataFrameComputationPayload": {
         "properties": {
@@ -21030,6 +21370,17 @@
         "title": "_ExtractionSchema",
         "description": "Extraction schema that requires 'type': 'object' and 'properties' but allows extra fields."
       },
+      "_GetAsValidatedQueryPayload": {
+        "properties": {
+          "data_frame_name": {
+            "type": "string",
+            "title": "Data Frame Name"
+          }
+        },
+        "type": "object",
+        "required": ["data_frame_name"],
+        "title": "_GetAsValidatedQueryPayload"
+      },
       "_HttpConfig": {
         "properties": {
           "url": {
@@ -21059,6 +21410,20 @@
         "type": "object",
         "required": ["host", "port"],
         "title": "_MysqlConfig"
+      },
+      "_SaveAsValidatedQueryPayload": {
+        "properties": {
+          "verified_query": {
+            "$ref": "#/components/schemas/VerifiedQuery"
+          },
+          "semantic_data_model_id": {
+            "type": "string",
+            "title": "Semantic Data Model Id"
+          }
+        },
+        "type": "object",
+        "required": ["verified_query", "semantic_data_model_id"],
+        "title": "_SaveAsValidatedQueryPayload"
       },
       "_SetSemanticDataModeFileReference": {
         "properties": {

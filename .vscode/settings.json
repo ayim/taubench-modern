@@ -38,5 +38,33 @@
     }
   ],
   "prettier.requireConfig": true,
-  "prettier.useEditorConfig": false
+  "prettier.useEditorConfig": false,
+  // Note: Settings below are just for PyDev for VSCode, not for the mspython extension
+  // Note: we have a bit of an "odd" setup where the root is there for tests and then we have the
+  // actual code in the /src folders, so, the auto-detection doesn't work that well because it'd
+  // find the `/src` and `/tests` folders and add those to the PYTHONPATH).
+  //
+  // Interpreter/PYTHONPATH configuration
+  "python.pydev.pythonExecutable": "${workspaceFolder}/.venv/Scripts/python",
+  "python.pydev.autoDetectProjects": false,
+  "python.pydev.pythonPath": [
+    "${workspaceFolder}/server/src",
+    "${workspaceFolder}/core/src",
+    "${workspaceFolder}",
+    "${workspaceFolder}/architectures/default/src",
+    "${workspaceFolder}/architectures/experimental/src",
+    "${workspaceFolder}/quality/src"
+  ],
+  // pyright is used for typechecking
+  "python.pydev.lint.pyright.use": true,
+  "python.pydev.lint.pyright.showOutput": true,
+  // ruff is used for linting and formatting
+  "python.pydev.formatter": "ruff",
+  "python.pydev.lint.ruff.use": true,
+  "python.pydev.lint.ruff.showOutput": true,
+  // disable mypy (prefer pyright)
+  "python.pydev.lint.mypy.use": false,
+  // other settings
+  "python.pydev.docstring.style": "google",
+  "python.pydev.preferredImportLocation": "topOfMethod"
 }

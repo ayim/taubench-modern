@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 import typing
 from copy import deepcopy
 from dataclasses import dataclass
@@ -40,6 +41,12 @@ class FileConnectionInfo:
     real_table: str
 
 
+@dataclass(slots=True)
+class DataFrameConnectionInfo:
+    kind: Literal["data_frame"]
+    data_frame_name: str
+
+
 @dataclass(slots=True, frozen=True, unsafe_hash=True)
 class EmptyFileReference:
     logical_table_name: str
@@ -50,10 +57,13 @@ class EmptyFileReference:
 @dataclass(slots=True)
 class References:
     data_connection_ids: set[str]
+    data_frame_names: set[str]
     file_references: set[_FileReference]
     data_connection_id_to_logical_table_names: dict[str, set[str]]
     file_reference_to_logical_table_names: dict[_FileReference, set[str]]
-    logical_table_name_to_connection_info: dict[str, DataConnectionInfo | FileConnectionInfo]
+    logical_table_name_to_connection_info: dict[
+        str, DataConnectionInfo | FileConnectionInfo | DataFrameConnectionInfo
+    ]
     errors: list[str]
     _structured_errors: list[ValidationMessage]
     tables_with_unresolved_file_references: set[EmptyFileReference]
@@ -65,7 +75,6 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
 ) -> References:
     """Validate the semantic model payload."""
     from agent_platform.core.data_frames.semantic_data_model_types import (
-        ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
     )
@@ -73,6 +82,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
     references = References(
         data_connection_ids=set(),
         file_references=set(),
+        data_frame_names=set(),
         data_connection_id_to_logical_table_names=dict(),
         file_reference_to_logical_table_names=dict(),
         logical_table_name_to_connection_info=dict(),
@@ -95,7 +105,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
             kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
         )
         add_error(error)
-        semantic_data_model.setdefault("errors", []).append(error)  # type: ignore
+        semantic_data_model.setdefault("errors", []).append(error)
         return references
 
     if "tables" not in semantic_data_model or semantic_data_model.get("tables") is None:
@@ -105,7 +115,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
             kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
         )
         add_error(error)
-        semantic_data_model.setdefault("errors", []).append(error)  # type: ignore
+        semantic_data_model.setdefault("errors", []).append(error)
         return references
 
     semantic_data_model_tables = semantic_data_model.get("tables", [])
@@ -116,7 +126,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
             kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
         )
         add_error(error)
-        semantic_data_model.setdefault("errors", []).append(error)  # type: ignore
+        semantic_data_model.setdefault("errors", []).append(error)
         return references
 
     for index, table in enumerate(semantic_data_model_tables):
@@ -128,7 +138,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                 kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
             )
             add_error(error)
-            table.setdefault("errors", []).append(error)  # type: ignore
+            table.setdefault("errors", []).append(error)
             continue
 
         base_table = table.get("base_table")
@@ -142,7 +152,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                 kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
             )
             add_error(error)
-            table.setdefault("errors", []).append(error)  # type: ignore
+            table.setdefault("errors", []).append(error)
             continue
 
         base_table_table = base_table.get("table")
@@ -156,38 +166,65 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                 kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
             )
             add_error(error)
-            table.setdefault("errors", []).append(error)  # type: ignore
+            table.setdefault("errors", []).append(error)
             continue
 
         base_table_data_connection_id = base_table.get("data_connection_id")
         if not base_table_data_connection_id:
-            # We're dealing with a file reference
+            # We're dealing with a file reference or data frame
             base_table_file_reference = base_table.get("file_reference")
-            if not base_table_file_reference:
-                error = ValidationMessage(
-                    message=(
-                        f"Either 'data_connection_id' or 'file_reference' must be specified in a "
-                        f"semantic data model base table (table: {logical_table_name})."
-                    ),
-                    level=ValidationMessageLevel.ERROR,
-                    kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
-                )
-                add_error(error)
-                table.setdefault("errors", []).append(error)  # type: ignore
-                continue
+            if base_table_file_reference:
+                thread_id = base_table_file_reference.get("thread_id")
+                file_ref = base_table_file_reference.get("file_ref")
+                sheet_name = base_table_file_reference.get("sheet_name")
 
-            thread_id = base_table_file_reference.get("thread_id")
-            file_ref = base_table_file_reference.get("file_ref")
-            sheet_name = base_table_file_reference.get("sheet_name")
+                if file_ref and thread_id:
+                    file_reference = _FileReference(
+                        thread_id=thread_id, file_ref=file_ref, sheet_name=sheet_name
+                    )
+                    references.file_references.add(file_reference)
+                    references.file_reference_to_logical_table_names.setdefault(
+                        file_reference, set()
+                    ).add(logical_table_name)
+                    if references.logical_table_name_to_connection_info.get(logical_table_name):
+                        msg = (
+                            f"Logical table name {logical_table_name} is referenced more than once in "
+                            "the semantic data model."
+                        )
+                        error = ValidationMessage(
+                            message=msg,
+                            level=ValidationMessageLevel.ERROR,
+                            kind=ValidationMessageKind.SEMANTIC_MODEL_DUPLICATE_TABLE,
+                        )
+                        add_error(error)
+                        table.setdefault("errors", []).append(error)
+                        continue
 
-            if file_ref and thread_id:
-                file_reference = _FileReference(
-                    thread_id=thread_id, file_ref=file_ref, sheet_name=sheet_name
-                )
-                references.file_references.add(file_reference)
-                references.file_reference_to_logical_table_names.setdefault(
-                    file_reference, set()
-                ).add(logical_table_name)
+                    references.logical_table_name_to_connection_info[logical_table_name] = (
+                        FileConnectionInfo(
+                            kind="file",
+                            thread_id=thread_id,
+                            file_ref=file_ref,
+                            sheet_name=sheet_name,
+                            logical_table=logical_table_name,
+                            real_table=base_table_table,
+                        )
+                    )
+
+                else:
+                    # We have a file reference but it's empty
+                    references.tables_with_unresolved_file_references.add(
+                        EmptyFileReference(
+                            logical_table_name=logical_table_name,
+                            sheet_name=sheet_name,
+                            base_table_table=base_table_table,
+                        )
+                    )
+
+            else:
+                # We're dealing with a data frame reference
+                references.data_frame_names.add(base_table_table)
+
                 if references.logical_table_name_to_connection_info.get(logical_table_name):
                     error = ValidationMessage(
                         message=(
@@ -198,29 +235,16 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                         kind=ValidationMessageKind.SEMANTIC_MODEL_DUPLICATE_TABLE,
                     )
                     add_error(error)
-                    table.setdefault("errors", []).append(error)  # type: ignore
+                    table.setdefault("errors", []).append(error)
                     continue
 
                 references.logical_table_name_to_connection_info[logical_table_name] = (
-                    FileConnectionInfo(
-                        kind="file",
-                        thread_id=thread_id,
-                        file_ref=file_ref,
-                        sheet_name=sheet_name,
-                        logical_table=logical_table_name,
-                        real_table=base_table_table,
+                    DataFrameConnectionInfo(
+                        kind="data_frame",
+                        data_frame_name=base_table_table,
                     )
                 )
 
-            else:
-                # We have a file reference but it's empty
-                references.tables_with_unresolved_file_references.add(
-                    EmptyFileReference(
-                        logical_table_name=logical_table_name,
-                        sheet_name=sheet_name,
-                        base_table_table=base_table_table,
-                    )
-                )
         else:
             # We're dealing with a data connection (fields as "usual").
             references.data_connection_ids.add(base_table_data_connection_id)
@@ -237,7 +261,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                     kind=ValidationMessageKind.SEMANTIC_MODEL_DUPLICATE_TABLE,
                 )
                 add_error(error)
-                table.setdefault("errors", []).append(error)  # type: ignore
+                table.setdefault("errors", []).append(error)
                 continue
 
             references.logical_table_name_to_connection_info[logical_table_name] = (

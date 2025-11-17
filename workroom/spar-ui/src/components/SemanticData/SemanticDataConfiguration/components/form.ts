@@ -55,6 +55,7 @@ export const DataConnectionFormSchema = z.object({
     }),
   ),
   tables: SemanticModel.shape.tables.optional(),
+  verifiedQueries: SemanticModel.shape.verified_queries.optional(),
 });
 
 export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
@@ -79,6 +80,7 @@ export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
       };
     }),
     tables: semanticModel.tables,
+    verifiedQueries: semanticModel.verified_queries,
   } satisfies DataConnectionFormSchema;
 };
 
@@ -90,6 +92,28 @@ export const defaultFormDataValues: DataConnectionFormSchema = {
   name: undefined,
   dataSelection: [],
   tables: undefined,
+};
+
+/**
+ * Check if a semantic model has tables that reference data frames
+ * (no data_connection_id or data_connection_name and no file_reference).
+ */
+export const hasDataFrameReferences = (semanticModel: SemanticModel): boolean => {
+  return semanticModel.tables.some(
+    (table) =>
+      !table.base_table.data_connection_id &&
+      !table.base_table.data_connection_name &&
+      !table.base_table.file_reference,
+  );
+};
+
+/**
+ * Check if a semantic model has tables that require a data connection.
+ */
+export const requiresDataConnection = (semanticModel: SemanticModel): boolean => {
+  return semanticModel.tables.some(
+    (table) => !!table.base_table.data_connection_id || !!table.base_table.data_connection_name,
+  );
 };
 
 export type DataConnectionFormSchema = z.infer<typeof DataConnectionFormSchema>;

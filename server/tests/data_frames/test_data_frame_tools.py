@@ -121,6 +121,7 @@ async def test_data_frames_interface(file_regression):
         SemanticDataModelAndReferences(
             semantic_data_model_info=semantic_data_model_info,
             references=References(
+                data_frame_names=set(),
                 data_connection_ids=set(),
                 file_references=set(),
                 data_connection_id_to_logical_table_names={},
@@ -150,6 +151,11 @@ async def test_data_frames_interface_state(file_regression):
 
     from agent_platform.core.kernel import Kernel
     from agent_platform.server.kernel.data_frames import (
+        DF_CREATE_FROM_FILE_TOOL_NAME,
+        DF_CREATE_FROM_JSON_TOOL_NAME,
+        DF_CREATE_FROM_SQL_TOOL_NAME,
+        DF_DELETE_TOOL_NAME,
+        DF_SLICE_TOOL_NAME,
         AgentServerDataFramesInterface,
     )
     from agent_platform.server.storage.base import BaseStorage
@@ -166,8 +172,8 @@ async def test_data_frames_interface_state(file_regression):
     assert interface.thread_has_data_frames is False
     tools = interface.get_data_frame_tools()
     assert {t.name for t in tools} == {
-        "data_frames_create_from_file",
-        "data_frames_create_from_json",
+        DF_CREATE_FROM_FILE_TOOL_NAME,
+        DF_CREATE_FROM_JSON_TOOL_NAME,
     }
     assert state.data_frames_tools_state == ""
 
@@ -179,11 +185,11 @@ async def test_data_frames_interface_state(file_regression):
     await interface.step_initialize(storage=typing.cast(BaseStorage, storage_stub), state=state)
     assert state.data_frames_tools_state == "enabled"
     all_tools = {
-        "data_frames_create_from_file",
-        "data_frames_create_from_json",
-        "data_frames_slice",
-        "data_frames_delete",
-        "data_frames_create_from_sql",
+        DF_CREATE_FROM_FILE_TOOL_NAME,
+        DF_CREATE_FROM_JSON_TOOL_NAME,
+        DF_SLICE_TOOL_NAME,
+        DF_DELETE_TOOL_NAME,
+        DF_CREATE_FROM_SQL_TOOL_NAME,
     }
     tools = interface.get_data_frame_tools()
     assert {t.name for t in tools} == all_tools
@@ -231,6 +237,7 @@ async def test_data_frames_create_from_file(tmp_path):
 
     from agent_platform.core.kernel import Kernel
     from agent_platform.server.kernel.data_frames import (
+        DF_CREATE_FROM_FILE_TOOL_NAME,
         AgentServerDataFramesInterface,
     )
     from agent_platform.server.storage.base import BaseStorage
@@ -248,7 +255,7 @@ async def test_data_frames_create_from_file(tmp_path):
 
     tools = interface.get_data_frame_tools()
 
-    data_frame_create_from_file_tool = find_tool("data_frames_create_from_file", tools)
+    data_frame_create_from_file_tool = find_tool(DF_CREATE_FROM_FILE_TOOL_NAME, tools)
 
     result = await data_frame_create_from_file_tool.function(
         data_frame_name="test_data_frame",

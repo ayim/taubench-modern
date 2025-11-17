@@ -1,3 +1,4 @@
+# ruff: noqa: PLR0912, PLR0915
 """Integration tests for semantic data model API endpoints."""
 
 import pytest
@@ -7,11 +8,11 @@ logger = get_logger(__name__)
 
 
 @pytest.mark.integration
-def test_semantic_data_models_integration(base_url_agent_server, datadir, resources_dir):
+def test_semantic_data_models_integration(base_url_agent_server_session, datadir, resources_dir):
     """Test semantic data model API endpoints integration."""
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
-    with AgentServerClient(base_url_agent_server) as agent_client:
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
         # Create an agent and thread
         agent_id = agent_client.create_agent_and_return_agent_id(
             action_packages=[],
@@ -264,14 +265,16 @@ def test_semantic_data_models_integration(base_url_agent_server, datadir, resour
 
 @pytest.mark.integration
 def test_semantic_data_model_query_with_llm_integration(
-    base_url_agent_server, resources_dir, openai_api_key
+    base_url_agent_server_session, resources_dir, openai_api_key
 ):
     """Test semantic data model query with LLM integration."""
     import json
 
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
-    with AgentServerClient(base_url_agent_server) as agent_client:
+    from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
         # Create an agent and thread
         agent_id = agent_client.create_agent_and_return_agent_id(
             action_packages=[],
@@ -283,7 +286,7 @@ def test_semantic_data_model_query_with_llm_integration(
                 },
             ],
             runbook="""You are an agent which should make create data
-            frames using the data_frames_create_from_sql tool,
+            frames using the {DF_CREATE_FROM_SQL_TOOL_NAME} tool,
             referencing the semantic data model that the user provides
             to answer user's questions.""",
             description="Agent which can query the semantic data model",
@@ -354,10 +357,10 @@ def test_semantic_data_model_query_with_llm_integration(
         sql_tool_calls = [
             tool_call
             for tool_call in tool_calls
-            if tool_call.tool_name == "data_frames_create_from_sql"
+            if tool_call.tool_name == DF_CREATE_FROM_SQL_TOOL_NAME
         ]
         assert sql_tool_calls, (
-            f"Expected data_frames_create_from_sql tool call not found. "
+            f"Expected {DF_CREATE_FROM_SQL_TOOL_NAME} tool call not found. "
             f"Final response: {final_response}. Tool calls: {[tc.tool_name for tc in tool_calls]}"
         )
         sql_tool_call = next(
@@ -365,12 +368,12 @@ def test_semantic_data_model_query_with_llm_integration(
             None,
         )
         assert sql_tool_call is not None, (
-            "No successful data_frames_create_from_sql call. "
+            f"No successful {DF_CREATE_FROM_SQL_TOOL_NAME} call. "
             f"Errors: {[tc.error for tc in sql_tool_calls]} | Final response: {final_response}"
         )
 
         assert sql_tool_call.error is None, (
-            f"data_frames_create_from_sql failed: {sql_tool_call.error}"
+            f"{DF_CREATE_FROM_SQL_TOOL_NAME} failed: {sql_tool_call.error}"
         )
 
         data_frame_name = sql_tool_call.input_data.get("new_data_frame_name")
@@ -428,7 +431,7 @@ def check_upload_response(thread_response) -> str:
 
 
 @pytest.mark.integration
-def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
+def test_generate_semantic_data_model_generation_integration(
     base_url_agent_server, resources_dir, data_regression, openai_api_key
 ):
     """Test generate semantic data model API endpoint integration."""
@@ -622,13 +625,16 @@ def test_generate_semantic_data_model_generation_integration(  # noqa: PLR0915
 
 
 @pytest.mark.integration
-def test_semantic_data_model_with_file_reference_workflow(base_url_agent_server, openai_api_key):
+def test_semantic_data_model_with_file_reference_workflow(
+    base_url_agent_server_session, openai_api_key
+):
     """Create semantic data model from file, upload file, and query with LLM."""
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
 
-    with AgentServerClient(base_url_agent_server) as agent_client:
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
         # Step 1: Create a CSV file in memory
         csv_content = """Entity,Year,Cost
 OpenAI,2023,10
@@ -705,7 +711,7 @@ Google,2023,15"""
             ],
             runbook=(
                 "You are an agent which should create data frames using the "
-                "data_frames_create_from_sql tool, referencing the semantic data model "
+                "{DF_CREATE_FROM_SQL_TOOL_NAME} tool, referencing the semantic data model "
                 "that the user provides to answer user's questions."
             ),
             description="Agent which can query the semantic data model",
@@ -749,7 +755,7 @@ Google,2023,15"""
             "Please create a data frame from the AI systems table showing entity, year and cost.",
         )
         result_text = str(result)
-        assert "data_frames_create_from_sql" in str(tool_calls)
+        assert DF_CREATE_FROM_SQL_TOOL_NAME in str(tool_calls)
         assert "Data frame" in str(tool_calls)
         assert "created from SQL query" in str(tool_calls)
 
@@ -876,4 +882,290 @@ Test2,200"""
         assert len(unresolved_warnings_after) == 0, (
             f"Expected no unresolved file reference warnings after upload, "
             f"but got: {unresolved_warnings_after}"
+        )
+
+
+@pytest.mark.integration
+def test_save_data_frame_as_validated_query_and_create_from_it(
+    base_url_agent_server_session, resources_dir, openai_api_key
+):
+    """Test saving a data frame as validated query and creating a new data frame from it."""
+    import json
+    from urllib.parse import urljoin
+
+    import requests
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    from agent_platform.server.kernel.data_frames import (
+        DF_CREATE_FROM_SQL_TOOL_NAME,
+        DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME,
+    )
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        # Create an agent and thread
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-5-low"]},
+                },
+            ],
+            runbook=(
+                "You are an agent which should create data "
+                "frames using the {DF_CREATE_FROM_SQL_TOOL_NAME} or "
+                "{DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} tools, "
+                "referencing the semantic data model that the user provides "
+                "to answer user's questions."
+            ),
+            description="Agent which can query the semantic data model",
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        # Setup data connection based on resources_dir / "data_frames" / "combined_data.sqlite"
+        db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
+
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-combined-data",
+            description="Test connection for combined data",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file_path),
+            },
+        )
+
+        # Inspect the connection
+        inspect_response = agent_client.inspect_data_connection(
+            connection_id=data_connection["id"],
+        )
+
+        # Verify inspection response has expected structure
+        assert "tables" in inspect_response
+        assert len(inspect_response["tables"]) > 0
+
+        # Generate semantic data model from the connection
+        generate_payload = {
+            "name": "generated_semantic_model_integration",
+            "description": "A generated semantic model for integration testing",
+            "data_connections_info": [
+                {
+                    "data_connection_id": data_connection["id"],
+                    "tables_info": inspect_response["tables"],
+                }
+            ],
+            "files_info": [],
+        }
+
+        # Generate the semantic data model
+        generated_model = agent_client.generate_semantic_data_model(generate_payload)
+        assert "semantic_model" in generated_model
+
+        # Create the semantic data model
+        created_model = agent_client.create_semantic_data_model(generated_model)
+        semantic_data_model_id = created_model["semantic_data_model_id"]
+
+        # Set the generated data model for the agent
+        agent_client.set_agent_semantic_data_models(agent_id, [semantic_data_model_id])
+
+        # Verify the model was assigned to the agent
+        agent_models = agent_client.get_agent_semantic_data_models(agent_id)
+        assert len(agent_models) == 1
+        assert semantic_data_model_id in agent_models[0]
+
+        # Create a data frame from SQL query
+        final_response, tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            thread_id,
+            (
+                "Can you provide me with the list of notable AI systems which were "
+                "sampled in the year 2023?"
+            ),
+        )
+        sql_tool_calls = [
+            tool_call
+            for tool_call in tool_calls
+            if tool_call.tool_name == DF_CREATE_FROM_SQL_TOOL_NAME
+        ]
+        assert sql_tool_calls, (
+            f"Expected {DF_CREATE_FROM_SQL_TOOL_NAME} tool call not found. "
+            f"Final response: {final_response}. Tool calls: {[tc.tool_name for tc in tool_calls]}"
+        )
+        sql_tool_call = next(
+            (tool_call for tool_call in reversed(sql_tool_calls) if tool_call.error is None),
+            None,
+        )
+        assert sql_tool_call is not None, (
+            f"No successful {DF_CREATE_FROM_SQL_TOOL_NAME} call. "
+            f"Errors: {[tc.error for tc in sql_tool_calls]} | Final response: {final_response}"
+        )
+
+        assert sql_tool_call.error is None, (
+            f"{DF_CREATE_FROM_SQL_TOOL_NAME} failed: {sql_tool_call.error}"
+        )
+
+        data_frame_name = sql_tool_call.input_data.get("new_data_frame_name")
+        assert data_frame_name, (
+            f"Tool input missing new_data_frame_name: {sql_tool_call.input_data}"
+        )
+
+        # Verify the data frame was created
+        data_frames = agent_client.get_data_frames(thread_id, num_samples=5)
+        matching_data_frame = next(
+            (df for df in data_frames if df["name"] == data_frame_name),
+            None,
+        )
+        assert matching_data_frame is not None, (
+            f"Data frame {data_frame_name} not found in thread: "
+            f"{[df['name'] for df in data_frames]}"
+        )
+        assert matching_data_frame["num_rows"] > 0, (
+            f"Expected rows in data frame {data_frame_name}, got 0"
+        )
+
+        # Get the original data frame contents for comparison
+        original_contents = agent_client.get_data_frame_contents(
+            thread_id=thread_id,
+            data_frame_name=data_frame_name,
+            output_format="json",
+        )
+        assert original_contents, f"No contents returned for data frame {data_frame_name}"
+        original_rows = json.loads(original_contents)
+        assert original_rows, f"No rows returned for data frame {data_frame_name}"
+
+        # Step 1: Get the data frame as a validated query
+        base_url_api = agent_client.base_url
+        get_url = urljoin(
+            base_url_api + "/",
+            f"threads/{thread_id}/data-frames/as-validated-query",
+        )
+        get_response = requests.post(get_url, json={"data_frame_name": data_frame_name})
+        assert get_response.status_code == requests.codes.ok, (
+            f"Error getting data frame as validated query: {get_response.status_code} "
+            f"{get_response.text}"
+        )
+        validated_query = get_response.json()
+        assert validated_query["name"] == data_frame_name
+        assert "sql" in validated_query
+        assert validated_query["sql"]  # SQL should not be empty
+
+        # Step 2: Save the validated query
+        save_url = urljoin(
+            base_url_api + "/",
+            f"threads/{thread_id}/data-frames/save-as-validated-query",
+        )
+        payload = {
+            "verified_query": validated_query,
+            "semantic_data_model_id": semantic_data_model_id,
+        }
+        response = requests.post(save_url, json=payload)
+        assert response.status_code == requests.codes.ok, (
+            f"Error saving validated query: {response.status_code} {response.text}"
+        )
+        response_data = response.json()
+        assert "message" in response_data
+        assert "Successfully saved" in response_data["message"]
+
+        # Verify the semantic data model was updated with the verified query
+        retrieved_model = agent_client.get_semantic_data_model(semantic_data_model_id)
+        assert "verified_queries" in retrieved_model
+        assert retrieved_model["verified_queries"] is not None
+        assert len(retrieved_model["verified_queries"]) == 1
+
+        verified_query = retrieved_model["verified_queries"][0]
+        assert verified_query["name"] == data_frame_name
+        assert "sql" in verified_query
+        assert verified_query["sql"]  # SQL should not be empty
+
+        # Create a new thread in the same agent
+        new_thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        # The semantic data model should already be available to the agent
+        # (it was set at the agent level), so we can directly ask to create a data frame
+        # from the verified query
+
+        # Ask the agent to create a data frame from the verified query
+        new_final_response, new_tool_calls = agent_client.send_message_to_agent_thread(
+            agent_id,
+            new_thread_id,
+            f"Please create a data frame using the verified query named '{data_frame_name}'.",
+        )
+        verified_query_tool_calls = [
+            tool_call
+            for tool_call in new_tool_calls
+            if tool_call.tool_name == DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME
+        ]
+        assert verified_query_tool_calls, (
+            f"Expected {DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} tool call not found. "
+            f"Final response: {new_final_response}. "
+            f"Tool calls: {[tc.tool_name for tc in new_tool_calls]}"
+        )
+        verified_query_tool_call = next(
+            (
+                tool_call
+                for tool_call in reversed(verified_query_tool_calls)
+                if tool_call.error is None
+            ),
+            None,
+        )
+        assert verified_query_tool_call is not None, (
+            f"No successful {DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} call. "
+            f"Errors: {[tc.error for tc in verified_query_tool_calls]} | "
+            f"Final response: {new_final_response}"
+        )
+
+        assert verified_query_tool_call.error is None, (
+            f"{DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} failed: {verified_query_tool_call.error}"
+        )
+
+        # Verify the verified query name was used
+        assert verified_query_tool_call.input_data.get("verified_query_name") == data_frame_name, (
+            f"Expected verified_query_name to be '{data_frame_name}', "
+            f"got '{verified_query_tool_call.input_data.get('verified_query_name')}'"
+        )
+
+        new_data_frame_name = verified_query_tool_call.input_data.get("new_data_frame_name")
+        assert new_data_frame_name, (
+            f"Tool input missing new_data_frame_name: {verified_query_tool_call.input_data}"
+        )
+
+        # Verify the new data frame was created
+        new_data_frames = agent_client.get_data_frames(new_thread_id, num_samples=5)
+        new_matching_data_frame = next(
+            (df for df in new_data_frames if df["name"] == new_data_frame_name),
+            None,
+        )
+        assert new_matching_data_frame is not None, (
+            f"Data frame {new_data_frame_name} not found in new thread: "
+            f"{[df['name'] for df in new_data_frames]}"
+        )
+        assert new_matching_data_frame["num_rows"] > 0, (
+            f"Expected rows in data frame {new_data_frame_name}, got 0"
+        )
+        assert new_matching_data_frame["num_rows"] == matching_data_frame["num_rows"], (
+            f"Expected new data frame to have {matching_data_frame['num_rows']} rows, "
+            f"got {new_matching_data_frame['num_rows']}"
+        )
+
+        # Verify the contents are the same
+        new_contents = agent_client.get_data_frame_contents(
+            thread_id=new_thread_id,
+            data_frame_name=new_data_frame_name,
+            output_format="json",
+        )
+        assert new_contents, f"No contents returned for data frame {new_data_frame_name}"
+        new_rows = json.loads(new_contents)
+        assert new_rows, f"No rows returned for data frame {new_data_frame_name}"
+        assert len(new_rows) == len(original_rows), (
+            f"Expected {len(original_rows)} rows in new data frame, got {len(new_rows)}"
+        )
+
+        # Verify the data matches (compare row by row)
+        # Note: We compare the sorted rows to handle any ordering differences
+        original_rows_sorted = sorted(
+            original_rows, key=lambda x: tuple(str(v) for v in x.values())
+        )
+        new_rows_sorted = sorted(new_rows, key=lambda x: tuple(str(v) for v in x.values()))
+        assert original_rows_sorted == new_rows_sorted, (
+            "Expected the new data frame contents to match the original data frame contents"
         )
