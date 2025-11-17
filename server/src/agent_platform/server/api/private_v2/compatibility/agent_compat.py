@@ -110,6 +110,7 @@ class AgentCompat(Agent):
         "groq": "Groq",
         "google": "Google",
         "anthropic": "Anthropic",
+        "litellm": "LiteLLM",
     }
     KIND_TO_LEGACY_MODEL: ClassVar[dict[str, str]] = {
         "openai": "gpt-4o",
@@ -119,6 +120,7 @@ class AgentCompat(Agent):
         "groq": "unknown",
         "google": "unknown",
         "anthropic": "claude-3-5-sonnet",
+        "litellm": "gpt-5",
     }
     SENSITIVE_KEYS: ClassVar[list[str]] = [
         "openai_api_key",
@@ -131,6 +133,7 @@ class AgentCompat(Agent):
         "aws_access_key_id",
         "aws_secret_access_key",
         "snowflake_password",
+        "litellm_api_key",
     ]
 
     runbook: str = field(default="")

@@ -1,8 +1,8 @@
-import { UserTenant } from '~/queries/tenants';
-import { getBasePath } from '~/utils/base';
 import type { MCPServer, MCPServerEdit } from '~/queries/mcpServers';
-import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
 import { ListPlatformsResponse } from '~/queries/platforms';
+import { UserTenant } from '~/queries/tenants';
+import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
+import { getBasePath } from '~/utils/base';
 
 export const snakeCaseToCamelCase = (str: string): string => {
   return str

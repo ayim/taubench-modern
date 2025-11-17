@@ -1,8 +1,11 @@
-import { FC, useMemo, useState } from 'react';
-import { Button, Dialog, Form, Input, Box, Select, useSnackbar, Checkbox } from '@sema4ai/components';
-import { useParams } from '@tanstack/react-router';
-import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Box, Button, Checkbox, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
+import { useParams } from '@tanstack/react-router';
+import { FC, useMemo, useState } from 'react';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { InputControlled } from '~/components/InputControlled';
+import { beautifyLabel } from '~/lib/utils';
+import { useCreateLLMMutation, type CreatePlatformBody } from '~/queries/platforms';
 import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
@@ -10,13 +13,10 @@ import {
   OPENAI_MODEL_VALUES,
   Platform,
   createOrUpdateLLMFormSchema,
-  type CreateOrUpdateLLMFormSchema,
   getGroqProviderForModel,
   isPlatformValue,
+  type CreateOrUpdateLLMFormSchema,
 } from './llmSchemas';
-import { beautifyLabel } from '~/lib/utils';
-import { useCreateLLMMutation, type CreatePlatformBody } from '~/queries/platforms';
-import { InputControlled } from '~/components/InputControlled';
 
 type Props = { open: boolean; onClose: (platformId?: string) => void };
 
@@ -88,7 +88,7 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
     const payload: CreatePlatformBody = {
       name: values.name,
       kind: platform,
-      models: { [provider]: [modelId] },
+      ...(provider ? { models: { [provider]: [modelId] } } : {}),
       credentials: Object.keys(credentials).length ? credentials : undefined,
     };
 

@@ -2786,6 +2786,7 @@ export const spec = {
             google: 'google/google/gemini-2-5-pro',
             groq: 'groq/openai/gpt-oss-120b',
             reducto: 'reducto/reducto/reducto-standard-parse',
+            litellm: 'litellm/openai/gpt-5',
           },
           platforms_to_default_embedding_model: {
             azure: 'azure/openai/text-embedding-3-small',
@@ -3467,6 +3468,7 @@ export const spec = {
               google: 'google/google/gemini-2-5-pro',
               groq: 'groq/openai/gpt-oss-120b',
               reducto: 'reducto/reducto/reducto-standard-parse',
+              litellm: 'litellm/openai/gpt-5',
             },
             platforms_to_default_embedding_model: {
               azure: 'azure/openai/text-embedding-3-small',
@@ -4156,6 +4158,7 @@ export const spec = {
           'cortex',
           'google',
           'groq',
+          'litellm',
           'openai',
           'reducto',
         ],
@@ -4345,6 +4348,12 @@ export const spec = {
               $ref: '#/components/schemas/ProviderId',
             },
           },
+          litellm: {
+            type: 'array',
+            items: {
+              $ref: '#/components/schemas/ProviderId',
+            },
+          },
           openai: {
             type: 'array',
             items: {
@@ -4364,6 +4373,7 @@ export const spec = {
           'cortex',
           'google',
           'groq',
+          'litellm',
           'openai',
           'reducto',
         ],
@@ -4375,6 +4385,7 @@ export const spec = {
           cortex: ['anthropic', 'meta', 'openai', 'snowflake', 'voyage'],
           google: ['google'],
           groq: ['meta', 'moonshotai', 'openai'],
+          litellm: [],
           openai: ['openai'],
           reducto: ['reducto'],
         },
@@ -4385,6 +4396,7 @@ export const spec = {
             cortex: ['anthropic', 'meta', 'openai', 'snowflake', 'voyage'],
             google: ['google'],
             groq: ['meta', 'moonshotai', 'openai'],
+            litellm: [],
             openai: ['openai'],
             reducto: ['reducto'],
           },
@@ -4423,6 +4435,12 @@ export const spec = {
               $ref: '#/components/schemas/GenericModelId',
             },
           },
+          litellm: {
+            type: 'array',
+            items: {
+              $ref: '#/components/schemas/GenericModelId',
+            },
+          },
           openai: {
             type: 'array',
             items: {
@@ -4442,6 +4460,7 @@ export const spec = {
           'cortex',
           'google',
           'groq',
+          'litellm',
           'openai',
           'reducto',
         ],
@@ -4540,6 +4559,7 @@ export const spec = {
             'groq/openai/gpt-oss-120b',
             'groq/openai/gpt-oss-20b',
           ],
+          litellm: [],
           openai: [
             'openai/openai/gpt-4-1',
             'openai/openai/gpt-4-1-mini',
@@ -4660,6 +4680,7 @@ export const spec = {
               'groq/openai/gpt-oss-120b',
               'groq/openai/gpt-oss-20b',
             ],
+            litellm: [],
             openai: [
               'openai/openai/gpt-4-1',
               'openai/openai/gpt-4-1-mini',
@@ -5127,6 +5148,7 @@ export const spec = {
             'cortex',
             'google',
             'groq',
+            'litellm',
             'openai',
             'reducto',
           ],
@@ -5166,6 +5188,7 @@ export const spec = {
             cortex: ['anthropic', 'meta', 'openai', 'snowflake', 'voyage'],
             google: ['google'],
             groq: ['meta', 'moonshotai', 'openai'],
+            litellm: [],
             openai: ['openai'],
             reducto: ['reducto'],
           },
@@ -5262,6 +5285,7 @@ export const spec = {
               'groq/openai/gpt-oss-120b',
               'groq/openai/gpt-oss-20b',
             ],
+            litellm: [],
             openai: [
               'openai/openai/gpt-4-1',
               'openai/openai/gpt-4-1-mini',
@@ -5430,6 +5454,7 @@ export const spec = {
               'cortex',
               'google',
               'groq',
+              'litellm',
               'openai',
               'reducto',
             ],
@@ -5469,6 +5494,7 @@ export const spec = {
               cortex: ['anthropic', 'meta', 'openai', 'snowflake', 'voyage'],
               google: ['google'],
               groq: ['meta', 'moonshotai', 'openai'],
+              litellm: [],
               openai: ['openai'],
               reducto: ['reducto'],
             },
@@ -5565,6 +5591,7 @@ export const spec = {
                 'groq/openai/gpt-oss-120b',
                 'groq/openai/gpt-oss-20b',
               ],
+              litellm: [],
               openai: [
                 'openai/openai/gpt-4-1',
                 'openai/openai/gpt-4-1-mini',
@@ -5779,6 +5806,7 @@ export const spec = {
             google: 'google/google/gemini-2-5-pro',
             groq: 'groq/openai/gpt-oss-120b',
             reducto: 'reducto/reducto/reducto-standard-parse',
+            litellm: 'litellm/openai/gpt-5',
           },
           platforms_to_default_embedding_model: {
             azure: 'azure/openai/text-embedding-3-small',
@@ -6461,6 +6489,7 @@ export const spec = {
             'cortex',
             'google',
             'groq',
+            'litellm',
             'openai',
             'reducto',
           ],
@@ -6500,6 +6529,7 @@ export const spec = {
             cortex: ['anthropic', 'meta', 'openai', 'snowflake', 'voyage'],
             google: ['google'],
             groq: ['meta', 'moonshotai', 'openai'],
+            litellm: [],
             openai: ['openai'],
             reducto: ['reducto'],
           },
@@ -6596,6 +6626,7 @@ export const spec = {
               'groq/openai/gpt-oss-120b',
               'groq/openai/gpt-oss-20b',
             ],
+            litellm: [],
             openai: [
               'openai/openai/gpt-4-1',
               'openai/openai/gpt-4-1-mini',

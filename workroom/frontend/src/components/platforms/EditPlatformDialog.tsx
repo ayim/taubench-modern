@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, Checkbox, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
-import { FC, useEffect, useMemo } from 'react';
 import { useRouter } from '@tanstack/react-router';
+import { FC, useEffect, useMemo } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { InputControlled } from '~/components/InputControlled';
 import {
@@ -10,13 +10,13 @@ import {
   GROQ_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
   editLLMFormSchema,
+  getGroqProviderForModel,
   type EditLLMFormSchema,
   type Platform,
-  getGroqProviderForModel,
 } from '~/components/platforms/llms/components/llmSchemas';
-import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
-import { type PlatformForEditing } from '~/queries/agent-interface-patches';
 import { beautifyLabel, getAlowedModelFromPlatform } from '~/lib/utils';
+import { type PlatformForEditing } from '~/queries/agent-interface-patches';
+import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
 
 type Props = {
   open: boolean;
@@ -81,7 +81,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     const modelId = modelIdRaw ?? modelValue;
 
     const credentials: Record<string, unknown> = {};
-    let provider = null;
+    let provider: string | null = null;
 
     if (kind === 'azure') {
       if (values.apiKey) credentials.azure_api_key = values.apiKey;
@@ -113,7 +113,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
       id: platform.platform_id,
       name: values.name,
       kind: kind,
-      models: { [provider]: [modelId] },
+      ...(provider ? { models: { [provider]: [modelId] } } : {}),
       credentials: Object.keys(credentials).length ? credentials : undefined,
     } satisfies UpdatePlatformBody;
 

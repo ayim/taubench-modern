@@ -1175,7 +1175,8 @@ export interface components {
      *         "openai": "openai/openai/gpt-5-medium",
      *         "google": "google/google/gemini-2-5-pro",
      *         "groq": "groq/openai/gpt-oss-120b",
-     *         "reducto": "reducto/reducto/reducto-standard-parse"
+     *         "reducto": "reducto/reducto/reducto-standard-parse",
+     *         "litellm": "litellm/openai/gpt-5"
      *       },
      *       "platforms_to_default_embedding_model": {
      *         "azure": "azure/openai/text-embedding-3-small",
@@ -1821,7 +1822,8 @@ export interface components {
      *         "openai": "openai/openai/gpt-5-medium",
      *         "google": "google/google/gemini-2-5-pro",
      *         "groq": "groq/openai/gpt-oss-120b",
-     *         "reducto": "reducto/reducto/reducto-standard-parse"
+     *         "reducto": "reducto/reducto/reducto-standard-parse",
+     *         "litellm": "litellm/openai/gpt-5"
      *       },
      *       "platforms_to_default_embedding_model": {
      *         "azure": "azure/openai/text-embedding-3-small",
@@ -2526,6 +2528,7 @@ export interface components {
       | 'cortex'
       | 'google'
       | 'groq'
+      | 'litellm'
       | 'openai'
       | 'reducto';
     /**
@@ -2699,6 +2702,7 @@ export interface components {
      *         "moonshotai",
      *         "openai"
      *       ],
+     *       "litellm": [],
      *       "openai": [
      *         "openai"
      *       ],
@@ -2731,6 +2735,7 @@ export interface components {
      *         "moonshotai",
      *         "openai"
      *       ],
+     *       "litellm": [],
      *       "openai": [
      *         "openai"
      *       ],
@@ -2745,6 +2750,7 @@ export interface components {
       cortex: components['schemas']['ProviderId'][];
       google: components['schemas']['ProviderId'][];
       groq: components['schemas']['ProviderId'][];
+      litellm: components['schemas']['ProviderId'][];
       openai: components['schemas']['ProviderId'][];
       reducto: components['schemas']['ProviderId'][];
     };
@@ -2843,6 +2849,7 @@ export interface components {
      *         "groq/openai/gpt-oss-120b",
      *         "groq/openai/gpt-oss-20b"
      *       ],
+     *       "litellm": [],
      *       "openai": [
      *         "openai/openai/gpt-4-1",
      *         "openai/openai/gpt-4-1-mini",
@@ -2962,6 +2969,7 @@ export interface components {
      *         "groq/openai/gpt-oss-120b",
      *         "groq/openai/gpt-oss-20b"
      *       ],
+     *       "litellm": [],
      *       "openai": [
      *         "openai/openai/gpt-4-1",
      *         "openai/openai/gpt-4-1-mini",
@@ -2995,6 +3003,7 @@ export interface components {
       cortex: components['schemas']['GenericModelId'][];
       google: components['schemas']['GenericModelId'][];
       groq: components['schemas']['GenericModelId'][];
+      litellm: components['schemas']['GenericModelId'][];
       openai: components['schemas']['GenericModelId'][];
       reducto: components['schemas']['GenericModelId'][];
     };
@@ -3302,6 +3311,7 @@ export interface components {
      *         "cortex",
      *         "google",
      *         "groq",
+     *         "litellm",
      *         "openai",
      *         "reducto"
      *       ],
@@ -3360,6 +3370,7 @@ export interface components {
      *           "moonshotai",
      *           "openai"
      *         ],
+     *         "litellm": [],
      *         "openai": [
      *           "openai"
      *         ],
@@ -3460,6 +3471,7 @@ export interface components {
      *           "groq/openai/gpt-oss-120b",
      *           "groq/openai/gpt-oss-20b"
      *         ],
+     *         "litellm": [],
      *         "openai": [
      *           "openai/openai/gpt-4-1",
      *           "openai/openai/gpt-4-1-mini",
@@ -3631,6 +3643,7 @@ export interface components {
      *         "cortex",
      *         "google",
      *         "groq",
+     *         "litellm",
      *         "openai",
      *         "reducto"
      *       ],
@@ -3689,6 +3702,7 @@ export interface components {
      *           "moonshotai",
      *           "openai"
      *         ],
+     *         "litellm": [],
      *         "openai": [
      *           "openai"
      *         ],
@@ -3789,6 +3803,7 @@ export interface components {
      *           "groq/openai/gpt-oss-120b",
      *           "groq/openai/gpt-oss-20b"
      *         ],
+     *         "litellm": [],
      *         "openai": [
      *           "openai/openai/gpt-4-1",
      *           "openai/openai/gpt-4-1-mini",

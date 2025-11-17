@@ -16,6 +16,10 @@ from agent_platform.core.platforms.groq import (
     GroqClient,
     GroqPlatformParameters,
 )
+from agent_platform.core.platforms.litellm import (
+    LiteLLMClient,
+    LiteLLMPlatformParameters,
+)
 from agent_platform.core.platforms.openai import (
     OpenAIClient,
     OpenAIPlatformParameters,
@@ -28,6 +32,7 @@ from agent_platform.core.platforms.reducto import (
 AnyPlatformParameters = (
     BedrockPlatformParameters
     | CortexPlatformParameters
+    | LiteLLMPlatformParameters
     | OpenAIPlatformParameters
     | AzureOpenAIPlatformParameters
     | GooglePlatformParameters
@@ -42,6 +47,7 @@ __all__ = [
     "CortexClient",
     "GoogleClient",
     "GroqClient",
+    "LiteLLMClient",
     "OpenAIClient",
     "PlatformClient",
     "ReductoClient",

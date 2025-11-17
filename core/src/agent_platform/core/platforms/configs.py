@@ -112,6 +112,7 @@ class PlatformModelConfigs(Configuration):
             "google": "google/google/gemini-2-5-pro",
             "groq": "groq/openai/gpt-oss-120b",
             "reducto": "reducto/reducto/reducto-standard-parse",
+            "litellm": "litellm/openai/gpt-5",
         },
         metadata=FieldMetadata(
             description="A mapping of platforms to their default models.",

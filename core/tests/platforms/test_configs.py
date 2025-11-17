@@ -29,15 +29,20 @@ class TestPlatformModelConfigs:
         2. All models in models_capable_of_driving_agents have entries in
         models_to_families
         3. All default models in platforms_to_default_model have entries in the
-        other dictionaries
+        other dictionaries (minus litellm)
         4. Keys in models_to_platform_specific_model_ids and models_to_families
         match exactly
         """
         config = PlatformModelConfigs()
 
+        # Get all the default models, but skip the litellm platform, as it's
+        # an "any model goes" proxy
+        default_models = {
+            v for (k, v) in config.platforms_to_default_model.items() if k != "litellm"
+        }
+
         # Get all the relevant collections
         capable_models = set(config.models_capable_of_driving_agents)
-        default_models = set(config.platforms_to_default_model.values())
         platform_specific_keys = set(config.models_to_platform_specific_model_ids.keys())
         family_keys = set(config.models_to_families.keys())
 
@@ -153,10 +158,16 @@ class TestPlatformModelConfigs:
         """
         config = PlatformModelConfigs()
 
+        # Get all the default models, but skip the litellm platform, as it's
+        # an "any model goes" proxy
+        default_models = {
+            v for (k, v) in config.platforms_to_default_model.items() if k != "litellm"
+        }
+
         # Collect all unique model IDs from all configuration dictionaries
         all_configured_models = set()
+        all_configured_models.update(default_models)
         all_configured_models.update(config.models_capable_of_driving_agents)
-        all_configured_models.update(config.platforms_to_default_model.values())
         all_configured_models.update(config.models_to_platform_specific_model_ids.keys())
         all_configured_models.update(config.models_to_families.keys())
 
@@ -244,7 +255,8 @@ class TestPlatformModelConfigs:
 
         # We exclude reducto here, that platform is _solely_ for document use
         # cases (not for driving agents)
-        excluded_platforms = ["reducto"]
+        # We also exclude litellm, as they are a "any model goes" proxy
+        excluded_platforms = ["reducto", "litellm"]
         default_models = set(
             [
                 config.platforms_to_default_model[platform]

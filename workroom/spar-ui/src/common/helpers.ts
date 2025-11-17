@@ -1,14 +1,14 @@
 import { IconTableRows, IconType } from '@sema4ai/icons';
 import {
   IconAnyFile,
-  IconExcel,
-  IconPDF,
-  IconWord,
+  IconAnyModel,
   IconAzure,
   IconBedrock,
-  IconOpenAI,
+  IconExcel,
   IconGoogle,
-  IconAnyModel,
+  IconOpenAI,
+  IconPDF,
+  IconWord,
 } from '@sema4ai/icons/logos';
 import { Accept } from 'react-dropzone';
 import { ServerResponse } from '../queries/shared';
@@ -51,6 +51,7 @@ export const getLLMProviderIcon = (provider: LLMProvider): IconType | undefined 
     case 'groq':
     case 'reducto':
     case 'cortex':
+    case 'litellm':
       return IconAnyModel;
     default:
       provider satisfies never;

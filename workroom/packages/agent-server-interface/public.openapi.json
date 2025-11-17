@@ -2724,7 +2724,8 @@
             "openai": "openai/openai/gpt-5-medium",
             "google": "google/google/gemini-2-5-pro",
             "groq": "groq/openai/gpt-oss-120b",
-            "reducto": "reducto/reducto/reducto-standard-parse"
+            "reducto": "reducto/reducto/reducto-standard-parse",
+            "litellm": "litellm/openai/gpt-5"
           },
           "platforms_to_default_embedding_model": {
             "azure": "azure/openai/text-embedding-3-small",
@@ -3371,7 +3372,8 @@
               "openai": "openai/openai/gpt-5-medium",
               "google": "google/google/gemini-2-5-pro",
               "groq": "groq/openai/gpt-oss-120b",
-              "reducto": "reducto/reducto/reducto-standard-parse"
+              "reducto": "reducto/reducto/reducto-standard-parse",
+              "litellm": "litellm/openai/gpt-5"
             },
             "platforms_to_default_embedding_model": {
               "azure": "azure/openai/text-embedding-3-small",
@@ -4019,6 +4021,7 @@
           "cortex",
           "google",
           "groq",
+          "litellm",
           "openai",
           "reducto"
         ],
@@ -4204,6 +4207,12 @@
               "$ref": "#/components/schemas/ProviderId"
             }
           },
+          "litellm": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
           "openai": {
             "type": "array",
             "items": {
@@ -4223,6 +4232,7 @@
           "cortex",
           "google",
           "groq",
+          "litellm",
           "openai",
           "reducto"
         ],
@@ -4234,6 +4244,7 @@
           "cortex": ["anthropic", "meta", "openai", "snowflake", "voyage"],
           "google": ["google"],
           "groq": ["meta", "moonshotai", "openai"],
+          "litellm": [],
           "openai": ["openai"],
           "reducto": ["reducto"]
         },
@@ -4244,6 +4255,7 @@
             "cortex": ["anthropic", "meta", "openai", "snowflake", "voyage"],
             "google": ["google"],
             "groq": ["meta", "moonshotai", "openai"],
+            "litellm": [],
             "openai": ["openai"],
             "reducto": ["reducto"]
           }
@@ -4282,6 +4294,12 @@
               "$ref": "#/components/schemas/GenericModelId"
             }
           },
+          "litellm": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenericModelId"
+            }
+          },
           "openai": {
             "type": "array",
             "items": {
@@ -4301,6 +4319,7 @@
           "cortex",
           "google",
           "groq",
+          "litellm",
           "openai",
           "reducto"
         ],
@@ -4399,6 +4418,7 @@
             "groq/openai/gpt-oss-120b",
             "groq/openai/gpt-oss-20b"
           ],
+          "litellm": [],
           "openai": [
             "openai/openai/gpt-4-1",
             "openai/openai/gpt-4-1-mini",
@@ -4519,6 +4539,7 @@
               "groq/openai/gpt-oss-120b",
               "groq/openai/gpt-oss-20b"
             ],
+            "litellm": [],
             "openai": [
               "openai/openai/gpt-4-1",
               "openai/openai/gpt-4-1-mini",
@@ -4984,6 +5005,7 @@
             "cortex",
             "google",
             "groq",
+            "litellm",
             "openai",
             "reducto"
           ],
@@ -5023,6 +5045,7 @@
             "cortex": ["anthropic", "meta", "openai", "snowflake", "voyage"],
             "google": ["google"],
             "groq": ["meta", "moonshotai", "openai"],
+            "litellm": [],
             "openai": ["openai"],
             "reducto": ["reducto"]
           },
@@ -5119,6 +5142,7 @@
               "groq/openai/gpt-oss-120b",
               "groq/openai/gpt-oss-20b"
             ],
+            "litellm": [],
             "openai": [
               "openai/openai/gpt-4-1",
               "openai/openai/gpt-4-1-mini",
@@ -5287,6 +5311,7 @@
               "cortex",
               "google",
               "groq",
+              "litellm",
               "openai",
               "reducto"
             ],
@@ -5326,6 +5351,7 @@
               "cortex": ["anthropic", "meta", "openai", "snowflake", "voyage"],
               "google": ["google"],
               "groq": ["meta", "moonshotai", "openai"],
+              "litellm": [],
               "openai": ["openai"],
               "reducto": ["reducto"]
             },
@@ -5422,6 +5448,7 @@
                 "groq/openai/gpt-oss-120b",
                 "groq/openai/gpt-oss-20b"
               ],
+              "litellm": [],
               "openai": [
                 "openai/openai/gpt-4-1",
                 "openai/openai/gpt-4-1-mini",
@@ -5632,7 +5659,8 @@
             "openai": "openai/openai/gpt-5-medium",
             "google": "google/google/gemini-2-5-pro",
             "groq": "groq/openai/gpt-oss-120b",
-            "reducto": "reducto/reducto/reducto-standard-parse"
+            "reducto": "reducto/reducto/reducto-standard-parse",
+            "litellm": "litellm/openai/gpt-5"
           },
           "platforms_to_default_embedding_model": {
             "azure": "azure/openai/text-embedding-3-small",
@@ -6281,6 +6309,7 @@
             "cortex",
             "google",
             "groq",
+            "litellm",
             "openai",
             "reducto"
           ],
@@ -6320,6 +6349,7 @@
             "cortex": ["anthropic", "meta", "openai", "snowflake", "voyage"],
             "google": ["google"],
             "groq": ["meta", "moonshotai", "openai"],
+            "litellm": [],
             "openai": ["openai"],
             "reducto": ["reducto"]
           },
@@ -6416,6 +6446,7 @@
               "groq/openai/gpt-oss-120b",
               "groq/openai/gpt-oss-20b"
             ],
+            "litellm": [],
             "openai": [
               "openai/openai/gpt-4-1",
               "openai/openai/gpt-4-1-mini",

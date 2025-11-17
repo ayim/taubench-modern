@@ -3104,6 +3104,7 @@ export interface components {
       platform_configs: (
         | components['schemas']['BedrockPlatformParameters']
         | components['schemas']['CortexPlatformParameters']
+        | components['schemas']['LiteLLMPlatformParameters']
         | components['schemas']['OpenAIPlatformParameters']
         | components['schemas']['AzureOpenAIPlatformParameters']
         | components['schemas']['GooglePlatformParameters']
@@ -4959,6 +4960,58 @@ export interface components {
        * @description The MCP servers to query for tools.
        */
       mcp_servers: components['schemas']['MCPServer'][];
+    };
+    /** LiteLLMPlatformParameters */
+    LiteLLMPlatformParameters: {
+      /**
+       * Kind
+       * @description The kind of platform parameters.
+       * @default litellm
+       * @constant
+       */
+      kind: 'litellm';
+      /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id: string;
+      /** @description The LiteLLM API key. If not provided, it is loaded from LITELLM_API_KEY. */
+      litellm_api_key?: components['schemas']['SecretString'] | null;
+      /**
+       * Litellm Base Url
+       * @description Optional override for the LiteLLM base URL (defaults to https://api.litellm.ai/v1).
+       */
+      litellm_base_url?: string | null;
     };
     /**
      * LogicalTable
@@ -8989,7 +9042,8 @@ export interface components {
      *         "openai": "openai/openai/gpt-5-medium",
      *         "google": "google/google/gemini-2-5-pro",
      *         "groq": "groq/openai/gpt-oss-120b",
-     *         "reducto": "reducto/reducto/reducto-standard-parse"
+     *         "reducto": "reducto/reducto/reducto-standard-parse",
+     *         "litellm": "litellm/openai/gpt-5"
      *       },
      *       "platforms_to_default_embedding_model": {
      *         "azure": "azure/openai/text-embedding-3-small",
@@ -9635,7 +9689,8 @@ export interface components {
      *         "openai": "openai/openai/gpt-5-medium",
      *         "google": "google/google/gemini-2-5-pro",
      *         "groq": "groq/openai/gpt-oss-120b",
-     *         "reducto": "reducto/reducto/reducto-standard-parse"
+     *         "reducto": "reducto/reducto/reducto-standard-parse",
+     *         "litellm": "litellm/openai/gpt-5"
      *       },
      *       "platforms_to_default_embedding_model": {
      *         "azure": "azure/openai/text-embedding-3-small",
@@ -10340,6 +10395,7 @@ export interface components {
       | 'cortex'
       | 'google'
       | 'groq'
+      | 'litellm'
       | 'openai'
       | 'reducto';
     /**
@@ -10513,6 +10569,7 @@ export interface components {
      *         "moonshotai",
      *         "openai"
      *       ],
+     *       "litellm": [],
      *       "openai": [
      *         "openai"
      *       ],
@@ -10545,6 +10602,7 @@ export interface components {
      *         "moonshotai",
      *         "openai"
      *       ],
+     *       "litellm": [],
      *       "openai": [
      *         "openai"
      *       ],
@@ -10559,6 +10617,7 @@ export interface components {
       cortex: components['schemas']['ProviderId'][];
       google: components['schemas']['ProviderId'][];
       groq: components['schemas']['ProviderId'][];
+      litellm: components['schemas']['ProviderId'][];
       openai: components['schemas']['ProviderId'][];
       reducto: components['schemas']['ProviderId'][];
     };
@@ -10657,6 +10716,7 @@ export interface components {
      *         "groq/openai/gpt-oss-120b",
      *         "groq/openai/gpt-oss-20b"
      *       ],
+     *       "litellm": [],
      *       "openai": [
      *         "openai/openai/gpt-4-1",
      *         "openai/openai/gpt-4-1-mini",
@@ -10776,6 +10836,7 @@ export interface components {
      *         "groq/openai/gpt-oss-120b",
      *         "groq/openai/gpt-oss-20b"
      *       ],
+     *       "litellm": [],
      *       "openai": [
      *         "openai/openai/gpt-4-1",
      *         "openai/openai/gpt-4-1-mini",
@@ -10809,6 +10870,7 @@ export interface components {
       cortex: components['schemas']['GenericModelId'][];
       google: components['schemas']['GenericModelId'][];
       groq: components['schemas']['GenericModelId'][];
+      litellm: components['schemas']['GenericModelId'][];
       openai: components['schemas']['GenericModelId'][];
       reducto: components['schemas']['GenericModelId'][];
     };
@@ -11116,6 +11178,7 @@ export interface components {
      *         "cortex",
      *         "google",
      *         "groq",
+     *         "litellm",
      *         "openai",
      *         "reducto"
      *       ],
@@ -11174,6 +11237,7 @@ export interface components {
      *           "moonshotai",
      *           "openai"
      *         ],
+     *         "litellm": [],
      *         "openai": [
      *           "openai"
      *         ],
@@ -11274,6 +11338,7 @@ export interface components {
      *           "groq/openai/gpt-oss-120b",
      *           "groq/openai/gpt-oss-20b"
      *         ],
+     *         "litellm": [],
      *         "openai": [
      *           "openai/openai/gpt-4-1",
      *           "openai/openai/gpt-4-1-mini",
@@ -11445,6 +11510,7 @@ export interface components {
      *         "cortex",
      *         "google",
      *         "groq",
+     *         "litellm",
      *         "openai",
      *         "reducto"
      *       ],
@@ -11503,6 +11569,7 @@ export interface components {
      *           "moonshotai",
      *           "openai"
      *         ],
+     *         "litellm": [],
      *         "openai": [
      *           "openai"
      *         ],
@@ -11603,6 +11670,7 @@ export interface components {
      *           "groq/openai/gpt-oss-120b",
      *           "groq/openai/gpt-oss-20b"
      *         ],
+     *         "litellm": [],
      *         "openai": [
      *           "openai/openai/gpt-4-1",
      *           "openai/openai/gpt-4-1-mini",
@@ -15470,6 +15538,7 @@ export interface operations {
           'application/json': (
             | components['schemas']['BedrockPlatformParameters']
             | components['schemas']['CortexPlatformParameters']
+            | components['schemas']['LiteLLMPlatformParameters']
             | components['schemas']['OpenAIPlatformParameters']
             | components['schemas']['AzureOpenAIPlatformParameters']
             | components['schemas']['GooglePlatformParameters']
@@ -15502,6 +15571,7 @@ export interface operations {
           'application/json':
             | components['schemas']['BedrockPlatformParameters']
             | components['schemas']['CortexPlatformParameters']
+            | components['schemas']['LiteLLMPlatformParameters']
             | components['schemas']['OpenAIPlatformParameters']
             | components['schemas']['AzureOpenAIPlatformParameters']
             | components['schemas']['GooglePlatformParameters']
@@ -15540,6 +15610,7 @@ export interface operations {
           'application/json':
             | components['schemas']['BedrockPlatformParameters']
             | components['schemas']['CortexPlatformParameters']
+            | components['schemas']['LiteLLMPlatformParameters']
             | components['schemas']['OpenAIPlatformParameters']
             | components['schemas']['AzureOpenAIPlatformParameters']
             | components['schemas']['GooglePlatformParameters']
@@ -15582,6 +15653,7 @@ export interface operations {
           'application/json':
             | components['schemas']['BedrockPlatformParameters']
             | components['schemas']['CortexPlatformParameters']
+            | components['schemas']['LiteLLMPlatformParameters']
             | components['schemas']['OpenAIPlatformParameters']
             | components['schemas']['AzureOpenAIPlatformParameters']
             | components['schemas']['GooglePlatformParameters']
