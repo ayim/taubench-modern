@@ -18,6 +18,74 @@ if TYPE_CHECKING:
 pytestmark = [pytest.mark.spar, pytest.mark.semantic_data_models]
 
 
+def assert_inspect_response_structure(
+    inspect_response: dict[str, Any], expect_timestamp: bool = False
+) -> None:
+    """Validate the structure of a data connection inspection response.
+
+    Checks that the response has the expected metadata structure for tables and columns.
+    This helps catch issues early if the inspection response structure changes.
+
+    Args:
+        inspect_response: The inspection response from client.inspect_data_connection().
+        expect_timestamp: If True, validates that inspected_at timestamp is present.
+
+    Raises:
+        AssertionError: If any required field is missing or has an unexpected type.
+    """
+    # DataConnectionsInspectResponse structure
+    assert "tables" in inspect_response, "Response should have 'tables' field"
+    assert len(inspect_response["tables"]) > 0, "Response should have at least one table"
+
+    # Optionally check for timestamp (added by the API endpoint)
+    if expect_timestamp:
+        assert "inspected_at" in inspect_response, "Response should have 'inspected_at' field"
+        assert inspect_response["inspected_at"] is not None, "inspected_at should not be None"
+
+    # Verify each table has the expected metadata structure (TableInfo)
+    for table in inspect_response["tables"]:
+        assert "name" in table, "Table should have 'name' field"
+        assert "database" in table, "Table should have 'database' field"
+        assert "schema" in table, "Table should have 'schema' field"
+        assert "description" in table, "Table should have 'description' field"
+        assert "columns" in table, "Table should have 'columns' field"
+        assert isinstance(table["columns"], list), "Table columns should be a list"
+        assert len(table["columns"]) > 0, f"Table {table['name']} should have at least one column"
+
+        # Verify each column has the expected structure (ColumnInfo)
+        for column in table["columns"]:
+            assert "name" in column, "Column should have 'name' field"
+            assert "data_type" in column, (
+                f"Column {column.get('name')} should have 'data_type' field"
+            )
+            # Optional fields: sample_values, primary_key, unique, description, synonyms
+
+
+def assert_data_connection_info_structure(data_connection_info: dict[str, Any]) -> None:
+    """Validate the structure of DataConnectionInfo used in semantic model generation.
+
+    Args:
+        data_connection_info: The DataConnectionInfo dict.
+
+    Raises:
+        AssertionError: If any required field is missing or has an unexpected type.
+    """
+    # DataConnectionInfo required fields
+    assert "data_connection_id" in data_connection_info, (
+        "DataConnectionInfo should have 'data_connection_id'"
+    )
+    assert data_connection_info["data_connection_id"], "data_connection_id should not be empty"
+
+    assert "tables_info" in data_connection_info, "DataConnectionInfo should have 'tables_info'"
+    assert isinstance(data_connection_info["tables_info"], list), "tables_info should be a list"
+
+    # Optional fields: inspect_request, inspect_response
+    # Validate tables_info structure (each is a TableInfo)
+    for table in data_connection_info["tables_info"]:
+        assert "name" in table, "Table should have 'name' field"
+        assert "columns" in table, "Table should have 'columns' field"
+
+
 def assert_table_enhanced(table: LogicalTable) -> None:
     """Validate the structure and content of a logical table and that it was enhanced.
 
@@ -145,19 +213,20 @@ def test_generate_semantic_data_model_basic(
     )
 
     # Verify inspection response has expected structure
-    assert "tables" in inspect_response
-    assert len(inspect_response["tables"]) > 0
+    assert_inspect_response_structure(inspect_response)
 
     # Create the payload for generating the semantic data model
+    data_connection_info = DataConnectionInfo(
+        data_connection_id=data_connection.id or "",
+        tables_info=inspect_response["tables"],
+    )
+    # Validate the DataConnectionInfo structure
+    assert_data_connection_info_structure(asdict(data_connection_info))
+
     payload = GenerateSemanticDataModelPayload(
         name="test_model",  # Enhancement should improve this
         description=None,  # Enhancement should add this
-        data_connections_info=[
-            DataConnectionInfo(
-                data_connection_id=data_connection.id or "",
-                tables_info=inspect_response["tables"],
-            ),
-        ],
+        data_connections_info=[data_connection_info],
         files_info=[],
         agent_id=agent_id,
     )
@@ -274,6 +343,9 @@ def _generate_full_semantic_data_model(
             },
         ],
     )
+
+    # Verify inspection response has expected structure
+    assert_inspect_response_structure(inspect_response)
 
     # Create the payload for generating the semantic data model
     payload = GenerateSemanticDataModelPayload(
@@ -562,6 +634,9 @@ def initial_sdm_with_one_table(
         ],
     )
 
+    # Verify inspection response has expected structure
+    assert_inspect_response_structure(inspect_response)
+
     # Create the payload for generating the semantic data model
     payload = GenerateSemanticDataModelPayload(
         name="test_enhancer_initial",
@@ -622,6 +697,9 @@ def sdm_after_column_change(
             },
         ],
     )
+
+    # Verify inspection response has expected structure
+    assert_inspect_response_structure(inspect_response)
 
     # Create the payload with existing_semantic_data_model to trigger partial enhancement
     payload = GenerateSemanticDataModelPayload(
@@ -690,6 +768,9 @@ def sdm_after_table_added(
         ],
     )
 
+    # Verify inspection response has expected structure
+    assert_inspect_response_structure(inspect_response)
+
     # Create the payload with existing_semantic_data_model to trigger partial enhancement
     payload = GenerateSemanticDataModelPayload(
         name="test_enhancer_table_added",
@@ -757,6 +838,9 @@ def sdm_after_more_columns(
             },
         ],
     )
+
+    # Verify inspection response has expected structure
+    assert_inspect_response_structure(inspect_response)
 
     # Create the payload with existing_semantic_data_model to trigger partial enhancement
     payload = GenerateSemanticDataModelPayload(

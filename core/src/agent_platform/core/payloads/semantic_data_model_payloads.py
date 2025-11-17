@@ -9,6 +9,10 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
     VerifiedQuery,
 )
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
+from agent_platform.core.payloads.data_connection import (
+    DataConnectionsInspectRequest,
+    DataConnectionsInspectResponse,
+)
 
 
 @dataclass(frozen=True)
@@ -86,20 +90,29 @@ class TableInfo:
 
 @dataclass(frozen=True)
 class DataConnectionInfo:
-    """Information about a data connection with its tables."""
+    """Information about a data connection with its tables.
+
+    Optionally includes the original inspection request/response for metadata tracking.
+    """
 
     data_connection_id: str
     tables_info: list[TableInfo]
+    inspect_request: DataConnectionsInspectRequest | None = None
+    inspect_response: DataConnectionsInspectResponse | None = None
 
 
 @dataclass(frozen=True)
 class FileInfo:
-    """Information about a file with its tables."""
+    """Information about a file with its tables.
+
+    Optionally includes the original inspection response for metadata tracking.
+    """
 
     thread_id: str
     file_ref: str
     tables_info: list[TableInfo]
     sheet_name: str | None = None
+    inspect_response: DataConnectionsInspectResponse | None = None
 
 
 @dataclass(frozen=True)

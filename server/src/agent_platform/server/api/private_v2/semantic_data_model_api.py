@@ -377,7 +377,7 @@ async def generate_semantic_data_model(
     )
 
     try:
-        generator = SemanticDataModelGenerator()
+        generator = SemanticDataModelGenerator(storage=storage)
         semantic_model = await generator.generate_semantic_data_model(
             name=payload.name,
             description=payload.description,
@@ -659,8 +659,13 @@ def _normalize_sdm_for_comparison(sdm: SemanticDataModel) -> SemanticDataModel:
     """
     Normalize SDM for comparison.
 
-    Strips environment-specific fields (data_connection_id, data_connection_name, file)
+    Strips environment-specific fields (data_connection_id, data_connection_name, file, metadata)
     to enable comparison of semantic structure only.
+
+    Metadata is excluded from comparison because:
+    - It contains provenance/snapshot information that varies by environment
+    - It's documentation/inspection data, not part of the semantic model structure
+    - Two SDMs with the same structure but different metadata should be considered duplicates
     """
     # Cast to Any to allow dynamic manipulation while preserving type safety at boundaries
     sdm_clean: typing.Any = copy.deepcopy(sdm)
@@ -673,6 +678,9 @@ def _normalize_sdm_for_comparison(sdm: SemanticDataModel) -> SemanticDataModel:
         # Remove file references (environment-specific)
         if "file" in table:
             table.pop("file", None)
+
+    # Remove metadata from comparison (it's provenance/documentation, not semantic structure)
+    sdm_clean.pop("metadata", None)
 
     return sdm_clean
 

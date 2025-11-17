@@ -4209,6 +4209,29 @@ export interface components {
       data_connection_id: string;
       /** Tables Info */
       tables_info: components['schemas']['agent_platform__core__payloads__semantic_data_model_payloads__TableInfo'][];
+      inspect_request?:
+        | components['schemas']['DataConnectionsInspectRequest']
+        | null;
+      inspect_response?:
+        | components['schemas']['DataConnectionsInspectResponse']
+        | null;
+    };
+    /**
+     * DataConnectionSnapshotMetadata
+     * @description Provenance metadata for data connection inspection snapshots.
+     *
+     *     Captures the context needed to understand how the inspection was performed:
+     *     - Which data connection was inspected (both local ID and portable name)
+     *     - What request parameters were used (tables_to_inspect, columns_to_inspect, etc.)
+     */
+    DataConnectionSnapshotMetadata: {
+      /** Data Connection Id */
+      data_connection_id: string | null;
+      /** Data Connection Name */
+      data_connection_name: string | null;
+      data_connection_inspect_request:
+        | components['schemas']['DataConnectionsInspectRequest']
+        | null;
     };
     /** DataConnectionsInspectRequest */
     DataConnectionsInspectRequest: {
@@ -4229,6 +4252,8 @@ export interface components {
     DataConnectionsInspectResponse: {
       /** Tables */
       tables: components['schemas']['agent_platform__core__payloads__data_connection__TableInfo'][];
+      /** Inspected At */
+      inspected_at?: string | null;
     };
     /** DataModel */
     DataModel: {
@@ -4693,6 +4718,20 @@ export interface components {
       tables_info: components['schemas']['agent_platform__core__payloads__semantic_data_model_payloads__TableInfo'][];
       /** Sheet Name */
       sheet_name?: string | null;
+      inspect_response?:
+        | components['schemas']['DataConnectionsInspectResponse']
+        | null;
+    };
+    /**
+     * FileSnapshotMetadata
+     * @description Provenance metadata for file inspection snapshots.
+     *
+     *     Captures the file reference needed to identify which file was inspected.
+     */
+    FileSnapshotMetadata: {
+      file_reference:
+        | components['schemas']['agent_platform__core__data_frames__semantic_data_model_types__FileReference']
+        | null;
     };
     /**
      * Filter
@@ -5030,6 +5069,31 @@ export interface components {
        * @description The generic model ID to override the selection process with.
        */
       override_model_id?: string | null;
+    };
+    /**
+     * InputDataConnectionSnapshot
+     * @description Complete inspection snapshot stored within an SDM's metadata.
+     *
+     *     Combines the inspection API response with provenance metadata, enabling consumers to:
+     *     - Extract `inspection_result` and use it like an API response (tables, columns, sample data)
+     *     - Understand context via `inspection_request_info` (what was inspected, how, and when)
+     *     - Reproduce inspections or trace data lineage
+     *
+     *     Structure mirrors the public inspection API contract.
+     */
+    InputDataConnectionSnapshot: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'file' | 'data_connection';
+      inspection_result: components['schemas']['DataConnectionsInspectResponse'];
+      /** Inspection Request Info */
+      inspection_request_info:
+        | components['schemas']['DataConnectionSnapshotMetadata']
+        | components['schemas']['FileSnapshotMetadata'];
+      /** Inspected At */
+      inspected_at: string;
     };
     /** IntegrationInput */
     IntegrationInput: {
@@ -7351,6 +7415,31 @@ export interface components {
       errors?: components['schemas']['ValidationMessage'][];
       /** Verified Queries */
       verified_queries?: components['schemas']['VerifiedQuery'][] | null;
+      metadata?: components['schemas']['SemanticDataModelMetadata'] | null;
+    };
+    /**
+     * SemanticDataModelMetadata
+     * @description Top-level metadata container for semantic data models.
+     *
+     *     Stores inspection snapshots and other metadata directly in the SDM JSON payload,
+     *     avoiding the need for separate storage tables.
+     *
+     *     Current fields:
+     *     - `input_data_connection_snapshots`: Inspection results from data sources used to create the SDM
+     *     - `extra`: Reserved for future metadata types (e.g., column JSON schemas, versioning info)
+     *
+     *     Note: Currently only one snapshot is populated (from the primary data source), but the
+     *     list structure supports multiple sources for future SDMs that span multiple connections/files.
+     */
+    SemanticDataModelMetadata: {
+      /** Input Data Connection Snapshots */
+      input_data_connection_snapshots?:
+        | components['schemas']['InputDataConnectionSnapshot'][]
+        | null;
+      /** Extra */
+      extra?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** SemanticDataModelWithAssociations */
     SemanticDataModelWithAssociations: {

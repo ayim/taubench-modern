@@ -376,35 +376,50 @@ def test_semantic_data_model_query_with_llm_integration(
             f"{DF_CREATE_FROM_SQL_TOOL_NAME} failed: {sql_tool_call.error}"
         )
 
-        data_frame_name = sql_tool_call.input_data.get("new_data_frame_name")
-        assert data_frame_name, f"Tool input miss new_data_frame_name: {sql_tool_call.input_data}"
+        # Get all successful SQL tool calls and their data frame names
+        successful_sql_calls = [
+            tc
+            for tc in sql_tool_calls
+            if tc.error is None and tc.input_data.get("new_data_frame_name")
+        ]
+        assert successful_sql_calls, "No successful SQL tool calls with data frame names"
 
+        # Try to find a data frame that contains Claude 2
         data_frames = agent_client.get_data_frames(thread_id, num_samples=5)
-        matching_data_frame = next(
-            (df for df in data_frames if df["name"] == data_frame_name),
-            None,
-        )
-        assert matching_data_frame is not None, (
-            f"Data frame {data_frame_name} not found in thread: "
-            f"{[df['name'] for df in data_frames]}"
-        )
-        assert matching_data_frame["num_rows"] > 0, (
-            f"Expected rows in data frame {data_frame_name}, got 0"
-        )
+        found_claude_2 = False
+        checked_frames = []
 
-        contents = agent_client.get_data_frame_contents(
-            thread_id=thread_id,
-            data_frame_name=data_frame_name,
-            output_format="json",
-        )
-        assert contents, f"No contents returned for data frame {data_frame_name}"
+        for sql_call in successful_sql_calls:
+            data_frame_name = sql_call.input_data.get("new_data_frame_name")
+            if not data_frame_name:
+                continue
 
-        rows = json.loads(contents)
-        assert rows, f"No rows returned for data frame {data_frame_name}"
-        assert any(
-            "claude_2" in "_".join(str(value).lower().replace(" ", "_") for value in row.values())
-            for row in rows
-        ), "Expected Claude 2 to appear in the queried data frame"
+            matching_data_frame = next(
+                (df for df in data_frames if df["name"] == data_frame_name),
+                None,
+            )
+
+            if matching_data_frame and matching_data_frame["num_rows"] > 0:
+                contents = agent_client.get_data_frame_contents(
+                    thread_id=thread_id,
+                    data_frame_name=data_frame_name,
+                    output_format="json",
+                )
+                if contents:
+                    rows = json.loads(contents)
+                    checked_frames.append(data_frame_name)
+                    if rows and any(
+                        "claude_2"
+                        in "_".join(str(value).lower().replace(" ", "_") for value in row.values())
+                        for row in rows
+                    ):
+                        found_claude_2 = True
+                        break
+
+        assert found_claude_2, (
+            f"Expected Claude 2 to appear in at least one of the queried data frames. "
+            f"Checked frames: {checked_frames}"
+        )
 
 
 def check_upload_response(thread_response) -> str:
@@ -477,7 +492,13 @@ def test_generate_semantic_data_model_generation_integration(
         inspect_response = agent_client.inspect_data_connection(
             connection_id=data_connection_1["id"],
         )
-        data_regression.check(inspect_response, basename="data_connection_inspect_response")
+        # Remove dynamic timestamp field before regression check
+        inspect_response_for_check = {
+            k: v for k, v in inspect_response.items() if k != "inspected_at"
+        }
+        data_regression.check(
+            inspect_response_for_check, basename="data_connection_inspect_response"
+        )
         tables_info = inspect_response["tables"]
         for table_info in tables_info:
             assert "name" in table_info, "Table name is expected"

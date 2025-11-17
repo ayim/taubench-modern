@@ -410,4 +410,10 @@ class TableInfo:
 
 @dataclass
 class DataConnectionsInspectResponse:
+    """Response from data connection inspection.
+
+    Contains the list of tables found and a timestamp of when the inspection occurred.
+    """
+
     tables: list[TableInfo]
+    inspected_at: str | None = None  # ISO 8601 timestamp

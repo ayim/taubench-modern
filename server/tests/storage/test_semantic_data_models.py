@@ -424,3 +424,143 @@ async def test_list_semantic_data_models(
 
     model_creator = SampleModelCreator(storage, tmpdir)
     await check_list_semantic_data_models(model_creator)
+
+
+async def check_semantic_data_model_metadata(
+    model_creator: "SampleModelCreator",
+) -> None:
+    """Test semantic data model metadata field handling."""
+    from datetime import UTC, datetime
+
+    await model_creator.setup()
+
+    # Create sample data connection
+    data_connection = await model_creator.obtain_sample_data_connection("test_connection")
+
+    # Create a semantic model with metadata
+    semantic_model_with_metadata = {
+        "name": "test_model_with_metadata",
+        "description": "A test model with metadata",
+        "tables": [
+            {
+                "name": "users",
+                "base_table": {
+                    "data_connection_id": data_connection.id,
+                    "database": "test_db",
+                    "schema": "public",
+                    "table": "users",
+                },
+                "dimensions": [
+                    {"name": "user_id", "expr": "id", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+        "metadata": {
+            "input_data_connection_snapshots": [
+                {
+                    "source_type": "data_connection",
+                    "data_connection_id": data_connection.id,
+                    "engine": "postgres",
+                    "inspected_at": datetime.now(UTC).isoformat(),
+                    "inspector_version": "1.0.0",
+                    "tables_snapshot": [
+                        {
+                            "name": "users",
+                            "database": "test_db",
+                            "schema": "public",
+                            "columns": [
+                                {
+                                    "name": "id",
+                                    "data_type": "INTEGER",
+                                    "sample_values": [1, 2, 3],
+                                },
+                                {
+                                    "name": "name",
+                                    "data_type": "VARCHAR",
+                                    "sample_values": ["Alice", "Bob"],
+                                },
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+
+    # Test creating semantic model with metadata
+    model_id = await model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model_with_metadata,
+        data_connection_ids=[data_connection.id],
+        file_references=[],
+    )
+
+    # Verify metadata was stored
+    retrieved_model = await model_creator.storage.get_semantic_data_model(model_id)
+    assert retrieved_model is not None
+    assert "metadata" in retrieved_model
+    assert retrieved_model["metadata"] is not None
+    assert "input_data_connection_snapshots" in retrieved_model["metadata"]
+
+    snapshots = retrieved_model["metadata"]["input_data_connection_snapshots"]
+    assert isinstance(snapshots, list)
+    assert len(snapshots) == 1
+
+    snapshot = snapshots[0]
+    assert snapshot["source_type"] == "data_connection"
+    assert snapshot["data_connection_id"] == data_connection.id
+    assert snapshot["engine"] == "postgres"
+    assert "inspector_version" in snapshot
+    assert "tables_snapshot" in snapshot
+    assert len(snapshot["tables_snapshot"]) == 1
+    assert snapshot["tables_snapshot"][0]["name"] == "users"
+
+    # Test creating semantic model without metadata (backward compatibility)
+    semantic_model_without_metadata = {
+        "name": "test_model_without_metadata",
+        "description": "A test model without metadata",
+        "tables": [
+            {
+                "name": "products",
+                "base_table": {
+                    "data_connection_id": data_connection.id,
+                    "database": "test_db",
+                    "schema": "public",
+                    "table": "products",
+                },
+                "dimensions": [
+                    {"name": "product_id", "expr": "id", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+    }
+
+    model_id_no_metadata = await model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model_without_metadata,
+        data_connection_ids=[data_connection.id],
+        file_references=[],
+    )
+
+    # Verify model without metadata works fine
+    retrieved_model_no_metadata = await model_creator.storage.get_semantic_data_model(
+        model_id_no_metadata
+    )
+    assert retrieved_model_no_metadata is not None
+    # Metadata field may or may not be present (both are valid)
+    assert (
+        retrieved_model_no_metadata.get("metadata") is None
+        or "metadata" not in retrieved_model_no_metadata
+    )
+
+
+@pytest.mark.asyncio
+async def test_semantic_data_model_metadata(
+    storage: "SQLiteStorage|PostgresStorage",
+    tmpdir: Path,
+) -> None:
+    """Test semantic data model metadata field handling."""
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(storage, tmpdir)
+    await check_semantic_data_model_metadata(model_creator)

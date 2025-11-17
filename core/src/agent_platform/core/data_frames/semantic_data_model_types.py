@@ -4,9 +4,16 @@ This module defines typed dictionaries for representing semantic models,
 which describe collections of tables with their relationships and metadata.
 """
 
+from __future__ import annotations
+
 from enum import StrEnum
 from types import NoneType
-from typing import Annotated, Literal, Required, TypedDict
+from typing import Annotated, Any, Literal, Required, TypedDict
+
+from agent_platform.core.payloads.data_connection import (
+    DataConnectionsInspectRequest,
+    DataConnectionsInspectResponse,
+)
 
 
 class ValidationMessageLevel(StrEnum):
@@ -327,6 +334,99 @@ class FileReference(TypedDict, total=False):
     sheet_name: Annotated[str | None, "The sheet name of the file"]
 
 
+class DataConnectionSnapshotMetadata(TypedDict):
+    """Provenance metadata for data connection inspection snapshots.
+
+    Captures the context needed to understand how the inspection was performed:
+    - Which data connection was inspected (both local ID and portable name)
+    - What request parameters were used (tables_to_inspect, columns_to_inspect, etc.)
+    """
+
+    data_connection_id: Annotated[
+        str | None,
+        "Local data connection ID (unique to this agent-server instance)",
+    ]
+    data_connection_name: Annotated[
+        str | None,
+        "Data connection name (stable across environments for export/import)",
+    ]
+    data_connection_inspect_request: Annotated[
+        DataConnectionsInspectRequest | None,
+        "Original API request parameters used to produce the inspection",
+    ]
+
+
+class FileSnapshotMetadata(TypedDict):
+    """Provenance metadata for file inspection snapshots.
+
+    Captures the file reference needed to identify which file was inspected.
+    """
+
+    file_reference: Annotated[
+        FileReference | None,
+        "Reference to the inspected file (thread_id, file_ref, sheet_name)",
+    ]
+
+
+class InputDataConnectionSnapshot(TypedDict):
+    """Complete inspection snapshot stored within an SDM's metadata.
+
+    Combines the inspection API response with provenance metadata, enabling consumers to:
+    - Extract `inspection_result` and use it like an API response (tables, columns, sample data)
+    - Understand context via `inspection_request_info` (what was inspected, how, and when)
+    - Reproduce inspections or trace data lineage
+
+    Structure mirrors the public inspection API contract.
+    """
+
+    kind: Annotated[
+        Literal["file", "data_connection"],
+        "Data source type: 'file' for uploaded files, 'data_connection' for database connections",
+    ]
+
+    inspection_result: Annotated[
+        DataConnectionsInspectResponse,
+        "Inspection API response: tables with columns, data types, and sample values",
+    ]
+
+    inspection_request_info: Annotated[
+        DataConnectionSnapshotMetadata | FileSnapshotMetadata,
+        "Provenance metadata: which data source was inspected and how",
+    ]
+
+    inspected_at: Annotated[
+        str,
+        "ISO 8601 timestamp when the inspection occurred",
+    ]
+
+
+class SemanticDataModelMetadata(TypedDict, total=False):
+    """Top-level metadata container for semantic data models.
+
+    Stores inspection snapshots and other metadata directly in the SDM JSON payload,
+    avoiding the need for separate storage tables.
+
+    Current fields:
+    - `input_data_connection_snapshots`: Inspection results from data sources used to create the SDM
+    - `extra`: Reserved for future metadata types (e.g., column JSON schemas, versioning info)
+
+    Note: Currently only one snapshot is populated (from the primary data source), but the
+    list structure supports multiple sources for future SDMs that span multiple connections/files.
+    """
+
+    input_data_connection_snapshots: Annotated[
+        list[InputDataConnectionSnapshot] | None,
+        """Inspection snapshots from data sources (files or database connections).
+        Each snapshot contains the inspection API response plus provenance metadata.""",
+    ]
+
+    extra: Annotated[
+        dict[str, Any] | None,
+        """Reserved for future metadata extensions (e.g., schemas, versioning).
+        Enables forward-compatible additions without breaking existing consumers.""",
+    ]
+
+
 class BaseTable(TypedDict, total=False):
     """A base table represents fully qualified table names.
 
@@ -512,4 +612,9 @@ class SemanticDataModel(TypedDict, total=False):
         list[VerifiedQuery] | None,
         "A list of validated queries that were saved from data frames "
         "created from SQL computations.",
+    ]
+    metadata: Annotated[
+        SemanticDataModelMetadata | None,
+        """Metadata container for inspection snapshots, schemas, and other metadata.
+        Stores data directly within the SDM JSON payload without extra storage tables.""",
     ]

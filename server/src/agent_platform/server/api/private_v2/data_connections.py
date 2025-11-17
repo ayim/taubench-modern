@@ -214,6 +214,11 @@ async def inspect_data_connection(
         inspector = DataConnectionInspector(db_data_connection, request)
         result = await inspector.inspect_connection()
 
+        # Add inspection timestamp
+        from datetime import UTC, datetime
+
+        result.inspected_at = datetime.now(UTC).isoformat()
+
         logger.info(
             "Successfully inspected data connection",
             connection_id=connection_id,
@@ -282,7 +287,12 @@ def _create_column_info(header: str, sample_rows: list, column_index: int) -> Co
 
 
 def _create_table_info(sheet, file_name: str, has_multiple_sheets: bool) -> TableInfo:
-    """Create TableInfo from a data reader sheet."""
+    """Create TableInfo from a data reader sheet.
+
+    For files, we use the database field to store the filename, providing natural grouping
+    like 'sales_data.xlsx.Q1' and 'sales_data.xlsx.Q2'. This mirrors the database.table
+    pattern used for actual database connections.
+    """
     sample_rows = sheet.list_sample_rows(5)
     columns = []
 
@@ -290,8 +300,8 @@ def _create_table_info(sheet, file_name: str, has_multiple_sheets: bool) -> Tabl
         column_info = _create_column_info(header, sample_rows, i)
         columns.append(column_info)
 
-    # For single-sheet files (like CSV or single-sheet Excel), use the filename
-    # For multi-sheet Excel files, use the sheet name to distinguish them
+    # For single-sheet files (like CSV or single-sheet Excel), use the filename as table name
+    # For multi-sheet Excel files, use the sheet name as table name
     if has_multiple_sheets and sheet.name:
         table_name = sheet.name
     else:
@@ -299,7 +309,7 @@ def _create_table_info(sheet, file_name: str, has_multiple_sheets: bool) -> Tabl
 
     return TableInfo(
         name=table_name,
-        database=None,
+        database=file_name,  # Use filename as "database" for grouping
         schema=None,
         description=f"Data from file: {file_name}",
         columns=columns,
@@ -350,13 +360,19 @@ async def inspect_file_as_data_connection(
             table_info = _create_table_info(sheet, file_name, has_multiple_sheets)
             tables.append(table_info)
 
+        # Add inspection timestamp
+        from datetime import UTC, datetime
+
         logger.info(
             "Successfully inspected file as data connection",
             file_name=file_name,
             tables_found=len(tables),
         )
 
-        return DataConnectionsInspectResponse(tables=tables)
+        return DataConnectionsInspectResponse(
+            tables=tables,
+            inspected_at=datetime.now(UTC).isoformat(),
+        )
 
     except PlatformError:
         raise

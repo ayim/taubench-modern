@@ -528,7 +528,7 @@ def test_inspect_file_as_data_connection(base_url_agent_server):
 
         table = result["tables"][0]
         assert table["name"] == "test_data.csv"
-        assert table["database"] is None
+        assert table["database"] == "test_data.csv"
         assert table["schema"] is None
         assert "Data from file: test_data.csv" in table["description"]
 

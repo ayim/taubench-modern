@@ -11213,11 +11213,75 @@
             },
             "type": "array",
             "title": "Tables Info"
+          },
+          "inspect_request": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DataConnectionsInspectRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inspect_response": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DataConnectionsInspectResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": ["data_connection_id", "tables_info"],
         "title": "DataConnectionInfo"
+      },
+      "DataConnectionSnapshotMetadata": {
+        "properties": {
+          "data_connection_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Connection Id"
+          },
+          "data_connection_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Connection Name"
+          },
+          "data_connection_inspect_request": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DataConnectionsInspectRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "data_connection_id",
+          "data_connection_name",
+          "data_connection_inspect_request"
+        ],
+        "title": "DataConnectionSnapshotMetadata",
+        "description": "Provenance metadata for data connection inspection snapshots.\n\nCaptures the context needed to understand how the inspection was performed:\n- Which data connection was inspected (both local ID and portable name)\n- What request parameters were used (tables_to_inspect, columns_to_inspect, etc.)"
       },
       "DataConnectionsInspectRequest": {
         "properties": {
@@ -11257,6 +11321,17 @@
             },
             "type": "array",
             "title": "Tables"
+          },
+          "inspected_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inspected At"
           }
         },
         "type": "object",
@@ -12559,11 +12634,39 @@
               }
             ],
             "title": "Sheet Name"
+          },
+          "inspect_response": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DataConnectionsInspectResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": ["thread_id", "file_ref", "tables_info"],
         "title": "FileInfo"
+      },
+      "FileSnapshotMetadata": {
+        "properties": {
+          "file_reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/agent_platform__core__data_frames__semantic_data_model_types__FileReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": ["file_reference"],
+        "title": "FileSnapshotMetadata",
+        "description": "Provenance metadata for file inspection snapshots.\n\nCaptures the file reference needed to identify which file was inspected."
       },
       "Filter": {
         "properties": {
@@ -13264,6 +13367,42 @@
         "type": "object",
         "required": ["agent_id"],
         "title": "InitiateStreamPayload"
+      },
+      "InputDataConnectionSnapshot": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["file", "data_connection"],
+            "title": "Kind"
+          },
+          "inspection_result": {
+            "$ref": "#/components/schemas/DataConnectionsInspectResponse"
+          },
+          "inspection_request_info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DataConnectionSnapshotMetadata"
+              },
+              {
+                "$ref": "#/components/schemas/FileSnapshotMetadata"
+              }
+            ],
+            "title": "Inspection Request Info"
+          },
+          "inspected_at": {
+            "type": "string",
+            "title": "Inspected At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "inspection_result",
+          "inspection_request_info",
+          "inspected_at"
+        ],
+        "title": "InputDataConnectionSnapshot",
+        "description": "Complete inspection snapshot stored within an SDM's metadata.\n\nCombines the inspection API response with provenance metadata, enabling consumers to:\n- Extract `inspection_result` and use it like an API response (tables, columns, sample data)\n- Understand context via `inspection_request_info` (what was inspected, how, and when)\n- Reproduce inspections or trace data lineage\n\nStructure mirrors the public inspection API contract."
       },
       "IntegrationInput": {
         "properties": {
@@ -18108,12 +18247,55 @@
               }
             ],
             "title": "Verified Queries"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SemanticDataModelMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": ["name"],
         "title": "SemanticDataModel",
         "description": "A semantic model represents a collection of tables with their relationships."
+      },
+      "SemanticDataModelMetadata": {
+        "properties": {
+          "input_data_connection_snapshots": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/InputDataConnectionSnapshot"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Data Connection Snapshots"
+          },
+          "extra": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extra"
+          }
+        },
+        "type": "object",
+        "title": "SemanticDataModelMetadata",
+        "description": "Top-level metadata container for semantic data models.\n\nStores inspection snapshots and other metadata directly in the SDM JSON payload,\navoiding the need for separate storage tables.\n\nCurrent fields:\n- `input_data_connection_snapshots`: Inspection results from data sources used to create the SDM\n- `extra`: Reserved for future metadata types (e.g., column JSON schemas, versioning info)\n\nNote: Currently only one snapshot is populated (from the primary data source), but the\nlist structure supports multiple sources for future SDMs that span multiple connections/files."
       },
       "SemanticDataModelWithAssociations": {
         "properties": {
