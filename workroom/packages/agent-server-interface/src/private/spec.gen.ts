@@ -3249,9 +3249,9 @@ export const spec = {
       },
       post: {
         tags: ['mcp-servers'],
-        summary: 'Upsert Mcp Server',
-        description: 'Create or update an MCP server.',
-        operationId: 'upsert_mcp_server_mcp_servers__post',
+        summary: 'Create Mcp Server',
+        description: 'Create an MCP server.',
+        operationId: 'create_mcp_server_mcp_servers__post',
         requestBody: {
           content: {
             'application/json': {

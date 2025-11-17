@@ -547,14 +547,14 @@ def test_create_mcp_server_quota_within_limit(fastapi_app, sample_mcp_server_pay
         fastapi_app.dependency_overrides.clear()
 
 
-def test_upsert_mcp_server_has_quota_check():
-    """Test that the upsert_mcp_server endpoint has the quota check dependency."""
+def test_create_mcp_server_has_quota_check():
+    """Test that the create_mcp_server endpoint has the quota check dependency."""
     import inspect
 
-    from agent_platform.server.api.private_v2.mcp_servers import upsert_mcp_server
+    from agent_platform.server.api.private_v2.mcp_servers import create_mcp_server
 
     # Get the function signature
-    sig = inspect.signature(upsert_mcp_server)
+    sig = inspect.signature(create_mcp_server)
 
     # Check that MCPQuotaCheck is in the parameters
     param_names = list(sig.parameters.keys())

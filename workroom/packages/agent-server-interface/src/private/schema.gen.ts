@@ -1044,10 +1044,10 @@ export interface paths {
     get: operations['list_mcp_servers_mcp_servers__get'];
     put?: never;
     /**
-     * Upsert Mcp Server
-     * @description Create or update an MCP server.
+     * Create Mcp Server
+     * @description Create an MCP server.
      */
-    post: operations['upsert_mcp_server_mcp_servers__post'];
+    post: operations['create_mcp_server_mcp_servers__post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -14011,7 +14011,7 @@ export interface operations {
       };
     };
   };
-  upsert_mcp_server_mcp_servers__post: {
+  create_mcp_server_mcp_servers__post: {
     parameters: {
       query?: never;
       header?: never;

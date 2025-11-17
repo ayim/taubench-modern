@@ -21,7 +21,12 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
 
     _logger = get_logger(__name__)
 
-    async def create_mcp_server(self, mcp_server: MCPServer, source: MCPServerSource) -> str:
+    async def create_mcp_server(
+        self,
+        mcp_server: MCPServer,
+        source: MCPServerSource,
+        mcp_runtime_deployment_id: str | None = None,
+    ) -> str:
         """Create a new MCP server. Returns the generated MCP server ID."""
         # 1. Generate ID and timestamps
         mcp_server_id = str(uuid.uuid4())
@@ -37,13 +42,22 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
                 await cur.execute(
                     """
                     INSERT INTO v2.mcp_server (
-                        mcp_server_id, name, enc_config, source, created_at, updated_at
+                        mcp_server_id, name, enc_config, source, mcp_runtime_deployment_id,
+                        created_at, updated_at
                     )
                     VALUES (
-                        %s::uuid, %s, %s, %s, %s, %s
+                        %s::uuid, %s, %s, %s, %s, %s, %s
                     )
                     """,
-                    (mcp_server_id, mcp_server.name, encrypted_config, source.value, now, now),
+                    (
+                        mcp_server_id,
+                        mcp_server.name,
+                        encrypted_config,
+                        source.value,
+                        mcp_runtime_deployment_id,
+                        now,
+                        now,
+                    ),
                 )
         except UniqueViolation as e:
             if "mcp_server_pkey" in str(e):
@@ -318,31 +332,42 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
                 ) from e
             raise
 
-    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> None:
-        """Delete one or more MCP servers."""
+    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> list[tuple[str, str | None]]:
+        """
+        Delete one or more MCP servers.
+
+        Returns list of (mcp_server_id, mcp_runtime_deployment_id) tuples.
+        """
         # 1. Validate all uuids
         for server_id in mcp_server_ids:
             self._validate_uuid(server_id)
 
         if not mcp_server_ids:
-            return
+            return []
 
         async with self._cursor() as cur:
-            # 2. Delete the MCP servers
-            # Create placeholders for the IN clause
+            # 2. Delete the MCP servers and return their deployment IDs
             placeholders = SQL(",").join([SQL("%s::uuid")] * len(mcp_server_ids))
             query = SQL("""
                 DELETE FROM v2.mcp_server
                 WHERE mcp_server_id IN ({placeholders})
-                RETURNING mcp_server_id
+                RETURNING mcp_server_id, mcp_runtime_deployment_id
                 """).format(placeholders=placeholders)
             await cur.execute(query, mcp_server_ids)
 
             # 3. Check if all deletes succeeded
-            deleted_ids = [str(row["mcp_server_id"]) for row in await cur.fetchall()]
+            rows = await cur.fetchall()
+            deleted_ids = [str(row["mcp_server_id"]) for row in rows]
             missing_ids = set(mcp_server_ids) - set(deleted_ids)
             if missing_ids:
                 raise MCPServerNotFoundError(f"MCP servers not found: {', '.join(missing_ids)}")
+
+            # 4. Extract deployment IDs from deleted servers
+            deleted_servers = [
+                (str(row["mcp_server_id"]), row["mcp_runtime_deployment_id"]) for row in rows
+            ]
+
+            return deleted_servers
 
     async def count_mcp_servers(self) -> int:
         """Count the number of MCP servers."""

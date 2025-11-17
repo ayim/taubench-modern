@@ -522,7 +522,12 @@ class AbstractStorage(ABC):
     # Methods for MCP servers
     # -------------------------
     @abstractmethod
-    async def create_mcp_server(self, mcp_server: "MCPServer", source: "MCPServerSource") -> str:
+    async def create_mcp_server(
+        self,
+        mcp_server: "MCPServer",
+        source: "MCPServerSource",
+        mcp_runtime_deployment_id: str | None = None,
+    ) -> str:
         """Create a new MCP server. Returns the generated MCP server ID."""
 
     @abstractmethod
@@ -565,8 +570,8 @@ class AbstractStorage(ABC):
         """Update an MCP server."""
 
     @abstractmethod
-    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> None:
-        """Delete MCP servers."""
+    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> list[tuple[str, str | None]]:
+        """Delete MCP servers. Returns list of (mcp_server_id, mcp_runtime_deployment_id) tuples."""
 
     @abstractmethod
     async def count_mcp_servers(self) -> int:

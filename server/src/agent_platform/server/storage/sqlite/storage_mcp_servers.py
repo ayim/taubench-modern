@@ -25,7 +25,12 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
     # -------------------------------------------------------------------------
     # MCP Servers
     # -------------------------------------------------------------------------
-    async def create_mcp_server(self, mcp_server: MCPServer, source: MCPServerSource) -> str:
+    async def create_mcp_server(
+        self,
+        mcp_server: MCPServer,
+        source: MCPServerSource,
+        mcp_runtime_deployment_id: str | None = None,
+    ) -> str:
         """Create a new MCP server. Returns the generated MCP server ID."""
         # 1. Generate ID and timestamps
         mcp_server_id = str(uuid.uuid4())
@@ -44,11 +49,20 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 await cur.execute(
                     """
                 INSERT INTO v2_mcp_server (
-                    mcp_server_id, name, enc_config, source, created_at, updated_at
+                    mcp_server_id, name, enc_config, source, mcp_runtime_deployment_id,
+                    created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                    (mcp_server_id, mcp_server.name, encrypted_config, source.value, now, now),
+                    (
+                        mcp_server_id,
+                        mcp_server.name,
+                        encrypted_config,
+                        source.value,
+                        mcp_runtime_deployment_id,
+                        now,
+                        now,
+                    ),
                 )
         except IntegrityError as e:
             error_msg = str(e).lower()
@@ -325,16 +339,43 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 ) from e
             raise
 
-    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> None:
-        """Delete one or more MCP servers."""
+    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> list[tuple[str, str | None]]:
+        """
+        Delete one or more MCP servers.
+
+        Returns list of (mcp_server_id, mcp_runtime_deployment_id) tuples.
+        """
         # 1. Validate all uuids
         for server_id in mcp_server_ids:
             self._validate_uuid(server_id)
 
+        if not mcp_server_ids:
+            return []
+
         async with self._transaction() as cur:
-            # 2. Delete the MCP servers
-            # Multiple delete - use IN clause with dynamic parameters
+            # 2. First, get the deployment IDs before deleting
+            # (SQLite doesn't support RETURNING in DELETE)
             placeholders = ",".join("?" * len(mcp_server_ids))
+            await cur.execute(
+                f"""
+                SELECT mcp_server_id, mcp_runtime_deployment_id FROM v2_mcp_server
+                WHERE mcp_server_id IN ({placeholders})
+                """,
+                mcp_server_ids,
+            )
+
+            rows = list(await cur.fetchall())
+            if len(rows) != len(mcp_server_ids):
+                found_ids = {row["mcp_server_id"] for row in rows}
+                missing_ids = set(mcp_server_ids) - found_ids
+                raise MCPServerNotFoundError(f"MCP servers not found: {', '.join(missing_ids)}")
+
+            # 3. Extract deployment IDs from deleted servers
+            deleted_servers = [
+                (row["mcp_server_id"], row["mcp_runtime_deployment_id"]) for row in rows
+            ]
+
+            # 4. Delete the MCP servers
             await cur.execute(
                 f"""
                 DELETE FROM v2_mcp_server
@@ -343,12 +384,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 mcp_server_ids,
             )
 
-            # 3. Check if all deletes succeeded
-            if cur.rowcount != len(mcp_server_ids):
-                raise MCPServerNotFoundError(
-                    f"Some MCP servers not found (expected {len(mcp_server_ids)}, "
-                    f"deleted {cur.rowcount})"
-                )
+            return deleted_servers
 
     async def count_mcp_servers(self) -> int:
         """Count the number of MCP servers."""

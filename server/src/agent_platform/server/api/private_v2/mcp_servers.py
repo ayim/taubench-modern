@@ -14,7 +14,7 @@ from agent_platform.core.mcp.mcp_types import deserialize_mcp_variables
 from agent_platform.core.payloads import MCPServerResponse
 from agent_platform.server.api.dependencies import MCPQuotaCheck, StorageDependency
 from agent_platform.server.env_vars import SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE
-from agent_platform.server.mcp_runtime import MCPRuntimeConfig
+from agent_platform.server.mcp_runtime import MCPRuntimeConfig, delete_deployment
 from agent_platform.server.storage import (
     ConfigDecryptionError,
     MCPServerNotFoundError,
@@ -347,12 +347,12 @@ async def _sync_file_based_mcp_servers(storage: StorageDependency) -> None:
 
 
 @router.post("/", response_model=MCPServerResponse)
-async def upsert_mcp_server(
+async def create_mcp_server(
     payload: MCPServer,
     storage: StorageDependency,
     _: MCPQuotaCheck,
 ) -> MCPServerResponse:
-    """Create or update an MCP server."""
+    """Create an MCP server."""
     try:
         mcp_server_id = await storage.create_mcp_server(payload, source=MCPServerSource.API)
     except MCPServerWithNameAlreadyExistsError as e:
@@ -400,7 +400,9 @@ async def create_hosted_mcp_server(
     )
 
     try:
-        mcp_server_id = await storage.create_mcp_server(mcp_server, source=MCPServerSource.API)
+        mcp_server_id = await storage.create_mcp_server(
+            mcp_server, source=MCPServerSource.API, mcp_runtime_deployment_id=deployment_id
+        )
     except MCPServerWithNameAlreadyExistsError as e:
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT,
@@ -490,10 +492,22 @@ async def delete_mcp_server(
     storage: StorageDependency,
 ) -> None:
     """Delete an MCP server."""
+    # Delete from database and get deployment_id if any
     try:
-        await storage.delete_mcp_server([mcp_server_id])
+        deleted_servers = await storage.delete_mcp_server([mcp_server_id])
     except MCPServerNotFoundError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"MCP server {mcp_server_id} not found",
         ) from e
+
+    # Best-effort cleanup of runtime deployment
+    for server_id, deployment_id in deleted_servers:
+        if deployment_id:
+            success = await delete_deployment(deployment_id)
+            if not success:
+                logger.warning(
+                    "Failed to delete MCP runtime deployment (database record already deleted)",
+                    mcp_server_id=server_id,
+                    deployment_id=deployment_id,
+                )
