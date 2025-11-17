@@ -21,6 +21,7 @@ ModelType = Literal[
 ModelPrioritization = Literal["intelligence", "speed", "cost"]
 
 EXPERIMENTAL_ARCH_2_0_0 = "agent_platform.architectures.experimental_1==2.0.0"
+CONSISTENCY_ARCH_2_0_0 = "agent_platform.architectures.experimental_2==2.0.0"
 
 
 def _normalize_model_slug_for_lookup(slug: str) -> str:
@@ -733,58 +734,124 @@ class PlatformModelConfigs(Configuration):
     models_to_architecture_overrides: dict[str, list[str]] = field(
         default_factory=lambda: {
             # Azure OpenAI
-            "azure/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "azure/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "azure/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "azure/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0],
-            "azure/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0],
-            "azure/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0],
+            "azure/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             # OpenAI
-            "openai/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "openai/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "openai/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "openai/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0],
-            "openai/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0],
-            "openai/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0],
+            "openai/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             # Bedrock
-            "bedrock/anthropic/claude-4-5-haiku-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-5-haiku-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-5-haiku": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-5-sonnet": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-sonnet-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-sonnet-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-sonnet-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-1-opus-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-1-opus-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-1-opus-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-5-haiku": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-high": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-low": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-5-sonnet": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-sonnet-thinking-high": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-sonnet-thinking-low": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-1-opus-thinking-high": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "bedrock/anthropic/claude-4-1-opus-thinking-low": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
             # Cortex
-            "cortex/anthropic/claude-4-1-opus": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-1-opus-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-1-opus-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-1-opus-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-sonnet-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-sonnet-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-sonnet-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-5-sonnet": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-5-sonnet-thinking-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-5-sonnet-thinking-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0],
-            "cortex/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-1-opus": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-1-opus-thinking-high": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/anthropic/claude-4-1-opus-thinking-medium": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/anthropic/claude-4-1-opus-thinking-low": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/anthropic/claude-4-sonnet-thinking-high": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/anthropic/claude-4-sonnet-thinking-medium": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/anthropic/claude-4-sonnet-thinking-low": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/anthropic/claude-4-5-sonnet": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-5-sonnet-thinking-high": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/anthropic/claude-4-5-sonnet-thinking-low": [
+                EXPERIMENTAL_ARCH_2_0_0,
+                CONSISTENCY_ARCH_2_0_0,
+            ],
+            "cortex/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "cortex/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "cortex/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "cortex/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "cortex/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "cortex/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             # groq
-            "groq/openai/gpt-oss-120b": [EXPERIMENTAL_ARCH_2_0_0],
-            "groq/openai/gpt-oss-20b": [EXPERIMENTAL_ARCH_2_0_0],
-            "groq/moonshotai/kimi-k2": [EXPERIMENTAL_ARCH_2_0_0],
-            "groq/meta/llama-4-scout": [EXPERIMENTAL_ARCH_2_0_0],
-            "groq/meta/llama-4-maverick": [EXPERIMENTAL_ARCH_2_0_0],
+            "groq/openai/gpt-oss-120b": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "groq/openai/gpt-oss-20b": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "groq/moonshotai/kimi-k2": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "groq/meta/llama-4-scout": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "groq/meta/llama-4-maverick": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
         },
         metadata=FieldMetadata(
             description="A mapping of model IDs to the architectures they require to be used with.",

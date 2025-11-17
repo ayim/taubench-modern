@@ -626,7 +626,7 @@ def test_accept_new_architecture_in_legacy_payload():
     payload = UpsertAgentPayload(
         name="Test Agent",
         description="desc",
-        version="1.0.0",
+        version="2.0.0",
         runbook="hi",
         advanced_config={
             "architecture": "agent_platform.architectures.experimental_1",
@@ -635,7 +635,7 @@ def test_accept_new_architecture_in_legacy_payload():
     agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
     assert agent.agent_architecture == AgentArchitecture(
         name="agent_platform.architectures.experimental_1",
-        version="1.0.0",
+        version="2.0.0",
     )
 
 

@@ -1,0 +1,172 @@
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any, ClassVar, Literal
+
+from agent_platform.architectures.experimental.consistency.plan import (
+    MonitorFeedbackEntry,
+    PlanExecutionPhase,
+    PlanStep,
+)
+from agent_platform.core import agent_architectures as aa
+from agent_platform.core.tools.tool_definition import ToolDefinition
+
+
+@dataclass(slots=True)
+class ConsistencyArchState(aa.StateBase):
+    """Holds the complete state for a single processing turn of the agent.
+
+    This class is the "single source of truth" for the agent's internal state
+    during its lifecycle, from initial request triage through planning, execution,
+    monitoring, and final reply generation. It is designed to be serializable
+    and passed between different components of the architecture.
+
+    The fields are organized into logical sections to improve readability and
+    maintainability.
+    """
+
+    # -- Core Execution & Timing State -------------------------------------------
+    step: Literal["initial", "processing", "done"] = "initial"
+    """The overall lifecycle phase of the agent turn."""
+
+    plan_execution_phase: PlanExecutionPhase = "initial"
+    """The specific phase within the plan execution lifecycle."""
+
+    plan_execution_caption: str = ""
+    """Human-readable string describing what the agent is currently doing."""
+
+    plan_execution_changed_at: str = ""
+    """Timestamp (ISO 8601) for when the current phase became active."""
+
+    current_iteration: int = 0
+    """The current iteration number within the active plan step's execution loop."""
+
+    processing_start_time: str = field(
+        default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds")
+    )
+    """Timestamp (ISO 8601) when the current processing turn began."""
+
+    processing_elapsed_time: str = "0.00 seconds"
+    """A human-readable string representing the time elapsed since processing started."""
+
+    # -- Model & Platform Configuration ------------------------------------------
+    # These fields are used in our prompts to help contextualize the agent as to
+    # what model it's being driven by.
+    selected_platform: str = ""
+    """The name of the model platform being used (e.g., 'google-vertex-ai')."""
+
+    selected_model_provider: str = ""
+    """The provider of the model (e.g., 'google')."""
+
+    selected_model: str = ""
+    """The specific model name being used (e.g., 'gemini-1.5-pro-latest')."""
+
+    # -- Plan Definition & Status ------------------------------------------------
+    plan_summary: str = ""
+    """A high-level, natural language summary of the overall plan."""
+
+    plan_assumptions: str = ""
+    """Assumptions, prerequisites, or unresolved questions noted during planning."""
+
+    plan_steps: list[PlanStep] = field(default_factory=list)
+    """The ordered sequence of steps that constitute the execution plan."""
+
+    plan_snapshot: str = ""
+    """A formatted, human-readable string snapshot of the plan for prompt injection."""
+
+    plan_status: Literal["not_started", "active", "failed", "completed"] = "not_started"
+    """The overall status of the execution plan."""
+
+    plan_failure_reason: str = ""
+    """If the plan failed, a description of the reason for the failure."""
+
+    plan_failure_level: Literal["", "info", "warning", "critical"] = ""
+    """The severity level of the plan failure."""
+
+    rework_requested_for_step_id: str | None = None
+    """If set, the ID of a step that the monitor has flagged for rework."""
+
+    # -- Step-Level Execution State ----------------------------------------------
+    current_plan_step_id: str | None = None
+    """The unique identifier of the plan step currently being executed."""
+
+    current_plan_step_index: int = -1
+    """The zero-based index of the active plan step in the `plan_steps` list."""
+
+    current_step_resolution: dict[str, Any] | None = None
+    """The resolution (e.g., 'completed', 'blocked') of the current step, set by a tool call."""
+
+    last_step_resolution: dict[str, Any] | None = None
+    """The final resolution recorded for the most recently executed step."""
+
+    # -- Monitoring & Feedback ---------------------------------------------------
+    controller_feedback: str = ""
+    """Actionable feedback from the system to the agent for the next iteration."""
+
+    monitor_feedback_pending: list[MonitorFeedbackEntry] = field(default_factory=list)
+    """Feedback from the monitor to be merged into `controller_feedback`."""
+
+    monitor_feedback_history: list[MonitorFeedbackEntry] = field(default_factory=list)
+    """A history of all feedback entries from the monitor."""
+
+    monitor_feedback_latest: MonitorFeedbackEntry = field(
+        default_factory=lambda: MonitorFeedbackEntry(
+            timestamp="",
+            message="",
+            level="info",
+            related_steps=[],
+        )
+    )
+    """The most recent feedback entry generated by the monitor."""
+
+    latest_tool_events_markdown: str = ""
+    """A markdown-formatted summary of the latest tool calls for the monitor's review."""
+
+    # -- Tool Management & Execution ---------------------------------------------
+    consistency_tools: list[ToolDefinition] = field(default_factory=list)
+    """Internal tools for managing the plan lifecycle (define_plan, complete_step, etc.)."""
+
+    available_tools_markdown: str = ""
+    """A markdown-formatted list of available tools, for inclusion in prompts."""
+
+    configuration_issues: list[str] = field(default_factory=list)
+    """A list of warnings or errors related to tool and action configuration."""
+
+    # -- Final Reply Generation --------------------------------------------------
+    staged_for_final_reply: list[dict[str, str]] = field(default_factory=list)
+    """A list of artifacts (content + description) to be included in the final reply."""
+
+    staged_artifacts_markdown: str = ""
+    """The markdown representation of all staged artifacts for the final prompt."""
+
+    # -- Retry & Error Handling State --------------------------------------------
+    no_toolcall_retry_count: int = 0
+    """Counter for consecutive iterations where the model failed to call any tools."""
+
+    no_final_reply_retry_count: int = 0
+    """Counter for attempts to generate a final reply that yielded no text content."""
+
+    # -- Scoped & Passthrough State ----------------------------------------------
+    memories: list[str] = field(default_factory=list, metadata=aa.fields.thread_scoped())
+    """Persistent memories stored at the thread level, available across turns."""
+
+    # -- INTERNAL STATE ----------------------------------------------------------
+    # Internal surfaces rely on the presence of these fields to function correctly.
+    action_tools: list[ToolDefinition] = field(default_factory=list)
+    action_issues: list[str] = field(default_factory=list)
+    mcp_tools: list[ToolDefinition] = field(default_factory=list)
+    mcp_issues: list[str] = field(default_factory=list)
+    data_frames_tools_state: Literal["enabled", ""] = ""
+    work_item_tools_state: Literal["enabled", ""] = ""
+    empty_file_cache_key_to_matching_info: dict[str, dict] = field(default_factory=dict)
+
+    # -- Sinks -------------------------------------------------------------------
+    # The `sinks` property provides a controlled interface for other parts of the
+    # architecture to write data back into this state object, typically during
+    # the processing of a streaming model response.
+    Sinks: ClassVar[Any]
+    """A placeholder for the nested Sinks class, defined in the base class."""
+
+    @property
+    def sinks(self):
+        """Provides access to sink methods for updating state from external sources."""
+        return self.Sinks(self)

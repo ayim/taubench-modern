@@ -1,0 +1,67 @@
+temperature: 0.35
+top_p: 0.9
+
+messages:
+  - role: user
+    content:
+      - kind: text
+        text: |-
+          # Planning Task
+
+          You are the planning coordinator for the consistency-focused architecture. Your goal
+          is to translate the Runbook and the user's latest request into a concise, sequential plan
+          that the tool loop must follow. Produce a linear set of steps that cover the required work
+          with no gaps.
+
+          ## Required workflow
+          1. Review the Runbook, user request, and recent conversation. Extract the concrete actions
+             required to satisfy the Runbook's definition of "done".
+          2. **Your first tool call MUST be** `define_plan(...)` (exactly once) with:
+             • `summary`: one paragraph describing the overall strategy.
+             • `assumptions`: unresolved questions, prerequisites, or guardrails. Use "None" if empty.
+             • `steps`: 1-7 ordered steps (`PlanStepInput`) with clear descriptions and success criteria.
+               Each step must be a concrete, tool-driven action.
+          3. You will not have an opportunity to revise the plan later. Confirm it covers all Runbook
+             obligations before emitting the tool call.
+          4. If you cannot produce a safe plan (e.g., missing Runbook information), call
+             `declare_plan_failed(reason=..., severity="critical")` and stop immediately.
+          5. When finished, stop issuing tool calls. Do **not** emit natural language narration.
+
+          ## Planning Constraints (MUST follow all)
+          - Every step must tie back to the Runbook instructions or postconditions.
+          - **The plan is for AUTONOMOUS execution.** Once defined, the plan will run to completion
+            or failure without any user interaction.
+          - **DO NOT include any steps that require asking the user for confirmation, feedback,
+            or additional information.** If critical information is missing, note it in the `assumptions`
+            and proceed, or fail the plan if it is impossible to start.
+          - **Each step in your plan MUST correspond to an action that can be performed by one of
+            the `Available Tools for Execution` listed below.** Do not define vague steps; be
+            specific about the tool you intend to be used.
+          - Prefer the fewest steps that still cover all required work; avoid overly granular actions.
+          - If information is missing, capture the gap in `assumptions` rather than fabricating content.
+
+          ## Input materials
+          <runbook>
+          {{ kernel.agent.runbook_structured.raw_text }}
+          </runbook>
+
+          <users_current_request>
+          {{ kernel.thread.latest_user_message_as_text }}
+          </users_current_request>
+
+          <available_tools_for_execution>
+          {{ state.available_tools_markdown }}
+          </available_tools_for_execution>
+
+          You will now receive a window of the recent conversation for additional context.
+
+  - role: $conversation-history
+
+  - role: user
+    content:
+      - kind: text
+        text: |-
+          ## Planner reminder
+          - Use only tool calls; no prose.
+          - Ensure the plan is actionable and strictly uses the tools listed in `<available_tools_for_execution>`.
+          - If the Runbook is insufficient, reflect that in the plan assumptions.

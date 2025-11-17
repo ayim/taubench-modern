@@ -1,7 +1,8 @@
 import json
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.kernel_interfaces.thread_state_sinks import ThreadStateSinks
@@ -26,6 +27,9 @@ from agent_platform.core.thread.content import (
 )
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.tools.tool_execution_result import ToolExecutionResult
+
+if TYPE_CHECKING:
+    from agent_platform.core.responses.response import ResponseMessage
 
 
 def _get_sub_type_from_tool_category(
@@ -102,6 +106,34 @@ class ThreadMessageWithThreadState:
     def agent_metadata(self) -> dict[str, Any]:
         """The metadata of the message."""
         return self._message.agent_metadata
+
+    def update_tools_metadata(self, tools: Sequence[ToolDefinition]) -> None:
+        """Update the tools metadata for the message."""
+        self.agent_metadata["tools"] = [tool.model_dump() for tool in tools]
+
+    def update_usage_metadata(
+        self,
+        *,
+        platform: str,
+        model: str,
+        call_type: str,
+        response: "ResponseMessage | None" = None,
+        usage: dict[str, Any] | None = None,
+    ) -> None:
+        """Record the platform/model usage info for this message."""
+        usage_payload = usage
+        if usage_payload is None and response is not None:
+            usage_payload = response.usage.model_dump()
+
+        self.agent_metadata.setdefault("models", [])
+        self.agent_metadata["models"].append(
+            {
+                "platform": platform,
+                "model": model,
+                "call_type": call_type,
+                "usage": usage_payload,
+            }
+        )
 
     def get_text_content(self) -> str:
         """Gets the text content of the message."""

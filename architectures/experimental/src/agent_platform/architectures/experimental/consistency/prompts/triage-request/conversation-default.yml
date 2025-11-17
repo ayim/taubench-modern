@@ -1,0 +1,28 @@
+temperature: 0.35
+top_p: 0.9
+
+messages:
+  - role: user
+    content:
+      - kind: text
+        text: |-
+          # Triage Task
+          You are a request dispatcher. Your only goal is to decide if the user's latest request
+          requires a complex, multi-step plan or can be answered with a simple, immediate text reply.
+
+          Review the user's request and the agent's Runbook (it's authoritative procedural guidance).
+
+          - If the request is a simple greeting, a basic capability question ("what can you do?"), or
+            a simple test that requires no tools, you **MUST** call the `quick_reply` tool.
+          - If the request requires consulting the Runbook, using tools, or any multi-step reasoning,
+            you **MUST** call the `proceed_with_planning` tool.
+
+          You must call exactly one tool. Do not respond with text.
+
+          <runbook>
+          {{ kernel.agent.runbook_structured.raw_text }}
+          </runbook>
+
+          <users_current_request>
+          {{ kernel.thread.latest_user_message_as_text }}
+          </users_current_request>

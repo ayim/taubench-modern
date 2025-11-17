@@ -7,6 +7,7 @@ import { IconAlert } from '@sema4ai/icons';
 import { MessageContentItemRenderer, shouldIgnoreToolCall } from './Item';
 import { ToolCallGroup } from '../ToolCall';
 import { AgentErrorStreamPayload } from '../../../../lib/AgentServerTypes';
+import { PlanViewer } from './planning/PlanViewer';
 
 type Props = {
   message: ThreadMessage | AgentErrorStreamPayload;
@@ -84,7 +85,7 @@ const Renderer: FC<{
   const messagePlatform = message.agent_metadata?.platform;
   const platform = typeof messagePlatform === 'string' ? messagePlatform : undefined;
 
-  return groupedMessageContent.map((processedContent, groupIndex) => {
+  const renderedMessageContent = groupedMessageContent.map((processedContent, groupIndex) => {
     if (Array.isArray(processedContent)) {
       return (
         <ToolCallGroup
@@ -123,6 +124,15 @@ const Renderer: FC<{
       />
     );
   });
+
+  // TODO: rename metadata consistency key to 'plan'?
+  if (message.role === 'agent' && message.agent_metadata?.consistency) {
+    renderedMessageContent.push(
+      <PlanViewer key={`plan-${message.message_id}`} metadata={message.agent_metadata?.consistency} />,
+    );
+  }
+
+  return renderedMessageContent;
 };
 
 const MessageRendererComponent: FC<Props> = ({ message, streaming, isLastMessage, isFirstMessage }) => {

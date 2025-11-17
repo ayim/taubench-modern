@@ -20,7 +20,7 @@ RETRYABLE_STREAM_ERRORS = (
 )
 
 
-def is_transient_stream_error(exc: Exception) -> bool:
+def is_transient_stream_error(exc: BaseException) -> bool:
     # You can widen this if your platform raises a different wrapper (e.g., StreamingError)
     return isinstance(exc, RETRYABLE_STREAM_ERRORS)
 

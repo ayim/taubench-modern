@@ -9841,148 +9841,196 @@ export interface components {
      *       },
      *       "models_to_architecture_overrides": {
      *         "azure/openai/gpt-5-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-minimal": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-mini": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-nano": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-minimal": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-mini": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-nano": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-haiku": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-sonnet": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-sonnet-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-sonnet-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-sonnet-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-1-opus-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-1-opus-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-1-opus-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-1-opus": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-1-opus-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-1-opus-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-1-opus-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-sonnet-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-sonnet-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-sonnet-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-5-sonnet": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-5-sonnet-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-5-sonnet-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-5-sonnet-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-minimal": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-mini": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-nano": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/openai/gpt-oss-120b": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/openai/gpt-oss-20b": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/moonshotai/kimi-k2": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/meta/llama-4-scout": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/meta/llama-4-maverick": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ]
      *       }
      *     }
@@ -10488,148 +10536,196 @@ export interface components {
      *       },
      *       "models_to_architecture_overrides": {
      *         "azure/openai/gpt-5-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-minimal": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-mini": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-nano": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-minimal": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-mini": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-nano": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-haiku": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-5-sonnet": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-sonnet-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-sonnet-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-sonnet-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-1-opus-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-1-opus-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "bedrock/anthropic/claude-4-1-opus-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-1-opus": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-1-opus-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-1-opus-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-1-opus-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-sonnet-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-sonnet-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-sonnet-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-5-sonnet": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-5-sonnet-thinking-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-5-sonnet-thinking-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/anthropic/claude-4-5-sonnet-thinking-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-high": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-medium": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-low": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-minimal": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-mini": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-nano": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/openai/gpt-oss-120b": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/openai/gpt-oss-20b": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/moonshotai/kimi-k2": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/meta/llama-4-scout": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "groq/meta/llama-4-maverick": [
-     *           "agent_platform.architectures.experimental_1==2.0.0"
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ]
      *       }
      *     }

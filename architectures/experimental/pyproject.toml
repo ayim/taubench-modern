@@ -3,7 +3,7 @@ name = "agent_platform_architectures_experimental"
 version = "2.0.0"
 requires-python = ">=3.12"
 authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
-dependencies = ["agent_platform_core"]
+dependencies = ["agent_platform_core", "tenacity>=9.1.2,<10.0.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_platform"]

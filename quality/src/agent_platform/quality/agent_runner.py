@@ -256,7 +256,7 @@ class AgentRunner:
                 }
                 async with httpx.AsyncClient(timeout=60.0 * 5) as client:
                     response = await client.post(
-                        f"{self.server_url}/api/public/v1/work-items/preview",
+                        f"{self.server_url}/api/v2/work-items/preview",
                         json=payload,
                     )
                     response.raise_for_status()

@@ -259,7 +259,11 @@ class UpsertAgentPayload:
             self.agent_architecture = AgentArchitecture.model_validate(
                 {
                     "name": architecture,
-                    "version": "1.0.0",
+                    "version": (
+                        "1.0.0"
+                        if architecture == "agent_platform.architectures.default"
+                        else "2.0.0"
+                    ),
                 }
             )
 

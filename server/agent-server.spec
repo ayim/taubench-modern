@@ -186,6 +186,10 @@ ALL_DATAS = [
         "../architectures/experimental/src/agent_platform/architectures/experimental/prompts",
         "agent_platform/architectures/experimental/prompts",
     ),
+    (
+        "../architectures/experimental/src/agent_platform/architectures/experimental/consistency/prompts",
+        "agent_platform/architectures/experimental/consistency/prompts",
+    ),
     *agent_arch_metadata,
     # *chromadb_datas,
     # *tiktoken_datas,
