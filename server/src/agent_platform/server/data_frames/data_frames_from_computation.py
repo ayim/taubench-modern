@@ -8,12 +8,41 @@ from structlog.stdlib import get_logger
 if typing.TYPE_CHECKING:
     from sema4ai.actions import Table
 
+    from agent_platform.core.data_frames.semantic_data_model_types import LogicalTable
     from agent_platform.server.storage.base import BaseStorage
 
     from .data_frames_kernel import DataFramesKernel
     from .data_node import DataNodeResult
 
 logger = get_logger(__name__)
+
+
+def extract_column_name_to_expr(table: "LogicalTable") -> dict[str, str]:
+    """Extract a mapping of logical column names to their physical SQL expressions from a
+    logical table in a semantic data model.
+
+    Args:
+        table: A LogicalTable dict containing dimensions, facts, time_dimensions, and metrics.
+
+    Returns:
+        A dict mapping logical column names to their physical SQL expressions.
+        Example: {"customer_name": "first_name || ' ' || last_name", "revenue": "amount"}
+    """
+    from agent_platform.core.data_frames.semantic_data_model_types import CATEGORIES
+
+    logical_column_name_to_expr: dict[str, str] = {}
+
+    # Iterate through all column types (dimensions, facts, time_dimensions, metrics)
+    for category in CATEGORIES:
+        columns = table.get(category) or []
+        for column_def in columns:
+            if isinstance(column_def, dict):
+                name = column_def.get("name")
+                expr = column_def.get("expr")
+                if name and expr:
+                    logical_column_name_to_expr[name] = expr
+
+    return logical_column_name_to_expr
 
 
 async def create_data_frame_from_sql_computation_api(  # noqa
@@ -117,10 +146,16 @@ async def create_data_frame_from_sql_computation_api(  # noqa
                         dialects_found.add("duckdb")
 
                 # Ok, name found in a semantic data model
+                # Extract column mappings from the logical table
+                logical_column_names_to_expr = extract_column_name_to_expr(table_info)
+
                 computation_input_sources[name] = DataFrameSource(
                     source_type="semantic_data_model",
                     base_table=base_table,
                     logical_table_name=table_info.get("name"),
+                    logical_column_names_to_expr=logical_column_names_to_expr
+                    if logical_column_names_to_expr
+                    else None,
                 )
                 required_table_names.remove(name)
 

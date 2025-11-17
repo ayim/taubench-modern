@@ -30,6 +30,11 @@ class DataFrameSource:
     logical_table_name: str | None = None
     """The name of the logical table (when a semantic data model is used)."""
 
+    logical_column_names_to_expr: dict[str, str] | None = None
+    """Column mappings from logical column names defined in the semantic data model to
+    their corresponding physical SQL expressions in the database.
+    """
+
     def __post_init__(self) -> None:
         from agent_platform.core.utils.asserts import assert_literal_value_valid
 
@@ -47,6 +52,9 @@ class DataFrameSource:
         if self.logical_table_name is not None:
             ret["logical_table_name"] = self.logical_table_name
 
+        if self.logical_column_names_to_expr is not None:
+            ret["logical_column_names_to_expr"] = self.logical_column_names_to_expr
+
         return ret
 
     @classmethod
@@ -54,6 +62,7 @@ class DataFrameSource:
         source_id = data.get("source_id")
         base_table = data.get("base_table")
         logical_table_name = data.get("logical_table_name")
+        logical_column_names_to_expr = data.get("logical_column_names_to_expr")
         source_type = data["source_type"]
 
         if source_type == "data_frame":
@@ -77,6 +86,7 @@ class DataFrameSource:
             source_id=source_id,
             base_table=base_table,
             logical_table_name=logical_table_name,
+            logical_column_names_to_expr=logical_column_names_to_expr,
         )
 
 

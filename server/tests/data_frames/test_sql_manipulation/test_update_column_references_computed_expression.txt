@@ -1,0 +1,26 @@
+================================================================================
+INPUT SQL:
+================================================================================
+SELECT product_name, subtotal, total_with_tax FROM sales
+
+================================================================================
+MAPPINGS:
+================================================================================
+{
+  "sales": {
+    "product_name": "product",
+    "subtotal": "quantity * unit_price",
+    "total_with_tax": "quantity * unit_price * (1 + tax_rate)"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+SELECT
+  product AS product_name,
+  quantity * unit_price AS subtotal,
+  quantity * unit_price * (
+    1 + tax_rate
+  ) AS total_with_tax
+FROM sales

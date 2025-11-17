@@ -236,6 +236,7 @@ class Dependencies:
         data_frame: "PlatformDataFrame",
         sql_computation_data_frames: "list[PlatformDataFrame]",
         logical_table_name_to_actual_table_name: dict[str, str],
+        table_name_to_column_names_to_expr: dict[str, dict[str, str]],
     ) -> str:
         import sqlglot
 
@@ -243,6 +244,7 @@ class Dependencies:
         from agent_platform.core.errors.responses import ErrorCode
         from agent_platform.server.data_frames.sql_manipulation import (
             build_ctes,
+            update_column_references,
             update_table_names,
             update_with_clause,
         )
@@ -267,15 +269,31 @@ class Dependencies:
                         f"SQL query: {df.computation!r}"
                     ),
                 )
+            if expressions[0] is None:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=f"SQL query is not a valid expression. Found: {expressions[0]} "
+                    f"SQL query: {df.computation!r}",
+                )
 
             # Now, create the cte with sqlglot
             cte_sql_ast = expressions[0]
             cte_sql_ast = update_table_names(cte_sql_ast, logical_table_name_to_actual_table_name)
+            cte_sql_ast = update_column_references(
+                cte_sql_ast,
+                table_name_to_column_names_to_expr,
+                logical_table_name_to_actual_table_name,
+            )
             name_to_cte_ast[df.name] = cte_sql_ast
 
         ctes = build_ctes(name_to_cte_ast=name_to_cte_ast)
         main_sql_ast = sqlglot.parse_one(sql_query, dialect=data_frame.sql_dialect)
         main_sql_ast = update_table_names(main_sql_ast, logical_table_name_to_actual_table_name)
+        main_sql_ast = update_column_references(
+            main_sql_ast,
+            table_name_to_column_names_to_expr,
+            logical_table_name_to_actual_table_name,
+        )
         main_sql_ast = update_with_clause(main_sql_ast, ctes)
         full_sql_query_str = main_sql_ast.sql(dialect=data_frame.sql_dialect, pretty=True)
         return full_sql_query_str
@@ -316,11 +334,30 @@ class Dependencies:
             name_to_coro[df.name] = kernel.resolve_data_frame(df)
 
         logical_table_name_to_actual_table_name: dict[str, str] = {}
+        # Track column mappings per table: {table_name: {logical_col: physical_expr}}
+        table_name_to_column_names_to_expr: dict[str, dict[str, str]] = {}
 
         df_source: DataFrameSource
         for df_source in self._iter_recursive_data_frame_sources():
             if df_source.source_type == "semantic_data_model":
                 if df_source.base_table is not None:
+                    # Store column mappings if available
+                    if df_source.logical_column_names_to_expr and df_source.logical_table_name:
+                        table_name_to_column_names_to_expr[df_source.logical_table_name] = (
+                            df_source.logical_column_names_to_expr
+                        )
+                        logger.info(
+                            "Collected column mappings for SDM table",
+                            table_name=df_source.logical_table_name,
+                            num_mappings=len(df_source.logical_column_names_to_expr),
+                            mappings=df_source.logical_column_names_to_expr,
+                        )
+                    elif df_source.logical_table_name:
+                        logger.warning(
+                            "No column mappings available for SDM table",
+                            table_name=df_source.logical_table_name,
+                        )
+
                     if df_source.base_table.get("file_reference") is not None:
                         assert df_source.logical_table_name is not None
                         name_to_coro[df_source.logical_table_name] = (
@@ -409,12 +446,18 @@ class Dependencies:
         #   {dep_sql_query}
         # )
         full_sql_query_str = self._build_full_sql_query(
-            data_frame, sql_computation_data_frames, logical_table_name_to_actual_table_name
+            data_frame,
+            sql_computation_data_frames,
+            logical_table_name_to_actual_table_name,
+            table_name_to_column_names_to_expr,
         )
 
-        # To get the one referencing the logical table names, build it again but with an empty mapping.
+        # To get the one referencing the logical table names, build it again but with empty mappings.
         full_sql_query_logical_str = self._build_full_sql_query(
-            data_frame, sql_computation_data_frames, logical_table_name_to_actual_table_name={}
+            data_frame,
+            sql_computation_data_frames,
+            logical_table_name_to_actual_table_name={},
+            table_name_to_column_names_to_expr={},
         )
 
         # Execute the SQL query using ibis

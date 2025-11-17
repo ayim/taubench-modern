@@ -19,6 +19,10 @@ Sample data:
 Note: It's possible to use an url such as 'data-frame://<data_frame_name>' to get the data frame in json format to use in vega-lite charts.
 
 ## Semantic Data Models (tables available to be used in the `data_frames_create_from_sql` tool):
+
+**IMPORTANT:** Always use table qualifiers (e.g., 'tbl.column_name') in SQL, especially
+in CTEs and JOINs. Unqualified columns may cause ambiguity errors.
+
 ### Model: test_semantic_model
 SQL dialect: duckdb
 Description: A test semantic model for data frame testing

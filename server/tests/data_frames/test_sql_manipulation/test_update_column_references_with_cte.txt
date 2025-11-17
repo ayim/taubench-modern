@@ -1,0 +1,33 @@
+================================================================================
+INPUT SQL:
+================================================================================
+
+        WITH filtered AS (
+            SELECT quantity_units, product_id
+            FROM order_line_items
+        )
+        SELECT SUM(quantity_units) AS total
+        FROM filtered
+        
+
+================================================================================
+MAPPINGS:
+================================================================================
+{
+  "order_line_items": {
+    "quantity_units": "quantity"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH filtered AS (
+  SELECT
+    quantity AS quantity_units,
+    product_id
+  FROM order_line_items
+)
+SELECT
+  SUM(quantity_units) AS total
+FROM filtered

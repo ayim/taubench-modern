@@ -1,0 +1,46 @@
+================================================================================
+INPUT SQL:
+================================================================================
+
+        WITH q1 AS (
+            SELECT so.order_total FROM sales_orders so
+        ),
+        q2 AS (
+            SELECT so.ticket_status FROM support_orders so
+        )
+        SELECT * FROM q1
+        UNION ALL
+        SELECT * FROM q2
+        
+
+================================================================================
+MAPPINGS:
+================================================================================
+{
+  "sales_orders": {
+    "order_total": "total_amount"
+  },
+  "support_orders": {
+    "ticket_status": "status"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH q1 AS (
+  SELECT
+    so.total_amount AS order_total
+  FROM sales_orders AS so
+), q2 AS (
+  SELECT
+    so.status AS ticket_status
+  FROM support_orders AS so
+)
+SELECT
+  *
+FROM q1
+UNION ALL
+SELECT
+  *
+FROM q2

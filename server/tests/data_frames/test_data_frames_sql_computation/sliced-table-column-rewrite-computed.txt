@@ -1,0 +1,19 @@
+{
+  "columns": [
+    "product_name",
+    "subtotal",
+    "total_with_tax"
+  ],
+  "rows": [
+    [
+      "Widget",
+      250.0,
+      270.0
+    ],
+    [
+      "Gadget",
+      500.0,
+      540.0
+    ]
+  ]
+}

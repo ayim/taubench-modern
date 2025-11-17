@@ -642,11 +642,21 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                     ret += (
                         f"## Semantic Data Models (tables available to be used in the "
                         f"`{DF_CREATE_FROM_SQL_TOOL_NAME}` tool):\n"
+                        f"{self.sdm_join_guidance}\n"
                         f"{self.semantic_data_models_summary}\n\n"
                     )
                 except Exception:
                     logger.exception("Error creating semantic data models summary")
         return ret
+
+    @property
+    def sdm_join_guidance(self) -> str:
+        from textwrap import dedent
+
+        return dedent("""
+        **IMPORTANT:** Always use table qualifiers (e.g., 'tbl.column_name') in SQL, especially
+        in CTEs and JOINs. Unqualified columns may cause ambiguity errors.
+        """)
 
     @property
     def semantic_data_models_summary(self) -> str:
@@ -1223,6 +1233,18 @@ class _DataFrameTools:
                 • 'SELECT UPPER(name) as name_upper FROM my_data_frame'
                 • 'SELECT * FROM my_data_frame
                        JOIN another_data_frame ON my_data_frame.id = another_data_frame.id'
+
+            IMPORTANT - Best Practice for Semantic Data Model Queries:
+            When querying semantic data model tables, ALWAYS use table qualifiers for columns
+            (e.g., 'so.order_total' instead of just 'order_total'). This is critical in CTEs
+            and JOINs where multiple tables may share logical column names.
+
+            ✅ Good:  WITH orders AS (SELECT so.order_id, so.total FROM sales_orders so)
+            ❌ Avoid: WITH orders AS (SELECT order_id, total FROM sales_orders so)
+
+            Unqualified columns in CTEs may fail if multiple tables define the same logical
+            column name, as the system cannot determine which table's mapping to apply.
+
             Note: The SQL dialect syntax used for the query should be inferred from the
                   SQL dialect specified in the semantic data model or data frame being used in
                   the query (if multiple engines are found, duckdb will be used for

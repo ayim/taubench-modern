@@ -1,0 +1,34 @@
+================================================================================
+INPUT SQL:
+================================================================================
+
+        SELECT cm.customer_full_name AS customer_name, pcb.product_name
+        FROM customer_master cm
+        JOIN product_catalog_basic pcb ON pcb.product_id = cm.customer_id
+        ORDER BY customer_name, product_name
+        
+
+================================================================================
+MAPPINGS:
+================================================================================
+{
+  "customer_master": {
+    "customer_full_name": "name"
+  },
+  "product_catalog_basic": {
+    "product_name": "name"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+SELECT
+  cm.name AS customer_name,
+  pcb.name AS product_name
+FROM customer_master AS cm
+JOIN product_catalog_basic AS pcb
+  ON pcb.product_id = cm.customer_id
+ORDER BY
+  customer_name,
+  product_name

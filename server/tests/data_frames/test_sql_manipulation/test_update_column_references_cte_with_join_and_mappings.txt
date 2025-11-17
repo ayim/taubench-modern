@@ -1,0 +1,46 @@
+================================================================================
+INPUT SQL:
+================================================================================
+
+        WITH customer_agg AS (
+            SELECT customer_id, SUM(total) AS total_spent
+            FROM orders
+            GROUP BY customer_id
+        )
+        SELECT cm.customer_full_name, ca.total_spent
+        FROM customer_agg ca
+        JOIN customer_master cm ON cm.customer_id = ca.customer_id
+        
+
+================================================================================
+MAPPINGS:
+================================================================================
+{
+  "table_mappings": {
+    "customer_master": "customers"
+  },
+  "column_mappings": {
+    "customer_master": {
+      "customer_id": "id",
+      "customer_full_name": "name"
+    }
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH customer_agg AS (
+  SELECT
+    id AS customer_id,
+    SUM(total) AS total_spent
+  FROM orders
+  GROUP BY
+    id
+)
+SELECT
+  cm.name AS customer_full_name,
+  ca.total_spent
+FROM customer_agg AS ca
+JOIN customers AS cm
+  ON cm.id = ca.customer_id

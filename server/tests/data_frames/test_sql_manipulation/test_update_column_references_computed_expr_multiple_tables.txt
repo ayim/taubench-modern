@@ -1,0 +1,26 @@
+================================================================================
+INPUT SQL:
+================================================================================
+SELECT e.full_name, c.contact_name FROM employees e JOIN contacts c ON e.contact_id = c.id
+
+================================================================================
+MAPPINGS:
+================================================================================
+{
+  "employees": {
+    "full_name": "first_name || ' ' || last_name"
+  },
+  "contacts": {
+    "contact_name": "first_name || ' ' || last_name"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+SELECT
+  e.first_name || ' ' || e.last_name AS full_name,
+  c.first_name || ' ' || c.last_name AS contact_name
+FROM employees AS e
+JOIN contacts AS c
+  ON e.contact_id = c.id

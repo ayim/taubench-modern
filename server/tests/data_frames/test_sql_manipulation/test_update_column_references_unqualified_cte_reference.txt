@@ -1,0 +1,41 @@
+================================================================================
+INPUT SQL:
+================================================================================
+
+        WITH completed_orders AS (
+            SELECT so.order_total_amount, so.customer_id
+            FROM sales_orders so
+        ),
+        revenue AS (
+            SELECT SUM(order_total_amount) AS total_revenue
+            FROM completed_orders
+        )
+        SELECT * FROM revenue
+        
+
+================================================================================
+MAPPINGS:
+================================================================================
+{
+  "sales_orders": {
+    "order_total_amount": "total_amount",
+    "customer_id": "customer_id"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH completed_orders AS (
+  SELECT
+    so.total_amount AS order_total_amount,
+    so.customer_id
+  FROM sales_orders AS so
+), revenue AS (
+  SELECT
+    SUM(order_total_amount) AS total_revenue
+  FROM completed_orders
+)
+SELECT
+  *
+FROM revenue

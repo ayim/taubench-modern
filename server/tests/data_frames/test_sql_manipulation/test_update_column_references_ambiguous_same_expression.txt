@@ -1,0 +1,50 @@
+================================================================================
+INPUT SQL:
+================================================================================
+
+    WITH customers AS (
+        SELECT user_id, customer_name FROM raw_customers
+    ),
+    orders AS (
+        SELECT user_id, order_date FROM raw_orders
+    )
+    SELECT user_id, customer_name, order_date
+    FROM customers
+    JOIN orders USING (user_id)
+    
+
+================================================================================
+MAPPINGS:
+================================================================================
+{
+  "customers": {
+    "user_id": "users.id",
+    "customer_name": "users.full_name"
+  },
+  "orders": {
+    "user_id": "users.id",
+    "order_date": "orders.created_at"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH customers AS (
+  SELECT
+    users.id AS user_id,
+    users.full_name AS customer_name
+  FROM raw_customers
+), orders AS (
+  SELECT
+    users.id AS user_id,
+    orders.created_at AS order_date
+  FROM raw_orders
+)
+SELECT
+  user_id,
+  customer_name,
+  order_date
+FROM customers
+JOIN orders
+  USING (user_id)

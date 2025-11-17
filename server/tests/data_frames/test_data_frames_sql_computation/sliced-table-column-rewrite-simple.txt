@@ -1,0 +1,16 @@
+{
+  "columns": [
+    "full_name",
+    "annual_salary"
+  ],
+  "rows": [
+    [
+      "John Doe",
+      50000.0
+    ],
+    [
+      "Jane Smith",
+      60000.0
+    ]
+  ]
+}
