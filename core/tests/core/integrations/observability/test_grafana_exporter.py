@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from agent_platform.core.errors import PlatformHTTPError
 from agent_platform.core.integrations.observability.models import (
     GrafanaObservabilitySettings,
 )
@@ -147,3 +148,40 @@ class TestGrafanaExporter:
         headers = call_args[1]["headers"]
         assert "Authorization" in headers  # Basic auth should be present
         assert headers["X-Custom-Header"] == "custom-value"
+
+    def test_model_dump_filters_disallowed_headers(self):
+        """Test that model_dump filters out disallowed headers from additional_headers."""
+        settings = GrafanaObservabilitySettings(
+            url="https://otlp.grafana.net/otlp",
+            api_token="glc_test_token",
+            grafana_instance_id="999999",
+            additional_headers={
+                "X-Custom-Header": "custom-value",
+                "X-Another-Header": "another-value",
+                "Authorization": "Bearer should-be-filtered",
+                "Content-Type": "application/json",
+                "Host": "example.com",
+            },
+        )
+
+        with pytest.raises(
+            PlatformHTTPError,
+            match="Authorization may not be specified as an HTTP header",
+        ):
+            settings.model_dump(redact_secret=False)
+
+        with pytest.raises(
+            PlatformHTTPError,
+            match="Authorization may not be specified as an HTTP header",
+        ):
+            GrafanaObservabilitySettings.model_validate(
+                {
+                    "url": "https://otlp.grafana.net/otlp",
+                    "api_token": "glc_test_token",
+                    "grafana_instance_id": "999999",
+                    "additional_headers": {
+                        "X-Custom-Header": "custom-value",
+                        "Authorization": "Bearer bad",
+                    },
+                }
+            )

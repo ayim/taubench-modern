@@ -155,3 +155,79 @@ def test_validate_integration_placeholder_response(client):
         json=override_payload,
     )
     assert missing_resp.status_code == 404
+
+
+def test_grafana_additional_headers_persisted_through_storage(client):
+    """Test that allowed additional_headers are persisted through create/get cycle."""
+    # Create a Grafana integration with allowed additional_headers
+    payload = {
+        "kind": "observability",
+        "settings": {
+            "kind": "grafana",
+            "is_enabled": True,
+            "provider_settings": {
+                "url": "https://example.com/v1/traces",
+                "api_token": "glc_test_key",
+                "grafana_instance_id": "123456",
+                "additional_headers": {
+                    "X-Custom-Header": "custom-value",
+                    "X-Another-Header": "another-value",
+                },
+            },
+        },
+        "description": "Test with headers",
+        "version": "1.0.0",
+    }
+
+    # Create the integration
+    create_resp = client.post("/api/v2/observability/integrations", json=payload)
+    assert create_resp.status_code == 201
+    create_data = create_resp.json()
+    integration_id = create_data["id"]
+
+    # Verify the CREATE response includes additional_headers
+    provider_settings = create_data["settings"]["provider_settings"]
+    assert "additional_headers" in provider_settings
+    assert provider_settings["additional_headers"]["X-Custom-Header"] == "custom-value"
+    assert provider_settings["additional_headers"]["X-Another-Header"] == "another-value"
+
+    # GET the integration to verify headers persist after loading from storage
+    get_resp = client.get(f"/api/v2/observability/integrations/{integration_id}")
+    assert get_resp.status_code == 200
+    get_data = get_resp.json()
+
+    # Verify the GET response also includes additional_headers
+    provider_settings = get_data["settings"]["provider_settings"]
+    assert "additional_headers" in provider_settings
+    assert provider_settings["additional_headers"]["X-Custom-Header"] == "custom-value"
+    assert provider_settings["additional_headers"]["X-Another-Header"] == "another-value"
+
+
+def test_grafana_disallowed_headers_rejected_via_api(client):
+    """Test that disallowed headers are rejected when creating integrations via API."""
+    # Create a Grafana integration with disallowed headers in additional_headers
+    payload = {
+        "kind": "observability",
+        "settings": {
+            "kind": "grafana",
+            "is_enabled": True,
+            "provider_settings": {
+                "url": "https://example.com/v1/traces",
+                "api_token": "glc_test_key",
+                "grafana_instance_id": "123456",
+                "additional_headers": {
+                    "X-Custom-Header": "allowed-value",
+                    "Authorization": "Bearer should-be-rejected",
+                },
+            },
+        },
+        "description": "Test filtering",
+        "version": "1.0.0",
+    }
+
+    # Attempt to create the integration - should be rejected
+    create_resp = client.post("/api/v2/observability/integrations", json=payload)
+    assert create_resp.status_code == 400  # BAD_REQUEST from PlatformHTTPError
+    error_data = create_resp.json()
+    assert "error" in error_data
+    assert "Authorization may not be specified as an HTTP header" in str(error_data)

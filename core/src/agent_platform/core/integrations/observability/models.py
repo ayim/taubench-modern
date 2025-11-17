@@ -1,10 +1,11 @@
 import base64
 from dataclasses import dataclass, field
-from typing import Any, Literal, cast
+from typing import Any, ClassVar, Literal, cast
 
 import structlog
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.network.utils import build_network_session
 from agent_platform.core.utils import SecretString
 
@@ -48,6 +49,7 @@ class GrafanaObservabilitySettings:
             "description": "Optional HTTP headers to send with the request to Grafana Cloud."
         },
     )
+    DISALLOWED_HEADERS: ClassVar[set[str]] = {"Authorization", "Content-Type", "Host"}
 
     @classmethod
     def model_validate(cls, data: Any) -> "GrafanaObservabilitySettings":
@@ -63,6 +65,15 @@ class GrafanaObservabilitySettings:
         if additional_headers is not None and not isinstance(additional_headers, dict):
             raise ValueError("Grafana settings 'additional_headers' must be an object.")
 
+        # Validate that disallowed headers are not present
+        if additional_headers:
+            for key in additional_headers:
+                if key in cls.DISALLOWED_HEADERS:
+                    raise PlatformHTTPError(
+                        error_code=ErrorCode.BAD_REQUEST,
+                        message=f"{key} may not be specified as an HTTP header",
+                    )
+
         return cls(
             url=str(data["url"]),
             api_token=str(data["api_token"]),
@@ -74,7 +85,16 @@ class GrafanaObservabilitySettings:
         data: dict[str, Any] = {"url": self.url}
         data["api_token"] = _secret_or_redact(self.api_token, redact_secret)
         data["grafana_instance_id"] = self.grafana_instance_id
-
+        if self.additional_headers:
+            # Error out if any disallowed headers are present.
+            data["additional_headers"] = {}
+            for key, value in self.additional_headers.items():
+                if key in self.DISALLOWED_HEADERS:
+                    raise PlatformHTTPError(
+                        error_code=ErrorCode.BAD_REQUEST,
+                        message=f"{key} may not be specified as an HTTP header",
+                    )
+                data["additional_headers"][key] = _secret_or_redact(value, redact_secret)
         return data
 
     def make_exporter(self):
@@ -101,17 +121,10 @@ class GrafanaObservabilitySettings:
         # Sent as HTTP Basic Auth
         headers = {"Authorization": f"Basic {basic_auth_value}"}
 
-        # If the user provided more headers, include them
         if self.additional_headers:
-            # Disallow certain headers which are likely to break things if set.
-            _disallowed_headers = {"Authorization", "Content-Type", "Host"}
-
-            filtered_headers = {
-                key: value
-                for key, value in self.additional_headers.items()
-                if key not in _disallowed_headers
-            }
-            headers.update(filtered_headers)
+            # We don't filter out disallowed headers here as if
+            # they were present, model_dump would have raised an error.
+            headers.update(self.additional_headers)
 
         # Build fresh session for this exporter
         # (each exporter needs its own to avoid header conflicts)

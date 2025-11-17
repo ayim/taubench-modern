@@ -86,6 +86,7 @@ async def create_observability_integration(
             detail="Settings and version are required.",
         )
     settings = ObservabilityIntegrationSettings.from_observability_settings(payload.settings)
+
     integration = Integration(
         id=str(uuid4()),
         kind="observability",
@@ -94,6 +95,7 @@ async def create_observability_integration(
         settings=settings,
     )
     await storage.upsert_integration(integration)
+
     created = await storage.get_integration(integration.id)
     # We are positive that we have an observability integration, cast it.
     created_obs = cast(ObservabilityIntegration, created)
@@ -142,6 +144,7 @@ async def update_observability_integration(
     else:
         next_settings = current_settings
 
+    updated_settings = ObservabilityIntegrationSettings.from_observability_settings(next_settings)
     updated_integration = Integration(
         id=integration.id,
         kind="observability",
@@ -149,7 +152,7 @@ async def update_observability_integration(
             payload.description if payload.description is not None else integration.description
         ),
         version=payload.version if payload.version is not None else integration.version,
-        settings=ObservabilityIntegrationSettings.from_observability_settings(next_settings),
+        settings=updated_settings,
         created_at=integration.created_at,
     )
 
