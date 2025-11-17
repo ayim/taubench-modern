@@ -608,6 +608,60 @@ async def get_agent_batch_run(
     return await _refresh_batch_run_statistics(batch_run, storage)
 
 
+@router.delete("/agents/{agent_id}/batches/{batch_run_id}", response_model=ScenarioBatchRun)
+async def cancel_agent_batch_run(
+    agent_id: str,
+    batch_run_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    agent = await storage.get_agent(user_id=user.user_id, agent_id=agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    batch_run = await storage.get_scenario_batch_run(batch_run_id=batch_run_id)
+    if batch_run is None or batch_run.agent_id != agent_id:
+        raise HTTPException(status_code=404, detail="Batch run not found")
+
+    system_user, _ = await storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
+    scenario_runs = await storage.list_scenario_runs_for_batch(batch_run.batch_run_id)
+
+    for run in scenario_runs:
+        trials = await storage.list_scenario_run_trials(run.scenario_run_id)
+        for trial in trials:
+            if trial.status in {
+                TrialStatus.COMPLETED,
+                TrialStatus.ERROR,
+                TrialStatus.CANCELED,
+            }:
+                continue
+            await storage.update_trial_status(
+                trial.trial_id,
+                system_user.user_id,
+                TrialStatus.CANCELED,
+            )
+            logger.info(
+                "Canceled trial in batch run",
+                trial_id=trial.trial_id,
+                scenario_run_id=run.scenario_run_id,
+                batch_run_id=batch_run.batch_run_id,
+            )
+
+    canceled_at = datetime.now(UTC)
+    updated_batch = await storage.update_scenario_batch_run(
+        batch_run.batch_run_id,
+        status=ScenarioBatchRunStatus.CANCELED,
+        completed_at=canceled_at,
+    )
+
+    return await _refresh_batch_run_statistics(
+        updated_batch
+        if updated_batch is not None
+        else replace(batch_run, status=ScenarioBatchRunStatus.CANCELED, completed_at=canceled_at),
+        storage,
+    )
+
+
 TERMINAL_BATCH_STATUSES = {
     ScenarioBatchRunStatus.COMPLETED,
     ScenarioBatchRunStatus.CANCELED,
@@ -632,9 +686,13 @@ async def _refresh_batch_run_statistics(
         expected_scenarios=len(batch_run.scenario_ids) or len(scenario_runs),
     )
 
+    should_update_status = batch_run.status not in {
+        derived_status,
+        ScenarioBatchRunStatus.CANCELED,
+    }
     should_update = (
         statistics != batch_run.statistics
-        or derived_status != batch_run.status
+        or should_update_status
         or (batch_run.completed_at is None and derived_status in TERMINAL_BATCH_STATUSES)
     )
     completed_at = (
@@ -648,7 +706,7 @@ async def _refresh_batch_run_statistics(
 
     updated = await storage.update_scenario_batch_run(
         batch_run.batch_run_id,
-        status=derived_status if derived_status != batch_run.status else None,
+        status=derived_status if should_update_status else None,
         statistics=statistics if statistics != batch_run.statistics else None,
         completed_at=completed_at,
     )

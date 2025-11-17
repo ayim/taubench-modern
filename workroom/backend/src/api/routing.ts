@@ -56,6 +56,7 @@ function getRouteMap(): {
       SIGN_WITH_TENANT,
       agentReadPermissions,
     ],
+    'delete /api/v2/evals/agents/{agent_id}/batches/{batch_run_id}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'patch /api/v2/evals/scenarios/{scenario_id}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'get /api/v2/evals/agents/{agent_id}/batches/latest': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'get /api/v2/evals/agents/{agent_id}/batches/{batch_run_id}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],

@@ -8166,6 +8166,54 @@ export const spec = {
           },
         },
       },
+      delete: {
+        tags: ['evals'],
+        summary: 'Cancel Agent Batch Run',
+        operationId:
+          'cancel_agent_batch_run_evals_agents__agent_id__batches__batch_run_id__delete',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+          {
+            name: 'batch_run_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Batch Run Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ScenarioBatchRun',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
     },
     '/api/v2/semantic-data-models/{semantic_data_model_id}': {
       put: {

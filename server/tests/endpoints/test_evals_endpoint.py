@@ -831,3 +831,48 @@ async def test_get_agent_batch_run_reports_statistics(client, storage, seed_agen
     assert eval_totals["flow_adherence"]["passed"] == 1
     assert eval_totals["response_accuracy"]["total"] == 1
     assert eval_totals["response_accuracy"]["passed"] == 0
+
+
+async def test_cancel_agent_batch_run_marks_trials_canceled(
+    client, storage, seed_agents, stub_user
+):
+    agent = seed_agents[0]
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Alpha")
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Beta")
+
+    batch_response = client.post(
+        f"/api/v2/evals/agents/{agent.agent_id}/batches",
+        json={"num_trials": 2},
+    )
+    assert batch_response.status_code == 200
+    batch = batch_response.json()
+
+    runs = await storage.list_scenario_runs_for_batch(batch["batch_run_id"])
+    assert runs
+
+    completed_run_trials = await storage.list_scenario_run_trials(runs[0].scenario_run_id)
+    for trial in completed_run_trials:
+        await storage.update_trial_status(
+            trial.trial_id,
+            stub_user.user_id,
+            TrialStatus.COMPLETED,
+        )
+
+    response = client.delete(
+        f"/api/v2/evals/agents/{agent.agent_id}/batches/{batch['batch_run_id']}"
+    )
+    assert response.status_code == 200
+    canceled_batch = response.json()
+
+    assert canceled_batch["status"] == "CANCELED"
+    stats = canceled_batch["statistics"]
+    assert stats["total_scenarios"] == len(runs)
+    assert stats["failed_scenarios"] == len(runs) - 1
+    assert stats["completed_scenarios"] == 1
+    assert stats["total_trials"] == len(runs) * 2
+    assert stats["completed_trials"] == len(completed_run_trials)
+
+    for index, run in enumerate(runs):
+        trials = await storage.list_scenario_run_trials(run.scenario_run_id)
+        expected_status = TrialStatus.COMPLETED if index == 0 else TrialStatus.CANCELED
+        assert all(trial.status == expected_status for trial in trials)

@@ -16,11 +16,12 @@ import {
   useLatestBatchRunQuery,
   useSuggestScenarioMutation,
   useCancelScenarioRunMutation,
+  useCancelBatchRunMutation,
   useExportScenariosMutation,
   useImportScenariosMutation,
   useUpdateScenarioMutation,
 } from '../../../../../queries/evals';
-import type { ScenarioBatchRun } from '../../../../../queries/evals';
+import type { ScenarioBatchRun, ScenarioBatchRunStatus } from '../../../../../queries/evals';
 import { useSparUIContext } from '../../../../../api/context';
 import { sortByCreatedAtDesc } from '../../../../../lib/utils';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
@@ -42,6 +43,8 @@ type EvaluationCriterionConfig =
   | components['schemas']['ActionCalling']
   | components['schemas']['FlowAdherence']
   | components['schemas']['ResponseAccuracy'];
+
+const TERMINAL_BATCH_STATUSES: ScenarioBatchRunStatus[] = ['COMPLETED', 'FAILED', 'CANCELED'];
 
 export const useEvalSidebarData = ({
   agentId,
@@ -66,6 +69,7 @@ export const useEvalSidebarData = ({
   const updateScenarioMutation = useUpdateScenarioMutation({});
   const suggestScenarioMutation = useSuggestScenarioMutation({});
   const cancelScenarioRunMutation = useCancelScenarioRunMutation({});
+  const cancelBatchRunMutation = useCancelBatchRunMutation({});
   const exportScenariosMutation = useExportScenariosMutation({});
   const importScenariosMutation = useImportScenariosMutation({});
   const { pollForCompletion } = usePollScenarioRun();
@@ -622,14 +626,12 @@ export const useEvalSidebarData = ({
       return;
     }
 
-    const targets = evaluations
-      .filter(({ isRunning, latestRun }) => isRunning && Boolean(latestRun?.scenario_run_id))
-      .map(({ scenario, latestRun }) => ({
-        scenarioId: scenario.scenario_id,
-        scenarioRunId: latestRun?.scenario_run_id as string,
-      }));
+    const activeBatchRun =
+      latestBatchRun && !TERMINAL_BATCH_STATUSES.includes(latestBatchRun.status) ? latestBatchRun : null;
 
-    if (targets.length === 0) {
+    setIsCancelingAll(true);
+
+    if (!activeBatchRun) {
       addSnackbar({
         message: 'No running tests to cancel',
         variant: 'danger',
@@ -637,35 +639,48 @@ export const useEvalSidebarData = ({
       return;
     }
 
-    setIsCancelingAll(true);
     try {
-      const results = await Promise.all(
-        targets.map(({ scenarioId, scenarioRunId }) =>
-          handleCancelScenarioRun(scenarioId, scenarioRunId, { suppressToast: true }),
-        ),
-      );
-      const successCount = results.filter(Boolean).length;
+      const canceledBatch = await cancelBatchRunMutation.mutateAsync({
+        agentId,
+        batchRunId: activeBatchRun.batch_run_id,
+      });
 
-      if (successCount === targets.length) {
-        addSnackbar({
-          message: 'Cancelled all running tests',
-          variant: 'success',
-        });
-      } else if (successCount === 0) {
-        addSnackbar({
-          message: 'Failed to cancel running tests',
-          variant: 'danger',
-        });
-      } else {
-        addSnackbar({
-          message: 'Some tests failed to cancel',
-          variant: 'danger',
-        });
-      }
+      setLastBatchSummary((prev) =>
+        buildBatchSummary(canceledBatch, prev?.batchRunId === canceledBatch.batch_run_id ? prev?.numTrials : undefined),
+      );
+      setBatchSummaryOutdated(false);
+      queryClient.setQueryData(['scenario-batch-run-latest', agentId], canceledBatch);
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['scenario-run'] }),
+        queryClient.invalidateQueries({ queryKey: ['scenario-run-latest'] }),
+        queryClient.invalidateQueries({ queryKey: ['scenario-runs'] }),
+      ]);
+
+      addSnackbar({
+        message: 'Batch run cancelled successfully',
+        variant: 'success',
+      });
+    } catch {
+      addSnackbar({
+        message: 'Failed to cancel running tests',
+        variant: 'danger',
+      });
     } finally {
       setIsCancelingAll(false);
     }
-  }, [evaluations, handleCancelScenarioRun, addSnackbar, isCancelingAll]);
+  }, [
+    evaluations,
+    addSnackbar,
+    isCancelingAll,
+    latestBatchRun,
+    cancelBatchRunMutation,
+    agentId,
+    setLastBatchSummary,
+    buildBatchSummary,
+    setBatchSummaryOutdated,
+    queryClient,
+  ]);
 
   return {
     // Data

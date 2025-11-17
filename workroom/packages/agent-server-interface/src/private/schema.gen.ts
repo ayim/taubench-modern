@@ -2664,7 +2664,8 @@ export interface paths {
     get: operations['get_agent_batch_run_evals_agents__agent_id__batches__batch_run_id__get'];
     put?: never;
     post?: never;
-    delete?: never;
+    /** Cancel Agent Batch Run */
+    delete: operations['cancel_agent_batch_run_evals_agents__agent_id__batches__batch_run_id__delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -17337,6 +17338,38 @@ export interface operations {
     };
   };
   get_agent_batch_run_evals_agents__agent_id__batches__batch_run_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+        batch_run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioBatchRun'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  cancel_agent_batch_run_evals_agents__agent_id__batches__batch_run_id__delete: {
     parameters: {
       query?: never;
       header?: never;

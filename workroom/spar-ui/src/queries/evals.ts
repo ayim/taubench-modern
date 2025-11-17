@@ -353,6 +353,33 @@ export const useCancelScenarioRunMutation = createSparMutation<
   },
 }));
 
+export const useCancelBatchRunMutation = createSparMutation<
+  Record<string, never>,
+  { agentId: string; batchRunId: string }
+>()(({ sparAPIClient, queryClient }) => ({
+  mutationFn: async ({ agentId, batchRunId }): Promise<ScenarioBatchRun> => {
+    const response = await sparAPIClient.queryAgentServer(
+      'delete',
+      '/api/v2/evals/agents/{agent_id}/batches/{batch_run_id}',
+      {
+        params: {
+          path: {
+            agent_id: agentId,
+            batch_run_id: batchRunId,
+          },
+        },
+      },
+    );
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.Evaluation });
+    }
+    return response.data as ScenarioBatchRun;
+  },
+  onSuccess: async (_data, { agentId }) => {
+    await queryClient.invalidateQueries({ queryKey: ['scenario-batch-run-latest', agentId] });
+  },
+}));
+
 export const useExportScenariosMutation = createSparMutation<Record<string, never>, { agentId: string }>()(
   ({ sparAPIClient }) => ({
     mutationFn: async ({ agentId }): Promise<{ blob: Blob; filename: string }> => {
