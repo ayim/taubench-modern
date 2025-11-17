@@ -1,5 +1,17 @@
 # @sema4ai/spar-ui
 
+## 0.5.0
+
+### Minor Changes
+
+- 2d4ab51: Added support for verified queries in the semantic data model.
+
+### Patch Changes
+
+- 7c262c5: ensuring more strict payload for observability integrations POST and PUT
+- ffa7cd2: Fix some bugs in eval polling, UI got stuck on "running" state
+- 81afbf3: Use a different endpoint to cancel eval batches
+
 ## 0.4.0
 
 ### Minor Changes
