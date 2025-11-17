@@ -239,9 +239,53 @@ export const useEvalSidebarData = ({
   }, [scenarios, latestRunsData, allRunsData, selectedRunIndices, historicalRunQueries, expandedResults]);
 
   const isAnyTestRunning = evaluations.some((evaluation) => evaluation.isRunning);
+  const runningScenarioIds = useMemo(
+    () => evaluations.filter((evaluation) => evaluation.isRunning).map(({ scenario }) => scenario.scenario_id),
+    [evaluations],
+  );
 
   // Track which scenarios we've auto-expanded to avoid expanding on every render
   const autoExpandedRef = useRef<Set<string>>(new Set());
+  const pollingScenarioIdsRef = useRef<Set<string>>(new Set());
+
+  const startScenarioPolling = useCallback(
+    (
+      scenarioId: string,
+      {
+        onSuccess,
+        scenarioName,
+      }: {
+        onSuccess?: (completedRun: ScenarioRun | null) => void;
+        scenarioName?: string;
+      } = {},
+    ) => {
+      if (pollingScenarioIdsRef.current.has(scenarioId)) {
+        return;
+      }
+
+      pollingScenarioIdsRef.current.add(scenarioId);
+
+      pollForCompletion(scenarioId)
+        .then((completedRun) => {
+          onSuccess?.(completedRun);
+        })
+        .catch((error) => {
+          queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', scenarioId] });
+          queryClient.invalidateQueries({ queryKey: ['scenario-runs', scenarioId] });
+          addSnackbar({
+            message:
+              error instanceof Error
+                ? error.message
+                : `Failed to refresh test status${scenarioName ? ` for "${scenarioName}"` : ''}`,
+            variant: 'danger',
+          });
+        })
+        .finally(() => {
+          pollingScenarioIdsRef.current.delete(scenarioId);
+        });
+    },
+    [pollForCompletion, queryClient, addSnackbar],
+  );
 
   // Auto-expand scenarios that are currently running (e.g., when user navigates back to sidebar)
   useEffect(() => {
@@ -258,6 +302,13 @@ export const useEvalSidebarData = ({
       });
     }
   }, [evaluations, loading, expandResults, expandedResults]);
+
+  // Ensure runs that are already executing keep polling even if user refreshes/navigates.
+  useEffect(() => {
+    runningScenarioIds.forEach((scenarioId) => {
+      startScenarioPolling(scenarioId);
+    });
+  }, [runningScenarioIds, startScenarioPolling]);
 
   const buildEvaluationCriteria = (data: CreateEvalFormData) => {
     const evaluationCriteria: EvaluationCriterionConfig[] = [];
@@ -425,7 +476,49 @@ export const useEvalSidebarData = ({
 
       expandResults(scenario.scenario_id);
 
-      monitorScenarioRun(scenario, runStartedAt);
+      startScenarioPolling(scenario.scenario_id, {
+        scenarioName: scenario.name,
+        onSuccess: (completedRun) => {
+          let trackedDurationMs: number | null = null;
+
+          const trials = completedRun?.trials ?? [];
+
+          if (trials.length > 0) {
+            const largestInterval = trials.reduce<number | null>((currentMax, trial) => {
+              const startedAt = trial.execution_state?.started_at;
+              const finishedAt = trial.execution_state?.finished_at;
+
+              if (!startedAt || !finishedAt) {
+                return currentMax;
+              }
+
+              const startTimestamp = new Date(startedAt).getTime();
+              const endTimestamp = new Date(finishedAt).getTime();
+
+              if (Number.isNaN(startTimestamp) || Number.isNaN(endTimestamp) || endTimestamp < startTimestamp) {
+                return currentMax;
+              }
+
+              const interval = endTimestamp - startTimestamp;
+              if (currentMax === null || interval > currentMax) {
+                return interval;
+              }
+              return currentMax;
+            }, null);
+
+            trackedDurationMs = largestInterval;
+          }
+
+          if (trackedDurationMs === null && runStartedAt !== null && typeof performance !== 'undefined') {
+            trackedDurationMs = Math.max(Math.round(performance.now() - runStartedAt), 0);
+          }
+
+          if (trackedDurationMs !== null) {
+            track(`evals_execution.duration`, trackedDurationMs.toString());
+          }
+          queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
+        },
+      });
     } catch {
       addSnackbar({
         message: `Failed to run test for "${scenario.name}"`,

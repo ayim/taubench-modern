@@ -52,8 +52,26 @@ export interface ScenarioBatchRun {
   completed_at?: string | null;
 }
 
-const MAX_POLLING_ATTEMPTS = 60;
 const POLLING_INTERVAL = 2000;
+const TERMINAL_TRIAL_STATUSES: Trial['status'][] = ['COMPLETED', 'ERROR', 'CANCELED'];
+
+const hasRunEvaluationsCompleted = (trial: Trial): boolean => {
+  const executionFinishedAt = trial.execution_state?.finished_at ?? null;
+  const statusUpdatedAt = trial.status_updated_at ?? trial.updated_at ?? null;
+
+  if (!executionFinishedAt || !statusUpdatedAt) {
+    return false;
+  }
+
+  const executionFinishedTimestamp = new Date(executionFinishedAt).getTime();
+  const statusUpdatedTimestamp = new Date(statusUpdatedAt).getTime();
+
+  if (Number.isNaN(executionFinishedTimestamp) || Number.isNaN(statusUpdatedTimestamp)) {
+    return false;
+  }
+
+  return statusUpdatedTimestamp >= executionFinishedTimestamp;
+};
 const TERMINAL_BATCH_STATUSES: ScenarioBatchRunStatus[] = ['COMPLETED', 'FAILED', 'CANCELED'];
 
 const getListScenariosQueryKey = ({ agentId, limit }: { agentId: string; limit?: number }) => [
@@ -421,13 +439,6 @@ export const usePollScenarioRun = () => {
   const pollForCompletion = useCallback(
     async (scenarioId: string): Promise<ScenarioRun | null> => {
       const poll = async (attempt: number): Promise<ScenarioRun | null> => {
-        if (attempt >= MAX_POLLING_ATTEMPTS) {
-          throw new QueryError('Trial execution timed out after 60 seconds', {
-            code: 'too_many_requests',
-            resource: ResourceType.Evaluation,
-          });
-        }
-
         if (attempt > 0) {
           await new Promise<void>((resolve) => {
             setTimeout(() => resolve(), POLLING_INTERVAL);
@@ -446,18 +457,21 @@ export const usePollScenarioRun = () => {
           if (response.success) {
             queryClient.setQueryData(['scenario-run-latest', scenarioId], response.data);
 
-            const allTrialsComplete =
-              response.data.trials?.every((trial) => trial.status === 'COMPLETED' || trial.status === 'ERROR') ?? false;
+            const trials = response.data.trials ?? [];
+            const hasTrials = trials.length > 0;
 
-            const completedTrialsHaveResults =
-              response.data.trials?.every((trial) => {
-                if (trial.status !== 'COMPLETED' && trial.status !== 'ERROR') return true; // Skip non terminal states
-                return trial.evaluation_results && trial.evaluation_results.length > 0;
-              }) ?? false;
+            const allTrialsComplete = hasTrials
+              ? trials.every((trial) => TERMINAL_TRIAL_STATUSES.includes(trial.status))
+              : false;
 
-            if (allTrialsComplete && completedTrialsHaveResults) {
+            const allTrialsEvaluated = hasTrials ? trials.every((trial) => hasRunEvaluationsCompleted(trial)) : false;
+
+            const allTrialsCanceled = hasTrials ? trials.every((trial) => trial.status === 'CANCELED') : false;
+
+            if (allTrialsComplete && (allTrialsEvaluated || allTrialsCanceled)) {
               await queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', scenarioId] });
               await queryClient.invalidateQueries({ queryKey: ['scenario-runs', scenarioId] });
+
               return response.data;
             }
           }
@@ -483,13 +497,6 @@ export const usePollBatchRun = () => {
   const pollBatchRun = useCallback(
     async ({ agentId, batchRunId }: { agentId: string; batchRunId: string }): Promise<ScenarioBatchRun | null> => {
       const poll = async (attempt: number): Promise<ScenarioBatchRun | null> => {
-        if (attempt >= MAX_POLLING_ATTEMPTS) {
-          throw new QueryError('Batch execution timed out after 60 seconds', {
-            code: 'too_many_requests',
-            resource: ResourceType.Evaluation,
-          });
-        }
-
         if (attempt > 0) {
           await new Promise<void>((resolve) => {
             setTimeout(() => resolve(), POLLING_INTERVAL);

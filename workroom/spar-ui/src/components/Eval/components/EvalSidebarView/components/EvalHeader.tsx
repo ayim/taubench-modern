@@ -121,24 +121,22 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
         gap="$12"
         flexWrap="wrap"
       >
-        {!hasMessages ? (
-          <>
-            <Box
-              backgroundColor="background.notification.light"
-              padding="$20"
-              borderRadius="$12"
-              display="flex"
-              alignItems="center"
-              gap="$8"
-            >
-              <IconLightBulb size={24} />
-              <Typography variant="body-medium">Talk to your agent to be able to add an evaluation.</Typography>
-            </Box>
+        {!hasMessages && (
+          <Box
+            backgroundColor="background.notification.light"
+            padding="$20"
+            borderRadius="$12"
+            display="flex"
+            alignItems="center"
+            gap="$8"
+          >
+            <IconLightBulb size={24} />
+            <Typography variant="body-medium">Talk to your agent to be able to add an evaluation.</Typography>
+          </Box>
+        )}
 
-            {evaluationActionsMenu}
-          </>
-        ) : (
-          <Box display="flex" alignItems="center" gap="$8">
+        <Box display="flex" alignItems="center" gap="$8">
+          {hasMessages && (
             <Button
               variant="outline"
               round
@@ -154,28 +152,28 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
               )}
               {isFetchingSuggestion && 'Generating Evaluation...'}
             </Button>
+          )}
 
-            {hasEvaluations && (
-              <Box display="flex" flexDirection="row" gap="$4" flexWrap="wrap" alignItems="center">
-                <Button
-                  icon={IconSendSmall}
-                  variant="primary"
-                  disabled={isAnyTestRunning}
-                  onClick={() => onRunAll(selectedTrialsForAll)}
-                >
-                  {selectedTrialsForAll === 1 ? 'Run All Tests' : `Run All Tests (${selectedTrialsForAll}x)`}
+          {hasEvaluations && (
+            <Box display="flex" flexDirection="row" gap="$4" flexWrap="wrap" alignItems="center">
+              <Button
+                icon={IconSendSmall}
+                variant="primary"
+                disabled={isAnyTestRunning}
+                onClick={() => onRunAll(selectedTrialsForAll)}
+              >
+                {selectedTrialsForAll === 1 ? 'Run All Tests' : `Run All Tests (${selectedTrialsForAll}x)`}
+              </Button>
+              {isAnyTestRunning && (
+                <Button variant="secondary" onClick={onCancelAll} disabled={isCancelingAll} loading={isCancelingAll}>
+                  Cancel All
                 </Button>
-                {isAnyTestRunning && (
-                  <Button variant="secondary" onClick={onCancelAll} disabled={isCancelingAll} loading={isCancelingAll}>
-                    Cancel All
-                  </Button>
-                )}
-              </Box>
-            )}
+              )}
+            </Box>
+          )}
 
-            {evaluationActionsMenu}
-          </Box>
-        )}
+          {evaluationActionsMenu}
+        </Box>
       </Box>
       {hasSummary && (
         <Box display="flex" flexDirection="column" gap="$4">
