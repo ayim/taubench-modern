@@ -26,7 +26,8 @@ class LiteLLMPlatformParameters(PlatformParameters):
     litellm_base_url: str | None = field(
         default=None,
         metadata={
-            "description": "Optional override for the LiteLLM base URL (defaults to https://api.litellm.ai/v1).",
+            "description": "Optional override for the LiteLLM base URL "
+            "(defaults to https://llm.backend.sema4.ai).",
         },
     )
 
@@ -49,7 +50,7 @@ class LiteLLMPlatformParameters(PlatformParameters):
                 raise ValueError("LITELLM_API_KEY environment variable is required")
 
         if not self.litellm_base_url:
-            base_url = getenv("LITELLM_BASE_URL", "https://api.litellm.ai/v1")
+            base_url = getenv("LITELLM_BASE_URL", "https://llm.backend.sema4.ai")
             object.__setattr__(self, "litellm_base_url", base_url)
 
     def model_dump(self, *, exclude_none: bool = True) -> dict:

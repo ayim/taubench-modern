@@ -41,7 +41,7 @@ class TestLiteLLMPlatformParameters:
         monkeypatch.delenv("LITELLM_BASE_URL", raising=False)
 
         params = LiteLLMPlatformParameters()
-        assert params.litellm_base_url == "https://api.litellm.ai/v1"
+        assert params.litellm_base_url == "https://llm.backend.sema4.ai"
 
     def test_model_dump_serializes_secret_values(self) -> None:
         """Check that model_dump unwraps the SecretString and preserves the base URL."""

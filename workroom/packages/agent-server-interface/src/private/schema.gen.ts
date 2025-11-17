@@ -5213,7 +5213,7 @@ export interface components {
       litellm_api_key?: components['schemas']['SecretString'] | null;
       /**
        * Litellm Base Url
-       * @description Optional override for the LiteLLM base URL (defaults to https://api.litellm.ai/v1).
+       * @description Optional override for the LiteLLM base URL (defaults to https://llm.backend.sema4.ai).
        */
       litellm_base_url?: string | null;
     };
@@ -9348,7 +9348,7 @@ export interface components {
      *         "google": "google/google/gemini-2-5-pro",
      *         "groq": "groq/openai/gpt-oss-120b",
      *         "reducto": "reducto/reducto/reducto-standard-parse",
-     *         "litellm": "litellm/openai/gpt-5"
+     *         "litellm": "litellm/openai/gpt-5-low"
      *       },
      *       "platforms_to_default_embedding_model": {
      *         "azure": "azure/openai/text-embedding-3-small",
@@ -9995,7 +9995,7 @@ export interface components {
      *         "google": "google/google/gemini-2-5-pro",
      *         "groq": "groq/openai/gpt-oss-120b",
      *         "reducto": "reducto/reducto/reducto-standard-parse",
-     *         "litellm": "litellm/openai/gpt-5"
+     *         "litellm": "litellm/openai/gpt-5-low"
      *       },
      *       "platforms_to_default_embedding_model": {
      *         "azure": "azure/openai/text-embedding-3-small",
