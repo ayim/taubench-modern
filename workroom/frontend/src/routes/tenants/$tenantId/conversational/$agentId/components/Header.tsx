@@ -31,6 +31,8 @@ export const Header = () => {
 
   const handleEvaluationsClick = () => {
     track(`evals_panel.navigate_to_view`);
+    // Save preference to keep eval panel open across navigation
+    localStorage.setItem(`eval-panel-open-${agentId}`, 'true');
   };
 
   if (isLoading || !agent) {
