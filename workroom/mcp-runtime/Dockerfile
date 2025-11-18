@@ -69,13 +69,8 @@ ENV SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR=/home/${USERNAME}/data
 ENV SEMA4AI_MCP_RUNTIME_MAXIMUM_PACKAGE_SIZE="50mb"
 
 RUN useradd -m ${USERNAME} \
-    && mkdir -p \
-        ${SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR}/sema4ai \
-        /app \
-    && chown -R ${USERNAME}:${USERNAME} \
-        ${SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR} \
-        /app \
-    && ln -s ${SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR}/sema4ai /home/${USERNAME}/.sema4ai
+    && mkdir -p /app \
+    && chown -R ${USERNAME}:${USERNAME} /app
 
 USER ${USERNAME}
 WORKDIR /app

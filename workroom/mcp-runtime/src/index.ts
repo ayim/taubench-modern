@@ -1,5 +1,7 @@
-import express from 'express';
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { Socket } from 'node:net';
+import express from 'express';
 import { createOpenApiExpressMiddleware } from 'trpc-to-openapi';
 import z from 'zod';
 import { getConfiguration } from './configuration.ts';
@@ -12,6 +14,10 @@ const run = async () => {
   const db = await runMigrationsAndGetDatabaseClient(configuration);
   const runner = createActionDeployer({ configuration, db });
   await runner.rehydrateDeployments();
+
+  await mkdir(join(configuration.persistentDataDirectory, 'sema4ai'), {
+    recursive: true,
+  });
 
   const app = express();
 
