@@ -1,6 +1,7 @@
 import { exec, spawn, type ChildProcess } from 'node:child_process';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, rm, writeFile, readdir } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { homedir } from 'node:os';
 import z from 'zod';
 import type { Deployment } from '../types.ts';
 import { Mutex } from '../util/mutex.ts';
@@ -75,8 +76,7 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
   };
 
   const getActionServerDataDir = async ({ deploymentId }: { deploymentId: string }) => {
-    const deploymentDir = await getDeploymentDir({ deploymentId });
-    const actionServerDataDir = join(deploymentDir, 'datadir');
+    const actionServerDataDir = join(homedir(), 'as-runtime-data', deploymentId);
     await mkdir(actionServerDataDir, { recursive: true });
     return actionServerDataDir;
   };
@@ -117,6 +117,8 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
         };
       }
 
+      console.log(`[${deploymentId}] Introspecting Agent Package`);
+
       const introspectionResult = await (async (): AsyncResult<IntrospectionResult> => {
         try {
           const agentCliOutput = await execAsync(`agent-cli package metadata --package "${agentPackageZipPath}"`);
@@ -150,10 +152,12 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
       }
 
       const actionServerDataDir = await getActionServerDataDir({ deploymentId });
+
       const agentPackageMetadata = introspectionResult.data;
       for (const actionPackage of agentPackageMetadata[0].action_packages) {
         const { path, whitelist } = actionPackage;
         try {
+          console.log(`[${deploymentId}] Importing deployment to Action Server`);
           await execAsync(
             `action-server import --verbose --dir="${agentOutputDir}/actions/${path}" --datadir="${actionServerDataDir}" --whitelist="${whitelist}"`,
           );
@@ -197,6 +201,14 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
     }
 
     const actionServerDataDir = await getActionServerDataDir({ deploymentId });
+    const isEmpty = (await readdir(actionServerDataDir)).length === 0;
+
+    if (isEmpty) {
+      console.log(`[${deploymentId}] Action Server runtime data directory is empty, preparing environment`);
+      await prepareEnvironment({ deploymentId, agentPackageZipPath: await getAgentZipPath({ deploymentId }) });
+    } else {
+      console.log(`[${deploymentId}] Action Server runtime data directory is not empty, skipping environment preparation`);
+    }
 
     const actionServer = spawn(
       '/usr/local/bin/action-server',
@@ -489,6 +501,22 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
       };
     }
 
+    const actionServerDataDir = await getActionServerDataDir({ deploymentId });
+    try {
+      await rm(actionServerDataDir, {
+        recursive: true,
+        force: true,
+      });
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: 'failed_to_delete_action_server_data',
+          message: `Failed to destroy deployment ${deploymentId} - removing action serverdata failed`,
+        },
+      };
+    }
+
     return {
       success: true,
       data: {
@@ -510,11 +538,17 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
         continue;
       }
       console.log(`Rehydrating deployment ${deployment.id}`);
-      await runServer({
-        deploymentId: deployment.id,
-        port: deployment.port,
-        waitForServer: true,
-      });
+      try {
+        await runServer({
+          deploymentId: deployment.id,
+          port: deployment.port,
+          waitForServer: true,
+        });
+      } catch (error) {
+        console.error(`Failed to rehydrate deployment ${deployment.id}`, error);
+        // TODO: Delete this deployment?
+        continue;
+      }
     }
   };
 
