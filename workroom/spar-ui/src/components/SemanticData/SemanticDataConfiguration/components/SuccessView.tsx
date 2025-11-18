@@ -5,6 +5,10 @@ import { styled } from '@sema4ai/theme';
 import { ConfigurationStep, ConfigurationStepView } from './form';
 import { ModelScore } from './ModelEdition/components/ModelScore';
 
+type Props = {
+  modelName?: string;
+};
+
 const SuccessIcon = styled(Box)`
   width: 48px;
   height: 48px;
@@ -15,7 +19,7 @@ const SuccessIcon = styled(Box)`
   align-items: center;
 `;
 
-export const SuccessView: ConfigurationStepView = ({ onClose, setActiveStep }) => {
+export const SuccessView: ConfigurationStepView<Props> = ({ onClose, modelName, setActiveStep }) => {
   const onModelReview = () => {
     setActiveStep(ConfigurationStep.ModelEdition);
   };
@@ -29,8 +33,7 @@ export const SuccessView: ConfigurationStepView = ({ onClose, setActiveStep }) =
         Data Model Created
       </Typography>
       <Typography variant="body-medium-loose" color="content.subtle" mb="$24" textAlign="center">
-        Call Center Data model is ready to be used with an agent! You can always come back to edit it for more
-        precision.
+        {`${modelName ? `"${modelName}"` : 'Your'} model is ready to be used with an agent! You can always come back to edit it for more precision.`}
       </Typography>
       <Box display="flex" width="100%" maxWidth={360} mb="$32">
         <ModelScore>

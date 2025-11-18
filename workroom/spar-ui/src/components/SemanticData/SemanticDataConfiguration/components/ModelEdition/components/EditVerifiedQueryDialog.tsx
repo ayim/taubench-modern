@@ -1,6 +1,7 @@
 import { FC, useState, useCallback, useEffect } from 'react';
 import { Button, Dialog, Link } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
+import { useDeleteConfirm } from '@sema4ai/layouts';
 
 import { DataConnectionFormSchema } from '../../form';
 import { VerifiedQuery, useVerifyVerifiedQueryMutation, SemanticModel } from '../../../../../../queries/semanticData';
@@ -25,6 +26,14 @@ const filterErrors = (
 
 export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, query, modelId }) => {
   const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
+  const onDeleteConfirm = useDeleteConfirm(
+    {
+      entityName: query?.name,
+      entityType: 'verified query',
+    },
+    [],
+  );
+
   const isEditMode = queryIndex !== undefined && query !== undefined;
   const [formData, setFormData] = useState<FormData>({
     name: query?.name || '',
@@ -140,13 +149,19 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
     [],
   );
 
+  const handleDelete = onDeleteConfirm(() => {
+    const updatedQueries = verifiedQueries.filter((_, i) => i !== queryIndex);
+    setValue('verifiedQueries', updatedQueries);
+    onClose();
+  });
+
   return (
     <Dialog open={open} onClose={handleClose} size="x-large">
       <Dialog.Header>
         <Dialog.Header.Title title={isEditMode ? 'Edit Verified Query' : 'Create Verified Query'} />
         <Dialog.Header.Description>
           Verified queries let you save and reuse queries that you&apos;ve confirmed to be accurate.{' '}
-          <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+          <Link href={EXTERNAL_LINKS.NAMED_QUERIES} target="_blank">
             Learn more
           </Link>
         </Dialog.Header.Description>
@@ -175,6 +190,11 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
         <Button variant="secondary" onClick={handleClose} round>
           Cancel
         </Button>
+        {isEditMode && (
+          <Button variant="secondary" onClick={handleDelete} align="secondary" round>
+            Delete
+          </Button>
+        )}
       </Dialog.Actions>
     </Dialog>
   );

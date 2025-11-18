@@ -1,8 +1,17 @@
 import { FC, useState, useMemo } from 'react';
-import { Box, Button, Menu, Table, TableRowProps, Typography } from '@sema4ai/components';
-import { IconDotsHorizontal, IconPencil, IconTrash } from '@sema4ai/icons';
+import { Box, Button, EmptyState, Input, Link, Menu, Table, TableRowProps, Typography } from '@sema4ai/components';
+import {
+  IconArrowUpRight,
+  IconDotsHorizontal,
+  IconInformation,
+  IconPencil,
+  IconPlus,
+  IconSearch,
+  IconTrash,
+} from '@sema4ai/icons';
 import { useFormContext } from 'react-hook-form';
 
+import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 import { DataConnectionFormSchema } from '../../form';
 import { VerifiedQuery } from '../../../../../../queries/semanticData';
 import { EditVerifiedQueryDialog } from './EditVerifiedQueryDialog';
@@ -85,7 +94,7 @@ const VerifiedQueriesTableRow: FC<TableRowProps<VerifiedQueryRowData, RowProps>>
   };
 
   return (
-    <Table.Row>
+    <Table.Row onClick={props.onEdit ? () => props.onEdit(rowData.originalIndex) : undefined}>
       {['name', 'description', 'created', 'actions'].map((id) => {
         const CellElement = cellComponents[id];
         if (CellElement) {
@@ -98,11 +107,12 @@ const VerifiedQueriesTableRow: FC<TableRowProps<VerifiedQueryRowData, RowProps>>
 };
 
 type Props = {
-  searchQuery: string;
   modelId: string;
 };
 
-export const VerifiedQueriesTable: FC<Props> = ({ searchQuery, modelId }) => {
+export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
+  const [searchQuery, setVerifiedQueriesSearch] = useState('');
+  const [isCreateQueryDialogOpen, setIsCreateQueryDialogOpen] = useState(false);
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const verifiedQueries = watch('verifiedQueries') || [];
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -187,34 +197,77 @@ export const VerifiedQueriesTable: FC<Props> = ({ searchQuery, modelId }) => {
 
   return (
     <>
-      <Box display="flex" flexDirection="column" gap="$16">
-        {tableData.length === 0 ? (
-          <Box display="flex" justifyContent="center" py="$32">
-            <Typography variant="body-medium" color="content.subtle">
-              {searchQuery
-                ? 'No verified queries match your search.'
-                : 'No verified queries available. Create verified queries from data frames to see them here.'}
-            </Typography>
-          </Box>
-        ) : (
-          <Table
-            columns={columns}
-            data={tableData}
-            row={VerifiedQueriesTableRow}
-            rowProps={{
-              onEdit: handleEdit,
-              onDelete: handleDelete,
-            }}
-            keyId={(row) => `${row.name}-${row.originalIndex}`}
+      {tableData.length === 0 && (
+        <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+          <EmptyState
+            title="Verified Queries"
+            description="Create verified queries that allow your agents to securely retrieve specific, optimized data from your enterprise databases. Create them here, from data frames or directly through chat when requesting data."
+            action={
+              <Button variant="primary" icon={IconPlus} round onClick={() => setIsCreateQueryDialogOpen(true)}>
+                Create
+              </Button>
+            }
+            secondaryAction={
+              <Link
+                icon={IconInformation}
+                iconAfter={IconArrowUpRight}
+                href={EXTERNAL_LINKS.NAMED_QUERIES}
+                target="_blank"
+                rel="noopener"
+                variant="primary"
+                fontWeight="medium"
+              >
+                Learn More
+              </Link>
+            }
           />
-        )}
-      </Box>
+        </Box>
+      )}
+      {tableData.length > 0 && (
+        <>
+          <Box display="flex" flexDirection="column" gap="$16">
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Button variant="secondary" icon={IconPlus} round onClick={() => setIsCreateQueryDialogOpen(true)}>
+                Verified Query
+              </Button>
+              <Input
+                placeholder="Search"
+                iconLeft={IconSearch}
+                value={searchQuery}
+                onChange={(e) => setVerifiedQueriesSearch(e.target.value)}
+                aria-label="Search verified queries"
+                style={{ maxWidth: '300px' }}
+                round
+              />
+            </Box>
+          </Box>
+          <Box display="flex" flexDirection="column" gap="$16">
+            <Table
+              columns={columns}
+              data={tableData}
+              row={VerifiedQueriesTableRow}
+              rowProps={{
+                onEdit: handleEdit,
+                onDelete: handleDelete,
+              }}
+              keyId={(row) => `${row.name}-${row.originalIndex}`}
+            />
+          </Box>
+        </>
+      )}
       {editingQuery && (
         <EditVerifiedQueryDialog
           open
           onClose={handleCloseDialog}
           queryIndex={editingQueryIndex}
           query={editingQuery}
+          modelId={modelId}
+        />
+      )}
+      {isCreateQueryDialogOpen && (
+        <EditVerifiedQueryDialog
+          open={isCreateQueryDialogOpen}
+          onClose={() => setIsCreateQueryDialogOpen(false)}
           modelId={modelId}
         />
       )}

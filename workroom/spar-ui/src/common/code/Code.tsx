@@ -4,6 +4,7 @@ import { styled } from '@sema4ai/theme';
 
 import { json } from '@codemirror/lang-json';
 import { python } from '@codemirror/lang-python';
+import { sql } from '@codemirror/lang-sql';
 
 export const SUPPORTED_CODE_MODES = ['python', 'json'] as const;
 
@@ -26,6 +27,9 @@ export const Code: FC<CodeProps> = ({ lang = 'raw', ...restProps }) => {
         break;
       case 'json':
         extensionList.push(json());
+        break;
+      case 'sql':
+        extensionList.push(sql());
         break;
       default:
         break;

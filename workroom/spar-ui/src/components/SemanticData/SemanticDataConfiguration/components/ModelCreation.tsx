@@ -32,7 +32,7 @@ export const ModelCreation: ConfigurationStepView = ({ onClose }) => {
           placeholder="Paste or write here anything that helps us understand the business context of your data."
         />
 
-        <Typography my="$16">Select data</Typography>
+        <Typography my="$16">Selected data</Typography>
         <DataSelector data={[]} />
       </Dialog.Content>
 

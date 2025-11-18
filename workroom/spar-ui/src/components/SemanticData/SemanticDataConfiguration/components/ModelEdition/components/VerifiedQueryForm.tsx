@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, FC } from 'react';
-import { Box, Input, Typography, Code, Button, Banner, useClipboard, useDebounce } from '@sema4ai/components';
-import { IconCopy, IconInformation } from '@sema4ai/icons';
+import { Box, Input, Typography, Banner, useDebounce } from '@sema4ai/components';
+import { IconInformation } from '@sema4ai/icons';
+import { Code } from '../../../../../../common/code';
 
 import { VerifiedQuery, SemanticModel, useVerifyVerifiedQueryMutation } from '../../../../../../queries/semanticData';
 
@@ -49,7 +50,6 @@ export const VerifiedQueryForm: FC<Props> = ({
   const [editedName, setEditedName] = useState(initialQuery?.name || '');
   const [editedNlq, setEditedNlq] = useState(initialQuery?.nlq || '');
   const [editedSql, setEditedSql] = useState(initialQuery?.sql || '');
-  const { copyToClipboard } = useClipboard();
   const initialValuesRef = useRef<{ name: string; nlq: string; sql: string } | null>(null);
   const previousInitialQueryRef = useRef<string>('');
 
@@ -145,14 +145,6 @@ export const VerifiedQueryForm: FC<Props> = ({
     );
   }, [editedName, editedNlq, editedSql, isNonEmpty, onFormDataChange]);
 
-  const handleCopyQuery = useCallback(() => {
-    copyToClipboard(editedSql);
-  }, [copyToClipboard, editedSql]);
-
-  const handleSqlChange = useCallback((value: string) => {
-    setEditedSql(value);
-  }, []);
-
   const errors = externalErrors || {};
 
   const renderErrors = useCallback(
@@ -213,21 +205,8 @@ export const VerifiedQueryForm: FC<Props> = ({
           <Typography variant="body-medium" fontWeight="medium">
             Query
           </Typography>
-          <Box display="flex" alignItems="center" gap="$4">
-            <Typography variant="body-small" color="content.subtle">
-              SQL
-            </Typography>
-            <Button
-              variant="ghost-subtle"
-              size="small"
-              icon={IconCopy}
-              onClick={handleCopyQuery}
-              aria-label="Copy query"
-              round
-            />
-          </Box>
         </Box>
-        <Code value={editedSql} onChange={handleSqlChange} lang="raw" aria-label="SQL Query" />
+        <Code value={editedSql} onChange={setEditedSql} title="SQL" rows={12} lang="sql" aria-label="SQL Query" />
         {renderErrors(errors.sql_errors, 'all')}
       </Box>
     </Box>

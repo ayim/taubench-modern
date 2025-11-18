@@ -38,7 +38,7 @@ export const DataConnection: ConfigurationStepView<Props> = ({
         </Typography>
         <Typography variant="body-large" color="content.subtle" mb="$40">
           Choose whether to link a database, upload files, or import an existing data model. We&apos;ll create a data
-          model that provides structure and context, helping your agent accurately interpret and work with your data..{' '}
+          model that provides structure and context, helping your agent accurately interpret and work with your data.{' '}
           <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
             Learn more
           </Link>

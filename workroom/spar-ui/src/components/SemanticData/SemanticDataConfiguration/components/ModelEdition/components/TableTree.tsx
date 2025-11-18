@@ -10,6 +10,7 @@ import { InputControlled } from '../../../../../../common/form/InputControlled';
 import { useSemanticDataValidationQuery } from '../../../../../../queries';
 import { TableTreeItem } from './TableTreeItem';
 import { snakeCaseToCamelCase } from '../../../../../../common/helpers';
+import { getTableDimensions } from '../../../../../../lib/SemanticDataModels';
 
 type Props = {
   modelId: string;
@@ -67,6 +68,12 @@ export const TableTree: FC<Props> = ({ modelId }) => {
   return (
     <TreeList columns={columns} withActions>
       {tables.map((table, tableIndex) => {
+        const tableDimensions = getTableDimensions(table);
+
+        if (tableDimensions.length === 0) {
+          return null;
+        }
+
         return (
           <TreeList.Item
             key={table.name}

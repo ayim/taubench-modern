@@ -12,7 +12,7 @@ interface AssemblyInfoDialogProps {
 
 export const AssemblyInfoDialog: FC<AssemblyInfoDialogProps> = ({ open, onClose, dataFrameName, assemblyInfo }) => {
   return (
-    <Dialog open={open} onClose={onClose} size="x-large">
+    <Dialog open={open} onClose={onClose} width={800}>
       <Dialog.Header>
         <Typography fontSize="$20" fontWeight="bold">
           Assembly Info: {dataFrameName}

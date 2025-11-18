@@ -258,7 +258,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
                   <ModelEdition onClose={onClose} setActiveStep={setActiveStep} modelId={modelId} />
                 )}
                 {activeStep === ConfigurationStep.Success && (
-                  <SuccessView onClose={onClose} setActiveStep={setActiveStep} />
+                  <SuccessView onClose={onClose} setActiveStep={setActiveStep} modelName={semanticModel?.name} />
                 )}
               </>
             )}
