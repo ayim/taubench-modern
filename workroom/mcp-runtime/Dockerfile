@@ -1,7 +1,12 @@
+#
+# This container is built with hardcoded linux/amd64 action-server and agent-cli inside,
+# therefore the image is also forced to linux/amd64 using the --platform flag.
+#
+
 ARG NODEJS_BASE_IMAGE="node:24.10.0-bookworm-slim@sha256:c0eadb278e6b0b608681b359291592692979133567710eaa703d6f989f33c6c1"
 
 ####################################################################################################
-FROM ${NODEJS_BASE_IMAGE} AS pruner
+FROM --platform=linux/amd64 ${NODEJS_BASE_IMAGE} AS pruner
 
 WORKDIR /build
 
@@ -12,7 +17,7 @@ RUN turbo_version="$(node -p 'require("./package.json").devDependencies.turbo')"
     ;
 
 ####################################################################################################
-FROM ${NODEJS_BASE_IMAGE} AS builder
+FROM --platform=linux/amd64 ${NODEJS_BASE_IMAGE} AS builder
 
 WORKDIR /build
 
@@ -26,7 +31,7 @@ RUN npx turbo build --filter=@sema4ai/mcp-runtime \
     && npm prune --omit=dev
 
 ####################################################################################################
-FROM ${NODEJS_BASE_IMAGE}
+FROM --platform=linux/amd64 ${NODEJS_BASE_IMAGE}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
