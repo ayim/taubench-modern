@@ -15,6 +15,7 @@ from agent_platform.server.work_items import rest
 from agent_platform.server.work_items.rest import (
     AgentWorkItemsSummaryResponse,
     WorkItemsListResponse,
+    WorkItemTaskStatusResponse,
 )
 
 router = APIRouter()
@@ -62,6 +63,18 @@ async def create_work_item(
 ) -> WorkItem:
     """Creates a new work item."""
     return await rest.create_work_item(payload, user, storage, _)
+
+
+# Report work item status endpoint (must be before /{work_item_id} to avoid route collision)
+@router.get("/status")
+async def report_work_item_status(
+    user: AuthedUser,  # for side-effect.
+) -> WorkItemTaskStatusResponse:
+    """
+    Report the status of all work items from the WorkItemsService. If the WorkItemsService
+    does not support status, the inner status array will be null.
+    """
+    return await rest.report_work_item_status()
 
 
 # Get work item endpoint

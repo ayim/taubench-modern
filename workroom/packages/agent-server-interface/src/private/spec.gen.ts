@@ -6368,6 +6368,27 @@ export const spec = {
         },
       },
     },
+    '/api/v2/work-items/status': {
+      get: {
+        tags: ['work-items'],
+        summary: 'Report Work Item Status',
+        description:
+          'Report the status of all work items from the WorkItemsService. If the WorkItemsService\ndoes not support status, the inner status array will be null.',
+        operationId: 'report_work_item_status_work_items_status_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/WorkItemTaskStatusResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/work-items/{work_item_id}': {
       get: {
         tags: ['work-items'],
@@ -21327,6 +21348,61 @@ export const spec = {
         enum: ['SYSTEM', 'AGENT', 'HUMAN'],
         title: 'WorkItemStatusUpdatedBy',
         description: 'The user who last updated the work item status.',
+      },
+      WorkItemTaskStatusResponse: {
+        properties: {
+          status: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/WorkItemTaskStatusResponseItem',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Status',
+            description:
+              'The list of statuses of all tasks executing work items. If the WorkItemsService does not support status reporting, the list will be null.',
+          },
+        },
+        type: 'object',
+        title: 'WorkItemTaskStatusResponse',
+        description: 'Response model for work item task status.',
+      },
+      WorkItemTaskStatusResponseItem: {
+        properties: {
+          task_id: {
+            type: 'integer',
+            title: 'Task Id',
+            description: 'The unique ID of the task executing a work item.',
+          },
+          status: {
+            type: 'string',
+            enum: ['idle', 'executing'],
+            title: 'Status',
+            description: 'The status of the task executing a work item.',
+          },
+          work_item_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Id',
+            description:
+              'The ID of the work item being executed by the task, null if the task is idle.',
+          },
+        },
+        type: 'object',
+        required: ['task_id', 'status'],
+        title: 'WorkItemTaskStatusResponseItem',
+        description: 'Status of task executing a work item.',
       },
       WorkItemsListResponse: {
         properties: {

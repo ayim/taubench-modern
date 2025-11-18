@@ -16,6 +16,7 @@ from agent_platform.core.configurations.quotas import QuotasService
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
 from agent_platform.server.storage import BaseStorage, StorageService
 from agent_platform.server.work_items.executor import WorkItemExecutor
+from agent_platform.server.work_items.service import WorkItemTaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +45,14 @@ class SlotManager:
         """Return the number of slots that are currently idle."""
         return sum(1 for slot in self.slots.values() if slot.status == "idle")
 
-    def get_slot_status(self) -> list[dict]:
+    def get_slot_status(self) -> list[WorkItemTaskStatus]:
         """Return current status of all slots for internal API."""
         return [
-            {
-                "slot_id": slot.slot_id,
-                "status": slot.status,
-                "work_item_id": slot.work_item_id,
-            }
+            WorkItemTaskStatus(
+                task_id=slot.slot_id,
+                status=slot.status,
+                work_item_id=slot.work_item_id,
+            )
             for slot in self.slots.values()
         ]
 
@@ -93,14 +94,7 @@ class SlotExecutor:
             self._quotas = await QuotasService.get_instance()
         return self._quotas
 
-    def get_slot_status(self) -> list[dict]:
-        """
-        Get the current status of all execution slots.
-
-        Returns:
-            List of slot status dictionaries if slot-based mode is active, None otherwise.
-            Each dict contains: slot_id, status ("idle" or "executing"), and work_item_id.
-        """
+    def get_slot_status(self) -> list[WorkItemTaskStatus]:
         return self.slot_manager.get_slot_status()
 
     def _get_slot_tasks(self) -> list[tuple[asyncio.Task, int]]:
@@ -420,7 +414,7 @@ class SlotExecutor:
 
             await asyncio.wait_for(slot_state.task, timeout=work_item_timeout)
 
-            logger.info(f"Slot {slot_id} completed work item {item.work_item_id} successfully")
+            logger.info(f"Slot {slot_id} completed work item {item.work_item_id} normally")
 
         except TimeoutError:
             # Work item timed out

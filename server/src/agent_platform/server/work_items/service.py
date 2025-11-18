@@ -24,7 +24,7 @@ from agent_platform.core.work_items import (
     WorkItemCompletedBy,
     WorkItemStatus,
 )
-from agent_platform.core.work_items.work_item import WorkItemStatusUpdatedBy
+from agent_platform.core.work_items.work_item import WorkItemStatusUpdatedBy, WorkItemTaskStatus
 from agent_platform.server.log_config import get_work_items_transaction_logger
 from agent_platform.server.storage import StorageService
 from agent_platform.server.work_items.batch_executor import BatchExecutor
@@ -76,13 +76,12 @@ class WorkItemsService:
             cls._instance = WorkItemsService(execution_mode)  # type: ignore[arg-type]
         return cls._instance
 
-    def get_slot_status(self) -> list[dict] | None:
+    def get_slot_status(self) -> list[WorkItemTaskStatus] | None:
         """
         Get the current status of all execution slots.
 
         Returns:
-            List of slot status dictionaries if slot-based mode is active, None otherwise.
-            Each dict contains: slot_id, status ("idle" or "executing"), and work_item_id.
+            List of task statuses if the Executor mode supports reporting status, else None.
         """
         if self._executor is None or not isinstance(self._executor, SlotExecutor):
             return None

@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile
+from pydantic import BaseModel, Field
 from structlog import get_logger
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
@@ -81,6 +82,29 @@ class AgentWorkItemsSummaryResponse(TolerantDataclass):
                 for status, count in data["work_items_status_counts"].items()
             },
         )
+
+
+class WorkItemTaskStatusResponseItem(BaseModel):
+    """Status of task executing a work item."""
+
+    task_id: int = Field(..., description="The unique ID of the task executing a work item.")
+    status: Literal["idle", "executing"] = Field(
+        ..., description="The status of the task executing a work item."
+    )
+    work_item_id: str | None = Field(
+        default=None,
+        description="The ID of the work item being executed by the task, null if the task is idle.",
+    )
+
+
+class WorkItemTaskStatusResponse(BaseModel):
+    """Response model for work item task status."""
+
+    status: list[WorkItemTaskStatusResponseItem] | None = Field(
+        default=None,
+        description="The list of statuses of all tasks executing work items. If the "
+        "WorkItemsService does not support status reporting, the list will be null.",
+    )
 
 
 logger = get_logger(__name__)
@@ -507,3 +531,25 @@ async def update_work_item(
     await storage.update_work_item(work_item)
 
     return work_item
+
+
+async def report_work_item_status() -> WorkItemTaskStatusResponse:
+    """Report the status of all work items from the WorkItemsService."""
+    from agent_platform.server.work_items.service import WorkItemsService
+
+    # Get the list of statuses from the WorkItemsService.
+    work_items_service = WorkItemsService.get_instance()
+    status = work_items_service.get_slot_status()
+
+    # Massage into the REST API model.
+    if status is None:
+        return WorkItemTaskStatusResponse(status=None)
+
+    return WorkItemTaskStatusResponse(
+        status=[
+            WorkItemTaskStatusResponseItem.model_validate(
+                task_status,
+            )
+            for task_status in status
+        ],
+    )

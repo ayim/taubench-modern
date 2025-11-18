@@ -89,6 +89,7 @@ function getRouteMap(): {
     'delete /api/v2/agents/{aid}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/work-items': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/work-items/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/work-items/status': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/work-items/summary': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/work-items/{work_item_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'patch /api/v2/work-items/{work_item_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],

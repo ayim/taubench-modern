@@ -8,6 +8,7 @@ import pytest
 from agent_platform.core.thread.content import ThreadTextContent
 from agent_platform.core.thread.messages import ThreadUserMessage
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.core.work_items.work_item import WorkItemTaskStatus
 from agent_platform.server.work_items.slot_executor import SlotExecutor, SlotManager, SlotState
 
 # ============================================================================
@@ -97,8 +98,8 @@ class TestSlotManager:
         }
         status = manager.get_slot_status()
         assert len(status) == 2
-        assert status[0] == {"slot_id": 0, "status": "idle", "work_item_id": None}
-        assert status[1] == {"slot_id": 1, "status": "executing", "work_item_id": "item-2"}
+        assert status[0] == WorkItemTaskStatus(task_id=0, status="idle", work_item_id=None)
+        assert status[1] == WorkItemTaskStatus(task_id=1, status="executing", work_item_id="item-2")
 
 
 class TestSlotExecutorInit:

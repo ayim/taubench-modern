@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
@@ -478,3 +478,11 @@ class WorkItem:
         self.status_updated_at = datetime.now(UTC)
         self.status_updated_by = WorkItemStatusUpdatedBy.HUMAN
         self.completed_by = None
+
+
+class WorkItemTaskStatus(TypedDict):
+    """Status of task executing a work item."""
+
+    task_id: int
+    status: Literal["idle", "executing"]
+    work_item_id: str | None

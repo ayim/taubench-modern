@@ -2182,6 +2182,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/work-items/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Report Work Item Status
+     * @description Report the status of all work items from the WorkItemsService. If the WorkItemsService
+     *     does not support status, the inner status array will be null.
+     */
+    get: operations['report_work_item_status_work_items_status_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/work-items/{work_item_id}': {
     parameters: {
       query?: never;
@@ -9023,6 +9044,39 @@ export interface components {
      * @enum {string}
      */
     WorkItemStatusUpdatedBy: 'SYSTEM' | 'AGENT' | 'HUMAN';
+    /**
+     * WorkItemTaskStatusResponse
+     * @description Response model for work item task status.
+     */
+    WorkItemTaskStatusResponse: {
+      /**
+       * Status
+       * @description The list of statuses of all tasks executing work items. If the WorkItemsService does not support status reporting, the list will be null.
+       */
+      status?: components['schemas']['WorkItemTaskStatusResponseItem'][] | null;
+    };
+    /**
+     * WorkItemTaskStatusResponseItem
+     * @description Status of task executing a work item.
+     */
+    WorkItemTaskStatusResponseItem: {
+      /**
+       * Task Id
+       * @description The unique ID of the task executing a work item.
+       */
+      task_id: number;
+      /**
+       * Status
+       * @description The status of the task executing a work item.
+       * @enum {string}
+       */
+      status: 'idle' | 'executing';
+      /**
+       * Work Item Id
+       * @description The ID of the work item being executed by the task, null if the task is idle.
+       */
+      work_item_id?: string | null;
+    };
     /** WorkItemsListResponse */
     WorkItemsListResponse: {
       /** Records */
@@ -16377,6 +16431,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  report_work_item_status_work_items_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItemTaskStatusResponse'];
         };
       };
     };
