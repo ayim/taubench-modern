@@ -37,6 +37,7 @@ const ErrorMessageBox = styled.pre`
 
 export interface TrialResultsProps {
   scenarioId: string;
+  scenarioRunId: string | undefined;
   trial: Trial;
   trialIndex: number;
   expandedTrials: Set<string>;
@@ -48,6 +49,7 @@ export interface TrialResultsProps {
 
 export const TrialResults: FC<TrialResultsProps> = ({
   scenarioId,
+  scenarioRunId,
   trial,
   trialIndex,
   expandedTrials,
@@ -57,7 +59,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
   onViewResults,
 }) => {
   const { track } = useAnalytics();
-  const trialKey = `${scenarioId}-${trial.trial_id}`;
+  const trialKey = `${scenarioId}-${scenarioRunId}-${trial.trial_id}`;
   const isTrialExpanded = expandedTrials.has(trialKey);
   const isTrialCompleted = isTrialTerminal(trial);
   const hasEvaluationResults = isTrialCompleted && trial.evaluation_results && trial.evaluation_results.length > 0;
@@ -186,7 +188,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
 
           {trial.evaluation_results && trial.evaluation_results.length > 0
             ? trial.evaluation_results?.map((result) => {
-                const evaluationKey = `${trial.trial_id}-${result.kind}`;
+                const evaluationKey = `${scenarioRunId}-${trial.trial_id}-${result.kind}`;
                 const isExpanded = expandedEvaluations.has(evaluationKey);
                 const hasDetails =
                   ('explanation' in result && result.explanation) ||

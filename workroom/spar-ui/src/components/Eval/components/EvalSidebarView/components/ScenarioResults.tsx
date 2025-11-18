@@ -18,6 +18,7 @@ import { isRunThrottled } from '../utils';
 
 export interface ScenarioResultsProps {
   scenarioId: string;
+  scenarioRunId: string | undefined;
   configuration: components['schemas']['ScenarioRun']['configuration'];
   trials: Trial[];
   selectedRunIndex: number;
@@ -36,6 +37,7 @@ export interface ScenarioResultsProps {
 
 export const ScenarioResults: FC<ScenarioResultsProps> = ({
   scenarioId,
+  scenarioRunId,
   configuration,
   trials,
   selectedRunIndex,
@@ -205,6 +207,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
           <TrialResults
             key={trial.trial_id}
             scenarioId={scenarioId}
+            scenarioRunId={scenarioRunId}
             trial={trial}
             trialIndex={trialIndex}
             expandedTrials={expandedTrials}

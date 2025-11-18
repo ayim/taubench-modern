@@ -155,6 +155,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
                 {expandedResults && (
                   <ScenarioResults
                     scenarioId={scenario.scenario_id}
+                    scenarioRunId={currentRun?.scenario_run_id}
                     configuration={currentRun?.configuration}
                     trials={currentRun?.trials || []}
                     selectedRunIndex={selectedRunIndex}
