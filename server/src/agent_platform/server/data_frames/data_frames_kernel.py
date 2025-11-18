@@ -209,9 +209,18 @@ class Dependencies:
             yield from sub_dependencies._iter_recursive_data_frame_sources()
 
     def _iter_recursive_sql_computation_data_frames(self) -> "Iterator[PlatformDataFrame]":
+        """Yield SQL computation data frames in dependency-first order (topological sort).
+
+        This ensures that when generating CTEs, dependencies are defined before they are
+        referenced, preventing "forward reference" errors in databases like Postgres.
+
+        Uses depth-first post-order traversal: children are yielded before their parents.
+        """
         for sub_dependencies in self._sub_dependencies.values():
-            yield sub_dependencies._data_frame
+            # First, recursively yield all dependencies of this sub-dependency
             yield from sub_dependencies._iter_recursive_sql_computation_data_frames()
+            # Then yield this sub-dependency itself (after its dependencies)
+            yield sub_dependencies._data_frame
 
     async def _resolve_sql_with_data_connection_backend(
         self,
@@ -252,7 +261,17 @@ class Dependencies:
         sql_query = data_frame.computation
         assert sql_query is not None
 
+        # Collect all data frame names (both regular DFs and those that will become CTEs)
+        # These should be excluded from SDM column mapping rewrites
+        data_frame_names: set[str] = set()
+        for df in self._iter_recursive_data_frames():
+            data_frame_names.add(df.name)
+        for df in sql_computation_data_frames:
+            data_frame_names.add(df.name)
+
         name_to_cte_ast: dict[str, Any] = {}
+        target_dialect = data_frame.sql_dialect  # The dialect we're targeting for the final SQL
+
         for df in sql_computation_data_frames:
             # Use sqlglot directly to parse and format the SQL for the target dialect
             if df.computation is None:
@@ -276,13 +295,45 @@ class Dependencies:
                     f"SQL query: {df.computation!r}",
                 )
 
-            # Now, create the cte with sqlglot
             cte_sql_ast = expressions[0]
+
+            # Transpile to target dialect if there's a mismatch
+            # This prevents sqlglot from generating invalid SQL during final emission
+            if df.sql_dialect != target_dialect:
+                logger.info(
+                    "Transpiling nested data frame SQL to target dialect",
+                    df_name=df.name,
+                    source_dialect=df.sql_dialect,
+                    target_dialect=target_dialect,
+                )
+                try:
+                    # Transpile by emitting with target dialect, then re-parsing
+                    transpiled_sql = cte_sql_ast.sql(dialect=target_dialect)
+                    cte_sql_ast = sqlglot.parse_one(transpiled_sql, dialect=target_dialect)
+                except Exception as e:
+                    logger.error(
+                        "Failed to transpile nested data frame SQL to target dialect",
+                        df_name=df.name,
+                        source_dialect=df.sql_dialect,
+                        target_dialect=target_dialect,
+                        error=str(e),
+                    )
+                    raise PlatformHTTPError(
+                        error_code=ErrorCode.BAD_REQUEST,
+                        message=(
+                            f"Cannot transpile data frame '{df.name}' from dialect "
+                            f"'{df.sql_dialect}' to '{target_dialect}'. "
+                            f"Error: {e}"
+                        ),
+                    ) from e
+
+            # Now apply transformations with consistent target dialect
             cte_sql_ast = update_table_names(cte_sql_ast, logical_table_name_to_actual_table_name)
             cte_sql_ast = update_column_references(
                 cte_sql_ast,
                 table_name_to_column_names_to_expr,
                 logical_table_name_to_actual_table_name,
+                data_frame_names,
             )
             name_to_cte_ast[df.name] = cte_sql_ast
 
@@ -293,6 +344,7 @@ class Dependencies:
             main_sql_ast,
             table_name_to_column_names_to_expr,
             logical_table_name_to_actual_table_name,
+            data_frame_names,
         )
         main_sql_ast = update_with_clause(main_sql_ast, ctes)
         full_sql_query_str = main_sql_ast.sql(dialect=data_frame.sql_dialect, pretty=True)

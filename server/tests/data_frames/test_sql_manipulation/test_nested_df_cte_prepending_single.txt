@@ -1,0 +1,39 @@
+================================================================================
+INPUT SQL:
+================================================================================
+WITH user_aggregation AS (
+            SELECT dli.order_id, SUM(dli.line_total) AS total
+            FROM df_line_items_enriched dli
+            GROUP BY dli.order_id
+        )
+        SELECT * FROM user_aggregation
+
+================================================================================
+DATA FRAME CTEs TO PREPEND:
+================================================================================
+{
+  "df_line_items_enriched": "SELECT order_id, product_id, line_total FROM order_line_items JOIN products ON order_line_items.product_id = products.id"
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH df_line_items_enriched AS (
+  SELECT
+    order_id,
+    product_id,
+    line_total
+  FROM order_line_items
+  JOIN products
+    ON order_line_items.product_id = products.id
+), user_aggregation AS (
+  SELECT
+    dli.order_id,
+    SUM(dli.line_total) AS total
+  FROM df_line_items_enriched AS dli
+  GROUP BY
+    dli.order_id
+)
+SELECT
+  *
+FROM user_aggregation

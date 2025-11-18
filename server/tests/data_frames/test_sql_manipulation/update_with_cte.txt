@@ -1,4 +1,11 @@
-WITH cte1 AS (
+WITH cte3 AS (
+  SELECT
+    id,
+    bar
+  FROM orders
+  WHERE
+    total > 100
+), cte1 AS (
   SELECT
     id,
     total
@@ -12,13 +19,6 @@ WITH cte1 AS (
   FROM users
   WHERE
     country = 'BR'
-), cte3 AS (
-  SELECT
-    id,
-    bar
-  FROM orders
-  WHERE
-    total > 100
 )
 SELECT
   *

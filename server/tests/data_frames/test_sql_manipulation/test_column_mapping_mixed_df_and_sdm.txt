@@ -1,0 +1,39 @@
+================================================================================
+INPUT SQL:
+================================================================================
+SELECT 
+            dli.order_id,
+            dli.product_category AS df_category,
+            pc.product_category AS sdm_category,
+            pc.product_name
+        FROM df_line_items_enriched dli
+        JOIN product_catalog pc ON dli.product_id = pc.product_id
+
+================================================================================
+DATA FRAME NAMES (excluded from column mapping):
+================================================================================
+[
+  "df_line_items_enriched"
+]
+
+================================================================================
+SDM COLUMN MAPPINGS:
+================================================================================
+{
+  "product_catalog": {
+    "product_category": "category",
+    "product_name": "name"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+SELECT
+  dli.order_id,
+  dli.product_category AS df_category,
+  pc.category AS sdm_category,
+  pc.name AS product_name
+FROM df_line_items_enriched AS dli
+JOIN product_catalog AS pc
+  ON dli.product_id = pc.product_id

@@ -1,0 +1,62 @@
+================================================================================
+INPUT SQL:
+================================================================================
+WITH layer1 AS (
+            SELECT * FROM df_enriched WHERE revenue > 100
+        ),
+        layer2 AS (
+            SELECT l1.*, df_totals.total FROM layer1 l1
+            JOIN df_totals ON l1.order_id = df_totals.order_id
+        ),
+        layer3 AS (
+            SELECT l2.*, COUNT(*) OVER (PARTITION BY l2.order_id) AS cnt
+            FROM layer2 l2
+        )
+        SELECT * FROM layer3
+
+================================================================================
+DATA FRAME CTEs TO PREPEND:
+================================================================================
+{
+  "df_enriched": "SELECT order_id, product_id, revenue FROM sales",
+  "df_totals": "SELECT order_id, SUM(amount) AS total FROM orders GROUP BY order_id"
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH df_enriched AS (
+  SELECT
+    order_id,
+    product_id,
+    revenue
+  FROM sales
+), df_totals AS (
+  SELECT
+    order_id,
+    SUM(amount) AS total
+  FROM orders
+  GROUP BY
+    order_id
+), layer1 AS (
+  SELECT
+    *
+  FROM df_enriched
+  WHERE
+    revenue > 100
+), layer2 AS (
+  SELECT
+    l1.*,
+    df_totals.total
+  FROM layer1 AS l1
+  JOIN df_totals
+    ON l1.order_id = df_totals.order_id
+), layer3 AS (
+  SELECT
+    l2.*,
+    COUNT(*) OVER (PARTITION BY l2.order_id) AS cnt
+  FROM layer2 AS l2
+)
+SELECT
+  *
+FROM layer3

@@ -1,0 +1,34 @@
+================================================================================
+INPUT SQL:
+================================================================================
+SELECT dli.order_id, dli.product_category, SUM(dli.line_total) AS total
+        FROM df_line_items_enriched dli
+        GROUP BY dli.order_id, dli.product_category
+
+================================================================================
+DATA FRAME NAMES (excluded from column mapping):
+================================================================================
+[
+  "df_line_items_enriched"
+]
+
+================================================================================
+SDM COLUMN MAPPINGS:
+================================================================================
+{
+  "product_catalog": {
+    "product_category": "category"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+SELECT
+  dli.order_id,
+  dli.product_category,
+  SUM(dli.line_total) AS total
+FROM df_line_items_enriched AS dli
+GROUP BY
+  dli.order_id,
+  dli.product_category

@@ -1,0 +1,47 @@
+================================================================================
+INPUT SQL:
+================================================================================
+WITH combined AS (
+            SELECT olt.order_id, olt.subtotal, so.order_total
+            FROM df_order_line_totals olt
+            JOIN df_order_totals so ON olt.order_id = so.order_id
+        )
+        SELECT * FROM combined WHERE subtotal <> order_total
+
+================================================================================
+DATA FRAME CTEs TO PREPEND:
+================================================================================
+{
+  "df_order_line_totals": "SELECT order_id, SUM(line_total) AS subtotal FROM lines GROUP BY order_id",
+  "df_order_totals": "SELECT order_id, order_total FROM orders"
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH df_order_line_totals AS (
+  SELECT
+    order_id,
+    SUM(line_total) AS subtotal
+  FROM lines
+  GROUP BY
+    order_id
+), df_order_totals AS (
+  SELECT
+    order_id,
+    order_total
+  FROM orders
+), combined AS (
+  SELECT
+    olt.order_id,
+    olt.subtotal,
+    so.order_total
+  FROM df_order_line_totals AS olt
+  JOIN df_order_totals AS so
+    ON olt.order_id = so.order_id
+)
+SELECT
+  *
+FROM combined
+WHERE
+  subtotal <> order_total

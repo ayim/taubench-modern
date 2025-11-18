@@ -93,6 +93,11 @@ def build_ctes(name_to_cte_ast: dict[str, Expression]) -> list[exp.CTE]:
 def update_with_clause(main_sql_ast: Expression, ctes: list[exp.CTE]) -> Expression:
     """
     Update the with clause of the main sql ast with the new CTEs.
+
+    IMPORTANT: Data frame CTEs are prepended before user-defined CTEs to ensure
+    that user CTEs can reference data frames without forward-reference errors.
+    This is critical for Postgres and other databases that don't allow
+    forward references in WITH clauses.
     """
     from sqlglot import exp
 
@@ -101,7 +106,9 @@ def update_with_clause(main_sql_ast: Expression, ctes: list[exp.CTE]) -> Express
 
     existing_with = main_sql_ast.args.get("with")
     if existing_with is not None:
-        existing_with.expressions.extend(ctes)
+        # Prepend the data frame CTEs before existing user CTEs
+        # This ensures data frames are available to user-defined CTEs
+        existing_with.set("expressions", ctes + existing_with.expressions)
     else:
         main_sql_ast.set("with", exp.With(expressions=ctes, recursive=False))
     return main_sql_ast
@@ -313,6 +320,7 @@ def update_column_references(  # noqa: C901, PLR0912, PLR0915
     main_sql_ast: Expression,
     table_column_mappings: dict[str, dict[str, str]],
     logical_table_name_to_actual_table_name: dict[str, str] | None = None,
+    data_frame_names: set[str] | None = None,
 ) -> Expression:
     """Update column references in SQL AST to replace logical names with physical expressions.
 
@@ -325,6 +333,9 @@ def update_column_references(  # noqa: C901, PLR0912, PLR0915
             {table_name: {logical_column: physical_expression}}
         logical_table_name_to_actual_table_name: Optional mapping of logical to actual table
             names
+        data_frame_names: Optional set of data frame names that should be excluded from
+            column mapping rewrites. This prevents SDM column mappings from being applied
+            to columns that belong to derived data frames.
 
     Returns:
         The modified AST with column references updated
@@ -420,6 +431,32 @@ def update_column_references(  # noqa: C901, PLR0912, PLR0915
         if is_unqualified_cte_ref:
             continue
 
+        # Check if this column references a data frame (even without explicit table qualifier)
+        # For unqualified columns, check if the SELECT queries FROM a data frame
+        is_unqualified_df_ref = False
+        if not column.table and data_frame_names:
+            # Unqualified column - check if we're selecting FROM a data frame
+            node = column
+            while node.parent:
+                parent = node.parent
+                if isinstance(parent, exp.Select):
+                    # Check FROM clause
+                    from_clause = parent.args.get("from")
+                    if from_clause and hasattr(from_clause, "this"):
+                        from_table = from_clause.this
+                        if (
+                            isinstance(from_table, exp.Table)
+                            and from_table.name in data_frame_names
+                        ):
+                            # Querying FROM a data frame - don't rewrite unqualified columns
+                            is_unqualified_df_ref = True
+                    # Stop at first SELECT
+                    break
+                node = parent
+
+        if is_unqualified_df_ref:
+            continue
+
         # Determine which table this column belongs to
         table_name = None
         if column.table:
@@ -471,6 +508,11 @@ def update_column_references(  # noqa: C901, PLR0912, PLR0915
             # This is critical when table names have been rewritten before column rewriting
             if table_name in actual_to_logical_table:
                 table_name = actual_to_logical_table[table_name]
+
+        # Check if this table is a data frame - if so, skip column mapping
+        # Data frames have their own column names and shouldn't have SDM mappings applied
+        if data_frame_names and table_name and table_name in data_frame_names:
+            continue
 
         # Find the mapping for this column
         column_mapping = _find_column_mapping_for_column(

@@ -1,0 +1,37 @@
+================================================================================
+INPUT SQL:
+================================================================================
+SELECT product_category, product_name, line_total
+        FROM df_line_items_enriched
+        WHERE product_category = 'Electronics'
+        ORDER BY line_total DESC
+
+================================================================================
+DATA FRAME NAMES (excluded from column mapping):
+================================================================================
+[
+  "df_line_items_enriched"
+]
+
+================================================================================
+SDM COLUMN MAPPINGS:
+================================================================================
+{
+  "product_catalog": {
+    "product_category": "category",
+    "product_name": "name"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+SELECT
+  product_category,
+  product_name,
+  line_total
+FROM df_line_items_enriched
+WHERE
+  product_category = 'Electronics'
+ORDER BY
+  line_total DESC

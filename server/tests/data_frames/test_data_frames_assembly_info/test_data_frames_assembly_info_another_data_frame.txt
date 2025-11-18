@@ -21,14 +21,14 @@ Another data frame (description)
 #### Full SQL Query (with dependencies resolved, referencing logical table names):
 
     ```sql
-    WITH test_data_frame_single_column AS (
-      SELECT
-        Category
-      FROM test_data_frame
-    ), test_data_frame AS (
+    WITH test_data_frame AS (
       SELECT
         *
       FROM file_data
+    ), test_data_frame_single_column AS (
+      SELECT
+        Category
+      FROM test_data_frame
     )
     SELECT
       *

@@ -1,0 +1,67 @@
+================================================================================
+INPUT SQL:
+================================================================================
+WITH aggregated AS (
+            SELECT 
+                dli.product_category,
+                SUM(dli.line_total) AS category_total
+            FROM df_line_items_enriched dli
+            GROUP BY dli.product_category
+        )
+        SELECT 
+            a.product_category,
+            a.category_total,
+            pc.product_name
+        FROM aggregated a
+        JOIN product_catalog pc ON a.product_category = pc.product_category
+
+================================================================================
+DATA FRAME CTEs TO PREPEND:
+================================================================================
+{
+  "df_line_items_enriched": "SELECT product_id, product_category, line_total FROM order_lines JOIN products ON order_lines.product_id = products.id"
+}
+
+================================================================================
+DATA FRAME NAMES (excluded from column mapping):
+================================================================================
+[
+  "df_line_items_enriched"
+]
+
+================================================================================
+SDM COLUMN MAPPINGS:
+================================================================================
+{
+  "product_catalog": {
+    "product_category": "category",
+    "product_name": "name"
+  }
+}
+
+================================================================================
+OUTPUT SQL:
+================================================================================
+WITH df_line_items_enriched AS (
+  SELECT
+    product_id,
+    category AS product_category,
+    line_total
+  FROM order_lines
+  JOIN products
+    ON order_lines.product_id = products.id
+), aggregated AS (
+  SELECT
+    dli.product_category,
+    SUM(dli.line_total) AS category_total
+  FROM df_line_items_enriched AS dli
+  GROUP BY
+    dli.product_category
+)
+SELECT
+  a.product_category,
+  a.category_total,
+  pc.name AS product_name
+FROM aggregated AS a
+JOIN product_catalog AS pc
+  ON a.product_category = pc.category
