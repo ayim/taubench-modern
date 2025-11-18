@@ -27,6 +27,7 @@ export * from './components/DataFrame';
 
 export * from './components/DataConnection/DataConnectionsTable';
 export * from './components/DataConnection/DataConnectionConfiguration';
+export * from './components/DataConnection/DataConnectionConfiguration/components/Create';
 
 export * from './components/SemanticData/SemanticDataConfiguration';
 
@@ -45,3 +46,5 @@ export * from './components/WorkItemsOverview';
 
 export * from './common/form/SchemaFormFields';
 export * from './components/Integrations/GlobalObservabilityConfiguration';
+
+export * from './components/ChatDetails/components/SemanticDataSection';

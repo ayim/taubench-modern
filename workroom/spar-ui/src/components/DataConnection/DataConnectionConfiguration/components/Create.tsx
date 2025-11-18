@@ -8,25 +8,26 @@ import { useCreateDataConnectionMutation } from '../../../../queries';
 import { DataConnectionForm } from './DataConnectionForm';
 
 type Props = {
-  onClose: () => void;
+  onClose: (dataConnection?: DataConnection) => void;
+  initialEngine?: DataConnection['engine'];
 };
 
-export const CreateDataConnection: FC<Props> = ({ onClose }) => {
+export const CreateDataConnection: FC<Props> = ({ onClose, initialEngine }) => {
   const { addSnackbar } = useSnackbar();
   const { mutateAsync: createDataConnectionAsync, isPending } = useCreateDataConnectionMutation({});
 
   const formMethods = useForm<DataConnection>({
     resolver: zodResolver(DataConnection) as Resolver<DataConnection>,
     defaultValues: {
-      engine: 'postgres',
+      engine: initialEngine || 'postgres',
     },
   });
 
   const onSubmit = formMethods.handleSubmit(async (values) => {
     createDataConnectionAsync(values, {
-      onSuccess: () => {
+      onSuccess: (result) => {
         addSnackbar({ message: 'Data connection created successfully', variant: 'success' });
-        onClose();
+        onClose(result);
       },
       onError: (error: unknown) => {
         addSnackbar({

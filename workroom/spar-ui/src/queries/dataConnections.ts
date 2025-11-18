@@ -2,7 +2,12 @@ import { DataConnection as DataConnectionBase } from '@sema4ai/data-interface';
 
 import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
 
-export type DataConnection = DataConnectionBase & { id: string; tags?: string[] };
+export type DataConnection = DataConnectionBase & {
+  id: string;
+  tags?: string[];
+  created_at?: string;
+  updated_at?: string;
+};
 
 /**
  * List Data Connections query
@@ -70,7 +75,7 @@ export const useCreateDataConnectionMutation = createSparMutation<Record<string,
         });
       }
 
-      return response.data;
+      return response.data as DataConnection;
     },
     onSuccess: (dataConnection) => {
       queryClient.setQueryData(dataConnectionsQueryKey(), (dataConnections: DataConnection[]) => {

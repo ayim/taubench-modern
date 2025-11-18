@@ -1,21 +1,30 @@
+import { FC } from 'react';
 import { Box, EmptyState, Progress, Typography } from '@sema4ai/components';
 import { IconPlus } from '@sema4ai/icons';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 
-import { DataConnection, useDataConnectionsQuery } from '../../../queries/dataConnections';
+import { useDataConnectionsQuery } from '../../../queries/dataConnections';
 import { ButtonLink } from '../../../common/link/ButtonLink';
 import { DataConnectionRow } from './components/DataConnectionRow';
+import type { DataConnectionRowItem } from './components/types';
 
-export const DataConnectionTable = () => {
+type Props = {
+  organizationalConnections?: DataConnectionRowItem[];
+  organizationName?: string;
+};
+
+export const DataConnectionTable: FC<Props> = ({ organizationalConnections, organizationName }) => {
   const { data: dataSources = [], isLoading } = useDataConnectionsQuery({});
 
-  const filterConfiguration: TableWithFilterConfiguration<DataConnection> = {
+  const filterConfiguration: TableWithFilterConfiguration<DataConnectionRowItem> = {
     id: 'data-connections',
     label: { singular: 'Data Connection', plural: 'Data Connections' },
     columns: [
       { id: 'name', title: 'Name', sortable: true, required: true },
       { id: 'engine', title: 'Type', sortable: true },
+      { id: 'source', title: 'Source', sortable: true },
       { id: 'description', title: 'Description', sortable: false },
+      { id: 'created_at', title: 'Created At', sortable: true },
       { id: 'actions', title: '', width: 32, required: true },
     ],
     sort: ['name', 'asc'],
@@ -27,6 +36,8 @@ export const DataConnectionTable = () => {
     sortRules: {
       name: { type: 'string', value: (item) => item.name },
       engine: { type: 'string', value: (item) => item.engine },
+      source: { type: 'string', value: (item) => (item.isOrganizationalConnection ? 'Organizational' : 'Local') },
+      created_at: { type: 'date', value: (item) => item.created_at },
     },
     filters: {
       model: {
@@ -46,7 +57,11 @@ export const DataConnectionTable = () => {
     return <Progress variant="page" />;
   }
 
-  if (dataSources.length === 0) {
+  const data = organizationalConnections
+    ? [...organizationalConnections.map((item) => ({ ...item, isOrganizationalConnection: true })), ...dataSources]
+    : dataSources;
+
+  if (data.length === 0) {
     return (
       <Box display="flex" flex="1" justifyContent="center" flexDirection="column" maxHeight={960}>
         <EmptyState
@@ -74,8 +89,9 @@ export const DataConnectionTable = () => {
         </Box>
       }
       {...filterConfiguration}
-      data={dataSources}
+      data={data}
       row={DataConnectionRow}
+      rowProps={{ organizationName }}
     />
   );
 };

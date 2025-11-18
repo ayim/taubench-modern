@@ -7,11 +7,13 @@ import { useDeleteConfirm } from '@sema4ai/layouts';
 import { MenuLink } from '../../../../common/link';
 import { useNavigate } from '../../../../hooks';
 import { DataConnectionIcon } from '../../components/DataConnectionIcon';
-import { DataConnection, useDeleteDataConnectionMutation } from '../../../../queries/dataConnections';
+import { useDeleteDataConnectionMutation } from '../../../../queries/dataConnections';
+import { DataConnectionRowItem } from './types';
+import { formatDatetime } from '../../../../lib/utils';
 
-type DataAccessRowProps = TableRowProps<DataConnection>;
+type DataAccessRowProps = TableRowProps<DataConnectionRowItem, { organizationName?: string }>;
 
-export const DataConnectionRow: FC<DataAccessRowProps> = ({ rowData }) => {
+export const DataConnectionRow: FC<DataAccessRowProps> = ({ rowData, props: { organizationName } }) => {
   const navigate = useNavigate();
   const { mutate: deleteDataConnection } = useDeleteDataConnectionMutation({ dataConnectionId: rowData.id });
   const { addSnackbar } = useSnackbar();
@@ -50,7 +52,7 @@ export const DataConnectionRow: FC<DataAccessRowProps> = ({ rowData }) => {
   });
 
   return (
-    <Table.Row onClick={onEdit}>
+    <Table.Row onClick={rowData.isOrganizationalConnection ? undefined : onEdit}>
       <Table.Cell>
         <Box display="flex" alignItems="center" gap="$8">
           {rowData.name}
@@ -70,14 +72,24 @@ export const DataConnectionRow: FC<DataAccessRowProps> = ({ rowData }) => {
           {rowData.engine}
         </Box>
       </Table.Cell>
+      <Table.Cell>
+        {rowData.isOrganizationalConnection ? (
+          <Badge aria-description="Organizational" variant="brand-primary" label={organizationName} size="small" />
+        ) : (
+          <Badge aria-description="Local" variant="success" label="Local" size="small" />
+        )}
+      </Table.Cell>
       <Table.Cell>{rowData.description}</Table.Cell>
+      <Table.Cell>{rowData.created_at ? formatDatetime(rowData.created_at) : '-'}</Table.Cell>
       <Table.Cell controls>
-        <Menu trigger={<Button aria-label="Actions" icon={IconDotsHorizontal} variant="ghost" size="small" />}>
-          <MenuLink to="/data-connections/$dataConnectionId" params={{ dataConnectionId: rowData.id }}>
-            Edit
-          </MenuLink>
-          <Menu.Item onClick={onDelete}>Delete</Menu.Item>
-        </Menu>
+        {!rowData.isOrganizationalConnection && (
+          <Menu trigger={<Button aria-label="Actions" icon={IconDotsHorizontal} variant="ghost" size="small" />}>
+            <MenuLink to="/data-connections/$dataConnectionId" params={{ dataConnectionId: rowData.id }}>
+              Edit
+            </MenuLink>
+            <Menu.Item onClick={onDelete}>Delete</Menu.Item>
+          </Menu>
+        )}
       </Table.Cell>
     </Table.Row>
   );
