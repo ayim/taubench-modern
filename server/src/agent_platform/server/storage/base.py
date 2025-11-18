@@ -658,11 +658,23 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return Scenario.model_validate(dict(row))
 
-    async def list_scenarios(self, limit: int | None, agent_id: str | None) -> list[Scenario]:
-        """List all scenarios."""
+    async def list_scenarios(
+        self, limit: int | None, agent_id: str | None, include_messages: bool = False
+    ) -> list[Scenario]:
+        """List all scenarios.
+
+        Args:
+            limit: Maximum number of scenarios to return
+            agent_id: Filter by agent ID
+            include_messages: If True, include full message history (default: False for performance)
+
+        Note: Messages are excluded by default for performance. Set include_messages=True
+        when you need the full conversation history (e.g., for exports).
+        """
         scenarios = self._get_table("scenarios")
 
-        stmt = sa.select(
+        # Build column list - conditionally include messages
+        columns = [
             scenarios.c.scenario_id,
             scenarios.c.name,
             scenarios.c.description,
@@ -671,9 +683,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
             scenarios.c.user_id,
             scenarios.c.created_at,
             scenarios.c.updated_at,
-            scenarios.c.messages,
             scenarios.c.metadata,
-        ).select_from(scenarios)
+        ]
+
+        if include_messages:
+            columns.insert(8, scenarios.c.messages)  # Insert before metadata
+
+        stmt = sa.select(*columns).select_from(scenarios)
 
         if agent_id is not None:
             stmt = stmt.where(scenarios.c.agent_id == agent_id)
@@ -684,6 +700,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
         async with self._read_connection() as conn:
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
+
+        # If messages weren't loaded, set to empty list
+        if not include_messages:
+            return [Scenario.model_validate({**dict(row), "messages": []}) for row in rows]
 
         return [Scenario.model_validate(dict(row)) for row in rows]
 

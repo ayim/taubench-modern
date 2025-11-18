@@ -251,6 +251,84 @@ async def test_create_scenario_copies_thread_files(client, storage, seed_agents,
         FileManagerService.reset()
 
 
+async def test_list_scenarios_endpoint_omits_messages(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    scenario = Scenario(
+        scenario_id=str(uuid4()),
+        name="Verbose scenario",
+        description="Contains messages that should not be returned",
+        thread_id=None,
+        agent_id=agent.agent_id,
+        user_id=stub_user.user_id,
+        messages=[
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="How are you?")],
+                complete=True,
+            ),
+            ThreadMessage(
+                role="agent",
+                content=[ThreadTextContent(text="All good here!")],
+                complete=True,
+            ),
+        ],
+        metadata={},
+    )
+    await storage.create_scenario(scenario)
+
+    response = client.get(
+        "/api/v2/evals/scenarios",
+        params={"agent_id": agent.agent_id},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert len(payload) == 1
+    assert payload[0]["scenario_id"] == scenario.scenario_id
+    assert payload[0]["messages"] == []
+
+    stored = await storage.get_scenario(scenario.scenario_id)
+    assert stored is not None
+    assert len(stored.messages) == 2
+
+
+async def test_list_scenarios_can_include_messages(storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    scenario = Scenario(
+        scenario_id=str(uuid4()),
+        name="Full history scenario",
+        description="Used to verify include_messages=True",
+        thread_id=None,
+        agent_id=agent.agent_id,
+        user_id=stub_user.user_id,
+        messages=[
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="Can you help me?")],
+                complete=True,
+            )
+        ],
+        metadata={},
+    )
+    await storage.create_scenario(scenario)
+
+    default_list = await storage.list_scenarios(
+        limit=None,
+        agent_id=agent.agent_id,
+    )
+    assert default_list
+    assert default_list[0].messages == []
+
+    with_messages = await storage.list_scenarios(
+        limit=None,
+        agent_id=agent.agent_id,
+        include_messages=True,
+    )
+    assert with_messages
+    assert len(with_messages[0].messages) == 1
+    assert with_messages[0].messages[0].content[0].text == "Can you help me?"
+
+
 async def test_export_agent_scenarios_handles_empty_set(client, seed_agents):
     agent = seed_agents[1]
 

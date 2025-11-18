@@ -282,7 +282,8 @@ async def export_agent_scenarios(
     storage: StorageDependency,
 ) -> StreamingResponse:
     await storage.get_agent(user.user_id, agent_id)
-    scenarios = await storage.list_scenarios(limit=None, agent_id=agent_id)
+    # Export needs full message history
+    scenarios = await storage.list_scenarios(limit=None, agent_id=agent_id, include_messages=True)
     archive_bytes, filename = await build_scenarios_archive(
         scenarios,
         storage,
