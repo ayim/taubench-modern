@@ -1,0 +1,23 @@
+Name: format_prompt
+Status Code: OK
+Start Time: 2001-09-09T01:46:40.000000Z
+End Time: 2001-09-09T01:46:41.000000Z
+Duration: 1.00s
+==== Attributes ====
+agent_name: test_agent
+thread_name: test_thread
+input.value:
+  prompt:
+    Test prompt
+    another value
+    and another value
+  model: gpt-4
+  simple_string: just a string
+  big_string:
+    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+output.value:
+  response:
+    Test response
+    another value
+    and another value
+  tokens: 100

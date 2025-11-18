@@ -258,6 +258,16 @@ class SystemPaths(Configuration):
         ),
     )
 
+    agent_trace_dir: Path | None = field(
+        default=None,
+        metadata=FieldMetadata(
+            description="Directory for storing agent trace files",
+            env_vars=[
+                "SEMA4AI_AGENT_SERVER_AGENT_TRACE_DIR",
+            ],
+        ),
+    )
+
     # Derived paths
     vector_database_path: Path = field(init=False)
     domain_database_path: Path = field(init=False)

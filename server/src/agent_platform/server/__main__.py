@@ -3,10 +3,16 @@ DEBUG_STARTUP = False
 import time
 
 start_time = time.monotonic()
+
+# Config a Path to dump traces
+# import os
+# os.environ["SEMA4AI_AGENT_SERVER_AGENT_TRACE_DIR"] = "c:/temp/traces"
+
 import sys
 import agent_platform.server
 
 RUN_AS_STUDIO = False
+
 
 if __name__ == "__main__":
     if RUN_AS_STUDIO:

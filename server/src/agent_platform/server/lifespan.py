@@ -30,7 +30,6 @@ from agent_platform.server.secret_manager.option import SecretService
 from agent_platform.server.shutdown_manager import ShutdownManager
 from agent_platform.server.storage import StorageService
 from agent_platform.server.storage.pool_monitor import pool_monitor_loop
-from agent_platform.server.telemetry import setup_telemetry
 from agent_platform.server.work_items.service import (
     WORKER_NAME as WORK_ITEMS_WORKER_NAME,
 )
@@ -86,9 +85,12 @@ def _start_pool_monitor() -> tuple[asyncio.Task, asyncio.Event]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from agent_platform.core.otel_orchestrator import OtelOrchestrator
+    from agent_platform.server.telemetry.setup_telemetry import setup_telemetry
+
+    agent_trace_dir = SystemPaths.agent_trace_dir
 
     # Set up our v2 telemetry
-    tracer_provider, meter_provider = setup_telemetry()
+    setup_telemetry(agent_trace_dir=agent_trace_dir)
 
     # Initialize platform data (LLMs metadata) early in startup
     logger.info("Initializing platform metadata...")
