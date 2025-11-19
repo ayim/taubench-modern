@@ -24,6 +24,16 @@ export type ScenarioSuggestion = components['schemas']['ScenarioSuggestion'];
 export type Trial = components['schemas']['Trial'];
 type ScenarioRun = components['schemas']['ScenarioRun'];
 export type ScenarioBatchRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELED';
+export interface ScenarioBatchRunMetadata {
+  models?: string[];
+  platforms?: string[];
+  architecture_version?: string;
+  architecture_name?: string;
+  agent_updated_at?: string;
+  agent_version?: string;
+  runbook_version?: string;
+  runbook_updated_at?: string;
+}
 export interface ScenarioBatchRunStatistics {
   total_scenarios: number;
   completed_scenarios: number;
@@ -44,6 +54,7 @@ export interface ScenarioBatchRun {
   batch_run_id: string;
   agent_id: string;
   user_id: string;
+  metadata?: ScenarioBatchRunMetadata | null;
   scenario_ids: string[];
   status: ScenarioBatchRunStatus;
   statistics: ScenarioBatchRunStatistics;

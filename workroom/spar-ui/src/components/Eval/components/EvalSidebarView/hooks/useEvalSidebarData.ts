@@ -21,7 +21,7 @@ import {
   useImportScenariosMutation,
   useUpdateScenarioMutation,
 } from '../../../../../queries/evals';
-import type { ScenarioBatchRun, ScenarioBatchRunStatus } from '../../../../../queries/evals';
+import type { ScenarioBatchRun, ScenarioBatchRunMetadata, ScenarioBatchRunStatus } from '../../../../../queries/evals';
 import { useSparUIContext } from '../../../../../api/context';
 import { sortByCreatedAtDesc } from '../../../../../lib/utils';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
@@ -89,6 +89,7 @@ export const useEvalSidebarData = ({
     const inferredNumTrials =
       fallbackNumTrials ??
       (totalScenarios > 0 ? Math.max(1, Math.round(totalTrials / Math.max(totalScenarios, 1))) : 1);
+    const metadata: ScenarioBatchRunMetadata | null = batchRun.metadata ?? null;
 
     return {
       batchRunId: batchRun.batch_run_id,
@@ -96,6 +97,7 @@ export const useEvalSidebarData = ({
       status: batchRun.status,
       statistics: batchRun.statistics,
       numTrials: inferredNumTrials,
+      metadata,
     };
   }, []);
   useEffect(() => {

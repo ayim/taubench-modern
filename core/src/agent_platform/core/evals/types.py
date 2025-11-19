@@ -458,6 +458,7 @@ class ScenarioBatchRun:
     batch_run_id: str
     agent_id: str
     user_id: str
+    metadata: dict[str, Any] = field(default_factory=dict)
     scenario_ids: list[str] = field(default_factory=list)
     status: ScenarioBatchRunStatus = ScenarioBatchRunStatus.PENDING
     statistics: ScenarioBatchRunStatistics = field(default_factory=ScenarioBatchRunStatistics)
@@ -466,7 +467,7 @@ class ScenarioBatchRun:
     completed_at: datetime | None = None
 
     @classmethod
-    def model_validate(cls, data: dict) -> "ScenarioBatchRun":  # noqa: C901
+    def model_validate(cls, data: dict) -> "ScenarioBatchRun":  # noqa: C901, PLR0912
         data = data.copy()
 
         if "batch_run_id" in data and isinstance(data["batch_run_id"], UUID):
@@ -499,6 +500,16 @@ class ScenarioBatchRun:
                 statistics = {}
         data["statistics"] = ScenarioBatchRunStatistics.model_validate(statistics)
 
+        metadata = data.get("metadata")
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except json.JSONDecodeError:
+                metadata = {}
+        if metadata is None:
+            metadata = {}
+        data["metadata"] = metadata
+
         status = data.get("status")
         if isinstance(status, str):
             data["status"] = ScenarioBatchRunStatus(status)
@@ -510,6 +521,7 @@ class ScenarioBatchRun:
             "batch_run_id": self.batch_run_id,
             "agent_id": self.agent_id,
             "user_id": self.user_id,
+            "metadata": self.metadata,
             "scenario_ids": self.scenario_ids,
             "status": self.status.value,
             "statistics": self.statistics.model_dump(),

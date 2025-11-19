@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from structlog import get_logger
 
+from agent_platform.core.agent.agent import Agent
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.evals.types import (
@@ -42,6 +43,27 @@ from .evals_files import copy_thread_files_to_scenario
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+def _build_run_configuration(agent: Agent) -> dict[str, Any]:
+    """Collect agent metadata that describes how a run was executed."""
+    platforms = sorted(
+        {cfg.kind for cfg in getattr(agent, "platform_configs", []) if getattr(cfg, "kind", None)}
+    )
+    runbook_updated_at = agent.runbook_structured.updated_at
+    run_metadata: dict[str, Any] = {
+        "models": agent.get_agent_models(),
+        "architecture_version": agent.agent_architecture.version,
+        "architecture_name": agent.agent_architecture.name,
+        "agent_updated_at": agent.updated_at.isoformat(),
+        "agent_version": agent.version,
+        "runbook_version": agent.version,
+    }
+    if runbook_updated_at is not None:
+        run_metadata["runbook_updated_at"] = runbook_updated_at.isoformat()
+    if platforms:
+        run_metadata["platforms"] = platforms
+    return run_metadata
 
 
 @dataclass(frozen=True)
@@ -420,14 +442,7 @@ async def create_scenario_run(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    configuration = {
-        "models": agent.get_agent_models(),
-        "architecture_version": agent.agent_architecture.version,
-        "architecture_name": agent.agent_architecture.name,
-        "agent_updated_at": agent.updated_at.isoformat(),
-        "runbook_updated_at": agent.runbook_structured.updated_at.isoformat(),
-    }
-
+    configuration = _build_run_configuration(agent)
     scenario_run = CreateScenarioRunPayload.to_scenario_run(
         payload, user.user_id, scenario.scenario_id, configuration
     )
@@ -529,18 +544,13 @@ async def create_agent_batch_run(
         )
 
     scenario_ids = [scenario.scenario_id for scenario in scenarios]
-    configuration = {
-        "models": agent.get_agent_models(),
-        "architecture_version": agent.agent_architecture.version,
-        "architecture_name": agent.agent_architecture.name,
-        "agent_updated_at": agent.updated_at.isoformat(),
-        "runbook_updated_at": agent.runbook_structured.updated_at.isoformat(),
-    }
+    configuration = _build_run_configuration(agent)
 
     batch_run = ScenarioBatchRun(
         batch_run_id=str(uuid4()),
         agent_id=agent_id,
         user_id=user.user_id,
+        metadata=deepcopy(configuration),
         scenario_ids=scenario_ids,
         status=ScenarioBatchRunStatus.RUNNING,
         statistics=ScenarioBatchRunStatistics(total_scenarios=len(scenario_ids)),
@@ -554,7 +564,7 @@ async def create_agent_batch_run(
                 scenario_run_payload,
                 user.user_id,
                 scenario.scenario_id,
-                configuration,
+                deepcopy(configuration),
                 batch_run_id=created_batch.batch_run_id,
             )
             await storage.create_scenario_run(scenario_run)

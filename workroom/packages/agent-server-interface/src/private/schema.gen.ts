@@ -7244,6 +7244,10 @@ export interface components {
       agent_id: string;
       /** User Id */
       user_id: string;
+      /** Metadata */
+      metadata?: {
+        [key: string]: unknown;
+      };
       /** Scenario Ids */
       scenario_ids?: string[];
       /** @default PENDING */

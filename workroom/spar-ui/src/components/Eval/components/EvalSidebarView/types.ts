@@ -1,5 +1,9 @@
 import type { components } from '@sema4ai/agent-server-interface';
-import type { ScenarioBatchRunStatistics, ScenarioBatchRunStatus } from '../../../../queries/evals';
+import type {
+  ScenarioBatchRunMetadata,
+  ScenarioBatchRunStatistics,
+  ScenarioBatchRunStatus,
+} from '../../../../queries/evals';
 
 // Use raw API types directly
 export type Scenario = components['schemas']['Scenario'];
@@ -27,4 +31,5 @@ export interface BatchSummary {
   status: ScenarioBatchRunStatus;
   statistics: ScenarioBatchRunStatistics;
   numTrials: number;
+  metadata: ScenarioBatchRunMetadata | null;
 }

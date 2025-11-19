@@ -17947,6 +17947,11 @@ export const spec = {
             type: 'string',
             title: 'User Id',
           },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+          },
           scenario_ids: {
             items: {
               type: 'string',
