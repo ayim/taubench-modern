@@ -33,12 +33,18 @@ export const useUpdateConfigMutation = () => {
       tenantId: string;
       config: { config_type: AgentServerConfigType; current_value: string }[];
     }) => {
-      await sequentialMap(config, async (configPair) => {
+      const results = await sequentialMap(config, async (configPair) => {
         return await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/config/', {
           body: configPair,
           errorMsg: 'Failed to update settings',
         });
       });
+
+      // Check if any of the API calls failed
+      const failedResult = results.find((result) => !result.success);
+      if (failedResult && !failedResult.success) {
+        throw new Error(failedResult.message);
+      }
 
       return {
         numberOfUpdatedSettings: config.length,

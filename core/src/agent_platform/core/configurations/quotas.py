@@ -246,12 +246,54 @@ class QuotasService:
         # Validate both config type and value - this will raise PlatformHTTPError if invalid
         int_value = validate_config_value(config_type, new_value)
 
+        # Validate parallel work items constraint reflexively
+        if config_type is self.PARALLEL_WORK_ITEMS:
+            # Get the current postgres pool max size
+            postgres_pool_max_size = self._get_config_value(self.POSTGRES_POOL_MAX_SIZE)
+            self._validate_parallel_work_items_constraint(int_value, postgres_pool_max_size)
+        elif config_type is self.POSTGRES_POOL_MAX_SIZE:
+            # Get the current parallel work items value
+            parallel_work_items = self._get_config_value(self.PARALLEL_WORK_ITEMS)
+            self._validate_parallel_work_items_constraint(parallel_work_items, int_value)
+
         config = self.CONFIG_TYPES[config_type]
         # Pre-validate against current pool min_size when updating postgres pool size
         if config_type is self.POSTGRES_POOL_MAX_SIZE:
             await self._validate_and_apply_postgres_pool_max_size(int_value)
         await StorageService.get_instance().set_config(config.storage_key, new_value)
         self._config_values[config_type] = int_value
+
+    def _validate_parallel_work_items_constraint(
+        self, parallel_work_items: int, postgres_pool_max_size: int
+    ) -> None:
+        """Validate that PARALLEL_WORK_ITEMS does not exceed 80% of POSTGRES_POOL_MAX_SIZE.
+
+        Args:
+            parallel_work_items: The (proposed or current) value for parallel work items
+            postgres_pool_max_size: The (proposed or current) value for postgres pool max size
+
+        Raises:
+            PlatformHTTPError: If parallel_work_items exceeds 80% of postgres_pool_max_size
+        """
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
+        max_allowed = int(postgres_pool_max_size * 0.8)
+        if parallel_work_items > max_allowed:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message=(
+                    f"PARALLEL_WORK_ITEMS ({parallel_work_items}) cannot exceed 80% of "
+                    f"POSTGRES_POOL_MAX_SIZE ({postgres_pool_max_size}). "
+                    f"Maximum allowed: {max_allowed}"
+                ),
+                data={
+                    "parallel_work_items": parallel_work_items,
+                    "postgres_pool_max_size": postgres_pool_max_size,
+                    "max_allowed_parallel_work_items": max_allowed,
+                    "constraint": "PARALLEL_WORK_ITEMS <= 0.8 * POSTGRES_POOL_MAX_SIZE",
+                },
+            )
 
     async def _validate_and_apply_postgres_pool_max_size(self, new_value: int) -> None:
         """Validate and apply the postgres pool max size."""

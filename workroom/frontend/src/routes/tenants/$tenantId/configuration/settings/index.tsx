@@ -72,7 +72,12 @@ function Settings() {
             variant: 'success',
           });
         },
-        onError: () => {},
+        onError: (error) => {
+          addSnackbar({
+            message: error.message || 'Failed to update settings',
+            variant: 'danger',
+          });
+        },
       },
     );
   });
