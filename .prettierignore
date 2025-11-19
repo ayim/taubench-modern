@@ -16,7 +16,9 @@ compose.yml
 compose.*.yml
 Dockerfile.spar
 server/tests/**/*.yml
+server/tests/**/*.yaml
 core/tests/**/*.yml
+core/tests/**/*.yaml
 
 # Workroom specific (ignore files are not searched for like config files are -
 #   thus only the root .prettierignore file is needed)
