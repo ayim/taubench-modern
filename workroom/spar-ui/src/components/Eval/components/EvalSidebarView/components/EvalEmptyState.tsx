@@ -1,7 +1,7 @@
 import { FC } from 'react';
-import { Box, Button, EmptyState, Link } from '@sema4ai/components';
-import { IconInformation, IconArrowUpRight } from '@sema4ai/icons';
+import { Box, Button, EmptyState } from '@sema4ai/components';
 
+import { Illustration } from '../../../../Illustration';
 import { useFeatureFlag } from '../../../../../hooks';
 import { SparUIFeatureFlag } from '../../../../../api';
 
@@ -51,19 +51,7 @@ export const EvalEmptyState: FC<EvalEmptyStateProps> = ({
         </Box>
       }
       errorMessage={!hasMessages ? 'Talk to your agent to be able to add an evaluation.' : ''}
-      secondaryAction={
-        <Link
-          icon={IconInformation}
-          iconAfter={IconArrowUpRight}
-          href="https://www.sema4.ai"
-          target="_blank"
-          rel="noopener"
-          variant="primary"
-          fontWeight="medium"
-        >
-          Learn More
-        </Link>
-      }
+      illustration={<Illustration name="evals" />}
     />
   );
 };

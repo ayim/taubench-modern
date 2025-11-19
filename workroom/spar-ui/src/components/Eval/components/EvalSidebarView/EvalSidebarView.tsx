@@ -50,7 +50,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
 
   if (sidebar.evaluations.length === 0) {
     return (
-      <>
+      <Box display="flex" height="100%" alignItems="center" justifyContent="center">
         <EvalEmptyState
           hasMessages={hasMessages}
           onAddEvaluation={sidebar.handleAddEvaluation}
@@ -97,7 +97,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           initialValues={sidebar.suggestedValues}
           mode={sidebar.editingScenario ? 'edit' : 'create'}
         />
-      </>
+      </Box>
     );
   }
 
