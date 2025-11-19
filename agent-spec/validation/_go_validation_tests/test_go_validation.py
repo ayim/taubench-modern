@@ -38,16 +38,6 @@ def run_agent_cli(
     return contents
 
 
-def test_go_list_action_packages_from_agent(agent_cli: Path, datadir, data_regression):
-    import json
-
-    agent_dir = datadir / "agent2"
-    contents = run_agent_cli(agent_cli, ["list-action-packages", "."], cwd=agent_dir)
-    assert contents.returncode == 0
-    actions = json.loads(contents.stdout)
-    data_regression.check(actions)
-
-
 def bad_format(agent_path):
     agent_spec = agent_path / "agent-spec.yaml"
     agent_spec.write_text(
@@ -1105,7 +1095,7 @@ agent-package:
         mode: conversational
       agent-settings:
         config: 22
-        anything-goes: 
+        anything-goes:
           - yes: "yes!"
     """
 

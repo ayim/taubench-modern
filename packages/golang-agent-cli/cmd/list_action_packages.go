@@ -3,14 +3,11 @@ package cmd
 import (
 	"archive/zip"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/Sema4AI/agent-platform/packages/golang-agent-cli/pretty"
 	"github.com/Sema4AI/rcc/pathlib"
-	"github.com/spf13/cobra"
-
 	"os"
 	"path/filepath"
 	"strings"
@@ -296,38 +293,4 @@ func GetFileFromZip(zipPath string, fileName string) (string, error) {
 
 func GetPackageYAMLFromZip(zipPath string) (string, error) {
 	return GetFileFromZip(zipPath, "package.yaml")
-}
-
-var listActionPackagesFromAgentCmd = &cobra.Command{
-	Use:   "list-action-packages",
-	Short: "List action packages from agent.",
-	Long:  `List action packages from agent and print them to stdout.`,
-	Run:   runListActionPackagesFromAgentCmd,
-}
-
-func runListActionPackagesFromAgentCmd(cmd *cobra.Command, args []string) {
-	// At least one argument is required, the agent root directory
-	if len(args) < 1 {
-		pretty.Log("Error: agent root directory is required.")
-		os.Exit(1)
-	}
-	agentRootDir := args[0]
-	actions := ListActionPackagesFromAgent(agentRootDir)
-	for _, action := range actions {
-		// Instead of printing the name, print a json with the name, version and path
-		actionJson, err := json.Marshal(map[string]string{
-			"name":    action.GetName(),
-			"version": action.GetVersion(),
-			"path":    action.RelativePath,
-		})
-		if err != nil {
-			pretty.Log("Error marshalling action: %v", err)
-			os.Exit(1)
-		}
-		fmt.Println(string(actionJson))
-	}
-}
-
-func init() {
-	rootCmd.AddCommand(listActionPackagesFromAgentCmd)
 }

@@ -285,14 +285,3 @@ type AgentPayload struct {
 	Public               bool                        `json:"public"`
 	SelectedTools        SelectedTools               `json:"selected_tools,omitempty"`
 }
-
-type AgentPayloadPackage struct {
-	Public             bool                 `json:"public"`
-	Name               string               `json:"name"`
-	AgentPackageUrl    *string              `json:"agent_package_url"`
-	AgentPackageBase64 *string              `json:"agent_package_base64"`
-	Model              AgentModel           `json:"model"`
-	ActionServers      []AgentActionPackage `json:"action_servers"`
-	McpServers         []McpServer          `json:"mcp_servers"`
-	LangSmith          *LangSmithConfig     `json:"langsmith"`
-}
