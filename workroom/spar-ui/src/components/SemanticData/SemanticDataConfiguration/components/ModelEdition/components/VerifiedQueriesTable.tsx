@@ -1,14 +1,7 @@
 import { FC, useState, useMemo } from 'react';
-import { Box, Button, EmptyState, Input, Link, Menu, Table, TableRowProps, Typography } from '@sema4ai/components';
-import {
-  IconArrowUpRight,
-  IconDotsHorizontal,
-  IconInformation,
-  IconPencil,
-  IconPlus,
-  IconSearch,
-  IconTrash,
-} from '@sema4ai/icons';
+import { Box, Button, EmptyState, Link, Menu, Table, TableRowProps, Typography } from '@sema4ai/components';
+import { IconArrowUpRight, IconDotsHorizontal, IconInformation, IconPencil, IconPlus, IconTrash } from '@sema4ai/icons';
+import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 import { useFormContext } from 'react-hook-form';
 
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
@@ -111,7 +104,6 @@ type Props = {
 };
 
 export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
-  const [searchQuery, setVerifiedQueriesSearch] = useState('');
   const [isCreateQueryDialogOpen, setIsCreateQueryDialogOpen] = useState(false);
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const verifiedQueries = watch('verifiedQueries') || [];
@@ -133,49 +125,60 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const filteredQueries = useMemo(() => {
-    const queriesWithIndex = verifiedQueries.map((query, index) => ({ query, originalIndex: index }));
-    if (!searchQuery.trim()) return queriesWithIndex;
-    const lowerSearch = searchQuery.toLowerCase();
-    return queriesWithIndex.filter(
-      ({ query }) => query.name.toLowerCase().includes(lowerSearch) || query.nlq.toLowerCase().includes(lowerSearch),
-    );
-  }, [verifiedQueries, searchQuery]);
-
   const tableData = useMemo<VerifiedQueryRowData[]>(
     () =>
-      filteredQueries.map(({ query, originalIndex }) => ({
+      verifiedQueries.map((query, index) => ({
         ...query,
         created: formatDate(query.verified_at),
-        originalIndex,
+        originalIndex: index,
       })),
-    [filteredQueries],
+    [verifiedQueries],
   );
 
-  const columns = useMemo(
-    () => [
-      {
-        id: 'name',
-        title: 'Name',
-        minWidth: 200,
-      },
-      {
-        id: 'description',
-        title: 'Description',
-        minWidth: 300,
-      },
-      {
-        id: 'created',
-        title: 'Created',
-        width: 150,
-      },
-      {
-        id: 'actions',
-        title: '',
-        width: 50,
-        controls: true,
-      },
-    ],
+  const filterConfiguration = useMemo(
+    () =>
+      ({
+        id: 'verified-queries-table',
+        label: { singular: 'Verified Query', plural: 'Verified Queries' },
+        columns: [
+          {
+            id: 'name',
+            title: 'Name',
+            sortable: true,
+          },
+          {
+            id: 'description',
+            title: 'Description',
+            sortable: true,
+          },
+          {
+            id: 'created',
+            title: 'Created',
+            sortable: true,
+          },
+          {
+            id: 'actions',
+            title: '',
+            width: 32,
+            required: true,
+          },
+        ],
+        sort: ['createdAt', 'desc'],
+        searchRules: {
+          name: { value: (item) => item.name },
+        },
+        sortRules: {
+          name: { type: 'string', value: (item) => item.name },
+          created: { type: 'date', value: (item) => item.verified_at ?? '' },
+        },
+        contentBefore: (
+          <Box display="flex" gap="$8" alignItems="center">
+            <Button variant="secondary" icon={IconPlus} round onClick={() => setIsCreateQueryDialogOpen(true)}>
+              Verified Query
+            </Button>
+          </Box>
+        ),
+      }) satisfies TableWithFilterConfiguration<VerifiedQueryRowData>,
     [],
   );
 
@@ -224,36 +227,15 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
         </Box>
       )}
       {tableData.length > 0 && (
-        <>
-          <Box display="flex" flexDirection="column" gap="$16">
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Button variant="secondary" icon={IconPlus} round onClick={() => setIsCreateQueryDialogOpen(true)}>
-                Verified Query
-              </Button>
-              <Input
-                placeholder="Search"
-                iconLeft={IconSearch}
-                value={searchQuery}
-                onChange={(e) => setVerifiedQueriesSearch(e.target.value)}
-                aria-label="Search verified queries"
-                style={{ maxWidth: '300px' }}
-                round
-              />
-            </Box>
-          </Box>
-          <Box display="flex" flexDirection="column" gap="$16">
-            <Table
-              columns={columns}
-              data={tableData}
-              row={VerifiedQueriesTableRow}
-              rowProps={{
-                onEdit: handleEdit,
-                onDelete: handleDelete,
-              }}
-              keyId={(row) => `${row.name}-${row.originalIndex}`}
-            />
-          </Box>
-        </>
+        <TableWithFilter
+          {...filterConfiguration}
+          data={tableData}
+          row={VerifiedQueriesTableRow}
+          rowProps={{
+            onEdit: handleEdit,
+            onDelete: handleDelete,
+          }}
+        />
       )}
       {editingQuery && (
         <EditVerifiedQueryDialog

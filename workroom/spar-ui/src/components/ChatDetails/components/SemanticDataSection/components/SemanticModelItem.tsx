@@ -107,9 +107,13 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
 
   return (
     <Item>
-      <Box display="flex" alignItems="center" gap="$4">
+      <Box display="flex" alignItems="center" gap="$4" minWidth={0}>
         <Icon />
-        <Typography fontWeight="bold">{model.name}</Typography>
+        <Box flex={1} minWidth={0} overflow="hidden">
+          <Typography fontWeight="bold" $nowrap truncate={1}>
+            {model.name}
+          </Typography>
+        </Box>
         {errors.hasConnectionError && (
           <ErrorPopover
             title="Connection Failed"

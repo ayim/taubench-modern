@@ -1,5 +1,5 @@
 import { Box, Button, Typography } from '@sema4ai/components';
-import { IconCloseSmall, IconDbSchema } from '@sema4ai/icons';
+import { IconCloseSmall, IconDbSpreadsheet } from '@sema4ai/icons';
 import { FC } from 'react';
 
 type Props = {
@@ -28,7 +28,7 @@ export const FileList: FC<Props> = ({ files, onRemoveFile }) => {
       >
         {files.map((file) => (
           <Box flex="1" key={file} display="flex" alignItems="center" gap="$8" px="$8">
-            <IconDbSchema />
+            <IconDbSpreadsheet />
             <Typography>{file}</Typography>
             <Box ml="auto">
               <Button

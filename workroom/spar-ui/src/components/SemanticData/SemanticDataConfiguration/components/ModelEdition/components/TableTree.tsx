@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Box, Button, Typography } from '@sema4ai/components';
 import { TreeList } from '@sema4ai/layouts';
-import { IconCloseSmall, IconDbDatabase, IconDbSchema } from '@sema4ai/icons';
+import { IconCloseSmall, IconDbDatabase, IconDbSchema, IconDbSpreadsheet } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useFormContext } from 'react-hook-form';
 
@@ -74,11 +74,13 @@ export const TableTree: FC<Props> = ({ modelId }) => {
           return null;
         }
 
+        const Icon = table.base_table.file_reference ? IconDbSpreadsheet : IconDbDatabase;
+
         return (
           <TreeList.Item
             key={table.name}
             label={table.name}
-            icon={IconDbDatabase}
+            icon={Icon}
             open
             description={table.base_table.table}
             columns={

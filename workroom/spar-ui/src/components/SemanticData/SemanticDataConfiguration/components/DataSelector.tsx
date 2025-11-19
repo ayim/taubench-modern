@@ -1,7 +1,7 @@
 import { TreeList } from '@sema4ai/layouts';
 import { Box, Typography } from '@sema4ai/components';
 import { components } from '@sema4ai/agent-server-interface';
-import { IconDbColumn, IconDbDatabase } from '@sema4ai/icons';
+import { IconDbColumn, IconDbDatabase, IconDbSpreadsheet } from '@sema4ai/icons';
 import { useFormContext } from 'react-hook-form';
 
 import { DataConnectionFormSchema } from './form';
@@ -12,7 +12,7 @@ export const DataSelector = ({
   data: components['schemas']['agent_platform__core__payloads__data_connection__TableInfo'][];
 }) => {
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
-  const dataSelection = watch('dataSelection') ?? [];
+  const { dataSelection = [], fileRefId } = watch();
 
   const isColumnSelected = (tableName: string, columnName: string) => {
     const tableSelection = dataSelection.find((selection) => selection.name === tableName);
@@ -110,6 +110,7 @@ export const DataSelector = ({
       <TreeList>
         {data.map((table) => {
           const selecteditems = dataSelection.find((selection) => selection.name === table.name)?.columns.length || 0;
+          const Icon = fileRefId ? IconDbSpreadsheet : IconDbDatabase;
           return (
             <TreeList.Checkbox
               key={table.name}
@@ -125,7 +126,7 @@ export const DataSelector = ({
                   </Typography>
                 </>
               }
-              icon={IconDbDatabase}
+              icon={Icon}
             >
               {table.columns.map((column) => (
                 <TreeList.Checkbox

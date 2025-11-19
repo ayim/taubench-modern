@@ -215,7 +215,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
 
   const modelEditionStepProps: StepProps & { label: string } = (() => {
     return {
-      status: modelId || isCreatePending ? 'completed' : 'incomplete',
+      status: modelId ? 'completed' : 'incomplete',
       label: 'Data Model',
       disabled: !modelId,
     };
