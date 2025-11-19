@@ -1209,7 +1209,19 @@ async def test_tool_call_headers_with_empty_string_user_id(
 
 
 @pytest.mark.asyncio
-async def test_mcp_tool_no_runtime_headers(tools_interface: AgentServerToolsInterface, mock_kernel):
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "structured_content",
+        "content",
+        "structured_content_with_error",
+        "unexpected_mcp_format",
+        "content_with_error",
+    ],
+)
+async def test_mcp_tool_no_runtime_headers(  # noqa: C901
+    tools_interface: AgentServerToolsInterface, mock_kernel, scenario
+):
     """Test that internal-tool category tools do not receive extra_headers."""
     function_called_with = {}
 
@@ -1217,7 +1229,22 @@ async def test_mcp_tool_no_runtime_headers(tools_interface: AgentServerToolsInte
     async def mcp_tool_function(**kwargs):
         nonlocal function_called_with
         function_called_with = kwargs
-        return {"result": "mcp tool success"}
+        if scenario == "structured_content":
+            return {"structuredContent": {"result": "mcp tool success"}}
+
+        elif scenario == "content":
+            return {"content": "mcp tool success"}
+
+        elif scenario == "content_with_error":
+            return {"content": "mcp tool error", "isError": True}
+
+        elif scenario == "structured_content_with_error":
+            return {"structuredContent": {"error": "mcp tool error"}}
+
+        elif scenario == "unexpected_mcp_format":
+            return {"result": "mcp tool success"}
+        else:
+            raise ValueError(f"Invalid scenario: {scenario}")
 
     tool_def = ToolDefinition(
         name="mcp_tool",
@@ -1245,8 +1272,27 @@ async def test_mcp_tool_no_runtime_headers(tools_interface: AgentServerToolsInte
     )
 
     # Verify the tool was called successfully
-    assert result.error is None
-    assert result.output_raw == {"result": "mcp tool success"}
+    if scenario == "structured_content":
+        assert result.error is None
+        assert result.output_raw == {"result": "mcp tool success"}
+
+    elif scenario == "structured_content_with_error":
+        assert result.error == "mcp tool error"
+
+    elif scenario == "content":
+        assert result.error is None
+        assert result.output_raw == "mcp tool success"
+
+    elif scenario == "content_with_error":
+        assert result.error == '"mcp tool error"'
+
+    elif scenario == "unexpected_mcp_format":
+        assert result.error is None
+        assert result.output_raw == {"result": "mcp tool success"}
+
+    else:
+        raise ValueError(f"Invalid scenario: {scenario}")
+
     assert result.definition == tool_def
     assert result.tool_call_id == "mcp_call"
 

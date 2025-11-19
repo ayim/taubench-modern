@@ -1,3 +1,4 @@
+# ruff: noqa: E501, C901, PLR0913, PLR0915
 import os
 import sys
 import time
@@ -103,9 +104,7 @@ def test_agent_server_port_reuse(start_agent_server, logs_dir):
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
-def test_start_agent_server_with_lock_file(  # noqa: C901
-    agent_server_data_dir, start_agent_server
-) -> None:
+def test_start_agent_server_with_lock_file(agent_server_data_dir, start_agent_server) -> None:
     import json
 
     from sema4ai.common.process import Process, is_process_alive
@@ -289,12 +288,21 @@ def test_api_interaction_with_action_server(
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "mcp-secret",
+        "data-frame-auto-creation",
+        "error-cases",
+    ],
+)
 def test_mcp_calling_with_action_server(
     base_url_agent_server_session,
     openai_api_key,
     action_server_process,
     logs_dir,
     resources_dir,
+    scenario,
 ):
     from agent_platform.core.mcp.mcp_server import MCPServer
 
@@ -324,7 +332,9 @@ def test_mcp_calling_with_action_server(
                 MCPServer(
                     url=url + "/mcp",
                     name="ActionServer",
-                    headers={"X-some-secret": "my-secret-test"},
+                    headers={"X-some-secret": "my-secret-test"}
+                    if scenario == "mcp-secret"
+                    else None,
                 )
             ],
             platform_configs=[
@@ -338,33 +348,92 @@ def test_mcp_calling_with_action_server(
 
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
-        _, tool_calls = agent_client.send_message_to_agent_thread(
-            agent_id,
-            thread_id,
-            """Please call the add_contact_with_secret with
+        # Check MCP Secret
+        if scenario == "mcp-secret":
+            final_message, tool_calls = agent_client.send_message_to_agent_thread(
+                agent_id,
+                thread_id,
+                """Please call the add_contact_with_secret with
 
-            name=John Doe
-            email=john.doe@example.com
-            phone=1234567890
+                name=John Doe
+                email=john.doe@example.com
+                phone=1234567890
 
-            Call it as fast as possible without doing or requesting anything else.",
-            """,
-        )
-        tool_call = tool_calls[0] if tool_calls else None
-        assert tool_call is not None, "No tool calls returned"
-        result = tool_call.result
-        structured_content = result.get("structuredContent")
-        assert structured_content is not None, f"No structured content found in result: {result}"
-        assert not result.get("content"), f"Content found in result: {result}"
-        assert isinstance(structured_content, dict), (
-            f"Structured content is not a dictionary: {structured_content}"
-        )
-        assert set(structured_content.keys()) == {"error", "result"}, (
-            f"Structured content keys are not {'error', 'result'}: {structured_content}"
-        )
-        assert structured_content["error"] is None, f"Error is not None: {structured_content}"
-        assert structured_content["result"] is not None, f"Result is not None: {structured_content}"
-        assert structured_content["result"]["message"] == "Added contact with secret my-secret-test"
+                Call it as fast as possible without doing or requesting anything else.",
+                """,
+            )
+            tool_call = tool_calls[0] if tool_calls else None
+            assert tool_call is not None, f"No tool calls returned. Final message: {final_message}"
+            result = tool_call.result
+            assert set(result.keys()) == {
+                "error",
+                "result",
+            }, f"""Structured content keys are not {"error", "result"}: {result}.
+                Final message: {final_message}"""
+            assert result["error"] is None, (
+                f"Error is not None: {result}. Final message: {final_message}"
+            )
+            assert result["result"] is not None, (
+                f"Result is not None: {result}. Final message: {final_message}"
+            )
+            assert (
+                result["result"]["message"] == "Added contact with secret my-secret-test"
+            ), f"""Result message is not 'Added contact with secret my-secret-test': {result}.
+                Final message: {final_message}"""
+
+        # Check auto creation of data frame
+        elif scenario == "data-frame-auto-creation":
+            final_message, tool_calls = agent_client.send_message_to_agent_thread(
+                agent_id,
+                thread_id,
+                "Please call the get_contact_names_as_data_frame action",
+            )
+            tool_call = tool_calls[0] if tool_calls else None
+            assert tool_call is not None, f"No tool calls returned. Final message: {final_message}"
+            result = tool_call.result
+
+            data_frames = agent_client.get_data_frames(thread_id)
+            assert len(data_frames) == 1, (
+                f"Expected exactly one data frame in the response. Final message: {final_message}"
+            )
+
+        elif scenario == "error-cases":
+            # Error case via custom action that always returns an error
+            final_message, tool_calls = agent_client.send_message_to_agent_thread(
+                agent_id,
+                thread_id,
+                "Please call the always_error_action_action_response with message=Test error",
+            )
+            tool_call = tool_calls[0] if tool_calls else None
+            assert tool_call is not None, (
+                f"No tool calls returned for error case. Final message: {final_message}"
+            )
+            assert tool_call.tool_name == "always_error_action_action_response"
+            assert "result" in tool_call.result
+            assert "error" in tool_call.result, (
+                f"Error is not in tool call result: {tool_call.result}. Final message: {final_message}"
+            )
+            assert tool_call.result["result"] is None, (
+                f"Result is not None: {tool_call.result}. Final message: {final_message}"
+            )
+            assert "Test error" in tool_call.result["error"], (
+                f"Test error is not in tool call result: {tool_call.result}. Final message: {final_message}"
+            )
+
+            # Error case via custom action that always errors out internally
+            final_message, tool_calls = agent_client.send_message_to_agent_thread(
+                agent_id,
+                thread_id,
+                "Please call the always_error_action_internal_error action",
+            )
+            tool_call = tool_calls[0] if tool_calls else None
+            assert tool_call is not None, (
+                f"No tool calls returned for error case. Final message: {final_message}"
+            )
+            assert tool_call.tool_name == "always_error_action_internal_error"
+            assert "Unexpected error (ValueError)" in str(tool_call.error), (
+                f"'Unexpected error (ValueError)' not found in tool call error: {tool_call.error}. Final message: {final_message}"
+            )
 
 
 @pytest.mark.integration
@@ -379,7 +448,6 @@ def test_action_error_handling(
     """Verify a sync action returns result on success and error on failure."""
     from agent_platform.orchestrator.agent_server_client import (
         ActionPackage,
-        AgentServerClient,
         SecretKey,
     )
 
@@ -456,7 +524,7 @@ def test_action_error_handling(
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
-def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
+def test_agent_server_port_conflict(tmpdir, logs_dir):
     """Test that trying to start a server on a port that's already in use
     fails with the expected error message.
     """

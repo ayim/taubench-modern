@@ -112,11 +112,52 @@ class ActionResponse:
     action_server_run_id: str | None = None
 
     @classmethod
+    def create_from_mcp_tool_result(cls, result: dict) -> "ActionResponse":
+        """Create an ActionResponse from a MCP tool call result.
+
+        Args:
+            result: The initial result from the tool call
+
+        Returns:
+            ActionResponse: An ActionResponse object containing the error and result
+        """
+        # LLM rule: Always process and act upon structuredContent when present; only fall back to
+        # content if the structured version is absent.
+        structured_content = result.get("structuredContent")
+        is_error = result.get("isError", False)
+
+        if structured_content is not None:
+            if is_error:
+                return ActionResponse(error=json.dumps(structured_content), result=None)
+
+            if isinstance(structured_content, dict):
+                error_and_result = cls.extract_error_and_result_from_dict(structured_content)
+                return ActionResponse(error=error_and_result.error, result=error_and_result.result)
+
+            return ActionResponse(error=None, result=structured_content)
+
+        # We have no structured content, so we'll use just the content (if it exists).
+        content = result.get("content")
+        if is_error:
+            return ActionResponse(error=json.dumps(content), result=None)
+
+        if content is not None:
+            return ActionResponse(error=None, result=content)
+
+        # We have no structuredContent nor content (which is the same as no result)
+        # Warn and use as is.
+        logger.warning(
+            "No structuredContent or content found in mcp tool result (returning as is).",
+            result=result,
+        )
+        return ActionResponse(error=None, result=result)
+
+    @classmethod
     def extract_error_and_result_from_dict(cls, result: dict) -> ErrorAndResult:
         """Extract the error and result from a dictionary.
 
         Args:
-            result: The initial result from the action server
+            result: The initial result from the tool call
 
         Returns:
             ErrorAndResult: A named tuple containing the error and result

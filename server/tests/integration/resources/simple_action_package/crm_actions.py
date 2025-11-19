@@ -3,7 +3,7 @@ import uuid
 from typing import Required, TypedDict
 
 from pydantic import BaseModel
-from sema4ai.actions import ActionError, Response, Secret, action  # type: ignore
+from sema4ai.actions import ActionError, Response, Secret, Table, action  # type: ignore
 
 
 class CustomerData(TypedDict, total=False):
@@ -68,6 +68,18 @@ def add_contact_with_secret(
         result=ResponseType(
             contact_id=contact_id,
             message=f"Added contact with secret {some_secret.value}",
+        )
+    )
+
+
+@action
+def get_contact_names_as_data_frame() -> Response[Table]:
+    """
+    Gets the names of all contacts as a data frame.
+    """
+    return Response(
+        result=Table(
+            columns=["name"], rows=[[contact["name"]] for contact in contact_details.values()]
         )
     )
 

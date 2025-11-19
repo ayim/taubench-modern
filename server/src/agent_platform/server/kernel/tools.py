@@ -70,6 +70,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                         # headers at tool call time, but it's not clear how/why we'd
                         # want to do that)
                         result = await tool_def.function(**args_from_json)
+                        result = ActionResponse.create_from_mcp_tool_result(result)
                     case "internal-tool":
                         # Internal tools don't get headers either (no network
                         # request being made here)
@@ -82,10 +83,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
                 # Handling of various result types...
                 if isinstance(result, ActionResponse):
-                    # sema4ai.actions should always be handled here.
+                    # sema4ai.actions/mcp should always be handled here.
                     # The construction of the ActionResponse is responsible for
                     # filling in the result and error fields as we expect already.
-                    logger.info("Result is an ActionResponse.")
+                    logger.info("Result is an ActionResponse.", category=tool_def.category)
                     result_output = result.result
                     error_message = result.error
                     # At this point, the action has run successfully.
@@ -93,8 +94,8 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     if result.action_server_run_id:
                         tool_result_args["action_server_run_id"] = result.action_server_run_id
 
-                # Below here we handle the result from non sema4ai.actions tools
-                # (mcp-tools, internal-tools, etc.)
+                # Below here we handle the result from non sema4ai.actions/mcp tools
+                # (internal-tools, etc.)
                 elif isinstance(result, dict):
                     error_and_result = ActionResponse.extract_error_and_result_from_dict(result)
                     error_message = error_and_result.error
