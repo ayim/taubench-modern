@@ -329,46 +329,48 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId, thread }) => {
         streamingMessages={streamError ? [streamError] : streamingMessages}
         renderer={MessageRenderer}
       />
-      <Footer>
-        {requiresOAuth && <OAuth />}
-        {!chatInputMeta.enabled && <ConversationDisabledMessage reason={chatInputMeta.message} />}
-        <ChatInput
-          streaming={isStreamingOrUploadingFiles}
-          busy={isChatInputBusy}
-          onSend={onSubmit}
-          onAbort={onAbort}
-          disabled={isChatInputDisabled}
-        >
-          {attachments.length > 0 && (
-            <ChatInput.FileList>
-              {attachments.map((file) => (
-                <ChatInputAttachment key={file.name} file={file} onCloseClick={() => onRemoveAttachment(file)} />
-              ))}
-            </ChatInput.FileList>
-          )}
-          <input {...getInputProps()} />
-          <ChatInput.Field
-            ref={(e) => {
-              ref(e);
-              chatInputRef.current = e;
-            }}
-            {...inputProps}
-            onChange={onMessageChange}
-            onPaste={onPaste}
-            placeholder="Message Agent"
-          />
-          <ChatInput.Actions>
-            <Button
-              onClick={onOpenFilePicker}
-              icon={IconPaperclip}
-              aria-label="Attach file button"
-              variant="ghost"
-              round
-              disabled={isAttachFileBtnDisabled}
+      {!isEvaluationThread && (
+        <Footer>
+          {requiresOAuth && <OAuth />}
+          {!chatInputMeta.enabled && <ConversationDisabledMessage reason={chatInputMeta.message} />}
+          <ChatInput
+            streaming={isStreamingOrUploadingFiles}
+            busy={isChatInputBusy}
+            onSend={onSubmit}
+            onAbort={onAbort}
+            disabled={isChatInputDisabled}
+          >
+            {attachments.length > 0 && (
+              <ChatInput.FileList>
+                {attachments.map((file) => (
+                  <ChatInputAttachment key={file.name} file={file} onCloseClick={() => onRemoveAttachment(file)} />
+                ))}
+              </ChatInput.FileList>
+            )}
+            <input {...getInputProps()} />
+            <ChatInput.Field
+              ref={(e) => {
+                ref(e);
+                chatInputRef.current = e;
+              }}
+              {...inputProps}
+              onChange={onMessageChange}
+              onPaste={onPaste}
+              placeholder="Message Agent"
             />
-          </ChatInput.Actions>
-        </ChatInput>
-      </Footer>
+            <ChatInput.Actions>
+              <Button
+                onClick={onOpenFilePicker}
+                icon={IconPaperclip}
+                aria-label="Attach file button"
+                variant="ghost"
+                round
+                disabled={isAttachFileBtnDisabled}
+              />
+            </ChatInput.Actions>
+          </ChatInput>
+        </Footer>
+      )}
       {isDragActive && <DropzoneOverlay />}
     </Container>
   );
