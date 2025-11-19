@@ -2,8 +2,6 @@
 
 script_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 
-export DATA_SERVER_IMAGE_REF="s4teamedition1registry.azurecr.io/data-server:1.1.15_e65fbf8.20250916T124606Z"
-export SPAR_IMAGE_REF="s4teamedition1registry.azurecr.io/spar:2.1.18-agent-platform-featsparuseremailaut_5ab2089eb.20251113T054514Z"
 export PSQL_IMAGE_REF="postgres:16"
 
 required_vars=(
@@ -11,6 +9,10 @@ required_vars=(
   APP_ENVIRONMENT_ID # Container App Environment ID
   APP_UAI_ID # Application UAI (User Assigned Identity) ID
   KEY_VAULT_URI # Application Key Vault URI
+  SPAR_IMAGE_REF # Docker image reference for the SPAR component
+  DATA_SERVER_IMAGE_REF # Docker image reference for the Data Server component
+  MCP_RUNTIME_IMAGE_REF # Docker image reference for the MCP Runtime component
+  ACR_LOGIN_SERVER # ACR registry login server
 )
 
 for var in "${required_vars[@]}"; do

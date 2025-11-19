@@ -11,7 +11,6 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   version             = "16"
   resource_group_name = var.resource_group_name
   location            = var.resource_group_location
-  zone                = "1"
 
   # The provided subnet should not have any other resource deployed in it and
   # this subnet will be delegated to the PostgreSQL Flexible Server, if not
@@ -26,6 +25,10 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   storage_mb   = 32768
   storage_tier = "P4"
   sku_name     = "B_Standard_B1ms"
+
+  lifecycle {
+    ignore_changes = [zone]
+  }
 }
 
 resource "azurerm_postgresql_flexible_server_configuration" "extensions" {

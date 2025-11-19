@@ -20,5 +20,4 @@ variable "resource_group_location" {
 
 variable "vnet_id" {
   type = string
-
 }

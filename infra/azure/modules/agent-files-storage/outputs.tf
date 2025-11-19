@@ -5,3 +5,7 @@ output "blob_endpoint" {
 output "storage_account_id" {
   value = azurerm_storage_account.agent_files.id
 }
+
+output "storage_account_name" {
+  value = azurerm_storage_account.agent_files.name
+}

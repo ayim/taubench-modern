@@ -1,6 +1,6 @@
 {
   "tags": null,
-  "location": "East US",
+  "location": null,
   "extendedLocation": null,
   "identity": {
     "type": "UserAssigned",
@@ -98,7 +98,7 @@
       },
       "registries": [
         {
-          "server": "s4teamedition1registry.azurecr.io",
+          "server": "${ACR_LOGIN_SERVER}",
           "identity": "${APP_UAI_ID}"
         }
       ],
@@ -216,7 +216,7 @@
             },
             {
               "name": "SEMA4AI_AGENT_SERVER_OTEL_ENABLED",
-              "value": "true"
+              "value": "false"
             },
             {
               "name": "SEMA4AI_WORKROOM_TENANT_ID",
@@ -244,7 +244,7 @@
             },
             {
               "name": "SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE",
-              "value": "perry@sema4.ai;karri@sema4.ai;ben@sema4.ai"
+              "value": ""
             },
             {
               "name": "AUTH_TYPE",
@@ -261,6 +261,10 @@
             {
               "name": "JWT_ISS",
               "value": "spar"
+            },
+            {
+              "name": "SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL",
+              "value": "http://localhost:8003"
             },
             {
               "name": "FILE_MANAGEMENT_API_URL",
@@ -349,6 +353,79 @@
               "type": "liveness"
             }
           ]
+        },
+        {
+          "image": "${MCP_RUNTIME_IMAGE_REF}",
+          "name": "mcp-runtime",
+          "command": null,
+          "args": null,
+          "env": [
+            {
+              "name": "POSTGRES_HOST",
+              "secretRef": "db-host"
+            },
+            {
+              "name": "POSTGRES_PORT",
+              "secretRef": "db-port"
+            },
+            {
+              "name": "POSTGRES_USER",
+              "secretRef": "db-username"
+            },
+            {
+              "name": "POSTGRES_PASSWORD",
+              "secretRef": "db-password"
+            },
+            {
+              "name": "POSTGRES_DB",
+              "value": "${DB_NAME}"
+            },
+            {
+              "name": "AGENT_SERVER_PORT",
+              "value": "8000"
+            },
+            {
+              "name": "LOG_LEVEL",
+              "value": "DEBUG"
+            },
+            {
+              "name": "SEMA4AI_AGENT_SERVER_DB_TYPE",
+              "value": "postgres"
+            },
+            {
+              "name": "SEMA4AI_WORKROOM_TENANT_ID",
+              "value": "${RELEASE_NAME}"
+            },
+            {
+              "name": "SEMA4AI_MCP_RUNTIME_SERVER_HOST_OVERRIDE",
+              "value": "http://localhost:8003"
+            }
+          ],
+          "resources": {
+            "cpu": 4.0,
+            "memory": "16.0Gi",
+            "ephemeralStorage": null
+          },
+          "volumeMounts": [
+            {
+              "volumeName": "mcp-runtime-data",
+              "mountPath": "/home/mcp-runtime/data"
+            }
+          ],
+          "probes": [
+            {
+              "type": "liveness",
+              "httpGet": {
+                "path": "/api/health",
+                "port": 8003
+              },
+              "initialDelaySeconds": 60,
+              "periodSeconds": 30,
+              "timeoutSeconds": 5,
+              "failureThreshold": 3,
+              "successThreshold": 1
+            }
+          ]
         }
       ],
       "scale": {
@@ -358,10 +435,16 @@
         "pollingInterval": null,
         "rules": null
       },
-      "volumes": null,
+      "volumes": [
+        {
+          "name": "mcp-runtime-data",
+          "storageType": "AzureFile",
+          "storageName": "mcp-runtime-storage"
+        }
+      ],
       "serviceBinds": null
     },
-    "workloadProfileName": null,
+    "workloadProfileName": "main",
     "latestReadyRevisionName": null,
     "eventStreamEndpoint": null
   }

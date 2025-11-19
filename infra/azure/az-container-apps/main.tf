@@ -7,7 +7,7 @@ data "azurerm_client_config" "current" {}
 
 resource "azurerm_resource_group" "team_edition" {
   name     = "team-edition-${var.infra_id}"
-  location = "East US"
+  location = var.infra_location
 }
 
 resource "azurerm_log_analytics_workspace" "team_edition" {
@@ -25,6 +25,14 @@ resource "azurerm_container_app_environment" "team_edition" {
   logs_destination           = "log-analytics"
   log_analytics_workspace_id = azurerm_log_analytics_workspace.team_edition.id
   infrastructure_subnet_id   = module.networking.container_apps_subnet_id
+
+  workload_profile {
+    name                  = "main"
+    workload_profile_type = "D8"
+
+    minimum_count = 1
+    maximum_count = 3
+  }
 
   identity {
     type = "SystemAssigned"
@@ -48,12 +56,13 @@ resource "azurerm_key_vault" "team_edition" {
 
   access_policy {
     tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = var.developer_group_object_id
+    object_id = var.key_vault_administrators_object_id
 
     secret_permissions = ["Get", "List", "Set", "Delete", "Purge"]
   }
 
   access_policy {
+    # Allow app UAI to read secrets
     tenant_id = data.azurerm_client_config.current.tenant_id
     object_id = azurerm_user_assigned_identity.app_identity.principal_id
 
@@ -111,7 +120,7 @@ module "app-auth" {
   key_vault_id = azurerm_key_vault.team_edition.id
 }
 
-module "agent_files_storage" {
+module "agent-files-storage" {
   source = "../modules/agent-files-storage"
 
   container_apps_subnet_id = module.networking.container_apps_subnet_id
@@ -122,8 +131,22 @@ module "agent_files_storage" {
   vnet_id                  = module.networking.vnet_id
 }
 
+module "mcp_runtime_storage" {
+  source = "../modules/mcp-runtime-storage"
+
+  container_app_environment_id = azurerm_container_app_environment.team_edition.id
+  resource_group_name          = azurerm_resource_group.team_edition.name
+  storage_account_name         = module.agent-files-storage.storage_account_name
+}
+
 resource "azurerm_role_assignment" "agent_files_contributor" {
-  scope                = module.agent_files_storage.storage_account_id
+  scope                = module.agent-files-storage.storage_account_id
   role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.app_identity.principal_id
+}
+
+resource "azurerm_role_assignment" "agent_files_smb_contributor" {
+  scope                = module.agent-files-storage.storage_account_id
+  role_definition_name = "Storage File Data SMB Share Contributor"
   principal_id         = azurerm_user_assigned_identity.app_identity.principal_id
 }

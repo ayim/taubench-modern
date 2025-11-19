@@ -31,4 +31,15 @@ resource "azurerm_subnet" "container_apps_subnet" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.network.name
   address_prefixes     = ["10.0.8.0/21"] # The Subnet must have a /21 or larger address space.
+  service_endpoints    = ["Microsoft.Storage"]
+
+  delegation {
+    name = "container_app_environment"
+    service_delegation {
+      name = "Microsoft.App/environments"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+      ]
+    }
+  }
 }
