@@ -58,6 +58,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     editingScenario: state.editingScenario,
     lastBatchSummary: state.lastBatchSummary,
     isBatchSummaryOutdated: state.isBatchSummaryOutdated,
+    runbookWarningDismissed: state.runbookWarningDismissed,
 
     // State actions
     setDeleteTarget: state.setDeleteTarget,
@@ -67,6 +68,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     setSelectedTrials: state.setSelectedTrials,
     setSelectedTrialsForAll: state.setSelectedTrialsForAll,
     setSelectedRunIndices: state.setSelectedRunIndices,
+    setRunbookWarningDismissed: state.setRunbookWarningDismissed,
     toggleResults: state.toggleResults,
     expandResults: state.expandResults,
     toggleTrialDetails: state.toggleTrialDetails,
@@ -83,6 +85,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     loading: data.loading,
     isAnyTestRunning: data.isAnyTestRunning,
     isCancelingAll: data.isCancelingAll,
+    hasRunbookUpdated: data.hasRunbookUpdated,
     createScenarioMutation: data.createScenarioMutation,
     updateScenarioMutation: data.updateScenarioMutation,
     deleteScenarioMutation: data.deleteScenarioMutation,

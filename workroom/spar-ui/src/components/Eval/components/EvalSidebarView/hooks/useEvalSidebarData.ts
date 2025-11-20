@@ -22,6 +22,7 @@ import {
   useUpdateScenarioMutation,
 } from '../../../../../queries/evals';
 import type { ScenarioBatchRun, ScenarioBatchRunMetadata, ScenarioBatchRunStatus } from '../../../../../queries/evals';
+import { useAgentQuery } from '../../../../../queries/agents';
 import { useSparUIContext } from '../../../../../api/context';
 import { sortByCreatedAtDesc } from '../../../../../lib/utils';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
@@ -79,6 +80,7 @@ export const useEvalSidebarData = ({
     agentId,
   });
   const { data: latestBatchRun } = useLatestBatchRunQuery({ agentId });
+  const { data: agent } = useAgentQuery({ agentId });
   const scenarioMap = useMemo(
     () => new Map(scenarios.map((scenario) => [scenario.scenario_id, scenario])),
     [scenarios],
@@ -684,6 +686,17 @@ export const useEvalSidebarData = ({
     queryClient,
   ]);
 
+  const hasRunbookUpdated = useMemo(() => {
+    if (!latestBatchRun?.metadata?.runbook_updated_at || !agent?.runbook_structured?.updated_at) {
+      return false;
+    }
+
+    const batchRunbookTime = new Date(latestBatchRun.metadata.runbook_updated_at).getTime();
+    const currentRunbookTime = new Date(agent.runbook_structured.updated_at).getTime();
+
+    return currentRunbookTime > batchRunbookTime;
+  }, [latestBatchRun?.metadata?.runbook_updated_at, agent?.runbook_structured?.updated_at]);
+
   return {
     // Data
     evaluations,
@@ -691,6 +704,7 @@ export const useEvalSidebarData = ({
     loading,
     isAnyTestRunning,
     isCancelingAll,
+    hasRunbookUpdated,
 
     // Mutations
     createScenarioMutation,

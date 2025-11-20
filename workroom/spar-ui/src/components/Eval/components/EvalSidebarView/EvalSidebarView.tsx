@@ -4,7 +4,7 @@ import { useThreadMessagesQuery } from '../../../../queries';
 import { useParams } from '../../../../hooks';
 import { CreateEvalDialog } from './components/CreateEvalDialog';
 import { useEvalSidebar } from './hooks/useEvalSidebar';
-import { EvalHeader, EvalEmptyState, ScenarioCard, ScenarioResults } from './components';
+import { EvalHeader, EvalEmptyState, ScenarioCard, ScenarioResults, UserFacingMetrics } from './components';
 
 export interface EvalSidebarViewProps {
   agentId: string;
@@ -113,14 +113,17 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           isFetchingSuggestion={sidebar.isFetchingSuggestion}
           onImportScenarios={handleImportClick}
           isImporting={sidebar.importScenariosMutation.isPending}
-          onRunAll={sidebar.handleRunAll}
-          onSetSelectedTrialsForAll={sidebar.setSelectedTrialsForAll}
-          selectedTrialsForAll={sidebar.selectedTrialsForAll}
-          isAnyTestRunning={sidebar.isAnyTestRunning}
-          onCancelAll={sidebar.handleCancelAllRunning}
-          isCancelingAll={sidebar.isCancelingAll}
+        />
+
+        <UserFacingMetrics
           batchSummary={sidebar.lastBatchSummary}
-          isBatchSummaryOutdated={sidebar.isBatchSummaryOutdated}
+          hasRunbookUpdated={sidebar.hasRunbookUpdated && !sidebar.runbookWarningDismissed}
+          onDismissRunbookWarning={() => sidebar.setRunbookWarningDismissed(true)}
+          onRunAllTests={sidebar.handleRunAll}
+          selectedTrialsForAll={sidebar.selectedTrialsForAll}
+          onSetSelectedTrialsForAll={sidebar.setSelectedTrialsForAll}
+          isAnyTestRunning={sidebar.isAnyTestRunning}
+          hasEvaluations={sidebar.evaluations.length > 0}
         />
 
         <Box display="flex" flexDirection="column" gap="$12" flex="1" overflow="auto" minHeight="0">
