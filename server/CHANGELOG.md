@@ -1,3 +1,18 @@
+# Sema4.ai Agent Server 2.1.22 (2025-11-20)
+
+- add support for gpt 5.1 and gpt5-codex (#1702)
+- GPT-1493 Implement slot resizing for the SlotExecutor (#1671)
+- [SDM-155] Fix blocking I/O in ibis data frame operations (#1707)
+- GPT-1539 truncate text in LM evaluations to prevent context window issues (#1695)
+- GPT-1535 Add config invariant between DB pool size and max work items (#1693)
+- GPT-1480 Move timeout for a single WorkItem into Config service (#1692)
+- [GPT-1538] Add telemetry module initialization file so it is treated as a package by the configuration system (#1690)
+- GPT-1536 GPT-1532 batch metadata (#1685)
+- [SDM-128] SEMA4AI_AGENT_SERVER_AGENT_TRACE_DIR env var can be set to directory where traces will be stored. (#1682)
+- GPT-1494 Update slot observability for WorkItems (#1670)
+- Enhance SQL manipulation for data frames (#1668)
+- [SDM-87] Handle mcp tool calls properly / auto-generate data frames with mcp tool calls (#1638)
+
 # Sema4.ai Agent Server 2.1.21 (2025-11-17)
 
 - [GPT-1489] New "Planning" Agent Architecture (#1633)
