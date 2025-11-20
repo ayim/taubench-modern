@@ -145,7 +145,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
   return (
     <Box display="flex" flexDirection="column" gap="$4">
       <Box display="flex" alignItems="center" gap="$8">
-        <Typography variant="body-small" fontWeight="medium">
+        <Typography variant="body-small" fontWeight="medium" style={{ userSelect: 'text' }}>
           {`Test ${trialIndex + 1} results`}
         </Typography>
         <Box display="flex" gap="$4">
@@ -178,7 +178,12 @@ export const TrialResults: FC<TrialResultsProps> = ({
             <Box display="flex" flexDirection="column" gap="$4">
               <Box display="flex" alignItems="center" gap="$8">
                 <IconStatusError size={16} color="content.error" />
-                <Typography variant="body-small" fontWeight="medium" color="content.error">
+                <Typography
+                  variant="body-small"
+                  fontWeight="medium"
+                  color="content.error"
+                  style={{ userSelect: 'text' }}
+                >
                   Trial Error
                 </Typography>
               </Box>
@@ -203,7 +208,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
                 return (
                   <Box key={evaluationKey} display="flex" flexDirection="column" gap="$4">
                     <Box display="flex" alignItems="center" gap="$8">
-                      <Typography variant="body-small" fontWeight="medium">
+                      <Typography variant="body-small" fontWeight="medium" style={{ userSelect: 'text' }}>
                         {getEvaluationResultLabel(result)}
                       </Typography>
                       {React.createElement(getEvaluationResultIcon(result), {
@@ -249,7 +254,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
             : !hasTrialError && (
                 <Box display="flex" alignItems="center" gap="$8">
                   <IconInformation size={16} color="content.subtle" />
-                  <Typography variant="body-small" color="content.subtle">
+                  <Typography variant="body-small" color="content.subtle" style={{ userSelect: 'text' }}>
                     No evaluation results available for this run
                   </Typography>
                 </Box>

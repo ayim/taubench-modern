@@ -76,19 +76,25 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
     <Box paddingLeft="$28" mt="$8">
       <Box display="flex" alignItems="center" justifyContent="space-between" mb="$8">
         <Box display="flex" flexDirection="column" gap="$4">
-          <Typography variant="body-medium" fontWeight="medium">
+          <Typography variant="body-medium" fontWeight="medium" style={{ userSelect: 'text' }}>
             Test run {totalRuns - selectedRunIndex}
             {selectedRunIndex === 0 ? ' (Latest)' : ''}
           </Typography>
           <Box display="flex" flexDirection="column" gap="$4" paddingLeft="$4" marginTop="$4">
-            <Typography variant="body-small">
+            <Typography variant="body-small" style={{ userSelect: 'text' }}>
               • Models:{' '}
               {Array.isArray(configuration?.models)
                 ? configuration.models.join(', ')
                 : String(configuration?.models || 'N/A')}
             </Typography>
-            <Typography variant="body-small">• Arch: {String(configuration?.architecture_version || 'N/A')}</Typography>
-            {runTerminated && <Typography variant="body-small">• Average duration: {averageDurationLabel}</Typography>}
+            <Typography variant="body-small" style={{ userSelect: 'text' }}>
+              • Arch: {String(configuration?.architecture_version || 'N/A')}
+            </Typography>
+            {runTerminated && (
+              <Typography variant="body-small" style={{ userSelect: 'text' }}>
+                • Average duration: {averageDurationLabel}
+              </Typography>
+            )}
           </Box>
         </Box>
         {totalRuns > 1 && (

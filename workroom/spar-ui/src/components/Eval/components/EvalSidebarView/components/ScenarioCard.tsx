@@ -133,7 +133,9 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
           <Box display="flex" alignItems="center" gap="$8" flexDirection="row" justifyContent="space-between">
             <Box display="flex" alignItems="center" gap="$8">
               <IconChemicalBottle size={20} />
-              <Typography variant="display-headline">{scenario.name}</Typography>
+              <Typography variant="display-headline" style={{ userSelect: 'text' }}>
+                {scenario.name}
+              </Typography>
             </Box>
 
             <Menu
@@ -170,7 +172,7 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
             </Menu>
           </Box>
 
-          <Typography variant="body-small" mt="$8">
+          <Typography variant="body-small" mt="$8" style={{ userSelect: 'text' }}>
             {scenario.description}
           </Typography>
         </Box>

@@ -178,11 +178,11 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
       {hasSummary && (
         <Box display="flex" flexDirection="column" gap="$4">
           <Box>
-            <Typography variant="body-medium" color="content.subtle.light">
+            <Typography variant="body-medium" color="content.subtle.light" style={{ userSelect: 'text' }}>
               Overall Test Results
             </Typography>
             <Box display="flex" alignItems="center" gap="$4">
-              <Typography variant="display-small" color="content.primary">
+              <Typography variant="display-small" color="content.primary" style={{ userSelect: 'text' }}>
                 {overallPercentDisplay}
               </Typography>
               {isAnyTestRunning ? (
@@ -192,14 +192,14 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
               )}
             </Box>
             {!isAnyTestRunning && overallDetailText && (
-              <Typography variant="body-small" color="content.success">
+              <Typography variant="body-small" color="content.success" style={{ userSelect: 'text' }}>
                 {overallDetailText}
               </Typography>
             )}
           </Box>
 
           {isBatchSummaryOutdated && (
-            <Typography variant="body-small" color="background.error">
+            <Typography variant="body-small" color="background.error" style={{ userSelect: 'text' }}>
               Individual scenario runs were executed after this batch; results may be outdated.
             </Typography>
           )}
