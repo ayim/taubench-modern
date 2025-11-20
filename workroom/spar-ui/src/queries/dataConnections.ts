@@ -164,7 +164,7 @@ export const useDataConnectionDatabaseInspectMutation = createSparMutation<objec
         });
       }
 
-      return response.data.tables;
+      return response.data;
     },
   }),
 );

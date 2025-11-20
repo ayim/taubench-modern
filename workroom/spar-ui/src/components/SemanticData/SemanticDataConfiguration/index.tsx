@@ -44,7 +44,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
   const [databaseInspectionState, setDatabaseInspectionState] = useState<DatabaseInspectionState>({
     isLoading: false,
     error: undefined,
-    dataTables: [],
+    inspectionResult: undefined,
   });
   const [dataSourceType, setDataSourceType] = useState<DataSourceType | undefined>(undefined);
 
@@ -113,7 +113,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
       );
     } else {
       createSemanticData(
-        { ...values, agentId },
+        { ...values, agentId, inspectionResult: databaseInspectionState.inspectionResult },
         {
           onSuccess: (result) => {
             setActiveStep(ConfigurationStep.Success);
@@ -140,7 +140,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         setDatabaseInspectionState({
           isLoading: true,
           error: undefined,
-          dataTables: [],
+          inspectionResult: undefined,
         });
 
         await inspectDataConnection(
@@ -150,19 +150,19 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
               setDatabaseInspectionState({
                 isLoading: false,
                 error: error.message,
-                dataTables: [],
+                inspectionResult: undefined,
               });
               if (!initialModelId) {
                 setActiveStep(ConfigurationStep.DataConnection);
               }
             },
-            onSuccess: (result) => {
+            onSuccess: (inspectionResult) => {
               setDatabaseInspectionState({
                 isLoading: false,
                 error: undefined,
-                dataTables: result,
+                inspectionResult,
               });
-              formMethods.setValue('dataSelection', tablesToDataSelection(result));
+              formMethods.setValue('dataSelection', tablesToDataSelection(inspectionResult, semanticModel));
             },
           },
         );

@@ -9,7 +9,7 @@ import { DataSelector } from './DataSelector';
 
 export const DataSelection: ConfigurationStepView = ({ onClose }) => {
   const {
-    databaseInspectionState: { dataTables },
+    databaseInspectionState: { inspectionResult },
   } = useContext(DataConnectionFormContext);
   const { watch } = useFormContext<DataConnectionFormSchema>();
 
@@ -39,7 +39,7 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
           />
 
           <Typography my="$16">Selected data</Typography>
-          <DataSelector data={dataTables} />
+          <DataSelector data={inspectionResult?.tables || []} />
         </Box>
       </Dialog.Content>
 

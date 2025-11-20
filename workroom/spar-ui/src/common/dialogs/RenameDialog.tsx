@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { Button, Dialog, Form, Input, Box } from '@sema4ai/components';
+import { FC, useCallback, useRef } from 'react';
+import { Button, Dialog, Form, Input, Box, useForkRef } from '@sema4ai/components';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -40,8 +40,18 @@ export const RenameDialog: FC<Props> = ({
     },
     mode: 'onChange',
   });
+  const localRef = useRef<HTMLInputElement>(null);
 
-  const { ref, ...registerProps } = register('name');
+  const selectInput = useCallback((ref: HTMLInputElement) => {
+    if (localRef.current) {
+      return;
+    }
+    localRef.current = ref;
+    ref.select();
+  }, []);
+
+  const { ref: nameRef, ...registerProps } = register('name');
+  const inputRef = useForkRef<HTMLInputElement>(nameRef, selectInput);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -76,13 +86,8 @@ export const RenameDialog: FC<Props> = ({
               autoFocus
               aria-label={`${entityType} name`}
               error={errors.name?.message}
+              ref={inputRef}
               {...registerProps}
-              ref={(element) => {
-                ref(element);
-                if (element) {
-                  requestAnimationFrame(() => element.select());
-                }
-              }}
             />
           </Box>
         </Dialog.Content>

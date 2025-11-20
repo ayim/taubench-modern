@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
+import {
+  createSparMutation,
+  createSparQuery,
+  createSparQueryOptions,
+  QueryError,
+  ResourceType,
+  ServerResponse,
+} from './shared';
 import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/form';
 
 // TODO: This model is not complete, update once agent-server-interface is updated and returns correct shape of SemanticModel
@@ -105,6 +112,8 @@ export const SemanticModel = z.object({
   verified_queries: z.array(VerifiedQuery).optional(),
 });
 export type SemanticModel = z.infer<typeof SemanticModel>;
+
+export type InspectedTableInfo = ServerResponse<'post', '/api/v2/data-connections/{connection_id}/inspect'>;
 
 /**
  * List Agent Semantic data models
@@ -249,7 +258,10 @@ export const useSemanticDataValidationQuery = createSparQuery(semanticDataValida
  */
 export const useCreateSemanticDataMutation = createSparMutation<
   object,
-  DataConnectionFormSchema & { agentId: string }
+  DataConnectionFormSchema & {
+    agentId: string;
+    inspectionResult?: InspectedTableInfo;
+  }
 >()(({ sparAPIClient, queryClient }) => ({
   mutationFn: async (payload) => {
     const tableData = payload.dataConnectionId
@@ -269,6 +281,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
               thread_id: '',
               file_ref: '',
               tables_info: payload.dataSelection,
+              inspection_result: payload.inspectionResult,
             },
           ],
         };
@@ -418,7 +431,19 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
 
     return response.data;
   },
-  onSuccess: (_, { agentId, modelId }) => {
+  onSuccess: (_, { agentId, modelId, name }) => {
+    queryClient.setQueriesData(
+      { queryKey: getAgentSemanticDataValidationQueryKey(agentId) },
+      (oldData: SemanticModel[]) => {
+        return oldData.map((curr) => {
+          if (curr.id === modelId) {
+            return { ...curr, name };
+          }
+          return curr;
+        });
+      },
+    );
+
     queryClient.invalidateQueries({ queryKey: getSemanticModelQueryKey(modelId) });
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId) });

@@ -1,11 +1,8 @@
 import { createContext, FC } from 'react';
 import z from 'zod';
-import { components } from '@sema4ai/agent-server-interface';
 
-import { SemanticModel } from '../../../../queries/semanticData';
+import { SemanticModel, InspectedTableInfo } from '../../../../queries/semanticData';
 import { getTableDimensions } from '../../../../lib/SemanticDataModels';
-
-export type InspectedTableInfo = components['schemas']['agent_platform__core__payloads__data_connection__TableInfo'];
 
 export enum DataSourceType {
   File = 'file',
@@ -16,7 +13,7 @@ export enum DataSourceType {
 export type DatabaseInspectionState = {
   isLoading: boolean;
   error: string | undefined;
-  dataTables: InspectedTableInfo[];
+  inspectionResult: InspectedTableInfo | undefined;
 };
 
 export const DataConnectionFormContext = createContext<{
@@ -28,7 +25,7 @@ export const DataConnectionFormContext = createContext<{
   databaseInspectionState: {
     isLoading: false,
     error: undefined,
-    dataTables: [],
+    inspectionResult: undefined,
   },
   setDatabaseInspectionState: () => {},
   onSubmit: () => {},
@@ -165,18 +162,36 @@ export const hasDataSelectionChanged = (payload: DataConnectionFormSchema) => {
   return dataSelectionAdded || dataSelectionRemoved;
 };
 
-export const tablesToDataSelection = (tables: InspectedTableInfo[]): DataConnectionFormSchema['dataSelection'] => {
-  return tables.map((table) => {
-    return {
-      name: table.name,
-      columns: table.columns.map((column) => {
-        return {
-          name: column.name,
-          data_type: column.data_type,
-          sample_values: column.sample_values || undefined,
-          synonyms: column.synonyms || undefined,
-        };
-      }),
-    };
-  });
+export const tablesToDataSelection = (
+  inspection: InspectedTableInfo,
+  semanticModel?: SemanticModel,
+): DataConnectionFormSchema['dataSelection'] => {
+  return inspection.tables
+    .filter((table) => !semanticModel || semanticModel.tables.find((curr) => curr.base_table.table === table.name))
+    .map((table) => {
+      return {
+        name: table.name,
+        columns: table.columns
+          .filter((column) => {
+            if (!semanticModel) {
+              return true;
+            }
+
+            const modelTable = semanticModel.tables.find((curr) => curr.base_table.table === table.name);
+            if (!modelTable) {
+              return false;
+            }
+            const modelDimensions = getTableDimensions(modelTable);
+            return modelDimensions.findIndex((dimension) => dimension.expr === column.name) > -1;
+          })
+          .map((column) => {
+            return {
+              name: column.name,
+              data_type: column.data_type,
+              sample_values: column.sample_values || undefined,
+              synonyms: column.synonyms || undefined,
+            };
+          }),
+      };
+    });
 };

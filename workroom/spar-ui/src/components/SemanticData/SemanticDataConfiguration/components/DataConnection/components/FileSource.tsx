@@ -31,11 +31,11 @@ export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveSte
   const onDrop = async (files: File[]) => {
     const file = files[0];
     try {
-      const result = await inspectFile({ fileName: file.name, fileContent: file });
+      const inspectionResult = await inspectFile({ fileName: file.name, fileContent: file });
       setDatabaseInspectionState({
         isLoading: false,
         error: undefined,
-        dataTables: result.tables,
+        inspectionResult,
       });
       setAddedFiles([file.name]);
       setValue('fileRefId', file.name);
@@ -49,7 +49,7 @@ export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveSte
     setDatabaseInspectionState({
       isLoading: false,
       error: undefined,
-      dataTables: [],
+      inspectionResult: undefined,
     });
     setValue('fileRefId', undefined);
   };
@@ -92,7 +92,7 @@ export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveSte
 
       <Dialog.Actions>
         <Button
-          disabled={addedFiles.length === 0 || databaseInspectionState.dataTables.length === 0}
+          disabled={addedFiles.length === 0 || !databaseInspectionState.inspectionResult?.tables?.length}
           round
           onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
         >

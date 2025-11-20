@@ -20,7 +20,7 @@ type Props = {
 
 export const DatabaseSource: ConfigurationStepView<Props> = ({ onClose, setActiveStep, setDataSourceType }) => {
   const {
-    databaseInspectionState: { isLoading, error, dataTables },
+    databaseInspectionState: { isLoading, error, inspectionResult },
   } = useContext(DataConnectionFormContext);
 
   const { watch } = useFormContext<DataConnectionFormSchema>();
@@ -62,7 +62,7 @@ export const DatabaseSource: ConfigurationStepView<Props> = ({ onClose, setActiv
       <Dialog.Actions>
         <Button
           onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
-          disabled={!dataConnectionId || dataTables.length === 0}
+          disabled={!dataConnectionId || !inspectionResult || inspectionResult.tables.length === 0}
           round
         >
           Continue
