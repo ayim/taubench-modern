@@ -304,6 +304,7 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId, thread }) => {
   }
 
   const isEvaluationThread = Boolean(thread?.metadata?.scenario_id);
+  const evaluationError = thread?.metadata?.evaluation_error as string | undefined;
 
   return (
     <Container {...getRootProps()} $hasEvalBanner={isEvaluationThread}>
@@ -329,6 +330,11 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId, thread }) => {
         streamingMessages={streamError ? [streamError] : streamingMessages}
         renderer={MessageRenderer}
       />
+      {isEvaluationThread && evaluationError && (
+        <BannerWrapper>
+          <Banner message={evaluationError} icon={IconInformation} variant="error" />
+        </BannerWrapper>
+      )}
       {!isEvaluationThread && (
         <Footer>
           {requiresOAuth && <OAuth />}
