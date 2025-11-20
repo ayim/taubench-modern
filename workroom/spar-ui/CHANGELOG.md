@@ -1,5 +1,25 @@
 # @sema4ai/spar-ui
 
+## 0.7.0
+
+### Minor Changes
+
+- ec5f1a0: Fix `DataConnectionForm` to support Snowflake credential types
+
+### Patch Changes
+
+- 0995907: chore: hide chat input if evaluation thread
+- 35a23ca: chore: add illustratoin to empty eval state and remove learn more link
+- ad58d91: Update chat code block line height restrictions
+- d91227b: adding Observability settings to SPAR Workroom, preserving original OTEL config state when switching back to original OTEL vendor
+- defa2ae: Support boolean values in Data Frames
+- defa2ae: Semantic Data Model related view layout fixes
+- b08b015: Add error banner display in evaluation thread view for execution failures. Shows thread.metadata.evaluation_error when evaluation trials fail due to agent tool mismatches, configuration drift, or runtime errors.
+- 26cb39e: Surface metadata field for batch runs
+- 77b5c37: feat: add user facing metrics UI
+- 3f656c2: Fix `RenameDialog` selecting the value on value changes
+- fe8c3a4: chore: make evals sidebar texts copyable
+
 ## 0.6.0
 
 ### Minor Changes
