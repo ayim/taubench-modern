@@ -19,7 +19,7 @@ We're also exposing an MCP resource for `agents://{name}`. This resource returns
 
 ## Examples
 
-See the "Create Agent Azure" Python notebook in the [server/examples](../server/examples) directory for an example of how to POST an agent that talks to MCP servers and uses the "agent server as an MCP server" pattern for agent-to-agent communication. Try sending chats like "list the agents" or "chat with agent X and ask it to give you a fun fact about science".
+See [docs/create-agent-examples.md](create-agent-examples.md) for current payload examples that show how to POST an agent that talks to MCP servers and uses the "agent server as an MCP server" pattern for agent-to-agent communication. Try sending chats like "list the agents" or "chat with agent X and ask it to give you a fun fact about science".
 
 ## Using Other MCP Servers
 

@@ -21,7 +21,6 @@ Available targets:
   check-pr                  Run common PR checks (format, lint, typecheck, unit tests)
   clean                     Remove build/dist artifacts
   coverage                  Run tests with pytest and generate coverage report
-  dev-widget                Run pnpm run dev on server/examples/debug_widget
   force-clean               Force remove build/dist artifacts (use with caution)
   format                    Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
   help                      Show this help
@@ -64,6 +63,8 @@ Working with `uv`:
 5. `uv run pytest core/tests server/tests` to run tests (`brew install postgresql` before trying to run tests)
 6. `uv run ruff check` to lint everything
 
+Examples of private agent creation payloads that mirror our current tests and helpers live in [docs/create-agent-examples.md](docs/create-agent-examples.md).
+
 ## ⚠️ Important: UV Workspace Behavior
 
 **Always run `uv` commands from the workspace root directory.** Running commands from subdirectories (like `server/` or `core/`) will cause issues.
@@ -99,36 +100,6 @@ make run-server
 cd server/
 uv run pytest tests/  # This will fail!
 ```
-
-## Running example notebooks
-
-To run the example notebooks:
-
-1. Set up your environment:
-
-   - Run `make new-empty-env` to create a new .env file if you don't have one
-   - Run `make check-env` to verify all required environment variables are set
-   - Navigate to the `server/examples` directory in your IDE
-   - Select a Jupyter kernel that matches the Python environment from `uv sync`
-
-2. Start the server:
-
-   - Ensure the server is running on port 8000
-   - If using a different port, modify the notebook to use your port
-
-3. Run the notebook:
-
-   - Execute the first 3 cells in the notebook
-   - Run the cell that imports the `DebugChatWidget` class to load the widget
-
-4. Optional: Modify agent configuration:
-
-   - Look for configuration settings in cells before the widget import
-   - Make your desired changes to the agent's behavior
-
-5. Optional: Run other cells to get the full thread and delete the agent you created.
-
-> **Important:** Generally, you should not commit your notebook changes to the repo unless you are fundamentally changing how the notebook works or adding documentation or functionality.
 
 ## Dependencies
 

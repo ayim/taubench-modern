@@ -93,18 +93,6 @@ build: clean build-wheels build-exe
 	@echo "Build complete!"
 
 # --------------------------------------------------------------------
-# Debug UX Widget
-# --------------------------------------------------------------------
-dev-widget:  ## Run pnpm run dev on server/examples/debug_widget
-	@# First, make sure we have pnpm installed
-	which pnpm || npm install -g pnpm
-	@# Save current directory and change to widget directory
-	pushd server/examples/debug_widget && \
-	pnpm install && \
-	pnpm run dev; \
-	popd
-
-# --------------------------------------------------------------------
 # Observability
 # --------------------------------------------------------------------
 
