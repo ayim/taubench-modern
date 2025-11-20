@@ -30,6 +30,10 @@ function View() {
       // This setting view is only meant to be used for the full SPAR experience (we're using deploymentWizard as a proxy)
       hidden: !features.deploymentWizard.enabled,
     },
+    {
+      label: 'Observability',
+      to: '/tenants/$tenantId/configuration/observability',
+    },
   ] satisfies NavigationTab[];
 
   return (

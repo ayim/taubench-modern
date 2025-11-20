@@ -36,6 +36,7 @@ import { Route as TenantsTenantIdMcpServersMcpServerIdIndexRouteImport } from '.
 import { Route as TenantsTenantIdDataAccessSemanticDataIndexRouteImport } from './routes/tenants/$tenantId/data-access/semantic-data/index'
 import { Route as TenantsTenantIdConversationalAgentIdIndexRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/index'
 import { Route as TenantsTenantIdConfigurationSettingsIndexRouteImport } from './routes/tenants/$tenantId/configuration/settings/index'
+import { Route as TenantsTenantIdConfigurationObservabilityIndexRouteImport } from './routes/tenants/$tenantId/configuration/observability/index'
 import { Route as TenantsTenantIdConfigurationLlmIndexRouteImport } from './routes/tenants/$tenantId/configuration/llm/index'
 import { Route as TenantsTenantIdConfigurationDocumentIntelligenceIndexRouteImport } from './routes/tenants/$tenantId/configuration/documentIntelligence/index'
 import { Route as TenantsTenantIdWorkerAgentIdCreateRouteImport } from './routes/tenants/$tenantId/worker/$agentId/create'
@@ -214,6 +215,12 @@ const TenantsTenantIdConfigurationSettingsIndexRoute =
   TenantsTenantIdConfigurationSettingsIndexRouteImport.update({
     id: '/settings/',
     path: '/settings/',
+    getParentRoute: () => TenantsTenantIdConfigurationRoute,
+  } as any)
+const TenantsTenantIdConfigurationObservabilityIndexRoute =
+  TenantsTenantIdConfigurationObservabilityIndexRouteImport.update({
+    id: '/observability/',
+    path: '/observability/',
     getParentRoute: () => TenantsTenantIdConfigurationRoute,
   } as any)
 const TenantsTenantIdConfigurationLlmIndexRoute =
@@ -396,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/configuration/documentIntelligence': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
+  '/tenants/$tenantId/configuration/observability': typeof TenantsTenantIdConfigurationObservabilityIndexRoute
   '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/data-access/semantic-data': typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
@@ -442,6 +450,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/configuration/documentIntelligence': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
+  '/tenants/$tenantId/configuration/observability': typeof TenantsTenantIdConfigurationObservabilityIndexRoute
   '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/data-access/semantic-data': typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
@@ -494,6 +503,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
   '/tenants/$tenantId/configuration/documentIntelligence/': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   '/tenants/$tenantId/configuration/llm/': typeof TenantsTenantIdConfigurationLlmIndexRoute
+  '/tenants/$tenantId/configuration/observability/': typeof TenantsTenantIdConfigurationObservabilityIndexRoute
   '/tenants/$tenantId/configuration/settings/': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
   '/tenants/$tenantId/data-access/semantic-data/': typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/worker/$agentId/create'
     | '/tenants/$tenantId/configuration/documentIntelligence'
     | '/tenants/$tenantId/configuration/llm'
+    | '/tenants/$tenantId/configuration/observability'
     | '/tenants/$tenantId/configuration/settings'
     | '/tenants/$tenantId/conversational/$agentId/'
     | '/tenants/$tenantId/data-access/semantic-data'
@@ -593,6 +604,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/worker/$agentId/create'
     | '/tenants/$tenantId/configuration/documentIntelligence'
     | '/tenants/$tenantId/configuration/llm'
+    | '/tenants/$tenantId/configuration/observability'
     | '/tenants/$tenantId/configuration/settings'
     | '/tenants/$tenantId/conversational/$agentId'
     | '/tenants/$tenantId/data-access/semantic-data'
@@ -644,6 +656,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/worker/$agentId/create'
     | '/tenants/$tenantId/configuration/documentIntelligence/'
     | '/tenants/$tenantId/configuration/llm/'
+    | '/tenants/$tenantId/configuration/observability/'
     | '/tenants/$tenantId/configuration/settings/'
     | '/tenants/$tenantId/conversational/$agentId/'
     | '/tenants/$tenantId/data-access/semantic-data/'
@@ -859,6 +872,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdConfigurationSettingsIndexRouteImport
       parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
+    '/tenants/$tenantId/configuration/observability/': {
+      id: '/tenants/$tenantId/configuration/observability/'
+      path: '/observability'
+      fullPath: '/tenants/$tenantId/configuration/observability'
+      preLoaderRoute: typeof TenantsTenantIdConfigurationObservabilityIndexRouteImport
+      parentRoute: typeof TenantsTenantIdConfigurationRoute
+    }
     '/tenants/$tenantId/configuration/llm/': {
       id: '/tenants/$tenantId/configuration/llm/'
       path: '/llm'
@@ -1022,6 +1042,7 @@ interface TenantsTenantIdConfigurationRouteChildren {
   TenantsTenantIdConfigurationLlmNewRoute: typeof TenantsTenantIdConfigurationLlmNewRoute
   TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute: typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
   TenantsTenantIdConfigurationLlmIndexRoute: typeof TenantsTenantIdConfigurationLlmIndexRoute
+  TenantsTenantIdConfigurationObservabilityIndexRoute: typeof TenantsTenantIdConfigurationObservabilityIndexRoute
   TenantsTenantIdConfigurationSettingsIndexRoute: typeof TenantsTenantIdConfigurationSettingsIndexRoute
 }
 
@@ -1037,6 +1058,8 @@ const TenantsTenantIdConfigurationRouteChildren: TenantsTenantIdConfigurationRou
       TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute,
     TenantsTenantIdConfigurationLlmIndexRoute:
       TenantsTenantIdConfigurationLlmIndexRoute,
+    TenantsTenantIdConfigurationObservabilityIndexRoute:
+      TenantsTenantIdConfigurationObservabilityIndexRoute,
     TenantsTenantIdConfigurationSettingsIndexRoute:
       TenantsTenantIdConfigurationSettingsIndexRoute,
   }

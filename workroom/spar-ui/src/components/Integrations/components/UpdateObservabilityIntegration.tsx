@@ -1,4 +1,4 @@
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useMemo } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, Form, Progress, useSnackbar } from '@sema4ai/components';
@@ -35,11 +35,16 @@ export const UpdateObservabilityIntegration: FC<Props> = ({ integrationId }) => 
     formState: { isValid },
   } = formMethods;
 
+  const defaultValues = useMemo(
+    () => (observabilityIntegration?.settings ? apiResponseToFormValues(observabilityIntegration.settings) : undefined),
+    [observabilityIntegration],
+  );
+
   useEffect(() => {
-    if (observabilityIntegration?.settings) {
-      reset(apiResponseToFormValues(observabilityIntegration.settings));
+    if (defaultValues) {
+      reset(defaultValues);
     }
-  }, [observabilityIntegration]);
+  }, [defaultValues]);
 
   const onSubmit = handleSubmit((data) => {
     /**
@@ -68,7 +73,7 @@ export const UpdateObservabilityIntegration: FC<Props> = ({ integrationId }) => 
   return (
     <Form onSubmit={onSubmit}>
       <FormProvider {...formMethods}>
-        <ObservabilitySettingsForm />
+        <ObservabilitySettingsForm defaultValues={defaultValues} />
 
         <Box display="flex" alignItems="center" justifyContent="end">
           <Button type="submit" loading={isPending} disabled={isPending || !isValid} round>

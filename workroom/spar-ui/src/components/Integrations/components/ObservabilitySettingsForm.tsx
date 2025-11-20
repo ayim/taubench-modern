@@ -64,7 +64,11 @@ export const GrafanaSettingsFields = () => {
   );
 };
 
-export const ObservabilitySettingsForm = () => {
+type Props = {
+  defaultValues?: ObservabilitySettingsFormSchema;
+};
+
+export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
   const { watch, reset } = useFormContext<ObservabilitySettingsFormSchema>();
   const { kind } = watch();
 
@@ -77,7 +81,11 @@ export const ObservabilitySettingsForm = () => {
         items={observabilityKindOptions}
         value={kind}
         onChange={(value) => {
-          reset({ kind: value as ObservabilitySettings['kind'], provider_settings: {} });
+          if (defaultValues && value === defaultValues.kind) {
+            reset(defaultValues);
+          } else {
+            reset({ kind: value as ObservabilitySettings['kind'], provider_settings: {} });
+          }
         }}
       />
 

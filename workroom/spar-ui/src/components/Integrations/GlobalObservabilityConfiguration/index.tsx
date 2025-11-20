@@ -4,9 +4,15 @@ import { CreateObservabilityIntegration } from '../components/CreateObservabilit
 import { UpdateObservabilityIntegration } from '../components/UpdateObservabilityIntegration';
 
 export const GlobalObservabilityConfiguration = () => {
-  const { data: observabilityIntegrations, isFetching } = useObservabilityIntegrationsQuery({});
+  const { data: observabilityIntegrations, isFetching, isRefetching } = useObservabilityIntegrationsQuery({});
 
-  if (isFetching) {
+  /**
+   * We only want to show the Progress on initial load - refetching should happen in the background.
+   * Apart from ensuring better UX, it ensures that the UpdateObservabilityIntegration form value do not get
+   * reset when refetch finishes and component mounts again, potentially overwriting user changes (that could
+   * happen when user navigates away from the page to other tab browser and back).
+   */
+  if (isFetching && !isRefetching) {
     return <Progress variant="default" />;
   }
 
@@ -16,9 +22,7 @@ export const GlobalObservabilityConfiguration = () => {
   }
 
   /**
-   * This view is only concerned with a single, global ObservabilityIntegration. For now, it's only a Studio
-   * use case - Workroom and Control Room will most likely allow to configure multiple integrations. Such case
-   * will need to be handle by a separate list view.
+   * This view is only concerned with a single, global ObservabilityIntegration.
    */
   const globalObservabilityIntegration = observabilityIntegrations?.[0];
 
