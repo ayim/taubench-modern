@@ -44,5 +44,5 @@ def fast_worker_settings_env():
 
     # Trigger the worker every second so we don't wait 30 s (default)
     os.environ.setdefault("WORKITEMS_WORKER_INTERVAL", "1")
-    # Keep the timeout short-ish (60 s instead of 20 min)
-    os.environ.setdefault("WORKITEMS_WORK_ITEM_TIMEOUT", "60")
+    # Keep the timeout short-ish (60 s instead of 4 hours)
+    os.environ.setdefault("SEMA4AI_AGENT_SERVER_WORK_ITEM_TIMEOUT_IN_SECONDS", "60")

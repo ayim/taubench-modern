@@ -63,18 +63,19 @@ async def configured_storage(storage):
 @pytest.fixture(autouse=True)
 def patch_worker_settings(monkeypatch):
     """Shrink worker settings so tests run quickly (small sleeps, small batches)."""
-    test_settings = WorkerSettings(worker_interval=0, max_batch_size=5, work_item_timeout=1.0)
+    test_settings = WorkerSettings(worker_interval=0, max_batch_size=5)
     # Patch settings where they are imported
     monkeypatch.setattr(
         "agent_platform.server.work_items.settings.WORK_ITEMS_SETTINGS", test_settings
     )
 
-    # Mock the quotas service's get_max_parallel_work_items_in_process to return 5
+    # Mock the quotas service
     async def mock_get_instance():
         from unittest.mock import Mock
 
         mock_quotas = Mock()
         mock_quotas.get_max_parallel_work_items_in_process.return_value = 5
+        mock_quotas.get_work_item_timeout_seconds.return_value = 1
         return mock_quotas
 
     monkeypatch.setattr(

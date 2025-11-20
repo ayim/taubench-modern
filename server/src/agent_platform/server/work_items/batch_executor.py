@@ -65,10 +65,10 @@ class BatchExecutor:
         marks them as "EXECUTING" and processes them as a batch.
         """
         from agent_platform.core.configurations.quotas import QuotasService
-        from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
 
         quotas_service = await QuotasService.get_instance()
         max_batch_size = quotas_service.get_max_parallel_work_items_in_process()
+        work_item_timeout = quotas_service.get_work_item_timeout_seconds()
 
         storage = StorageService.get_instance()
         work_item_ids = await storage.get_pending_work_item_ids(max_batch_size)
@@ -76,9 +76,7 @@ class BatchExecutor:
         if work_item_ids:
             logger.info(f"Found {len(work_item_ids)} work items to process. {work_item_ids!r}")
             logger.info(f"Dispatching work items {work_item_ids}")
-            batch_results = await self.run_batch(
-                work_item_ids, WORK_ITEMS_SETTINGS.work_item_timeout
-            )
+            batch_results = await self.run_batch(work_item_ids, work_item_timeout)
             logger.info(f"Completed {len(batch_results)} work items concurrently")
         else:
             logger.debug("Found no work items to process.")

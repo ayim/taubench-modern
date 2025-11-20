@@ -39,6 +39,7 @@ class QuotasService:
     AGENT_THREAD_RETENTION_PERIOD_DAYS = ConfigType.AGENT_THREAD_RETENTION_PERIOD
     POSTGRES_POOL_MAX_SIZE = ConfigType.POSTGRES_POOL_MAX_SIZE
     MAX_CACHE_SIZE = ConfigType.MAX_CACHE_SIZE
+    WORK_ITEM_TIMEOUT_SECONDS = ConfigType.WORK_ITEM_TIMEOUT_SECONDS
 
     # Storage key constants imported from config_validation (single source of truth)
 
@@ -91,6 +92,12 @@ class QuotasService:
             default_value=100 * 1024 * 1024,  # 100 MB in bytes
             description="Maximum cache size in bytes",
             env_vars=["SEMA4AI_AGENT_SERVER_MAX_CACHE_SIZE_IN_BYTES"],
+        ),
+        WORK_ITEM_TIMEOUT_SECONDS: QuotaConfig(
+            storage_key=ConfigType.WORK_ITEM_TIMEOUT_SECONDS,
+            default_value=3600,  # 1 hour in seconds
+            description="Execution timeout for a single Work Item in seconds",
+            env_vars=["SEMA4AI_AGENT_SERVER_WORK_ITEM_TIMEOUT_IN_SECONDS"],
         ),
     }
 
@@ -368,6 +375,14 @@ class QuotasService:
     async def set_max_cache_size(self, new_value: int | str) -> None:
         """Set maximum cache size in bytes."""
         await self._set_config_value(self.MAX_CACHE_SIZE, str(new_value))
+
+    def get_work_item_timeout_seconds(self) -> int:
+        """Get work item execution timeout in seconds."""
+        return self._get_config_value(self.WORK_ITEM_TIMEOUT_SECONDS)
+
+    async def set_work_item_timeout_seconds(self, new_value: str) -> None:
+        """Set work item execution timeout in seconds."""
+        await self._set_config_value(self.WORK_ITEM_TIMEOUT_SECONDS, new_value)
 
     def get_all_configs(self) -> dict[str, dict[str, Any]]:
         """Get all config values with their configurations."""

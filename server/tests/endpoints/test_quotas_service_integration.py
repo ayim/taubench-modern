@@ -144,6 +144,37 @@ class TestQuotasEnvOverrides:
         QuotasService._instance = None
         StorageService.reset()
 
+    async def test_work_item_timeout_seconds_get_set(self, storage):
+        """Test that work_item_timeout_seconds can be get/set via QuotasService."""
+        StorageService.set_for_testing(storage)
+        QuotasService._instance = None
+
+        quotas_service = await QuotasService.get_instance()
+
+        # Default is 3600 (1 hour in seconds)
+        assert quotas_service.get_work_item_timeout_seconds() == 3600
+
+        # Set to a valid value
+        await quotas_service.set_work_item_timeout_seconds("3601")
+        assert quotas_service.get_work_item_timeout_seconds() == 3601
+
+        # Persisted across instances
+        QuotasService._instance = None
+        fresh = await QuotasService.get_instance()
+        assert fresh.get_work_item_timeout_seconds() == 3601
+
+        # Invalid values are rejected
+        for bad in ["-1", "not_a_number"]:
+            with pytest.raises(PlatformHTTPError):
+                await quotas_service.set_work_item_timeout_seconds(bad)
+
+        # Zero is valid (edge case - no timeout)
+        await quotas_service.set_work_item_timeout_seconds("0")
+        assert quotas_service.get_work_item_timeout_seconds() == 0
+
+        QuotasService._instance = None
+        StorageService.reset()
+
 
 class TestParallelWorkItemsValidation:
     """Test validation of PARALLEL_WORK_ITEMS constraint with POSTGRES_POOL_MAX_SIZE."""

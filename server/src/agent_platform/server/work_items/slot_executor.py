@@ -146,7 +146,7 @@ class SlotExecutor:
         task.set_name("work-items-db-reader")
         return task
 
-    def _create_slot_task(
+    async def _create_slot_task(
         self,
         slot_id: int,
         executor_shutdown_event: asyncio.Event,
@@ -161,13 +161,10 @@ class SlotExecutor:
         Returns:
             The created task
         """
-        from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
-
         task = asyncio.create_task(
             self._slot_executor_task(
                 slot_id,
                 executor_shutdown_event,
-                WORK_ITEMS_SETTINGS.work_item_timeout,
             )
         )
         task.set_name(f"work-items-slot-{slot_id}")
@@ -207,7 +204,7 @@ class SlotExecutor:
         logger.info(f"Restarted database reader task (restart #{self._reader_crash_count})")
         return reader_task
 
-    def _handle_slot_crash(
+    async def _handle_slot_crash(
         self,
         crashed_task: asyncio.Task,
         slot_id: int,
@@ -239,7 +236,7 @@ class SlotExecutor:
         )
 
         # Restart the slot task
-        self._create_slot_task(
+        await self._create_slot_task(
             slot_id,
             executor_shutdown_event,
         )
@@ -270,7 +267,7 @@ class SlotExecutor:
 
         # Start slot executor tasks
         for slot_id in range(num_slots):
-            self._create_slot_task(
+            await self._create_slot_task(
                 slot_id,
                 executor_shutdown_event,
             )
@@ -299,7 +296,9 @@ class SlotExecutor:
                     else:
                         maybe_slot_id = self._find_slot_id_for_task(task)
                         if maybe_slot_id is not None:
-                            self._handle_slot_crash(task, maybe_slot_id, executor_shutdown_event)
+                            await self._handle_slot_crash(
+                                task, maybe_slot_id, executor_shutdown_event
+                            )
                         else:
                             # Unknown task (shouldn't happen)
                             logger.error(f"Unknown task completed: {task.get_name()}")
@@ -405,7 +404,9 @@ class SlotExecutor:
         slot_state.status = "executing"
         slot_state.work_item_id = item.work_item_id
 
-        logger.info(f"Slot {slot_id} executing work item {item.work_item_id}")
+        logger.info(
+            f"Slot {slot_id} executing work item {item.work_item_id} (timeout {work_item_timeout}s)"
+        )
 
         try:
             # Create the execution task and store it for potential cancellation
@@ -481,7 +482,6 @@ class SlotExecutor:
         self,
         slot_id: int,
         shutdown_event: asyncio.Event,
-        work_item_timeout: float,
     ) -> None:
         """
         The main loop of a single slot executor task with timeout handling.
@@ -496,6 +496,7 @@ class SlotExecutor:
             work_item_timeout: Timeout for individual work items
         """
         slot_state = self.slot_manager.slots[slot_id]
+        quotas_service = await self.quotas()
 
         logger.info(f"Work Items Slot Executor {slot_id} started")
 
@@ -536,6 +537,9 @@ class SlotExecutor:
                 item = get_task.result()
                 if item is None:
                     raise ValueError("Did not get a work item from the queue, should not happen")
+
+                # Check the current timeout just before we start running it.
+                work_item_timeout = quotas_service.get_work_item_timeout_seconds()
 
                 # Actually run the work item!
                 await self._execute_work_item_in_slot(item, slot_state, work_item_timeout)

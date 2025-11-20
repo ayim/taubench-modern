@@ -10573,6 +10573,7 @@ export const spec = {
           'AGENT_THREAD_RETENTION_PERIOD',
           'POSTGRES_POOL_MAX_SIZE',
           'MAX_CACHE_SIZE_IN_BYTES',
+          'WORK_ITEM_TIMEOUT_SECONDS',
         ],
         title: 'ConfigType',
       },

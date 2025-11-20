@@ -53,6 +53,7 @@ def make_mock_quotas(num_slots: int = 3):
     """Create a mock QuotasService."""
     quotas = Mock()
     quotas.get_max_parallel_work_items_in_process = Mock(return_value=num_slots)
+    quotas.get_work_item_timeout_seconds = Mock(return_value=1)
     return quotas
 
 
@@ -407,8 +408,9 @@ class TestSlotExecutorTask:
         """Task processes work items from the queue."""
         service = make_mock_service()
         storage = make_mock_storage()
+        quotas = make_mock_quotas()
 
-        executor = SlotExecutor(service.execute_work_item, storage=storage)
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
         executor.slot_manager.slots = {0: SlotState(slot_id=0, status="idle")}
 
         await executor._work_queue.put(make_work_item("item-1"))
@@ -416,9 +418,7 @@ class TestSlotExecutorTask:
         shutdown_event = asyncio.Event()
 
         # Start task
-        slot_task = asyncio.create_task(
-            executor._slot_executor_task(0, shutdown_event, work_item_timeout=1.0)
-        )
+        slot_task = asyncio.create_task(executor._slot_executor_task(0, shutdown_event))
 
         # Wait for processing
         await asyncio.sleep(0.1)
@@ -432,15 +432,14 @@ class TestSlotExecutorTask:
         """Task waits when queue is empty without busy-looping."""
         service = make_mock_service()
         storage = make_mock_storage()
+        quotas = make_mock_quotas()
 
-        executor = SlotExecutor(service.execute_work_item, storage=storage)
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
         executor.slot_manager.slots = {0: SlotState(slot_id=0, status="idle")}
 
         shutdown_event = asyncio.Event()
 
-        slot_task = asyncio.create_task(
-            executor._slot_executor_task(0, shutdown_event, work_item_timeout=1.0)
-        )
+        slot_task = asyncio.create_task(executor._slot_executor_task(0, shutdown_event))
 
         # Wait a bit
         await asyncio.sleep(0.1)
@@ -455,15 +454,14 @@ class TestSlotExecutorTask:
         """Task stops gracefully when shutdown event is set."""
         service = make_mock_service()
         storage = make_mock_storage()
+        quotas = make_mock_quotas()
 
-        executor = SlotExecutor(service.execute_work_item, storage=storage)
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
         executor.slot_manager.slots = {0: SlotState(slot_id=0, status="idle")}
 
         shutdown_event = asyncio.Event()
 
-        slot_task = asyncio.create_task(
-            executor._slot_executor_task(0, shutdown_event, work_item_timeout=1.0)
-        )
+        slot_task = asyncio.create_task(executor._slot_executor_task(0, shutdown_event))
 
         # Trigger shutdown immediately
         shutdown_event.set()
@@ -514,6 +512,7 @@ class TestSlotExecutorIntegration:
         """Multiple slots can process different items at the same time."""
         service = make_mock_service()
         storage = make_mock_storage()
+        quotas = make_mock_quotas()
 
         # Make execution take some time so we can verify concurrency
         execution_started = []
@@ -539,7 +538,7 @@ class TestSlotExecutorIntegration:
         storage.get_pending_work_item_ids = AsyncMock(side_effect=get_pending_ids)
         storage.get_work_items_by_ids.return_value = work_items
 
-        executor = SlotExecutor(service.execute_work_item, storage=storage)
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
         executor.slot_manager.slots = {
             0: SlotState(slot_id=0, status="idle"),
             1: SlotState(slot_id=1, status="idle"),
@@ -553,10 +552,7 @@ class TestSlotExecutorIntegration:
             executor._database_reader(shutdown_event, worker_interval=0.01)
         )
         slot_tasks = [
-            asyncio.create_task(
-                executor._slot_executor_task(i, shutdown_event, work_item_timeout=1.0)
-            )
-            for i in range(3)
+            asyncio.create_task(executor._slot_executor_task(i, shutdown_event)) for i in range(3)
         ]
 
         # Let the system run
@@ -574,11 +570,12 @@ class TestSlotExecutorIntegration:
         """Shutdown event stops reader and slots gracefully."""
         service = make_mock_service()
         storage = make_mock_storage()
+        quotas = make_mock_quotas()
 
         # Make storage return items continuously
         storage.get_pending_work_item_ids.return_value = []
 
-        executor = SlotExecutor(service.execute_work_item, storage=storage)
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
         executor.slot_manager.slots = {
             0: SlotState(slot_id=0, status="idle"),
         }
@@ -589,9 +586,7 @@ class TestSlotExecutorIntegration:
         reader_task = asyncio.create_task(
             executor._database_reader(shutdown_event, worker_interval=0.1)
         )
-        slot_task = asyncio.create_task(
-            executor._slot_executor_task(0, shutdown_event, work_item_timeout=1.0)
-        )
+        slot_task = asyncio.create_task(executor._slot_executor_task(0, shutdown_event))
 
         # Let them run briefly
         await asyncio.sleep(0.05)
@@ -639,7 +634,8 @@ class TestCrashHandling:
         """Slot crash increments slot crash counter."""
         service = make_mock_service()
         storage = make_mock_storage()
-        executor = SlotExecutor(service.execute_work_item, storage=storage)
+        quotas = make_mock_quotas()
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
 
         # Initialize a slot
         slot_id = 0
@@ -660,7 +656,7 @@ class TestCrashHandling:
         initial_count = executor.slot_manager.slots[slot_id].crash_count
 
         # Handle the crash
-        executor._handle_slot_crash(crashed_task, slot_id, shutdown_event)  # type: ignore[arg-type]
+        await executor._handle_slot_crash(crashed_task, slot_id, shutdown_event)  # type: ignore[arg-type]
 
         # Verify the slot_state is reset
         slot_state = executor.slot_manager.slots[slot_id]
@@ -756,13 +752,13 @@ class TestCrashHandling:
         crash_count = defaultdict(int)
         original_slot_task = executor._slot_executor_task
 
-        async def crashing_slot_task(slot_id, shutdown_event, work_item_timeout):
+        async def crashing_slot_task(slot_id, shutdown_event):
             crash_count[slot_id] = crash_count[slot_id] + 1
             if slot_id == 0 and crash_count[slot_id] == 1:
                 # Slot 0, first call: crash immediately
                 raise ValueError(f"Simulated slot {slot_id} crash")
             # All other cases: run normally
-            await original_slot_task(slot_id, shutdown_event, work_item_timeout)
+            await original_slot_task(slot_id, shutdown_event)
 
         executor._slot_executor_task = crashing_slot_task
 
@@ -813,13 +809,13 @@ class TestCrashHandling:
         slot_crash_count = 0
         original_slot_task = executor._slot_executor_task
 
-        async def crashing_slot_task(slot_id, shutdown_event, work_item_timeout):
+        async def crashing_slot_task(slot_id, shutdown_event):
             nonlocal slot_crash_count
             if slot_id == 1:
                 slot_crash_count += 1
                 if slot_crash_count == 1:
                     raise ValueError("Slot crash")
-            await original_slot_task(slot_id, shutdown_event, work_item_timeout)
+            await original_slot_task(slot_id, shutdown_event)
 
         executor._slot_executor_task = crashing_slot_task
 

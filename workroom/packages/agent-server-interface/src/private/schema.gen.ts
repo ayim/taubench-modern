@@ -3918,7 +3918,8 @@ export interface components {
       | 'MAX_MCP_SERVERS_IN_AGENT'
       | 'AGENT_THREAD_RETENTION_PERIOD'
       | 'POSTGRES_POOL_MAX_SIZE'
-      | 'MAX_CACHE_SIZE_IN_BYTES';
+      | 'MAX_CACHE_SIZE_IN_BYTES'
+      | 'WORK_ITEM_TIMEOUT_SECONDS';
     /** ConfirmRemoteFileUploadPayload */
     ConfirmRemoteFileUploadPayload: {
       /** File Ref */
