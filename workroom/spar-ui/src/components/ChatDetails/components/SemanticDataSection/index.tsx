@@ -19,10 +19,7 @@ export const SemanticDataSection = ({ titleBadge }: Props) => {
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const { data: semanticDataModelsWithoutValidation, isLoading } = useAgentSemanticDataQuery({ agentId });
-  const { data: semanticDataModelsWithValidation } = useAgentSemanticDataValidationQuery(
-    { agentId, threadId },
-    { refetchInterval: 30000 },
-  );
+  const { data: semanticDataModelsWithValidation } = useAgentSemanticDataValidationQuery({ agentId, threadId });
   const { enabled: isSemanticDataModelsAvailable } = useFeatureFlag(SparUIFeatureFlag.semanticDataModels);
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
