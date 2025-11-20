@@ -1,7 +1,6 @@
 import logging
 from dataclasses import dataclass
 from textwrap import dedent
-from typing import cast
 
 from fastapi import Request
 
@@ -13,12 +12,14 @@ from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.prompts.messages import PromptUserMessage
 from agent_platform.core.prompts.prompt import Prompt
 from agent_platform.core.responses.content.text import ResponseTextContent
-from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
+from agent_platform.server.evals.conversation_formatting import (
+    format_thread_conversation_for_eval,
+)
 from agent_platform.server.evals.json import parse_json_object
 from agent_platform.server.evals.retry import RetryExceededError, retry_async
 
@@ -32,7 +33,7 @@ class ScenarioSuggestion:
     response_accuracy_expectation: str = ""
 
 
-async def suggest_scenario_from_thread(user: User, thread: Thread, storage: StorageDependency):  # noqa: C901
+async def suggest_scenario_from_thread(user: User, thread: Thread, storage: StorageDependency):
     system_message = dedent("""
         You are an assistant that creates evaluation-ready scenario blueprints \
         from conversation threads. Each scenario suggestion must include: \
@@ -74,11 +75,6 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
         thread_messages_to_prompt_messages,
     )
 
-    async def format_conversation(messages: list[ThreadMessage]):
-        converted_messages = await kernel.converters.thread_messages_to_prompt_messages(messages)
-        temp_prompt = Prompt(messages=cast(list, converted_messages))
-        return temp_prompt.to_pretty_yaml(include=["messages"])
-
     def trim_initial_agents(messages):
         trimmed = []
         skip = True
@@ -91,7 +87,11 @@ async def suggest_scenario_from_thread(user: User, thread: Thread, storage: Stor
 
     messages = trim_initial_agents(thread.messages)
 
-    formatted_conversation_thread = await format_conversation(messages)
+    formatted_conversation_thread = await format_thread_conversation_for_eval(
+        kernel=kernel,
+        messages=messages,
+        include=["messages"],
+    )
 
     user_prompt_msg = user_prompt_msg.format(
         exemplar_thread=formatted_conversation_thread,

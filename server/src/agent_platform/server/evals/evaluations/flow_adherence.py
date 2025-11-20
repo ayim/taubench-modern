@@ -1,6 +1,5 @@
 import logging
 from textwrap import dedent
-from typing import cast
 
 from fastapi import Request
 
@@ -17,12 +16,14 @@ from agent_platform.core.prompts import Prompt
 from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.prompts.messages import PromptUserMessage
 from agent_platform.core.responses.content import ResponseTextContent
-from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
+from agent_platform.server.evals.conversation_formatting import (
+    format_thread_conversation_for_eval,
+)
 from agent_platform.server.evals.errors import log_and_format_error
 from agent_platform.server.evals.json import parse_json_object
 from agent_platform.server.evals.retry import RetryExceededError, retry_async
@@ -68,13 +69,14 @@ async def evaluate_flow_adherence(
         thread_messages_to_prompt_messages,
     )
 
-    async def format_conversation(messages: list[ThreadMessage]):
-        converted_messages = await kernel.converters.thread_messages_to_prompt_messages(messages)
-        temp_prompt = Prompt(messages=cast(list, converted_messages))
-        return temp_prompt.to_pretty_yaml(include=["messages"])
-
-    formatted_target_conversation_thread = await format_conversation(thread.messages)
-    formatted_benchmark_conversation = await format_conversation(scenario.messages)
+    formatted_target_conversation_thread = await format_thread_conversation_for_eval(
+        kernel=kernel,
+        messages=thread.messages,
+    )
+    formatted_benchmark_conversation = await format_thread_conversation_for_eval(
+        kernel=kernel,
+        messages=scenario.messages,
+    )
 
     user_prompt_msg = judge_prompt_msg.format(
         target_conversation=formatted_target_conversation_thread,
