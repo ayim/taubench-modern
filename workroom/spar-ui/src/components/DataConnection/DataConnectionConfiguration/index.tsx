@@ -1,8 +1,13 @@
+import { FC } from 'react';
 import { useNavigate, useParams } from '../../../hooks';
 import { CreateDataConnection } from './components/Create';
 import { UpdateDataConnection } from './components/Update';
 
-export const DataConnectionConfiguration = () => {
+type Props = {
+  snowflakeLinkedUser?: string;
+};
+
+export const DataConnectionConfiguration: FC<Props> = ({ snowflakeLinkedUser }) => {
   const navigate = useNavigate();
   const { dataConnectionId } = useParams({ strict: false });
 
@@ -11,8 +16,14 @@ export const DataConnectionConfiguration = () => {
   };
 
   if (dataConnectionId) {
-    return <UpdateDataConnection dataConnectionId={dataConnectionId} onClose={onClose} />;
+    return (
+      <UpdateDataConnection
+        snowflakeLinkedUser={snowflakeLinkedUser}
+        dataConnectionId={dataConnectionId}
+        onClose={onClose}
+      />
+    );
   }
 
-  return <CreateDataConnection onClose={onClose} />;
+  return <CreateDataConnection snowflakeLinkedUser={snowflakeLinkedUser} onClose={onClose} />;
 };

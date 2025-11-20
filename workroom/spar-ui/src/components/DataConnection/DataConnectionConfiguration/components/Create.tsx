@@ -10,9 +10,10 @@ import { DataConnectionForm } from './DataConnectionForm';
 type Props = {
   onClose: (dataConnection?: DataConnection) => void;
   initialEngine?: DataConnection['engine'];
+  snowflakeLinkedUser?: string;
 };
 
-export const CreateDataConnection: FC<Props> = ({ onClose, initialEngine }) => {
+export const CreateDataConnection: FC<Props> = ({ onClose, initialEngine, snowflakeLinkedUser }) => {
   const { addSnackbar } = useSnackbar();
   const { mutateAsync: createDataConnectionAsync, isPending } = useCreateDataConnectionMutation({});
 
@@ -47,7 +48,7 @@ export const CreateDataConnection: FC<Props> = ({ onClose, initialEngine }) => {
         </Dialog.Header>
         <Dialog.Content>
           <FormProvider {...formMethods}>
-            <DataConnectionForm allowEngineChange />
+            <DataConnectionForm allowEngineChange snowflakeLinkedUser={snowflakeLinkedUser} />
           </FormProvider>
         </Dialog.Content>
         <Dialog.Actions>

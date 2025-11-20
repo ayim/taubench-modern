@@ -10,6 +10,7 @@ import { DataConnectionForm } from './DataConnectionForm';
 type Props = {
   onClose: () => void;
   dataConnectionId: string;
+  snowflakeLinkedUser?: string;
 };
 
 // Agent Server returns all fields, including unconfigured fields with `null` value, which will fail form validation
@@ -22,7 +23,7 @@ const removeConfigurationNullValues = (dataConnection: DataConnection) => {
   };
 };
 
-export const UpdateDataConnection: FC<Props> = ({ dataConnectionId, onClose }) => {
+export const UpdateDataConnection: FC<Props> = ({ dataConnectionId, snowflakeLinkedUser, onClose }) => {
   const { addSnackbar } = useSnackbar();
   const { mutateAsync: updateDataConnectionAsync, isPending } = useUpdateDataConnectionMutation({ dataConnectionId });
   const { data: dataConnection, isFetching } = useDataConnectionQuery({ dataConnectionId });
@@ -69,7 +70,7 @@ export const UpdateDataConnection: FC<Props> = ({ dataConnectionId, onClose }) =
         </Dialog.Header>
         <Dialog.Content>
           <FormProvider {...formMethods}>
-            <DataConnectionForm />
+            <DataConnectionForm snowflakeLinkedUser={snowflakeLinkedUser} />
           </FormProvider>
         </Dialog.Content>
         <Dialog.Actions>

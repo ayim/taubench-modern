@@ -1,3 +1,4 @@
+import { FC } from 'react';
 import { FieldErrors, FieldValues, useFormContext } from 'react-hook-form';
 import { z } from 'zod';
 import { CustomSchemaType, dataSourcesZodRegistry } from '@sema4ai/data-interface';
@@ -23,6 +24,10 @@ type Props<K extends string> = {
    * @ignore
    */
   formKeyPrefix?: string;
+  /**
+   * Custom fields to render based on field name
+   */
+  customFields?: { fieldName: string; component: FC; props?: Record<string, unknown> }[];
 };
 
 /**
@@ -32,6 +37,7 @@ export const SchemaFormFields = <T extends FieldValues, K extends string>({
   optionalFields,
   formKeyPrefix,
   schema,
+  customFields,
 }: Props<K>) => {
   const { formState, watch, setValue } = useFormContext();
 
@@ -64,6 +70,13 @@ export const SchemaFormFields = <T extends FieldValues, K extends string>({
       }
       return undefined;
     }, formState.errors as FieldErrors<T>);
+
+    const customField = customFields?.find((curr) => curr.fieldName === fieldName);
+
+    if (customField) {
+      const { component: CustomField, props } = customField;
+      return <CustomField {...props} />;
+    }
 
     if (customSchemaType?.customSchemaType) {
       if (customSchemaType?.customSchemaType === CustomSchemaType.Secret) {

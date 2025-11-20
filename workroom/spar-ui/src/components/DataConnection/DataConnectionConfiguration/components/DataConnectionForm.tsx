@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import {
   dataSourceConnectionConfigurationSchemaByEngine,
@@ -12,37 +12,56 @@ import { useFormContext } from 'react-hook-form';
 import { SchemaFormFields } from '../../../../common/form/SchemaFormFields';
 import { SelectControlled } from '../../../../common/form/SelectControlled';
 import { getDataConnectionIcon } from '../../components/DataConnectionIcon';
-
-type AcceptedSchemaType = z.ZodObject<z.ZodRawShape>;
-const explicitSnowflakeSchema = (
-  dataSourceConnectionConfigurationSchemaByEngine.snowflake.options.find((schema) => {
-    const result = (schema as AcceptedSchemaType).pick({ credential_type: true }).safeParse({
-      credential_type: undefined,
-    });
-    return result.success;
-  }) as (typeof dataSourceConnectionConfigurationSchemaByEngine)['snowflake']['options'][0]
-).omit({ credential_type: true });
-
-const extractSchemaByEngine = (engine: DataSourceEngineWithConnection): AcceptedSchemaType => {
-  if (engine === 'snowflake') {
-    return explicitSnowflakeSchema;
-  }
-  return dataSourceConnectionConfigurationSchemaByEngine[engine];
-};
+import { SnowflakeCredentialField } from './SnowflakeCredentialField';
 
 type Props = {
   allowEngineChange?: boolean;
+  snowflakeLinkedUser?: string;
 };
 
 export const CONFIGURABLE_DATA_SOURCES = Object.keys(
   dataSourceConnectionConfigurationSchemaByEngine,
 ) as DataSourceEngineWithConnection[];
 
-export const DataConnectionForm: FC<Props> = ({ allowEngineChange }) => {
-  const { register, watch } = useFormContext<DataConnection>();
-  const { engine } = watch();
+export const DataConnectionForm: FC<Props> = ({ allowEngineChange, snowflakeLinkedUser }) => {
+  const { register, watch, setValue } = useFormContext<DataConnection>();
+  const { engine, configuration } = watch();
 
-  const configSchema = useMemo(() => extractSchemaByEngine(engine), [engine]);
+  const snowflakeCredentialType =
+    configuration && 'credential_type' in configuration ? configuration.credential_type : undefined;
+
+  const configSchema = useMemo(() => {
+    if (engine === 'snowflake') {
+      const snowflakeSchema = dataSourceConnectionConfigurationSchemaByEngine.snowflake.options.find((schema) => {
+        const result = (schema as z.ZodObject<z.ZodRawShape>).pick({ credential_type: true }).safeParse({
+          credential_type: snowflakeCredentialType || 'custom-key-pair',
+        });
+
+        return result.success;
+      });
+
+      return snowflakeSchema as (typeof dataSourceConnectionConfigurationSchemaByEngine)['snowflake']['options'][0];
+    }
+
+    return dataSourceConnectionConfigurationSchemaByEngine[engine];
+  }, [engine, snowflakeCredentialType]);
+
+  const customFields = useMemo(() => {
+    return [
+      {
+        fieldName: 'configuration.credential_type',
+        component: SnowflakeCredentialField,
+        props: { snowflakeLinkedUser },
+      },
+    ];
+  }, [snowflakeLinkedUser]);
+
+  useEffect(() => {
+    if (engine === 'snowflake' && !snowflakeCredentialType) {
+      const setting = snowflakeLinkedUser ? 'linked' : 'custom-key-pair';
+      setValue('configuration.credential_type', setting);
+    }
+  }, [engine, snowflakeLinkedUser, snowflakeCredentialType]);
 
   return (
     <Form.Fieldset>
@@ -70,10 +89,12 @@ export const DataConnectionForm: FC<Props> = ({ allowEngineChange }) => {
       <SchemaFormFields<DataConnection, keyof DataConnection['configuration']>
         schema={configSchema}
         formKeyPrefix="configuration"
+        customFields={customFields}
       />
       <SchemaFormFields<DataConnection, keyof DataConnection['configuration']>
         schema={configSchema}
         formKeyPrefix="configuration"
+        customFields={customFields}
         optionalFields
       />
     </Form.Fieldset>
