@@ -43,6 +43,7 @@ export * from './components/ChatDetails/WorkItemAPIUrl';
 
 export * from './components/WorkItemsTable';
 export * from './components/WorkItemsOverview';
+export * from './components/WorkItemExecutorsView';
 
 export * from './common/form/SchemaFormFields';
 export * from './components/Integrations/GlobalObservabilityConfiguration';

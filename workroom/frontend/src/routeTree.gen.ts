@@ -27,6 +27,7 @@ import { Route as TenantsTenantIdAgentIdIndexRouteImport } from './routes/tenant
 import { Route as TenantsTenantIdWorkerAgentIdRouteImport } from './routes/tenants/$tenantId/worker/$agentId'
 import { Route as TenantsTenantIdWorkItemsOverviewRouteImport } from './routes/tenants/$tenantId/workItems/overview'
 import { Route as TenantsTenantIdWorkItemsListRouteImport } from './routes/tenants/$tenantId/workItems/list'
+import { Route as TenantsTenantIdWorkItemsExecutorsRouteImport } from './routes/tenants/$tenantId/workItems/executors'
 import { Route as TenantsTenantIdMcpServersNewRouteImport } from './routes/tenants/$tenantId/mcp-servers/new'
 import { Route as TenantsTenantIdDataAccessDataConnectionsRouteImport } from './routes/tenants/$tenantId/data-access/data-connections'
 import { Route as TenantsTenantIdConversationalAgentIdRouteImport } from './routes/tenants/$tenantId/conversational/$agentId'
@@ -161,6 +162,12 @@ const TenantsTenantIdWorkItemsListRoute =
   TenantsTenantIdWorkItemsListRouteImport.update({
     id: '/workItems/list',
     path: '/workItems/list',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdWorkItemsExecutorsRoute =
+  TenantsTenantIdWorkItemsExecutorsRouteImport.update({
+    id: '/workItems/executors',
+    path: '/workItems/executors',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdMcpServersNewRoute =
@@ -384,6 +391,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
   '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsRouteWithChildren
   '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
+  '/tenants/$tenantId/workItems/executors': typeof TenantsTenantIdWorkItemsExecutorsRoute
   '/tenants/$tenantId/workItems/list': typeof TenantsTenantIdWorkItemsListRoute
   '/tenants/$tenantId/workItems/overview': typeof TenantsTenantIdWorkItemsOverviewRoute
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
@@ -433,6 +441,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
   '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsRouteWithChildren
   '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
+  '/tenants/$tenantId/workItems/executors': typeof TenantsTenantIdWorkItemsExecutorsRoute
   '/tenants/$tenantId/workItems/list': typeof TenantsTenantIdWorkItemsListRoute
   '/tenants/$tenantId/workItems/overview': typeof TenantsTenantIdWorkItemsOverviewRoute
   '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdIndexRoute
@@ -484,6 +493,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
   '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsRouteWithChildren
   '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
+  '/tenants/$tenantId/workItems/executors': typeof TenantsTenantIdWorkItemsExecutorsRoute
   '/tenants/$tenantId/workItems/list': typeof TenantsTenantIdWorkItemsListRoute
   '/tenants/$tenantId/workItems/overview': typeof TenantsTenantIdWorkItemsOverviewRoute
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
@@ -538,6 +548,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/conversational/$agentId'
     | '/tenants/$tenantId/data-access/data-connections'
     | '/tenants/$tenantId/mcp-servers/new'
+    | '/tenants/$tenantId/workItems/executors'
     | '/tenants/$tenantId/workItems/list'
     | '/tenants/$tenantId/workItems/overview'
     | '/tenants/$tenantId/worker/$agentId'
@@ -587,6 +598,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/agents/deploy'
     | '/tenants/$tenantId/data-access/data-connections'
     | '/tenants/$tenantId/mcp-servers/new'
+    | '/tenants/$tenantId/workItems/executors'
     | '/tenants/$tenantId/workItems/list'
     | '/tenants/$tenantId/workItems/overview'
     | '/tenants/$tenantId/$agentId'
@@ -637,6 +649,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/conversational/$agentId'
     | '/tenants/$tenantId/data-access/data-connections'
     | '/tenants/$tenantId/mcp-servers/new'
+    | '/tenants/$tenantId/workItems/executors'
     | '/tenants/$tenantId/workItems/list'
     | '/tenants/$tenantId/workItems/overview'
     | '/tenants/$tenantId/worker/$agentId'
@@ -807,6 +820,13 @@ declare module '@tanstack/react-router' {
       path: '/workItems/list'
       fullPath: '/tenants/$tenantId/workItems/list'
       preLoaderRoute: typeof TenantsTenantIdWorkItemsListRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/workItems/executors': {
+      id: '/tenants/$tenantId/workItems/executors'
+      path: '/workItems/executors'
+      fullPath: '/tenants/$tenantId/workItems/executors'
+      preLoaderRoute: typeof TenantsTenantIdWorkItemsExecutorsRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/mcp-servers/new': {
@@ -1249,6 +1269,7 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdAgentsDeployRoute: typeof TenantsTenantIdAgentsDeployRouteWithChildren
   TenantsTenantIdConversationalAgentIdRoute: typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
   TenantsTenantIdDataAccessDataConnectionsRoute: typeof TenantsTenantIdDataAccessDataConnectionsRouteWithChildren
+  TenantsTenantIdWorkItemsExecutorsRoute: typeof TenantsTenantIdWorkItemsExecutorsRoute
   TenantsTenantIdWorkItemsListRoute: typeof TenantsTenantIdWorkItemsListRoute
   TenantsTenantIdWorkItemsOverviewRoute: typeof TenantsTenantIdWorkItemsOverviewRoute
   TenantsTenantIdWorkerAgentIdRoute: typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
@@ -1275,6 +1296,8 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
     TenantsTenantIdConversationalAgentIdRouteWithChildren,
   TenantsTenantIdDataAccessDataConnectionsRoute:
     TenantsTenantIdDataAccessDataConnectionsRouteWithChildren,
+  TenantsTenantIdWorkItemsExecutorsRoute:
+    TenantsTenantIdWorkItemsExecutorsRoute,
   TenantsTenantIdWorkItemsListRoute: TenantsTenantIdWorkItemsListRoute,
   TenantsTenantIdWorkItemsOverviewRoute: TenantsTenantIdWorkItemsOverviewRoute,
   TenantsTenantIdWorkerAgentIdRoute:

@@ -404,3 +404,29 @@ export const workItemsSummaryQueryOptions = createSparQueryOptions()(({ sparAPIC
 }));
 
 export const useWorkItemsSummaryQuery = createSparQuery(workItemsSummaryQueryOptions);
+
+/**
+ * Work Item Executors Status
+ */
+export type WorkItemTaskStatusResponse = components['schemas']['WorkItemTaskStatusResponse'];
+export type WorkItemTaskStatusResponseItem = components['schemas']['WorkItemTaskStatusResponseItem'];
+
+export const workItemExecutorsStatusQueryKey = () => ['work-item-executors-status'];
+
+export const workItemExecutorsStatusQueryOptions = createSparQueryOptions()(({ sparAPIClient }) => ({
+  queryKey: workItemExecutorsStatusQueryKey(),
+  queryFn: async (): Promise<WorkItemTaskStatusResponse> => {
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/work-items/status', {});
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch work item executors status', {
+        code: response.code,
+        resource: ResourceType.WorkItem,
+      });
+    }
+
+    return response.data;
+  },
+}));
+
+export const useWorkItemExecutorsStatusQuery = createSparQuery(workItemExecutorsStatusQueryOptions);
