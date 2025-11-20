@@ -5,8 +5,8 @@ import type { BatchSummary } from '../types';
 
 export interface UserFacingMetricsProps {
   batchSummary: BatchSummary | null;
-  hasRunbookUpdated: boolean;
-  onDismissRunbookWarning?: () => void;
+  showRunbookWarning: boolean;
+  onDismissRunbookWarning: () => void;
   onRunAllTests: (numTrials: number) => void;
   selectedTrialsForAll: number;
   onSetSelectedTrialsForAll: (numTrials: number) => void;
@@ -16,7 +16,7 @@ export interface UserFacingMetricsProps {
 
 export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
   batchSummary,
-  hasRunbookUpdated,
+  showRunbookWarning,
   onDismissRunbookWarning,
   onRunAllTests,
   selectedTrialsForAll,
@@ -24,59 +24,40 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
   isAnyTestRunning,
   hasEvaluations,
 }) => {
-  if (!batchSummary) {
-    return (
-      <Box display="flex" gap="$32">
-        <Box display="flex" flexDirection="column" gap="$4">
-          <Typography variant="body-medium" color="content.subtle" style={{ userSelect: 'text' }}>
-            Overall Test Result
-          </Typography>
-          <Typography variant="display-small" color="content.primary" style={{ userSelect: 'text' }}>
-            --
-          </Typography>
-        </Box>
-        <Box display="flex" flexDirection="column" gap="$4">
-          <Typography variant="body-medium" color="content.subtle" style={{ userSelect: 'text' }}>
-            Consistency
-          </Typography>
-          <Typography variant="display-small" color="content.primary" style={{ userSelect: 'text' }}>
-            --
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
+  const totalScenarios = batchSummary?.statistics.total_scenarios ?? 0;
+  const successfulScenarios = batchSummary?.statistics.completed_scenarios ?? 0;
+  const totalTrials = batchSummary?.statistics.total_trials ?? 0;
+  const successfulTrials = batchSummary?.statistics.completed_trials ?? 0;
+  const failedTrials = batchSummary?.statistics.failed_trials ?? 0;
 
-  const totalScenarios = batchSummary.statistics.total_scenarios ?? 0;
-  const successfulScenarios = batchSummary.statistics.completed_scenarios ?? 0;
-  const totalTrials = batchSummary.statistics.total_trials ?? 0;
-  const successfulTrials = batchSummary.statistics.completed_trials ?? 0;
-
+  const hasCompletedTrials = successfulTrials + failedTrials > 0;
+  const hasRunBatch = !!batchSummary && hasCompletedTrials;
   const overallPercent = totalTrials > 0 ? Math.round((successfulTrials / Math.max(totalTrials, 1)) * 100) : 0;
 
-  const allowConsistency = batchSummary.numTrials > 1;
+  const allowConsistency = (batchSummary?.numTrials ?? 0) > 1;
   const hasConsistencyData = allowConsistency && totalScenarios > 0;
   const consistencyPercent = hasConsistencyData
     ? Math.round((successfulScenarios / Math.max(totalScenarios, 1)) * 100)
     : 0;
 
   const overallDetailText =
-    totalScenarios > 0 && totalTrials > 0
+    batchSummary && totalScenarios > 0 && totalTrials > 0
       ? `${totalScenarios} scenarios evaluated ${batchSummary.numTrials} ${batchSummary.numTrials === 1 ? 'time' : 'times'} each\n${successfulTrials} trials passed`
       : '';
 
-  const consistencyDetailText = hasConsistencyData
-    ? `${successfulScenarios} scenarios passed all ${batchSummary.numTrials} runs.`
-    : '';
+  const consistencyDetailText =
+    batchSummary && hasConsistencyData
+      ? `${successfulScenarios} scenarios passed all ${batchSummary.numTrials} runs.`
+      : '';
 
-  const models = batchSummary.metadata?.models || [];
-  const modelsText = models.length > 0 ? models.join(', ') : 'N/A';
+  const models = batchSummary?.metadata?.models || [];
+  const modelsText = models.length > 0 ? models.join(', ') : null;
 
-  const runbookUpdatedAt = batchSummary.metadata?.runbook_updated_at;
+  const runbookUpdatedAt = batchSummary?.metadata?.runbook_updated_at;
   const runbookDate = runbookUpdatedAt ? new Date(runbookUpdatedAt) : null;
   const runbookText = runbookDate
     ? `Updated at ${runbookDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}, ${runbookDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-    : 'N/A';
+    : null;
 
   const runTestsMenu = (
     <Menu
@@ -119,7 +100,7 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
             </Tooltip>
           </Box>
           <Typography variant="display-small" color="content.primary" style={{ userSelect: 'text' }}>
-            {isAnyTestRunning ? '--' : `${overallPercent}%`}
+            {isAnyTestRunning || !hasRunBatch ? '--' : `${overallPercent}%`}
           </Typography>
           {!isAnyTestRunning && overallDetailText && (
             <Typography
@@ -143,7 +124,7 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
               </Tooltip>
             </Box>
             <Typography variant="display-small" color="content.primary" style={{ userSelect: 'text' }}>
-              {isAnyTestRunning ? '--' : `${consistencyPercent}%`}
+              {isAnyTestRunning || !hasRunBatch ? '--' : `${consistencyPercent}%`}
             </Typography>
             {!isAnyTestRunning && consistencyDetailText && (
               <Typography variant="body-small" color="content.success" style={{ userSelect: 'text' }}>
@@ -154,7 +135,7 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
         )}
       </Box>
 
-      {hasRunbookUpdated && onDismissRunbookWarning ? (
+      {showRunbookWarning && (
         <Banner
           message=""
           description="Your runbook / agent was updated. Run all tests for accuracy and consistency information."
@@ -169,14 +150,20 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
             onClick={onDismissRunbookWarning}
           />
         </Banner>
-      ) : (
+      )}
+
+      {!showRunbookWarning && (modelsText || runbookText) && (
         <Box display="flex" flexDirection="column" gap="$8">
-          <Typography variant="body-small" color="content.primary" style={{ userSelect: 'text' }}>
-            • Model: {modelsText}
-          </Typography>
-          <Typography variant="body-small" color="content.primary" style={{ userSelect: 'text' }}>
-            • Runbook: {runbookText}
-          </Typography>
+          {modelsText && (
+            <Typography variant="body-small" color="content.primary" style={{ userSelect: 'text' }}>
+              • Model: {modelsText}
+            </Typography>
+          )}
+          {runbookText && (
+            <Typography variant="body-small" color="content.primary" style={{ userSelect: 'text' }}>
+              • Runbook: {runbookText}
+            </Typography>
+          )}
         </Box>
       )}
 

@@ -113,10 +113,17 @@ export const useEvalSidebarData = ({
     }
 
     setLastBatchSummary((prev) => {
-      if (prev && prev.batchRunId === latestBatchRun.batch_run_id) {
-        return buildBatchSummary(latestBatchRun, prev.numTrials);
+      const newSummary = buildBatchSummary(latestBatchRun, prev?.numTrials);
+
+      if (prev && prev.batchRunId !== latestBatchRun.batch_run_id) {
+        const completedTrials =
+          (newSummary.statistics.completed_trials ?? 0) + (newSummary.statistics.failed_trials ?? 0);
+        if (completedTrials === 0) {
+          return prev;
+        }
       }
-      return buildBatchSummary(latestBatchRun);
+
+      return newSummary;
     });
     setBatchSummaryOutdated(false);
   }, [latestBatchRun, setLastBatchSummary, buildBatchSummary, setBatchSummaryOutdated]);
@@ -247,6 +254,7 @@ export const useEvalSidebarData = ({
   }, [scenarios, latestRunsData, allRunsData, selectedRunIndices, historicalRunQueries, expandedResults]);
 
   const isAnyTestRunning = evaluations.some((evaluation) => evaluation.isRunning);
+  const isBatchRunning = latestBatchRun?.status === 'RUNNING';
   const runningScenarioIds = useMemo(
     () => evaluations.filter((evaluation) => evaluation.isRunning).map(({ scenario }) => scenario.scenario_id),
     [evaluations],
@@ -703,6 +711,7 @@ export const useEvalSidebarData = ({
     scenarios,
     loading,
     isAnyTestRunning,
+    isBatchRunning,
     isCancelingAll,
     hasRunbookUpdated,
 

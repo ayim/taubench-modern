@@ -117,12 +117,12 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
 
         <UserFacingMetrics
           batchSummary={sidebar.lastBatchSummary}
-          hasRunbookUpdated={sidebar.hasRunbookUpdated && !sidebar.runbookWarningDismissed}
+          showRunbookWarning={sidebar.hasRunbookUpdated && !sidebar.runbookWarningDismissed}
           onDismissRunbookWarning={() => sidebar.setRunbookWarningDismissed(true)}
           onRunAllTests={sidebar.handleRunAll}
           selectedTrialsForAll={sidebar.selectedTrialsForAll}
           onSetSelectedTrialsForAll={sidebar.setSelectedTrialsForAll}
-          isAnyTestRunning={sidebar.isAnyTestRunning}
+          isAnyTestRunning={sidebar.isBatchRunning}
           hasEvaluations={sidebar.evaluations.length > 0}
         />
 

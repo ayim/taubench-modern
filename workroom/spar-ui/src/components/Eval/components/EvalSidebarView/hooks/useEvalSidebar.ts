@@ -84,6 +84,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     evaluations: data.evaluations,
     loading: data.loading,
     isAnyTestRunning: data.isAnyTestRunning,
+    isBatchRunning: data.isBatchRunning,
     isCancelingAll: data.isCancelingAll,
     hasRunbookUpdated: data.hasRunbookUpdated,
     createScenarioMutation: data.createScenarioMutation,
