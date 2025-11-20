@@ -236,7 +236,7 @@ class TestCase:
         """Load a test case from a YAML file."""
         import yaml
 
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         def parse_content(content: Any):
@@ -398,6 +398,8 @@ class AgentPackage:
         import json
         import subprocess
 
+        from agent_platform.orchestrator.default_locations import get_action_server_executable_path
+
         # agent cli is deprecated and shouldn't be used elsewhere
         # here it is needed to extract oauth variables from python code
         def get_agent_cli_executable_path(version: str, download: bool = False) -> Path:
@@ -410,11 +412,17 @@ class AgentPackage:
 
         agent_cli_exe = get_agent_cli_executable_path(version="v2.0.6", download=True)
 
+        env = os.environ.copy()
+        action_server_executable = get_action_server_executable_path()
+        # Set the action-server for the agent-cli.
+        env["ACTION_SERVER_BIN_PATH"] = str(action_server_executable)
+
         result = subprocess.run(
             [agent_cli_exe, "package", "metadata", "--package", self.zip_path],
             capture_output=True,
             text=True,
             check=False,
+            env=env,
         )
 
         if result.returncode != 0:

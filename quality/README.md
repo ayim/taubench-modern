@@ -25,17 +25,17 @@ make sync
 ```
 
 This installs the `quality-test` command globally.
+Alternatively instead of `quality-test`, run `uv run python -m agent_platform.quality.cli` to the same effect.
 
 ### Basic Usage
-
-0. **Create a file .quality_config.yml** from the example .quality_config.example.yml
 
 1. **Start the agent server** (required for testing):
 
    ```bash
-   # Hit F5 in Cursor or VSCode with the Debug Server
-   # target selected!
+   make run-server
    ```
+
+   Note: alternatively you can start it in debug mode in your favorite IDE in port 8000.
 
 2. **Check server connectivity**:
 
@@ -179,7 +179,7 @@ quality-test list-agents
 quality-test list-tests [AGENT_NAME]
 
 # Run tests
-quality-test run [AGENT_NAME]
+quality-test run --selected-agents=[AGENT_NAME]
 ```
 
 ### Advanced Options

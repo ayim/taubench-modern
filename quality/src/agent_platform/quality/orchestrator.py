@@ -15,6 +15,9 @@ logger = structlog.get_logger(__name__)
 
 TEST_API_KEY = "test"
 
+# Lock for serializing zip file operations to prevent Windows file locking issues
+_zip_extraction_lock = asyncio.Lock()
+
 
 class QualityOrchestrator:
     """Orchestrates starting agent-server and action servers for quality testing."""
@@ -361,16 +364,18 @@ class QualityOrchestrator:
         from agent_platform.orchestrator.default_locations import get_action_server_executable_path
 
         # Unzip the agent package to a temporary directory
+        # Use lock to serialize zip extraction to prevent Windows file locking issues
         tmp_agent_zip_dir = self.data_dir / "agent_zip"
         tmp_agent_zip_dir.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(agent_zip_path, "r") as zip_ref:
-            zip_ref.extractall(tmp_agent_zip_dir)
+        async with _zip_extraction_lock:
+            with zipfile.ZipFile(agent_zip_path, "r") as zip_ref:
+                zip_ref.extractall(tmp_agent_zip_dir)
 
         # actions are in ./actions related to the zip
         actions_dir = tmp_agent_zip_dir / "actions"
 
         # Get action server executable
-        action_server_executable = get_action_server_executable_path("2.10.0", download=True)
+        action_server_executable = get_action_server_executable_path()
 
         # Create action server data directory
         action_server_data_dir = self.data_dir / "action_server"
@@ -384,13 +389,17 @@ class QualityOrchestrator:
 
         # Any nested zips in the actions dir need to be extracted
         # and imported into the action server
-        for file in actions_dir.glob("**/*.zip"):
-            # Extract the zip first
-            with zipfile.ZipFile(file, "r") as zip_ref:
-                zip_ref.extractall(file.parent)
+        # Use lock to serialize zip extraction to prevent Windows file locking issues
+        async with _zip_extraction_lock:
+            for file in actions_dir.glob("**/*.zip"):
+                # Extract the zip first
+                with zipfile.ZipFile(file, "r") as zip_ref:
+                    zip_ref.extractall(file.parent)
                 file.unlink()
-            # Import the extracted action package
-            self._action_server_process.import_action_package(file.parent, logs_dir=self.logs_dir)
+                # Import the extracted action package
+                self._action_server_process.import_action_package(
+                    file.parent, logs_dir=self.logs_dir
+                )
 
         # Start the action server
         self._action_server_process.start(
@@ -534,17 +543,19 @@ class QualityOrchestrator:
             return ""
 
         # Unzip the agent package to a temporary directory
+        # Use lock to serialize zip extraction to prevent Windows file locking issues
         tmp_agent_zip_dir = self.data_dir / "agent_zip" / agent_package.name
         tmp_agent_zip_dir.mkdir(parents=True, exist_ok=True)
 
-        with zipfile.ZipFile(agent_package.zip_path, "r") as zip_ref:
-            zip_ref.extractall(tmp_agent_zip_dir)
+        async with _zip_extraction_lock:
+            with zipfile.ZipFile(agent_package.zip_path, "r") as zip_ref:
+                zip_ref.extractall(tmp_agent_zip_dir)
 
         # actions are in ./actions related to the zip
         actions_dir = tmp_agent_zip_dir / "actions"
 
         # Get action server executable
-        action_server_executable = get_action_server_executable_path("2.14.0", download=True)
+        action_server_executable = get_action_server_executable_path()
 
         # Create agent-specific action server data directory
         action_server_data_dir = self.data_dir / "action_servers" / agent_package.name
@@ -557,13 +568,15 @@ class QualityOrchestrator:
         )
 
         # Extract and import action packages
-        for file in actions_dir.glob("**/*.zip"):
-            # Extract the zip first
-            with zipfile.ZipFile(file, "r") as zip_ref:
-                zip_ref.extractall(file.parent)
+        # Use lock to serialize zip extraction to prevent Windows file locking issues
+        async with _zip_extraction_lock:
+            for file in actions_dir.glob("**/*.zip"):
+                # Extract the zip first
+                with zipfile.ZipFile(file, "r") as zip_ref:
+                    zip_ref.extractall(file.parent)
                 file.unlink()
-            # Import the extracted action package
-            action_server_process.import_action_package(file.parent, logs_dir=self.logs_dir)
+                # Import the extracted action package
+                action_server_process.import_action_package(file.parent, logs_dir=self.logs_dir)
 
         # Create agent-specific log directory
         agent_logs_dir = self.logs_dir / agent_package.name

@@ -188,7 +188,7 @@ class QualityTestRunner:
                         return agent.name, agent_results
 
                     except Exception as e:
-                        logger.error(f"Failed to run tests for agent {agent.name}: {e}")
+                        logger.exception(f"Failed to run tests for agent {agent.name}: {e}")
                         return agent.name, []
 
             # Run all agents in parallel (with semaphore limiting concurrency)

@@ -213,7 +213,7 @@ async def check_server(ctx: Context):
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{server_url}/health", timeout=5.0)
+            response = await client.get(f"{server_url}/api/v2/health", timeout=5.0)
             if response.status_code == HTTPStatus.OK:
                 click.echo(f"✅ Agent server is available at {server_url}")
                 return True

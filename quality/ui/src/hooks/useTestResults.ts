@@ -89,7 +89,19 @@ export function useTestResults({ homeFolder }: { homeFolder: string }) {
       setAgentStatuses(runningAgents);
 
       // Try to fetch the run data directory listing to get all test result files
-      const runDir = statusData.current_run_dir?.split('/').pop() || statusData.run_id;
+
+      // Detect the platform using the browser's userAgent string
+      let runDir: string;
+      if (statusData.current_run_dir) {
+        // Split on both '/' and '\'
+        const parts = statusData.current_run_dir.split(/[\\/]/);
+        runDir = parts[parts.length - 1];
+      } else {
+        runDir = statusData.run_id;
+      }
+      console.log('runDir', runDir);
+      console.log('statusData.current_run_dir', statusData.current_run_dir);
+      console.log('statusData.run_id', statusData.run_id);
 
       try {
         // Get list of test result files from the current run
