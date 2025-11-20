@@ -231,15 +231,20 @@ async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
     assert result.platform_data_frame.column_headers == ["col1", "col2"]
     assert result.platform_data_frame.sql_dialect == "duckdb"
 
-    loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=1, output_format="json")))
+    loaded = json.loads(
+        typing.cast(bytes, await result.slice(offset=0, limit=1, output_format="json"))
+    )
     assert loaded == [{"col1": 1, "col2": 4}]
 
-    loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=2, output_format="json")))
+    loaded = json.loads(
+        typing.cast(bytes, await result.slice(offset=0, limit=2, output_format="json"))
+    )
     assert loaded == [{"col1": 1, "col2": 4}, {"col1": 2, "col2": 5}]
 
     loaded = json.loads(
         typing.cast(
-            bytes, result.slice(offset=0, limit=2, output_format="json", column_names=["col1"])
+            bytes,
+            await result.slice(offset=0, limit=2, output_format="json", column_names=["col1"]),
         )
     )
     assert loaded == [{"col1": 1}, {"col1": 2}]
@@ -247,7 +252,7 @@ async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
     loaded = json.loads(
         typing.cast(
             bytes,
-            result.slice(
+            await result.slice(
                 offset=0,
                 limit=2,
                 output_format="json",
@@ -261,7 +266,7 @@ async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
     loaded = json.loads(
         typing.cast(
             bytes,
-            result.slice(
+            await result.slice(
                 offset=0,
                 limit=2,
                 output_format="json",
@@ -273,7 +278,7 @@ async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
     assert loaded == [{"col1": 1}, {"col1": 2}]
 
     as_parquet = typing.cast(
-        bytes, result.slice(offset=0, limit=2, output_format="parquet", column_names=["col1"])
+        bytes, await result.slice(offset=0, limit=2, output_format="parquet", column_names=["col1"])
     )
 
     table = pq.read_table(io.BytesIO(as_parquet))
@@ -303,10 +308,14 @@ async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
     assert result.platform_data_frame.num_rows == 1
     assert result.platform_data_frame.sql_dialect == "postgres"
 
-    loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=1, output_format="json")))
+    loaded = json.loads(
+        typing.cast(bytes, await result.slice(offset=0, limit=1, output_format="json"))
+    )
     assert loaded == [{"col1": 1, "col2": 4}]
 
-    loaded = json.loads(typing.cast(bytes, result.slice(offset=0, limit=2, output_format="json")))
+    loaded = json.loads(
+        typing.cast(bytes, await result.slice(offset=0, limit=2, output_format="json"))
+    )
     # Still same (we only have one row in this query)
     assert loaded == [{"col1": 1, "col2": 4}]
 
@@ -399,12 +408,12 @@ async def test_create_data_frame_from_sql_computation_with_null_data_csv(
         dialect="duckdb",
         description=description,
     )
-    sliced = typing.cast(Table, data_node.slice(offset=0, limit=1, output_format="table"))
+    sliced = typing.cast(Table, await data_node.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(json.dumps(sliced.model_dump(), indent=2), basename="sliced-table-csv")
 
-    data_node.list_sample_rows(num_samples=2)
+    await data_node.list_sample_rows(num_samples=2)
 
-    sliced_json = typing.cast(bytes, data_node.slice(offset=0, limit=1, output_format="json"))
+    sliced_json = typing.cast(bytes, await data_node.slice(offset=0, limit=1, output_format="json"))
 
     file_regression.check(sliced_json.decode("utf-8"), basename="sliced-json-csv")
 
@@ -445,12 +454,12 @@ async def test_create_data_frame_from_sql_computation_with_dates(datadir: Path, 
         dialect="duckdb",
         description=description,
     )
-    sliced = typing.cast(Table, data_node.slice(offset=0, limit=1, output_format="table"))
+    sliced = typing.cast(Table, await data_node.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(json.dumps(sliced.model_dump(), indent=2), basename="sliced-table")
 
-    data_node.list_sample_rows(num_samples=2)
+    await data_node.list_sample_rows(num_samples=2)
 
-    sliced_json = typing.cast(bytes, data_node.slice(offset=0, limit=1, output_format="json"))
+    sliced_json = typing.cast(bytes, await data_node.slice(offset=0, limit=1, output_format="json"))
 
     file_regression.check(sliced_json.decode("utf-8"), basename="sliced-json")
 
@@ -505,7 +514,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
         description=description,
     )
 
-    sliced_table = typing.cast(Table, result.slice(offset=0, limit=1, output_format="table"))
+    sliced_table = typing.cast(Table, await result.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(
         json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte"
     )
@@ -530,7 +539,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
         description=description,
     )
 
-    sliced_table = typing.cast(Table, result.slice(offset=0, limit=1, output_format="table"))
+    sliced_table = typing.cast(Table, await result.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(
         json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte-2"
     )
@@ -783,7 +792,7 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
         description="Test data frame",
     )
 
-    sliced_table = typing.cast(Table, result.slice(offset=0, limit=10, output_format="table"))
+    sliced_table = typing.cast(Table, await result.slice(offset=0, limit=10, output_format="table"))
     file_regression.check(
         json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-semantic-data-model"
     )
@@ -835,7 +844,7 @@ async def check(
         description=description,
     )
 
-    sliced_table = typing.cast(Table, result.slice(offset=0, limit=10, output_format="table"))
+    sliced_table = typing.cast(Table, await result.slice(offset=0, limit=10, output_format="table"))
     file_regression.check(json.dumps(sliced_table.model_dump(), indent=2))
 
 

@@ -65,7 +65,8 @@ jobs:
         run: make sync
 
       - name: Run semantic data models tests
-        run: uv run pytest -vv -m "semantic_data_models and not semantic_data_models_edge_cases"
+        run: uv run pytest -vv -m "semantic_data_models"
+        # run: uv run pytest -vv -m "semantic_data_models and not semantic_data_models_edge_cases"
         env:
           # API keys for external services
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

@@ -215,7 +215,7 @@ async def create_data_frame_from_sql_computation_api(  # noqa
     # always be provided to the LLM.
     sliced_data = typing.cast(
         Table,
-        resolved_df.slice(
+        await resolved_df.slice(
             offset=0,
             limit=use_num_samples,
             column_names=None,
@@ -224,7 +224,7 @@ async def create_data_frame_from_sql_computation_api(  # noqa
     )
 
     # Update the data frame with the computed data frame now that it's materialized
-    data_frame.num_rows = resolved_df.num_rows
+    data_frame.num_rows = await resolved_df.num_rows()
     data_frame.num_columns = resolved_df.num_columns
     data_frame.column_headers = resolved_df.column_headers
     data_frame.patch_extra_data(sample_rows=sliced_data.rows[:DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT])

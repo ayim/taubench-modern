@@ -1191,7 +1191,7 @@ class _DataFrameTools:
             data_frames_kernel = self._create_data_frames_kernel()
             resolved_df = await data_frames_kernel.resolve_data_frame(data_frame)
 
-            sliced_data = resolved_df.slice(
+            sliced_data = await resolved_df.slice(
                 offset=offset,
                 limit=limit,
                 column_names=column_names,
@@ -1314,7 +1314,7 @@ class _DataFrameTools:
                     "result": f"Data frame {new_data_frame_name} created from SQL query",
                 }
 
-            sliced_data = resolved_df.slice(
+            sliced_data = await resolved_df.slice(
                 offset=0,
                 limit=num_samples,
                 column_names=None,

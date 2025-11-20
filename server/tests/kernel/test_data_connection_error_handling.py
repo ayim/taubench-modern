@@ -8,7 +8,7 @@ def test_parse_connection_refused_error():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -38,7 +38,7 @@ def test_parse_authentication_failed_error():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -67,7 +67,7 @@ def test_parse_authentication_error_with_connection_failed_text():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -99,7 +99,7 @@ def test_parse_database_not_exist_error():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -127,7 +127,7 @@ def test_parse_timeout_error():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -155,7 +155,7 @@ def test_parse_permission_denied_error():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -183,7 +183,7 @@ def test_parse_snowflake_incorrect_username_password():
     from agent_platform.core.payloads.data_connection import (
         SnowflakeDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -219,7 +219,7 @@ def test_parse_snowflake_schema_not_exist():
     from agent_platform.core.payloads.data_connection import (
         SnowflakeDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -248,7 +248,7 @@ def test_parse_snowflake_role_not_exist():
     from agent_platform.core.payloads.data_connection import (
         SnowflakeDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -277,7 +277,7 @@ def test_parse_snowflake_invalid_account_error():
     from agent_platform.core.payloads.data_connection import (
         SnowflakeDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -307,7 +307,7 @@ def test_parse_snowflake_warehouse_not_exist_error():
     from agent_platform.core.payloads.data_connection import (
         SnowflakeDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -336,7 +336,7 @@ def test_parse_unknown_error_truncates_long_messages():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -369,7 +369,7 @@ def test_parse_unknown_error_uses_first_line():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -398,7 +398,7 @@ def test_connection_failed_error_message_formatting():
     from agent_platform.core.payloads.data_connection import (
         PostgresDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -424,7 +424,7 @@ def test_connection_failed_error_message_formatting():
 
 def test_connection_failed_error_exception_properties():
     """Test ConnectionFailedError exception properties."""
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         ConnectionFailedError,
         DataConnectionInspectorError,
     )
@@ -461,7 +461,7 @@ def test_parse_connection_error_handles_config_without_host():
     from agent_platform.core.payloads.data_connection import (
         SQLiteDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         _parse_connection_error,
     )
 
@@ -479,7 +479,7 @@ def test_parse_connection_error_handles_config_without_host():
 
 def test_parse_error_preserves_exception_chain():
     """Test that ConnectionFailedError preserves the original exception chain."""
-    from agent_platform.server.kernel.data_connection_inspector import (
+    from agent_platform.server.kernel.ibis_utils import (
         ConnectionFailedError,
     )
 

@@ -988,7 +988,7 @@ async def get_thread_data_frames(
             initial_time = time.monotonic()
             data_frames_kernel = DataFramesKernel(base_storage, user, tid)
             resolved_df = await data_frames_kernel.resolve_data_frame(data_frame)
-            data_frame_api.sample_rows = resolved_df.list_sample_rows(num_samples)
+            data_frame_api.sample_rows = await resolved_df.list_sample_rows(num_samples)
             logger.info(
                 f"Listed {num_samples} samples for data frame {data_frame.name} in "
                 f"{time.monotonic() - initial_time:.2f} seconds"
@@ -1209,7 +1209,7 @@ async def slice_data_frame(
         resolved_df = await data_frames_kernel.resolve_data_frame(data_frame)
 
         # Get the sliced data
-        sliced_data = resolved_df.slice(
+        sliced_data = await resolved_df.slice(
             offset=payload.offset,
             limit=payload.limit,
             column_names=payload.column_names,

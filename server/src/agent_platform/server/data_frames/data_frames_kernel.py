@@ -486,8 +486,9 @@ class Dependencies:
         # Fill in what came from in-memory and file data frames
         # (we should be in duck db in this case, so, we can just create the
         # tables directly).
+
         for variable_name, node in name_to_node.items():
-            con.create_table(variable_name, node.to_ibis())
+            await asyncio.to_thread(con.create_table, variable_name, node.to_ibis())
 
         # Now, we need to go on to the computation (deps should be in order already).
         # We have to add preconditions as:
@@ -512,9 +513,11 @@ class Dependencies:
             table_name_to_column_names_to_expr={},
         )
 
-        # Execute the SQL query using ibis
+        # Execute the SQL query using ibis (blocking I/O operation)
         try:
-            result = con.sql(full_sql_query_str, dialect=data_frame.sql_dialect)
+            result = await asyncio.to_thread(
+                con.sql, full_sql_query_str, dialect=data_frame.sql_dialect
+            )
 
             df = DataNodeFromIbisResult(
                 data_frame,

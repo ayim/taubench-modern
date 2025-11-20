@@ -230,7 +230,7 @@ async def inspect_data_connection(
     except Exception as e:
         # Import ConnectionFailedError inside the exception handler
         from agent_platform.core.errors.base import ErrorCode, PlatformHTTPError
-        from agent_platform.server.kernel.data_connection_inspector import ConnectionFailedError
+        from agent_platform.server.kernel.ibis_utils import ConnectionFailedError
 
         logger.error(
             "Failed to inspect data connection",

@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import typing
 from abc import abstractmethod
@@ -198,7 +199,7 @@ def convert_pyarrow_slice_to_list_of_rows(
     )
 
 
-def _convert_ibis_slice_to_format(  # noqa: PLR0913
+async def _convert_ibis_slice_to_format(  # noqa: PLR0913
     result: Any,
     offset: int,
     limit: int | None,
@@ -233,9 +234,12 @@ def _convert_ibis_slice_to_format(  # noqa: PLR0913
     )
 
     if is_snowflake_backend(result):
-        table = execute_snowflake_query_raw(result)
+        table = await execute_snowflake_query_raw(result)
     else:
-        table = result.to_pyarrow()
+        # For all other databases including SQLite, use thread pool
+        # SQLite will work because to_pyarrow() is a read operation that
+        # doesn't create new connections
+        table = await asyncio.to_thread(result.to_pyarrow)
     return _convert_arrow_to_format(table, output_format)
 
 
@@ -339,12 +343,12 @@ class DataNodeResult(Protocol):
     """
 
     @abstractmethod
-    def list_sample_rows(self, num_samples: int) -> "list[Row]":
+    async def list_sample_rows(self, num_samples: int) -> "list[Row]":
         pass
 
-    @property
     @abstractmethod
-    def num_rows(self) -> int:
+    async def num_rows(self) -> int:
+        """Get the number of rows. This may do blocking I/O for some implementations."""
         pass
 
     @property
@@ -370,7 +374,7 @@ class DataNodeResult(Protocol):
         """
 
     @abstractmethod
-    def slice(
+    async def slice(
         self,
         offset: int = 0,
         limit: int | None = None,
@@ -398,11 +402,10 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
         self._platform_data_frame = platform_data_frame
         self._reader_sheet = reader_sheet
 
-    def list_sample_rows(self, num_samples: int) -> "list[Row]":
+    async def list_sample_rows(self, num_samples: int) -> "list[Row]":
         return self._reader_sheet.list_sample_rows(num_samples)
 
-    @property
-    def num_rows(self) -> int:
+    async def num_rows(self) -> int:
         return self._reader_sheet.num_rows
 
     @property
@@ -420,7 +423,7 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
     def to_ibis(self) -> "pyarrow.Table":
         return self._reader_sheet.to_ibis()
 
-    def slice(
+    async def slice(
         self,
         offset: int = 0,
         limit: int | None = None,
@@ -485,11 +488,10 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
         self._parquet_contents: bytes = self._platform_data_frame.parquet_contents
         self._parquet_handler = ParquetHandler(self._parquet_contents)
 
-    def list_sample_rows(self, num_samples: int) -> "list[Row]":
+    async def list_sample_rows(self, num_samples: int) -> "list[Row]":
         return self._parquet_handler.list_sample_rows(num_samples)
 
-    @property
-    def num_rows(self) -> int:
+    async def num_rows(self) -> int:
         return self._parquet_handler.num_rows()
 
     @property
@@ -507,7 +509,7 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
     def to_ibis(self) -> "pyarrow.Table":
         return self._parquet_handler.get_table()
 
-    def slice(
+    async def slice(
         self,
         offset: int = 0,
         limit: int | None = None,
@@ -556,36 +558,43 @@ class DataNodeFromIbisResult(DataNodeResult):
 
         return is_snowflake_backend(self._ibis_result)
 
-    def _to_arrow_safe(self, ibis_expr: Any) -> Any:
+    async def _to_arrow_safe(self, ibis_expr: Any) -> "pyarrow.Table":
         """Convert ibis expression to Arrow, using raw SQL for Snowflake to avoid Arrow errors."""
+        import pyarrow
+
         from agent_platform.server.utils.snowflake_utils import execute_snowflake_query_raw
 
         if self._is_snowflake():
-            return execute_snowflake_query_raw(ibis_expr)
+            return await execute_snowflake_query_raw(ibis_expr)
         else:
-            return ibis_expr.to_pyarrow()
+            # For all other databases including SQLite, use thread pool
+            result: pyarrow.Table = await asyncio.to_thread(ibis_expr.to_pyarrow)
+            return result
 
-    def list_sample_rows(self, num_samples: int) -> "list[Row]":
+    async def list_sample_rows(self, num_samples: int) -> "list[Row]":
         if num_samples == 0:
             return []
         if num_samples == -1:
-            table = self._to_arrow_safe(self._ibis_result)
+            table = await self._to_arrow_safe(self._ibis_result)
         else:
-            table = self._to_arrow_safe(self._ibis_result.limit(num_samples))
-        return [list(row) for row in table.to_pylist()]
+            table = await self._to_arrow_safe(self._ibis_result.limit(num_samples))
 
-    @property
-    def num_rows(self) -> int:
+        # table is pyarrow.Table from _to_arrow_safe
+        pylist = table.to_pylist()
+        return [list(row) for row in pylist]
+
+    async def num_rows(self) -> int:
+        from agent_platform.server.utils.snowflake_utils import execute_snowflake_query_raw
+
         count_result = self._ibis_result.count()
         if self._is_snowflake():
             # For Snowflake, use raw SQL execution to avoid Arrow
-            from agent_platform.server.utils.snowflake_utils import execute_snowflake_query_raw
-
-            table = execute_snowflake_query_raw(count_result)
+            table = await execute_snowflake_query_raw(count_result)
             # Count result is a single-row, single-column table
             return table.to_pylist()[0][table.column_names[0]]
         else:
-            return count_result.to_pyarrow().as_py()
+            arrow_result = await asyncio.to_thread(count_result.to_pyarrow)
+            return arrow_result.as_py()
 
     @property
     def num_columns(self) -> int:
@@ -602,7 +611,7 @@ class DataNodeFromIbisResult(DataNodeResult):
     def to_ibis(self) -> Any:
         return self._ibis_result
 
-    def slice(
+    async def slice(
         self,
         offset: int = 0,
         limit: int | None = None,
@@ -624,7 +633,7 @@ class DataNodeFromIbisResult(DataNodeResult):
         initial_time = time.monotonic()
 
         result = self._ibis_result
-        ret = _convert_ibis_slice_to_format(
+        ret = await _convert_ibis_slice_to_format(
             result, offset, limit, column_names, output_format, order_by
         )
 

@@ -1,5 +1,6 @@
 """Utility functions for Snowflake-specific operations."""
 
+import asyncio
 from typing import TYPE_CHECKING, Any
 
 from structlog import get_logger
@@ -40,14 +41,14 @@ def is_snowflake_backend(ibis_expr: Any) -> bool:
         return False
 
 
-def execute_snowflake_query_raw(ibis_expr: Any) -> "pyarrow.Table":
+async def execute_snowflake_query_raw(ibis_expr: Any) -> "pyarrow.Table":
     """
     Execute an ibis expression against Snowflake using raw cursor to avoid Arrow format issues.
 
     This function bypasses ibis's Arrow conversion which is not compatible with
     Snowflake's VARIANT, OBJECT, and ARRAY types. Instead, it:
     1. Compiles the ibis expression to SQL
-    2. Executes it using Snowflake's raw cursor
+    2. Executes it using Snowflake's raw cursor (in a thread pool)
     3. Fetches results as plain Python objects
     4. Manually constructs a pandas DataFrame
     5. Converts to Arrow table
@@ -65,25 +66,29 @@ def execute_snowflake_query_raw(ibis_expr: Any) -> "pyarrow.Table":
     if not is_snowflake_backend(ibis_expr):
         raise ValueError("This function only works with Snowflake-backed ibis expressions")
 
-    # Get the backend and compile to SQL
+    # Get the backend and compile to SQL (these are fast, non-blocking operations)
     backend = ibis_expr._find_backend()
     sql_query = backend.compile(ibis_expr)
 
-    # Execute with raw cursor
-    cursor = backend.con.cursor()
-    try:
-        cursor.execute(str(sql_query))
-        # Use fetchall() to get raw data, avoiding Arrow conversion
-        rows = cursor.fetchall()
-        column_names: list[str] = [desc[0] for desc in cursor.description]  # type: ignore[misc]
+    # Define a function to execute the blocking cursor operations
+    def _execute_cursor():
+        cursor = backend.con.cursor()
+        try:
+            cursor.execute(str(sql_query))
+            # Use fetchall() to get raw data, avoiding Arrow conversion
+            rows = cursor.fetchall()
+            column_names: list[str] = [desc[0] for desc in cursor.description]  # type: ignore[misc]
 
-        # Manually create pandas DataFrame from raw data
-        import pandas
-        import pyarrow
+            # Manually create pandas DataFrame from raw data
+            import pandas
+            import pyarrow
 
-        df = pandas.DataFrame(rows, columns=column_names)  # type: ignore[arg-type]
+            df = pandas.DataFrame(rows, columns=column_names)  # type: ignore[arg-type]
 
-        # Convert to Arrow table
-        return pyarrow.Table.from_pandas(df)
-    finally:
-        cursor.close()
+            # Convert to Arrow table
+            return pyarrow.Table.from_pandas(df)
+        finally:
+            cursor.close()
+
+    # Execute all the blocking cursor operations in a thread pool
+    return await asyncio.to_thread(_execute_cursor)

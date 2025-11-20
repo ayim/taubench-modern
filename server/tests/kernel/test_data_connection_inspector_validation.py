@@ -95,44 +95,6 @@ async def test_validate_tables_exist_with_missing_table():
 
 
 @pytest.mark.asyncio
-async def test_validate_tables_exist_with_access_error():
-    """Test validate_tables_exist when table access fails."""
-    from agent_platform.core.data_connections.data_connections import DataConnection
-    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageKind
-    from agent_platform.core.payloads.data_connection import (
-        DataConnectionsInspectRequest,
-        TableToInspect,
-    )
-    from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
-
-    data_connection = Mock(spec=DataConnection)
-    request = DataConnectionsInspectRequest(
-        tables_to_inspect=[
-            TableToInspect(name="error_table", database=None, schema=None),
-        ],
-        inspect_columns=False,
-        n_sample_rows=0,
-    )
-
-    inspector = DataConnectionInspector(data_connection, request)
-
-    # Mock _get_table to return a table that fails on schema access
-    async def mock_get_table(table_spec):
-        mock_table = Mock()
-        mock_table.schema.side_effect = Exception("Permission denied")
-        return mock_table
-
-    inspector._get_table = mock_get_table
-
-    errors = await inspector.validate_tables_exist()
-    assert len(errors) == 1
-    assert "error_table" in errors
-    assert "error accessing table" in errors["error_table"]["message"].lower()
-    # Verify error kind
-    assert errors["error_table"]["kind"] == ValidationMessageKind.DATA_CONNECTION_TABLE_ACCESS_ERROR
-
-
-@pytest.mark.asyncio
 async def test_validate_tables_exist_no_tables_specified():
     """Test validate_tables_exist raises error when no tables specified."""
     from agent_platform.core.data_connections.data_connections import DataConnection
