@@ -21,7 +21,6 @@ def _txn_log() -> bool:
 @dataclass(frozen=True)
 class Settings:
     worker_interval: int = int(getenv("WORKITEMS_WORKER_INTERVAL", "10"))
-    max_batch_size: int = int(getenv("WORKITEMS_MAX_BATCH_SIZE", "10"))
     execution_mode: Literal["batch", "slots"] = _execution_mode()
     enable_transaction_log: bool = _txn_log()
 

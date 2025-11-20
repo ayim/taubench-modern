@@ -210,6 +210,15 @@ class TestParallelWorkItemsValidation:
         assert error.data["max_allowed_parallel_work_items"] == 40
         assert "constraint" in error.data
 
+        # Attempting to set PARALLEL_WORK_ITEMS to 0 (invalid value) should fail
+        with pytest.raises(PlatformHTTPError) as exc_info:
+            await quotas_service.set_max_parallel_work_items_in_process("0")
+
+        # Verify error details
+        error = exc_info.value
+        assert error.response.error_code is ErrorCode.BAD_REQUEST
+        assert "Invalid value 0 for MAX_PARALLEL_WORK_ITEMS_IN_PROCESS" in error.detail
+
     async def test_set_parallel_work_items_to_valid_value(self, storage):
         """Test setting PARALLEL_WORK_ITEMS at or below 80% succeeds."""
         StorageService.set_for_testing(storage)

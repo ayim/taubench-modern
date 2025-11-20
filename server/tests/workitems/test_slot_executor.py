@@ -1,5 +1,6 @@
 import asyncio
 from collections import defaultdict
+from contextlib import suppress
 from unittest.mock import AsyncMock, Mock, call
 from uuid import uuid4
 
@@ -9,6 +10,7 @@ from agent_platform.core.thread.content import ThreadTextContent
 from agent_platform.core.thread.messages import ThreadUserMessage
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
 from agent_platform.core.work_items.work_item import WorkItemTaskStatus
+from agent_platform.server.work_items import slot_executor as slot_executor_module
 from agent_platform.server.work_items.slot_executor import SlotExecutor, SlotManager, SlotState
 
 # ============================================================================
@@ -279,8 +281,8 @@ class TestExecuteWorkItemInSlot:
         storage = make_mock_storage()
 
         executor = SlotExecutor(service.execute_work_item, storage=storage)
-        slot_state = SlotState(slot_id=0, status="idle")
         work_item = make_work_item("item-1")
+        slot_state = SlotState(slot_id=0, status="executing", work_item_id=work_item.work_item_id)
 
         await executor._execute_work_item_in_slot(work_item, slot_state, work_item_timeout=1.0)
 
@@ -292,7 +294,7 @@ class TestExecuteWorkItemInSlot:
         # Verify slot is back to idle after completion
         assert slot_state.status == "idle"
         assert slot_state.work_item_id is None
-        assert slot_state.task is None
+        assert slot_state.work_item_task is None
 
     async def test_marks_slot_executing_during_execution(self):
         """Slot state shows executing during work item execution."""
@@ -307,8 +309,12 @@ class TestExecuteWorkItemInSlot:
         service.execute_work_item = AsyncMock(side_effect=slow_execute)
 
         executor = SlotExecutor(service.execute_work_item, storage=storage)
-        slot_state = SlotState(slot_id=0, status="idle")
         work_item = make_work_item("item-1")
+
+        # _slot_executor_task sets the slot state to executing and work item id before calling
+        # _execute_work_item_in_slot
+        slot_state = SlotState(slot_id=0, status="executing")
+        slot_state.work_item_id = "item-1"
 
         # Start execution
         exec_task = asyncio.create_task(
@@ -319,7 +325,7 @@ class TestExecuteWorkItemInSlot:
         await asyncio.sleep(0.01)
         assert slot_state.status == "executing"
         assert slot_state.work_item_id == "item-1"
-        assert slot_state.task is not None
+        assert slot_state.work_item_task is not None
 
         # Wait for completion
         await exec_task
@@ -341,8 +347,8 @@ class TestExecuteWorkItemInSlot:
         service.execute_work_item = AsyncMock(side_effect=slow_execute)
 
         executor = SlotExecutor(service.execute_work_item, storage=storage)
-        slot_state = SlotState(slot_id=0, status="idle")
         work_item = make_work_item("item-1")
+        slot_state = SlotState(slot_id=0, status="executing", work_item_id=work_item.work_item_id)
 
         await executor._execute_work_item_in_slot(work_item, slot_state, work_item_timeout=0.1)
 
@@ -352,7 +358,7 @@ class TestExecuteWorkItemInSlot:
         # Verify slot cleaned up
         assert slot_state.status == "idle"
         assert slot_state.work_item_id is None
-        assert slot_state.task is None
+        assert slot_state.work_item_task is None
 
     async def test_handles_execution_error(self):
         """Handles execution errors gracefully."""
@@ -362,15 +368,15 @@ class TestExecuteWorkItemInSlot:
         service.execute_work_item = AsyncMock(side_effect=ValueError("Test error"))
 
         executor = SlotExecutor(service.execute_work_item, storage=storage)
-        slot_state = SlotState(slot_id=0, status="idle")
         work_item = make_work_item("item-1")
+        slot_state = SlotState(slot_id=0, status="executing", work_item_id=work_item.work_item_id)
 
         await executor._execute_work_item_in_slot(work_item, slot_state, work_item_timeout=1.0)
 
         # Verify slot recovered
         assert slot_state.status == "idle"
         assert slot_state.work_item_id is None
-        assert slot_state.task is None
+        assert slot_state.work_item_task is None
 
     async def test_cleanup_always_happens(self):
         """Slot state is always cleaned up even on error during timeout handling."""
@@ -386,8 +392,8 @@ class TestExecuteWorkItemInSlot:
         service.execute_work_item = AsyncMock(side_effect=slow_execute)
 
         executor = SlotExecutor(service.execute_work_item, storage=storage)
-        slot_state = SlotState(slot_id=0, status="idle")
         work_item = make_work_item("item-1")
+        slot_state = SlotState(slot_id=0, status="executing", work_item_id=work_item.work_item_id)
 
         # Even if marking error fails, slot should be cleaned up
         # The exception from mark_incomplete_work_items_as_error will propagate,
@@ -398,7 +404,7 @@ class TestExecuteWorkItemInSlot:
         # Verify cleanup happened despite the exception
         assert slot_state.status == "idle"
         assert slot_state.work_item_id is None
-        assert slot_state.task is None
+        assert slot_state.work_item_task is None
 
 
 class TestSlotExecutorTask:
@@ -512,7 +518,7 @@ class TestSlotExecutorIntegration:
         """Multiple slots can process different items at the same time."""
         service = make_mock_service()
         storage = make_mock_storage()
-        quotas = make_mock_quotas()
+        quotas = make_mock_quotas(num_slots=3)
 
         # Make execution take some time so we can verify concurrency
         execution_started = []
@@ -570,7 +576,7 @@ class TestSlotExecutorIntegration:
         """Shutdown event stops reader and slots gracefully."""
         service = make_mock_service()
         storage = make_mock_storage()
-        quotas = make_mock_quotas()
+        quotas = make_mock_quotas(num_slots=1)
 
         # Make storage return items continuously
         storage.get_pending_work_item_ids.return_value = []
@@ -607,7 +613,8 @@ class TestCrashHandling:
         """Reader crash increments counter."""
         service = make_mock_service()
         storage = make_mock_storage()
-        executor = SlotExecutor(service.execute_work_item, storage=storage)
+        quotas = make_mock_quotas()
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
 
         # Create a mock crashed task
         crashed_task = Mock()
@@ -645,7 +652,7 @@ class TestCrashHandling:
         # Pretend that a WorkItem is running in this slot.
         slot_state.status = "executing"
         slot_state.work_item_id = "item-1"
-        slot_state.task = Mock()
+        slot_state.slot_task = Mock()
 
         # Create a mock crashed task
         crashed_task = Mock()
@@ -656,7 +663,7 @@ class TestCrashHandling:
         initial_count = executor.slot_manager.slots[slot_id].crash_count
 
         # Handle the crash
-        await executor._handle_slot_crash(crashed_task, slot_id, shutdown_event)  # type: ignore[arg-type]
+        executor._handle_slot_crash(crashed_task, slot_id, shutdown_event)  # type: ignore[arg-type]
 
         # Verify the slot_state is reset
         slot_state = executor.slot_manager.slots[slot_id]
@@ -666,12 +673,12 @@ class TestCrashHandling:
 
         # Verify that a new task was created and stored in the slot
         # The new task should be different from the crashed task
-        assert slot_state.task is not None
-        assert slot_state.task != crashed_task
-        assert slot_state.task.get_name() == f"work-items-slot-{slot_id}"
+        assert slot_state.slot_task is not None
+        assert slot_state.slot_task != crashed_task
+        assert slot_state.slot_task.get_name() == f"work-items-slot-{slot_id}"
 
         # Clean up
-        slot_state.task.cancel()
+        slot_state.slot_task.cancel()
 
     async def test_run_handles_reader_crash(self):
         """Main loop restarts reader task when it crashes."""
@@ -726,6 +733,37 @@ class TestCrashHandling:
         # Verify the reader was restarted
         assert executor._reader_crash_count == 1
         assert reader_create_count >= 2  # Initial + 1 restart
+
+    async def test_resize_cancelled_slot_not_restarted(self):
+        """Slots cancelled during resize should not be treated as crashes."""
+        service = make_mock_service()
+        storage = make_mock_storage()
+        quotas = make_mock_quotas()
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
+
+        shutdown_event = asyncio.Event()
+
+        slot_id = executor.slot_manager.next_slot_id()
+        slot_state = SlotState(slot_id=slot_id, status="idle")
+        executor.slot_manager.slots[slot_id] = slot_state
+
+        # Create a completed task to represent the cancelled slot task.
+        async def noop():
+            return None
+
+        slot_task = asyncio.create_task(noop())
+        await slot_task
+        slot_state.slot_task = slot_task
+        executor._resize_cancelled_tasks.add(slot_task)
+
+        crash_handler = Mock()
+        executor._handle_slot_crash = crash_handler
+        executor.reader_task = None
+
+        await executor._handle_completed_task(slot_task, shutdown_event)
+
+        crash_handler.assert_not_called()
+        assert slot_task not in executor._resize_cancelled_tasks
 
     async def test_run_handles_slot_crash(self):
         """Main loop restarts slot task when it crashes."""
@@ -862,10 +900,93 @@ class TestEdgeCases:
         service.execute_work_item = AsyncMock(side_effect=never_ending_execute)
 
         executor = SlotExecutor(service.execute_work_item, storage=storage)
-        slot_state = SlotState(slot_id=0, status="idle")
         work_item = make_work_item("item-1")
+        slot_state = SlotState(slot_id=0, status="executing", work_item_id=work_item.work_item_id)
 
         await executor._execute_work_item_in_slot(work_item, slot_state, work_item_timeout=0.1)
 
         # Verify the task was cancelled
         assert cancel_called.is_set()
+
+    async def test_slot_marks_executing_before_cancelling_inner_tasks(self, monkeypatch):
+        """Slot should mark itself busy before waiting on inner task cancellation."""
+        service = make_mock_service()
+        storage = make_mock_storage()
+        quotas = make_mock_quotas()
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
+
+        work_item = make_work_item("item-1")
+        await executor._work_queue.put(work_item)
+
+        slot_id = executor.slot_manager.next_slot_id()
+        slot_state = SlotState(slot_id=slot_id, status="idle")
+        executor.slot_manager.slots[slot_id] = slot_state
+
+        shutdown_event = asyncio.Event()
+        cancel_checked = asyncio.Event()
+        original_cancel = slot_executor_module._cancel_tasks_with_timeout
+
+        async def observing_cancel(tasks, timeout):
+            if not cancel_checked.is_set():
+                assert slot_state.status == "executing"
+                assert slot_state.work_item_id == work_item.work_item_id
+                cancel_checked.set()
+            await original_cancel(tasks, timeout)
+
+        monkeypatch.setattr(
+            slot_executor_module, "_cancel_tasks_with_timeout", observing_cancel, raising=False
+        )
+
+        slot_task = asyncio.create_task(executor._slot_executor_task(slot_id, shutdown_event))
+
+        await asyncio.wait_for(cancel_checked.wait(), timeout=1)
+        slot_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await slot_task
+
+        storage.mark_incomplete_work_items_as_error.assert_awaited_once_with(
+            [work_item.work_item_id]
+        )
+
+    async def test_resize_scale_down(self):
+        """Scaling down should only remove idle slots, busy slots remain."""
+        service = make_mock_service()
+        storage = make_mock_storage()
+        executor = SlotExecutor(service.execute_work_item, storage=storage)
+
+        # Create 5 slots: 3 idle, 2 executing
+        shutdown_event = asyncio.Event()
+        for i in range(5):
+            status = "idle" if i < 3 else "executing"
+            work_item_id = None if i < 3 else f"item-{i}"
+            executor.slot_manager.slots[i] = SlotState(
+                slot_id=i, status=status, work_item_id=work_item_id
+            )
+            executor._create_slot_task(i, shutdown_event)
+
+        # Give tasks time to start
+        await asyncio.sleep(0.1)
+
+        # Scale down to 2 slots (should remove 3, but can only remove the 3 idle ones)
+        await executor._resize_slots(2, shutdown_event)
+
+        # We'll remove all 3 idle slots, leaving us with 2 busy slots.
+        assert len(executor.slot_manager.slots) == 2
+
+        # Verify the remaining slots are the executing ones
+        for slot_state in executor.slot_manager.slots.values():
+            assert slot_state.status == "executing"
+
+        # Verify that we cancelled 3 tasks to be cleaned up
+        assert len(executor._resize_cancelled_tasks) == 3
+
+        # Verify that the tasks are not done
+        for task in executor._resize_cancelled_tasks:
+            assert task.done() is True, f"Task {task.get_name()} should be done"
+
+        # Clean up remaining slots
+        for slot_state in executor.slot_manager.slots.values():
+            if slot_state.slot_task and not slot_state.slot_task.done():
+                slot_state.slot_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await slot_state.slot_task

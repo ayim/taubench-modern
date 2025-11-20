@@ -100,7 +100,7 @@ class WorkItemStressTest:
         if self.use_openai:
             openai_api_key = os.getenv("OPENAI_API_KEY", "UNSET")
             if openai_api_key == "UNSET":
-                print("⚠️  Warning: OPENAI_API_KEY not set. Using placeholder.")
+                raise ValueError("OPENAI_API_KEY is not set")
 
             platform_configs = [
                 {
@@ -115,7 +115,7 @@ class WorkItemStressTest:
             region_name = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 
             if aws_access_key_id == "UNSET" or aws_secret_access_key == "UNSET":
-                print("⚠️  Warning: AWS credentials not set. Using placeholders.")
+                raise ValueError("AWS credentials are not set")
 
             platform_configs = [
                 {
@@ -146,7 +146,7 @@ class WorkItemStressTest:
             )
 
         agent_payload = {
-            "mode": "conversational",
+            "mode": "worker",
             "name": f"Stress Test Agent #{agent_number} - {timestamp}",
             "version": "1.0.0",
             "description": (
@@ -499,6 +499,7 @@ async def main():
         action="store_true",
         help="Use AWS Bedrock instead of OpenAI (requires AWS credentials in env vars)",
     )
+    # See work-items-test-actions.zip in the same directory as this script.
     parser.add_argument(
         "--action-server-url",
         type=str,

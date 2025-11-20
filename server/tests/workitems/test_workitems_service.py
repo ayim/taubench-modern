@@ -63,7 +63,7 @@ async def configured_storage(storage):
 @pytest.fixture(autouse=True)
 def patch_worker_settings(monkeypatch):
     """Shrink worker settings so tests run quickly (small sleeps, small batches)."""
-    test_settings = WorkerSettings(worker_interval=0, max_batch_size=5)
+    test_settings = WorkerSettings(worker_interval=0)
     # Patch settings where they are imported
     monkeypatch.setattr(
         "agent_platform.server.work_items.settings.WORK_ITEMS_SETTINGS", test_settings

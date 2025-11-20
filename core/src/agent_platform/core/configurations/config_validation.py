@@ -81,4 +81,12 @@ def validate_config_value(config_type: ConfigType | str, value: str) -> int:
                 message=f"Invalid value {int_value} for {config_type}: must be >= 1",
             )
 
+    if config_type_enum is ConfigType.MAX_PARALLEL_WORK_ITEMS:
+        # Parallel work items must be at least 1
+        if int_value < 1:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message=f"Invalid value {int_value} for {config_type}: must be >= 1",
+            )
+
     return int_value

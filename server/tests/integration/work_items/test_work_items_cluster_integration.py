@@ -219,7 +219,7 @@ async def test_work_items_complete_across_multiple_servers(  # noqa
 
         base_env: dict[str, str] = {
             "SEMA4AI_AGENT_SERVER_DB_TYPE": "postgres",
-            "LOG_LEVEL": "DEBUG",
+            "LOG_LEVEL": "INFO",
             "POSTGRES_HOST": parsed.hostname or "localhost",
             "POSTGRES_PORT": str(parsed.port or 5432),
             "POSTGRES_DB": db_name or "postgres",
