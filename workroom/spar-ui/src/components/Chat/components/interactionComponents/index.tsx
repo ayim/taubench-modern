@@ -28,6 +28,6 @@ export const InteractionComponent: FC<Props> = ({ content, messageId }) => {
     case 'loading':
       return <Loading payload={payload} messageId={messageId} />;
     default:
-      return <Code value={content} />;
+      return <Code value={content} rows={10} />;
   }
 };
