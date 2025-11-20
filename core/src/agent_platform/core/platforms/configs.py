@@ -55,6 +55,10 @@ def _normalize_model_slug_for_lookup(slug: str) -> str:
         # llms.json uses "-thinking" suffix for some Claude models and "-reasoning" for others
         # keeping sema4 config naming convention as "thinking", and mapping to llms.json
         "claude-4-5-haiku-thinking": "claude-4-5-haiku-reasoning",
+        # GPT-5.1 non-reasoning model uses "-none" internally but "-non-reasoning" in llms.json
+        "gpt-5-1-none": "gpt-5-1-non-reasoning",
+        # GPT-5.1 Codex models will be mapped to GPT-5 Codex in llms.json
+        "gpt-5-1-codex": "gpt-5-codex",
     }
 
     return slug_mappings.get(slug, slug)
@@ -143,6 +147,13 @@ class PlatformModelConfigs(Configuration):
         # Note: embeddings models never make sense here
         default_factory=lambda: [
             # Azure OpenAI
+            "azure/openai/gpt-5-1-high",
+            "azure/openai/gpt-5-1-medium",
+            "azure/openai/gpt-5-1-low",
+            "azure/openai/gpt-5-1-none",
+            "azure/openai/gpt-5-1-codex-high",
+            "azure/openai/gpt-5-1-codex-medium",
+            "azure/openai/gpt-5-1-codex-low",
             "azure/openai/gpt-5-high",
             "azure/openai/gpt-5-medium",
             "azure/openai/gpt-5-low",
@@ -185,6 +196,13 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/o4-mini-low",
             "cortex/openai/gpt-4-1",
             # OpenAI
+            "openai/openai/gpt-5-1-high",
+            "openai/openai/gpt-5-1-medium",
+            "openai/openai/gpt-5-1-low",
+            "openai/openai/gpt-5-1-none",
+            "openai/openai/gpt-5-1-codex-high",
+            "openai/openai/gpt-5-1-codex-medium",
+            "openai/openai/gpt-5-1-codex-low",
             "openai/openai/gpt-5-high",
             "openai/openai/gpt-5-medium",
             "openai/openai/gpt-5-low",
@@ -221,6 +239,13 @@ class PlatformModelConfigs(Configuration):
     models_to_platform_specific_model_ids: dict[str, str] = field(
         default_factory=lambda: {
             # Azure OpenAI (pinning is done at the deployment level, we have no control)
+            "azure/openai/gpt-5-1-high": "gpt-5.1",
+            "azure/openai/gpt-5-1-medium": "gpt-5.1",
+            "azure/openai/gpt-5-1-low": "gpt-5.1",
+            "azure/openai/gpt-5-1-none": "gpt-5.1",
+            "azure/openai/gpt-5-1-codex-high": "gpt-5.1-codex",
+            "azure/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+            "azure/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
             "azure/openai/gpt-5-high": "gpt-5",
             "azure/openai/gpt-5-medium": "gpt-5",
             "azure/openai/gpt-5-low": "gpt-5",
@@ -321,6 +346,13 @@ class PlatformModelConfigs(Configuration):
             "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-arctic-embed-l",
             "cortex/voyage/voyage-multilingual": "voyage-multilingual",
             # OpenAI (does have date-based pinning)
+            "openai/openai/gpt-5-1-high": "gpt-5.1-2025-11-13",
+            "openai/openai/gpt-5-1-medium": "gpt-5.1-2025-11-13",
+            "openai/openai/gpt-5-1-low": "gpt-5.1-2025-11-13",
+            "openai/openai/gpt-5-1-none": "gpt-5.1-2025-11-13",
+            "openai/openai/gpt-5-1-codex-high": "gpt-5.1-codex",  # no codex date
+            "openai/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+            "openai/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
             "openai/openai/gpt-5-high": "gpt-5-2025-08-07",
             "openai/openai/gpt-5-medium": "gpt-5-2025-08-07",
             "openai/openai/gpt-5-low": "gpt-5-2025-08-07",
@@ -366,6 +398,13 @@ class PlatformModelConfigs(Configuration):
     models_to_families: dict[str, str] = field(
         default_factory=lambda: {
             # Azure OpenAI
+            "azure/openai/gpt-5-1-high": "openai-gpt",
+            "azure/openai/gpt-5-1-medium": "openai-gpt",
+            "azure/openai/gpt-5-1-low": "openai-gpt",
+            "azure/openai/gpt-5-1-none": "openai-gpt",
+            "azure/openai/gpt-5-1-codex-high": "openai-gpt",
+            "azure/openai/gpt-5-1-codex-medium": "openai-gpt",
+            "azure/openai/gpt-5-1-codex-low": "openai-gpt",
             "azure/openai/gpt-5-high": "openai-gpt",
             "azure/openai/gpt-5-medium": "openai-gpt",
             "azure/openai/gpt-5-low": "openai-gpt",
@@ -442,6 +481,13 @@ class PlatformModelConfigs(Configuration):
             "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-embeddings",
             "cortex/voyage/voyage-multilingual": "voyage-embeddings",
             # OpenAI (does have date-based pinning)
+            "openai/openai/gpt-5-1-high": "openai-gpt",
+            "openai/openai/gpt-5-1-medium": "openai-gpt",
+            "openai/openai/gpt-5-1-low": "openai-gpt",
+            "openai/openai/gpt-5-1-none": "openai-gpt",
+            "openai/openai/gpt-5-1-codex-high": "gpt-5.1-codex",
+            "openai/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+            "openai/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
             "openai/openai/gpt-5-high": "openai-gpt",
             "openai/openai/gpt-5-medium": "openai-gpt",
             "openai/openai/gpt-5-low": "openai-gpt",
@@ -486,6 +532,13 @@ class PlatformModelConfigs(Configuration):
     models_to_model_types: dict[str, str] = field(
         default_factory=lambda: {
             # Azure OpenAI
+            "azure/openai/gpt-5-1-high": "llm",
+            "azure/openai/gpt-5-1-medium": "llm",
+            "azure/openai/gpt-5-1-low": "llm",
+            "azure/openai/gpt-5-1-none": "llm",
+            "azure/openai/gpt-5-1-codex-high": "llm",
+            "azure/openai/gpt-5-1-codex-medium": "llm",
+            "azure/openai/gpt-5-1-codex-low": "llm",
             "azure/openai/gpt-5-high": "llm",
             "azure/openai/gpt-5-medium": "llm",
             "azure/openai/gpt-5-low": "llm",
@@ -563,6 +616,13 @@ class PlatformModelConfigs(Configuration):
             "cortex/snowflake/snowflake-arctic-embed-l": "embedding",
             "cortex/voyage/voyage-multilingual": "embedding",
             # OpenAI
+            "openai/openai/gpt-5-1-high": "llm",
+            "openai/openai/gpt-5-1-medium": "llm",
+            "openai/openai/gpt-5-1-low": "llm",
+            "openai/openai/gpt-5-1-none": "llm",
+            "openai/openai/gpt-5-1-codex-high": "llm",
+            "openai/openai/gpt-5-1-codex-medium": "llm",
+            "openai/openai/gpt-5-1-codex-low": "llm",
             "openai/openai/gpt-5-high": "llm",
             "openai/openai/gpt-5-medium": "llm",
             "openai/openai/gpt-5-low": "llm",
@@ -607,6 +667,13 @@ class PlatformModelConfigs(Configuration):
     models_to_context_window_sizes: dict[str, int] = field(
         default_factory=lambda: {
             # Azure OpenAI
+            "azure/openai/gpt-5-1-high": 400_000,
+            "azure/openai/gpt-5-1-medium": 400_000,
+            "azure/openai/gpt-5-1-low": 400_000,
+            "azure/openai/gpt-5-1-none": 400_000,
+            "azure/openai/gpt-5-1-codex-high": 400_000,
+            "azure/openai/gpt-5-1-codex-medium": 400_000,
+            "azure/openai/gpt-5-1-codex-low": 400_000,
             "azure/openai/gpt-5-high": 400_000,
             "azure/openai/gpt-5-medium": 400_000,
             "azure/openai/gpt-5-low": 400_000,
@@ -688,6 +755,13 @@ class PlatformModelConfigs(Configuration):
             "cortex/snowflake/snowflake-arctic-embed-l": 8_000,
             "cortex/voyage/voyage-multilingual": 8_000,
             # OpenAI
+            "openai/openai/gpt-5-1-high": 400_000,
+            "openai/openai/gpt-5-1-medium": 400_000,
+            "openai/openai/gpt-5-1-low": 400_000,
+            "openai/openai/gpt-5-1-none": 400_000,
+            "openai/openai/gpt-5-1-codex-high": 400_000,
+            "openai/openai/gpt-5-1-codex-medium": 400_000,
+            "openai/openai/gpt-5-1-codex-low": 400_000,
             "openai/openai/gpt-5-high": 400_000,
             "openai/openai/gpt-5-medium": 400_000,
             "openai/openai/gpt-5-low": 400_000,
@@ -734,6 +808,14 @@ class PlatformModelConfigs(Configuration):
     models_to_architecture_overrides: dict[str, list[str]] = field(
         default_factory=lambda: {
             # Azure OpenAI
+            "azure/openai/gpt-5-1-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-1-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-1-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-1-none": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            # TODO: verify codex works with architecture changes
+            "azure/openai/gpt-5-1-codex-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-1-codex-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-1-codex-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             "azure/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             "azure/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             "azure/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
@@ -741,6 +823,13 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             "azure/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             # OpenAI
+            "openai/openai/gpt-5-1-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-1-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-1-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-1-none": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-1-codex-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-1-codex-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-1-codex-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             "openai/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             "openai/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
             "openai/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],

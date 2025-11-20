@@ -24,7 +24,7 @@ dependencies = [
 [project.optional-dependencies]
 image-support = ["pillow>=11.3.0,<12.0.0", "IPython>=8.31.0,<9.0.0"]
 platforms-snowflake = ["snowflake-snowpark-python>=1.37.0,<2.0.0"]
-platforms-openai = ["openai>=1.106.0,<2.0.0"]
+platforms-openai = ["openai>=2.8.0,<2.8.1"]
 platforms-anthropic = ["anthropic>=0.66.0,<1.0.0"]
 platforms-aws = [
     "boto3>=1.40.15,<2.0.0",
@@ -35,7 +35,7 @@ platforms-google = ["google-genai>=1.33.0,<2.0.0"]
 platforms-groq = ["groq>=0.31.0,<1.0.0"]
 platforms-reducto = ["reductoai>=0.9.0,<1.0.0"]
 platforms-all = [
-    "openai>=1.106.0,<2.0.0",
+    "openai>=2.8.0,<2.8.1",
     "anthropic>=0.66.0,<1.0.0",
     "snowflake-snowpark-python>=1.37.0,<2.0.0",
     "boto3>=1.40.15,<2.0.0",

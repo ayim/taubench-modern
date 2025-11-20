@@ -142,6 +142,7 @@ class OpenAIPrompt(PlatformPrompt):
             # name, to preserve a level of backwards compatibility)
             model = model.split("/")[-1].strip()
 
+        # This includes gpt-5.1 models
         can_reason = model.startswith("gpt-5") or model.startswith("o3") or model.startswith("o4")
 
         if can_reason:

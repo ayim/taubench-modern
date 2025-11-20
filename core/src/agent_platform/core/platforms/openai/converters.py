@@ -411,7 +411,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             )
         return converted_tools
 
-    def _model_id_to_reasoning_effort(self, model_id: str | None) -> "ReasoningEffort":
+    def _model_id_to_reasoning_effort(self, model_id: str | None) -> "ReasoningEffort":  # noqa: PLR0911
         """Convert a model ID to a reasoning effort."""
         if not model_id:
             # No model ID, default to medium effort
@@ -425,6 +425,8 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             return "low"
         elif model_id.endswith("-minimal"):
             return "minimal"
+        elif model_id.endswith("-none"):
+            return "none"
 
         # No explicit effort in the model ID, default to medium effort
         return "medium"
@@ -455,13 +457,19 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         reasoning_effort = self._model_id_to_reasoning_effort(model_id)
 
         # If we're minimizing reasoning, and on a gpt-5 model, we can set reasoning to "minimal"
+        # If we're minimizing reasoning, and on a gpt-5.1 model, we can set reasoning to "none"
         # otherwise, we'll default to medium effort and detailed summary
         reasoning = Reasoning(
             effort=reasoning_effort,
             summary="detailed",
         )
         if prompt.minimize_reasoning:
-            if model_id and model_id.startswith("gpt-5"):
+            if model_id and model_id.startswith("gpt-5-1"):
+                reasoning = Reasoning(
+                    effort="none",
+                    summary="concise",
+                )
+            elif model_id and model_id.startswith("gpt-5"):
                 reasoning = Reasoning(
                     effort="minimal",
                     summary="concise",

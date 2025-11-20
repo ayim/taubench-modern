@@ -1,6 +1,13 @@
 import type { components } from '@sema4ai/agent-server-interface';
 import { z } from 'zod';
 export const OPENAI_MODEL_VALUES = [
+  'openai:gpt-5-1-high',
+  'openai:gpt-5-1-medium',
+  'openai:gpt-5-1-low',
+  'openai:gpt-5-1-none',
+  'openai:gpt-5-1-codex-high',
+  'openai:gpt-5-1-codex-medium',
+  'openai:gpt-5-1-codex-low',
   'openai:gpt-5-high',
   'openai:gpt-5-medium',
   'openai:gpt-5-low',

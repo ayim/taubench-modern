@@ -9417,6 +9417,13 @@ export interface components {
      *         "google": "google/google/text-embedding-004"
      *       },
      *       "models_capable_of_driving_agents": [
+     *         "azure/openai/gpt-5-1-high",
+     *         "azure/openai/gpt-5-1-medium",
+     *         "azure/openai/gpt-5-1-low",
+     *         "azure/openai/gpt-5-1-none",
+     *         "azure/openai/gpt-5-1-codex-high",
+     *         "azure/openai/gpt-5-1-codex-medium",
+     *         "azure/openai/gpt-5-1-codex-low",
      *         "azure/openai/gpt-5-high",
      *         "azure/openai/gpt-5-medium",
      *         "azure/openai/gpt-5-low",
@@ -9456,6 +9463,13 @@ export interface components {
      *         "cortex/openai/o4-mini-high",
      *         "cortex/openai/o4-mini-low",
      *         "cortex/openai/gpt-4-1",
+     *         "openai/openai/gpt-5-1-high",
+     *         "openai/openai/gpt-5-1-medium",
+     *         "openai/openai/gpt-5-1-low",
+     *         "openai/openai/gpt-5-1-none",
+     *         "openai/openai/gpt-5-1-codex-high",
+     *         "openai/openai/gpt-5-1-codex-medium",
+     *         "openai/openai/gpt-5-1-codex-low",
      *         "openai/openai/gpt-5-high",
      *         "openai/openai/gpt-5-medium",
      *         "openai/openai/gpt-5-low",
@@ -9479,6 +9493,13 @@ export interface components {
      *         "groq/openai/gpt-oss-20b"
      *       ],
      *       "models_to_platform_specific_model_ids": {
+     *         "azure/openai/gpt-5-1-high": "gpt-5.1",
+     *         "azure/openai/gpt-5-1-medium": "gpt-5.1",
+     *         "azure/openai/gpt-5-1-low": "gpt-5.1",
+     *         "azure/openai/gpt-5-1-none": "gpt-5.1",
+     *         "azure/openai/gpt-5-1-codex-high": "gpt-5.1-codex",
+     *         "azure/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+     *         "azure/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
      *         "azure/openai/gpt-5-high": "gpt-5",
      *         "azure/openai/gpt-5-medium": "gpt-5",
      *         "azure/openai/gpt-5-low": "gpt-5",
@@ -9552,6 +9573,13 @@ export interface components {
      *         "cortex/snowflake/snowflake-arctic-embed-m": "snowflake-arctic-embed-m",
      *         "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-arctic-embed-l",
      *         "cortex/voyage/voyage-multilingual": "voyage-multilingual",
+     *         "openai/openai/gpt-5-1-high": "gpt-5.1-2025-11-13",
+     *         "openai/openai/gpt-5-1-medium": "gpt-5.1-2025-11-13",
+     *         "openai/openai/gpt-5-1-low": "gpt-5.1-2025-11-13",
+     *         "openai/openai/gpt-5-1-none": "gpt-5.1-2025-11-13",
+     *         "openai/openai/gpt-5-1-codex-high": "gpt-5.1-codex",
+     *         "openai/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+     *         "openai/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
      *         "openai/openai/gpt-5-high": "gpt-5-2025-08-07",
      *         "openai/openai/gpt-5-medium": "gpt-5-2025-08-07",
      *         "openai/openai/gpt-5-low": "gpt-5-2025-08-07",
@@ -9584,6 +9612,13 @@ export interface components {
      *         "reducto/reducto/reducto-standard-extract": "standard:extract"
      *       },
      *       "models_to_families": {
+     *         "azure/openai/gpt-5-1-high": "openai-gpt",
+     *         "azure/openai/gpt-5-1-medium": "openai-gpt",
+     *         "azure/openai/gpt-5-1-low": "openai-gpt",
+     *         "azure/openai/gpt-5-1-none": "openai-gpt",
+     *         "azure/openai/gpt-5-1-codex-high": "openai-gpt",
+     *         "azure/openai/gpt-5-1-codex-medium": "openai-gpt",
+     *         "azure/openai/gpt-5-1-codex-low": "openai-gpt",
      *         "azure/openai/gpt-5-high": "openai-gpt",
      *         "azure/openai/gpt-5-medium": "openai-gpt",
      *         "azure/openai/gpt-5-low": "openai-gpt",
@@ -9657,6 +9692,13 @@ export interface components {
      *         "cortex/snowflake/snowflake-arctic-embed-m": "snowflake-embeddings",
      *         "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-embeddings",
      *         "cortex/voyage/voyage-multilingual": "voyage-embeddings",
+     *         "openai/openai/gpt-5-1-high": "openai-gpt",
+     *         "openai/openai/gpt-5-1-medium": "openai-gpt",
+     *         "openai/openai/gpt-5-1-low": "openai-gpt",
+     *         "openai/openai/gpt-5-1-none": "openai-gpt",
+     *         "openai/openai/gpt-5-1-codex-high": "gpt-5.1-codex",
+     *         "openai/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+     *         "openai/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
      *         "openai/openai/gpt-5-high": "openai-gpt",
      *         "openai/openai/gpt-5-medium": "openai-gpt",
      *         "openai/openai/gpt-5-low": "openai-gpt",
@@ -9689,6 +9731,13 @@ export interface components {
      *         "reducto/reducto/reducto-standard-extract": "reducto"
      *       },
      *       "models_to_model_types": {
+     *         "azure/openai/gpt-5-1-high": "llm",
+     *         "azure/openai/gpt-5-1-medium": "llm",
+     *         "azure/openai/gpt-5-1-low": "llm",
+     *         "azure/openai/gpt-5-1-none": "llm",
+     *         "azure/openai/gpt-5-1-codex-high": "llm",
+     *         "azure/openai/gpt-5-1-codex-medium": "llm",
+     *         "azure/openai/gpt-5-1-codex-low": "llm",
      *         "azure/openai/gpt-5-high": "llm",
      *         "azure/openai/gpt-5-medium": "llm",
      *         "azure/openai/gpt-5-low": "llm",
@@ -9762,6 +9811,13 @@ export interface components {
      *         "cortex/snowflake/snowflake-arctic-embed-m": "embedding",
      *         "cortex/snowflake/snowflake-arctic-embed-l": "embedding",
      *         "cortex/voyage/voyage-multilingual": "embedding",
+     *         "openai/openai/gpt-5-1-high": "llm",
+     *         "openai/openai/gpt-5-1-medium": "llm",
+     *         "openai/openai/gpt-5-1-low": "llm",
+     *         "openai/openai/gpt-5-1-none": "llm",
+     *         "openai/openai/gpt-5-1-codex-high": "llm",
+     *         "openai/openai/gpt-5-1-codex-medium": "llm",
+     *         "openai/openai/gpt-5-1-codex-low": "llm",
      *         "openai/openai/gpt-5-high": "llm",
      *         "openai/openai/gpt-5-medium": "llm",
      *         "openai/openai/gpt-5-low": "llm",
@@ -9794,6 +9850,13 @@ export interface components {
      *         "reducto/reducto/reducto-standard-extract": "document-processor"
      *       },
      *       "models_to_context_window_sizes": {
+     *         "azure/openai/gpt-5-1-high": 400000,
+     *         "azure/openai/gpt-5-1-medium": 400000,
+     *         "azure/openai/gpt-5-1-low": 400000,
+     *         "azure/openai/gpt-5-1-none": 400000,
+     *         "azure/openai/gpt-5-1-codex-high": 400000,
+     *         "azure/openai/gpt-5-1-codex-medium": 400000,
+     *         "azure/openai/gpt-5-1-codex-low": 400000,
      *         "azure/openai/gpt-5-high": 400000,
      *         "azure/openai/gpt-5-medium": 400000,
      *         "azure/openai/gpt-5-low": 400000,
@@ -9867,6 +9930,13 @@ export interface components {
      *         "cortex/snowflake/snowflake-arctic-embed-m": 8000,
      *         "cortex/snowflake/snowflake-arctic-embed-l": 8000,
      *         "cortex/voyage/voyage-multilingual": 8000,
+     *         "openai/openai/gpt-5-1-high": 400000,
+     *         "openai/openai/gpt-5-1-medium": 400000,
+     *         "openai/openai/gpt-5-1-low": 400000,
+     *         "openai/openai/gpt-5-1-none": 400000,
+     *         "openai/openai/gpt-5-1-codex-high": 400000,
+     *         "openai/openai/gpt-5-1-codex-medium": 400000,
+     *         "openai/openai/gpt-5-1-codex-low": 400000,
      *         "openai/openai/gpt-5-high": 400000,
      *         "openai/openai/gpt-5-medium": 400000,
      *         "openai/openai/gpt-5-low": 400000,
@@ -9899,6 +9969,34 @@ export interface components {
      *         "reducto/reducto/reducto-standard-extract": 10000000
      *       },
      *       "models_to_architecture_overrides": {
+     *         "azure/openai/gpt-5-1-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-none": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-codex-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-codex-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-codex-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
      *         "azure/openai/gpt-5-high": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0"
@@ -9920,6 +10018,34 @@ export interface components {
      *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-nano": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-none": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-codex-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-codex-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-codex-low": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
@@ -10112,6 +10238,13 @@ export interface components {
      *         "google": "google/google/text-embedding-004"
      *       },
      *       "models_capable_of_driving_agents": [
+     *         "azure/openai/gpt-5-1-high",
+     *         "azure/openai/gpt-5-1-medium",
+     *         "azure/openai/gpt-5-1-low",
+     *         "azure/openai/gpt-5-1-none",
+     *         "azure/openai/gpt-5-1-codex-high",
+     *         "azure/openai/gpt-5-1-codex-medium",
+     *         "azure/openai/gpt-5-1-codex-low",
      *         "azure/openai/gpt-5-high",
      *         "azure/openai/gpt-5-medium",
      *         "azure/openai/gpt-5-low",
@@ -10151,6 +10284,13 @@ export interface components {
      *         "cortex/openai/o4-mini-high",
      *         "cortex/openai/o4-mini-low",
      *         "cortex/openai/gpt-4-1",
+     *         "openai/openai/gpt-5-1-high",
+     *         "openai/openai/gpt-5-1-medium",
+     *         "openai/openai/gpt-5-1-low",
+     *         "openai/openai/gpt-5-1-none",
+     *         "openai/openai/gpt-5-1-codex-high",
+     *         "openai/openai/gpt-5-1-codex-medium",
+     *         "openai/openai/gpt-5-1-codex-low",
      *         "openai/openai/gpt-5-high",
      *         "openai/openai/gpt-5-medium",
      *         "openai/openai/gpt-5-low",
@@ -10174,6 +10314,13 @@ export interface components {
      *         "groq/openai/gpt-oss-20b"
      *       ],
      *       "models_to_platform_specific_model_ids": {
+     *         "azure/openai/gpt-5-1-high": "gpt-5.1",
+     *         "azure/openai/gpt-5-1-medium": "gpt-5.1",
+     *         "azure/openai/gpt-5-1-low": "gpt-5.1",
+     *         "azure/openai/gpt-5-1-none": "gpt-5.1",
+     *         "azure/openai/gpt-5-1-codex-high": "gpt-5.1-codex",
+     *         "azure/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+     *         "azure/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
      *         "azure/openai/gpt-5-high": "gpt-5",
      *         "azure/openai/gpt-5-medium": "gpt-5",
      *         "azure/openai/gpt-5-low": "gpt-5",
@@ -10247,6 +10394,13 @@ export interface components {
      *         "cortex/snowflake/snowflake-arctic-embed-m": "snowflake-arctic-embed-m",
      *         "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-arctic-embed-l",
      *         "cortex/voyage/voyage-multilingual": "voyage-multilingual",
+     *         "openai/openai/gpt-5-1-high": "gpt-5.1-2025-11-13",
+     *         "openai/openai/gpt-5-1-medium": "gpt-5.1-2025-11-13",
+     *         "openai/openai/gpt-5-1-low": "gpt-5.1-2025-11-13",
+     *         "openai/openai/gpt-5-1-none": "gpt-5.1-2025-11-13",
+     *         "openai/openai/gpt-5-1-codex-high": "gpt-5.1-codex",
+     *         "openai/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+     *         "openai/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
      *         "openai/openai/gpt-5-high": "gpt-5-2025-08-07",
      *         "openai/openai/gpt-5-medium": "gpt-5-2025-08-07",
      *         "openai/openai/gpt-5-low": "gpt-5-2025-08-07",
@@ -10279,6 +10433,13 @@ export interface components {
      *         "reducto/reducto/reducto-standard-extract": "standard:extract"
      *       },
      *       "models_to_families": {
+     *         "azure/openai/gpt-5-1-high": "openai-gpt",
+     *         "azure/openai/gpt-5-1-medium": "openai-gpt",
+     *         "azure/openai/gpt-5-1-low": "openai-gpt",
+     *         "azure/openai/gpt-5-1-none": "openai-gpt",
+     *         "azure/openai/gpt-5-1-codex-high": "openai-gpt",
+     *         "azure/openai/gpt-5-1-codex-medium": "openai-gpt",
+     *         "azure/openai/gpt-5-1-codex-low": "openai-gpt",
      *         "azure/openai/gpt-5-high": "openai-gpt",
      *         "azure/openai/gpt-5-medium": "openai-gpt",
      *         "azure/openai/gpt-5-low": "openai-gpt",
@@ -10352,6 +10513,13 @@ export interface components {
      *         "cortex/snowflake/snowflake-arctic-embed-m": "snowflake-embeddings",
      *         "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-embeddings",
      *         "cortex/voyage/voyage-multilingual": "voyage-embeddings",
+     *         "openai/openai/gpt-5-1-high": "openai-gpt",
+     *         "openai/openai/gpt-5-1-medium": "openai-gpt",
+     *         "openai/openai/gpt-5-1-low": "openai-gpt",
+     *         "openai/openai/gpt-5-1-none": "openai-gpt",
+     *         "openai/openai/gpt-5-1-codex-high": "gpt-5.1-codex",
+     *         "openai/openai/gpt-5-1-codex-medium": "gpt-5.1-codex",
+     *         "openai/openai/gpt-5-1-codex-low": "gpt-5.1-codex",
      *         "openai/openai/gpt-5-high": "openai-gpt",
      *         "openai/openai/gpt-5-medium": "openai-gpt",
      *         "openai/openai/gpt-5-low": "openai-gpt",
@@ -10384,6 +10552,13 @@ export interface components {
      *         "reducto/reducto/reducto-standard-extract": "reducto"
      *       },
      *       "models_to_model_types": {
+     *         "azure/openai/gpt-5-1-high": "llm",
+     *         "azure/openai/gpt-5-1-medium": "llm",
+     *         "azure/openai/gpt-5-1-low": "llm",
+     *         "azure/openai/gpt-5-1-none": "llm",
+     *         "azure/openai/gpt-5-1-codex-high": "llm",
+     *         "azure/openai/gpt-5-1-codex-medium": "llm",
+     *         "azure/openai/gpt-5-1-codex-low": "llm",
      *         "azure/openai/gpt-5-high": "llm",
      *         "azure/openai/gpt-5-medium": "llm",
      *         "azure/openai/gpt-5-low": "llm",
@@ -10457,6 +10632,13 @@ export interface components {
      *         "cortex/snowflake/snowflake-arctic-embed-m": "embedding",
      *         "cortex/snowflake/snowflake-arctic-embed-l": "embedding",
      *         "cortex/voyage/voyage-multilingual": "embedding",
+     *         "openai/openai/gpt-5-1-high": "llm",
+     *         "openai/openai/gpt-5-1-medium": "llm",
+     *         "openai/openai/gpt-5-1-low": "llm",
+     *         "openai/openai/gpt-5-1-none": "llm",
+     *         "openai/openai/gpt-5-1-codex-high": "llm",
+     *         "openai/openai/gpt-5-1-codex-medium": "llm",
+     *         "openai/openai/gpt-5-1-codex-low": "llm",
      *         "openai/openai/gpt-5-high": "llm",
      *         "openai/openai/gpt-5-medium": "llm",
      *         "openai/openai/gpt-5-low": "llm",
@@ -10489,6 +10671,13 @@ export interface components {
      *         "reducto/reducto/reducto-standard-extract": "document-processor"
      *       },
      *       "models_to_context_window_sizes": {
+     *         "azure/openai/gpt-5-1-high": 400000,
+     *         "azure/openai/gpt-5-1-medium": 400000,
+     *         "azure/openai/gpt-5-1-low": 400000,
+     *         "azure/openai/gpt-5-1-none": 400000,
+     *         "azure/openai/gpt-5-1-codex-high": 400000,
+     *         "azure/openai/gpt-5-1-codex-medium": 400000,
+     *         "azure/openai/gpt-5-1-codex-low": 400000,
      *         "azure/openai/gpt-5-high": 400000,
      *         "azure/openai/gpt-5-medium": 400000,
      *         "azure/openai/gpt-5-low": 400000,
@@ -10562,6 +10751,13 @@ export interface components {
      *         "cortex/snowflake/snowflake-arctic-embed-m": 8000,
      *         "cortex/snowflake/snowflake-arctic-embed-l": 8000,
      *         "cortex/voyage/voyage-multilingual": 8000,
+     *         "openai/openai/gpt-5-1-high": 400000,
+     *         "openai/openai/gpt-5-1-medium": 400000,
+     *         "openai/openai/gpt-5-1-low": 400000,
+     *         "openai/openai/gpt-5-1-none": 400000,
+     *         "openai/openai/gpt-5-1-codex-high": 400000,
+     *         "openai/openai/gpt-5-1-codex-medium": 400000,
+     *         "openai/openai/gpt-5-1-codex-low": 400000,
      *         "openai/openai/gpt-5-high": 400000,
      *         "openai/openai/gpt-5-medium": 400000,
      *         "openai/openai/gpt-5-low": 400000,
@@ -10594,6 +10790,34 @@ export interface components {
      *         "reducto/reducto/reducto-standard-extract": 10000000
      *       },
      *       "models_to_architecture_overrides": {
+     *         "azure/openai/gpt-5-1-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-none": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-codex-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-codex-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "azure/openai/gpt-5-1-codex-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
      *         "azure/openai/gpt-5-high": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0"
@@ -10615,6 +10839,34 @@ export interface components {
      *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
      *         "azure/openai/gpt-5-nano": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-none": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-codex-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-codex-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0"
+     *         ],
+     *         "openai/openai/gpt-5-1-codex-low": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0"
      *         ],
@@ -10904,6 +11156,13 @@ export interface components {
       | 'azure/openai/gpt-4o'
       | 'azure/openai/gpt-4o-chatgpt'
       | 'azure/openai/gpt-4o-mini'
+      | 'azure/openai/gpt-5-1-codex-high'
+      | 'azure/openai/gpt-5-1-codex-low'
+      | 'azure/openai/gpt-5-1-codex-medium'
+      | 'azure/openai/gpt-5-1-high'
+      | 'azure/openai/gpt-5-1-low'
+      | 'azure/openai/gpt-5-1-medium'
+      | 'azure/openai/gpt-5-1-none'
       | 'azure/openai/gpt-5-high'
       | 'azure/openai/gpt-5-low'
       | 'azure/openai/gpt-5-medium'
@@ -10988,6 +11247,13 @@ export interface components {
       | 'openai/openai/gpt-4o'
       | 'openai/openai/gpt-4o-chatgpt'
       | 'openai/openai/gpt-4o-mini'
+      | 'openai/openai/gpt-5-1-codex-high'
+      | 'openai/openai/gpt-5-1-codex-low'
+      | 'openai/openai/gpt-5-1-codex-medium'
+      | 'openai/openai/gpt-5-1-high'
+      | 'openai/openai/gpt-5-1-low'
+      | 'openai/openai/gpt-5-1-medium'
+      | 'openai/openai/gpt-5-1-none'
       | 'openai/openai/gpt-5-high'
       | 'openai/openai/gpt-5-low'
       | 'openai/openai/gpt-5-medium'
@@ -11090,6 +11356,13 @@ export interface components {
      *         "azure/openai/gpt-4o",
      *         "azure/openai/gpt-4o-chatgpt",
      *         "azure/openai/gpt-4o-mini",
+     *         "azure/openai/gpt-5-1-codex-high",
+     *         "azure/openai/gpt-5-1-codex-low",
+     *         "azure/openai/gpt-5-1-codex-medium",
+     *         "azure/openai/gpt-5-1-high",
+     *         "azure/openai/gpt-5-1-low",
+     *         "azure/openai/gpt-5-1-medium",
+     *         "azure/openai/gpt-5-1-none",
      *         "azure/openai/gpt-5-high",
      *         "azure/openai/gpt-5-low",
      *         "azure/openai/gpt-5-medium",
@@ -11185,6 +11458,13 @@ export interface components {
      *         "openai/openai/gpt-4o",
      *         "openai/openai/gpt-4o-chatgpt",
      *         "openai/openai/gpt-4o-mini",
+     *         "openai/openai/gpt-5-1-codex-high",
+     *         "openai/openai/gpt-5-1-codex-low",
+     *         "openai/openai/gpt-5-1-codex-medium",
+     *         "openai/openai/gpt-5-1-high",
+     *         "openai/openai/gpt-5-1-low",
+     *         "openai/openai/gpt-5-1-medium",
+     *         "openai/openai/gpt-5-1-none",
      *         "openai/openai/gpt-5-high",
      *         "openai/openai/gpt-5-low",
      *         "openai/openai/gpt-5-medium",
@@ -11210,6 +11490,13 @@ export interface components {
      *         "azure/openai/gpt-4o",
      *         "azure/openai/gpt-4o-chatgpt",
      *         "azure/openai/gpt-4o-mini",
+     *         "azure/openai/gpt-5-1-codex-high",
+     *         "azure/openai/gpt-5-1-codex-low",
+     *         "azure/openai/gpt-5-1-codex-medium",
+     *         "azure/openai/gpt-5-1-high",
+     *         "azure/openai/gpt-5-1-low",
+     *         "azure/openai/gpt-5-1-medium",
+     *         "azure/openai/gpt-5-1-none",
      *         "azure/openai/gpt-5-high",
      *         "azure/openai/gpt-5-low",
      *         "azure/openai/gpt-5-medium",
@@ -11305,6 +11592,13 @@ export interface components {
      *         "openai/openai/gpt-4o",
      *         "openai/openai/gpt-4o-chatgpt",
      *         "openai/openai/gpt-4o-mini",
+     *         "openai/openai/gpt-5-1-codex-high",
+     *         "openai/openai/gpt-5-1-codex-low",
+     *         "openai/openai/gpt-5-1-codex-medium",
+     *         "openai/openai/gpt-5-1-high",
+     *         "openai/openai/gpt-5-1-low",
+     *         "openai/openai/gpt-5-1-medium",
+     *         "openai/openai/gpt-5-1-none",
      *         "openai/openai/gpt-5-high",
      *         "openai/openai/gpt-5-low",
      *         "openai/openai/gpt-5-medium",
@@ -11343,6 +11637,13 @@ export interface components {
      *         "azure/openai/gpt-4o",
      *         "azure/openai/gpt-4o-chatgpt",
      *         "azure/openai/gpt-4o-mini",
+     *         "azure/openai/gpt-5-1-codex-high",
+     *         "azure/openai/gpt-5-1-codex-low",
+     *         "azure/openai/gpt-5-1-codex-medium",
+     *         "azure/openai/gpt-5-1-high",
+     *         "azure/openai/gpt-5-1-low",
+     *         "azure/openai/gpt-5-1-medium",
+     *         "azure/openai/gpt-5-1-none",
      *         "azure/openai/gpt-5-high",
      *         "azure/openai/gpt-5-low",
      *         "azure/openai/gpt-5-medium",
@@ -11455,6 +11756,13 @@ export interface components {
      *         "openai/openai/gpt-4o",
      *         "openai/openai/gpt-4o-chatgpt",
      *         "openai/openai/gpt-4o-mini",
+     *         "openai/openai/gpt-5-1-codex-high",
+     *         "openai/openai/gpt-5-1-codex-low",
+     *         "openai/openai/gpt-5-1-codex-medium",
+     *         "openai/openai/gpt-5-1-high",
+     *         "openai/openai/gpt-5-1-low",
+     *         "openai/openai/gpt-5-1-medium",
+     *         "openai/openai/gpt-5-1-none",
      *         "openai/openai/gpt-5-high",
      *         "openai/openai/gpt-5-low",
      *         "openai/openai/gpt-5-medium",
@@ -11480,6 +11788,13 @@ export interface components {
      *         "azure/openai/gpt-4o",
      *         "azure/openai/gpt-4o-chatgpt",
      *         "azure/openai/gpt-4o-mini",
+     *         "azure/openai/gpt-5-1-codex-high",
+     *         "azure/openai/gpt-5-1-codex-low",
+     *         "azure/openai/gpt-5-1-codex-medium",
+     *         "azure/openai/gpt-5-1-high",
+     *         "azure/openai/gpt-5-1-low",
+     *         "azure/openai/gpt-5-1-medium",
+     *         "azure/openai/gpt-5-1-none",
      *         "azure/openai/gpt-5-high",
      *         "azure/openai/gpt-5-low",
      *         "azure/openai/gpt-5-medium",
@@ -11592,6 +11907,13 @@ export interface components {
      *         "openai/openai/gpt-4o",
      *         "openai/openai/gpt-4o-chatgpt",
      *         "openai/openai/gpt-4o-mini",
+     *         "openai/openai/gpt-5-1-codex-high",
+     *         "openai/openai/gpt-5-1-codex-low",
+     *         "openai/openai/gpt-5-1-codex-medium",
+     *         "openai/openai/gpt-5-1-high",
+     *         "openai/openai/gpt-5-1-low",
+     *         "openai/openai/gpt-5-1-medium",
+     *         "openai/openai/gpt-5-1-none",
      *         "openai/openai/gpt-5-high",
      *         "openai/openai/gpt-5-low",
      *         "openai/openai/gpt-5-medium",
@@ -11712,6 +12034,13 @@ export interface components {
      *           "azure/openai/gpt-4o",
      *           "azure/openai/gpt-4o-chatgpt",
      *           "azure/openai/gpt-4o-mini",
+     *           "azure/openai/gpt-5-1-codex-high",
+     *           "azure/openai/gpt-5-1-codex-low",
+     *           "azure/openai/gpt-5-1-codex-medium",
+     *           "azure/openai/gpt-5-1-high",
+     *           "azure/openai/gpt-5-1-low",
+     *           "azure/openai/gpt-5-1-medium",
+     *           "azure/openai/gpt-5-1-none",
      *           "azure/openai/gpt-5-high",
      *           "azure/openai/gpt-5-low",
      *           "azure/openai/gpt-5-medium",
@@ -11807,6 +12136,13 @@ export interface components {
      *           "openai/openai/gpt-4o",
      *           "openai/openai/gpt-4o-chatgpt",
      *           "openai/openai/gpt-4o-mini",
+     *           "openai/openai/gpt-5-1-codex-high",
+     *           "openai/openai/gpt-5-1-codex-low",
+     *           "openai/openai/gpt-5-1-codex-medium",
+     *           "openai/openai/gpt-5-1-high",
+     *           "openai/openai/gpt-5-1-low",
+     *           "openai/openai/gpt-5-1-medium",
+     *           "openai/openai/gpt-5-1-none",
      *           "openai/openai/gpt-5-high",
      *           "openai/openai/gpt-5-low",
      *           "openai/openai/gpt-5-medium",
@@ -11832,6 +12168,13 @@ export interface components {
      *           "azure/openai/gpt-4o",
      *           "azure/openai/gpt-4o-chatgpt",
      *           "azure/openai/gpt-4o-mini",
+     *           "azure/openai/gpt-5-1-codex-high",
+     *           "azure/openai/gpt-5-1-codex-low",
+     *           "azure/openai/gpt-5-1-codex-medium",
+     *           "azure/openai/gpt-5-1-high",
+     *           "azure/openai/gpt-5-1-low",
+     *           "azure/openai/gpt-5-1-medium",
+     *           "azure/openai/gpt-5-1-none",
      *           "azure/openai/gpt-5-high",
      *           "azure/openai/gpt-5-low",
      *           "azure/openai/gpt-5-medium",
@@ -11944,6 +12287,13 @@ export interface components {
      *           "openai/openai/gpt-4o",
      *           "openai/openai/gpt-4o-chatgpt",
      *           "openai/openai/gpt-4o-mini",
+     *           "openai/openai/gpt-5-1-codex-high",
+     *           "openai/openai/gpt-5-1-codex-low",
+     *           "openai/openai/gpt-5-1-codex-medium",
+     *           "openai/openai/gpt-5-1-high",
+     *           "openai/openai/gpt-5-1-low",
+     *           "openai/openai/gpt-5-1-medium",
+     *           "openai/openai/gpt-5-1-none",
      *           "openai/openai/gpt-5-high",
      *           "openai/openai/gpt-5-low",
      *           "openai/openai/gpt-5-medium",
@@ -12044,6 +12394,13 @@ export interface components {
      *           "azure/openai/gpt-4o",
      *           "azure/openai/gpt-4o-chatgpt",
      *           "azure/openai/gpt-4o-mini",
+     *           "azure/openai/gpt-5-1-codex-high",
+     *           "azure/openai/gpt-5-1-codex-low",
+     *           "azure/openai/gpt-5-1-codex-medium",
+     *           "azure/openai/gpt-5-1-high",
+     *           "azure/openai/gpt-5-1-low",
+     *           "azure/openai/gpt-5-1-medium",
+     *           "azure/openai/gpt-5-1-none",
      *           "azure/openai/gpt-5-high",
      *           "azure/openai/gpt-5-low",
      *           "azure/openai/gpt-5-medium",
@@ -12139,6 +12496,13 @@ export interface components {
      *           "openai/openai/gpt-4o",
      *           "openai/openai/gpt-4o-chatgpt",
      *           "openai/openai/gpt-4o-mini",
+     *           "openai/openai/gpt-5-1-codex-high",
+     *           "openai/openai/gpt-5-1-codex-low",
+     *           "openai/openai/gpt-5-1-codex-medium",
+     *           "openai/openai/gpt-5-1-high",
+     *           "openai/openai/gpt-5-1-low",
+     *           "openai/openai/gpt-5-1-medium",
+     *           "openai/openai/gpt-5-1-none",
      *           "openai/openai/gpt-5-high",
      *           "openai/openai/gpt-5-low",
      *           "openai/openai/gpt-5-medium",
@@ -12164,6 +12528,13 @@ export interface components {
      *           "azure/openai/gpt-4o",
      *           "azure/openai/gpt-4o-chatgpt",
      *           "azure/openai/gpt-4o-mini",
+     *           "azure/openai/gpt-5-1-codex-high",
+     *           "azure/openai/gpt-5-1-codex-low",
+     *           "azure/openai/gpt-5-1-codex-medium",
+     *           "azure/openai/gpt-5-1-high",
+     *           "azure/openai/gpt-5-1-low",
+     *           "azure/openai/gpt-5-1-medium",
+     *           "azure/openai/gpt-5-1-none",
      *           "azure/openai/gpt-5-high",
      *           "azure/openai/gpt-5-low",
      *           "azure/openai/gpt-5-medium",
@@ -12276,6 +12647,13 @@ export interface components {
      *           "openai/openai/gpt-4o",
      *           "openai/openai/gpt-4o-chatgpt",
      *           "openai/openai/gpt-4o-mini",
+     *           "openai/openai/gpt-5-1-codex-high",
+     *           "openai/openai/gpt-5-1-codex-low",
+     *           "openai/openai/gpt-5-1-codex-medium",
+     *           "openai/openai/gpt-5-1-high",
+     *           "openai/openai/gpt-5-1-low",
+     *           "openai/openai/gpt-5-1-medium",
+     *           "openai/openai/gpt-5-1-none",
      *           "openai/openai/gpt-5-high",
      *           "openai/openai/gpt-5-low",
      *           "openai/openai/gpt-5-medium",
