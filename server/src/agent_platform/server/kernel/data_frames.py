@@ -1293,7 +1293,16 @@ class _DataFrameTools:
 
         Use SQL using syntax matching the SQL dialect of the semantic data model or data frame being queried.
         Existing data frames and "logical" tables in semantic data models are available by their name in your query.
-        If the query is not valid an error will be returned so that it can be corrected and retried.
+
+        IMPORTANT RETRY BEHAVIOR:
+        - If this tool returns status='needs_retry', read the error message carefully
+        - The message contains specific guidance on what went wrong and how to fix it
+        - Modify your SQL based on the feedback provided in the message
+        - Call this tool again with the corrected SQL
+        - After 3 failed attempts with different SQL variations, explain the issue to the user
+        - Do NOT keep retrying the same SQL - each retry should incorporate the feedback from previous attempts
+
+        If the query is not valid, a structured response will be returned with guidance so it can be corrected and retried.
         """
         import keyword
 
@@ -1326,7 +1335,9 @@ class _DataFrameTools:
 
             if num_samples <= 0:
                 return {
+                    "status": "success",
                     "result": f"Data frame {new_data_frame_name} created from SQL query",
+                    "data_frame_name": new_data_frame_name,
                 }
 
             sliced_data = await resolved_df.slice(
@@ -1339,12 +1350,29 @@ class _DataFrameTools:
             assert isinstance(sliced_data, Table), f"Expected a Table, got {type(sliced_data)}"
 
             return {
+                "status": "success",
                 "result": f"Data frame {new_data_frame_name} created from SQL query",
                 "sample_data": sliced_data.model_dump(),
+                "data_frame_name": new_data_frame_name,
             }
         except Exception as e:
+            logger.error(
+                f"SQL query failed in thread {self._tid}",
+                error=str(e),
+                sql_query=sql_query,
+                data_frame_name=new_data_frame_name,
+            )
+
+            # Instead of returning an actual error, we return a status to indicate the need to
+            # retry. This allows the LLM to see the suggestion and rewrite the query without
+            # alerting the user of the agent into thinking there is a fundamental issue with
+            # the agent or this tool.
+            # TODO: We need to implement proper SQL healing/fixing in the SDM modules.
             return {
-                "error": f"Unable to create data frame from SQL query. Error: {e}",
+                "status": "needs_retry",
+                "message": str(e),
+                "data_frame_name": None,
+                "sample_data": None,
             }
 
     async def create_data_frame_from_verified_query(

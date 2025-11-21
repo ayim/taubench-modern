@@ -436,8 +436,10 @@ async def test_data_frame_tools():
         new_data_frame_name="test data frame 2",
     )
     assert result == {
+        "status": "success",
         "result": "Data frame test_data_frame_2 created from SQL query",
         "sample_data": {"columns": ["col1"], "rows": [[2], [3]]},
+        "data_frame_name": "test_data_frame_2",
     }
 
     rows = await tools.data_frame_slice(
@@ -557,6 +559,7 @@ async def test_semantic_data_models_engine_in_summary(
         sql_query=("SELECT * FROM artificial_intelligence_number_training_datapoints LIMIT 1"),
         new_data_frame_name="ai_data_from_sql",
     )
+    assert result.get("status") == "success"
     assert "result" in result
 
     # The created data frame should reflect the sqlite dialect in the summary
@@ -565,3 +568,71 @@ async def test_semantic_data_models_engine_in_summary(
     df_summary = df_summary.encode("ascii", errors="replace").decode("ascii")
     assert "SQL dialect: sqlite" in df_summary
     file_regression.check(df_summary, basename="data_frames_system_prompt_with_sqlite_dialect")
+
+
+@pytest.mark.asyncio
+async def test_sql_error_returns_needs_retry_status():
+    """Test that SQL errors return needs_retry status instead of error field.
+
+    This ensures the UI doesn't show red errors while allowing the LLM to retry.
+    """
+    from tests.data_frames.fixtures import StorageStub
+
+    from agent_platform.server.auth.handlers import AuthedUser
+    from agent_platform.server.kernel.data_frames import _DataFrameTools
+    from agent_platform.server.storage.base import BaseStorage
+
+    storage_stub = StorageStub()
+
+    # Create a test data frame
+    await storage_stub.create_in_memory_data_frame(
+        name="test_data",
+        contents={"col1": [1, 2, 3], "col2": [4, 5, 6]},
+    )
+
+    data_frames = await storage_stub.list_data_frames(storage_stub.thread.tid)
+    assert len(data_frames) == 1
+
+    tools = _DataFrameTools(
+        user=typing.cast(AuthedUser, storage_stub.thread.user),
+        tid=storage_stub.thread.tid,
+        name_to_data_frame={d.name: d for d in data_frames},
+        storage=typing.cast(BaseStorage, storage_stub),
+        thread_state=None,
+    )
+
+    # Test 1: Bad SQL with wrong column name should return needs_retry
+    bad_result = await tools.create_data_frame_from_sql(
+        sql_query="SELECT wrong_column_name FROM test_data",
+        new_data_frame_name="bad_query_result",
+    )
+
+    assert bad_result.get("status") == "needs_retry", f"Expected needs_retry, got: {bad_result}"
+    assert "message" in bad_result
+    assert bad_result["data_frame_name"] is None
+    assert bad_result["sample_data"] is None
+    # Most importantly: NO "error" key (which would make UI red)
+    assert "error" not in bad_result
+    # Error message should contain helpful guidance
+    assert (
+        "column" in bad_result["message"].lower()
+        or "does not exist" in bad_result["message"].lower()
+    )
+
+    # Test 2: Good SQL after "retry" should succeed
+    good_result = await tools.create_data_frame_from_sql(
+        sql_query="SELECT col1 FROM test_data WHERE col1 > 1",
+        new_data_frame_name="good_query_result",
+    )
+
+    assert good_result.get("status") == "success"
+    assert "result" in good_result
+    assert good_result["data_frame_name"] == "good_query_result"
+    assert good_result["sample_data"] is not None
+    assert good_result["sample_data"]["columns"] == ["col1"]
+    assert good_result["sample_data"]["rows"] == [[2], [3]]
+
+    # Verify the data frame was actually created
+    data_frames_after = await storage_stub.list_data_frames(storage_stub.thread.tid)
+    assert len(data_frames_after) == 2
+    assert any(df.name == "good_query_result" for df in data_frames_after)
