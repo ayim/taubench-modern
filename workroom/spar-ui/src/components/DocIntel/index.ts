@@ -14,4 +14,5 @@ export type { PDFDocumentProxy, PDFPageProxy } from './shared/components/Documen
 
 // Feature modules
 export * from './ParseOnly';
-// ExtractOnly and CreateDataModel are placeholders for now
+export * from './ExtractOnly';
+// CreateDataModel is a placeholder for now

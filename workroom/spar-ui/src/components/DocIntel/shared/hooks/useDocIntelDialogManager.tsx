@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ParseOnlyDialog } from '../../ParseOnly';
+import { ExtractOnlyDialog } from '../../ExtractOnly';
 import { DocumentData, DocumentIntelligenceDialog } from '../../../DocumentIntelligence';
 
 type DocIntelDialogState = {
@@ -37,8 +38,12 @@ export const useDocIntelDialogManager = (threadId: string) => {
 
   // Map interface type to legacy flow type for old DocumentIntelligenceDialog
   const getLegacyDocumentData = useCallback((): DocumentData | null => {
-    if (!dialogState || dialogState.interfaceType === 'di-parse-only') {
-      return null; // Parse-only uses new dialog
+    if (
+      !dialogState ||
+      dialogState.interfaceType === 'di-parse-only' ||
+      dialogState.interfaceType === 'di-extract-only'
+    ) {
+      return null; // Parse-only and Extract-only use new dialogs
     }
 
     // Map other interface types to legacy flow types
@@ -69,6 +74,19 @@ export const useDocIntelDialogManager = (threadId: string) => {
     if (dialogState.interfaceType === 'di-parse-only') {
       return (
         <ParseOnlyDialog
+          isOpen
+          onClose={closeDialog}
+          file={dialogState.file}
+          agentId={dialogState.agentId}
+          threadId={dialogState.threadId}
+        />
+      );
+    }
+
+    // Route to new ExtractOnlyDialog
+    if (dialogState.interfaceType === 'di-extract-only') {
+      return (
+        <ExtractOnlyDialog
           isOpen
           onClose={closeDialog}
           file={dialogState.file}

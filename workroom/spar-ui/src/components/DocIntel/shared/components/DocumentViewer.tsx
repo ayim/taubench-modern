@@ -1,22 +1,51 @@
 import { Box, Button, Divider, Typography, Switch } from '@sema4ai/components';
-import { IconArrowLeft, IconArrowRight, IconMinus, IconPlus } from '@sema4ai/icons';
-import { FC, useState, useEffect, useCallback } from 'react';
-import { pdfjs, Document, Page } from 'react-pdf';
+import { IconArrowLeft, IconArrowRight, IconMinus, IconPlus, IconPencil } from '@sema4ai/icons';
+import { FC, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-
+import { AnnotationInputPopup } from './AnnotationInputPopup';
 import { AnnotationOverlay } from './AnnotationOverlay';
+import type { Annotation } from '../hooks/usePdfAnnotations';
+import { usePdfDocument, useAnnotationDrawing, type PDFDocumentProxy, type PDFPageProxy } from '../hooks';
 
-export type PDFDocumentProxy = pdfjs.PDFDocumentProxy;
-export type PDFPageProxy = pdfjs.PDFPageProxy;
+export type { PDFDocumentProxy, PDFPageProxy };
 
 interface DocumentViewerProps {
   file: File; // PDF file to display
   parseData?: Record<string, unknown> | null; // Optional parse data for bounding boxes
   extractedData?: Record<string, unknown> | null; // Optional extracted data for citations
+  isAnnotating?: boolean; // Whether annotation mode is active
+  isProcessing?: boolean; // Whether document is being processed (schema generation, extraction, etc.)
+  onAnnotationCreate?: (selection: {
+    pageNumber: number;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    selectedText: string;
+  }) => void;
+  onAnnotateToggle?: () => void; // Callback to toggle annotation mode
+  showAnnotationPopup?: boolean; // Whether to show the annotation popup
+  pendingAnnotation?: Partial<Annotation> | null; // Pending annotation data
+  onSaveAnnotation?: (fieldName: string, fieldValue: string) => void; // Save annotation callback
+  onCancelAnnotation?: () => void; // Cancel annotation callback
 }
 
-export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null, extractedData = null }) => {
+export const DocumentViewer: FC<DocumentViewerProps> = ({
+  file,
+  parseData = null,
+  extractedData = null,
+  isAnnotating = false,
+  isProcessing = false,
+  onAnnotationCreate,
+  onAnnotateToggle,
+  showAnnotationPopup = false,
+  pendingAnnotation = null,
+  onSaveAnnotation,
+  onCancelAnnotation,
+}) => {
   // Local state for UI interactions
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   // Default to showing parse boxes if we only have parseData (no extractedData)
@@ -32,84 +61,21 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null
     }
   }, [parseData, extractedData]);
 
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [numPages, setNumPages] = useState<number>(0);
-  const [scale, setScale] = useState<number>(1.5); // Default 150% zoom
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  // PDF document management hook
+  const pdfState = usePdfDocument({ file });
 
-  // PDF dimensions for overlay positioning
-  const [pageWidth, setPageWidth] = useState<number>(0);
-  const [pageHeight, setPageHeight] = useState<number>(0);
+  // Annotation drawing management hook
+  const annotationState = useAnnotationDrawing({
+    isAnnotating,
+    pageWidth: pdfState.pageWidth,
+    pageHeight: pdfState.pageHeight,
+    currentPage: pdfState.currentPage,
+    onAnnotationCreate,
+    parseData,
+    extractedData,
+  });
 
-  const zoomPercentage = Math.round(scale * 100);
-
-  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-
-  const loadPdfFromFile = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (!isPdf) {
-        setError(
-          'This viewer only supports PDF files. Your document has been processed, but annotations cannot be displayed.',
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      // Create a blob from the File object
-      const blob = new Blob([file], { type: 'application/pdf' });
-      setPdfBlob(blob);
-
-      // For now, assume 1 page - in real implementation this comes from PDF parsing
-      setNumPages(1);
-      setCurrentPage(1);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to load PDF';
-      setError(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [file, isPdf]);
-
-  // Load PDF when component mounts or file changes
-  useEffect(() => {
-    loadPdfFromFile();
-  }, [loadPdfFromFile]);
-
-  // PDF document loading handlers
-  const onDocumentLoadSuccess = (document: PDFDocumentProxy) => {
-    setNumPages(document.numPages);
-    setCurrentPage(1);
-  };
-
-  const onDocumentLoadError = (err: Error) => {
-    setError(`Failed to load PDF: ${err.message}`);
-  };
-
-  // Page rendering handlers
-  const onPageLoadSuccess = (page: PDFPageProxy) => {
-    const viewport = page.getViewport({ scale: 1 });
-    setPageWidth(viewport.width * scale);
-    setPageHeight(viewport.height * scale);
-  };
-
-  // Navigation handlers
-  const goToPage = (pageNumber: number) => {
-    if (pageNumber >= 1 && pageNumber <= numPages) {
-      setCurrentPage(pageNumber);
-    }
-  };
-
-  const changeScale = (newScale: number) => {
-    const clampedScale = Math.max(0.5, Math.min(3.0, newScale));
-    setScale(clampedScale);
-  };
-
-  if (isLoading) {
+  if (pdfState.isLoading) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center" height="100%">
         <Typography>Loading PDF...</Typography>
@@ -117,15 +83,15 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null
     );
   }
 
-  if (error) {
+  if (pdfState.error) {
     // Don't show retry button for non-PDF files
-    const isNonPdfError = error.includes('viewer only supports PDF files');
+    const isNonPdfError = pdfState.error.includes('viewer only supports PDF files');
 
     return (
       <Box display="flex" alignItems="center" justifyContent="center" height="100%" flexDirection="column" gap="$16">
-        <Typography color="content.error">{error}</Typography>
+        <Typography color="content.error">{pdfState.error}</Typography>
         {!isNonPdfError && (
-          <Button onClick={loadPdfFromFile} variant="outline">
+          <Button onClick={pdfState.loadPdfFromFile} variant="outline">
             Retry Loading PDF
           </Button>
         )}
@@ -133,11 +99,11 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null
     );
   }
 
-  if (!pdfBlob) {
+  if (!pdfState.pdfBlob) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center" height="100%" flexDirection="column" gap="$16">
         <Typography>Loading PDF...</Typography>
-        <Button onClick={loadPdfFromFile} variant="outline">
+        <Button onClick={pdfState.loadPdfFromFile} variant="outline">
           Retry Loading PDF
         </Button>
       </Box>
@@ -181,22 +147,34 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null
             maxHeight: '100%',
           }}
         >
-          <Box style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%' }}>
+          <Box
+            ref={annotationState.pageContainerRef}
+            style={{
+              position: 'relative',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              cursor: isAnnotating ? 'crosshair' : 'default',
+            }}
+            onMouseDown={annotationState.handleMouseDown}
+            onMouseMove={annotationState.handleMouseMove}
+            onMouseUp={annotationState.handleMouseUp}
+            onMouseLeave={annotationState.handleMouseLeave}
+          >
             {/* React-PDF Document and Page */}
             <Box style={{ maxWidth: '100%', maxHeight: '100%' }}>
               <Document
-                file={pdfBlob}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
+                file={pdfState.pdfBlob}
+                onLoadSuccess={pdfState.onDocumentLoadSuccess}
+                onLoadError={pdfState.onDocumentLoadError}
                 loading={<Typography>Loading PDF...</Typography>}
                 error={<Typography color="content.error">Failed to load PDF</Typography>}
                 noData={<Typography>No PDF data</Typography>}
                 className="react-pdf__Document"
               >
                 <Page
-                  pageNumber={currentPage}
-                  scale={scale}
-                  onLoadSuccess={onPageLoadSuccess}
+                  pageNumber={pdfState.currentPage}
+                  scale={pdfState.scale}
+                  onLoadSuccess={pdfState.onPageLoadSuccess}
                   loading={<Typography>Loading page...</Typography>}
                   error={<Typography color="content.error">Failed to load page</Typography>}
                   noData={<Typography>No page data</Typography>}
@@ -209,17 +187,51 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null
             </Box>
 
             {/* Annotation Overlay - positioned absolutely over the PDF page */}
-            {pageWidth > 0 && pageHeight > 0 && (
+            {pdfState.pageWidth > 0 && pdfState.pageHeight > 0 && (
               <AnnotationOverlay
-                pageNumber={currentPage}
-                pageWidth={pageWidth}
-                pageHeight={pageHeight}
-                scale={scale}
+                pageNumber={pdfState.currentPage}
+                pageWidth={pdfState.pageWidth}
+                pageHeight={pdfState.pageHeight}
+                scale={pdfState.scale}
                 parseData={parseData}
                 extractedData={extractedData}
                 showingParseBoxes={showingParseBoxes}
                 selectedFieldId={selectedFieldId}
-                onFieldSelect={setSelectedFieldId}
+                setSelectedFieldId={setSelectedFieldId}
+              />
+            )}
+
+            {/* Drawing selection overlay - shown while drawing */}
+            {annotationState.isDrawing && annotationState.drawStart && annotationState.drawEnd && (
+              <Box
+                style={{
+                  position: 'absolute',
+                  left: Math.min(annotationState.drawStart.x, annotationState.drawEnd.x),
+                  top: Math.min(annotationState.drawStart.y, annotationState.drawEnd.y),
+                  width: Math.abs(annotationState.drawEnd.x - annotationState.drawStart.x),
+                  height: Math.abs(annotationState.drawEnd.y - annotationState.drawStart.y),
+                  border: '2px dashed rgb(59, 130, 246)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  pointerEvents: 'none',
+                  zIndex: 3000,
+                }}
+              />
+            )}
+
+            {/* Completed selection overlay - shown while popup is active */}
+            {!annotationState.isDrawing && annotationState.completedSelectionBounds && showAnnotationPopup && (
+              <Box
+                style={{
+                  position: 'absolute',
+                  left: annotationState.completedSelectionBounds.left,
+                  top: annotationState.completedSelectionBounds.top,
+                  width: annotationState.completedSelectionBounds.width,
+                  height: annotationState.completedSelectionBounds.height,
+                  border: '2px dashed rgb(59, 130, 246)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  pointerEvents: 'none',
+                  zIndex: 3000,
+                }}
               />
             )}
           </Box>
@@ -242,7 +254,7 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null
             padding: '3px 16px',
           }}
         >
-          Page {currentPage} of {numPages}
+          Page {pdfState.currentPage} of {pdfState.numPages}
         </Box>
       </Box>
 
@@ -258,13 +270,23 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null
         <Box display="flex" alignItems="center" justifyContent="space-between" gap="$16">
           {/* Page Navigation */}
           <Box display="flex" alignItems="center">
-            <Button disabled={currentPage <= 1} variant="ghost" round onClick={() => goToPage(currentPage - 1)}>
+            <Button
+              disabled={pdfState.currentPage <= 1}
+              variant="ghost"
+              round
+              onClick={() => pdfState.goToPage(pdfState.currentPage - 1)}
+            >
               <IconArrowLeft />
             </Button>
             <Typography fontSize="$16" fontWeight="medium" textAlign="center" style={{ minWidth: '80px' }}>
-              {currentPage} / {numPages}
+              {pdfState.currentPage} / {pdfState.numPages}
             </Typography>
-            <Button disabled={currentPage >= numPages} variant="ghost" round onClick={() => goToPage(currentPage + 1)}>
+            <Button
+              disabled={pdfState.currentPage >= pdfState.numPages}
+              variant="ghost"
+              round
+              onClick={() => pdfState.goToPage(pdfState.currentPage + 1)}
+            >
               <IconArrowRight />
             </Button>
           </Box>
@@ -289,18 +311,63 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({ file, parseData = null
 
           {/* Scale Controls */}
           <Box display="flex" alignItems="center">
-            <Button disabled={scale <= 0.5} variant="ghost" round onClick={() => changeScale(scale - 0.25)}>
+            <Button
+              disabled={pdfState.scale <= 0.5}
+              variant="ghost"
+              round
+              onClick={() => pdfState.changeScale(pdfState.scale - 0.25)}
+            >
               <IconMinus />
             </Button>
             <Typography fontSize="$16" fontWeight="medium" textAlign="center" style={{ minWidth: '70px' }}>
-              {zoomPercentage}%
+              {pdfState.zoomPercentage}%
             </Typography>
-            <Button disabled={scale >= 3.0} variant="ghost" round onClick={() => changeScale(scale + 0.25)}>
+            <Button
+              disabled={pdfState.scale >= 3}
+              variant="ghost"
+              round
+              onClick={() => pdfState.changeScale(pdfState.scale + 0.25)}
+            >
               <IconPlus />
             </Button>
           </Box>
+
+          {/* Annotate Button */}
+          {onAnnotateToggle && (
+            <Button
+              variant={isAnnotating ? 'primary' : 'outline'}
+              onClick={onAnnotateToggle}
+              disabled={isProcessing}
+              round
+              icon={IconPencil}
+            >
+              {isAnnotating ? 'Exit Annotate' : 'Annotate'}
+            </Button>
+          )}
         </Box>
       </Box>
+
+      {/* Annotation Input Popup - rendered via portal for proper overlay positioning */}
+      {showAnnotationPopup &&
+        pendingAnnotation &&
+        annotationState.annotationPopupPosition &&
+        createPortal(
+          <AnnotationInputPopup
+            annotation={pendingAnnotation}
+            onSave={(fieldName, fieldValue) => {
+              onSaveAnnotation?.(fieldName, fieldValue);
+              annotationState.setAnnotationPopupPosition(null);
+              annotationState.setCompletedSelectionBounds(null);
+            }}
+            onCancel={() => {
+              onCancelAnnotation?.();
+              annotationState.setAnnotationPopupPosition(null);
+              annotationState.setCompletedSelectionBounds(null);
+            }}
+            position={annotationState.annotationPopupPosition}
+          />,
+          document.body,
+        )}
     </Box>
   );
 };

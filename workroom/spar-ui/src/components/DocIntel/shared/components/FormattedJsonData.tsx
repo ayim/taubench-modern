@@ -10,7 +10,7 @@ import { Code } from '../../../../common/code';
 
 interface FormattedJsonDataProps {
   /** The data to display as JSON */
-  data: Record<string, unknown>;
+  data: unknown;
   /** Optional filename for download (defaults to 'extraction_data.json') */
   downloadFileName?: string;
   /** Optional aria label for accessibility */
@@ -39,7 +39,7 @@ export const FormattedJsonData: FC<FormattedJsonDataProps> = ({
     link.download = downloadFileName;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
   }, [jsonString, downloadFileName]);
 

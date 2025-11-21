@@ -4,6 +4,7 @@ import { ProcessingLoadingState } from '../shared/components/ProcessingLoadingSt
 import { ParseResultsSummary } from './ParseResultsSummary';
 import { FormattedJsonData } from '../shared/components/FormattedJsonData';
 import { ParseResponse } from '../shared/types';
+import { PROCESSING_STATES } from '../shared/constants/processingStates';
 
 /**
  * ParseResultsPanel - Display parsed document results
@@ -19,7 +20,7 @@ interface ParseResultsPanelProps {
 
 export const ParseResultsPanel: FC<ParseResultsPanelProps> = ({ parseResult, isLoading, error, showRawJson }) => {
   if (isLoading) {
-    return <ProcessingLoadingState title="Parsing your document" />;
+    return <ProcessingLoadingState {...PROCESSING_STATES.PARSING} />;
   }
 
   if (error) {

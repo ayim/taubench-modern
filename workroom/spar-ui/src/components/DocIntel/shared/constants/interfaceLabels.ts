@@ -5,8 +5,9 @@
 export const DOC_INTEL_INTERFACE_LABELS: Record<string, string> = {
   'di-parse-only': 'Parse Only',
   // 'parse-only-v1': 'Parse Only V1', // Use this for legacy flow. (DocumentIntelligenceDialog.tsx)
+  'di-extract-only': 'Extract Only',
   'di-create-data-model': 'Create Data Model',
-  'di-extract': 'Extract Data', // Future use
+  'di-extract': 'Extract Data', // Future use - full extract with database
 } as const;
 
 /**

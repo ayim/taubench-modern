@@ -1,205 +1,252 @@
-import { FC, useState, useEffect, useCallback } from 'react';
-import { Box, Tooltip } from '@sema4ai/components';
-import {
-  BoundingBox,
-  parseDataToBoundingBoxes,
-  extractDataToBoundingBoxes,
-  deduplicateBoundingBoxes,
-  markParentBoxes,
-} from '../utils/boundingBoxes';
+import { Box } from '@sema4ai/components';
+import { FC, useState, useEffect } from 'react';
+import { CitationBox } from './CitationBox';
+import { formatFieldName, isBoxContained, calculateReactPdfCoordinates } from '../utils';
 
-interface AnnotationOverlayProps {
+// Convert parse result to bounding boxes for visualization
+// NOTE: This is a simplified version for flat parseData.chunks structure
+const convertParseResultToBoundingBoxes = (
+  parseData: Record<string, unknown>,
+  pageNumber: number,
+): Array<{
+  fieldId: string;
+  coords: { left: number; top: number; width: number; height: number; page?: number };
+  fieldName: string;
+  fieldValue: string;
+  numericId: number | null;
+  type?: string;
+  confidence?: string;
+}> => {
+  const bboxes: Array<{
+    fieldId: string;
+    coords: { left: number; top: number; width: number; height: number; page?: number };
+    fieldName: string;
+    fieldValue: string;
+    numericId: number | null;
+    type?: string;
+    confidence?: string;
+  }> = [];
+
+  // Extract chunks from parse data
+  const chunks = (parseData?.chunks as Array<Record<string, unknown>>) || [];
+
+  chunks.forEach((chunk, index) => {
+    const bbox = chunk.bbox as
+      | { left: number; top: number; width?: number; height?: number; page?: number }
+      | undefined;
+    const page = chunk.page as number | undefined;
+    const type = chunk.type as string | undefined;
+    const confidence = chunk.confidence as string | undefined;
+    const content = chunk.content as string | undefined;
+
+    // Only include chunks for the current page with valid bbox dimensions
+    if (bbox && page === pageNumber && bbox.width !== undefined && bbox.height !== undefined) {
+      bboxes.push({
+        fieldId: `parse-${page}-${index}`,
+        coords: {
+          left: bbox.left,
+          top: bbox.top,
+          width: bbox.width,
+          height: bbox.height,
+          page: bbox.page,
+        },
+        fieldName: type || 'text',
+        fieldValue: content || '',
+        numericId: null,
+        type,
+        confidence,
+      });
+    }
+  });
+
+  return bboxes;
+};
+
+export interface AnnotationOverlayProps {
   pageNumber: number;
   pageWidth: number;
   pageHeight: number;
   scale: number;
-  parseData: Record<string, unknown> | null;
   extractedData: Record<string, unknown> | null;
+  parseData: Record<string, unknown> | null;
   showingParseBoxes: boolean;
   selectedFieldId: string | null;
-  onFieldSelect?: (fieldId: string | null) => void;
+  setSelectedFieldId: (fieldId: string | null) => void;
 }
-
-// Bounding box visualization component
-interface BoundingBoxComponentProps {
-  box: BoundingBox;
-  isParseBox: boolean;
-  selectedFieldId: string | null;
-  onBoxClick?: (fieldId: string) => void;
-}
-
-const BoundingBoxComponent: FC<BoundingBoxComponentProps> = ({ box, isParseBox, selectedFieldId, onBoxClick }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const isSelected = box.fieldId === selectedFieldId;
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (box.isParentBox || isParseBox) return; // Non-interactive
-    if (onBoxClick) onBoxClick(box.fieldId);
-  };
-
-  const getBorderColor = () => {
-    if (box.isParentBox) return 'transparent';
-
-    if (isParseBox) {
-      // Type-based colors for parse boxes
-      switch (box.type?.toLowerCase()) {
-        case 'title':
-          return 'rgb(220, 38, 38)';
-        case 'header':
-          return 'rgb(234, 88, 12)';
-        case 'footer':
-          return 'rgb(107, 114, 128)';
-        case 'table':
-          return 'rgb(34, 197, 94)';
-        case 'figure':
-          return 'rgb(147, 51, 234)';
-        case 'section header':
-          return 'rgb(245, 158, 11)';
-        case 'text':
-        default:
-          return 'rgb(22, 95, 140)';
-      }
-    }
-
-    // Extract boxes use green
-    return 'rgb(22, 140, 43)';
-  };
-
-  const getBackgroundColor = () => {
-    if (box.isParentBox) return 'transparent';
-
-    if (isHovered || isSelected) return 'transparent';
-
-    if (isParseBox) {
-      switch (box.type?.toLowerCase()) {
-        case 'title':
-          return 'rgb(220 38 38 / 20%)';
-        case 'header':
-          return 'rgb(234 88 12 / 20%)';
-        case 'footer':
-          return 'rgb(107 114 128 / 20%)';
-        case 'table':
-          return 'rgb(34 197 94 / 20%)';
-        case 'figure':
-          return 'rgb(147 51 234 / 20%)';
-        case 'section header':
-          return 'rgb(245 158 11 / 20%)';
-        case 'text':
-        default:
-          return 'rgb(25 148 238 / 20%)';
-      }
-    }
-
-    return 'rgb(39 214 60 / 20%)';
-  };
-
-  const getTooltipText = () => {
-    if (isParseBox && box.type) {
-      return <span style={{ fontSize: '12px', lineHeight: '1.3' }}>Type: {box.type}</span>;
-    }
-
-    return (
-      <span style={{ fontSize: '12px', lineHeight: '1.3' }}>
-        {box.fieldName}: {box.fieldValue}
-      </span>
-    );
-  };
-
-  let zIndex: number;
-  if (box.isParentBox) {
-    zIndex = 1000;
-  } else if (isHovered || isSelected) {
-    zIndex = 2000;
-  } else {
-    zIndex = 1500;
-  }
-
-  const boxShadow = isHovered || isSelected ? '0 2px 8px rgba(0, 0, 0, 0.2)' : 'none';
-  const transform = isHovered || isSelected ? 'scale(1.02)' : 'scale(1)';
-
-  let opacity: number;
-  if (box.isParentBox) {
-    opacity = 0;
-  } else if (isHovered || isSelected) {
-    opacity = 1;
-  } else {
-    opacity = 0.9;
-  }
-
-  const boxElement = (
-    <Box
-      borderRadius="$1"
-      style={{
-        position: 'absolute',
-        cursor: box.isParentBox || isParseBox ? 'default' : 'pointer',
-        left: box.coords.left,
-        top: box.coords.top,
-        width: box.coords.width,
-        height: box.coords.height,
-        zIndex,
-        transition: box.isParentBox ? 'none' : 'all 0.2s ease-in-out',
-        background: getBackgroundColor(),
-        border: '2px solid',
-        borderColor: getBorderColor(),
-        boxShadow,
-        transform,
-        opacity,
-        pointerEvents: box.isParentBox ? 'none' : 'auto',
-      }}
-      onMouseEnter={() => !box.isParentBox && setIsHovered(true)}
-      onMouseLeave={() => !box.isParentBox && setIsHovered(false)}
-      onClick={handleClick}
-    />
-  );
-
-  if (box.isParentBox) return boxElement;
-
-  return (
-    <Tooltip text={getTooltipText()} placement="top" maxWidth={300}>
-      {boxElement}
-    </Tooltip>
-  );
-};
 
 export const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
   pageNumber,
   pageWidth,
   pageHeight,
   scale,
-  parseData,
   extractedData,
+  parseData,
   showingParseBoxes,
   selectedFieldId,
-  onFieldSelect,
+  setSelectedFieldId,
 }) => {
-  const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
+  const [citationCoords, setCitationCoords] = useState<
+    Array<{
+      fieldId: string;
+      coords: { left: number; top: number; width: number; height: number };
+      fieldName: string;
+      fieldValue: string;
+      isOverlapping?: boolean;
+      isMatched?: boolean;
+      isParentBox?: boolean;
+      numericId?: number | null;
+      type?: string;
+      confidence?: string;
+    }>
+  >([]);
 
-  const handleBoxClick = useCallback(
-    (fieldId: string) => {
-      if (!onFieldSelect) return;
-      const newSelectedId = selectedFieldId === fieldId ? null : fieldId;
-      onFieldSelect(newSelectedId);
-    },
-    [selectedFieldId, onFieldSelect],
-  );
+  // Handle citation box click
+  const handleCitationClick = (fieldId: string) => {
+    // Toggle selection
+    const newSelectedId = selectedFieldId === fieldId ? null : fieldId;
+    setSelectedFieldId(newSelectedId);
+  };
 
+  // Calculate citation coordinates from extractedData.citations or parseData
   useEffect(() => {
-    let boxes: BoundingBox[] = [];
+    const calculateCitationCoords = () => {
+      const newCitationCoords: Array<{
+        fieldId: string;
+        coords: { left: number; top: number; width: number; height: number };
+        fieldName: string;
+        fieldValue: string;
+        isMatched?: boolean;
+        numericId?: number | null;
+        isParentBox?: boolean;
+        type?: string;
+        confidence?: string;
+      }> = [];
 
-    // Generate boxes based on what data is available
-    if (showingParseBoxes && parseData) {
-      boxes = parseDataToBoundingBoxes(parseData, pageNumber, pageWidth, pageHeight, scale);
-    } else if (extractedData) {
-      boxes = extractDataToBoundingBoxes(extractedData, pageNumber, pageWidth, pageHeight, scale);
-    }
+      // If showing parse boxes and we have parse data, use parse bounding boxes
+      if (showingParseBoxes && parseData) {
+        const parseBoundingBoxes = convertParseResultToBoundingBoxes(parseData, pageNumber);
 
-    // Post-process: deduplicate and mark parent boxes
-    boxes = deduplicateBoundingBoxes(boxes);
-    boxes = markParentBoxes(boxes);
+        // Sort parse bounding boxes by area (largest first) so larger boxes render behind smaller ones
+        const sortedParseBoxes = [...parseBoundingBoxes].sort((a, b) => {
+          const areaA = a.coords.width! * a.coords.height!;
+          const areaB = b.coords.width! * b.coords.height!;
+          return areaB - areaA;
+        });
 
-    setBoundingBoxes(boxes);
-  }, [pageNumber, pageWidth, pageHeight, scale, parseData, extractedData, showingParseBoxes]);
+        sortedParseBoxes.forEach((bbox) => {
+          const screenCoords = calculateReactPdfCoordinates(bbox.coords, pageWidth, pageHeight, scale);
+
+          if (screenCoords) {
+            newCitationCoords.push({
+              fieldId: bbox.fieldId,
+              coords: screenCoords,
+              fieldName: bbox.fieldName,
+              fieldValue: bbox.fieldValue,
+              isMatched: false,
+              numericId: bbox.numericId,
+              isParentBox: false,
+              type: bbox.type,
+              confidence: bbox.confidence,
+            });
+          }
+        });
+      } else if (extractedData?.citations) {
+        const citations = extractedData.citations as Record<string, unknown>;
+
+        // Helper function to recursively extract all citation objects with bbox data
+        const extractAllCitations = (
+          obj: unknown,
+          currentPath: string = '',
+        ): Array<{ citation: Record<string, unknown>; path: string; fieldName: string }> => {
+          const results: Array<{ citation: Record<string, unknown>; path: string; fieldName: string }> = [];
+
+          if (!obj || typeof obj !== 'object') return results;
+
+          // Check if this object is a citation (has bbox and content)
+          if ('bbox' in obj && 'content' in obj) {
+            const fieldName = formatFieldName(currentPath);
+            results.push({ citation: obj as Record<string, unknown>, path: currentPath, fieldName });
+            return results;
+          }
+
+          // If it's an array, process each item
+          if (Array.isArray(obj)) {
+            obj.forEach((item, index) => {
+              results.push(...extractAllCitations(item, `${currentPath}[${index}]`));
+            });
+          } else {
+            // If it's an object, process each property
+            Object.entries(obj).forEach(([key, value]) => {
+              const newPath = currentPath ? `${currentPath}.${key}` : key;
+              results.push(...extractAllCitations(value, newPath));
+            });
+          }
+
+          return results;
+        };
+
+        // Extract all citations from the citations object
+        const allCitations = extractAllCitations(citations);
+
+        // Process each citation
+        allCitations.forEach(({ citation, fieldName }, index) => {
+          const bbox = citation.bbox as { left: number; top: number; width?: number; height?: number; page?: number };
+          const content = citation.content as string;
+
+          if (bbox && bbox.page === pageNumber) {
+            const screenCoords = calculateReactPdfCoordinates(bbox, pageWidth, pageHeight, scale);
+
+            if (screenCoords) {
+              const fieldId = `citation-${pageNumber}-${index}`;
+
+              newCitationCoords.push({
+                fieldId,
+                coords: screenCoords,
+                fieldName,
+                fieldValue: content,
+                isMatched: true,
+                numericId: null,
+                confidence: (citation as { confidence?: string }).confidence || 'high',
+              });
+            }
+          }
+        });
+      }
+
+      // Deduplicate citations with identical bbox values
+      const uniqueCitations = newCitationCoords.filter((citation, index) => {
+        const previousCitations = newCitationCoords.slice(0, index);
+        const isDuplicate = previousCitations.some(
+          (otherCitation) =>
+            citation.coords.left === otherCitation.coords.left &&
+            citation.coords.top === otherCitation.coords.top &&
+            citation.coords.width === otherCitation.coords.width &&
+            citation.coords.height === otherCitation.coords.height,
+        );
+        return !isDuplicate;
+      });
+
+      // Detect overlapping citation boxes and determine parent/child relationships
+      const processedCitations = uniqueCitations.map((citation, index) => {
+        const otherCitations = uniqueCitations.filter((_, i) => i !== index);
+        const isParentBox = otherCitations.some((otherCitation) => {
+          const thisBox = citation.coords;
+          const otherBox = otherCitation.coords;
+          return isBoxContained(otherBox, thisBox);
+        });
+
+        return {
+          ...citation,
+          isOverlapping: isParentBox,
+          isParentBox,
+        };
+      });
+
+      setCitationCoords(processedCitations);
+    };
+
+    calculateCitationCoords();
+  }, [pageNumber, pageWidth, pageHeight, scale, extractedData, parseData, showingParseBoxes]);
 
   return (
     <Box
@@ -215,13 +262,21 @@ export const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
       }}
     >
       <Box style={{ transition: 'opacity 0.3s ease-in-out' }}>
-        {boundingBoxes.map((box) => (
-          <Box key={`citation-overlay-${box.fieldId}`} style={{ pointerEvents: 'auto' }}>
-            <BoundingBoxComponent
-              box={box}
-              isParseBox={showingParseBoxes}
+        {citationCoords.map(({ fieldId, coords, fieldName, fieldValue, isMatched, isParentBox, type, confidence }) => (
+          <Box key={`citation-overlay-${fieldId}`} style={{ pointerEvents: 'auto' }}>
+            <CitationBox
+              coords={coords}
+              fieldName={fieldName}
+              fieldValue={fieldValue}
+              fieldId={fieldId}
               selectedFieldId={selectedFieldId}
-              onBoxClick={handleBoxClick}
+              onBoxClick={handleCitationClick}
+              onHoverChange={() => {}}
+              isMatched={isMatched}
+              isParentBox={isParentBox}
+              isParseBox={showingParseBoxes}
+              type={type}
+              confidence={confidence}
             />
           </Box>
         ))}
