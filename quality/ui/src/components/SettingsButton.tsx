@@ -56,19 +56,19 @@ export function SettingsButton({ isLoading, settings, saveSettings }: SettingsBu
                 type="text"
                 value={homeFolder}
                 onChange={(e) => setHomeFolder(e.target.value)}
-                className="mb-6 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="mb-6 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g. /Users/marco"
               />
 
               <div className="flex justify-end space-x-2">
                 <button
-                  className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-300 focus:outline-hidden focus:ring-2 focus:ring-gray-400"
                   onClick={() => setOpen(false)}
                 >
                   Cancel
                 </button>
                 <button
-                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
                   onClick={() => {
                     saveSettings({
                       ...settings,

@@ -321,7 +321,7 @@ export function TestResultsList({ results, onFetchTestResult, currentRunId }: Te
                     {/* Summary Row */}
                     <div className="flex items-center gap-3 p-3">
                       <div
-                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 rounded"
+                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 rounded-sm"
                         onClick={() => toggleExpanded(result)}
                       >
                         {result.success ? (
@@ -398,7 +398,7 @@ export function TestResultsList({ results, onFetchTestResult, currentRunId }: Te
 
                         <button
                           onClick={() => toggleExpanded(result)}
-                          className="p-1 hover:bg-gray-100 rounded flex items-center space-x-1"
+                          className="p-1 hover:bg-gray-100 rounded-sm flex items-center space-x-1"
                           disabled={isLoading}
                         >
                           {isLoading ? (
@@ -488,7 +488,7 @@ export function TestResultsList({ results, onFetchTestResult, currentRunId }: Te
                                     if (content.type === 'thought') {
                                       return (
                                         <div key={contentIndex} className="flex items-start space-x-2 text-sm">
-                                          <Brain className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                                          <Brain className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
                                           <div className="flex-1">
                                             <div className="text-xs font-medium text-purple-700 mb-1">Thought</div>
                                             <div className="text-sm text-gray-700 italic">
@@ -502,7 +502,7 @@ export function TestResultsList({ results, onFetchTestResult, currentRunId }: Te
                                     if (content.type === 'text') {
                                       return (
                                         <div key={contentIndex} className="flex items-start space-x-2 text-sm">
-                                          <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                          <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
                                           <div className="flex-1">
                                             <div className="text-xs font-medium text-blue-700 mb-1">Text</div>
                                             <div className="text-sm text-gray-900">
@@ -554,7 +554,7 @@ export function TestResultsList({ results, onFetchTestResult, currentRunId }: Te
                                             {toolData.error && (
                                               <div>
                                                 <div className="text-xs font-medium text-red-600 mb-1">Error:</div>
-                                                <div className="text-xs bg-red-50 border border-red-200 rounded p-2 text-red-700 font-mono max-h-24 overflow-y-auto">
+                                                <div className="text-xs bg-red-50 border border-red-200 rounded-sm p-2 text-red-700 font-mono max-h-24 overflow-y-auto">
                                                   {toolData.error}
                                                 </div>
                                               </div>
@@ -571,7 +571,7 @@ export function TestResultsList({ results, onFetchTestResult, currentRunId }: Te
                                           key={contentIndex}
                                           className="flex items-start space-x-2 text-xs text-gray-600"
                                         >
-                                          <Paperclip className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                                          <Paperclip className="h-3 w-3 text-gray-400 mt-0.5 shrink-0" />
                                           <div>
                                             <div className="font-medium text-gray-700">Attachment</div>
                                             <div>{attachmentData.file_name}</div>
@@ -706,7 +706,7 @@ export function TestResultsList({ results, onFetchTestResult, currentRunId }: Te
 
                                       {/* Error handling */}
                                       {evaluation.error && (
-                                        <div className="text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                                        <div className="text-red-600 bg-red-50 p-2 rounded-sm border border-red-200">
                                           <strong className="text-sm">Error:</strong>
                                           <p className="text-sm mt-1">{evaluation.error}</p>
                                         </div>

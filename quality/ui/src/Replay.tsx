@@ -184,7 +184,7 @@ function Replay() {
               </div>
 
               {result.evaluations[0].error && (
-                <div className="text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                <div className="text-red-600 bg-red-50 p-2 rounded-sm border border-red-200">
                   <strong className="text-sm">Error:</strong>
                   <p className="text-sm mt-1">{result.evaluations[0].error}</p>
                 </div>
@@ -202,7 +202,7 @@ function Replay() {
             <div>
               {result.trace && <TraceDisplay trace={result.trace} />}
               {result.error && (
-                <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded">
+                <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-sm">
                   <h5 className="text-sm font-medium text-red-800 mb-1">Error</h5>
                   <p className="text-sm text-red-700">{result.error}</p>
                 </div>

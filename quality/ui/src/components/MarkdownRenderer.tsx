@@ -30,17 +30,17 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
             const isInline = !className;
             if (isInline) {
               return (
-                <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>
+                <code className="bg-gray-100 px-1.5 py-0.5 rounded-sm text-xs font-mono text-gray-800">{children}</code>
               );
             }
             return (
-              <code className="block bg-gray-100 p-2 rounded text-xs font-mono text-gray-800 overflow-x-auto">
+              <code className="block bg-gray-100 p-2 rounded-sm text-xs font-mono text-gray-800 overflow-x-auto">
                 {children}
               </code>
             );
           },
 
-          pre: ({ children }) => <pre className="bg-gray-100 p-3 rounded mb-2 overflow-x-auto">{children}</pre>,
+          pre: ({ children }) => <pre className="bg-gray-100 p-3 rounded-sm mb-2 overflow-x-auto">{children}</pre>,
 
           // Links
           a: ({ href, children }) => (

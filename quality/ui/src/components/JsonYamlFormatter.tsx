@@ -79,13 +79,13 @@ export function JsonYamlFormatter({
       <div className="flex items-center justify-between mb-1">
         <div className="text-xs font-medium text-gray-600">
           {label}
-          {isParsed && <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">YAML</span>}
+          {isParsed && <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-sm text-xs">YAML</span>}
         </div>
         <div className="flex items-center space-x-1">
           {isLarge && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 px-1.5 py-0.5 rounded hover:bg-gray-100"
+              className="flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 px-1.5 py-0.5 rounded-sm hover:bg-gray-100"
             >
               {isExpanded ? (
                 <>
@@ -102,7 +102,7 @@ export function JsonYamlFormatter({
           )}
           <button
             onClick={handleCopy}
-            className="flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 px-1.5 py-0.5 rounded hover:bg-gray-100"
+            className="flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 px-1.5 py-0.5 rounded-sm hover:bg-gray-100"
           >
             <Copy className="h-3 w-3" />
             <span>{copied ? 'Copied!' : 'Copy'}</span>
@@ -111,7 +111,7 @@ export function JsonYamlFormatter({
       </div>
 
       <div
-        className={`bg-white rounded border overflow-hidden ${shouldTruncate ? maxHeight : 'max-h-96'} overflow-y-auto`}
+        className={`bg-white rounded-sm border overflow-hidden ${shouldTruncate ? maxHeight : 'max-h-96'} overflow-y-auto`}
       >
         {isParsed ? (
           <SyntaxHighlighter
@@ -136,7 +136,7 @@ export function JsonYamlFormatter({
       </div>
 
       {shouldTruncate && (
-        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b" />
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-linear-to-t from-white to-transparent pointer-events-none rounded-b" />
       )}
     </div>
   );

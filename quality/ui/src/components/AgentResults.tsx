@@ -69,7 +69,7 @@ export function AgentResults({ agentName, agentStatus, metadata }: AgentResultsP
 
       {/* Current Test */}
       {agentStatus.current_test && (
-        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-sm text-xs">
           <div className="flex items-center space-x-1">
             <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
             <span className="text-blue-700">
@@ -99,7 +99,7 @@ export function AgentResults({ agentName, agentStatus, metadata }: AgentResultsP
 
       {/* Error */}
       {agentStatus.error && (
-        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-sm text-xs text-red-700">
           Error: {agentStatus.error}
         </div>
       )}

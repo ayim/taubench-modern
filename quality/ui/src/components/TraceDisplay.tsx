@@ -61,7 +61,7 @@ export function TraceDisplay({ trace }: { trace: Trace }) {
                   if (content.type === 'thought') {
                     return (
                       <div key={contentIndex} className="flex items-start space-x-2">
-                        <Brain className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                        <Brain className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="text-xs font-medium text-purple-700 mb-1">Thought</div>
                           <div className="text-sm text-gray-700 italic">{(content as any).thought}</div>
@@ -73,7 +73,7 @@ export function TraceDisplay({ trace }: { trace: Trace }) {
                   if (content.type === 'text') {
                     return (
                       <div key={contentIndex} className="flex items-start space-x-2">
-                        <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="text-xs font-medium text-blue-700 mb-1">Text</div>
                           <div className="text-sm text-gray-900">
@@ -123,7 +123,7 @@ export function TraceDisplay({ trace }: { trace: Trace }) {
                           {toolData.error && (
                             <div>
                               <div className="text-xs font-medium text-red-600 mb-1">Error:</div>
-                              <div className="text-xs bg-red-50 border border-red-200 rounded p-2 text-red-700 font-mono max-h-24 overflow-y-auto">
+                              <div className="text-xs bg-red-50 border border-red-200 rounded-sm p-2 text-red-700 font-mono max-h-24 overflow-y-auto">
                                 {toolData.error}
                               </div>
                             </div>

@@ -11,7 +11,7 @@ export function OverallStatsCard({ stats, isRunning }: OverallStatsCardProps) {
   const successRate = stats.completed_tests > 0 ? (stats.passed_tests / stats.completed_tests) * 100 : 0;
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-white rounded-lg shadow-sm p-4">
       <h3 className="text-lg font-medium text-gray-900 mb-3">Overall Progress</h3>
 
       {/* Progress Bar */}
