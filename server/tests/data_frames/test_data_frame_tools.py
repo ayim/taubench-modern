@@ -144,6 +144,58 @@ async def test_data_frames_interface(file_regression):
         basename="data_frames_system_prompt_with_semantic_data_models_no_tools",
     )
 
+    snowflake_semantic_data_models: list[BaseStorage.SemanticDataModelInfo] = [
+        {
+            "semantic_data_model": {
+                "name": "snowflake_semantic_model",
+                "description": "Snowflake-backed semantic model",
+                "tables": [
+                    {
+                        "name": "snowflake_table",
+                        "base_table": {
+                            "table": "test_data_frame",
+                            "data_connection_id": "snowflake-connection-id",
+                            "database": "snowflake_db",
+                            "schema": "PUBLIC",
+                        },
+                        "description": "Snowflake table",
+                        "dimensions": [],
+                        "facts": [],
+                    }
+                ],
+                "relationships": [],
+            },
+            "semantic_data_model_id": "snowflake_semantic_model_id",
+            "agent_ids": {storage_stub.thread.agent_id},
+            "thread_ids": {storage_stub.thread.tid},
+            "updated_at": "2024-01-01T00:00:00.000Z",
+        }
+    ]
+
+    interface._semantic_data_models = [
+        SemanticDataModelAndReferences(
+            semantic_data_model_info=semantic_data_model_info,
+            references=References(
+                data_frame_names=set(),
+                data_connection_ids={"snowflake-connection-id"},
+                file_references=set(),
+                data_connection_id_to_logical_table_names={},
+                file_reference_to_logical_table_names={},
+                logical_table_name_to_connection_info={},
+                errors=[],
+                _structured_errors=[],
+                tables_with_unresolved_file_references=set(),
+                semantic_data_model_with_errors=None,
+            ),
+        )
+        for semantic_data_model_info in snowflake_semantic_data_models
+    ]
+    interface._data_connection_id_to_engine = {"snowflake-connection-id": "snowflake"}
+    file_regression.check(
+        interface.data_frames_system_prompt,
+        basename="data_frames_system_prompt_with_snowflake_semantic_data_models",
+    )
+
 
 @pytest.mark.asyncio
 async def test_data_frames_interface_state(file_regression):

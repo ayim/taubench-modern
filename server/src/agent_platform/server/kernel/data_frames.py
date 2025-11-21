@@ -653,21 +653,28 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
     def sdm_join_guidance(self) -> str:
         from textwrap import dedent
 
+        models_and_engines = self._semantic_data_models_with_engines()
+        if not models_and_engines:
+            return ""
+
+        has_non_snowflake = any(
+            engine and engine.lower() != "snowflake" for _, engine in models_and_engines
+        )
+        if not has_non_snowflake:
+            return ""
+
         return dedent("""
         **IMPORTANT:** Always use table qualifiers (e.g., 'tbl.column_name') in SQL, especially
         in CTEs and JOINs. Unqualified columns may cause ambiguity errors.
         """)
 
-    @property
-    def semantic_data_models_summary(self) -> str:
+    def _semantic_data_models_with_engines(self) -> list[tuple["SemanticDataModel", str]]:
         from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 
-        if not self._semantic_data_models:
-            return "You have no semantic data models to work with."
-
         models_and_engines: list[tuple[SemanticDataModel, str]] = []
-        # We want to remove the base_table data from the semantic data models summary
-        # and format it for the LLM to use.
+        if not self._semantic_data_models:
+            return models_and_engines
+
         for semantic_data_model_and_refs in self._semantic_data_models:
             try:
                 model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info[
@@ -676,18 +683,6 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 new_model: SemanticDataModel = typing.cast(
                     SemanticDataModel, {x: y for x, y in model.items() if y}
                 )
-                data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
-                engine = "duckdb"
-                if data_connection_ids:
-                    engines = set(
-                        self._data_connection_id_to_engine.get(data_connection_id)
-                        for data_connection_id in data_connection_ids
-                    )
-                    engines.discard(None)
-                    if len(engines) == 1:
-                        engine = engines.pop()
-                    else:
-                        engine = "duckdb"  # Fallback to duckdb if we have multiple engines
 
                 tables = new_model.get("tables", [])
                 if not tables:
@@ -700,13 +695,44 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                         if not v:
                             table.pop(k)
                 new_model["tables"] = tables
-                models_and_engines.append((new_model, engine or "duckdb"))
+
+                engine = self._infer_engine_for_semantic_model(semantic_data_model_and_refs)
+                models_and_engines.append((new_model, engine))
             except Exception:
                 logger.exception(
                     "Error creating semantic data model summary from semantic data model info",
                     semantic_data_model_and_refs=semantic_data_model_and_refs,
                 )
                 continue
+
+        return models_and_engines
+
+    def _infer_engine_for_semantic_model(
+        self,
+        semantic_data_model_and_refs: "SemanticDataModelAndReferences",
+    ) -> str:
+        data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
+        if data_connection_ids:
+            engines = {
+                self._data_connection_id_to_engine.get(data_connection_id)
+                for data_connection_id in data_connection_ids
+            }
+            engines.discard(None)
+            if len(engines) == 1:
+                engine = engines.pop()
+                if engine:
+                    return engine
+        # Fallback to duckdb if we have multiple engines
+        return "duckdb"
+
+    @property
+    def semantic_data_models_summary(self) -> str:
+        if not self._semantic_data_models:
+            return "You have no semantic data models to work with."
+
+        models_and_engines = self._semantic_data_models_with_engines()
+        if not models_and_engines:
+            return "No semantic data models available."
 
         return _convert_semantic_data_model_to_context_string(models_and_engines)
 
@@ -1233,17 +1259,6 @@ class _DataFrameTools:
                 • 'SELECT UPPER(name) as name_upper FROM my_data_frame'
                 • 'SELECT * FROM my_data_frame
                        JOIN another_data_frame ON my_data_frame.id = another_data_frame.id'
-
-            IMPORTANT - Best Practice for Semantic Data Model Queries:
-            When querying semantic data model tables, ALWAYS use table qualifiers for columns
-            (e.g., 'so.order_total' instead of just 'order_total'). This is critical in CTEs
-            and JOINs where multiple tables may share logical column names.
-
-            ✅ Good:  WITH orders AS (SELECT so.order_id, so.total FROM sales_orders so)
-            ❌ Avoid: WITH orders AS (SELECT order_id, total FROM sales_orders so)
-
-            Unqualified columns in CTEs may fail if multiple tables define the same logical
-            column name, as the system cannot determine which table's mapping to apply.
 
             Note: The SQL dialect syntax used for the query should be inferred from the
                   SQL dialect specified in the semantic data model or data frame being used in
