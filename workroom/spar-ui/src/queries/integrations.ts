@@ -10,14 +10,9 @@ import {
 
 export type ObservabilityIntegration = components['schemas']['ObservabilityIntegrationResponse'];
 
-export type ObservabilitySettings = components['schemas']['ObservabilitySettings'];
-/**
- * Note that this type does not exactly corresponds to ObservabilitySettings['provider_settings'] - 'provider_settings'
- * is a union, but not a discriminated one. Therefore, it cannot be used in the FE that needs to handle all possible
- * values.
- */
-export type ObservabilityProviderSettings = components['schemas']['LangSmithObservabilitySettings'] &
-  components['schemas']['GrafanaObservabilitySettings'];
+// ObservabilitySettings is now a discriminated union (GrafanaSettingsREST | LangSmithSettingsREST)
+export type ObservabilitySettings = components['schemas']['ObservabilityIntegrationResponse']['settings'];
+
 export type ObservabilityIntegrationUpsertRequest = components['schemas']['ObservabilityIntegrationUpsertRequest'];
 
 const observabilityIntegrationsQueryKey = () => ['observabilityIntegrations'];

@@ -144,8 +144,7 @@ class LangSmithObservabilitySettings:
 
     url: str = field(metadata={"description": "LangSmith OTLP endpoint"})
     project_name: str = field(metadata={"description": "LangSmith project name."})
-    api_key: str | SecretString | None = field(
-        default=None,
+    api_key: str | SecretString = field(
         metadata={"description": "LangSmith API key."},
     )
 
@@ -153,20 +152,17 @@ class LangSmithObservabilitySettings:
     def model_validate(cls, data: Any) -> "LangSmithObservabilitySettings":
         if not isinstance(data, dict):
             raise ValueError("LangSmith settings payload must be an object.")
-        for required in ("url", "project_name"):
+        for required in ("url", "project_name", "api_key"):
             if required not in data:
                 raise ValueError(f"LangSmith settings require '{required}'.")
-        api_key = data.get("api_key")
-        return cls(str(data["url"]), str(data["project_name"]), api_key)
+        return cls(str(data["url"]), str(data["project_name"]), str(data["api_key"]))
 
     def model_dump(self, *, redact_secret: bool = True) -> dict[str, Any]:
-        data: dict[str, Any] = {
+        return {
             "url": self.url,
             "project_name": self.project_name,
+            "api_key": _secret_or_redact(self.api_key, redact_secret),
         }
-        if self.api_key:
-            data["api_key"] = _secret_or_redact(self.api_key, redact_secret)
-        return data
 
     def make_exporter(self):
         """Create an OTLPSpanExporter for LangSmith.

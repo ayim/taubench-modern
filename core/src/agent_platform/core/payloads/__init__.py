@@ -17,12 +17,6 @@ from agent_platform.core.payloads.ephemeral_stream import EphemeralStreamPayload
 from agent_platform.core.payloads.fork_thread import ForkThreadPayload
 from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.payloads.mcp_server_response import MCPServerResponse
-from agent_platform.core.payloads.observability import (
-    ObservabilityIntegrationResponse,
-    ObservabilityIntegrationUpsertRequest,
-    ObservabilityValidateOverride,
-    ObservabilityValidateResponse,
-)
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     DeleteSemanticDataModelPayload,
     EmptyFileReference,
@@ -71,10 +65,6 @@ __all__ = [
     "ImportSemanticDataModelPayload",
     "InitiateStreamPayload",
     "MCPServerResponse",
-    "ObservabilityIntegrationResponse",
-    "ObservabilityIntegrationUpsertRequest",
-    "ObservabilityValidateOverride",
-    "ObservabilityValidateResponse",
     "PatchAgentPayload",
     "SelectedToolConfig",
     "SelectedTools",

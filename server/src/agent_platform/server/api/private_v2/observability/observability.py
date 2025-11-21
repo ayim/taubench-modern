@@ -1,43 +1,92 @@
+"""REST API endpoints for observability integrations."""
+
 from typing import cast
 from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, HTTPException, Query, Response, status
+from pydantic import TypeAdapter
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.integrations import Integration
 from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
+from agent_platform.core.integrations.observability.models import (
+    GrafanaObservabilitySettings,
+    LangSmithObservabilitySettings,
+    ObservabilitySettings,
+)
 from agent_platform.core.integrations.settings.observability import (
     ObservabilityIntegrationSettings,
 )
 from agent_platform.core.otel_orchestrator import OtelOrchestrator
-from agent_platform.core.payloads.observability import (
+from agent_platform.core.utils import SecretString
+from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.auth import AuthedUser
+
+from .models import (
     ObservabilityIntegrationResponse,
     ObservabilityIntegrationUpsertRequest,
-    ObservabilitySettings,
+    ObservabilitySettingsREST,
     ObservabilityValidateOverride,
     ObservabilityValidateResponse,
 )
-from agent_platform.server.api.dependencies import StorageDependency
-from agent_platform.server.auth import AuthedUser
 
 router = APIRouter(prefix="/observability", tags=["observability-integrations"])
 
 logger = structlog.get_logger(__name__)
 
 
+def _rest_to_internal(rest_settings: ObservabilitySettingsREST) -> ObservabilitySettings:
+    """Convert REST request model to internal dataclass model."""
+    if rest_settings.provider == "grafana":
+        return ObservabilitySettings(
+            kind="grafana",
+            provider_settings=GrafanaObservabilitySettings(
+                url=rest_settings.url,
+                api_token=SecretString(rest_settings.api_token),
+                grafana_instance_id=rest_settings.grafana_instance_id,
+                additional_headers=rest_settings.additional_headers,
+            ),
+            is_enabled=rest_settings.is_enabled,
+        )
+    elif rest_settings.provider == "langsmith":
+        return ObservabilitySettings(
+            kind="langsmith",
+            provider_settings=LangSmithObservabilitySettings(
+                url=rest_settings.url,
+                project_name=rest_settings.project_name,
+                api_key=SecretString(rest_settings.api_key),
+            ),
+            is_enabled=rest_settings.is_enabled,
+        )
+    else:
+        raise ValueError(f"Unsupported observability provider: {rest_settings.provider}")
+
+
+def _internal_to_rest(internal_settings: ObservabilitySettings) -> ObservabilitySettingsREST:
+    """Convert internal dataclass model to REST response model."""
+    data = internal_settings.model_dump(redact_secret=False)
+
+    provider_settings = data.pop("provider_settings")
+    flattened = {**data, **provider_settings}
+    flattened["provider"] = flattened.pop("kind")
+
+    adapter = TypeAdapter(ObservabilitySettingsREST)
+    return adapter.validate_python(flattened)
+
+
 def _integration_to_observability(integration: Integration) -> ObservabilityIntegrationResponse:
-    """Convert a stored Integration into its public observability representation."""
+    """Convert a stored Integration into its public REST API representation."""
     integration_settings = integration.settings
     if not isinstance(integration_settings, ObservabilityIntegrationSettings):
         raise ValueError("Unexpected integration settings for observability integration.")
-    settings = integration_settings.settings
-    # Ensure that the secret is not redacted, else the UI will be unable to submit future
-    # forms as it doesn't know what the value of the secret is.
-    public_settings = ObservabilitySettings.model_validate(settings.model_dump(redact_secret=False))
+
+    internal_settings = integration_settings.settings
+    rest_settings = _internal_to_rest(internal_settings)
+
     return ObservabilityIntegrationResponse(
         id=integration.id,
-        settings=public_settings,
+        settings=rest_settings,
         created_at=integration.created_at,
         updated_at=integration.updated_at,
         description=integration.description,
@@ -85,7 +134,10 @@ async def create_observability_integration(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Settings and version are required.",
         )
-    settings = ObservabilityIntegrationSettings.from_observability_settings(payload.settings)
+
+    # Convert REST settings to internal settings
+    internal_settings = _rest_to_internal(payload.settings)
+    settings = ObservabilityIntegrationSettings.from_observability_settings(internal_settings)
 
     integration = Integration(
         id=str(uuid4()),
@@ -140,7 +192,8 @@ async def update_observability_integration(
     current_settings = integration_settings.settings
 
     if payload.settings:
-        next_settings = payload.settings
+        # Convert REST settings to internal settings
+        next_settings = _rest_to_internal(payload.settings)
     else:
         next_settings = current_settings
 
@@ -205,7 +258,7 @@ async def validate_observability_integration(
         success=False,
         message="Validation logic not implemented yet.",
         details={
-            "kind": public_integration.settings.kind,
+            "provider": public_integration.settings.provider,
             "override": override.model_dump() if override else None,
         },
     )

@@ -4948,8 +4948,16 @@ export interface components {
       /** @description The Google API key. If not provided, it will be attempted to be inferred from the environment. */
       google_api_key?: components['schemas']['SecretString'] | null;
     };
-    /** GrafanaObservabilitySettings */
-    GrafanaObservabilitySettings: {
+    /**
+     * GrafanaSettingsREST
+     * @description Grafana observability settings for REST API.
+     */
+    GrafanaSettingsREST: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      provider: 'grafana';
       /**
        * Url
        * @description Full OTLP traces endpoint
@@ -4957,12 +4965,12 @@ export interface components {
       url: string;
       /**
        * Api Token
-       * @description Grafana API token.
+       * @description Grafana API token
        */
-      api_token: string | components['schemas']['SecretString'];
+      api_token: string;
       /**
        * Grafana Instance Id
-       * @description Grafana instance ID.
+       * @description Grafana instance ID
        */
       grafana_instance_id: string;
       /**
@@ -4972,6 +4980,11 @@ export interface components {
       additional_headers?: {
         [key: string]: string;
       } | null;
+      /**
+       * Is Enabled
+       * @default true
+       */
+      is_enabled: boolean;
     };
     /** GroqPlatformParameters */
     GroqPlatformParameters: {
@@ -5181,8 +5194,16 @@ export interface components {
      * @enum {string}
      */
     JobType: 'parse' | 'extract' | 'split';
-    /** LangSmithObservabilitySettings */
-    LangSmithObservabilitySettings: {
+    /**
+     * LangSmithSettingsREST
+     * @description LangSmith observability settings for REST API.
+     */
+    LangSmithSettingsREST: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      provider: 'langsmith';
       /**
        * Url
        * @description LangSmith OTLP endpoint
@@ -5190,14 +5211,19 @@ export interface components {
       url: string;
       /**
        * Project Name
-       * @description LangSmith project name.
+       * @description LangSmith project name
        */
       project_name: string;
       /**
        * Api Key
-       * @description LangSmith API key.
+       * @description LangSmith API key
        */
-      api_key?: string | components['schemas']['SecretString'] | null;
+      api_key: string;
+      /**
+       * Is Enabled
+       * @default true
+       */
+      is_enabled: boolean;
     };
     /** ListMCPToolsRequest */
     ListMCPToolsRequest: {
@@ -5787,8 +5813,13 @@ export interface components {
        * @description The UUID of the integration.
        */
       id: string;
-      /** @description Provider settings. */
-      settings: components['schemas']['ObservabilitySettings'];
+      /**
+       * Settings
+       * @description Provider settings.
+       */
+      settings:
+        | components['schemas']['GrafanaSettingsREST']
+        | components['schemas']['LangSmithSettingsREST'];
       /**
        * Created At
        * Format: date-time
@@ -5821,8 +5852,16 @@ export interface components {
     };
     /** ObservabilityIntegrationUpsertRequest */
     ObservabilityIntegrationUpsertRequest: {
-      /** @description Provider settings. */
-      settings?: components['schemas']['ObservabilitySettings'] | null;
+      /**
+       * Settings
+       * @description Provider settings.
+       */
+      settings?:
+        | (
+            | components['schemas']['GrafanaSettingsREST']
+            | components['schemas']['LangSmithSettingsREST']
+          )
+        | null;
       /**
        * Version
        * @description Optional version of the integration.
@@ -5833,23 +5872,6 @@ export interface components {
        * @description Optional description for the integration.
        */
       description?: string | null;
-    };
-    /** ObservabilitySettings */
-    ObservabilitySettings: {
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: 'grafana' | 'langsmith';
-      /** Provider Settings */
-      provider_settings:
-        | components['schemas']['GrafanaObservabilitySettings']
-        | components['schemas']['LangSmithObservabilitySettings'];
-      /**
-       * Is Enabled
-       * @default true
-       */
-      is_enabled: boolean;
     };
     /** ObservabilityValidateOverride */
     ObservabilityValidateOverride: {

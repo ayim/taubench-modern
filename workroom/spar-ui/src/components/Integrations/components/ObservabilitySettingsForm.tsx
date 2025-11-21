@@ -5,12 +5,12 @@ import { ObservabilitySettingsFormSchema } from './observabilitySettingsSchema';
 import { InputControlled } from '../../../common/form/InputControlled';
 import { KeyValueRecordField } from '../../../common/form/SchemaFormFields/components/KeyValueRecordField';
 
-type ObservabilityKindOption = {
-  value: ObservabilitySettings['kind'];
+type ObservabilityProviderOption = {
+  value: ObservabilitySettings['provider'];
   label: string;
 };
 
-const observabilityKindOptions: ObservabilityKindOption[] = [
+const observabilityProviderOptions: ObservabilityProviderOption[] = [
   { value: 'langsmith', label: 'Langsmith' },
   { value: 'grafana', label: 'Grafana' },
 ];
@@ -18,20 +18,11 @@ const observabilityKindOptions: ObservabilityKindOption[] = [
 const LangsmithSettingsFields = () => {
   return (
     <>
-      <InputControlled fieldName="provider_settings.url" label="URL" description="LangSmith OTLP endpoint" />
+      <InputControlled fieldName="url" label="URL" description="LangSmith OTLP endpoint" />
 
-      <InputControlled
-        fieldName="provider_settings.project_name"
-        label="Project Name"
-        description="LangSmith project name"
-      />
+      <InputControlled fieldName="project_name" label="Project Name" description="LangSmith project name" />
 
-      <InputControlled
-        fieldName="provider_settings.api_key"
-        label="API Key"
-        description="LangSmith API key"
-        type="password"
-      />
+      <InputControlled fieldName="api_key" label="API Key" description="LangSmith API key" type="password" />
     </>
   );
 };
@@ -39,23 +30,14 @@ const LangsmithSettingsFields = () => {
 export const GrafanaSettingsFields = () => {
   return (
     <>
-      <InputControlled fieldName="provider_settings.url" label="URL" description="Grafana OTLP endpoint" />
+      <InputControlled fieldName="url" label="URL" description="Grafana OTLP endpoint" />
 
-      <InputControlled
-        fieldName="provider_settings.grafana_instance_id"
-        label="Grafana Instance ID"
-        description="Grafana instance ID"
-      />
+      <InputControlled fieldName="grafana_instance_id" label="Grafana Instance ID" description="Grafana instance ID" />
 
-      <InputControlled
-        fieldName="provider_settings.api_token"
-        label="API Token"
-        description="Grafana API token"
-        type="password"
-      />
+      <InputControlled fieldName="api_token" label="API Token" description="Grafana API token" type="password" />
 
       <KeyValueRecordField
-        fieldName="provider_settings.additional_headers"
+        fieldName="additional_headers"
         label="Additional Headers"
         description="Optional HTTP headers to send with the request to Grafana Cloud"
         isOptional
@@ -70,7 +52,7 @@ type Props = {
 
 export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
   const { watch, reset } = useFormContext<ObservabilitySettingsFormSchema>();
-  const { kind } = watch();
+  const { provider } = watch();
 
   return (
     <Form.Fieldset>
@@ -78,23 +60,23 @@ export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
         aria-label="Vendor"
         label="Vendor"
         description="Name of the OTEL vendor"
-        items={observabilityKindOptions}
-        value={kind}
+        items={observabilityProviderOptions}
+        value={provider}
         onChange={(value) => {
-          if (defaultValues && value === defaultValues.kind) {
+          if (defaultValues && value === defaultValues.provider) {
             reset(defaultValues);
           } else {
-            reset({ kind: value as ObservabilitySettings['kind'], provider_settings: {} });
+            reset({ provider: value as ObservabilitySettings['provider'], url: '' });
           }
         }}
       />
 
       <Divider />
 
-      {kind === 'langsmith' && <LangsmithSettingsFields />}
-      {kind === 'grafana' && <GrafanaSettingsFields />}
+      {provider === 'langsmith' && <LangsmithSettingsFields />}
+      {provider === 'grafana' && <GrafanaSettingsFields />}
 
-      {!!kind && <Divider />}
+      {!!provider && <Divider />}
     </Form.Fieldset>
   );
 };

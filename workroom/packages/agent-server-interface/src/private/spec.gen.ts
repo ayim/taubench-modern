@@ -13138,29 +13138,28 @@ export const spec = {
         title: 'GooglePlatformParameters',
         required: ['platform_id'],
       },
-      GrafanaObservabilitySettings: {
+      GrafanaSettingsREST: {
         properties: {
+          provider: {
+            type: 'string',
+            const: 'grafana',
+            title: 'Provider',
+            default: 'grafana',
+          },
           url: {
             type: 'string',
             title: 'Url',
             description: 'Full OTLP traces endpoint',
           },
           api_token: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                $ref: '#/components/schemas/SecretString',
-              },
-            ],
+            type: 'string',
             title: 'Api Token',
-            description: 'Grafana API token.',
+            description: 'Grafana API token',
           },
           grafana_instance_id: {
             type: 'string',
             title: 'Grafana Instance Id',
-            description: 'Grafana instance ID.',
+            description: 'Grafana instance ID',
           },
           additional_headers: {
             anyOf: [
@@ -13178,10 +13177,16 @@ export const spec = {
             description:
               'Optional HTTP headers to send with the request to Grafana Cloud.',
           },
+          is_enabled: {
+            type: 'boolean',
+            title: 'Is Enabled',
+            default: true,
+          },
         },
         type: 'object',
         required: ['url', 'api_token', 'grafana_instance_id'],
-        title: 'GrafanaObservabilitySettings',
+        title: 'GrafanaSettingsREST',
+        description: 'Grafana observability settings for REST API.',
       },
       GroqPlatformParameters: {
         properties: {
@@ -13598,8 +13603,14 @@ export const spec = {
         description:
           'Types of jobs that can be submitted for async processing.',
       },
-      LangSmithObservabilitySettings: {
+      LangSmithSettingsREST: {
         properties: {
+          provider: {
+            type: 'string',
+            const: 'langsmith',
+            title: 'Provider',
+            default: 'langsmith',
+          },
           url: {
             type: 'string',
             title: 'Url',
@@ -13608,27 +13619,23 @@ export const spec = {
           project_name: {
             type: 'string',
             title: 'Project Name',
-            description: 'LangSmith project name.',
+            description: 'LangSmith project name',
           },
           api_key: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                $ref: '#/components/schemas/SecretString',
-              },
-              {
-                type: 'null',
-              },
-            ],
+            type: 'string',
             title: 'Api Key',
-            description: 'LangSmith API key.',
+            description: 'LangSmith API key',
+          },
+          is_enabled: {
+            type: 'boolean',
+            title: 'Is Enabled',
+            default: true,
           },
         },
         type: 'object',
-        required: ['url', 'project_name'],
-        title: 'LangSmithObservabilitySettings',
+        required: ['url', 'project_name', 'api_key'],
+        title: 'LangSmithSettingsREST',
+        description: 'LangSmith observability settings for REST API.',
       },
       ListMCPToolsRequest: {
         properties: {
@@ -15113,8 +15120,23 @@ export const spec = {
             description: 'The UUID of the integration.',
           },
           settings: {
-            $ref: '#/components/schemas/ObservabilitySettings',
+            oneOf: [
+              {
+                $ref: '#/components/schemas/GrafanaSettingsREST',
+              },
+              {
+                $ref: '#/components/schemas/LangSmithSettingsREST',
+              },
+            ],
+            title: 'Settings',
             description: 'Provider settings.',
+            discriminator: {
+              propertyName: 'provider',
+              mapping: {
+                grafana: '#/components/schemas/GrafanaSettingsREST',
+                langsmith: '#/components/schemas/LangSmithSettingsREST',
+              },
+            },
           },
           created_at: {
             type: 'string',
@@ -15169,12 +15191,27 @@ export const spec = {
           settings: {
             anyOf: [
               {
-                $ref: '#/components/schemas/ObservabilitySettings',
+                oneOf: [
+                  {
+                    $ref: '#/components/schemas/GrafanaSettingsREST',
+                  },
+                  {
+                    $ref: '#/components/schemas/LangSmithSettingsREST',
+                  },
+                ],
+                discriminator: {
+                  propertyName: 'provider',
+                  mapping: {
+                    grafana: '#/components/schemas/GrafanaSettingsREST',
+                    langsmith: '#/components/schemas/LangSmithSettingsREST',
+                  },
+                },
               },
               {
                 type: 'null',
               },
             ],
+            title: 'Settings',
             description: 'Provider settings.',
           },
           version: {
@@ -15204,34 +15241,6 @@ export const spec = {
         },
         type: 'object',
         title: 'ObservabilityIntegrationUpsertRequest',
-      },
-      ObservabilitySettings: {
-        properties: {
-          kind: {
-            type: 'string',
-            enum: ['grafana', 'langsmith'],
-            title: 'Kind',
-          },
-          provider_settings: {
-            anyOf: [
-              {
-                $ref: '#/components/schemas/GrafanaObservabilitySettings',
-              },
-              {
-                $ref: '#/components/schemas/LangSmithObservabilitySettings',
-              },
-            ],
-            title: 'Provider Settings',
-          },
-          is_enabled: {
-            type: 'boolean',
-            title: 'Is Enabled',
-            default: true,
-          },
-        },
-        type: 'object',
-        required: ['kind', 'provider_settings'],
-        title: 'ObservabilitySettings',
       },
       ObservabilityValidateOverride: {
         properties: {

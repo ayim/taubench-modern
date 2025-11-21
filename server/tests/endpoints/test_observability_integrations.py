@@ -3,13 +3,17 @@ import uuid
 
 def _make_payload(provider: str = "grafana", *, api_key: str = "secret-key-1") -> dict:
     if provider == "grafana":
-        provider_settings = {
+        settings = {
+            "provider": provider,
+            "is_enabled": True,
             "url": "https://example.com/v1/traces",
             "api_token": f"glc_{api_key}",
             "grafana_instance_id": "123456",
         }
     elif provider == "langsmith":
-        provider_settings = {
+        settings = {
+            "provider": provider,
+            "is_enabled": True,
             "url": "https://api.langsmith.example.com",
             "api_key": api_key,
             "project_name": "default",
@@ -19,11 +23,7 @@ def _make_payload(provider: str = "grafana", *, api_key: str = "secret-key-1") -
 
     return {
         "kind": "observability",
-        "settings": {
-            "kind": provider,
-            "is_enabled": True,
-            "provider_settings": provider_settings,
-        },
+        "settings": settings,
         "description": "Test integration",
         "version": "1.0.0",
     }
@@ -41,11 +41,11 @@ def test_create_integration_success(client):
     assert "id" in data
 
     settings = data["settings"]
-    assert settings["kind"] == "grafana"
+    assert settings["provider"] == "grafana"
     assert settings["is_enabled"] is True
-    assert settings["provider_settings"]["url"] == "https://example.com/v1/traces"
-    assert settings["provider_settings"]["api_token"] == "glc_secret-key-1"
-    assert settings["provider_settings"]["grafana_instance_id"] == "123456"
+    assert settings["url"] == "https://example.com/v1/traces"
+    assert settings["api_token"] == "glc_secret-key-1"
+    assert settings["grafana_instance_id"] == "123456"
 
 
 def test_list_integrations_with_filter(client):
@@ -65,7 +65,7 @@ def test_list_integrations_with_filter(client):
     assert resp_filtered.status_code == 200
     data = resp_filtered.json()
     assert len(data) == 1
-    assert data[0]["settings"]["kind"] == "langsmith"
+    assert data[0]["settings"]["provider"] == "langsmith"
 
 
 def test_get_integration_success_and_not_found(client):
@@ -89,13 +89,11 @@ def test_update_integration_partial_and_secret_redaction(client):
     update_payload = {
         "description": "Updated description",
         "settings": {
-            "kind": "grafana",
+            "provider": "grafana",
             "is_enabled": False,
-            "provider_settings": {
-                "url": "https://updated.example.com/v1/traces",
-                "api_token": "glc_updated-key",
-                "grafana_instance_id": "654321",
-            },
+            "url": "https://updated.example.com/v1/traces",
+            "api_token": "glc_updated-key",
+            "grafana_instance_id": "654321",
         },
     }
     update_resp = client.put(
@@ -107,11 +105,11 @@ def test_update_integration_partial_and_secret_redaction(client):
 
     assert data["description"] == "Updated description"
     assert data["version"] == "1.0.0"  # unchanged from create payload
-    assert data["settings"]["kind"] == "grafana"
+    assert data["settings"]["provider"] == "grafana"
     assert data["settings"]["is_enabled"] is False
-    assert data["settings"]["provider_settings"]["url"] == "https://updated.example.com/v1/traces"
-    assert data["settings"]["provider_settings"]["api_token"] == "glc_updated-key"
-    assert data["settings"]["provider_settings"]["grafana_instance_id"] == "654321"
+    assert data["settings"]["url"] == "https://updated.example.com/v1/traces"
+    assert data["settings"]["api_token"] == "glc_updated-key"
+    assert data["settings"]["grafana_instance_id"] == "654321"
 
     missing_resp = client.put(
         f"/api/v2/observability/integrations/{uuid.uuid4()}",
@@ -147,7 +145,7 @@ def test_validate_integration_placeholder_response(client):
     data = validate_resp.json()
     assert data["success"] is False
     assert "Validation logic not implemented yet." in data["message"]
-    assert data["details"]["kind"] == "grafana"
+    assert data["details"]["provider"] == "grafana"
     assert data["details"]["override"] == override_payload
 
     missing_resp = client.post(
@@ -163,16 +161,14 @@ def test_grafana_additional_headers_persisted_through_storage(client):
     payload = {
         "kind": "observability",
         "settings": {
-            "kind": "grafana",
+            "provider": "grafana",
             "is_enabled": True,
-            "provider_settings": {
-                "url": "https://example.com/v1/traces",
-                "api_token": "glc_test_key",
-                "grafana_instance_id": "123456",
-                "additional_headers": {
-                    "X-Custom-Header": "custom-value",
-                    "X-Another-Header": "another-value",
-                },
+            "url": "https://example.com/v1/traces",
+            "api_token": "glc_test_key",
+            "grafana_instance_id": "123456",
+            "additional_headers": {
+                "X-Custom-Header": "custom-value",
+                "X-Another-Header": "another-value",
             },
         },
         "description": "Test with headers",
@@ -186,10 +182,10 @@ def test_grafana_additional_headers_persisted_through_storage(client):
     integration_id = create_data["id"]
 
     # Verify the CREATE response includes additional_headers
-    provider_settings = create_data["settings"]["provider_settings"]
-    assert "additional_headers" in provider_settings
-    assert provider_settings["additional_headers"]["X-Custom-Header"] == "custom-value"
-    assert provider_settings["additional_headers"]["X-Another-Header"] == "another-value"
+    settings = create_data["settings"]
+    assert "additional_headers" in settings
+    assert settings["additional_headers"]["X-Custom-Header"] == "custom-value"
+    assert settings["additional_headers"]["X-Another-Header"] == "another-value"
 
     # GET the integration to verify headers persist after loading from storage
     get_resp = client.get(f"/api/v2/observability/integrations/{integration_id}")
@@ -197,10 +193,10 @@ def test_grafana_additional_headers_persisted_through_storage(client):
     get_data = get_resp.json()
 
     # Verify the GET response also includes additional_headers
-    provider_settings = get_data["settings"]["provider_settings"]
-    assert "additional_headers" in provider_settings
-    assert provider_settings["additional_headers"]["X-Custom-Header"] == "custom-value"
-    assert provider_settings["additional_headers"]["X-Another-Header"] == "another-value"
+    settings = get_data["settings"]
+    assert "additional_headers" in settings
+    assert settings["additional_headers"]["X-Custom-Header"] == "custom-value"
+    assert settings["additional_headers"]["X-Another-Header"] == "another-value"
 
 
 def test_grafana_disallowed_headers_rejected_via_api(client):
@@ -209,16 +205,14 @@ def test_grafana_disallowed_headers_rejected_via_api(client):
     payload = {
         "kind": "observability",
         "settings": {
-            "kind": "grafana",
+            "provider": "grafana",
             "is_enabled": True,
-            "provider_settings": {
-                "url": "https://example.com/v1/traces",
-                "api_token": "glc_test_key",
-                "grafana_instance_id": "123456",
-                "additional_headers": {
-                    "X-Custom-Header": "allowed-value",
-                    "Authorization": "Bearer should-be-rejected",
-                },
+            "url": "https://example.com/v1/traces",
+            "api_token": "glc_test_key",
+            "grafana_instance_id": "123456",
+            "additional_headers": {
+                "X-Custom-Header": "allowed-value",
+                "Authorization": "Bearer should-be-rejected",
             },
         },
         "description": "Test filtering",
@@ -231,3 +225,48 @@ def test_grafana_disallowed_headers_rejected_via_api(client):
     error_data = create_resp.json()
     assert "error" in error_data
     assert "Authorization may not be specified as an HTTP header" in str(error_data)
+
+
+def test_discriminated_union_ignores_wrong_provider_fields(client):
+    """Test that discriminated union correctly parses based on 'kind',
+    ignoring fields from other providers.
+    """
+    # Send LangSmith request with BOTH LangSmith AND Grafana fields
+    # The discriminator should use 'kind' to pick LangSmithSettings and ignore Grafana fields
+    mixed_payload = {
+        "kind": "observability",
+        "settings": {
+            "provider": "langsmith",  # Discriminator should pick LangSmithSettings
+            "is_enabled": True,
+            # LangSmith fields (should be used)
+            "url": "https://api.smith.langchain.com",
+            "api_key": "ls_test_key",
+            "project_name": "test-project",
+            # Grafana fields (should be ignored by Pydantic discriminator)
+            "api_token": "grafana_token",
+            "grafana_instance_id": "grafana_123",
+            "additional_headers": {"X-Test": "value"},
+        },
+        "description": "Test discriminated union",
+        "version": "1.0.0",
+    }
+
+    # Should successfully create LangSmith integration (ignoring Grafana fields)
+    create_resp = client.post("/api/v2/observability/integrations", json=mixed_payload)
+    assert create_resp.status_code == 201
+    data = create_resp.json()
+
+    # Verify it's a LangSmith integration
+    assert data["settings"]["provider"] == "langsmith"
+    settings = data["settings"]
+
+    # LangSmith fields should be present
+    assert settings["url"] == "https://api.smith.langchain.com"
+    assert settings["api_key"] == "ls_test_key"
+    assert settings["project_name"] == "test-project"
+
+    # Grafana fields should NOT be present (ignored during parsing)
+    assert "api_token" not in settings
+    assert "grafana_instance_id" not in settings
+    # additional_headers is not a LangSmith field, so it shouldn't be there
+    assert "additional_headers" not in settings

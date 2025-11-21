@@ -1,8 +1,53 @@
+"""REST API models for observability integrations."""
+
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from agent_platform.core.integrations.observability.models import ObservabilitySettings
+from pydantic import BaseModel, ConfigDict, Field
+
+# =============================================================================
+# REST API Models
+# =============================================================================
+
+
+class GrafanaSettingsREST(BaseModel):
+    """Grafana observability settings for REST API."""
+
+    model_config = ConfigDict(frozen=True)
+
+    provider: Literal["grafana"] = "grafana"
+    url: str = Field(description="Full OTLP traces endpoint")
+    api_token: str = Field(description="Grafana API token")
+    grafana_instance_id: str = Field(description="Grafana instance ID")
+    additional_headers: dict[str, str] | None = Field(
+        default=None,
+        description="Optional HTTP headers to send with the request to Grafana Cloud.",
+    )
+    is_enabled: bool = True
+
+
+class LangSmithSettingsREST(BaseModel):
+    """LangSmith observability settings for REST API."""
+
+    model_config = ConfigDict(frozen=True)
+
+    provider: Literal["langsmith"] = "langsmith"
+    url: str = Field(description="LangSmith OTLP endpoint")
+    project_name: str = Field(description="LangSmith project name")
+    api_key: str = Field(description="LangSmith API key")
+    is_enabled: bool = True
+
+
+ObservabilitySettingsREST = Annotated[
+    GrafanaSettingsREST | LangSmithSettingsREST,
+    Field(discriminator="provider"),
+]
+
+
+# =============================================================================
+# REST Request/Response Wrappers
+# =============================================================================
 
 
 @dataclass(frozen=True)
@@ -10,7 +55,7 @@ class ObservabilityIntegrationResponse:
     """Response representation of a stored observability integration."""
 
     id: str = field(metadata={"description": "The UUID of the integration."})
-    settings: ObservabilitySettings = field(metadata={"description": "Provider settings."})
+    settings: ObservabilitySettingsREST = field(metadata={"description": "Provider settings."})
     created_at: datetime = field(
         metadata={"description": "Timestamp when the integration was created."},
     )
@@ -32,9 +77,9 @@ class ObservabilityIntegrationResponse:
 
 @dataclass(frozen=True)
 class ObservabilityIntegrationUpsertRequest:
-    """Payload for creating a global observability integration."""
+    """Payload for creating/updating an observability integration."""
 
-    settings: ObservabilitySettings | None = field(
+    settings: ObservabilitySettingsREST | None = field(
         default=None, metadata={"description": "Provider settings."}
     )
     version: str | None = field(
@@ -44,16 +89,6 @@ class ObservabilityIntegrationUpsertRequest:
     description: str | None = field(
         default=None, metadata={"description": "Optional description for the integration."}
     )
-
-    def model_dump(self) -> dict[str, Any]:
-        data: dict[str, Any] = {}
-        if self.settings is not None:
-            data["settings"] = self.settings.model_dump(redact_secret=True)
-        if self.description is not None:
-            data["description"] = self.description
-        if self.version is not None:
-            data["version"] = self.version
-        return data
 
 
 @dataclass(frozen=True)
@@ -98,8 +133,11 @@ class ObservabilityValidateResponse:
 
 
 __all__ = (
+    "GrafanaSettingsREST",
+    "LangSmithSettingsREST",
     "ObservabilityIntegrationResponse",
     "ObservabilityIntegrationUpsertRequest",
+    "ObservabilitySettingsREST",
     "ObservabilityValidateOverride",
     "ObservabilityValidateResponse",
 )
