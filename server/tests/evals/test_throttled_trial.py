@@ -7,7 +7,11 @@ from freezegun import freeze_time
 
 from agent_platform.core.evals.types import Trial, TrialStatus
 from agent_platform.server.evals import background_worker
-from agent_platform.server.evals.background_worker import QueueSettings, WorkQueue
+from agent_platform.server.evals.background_worker import (
+    TASK_TIMEOUT_ERROR_MESSAGE,
+    QueueSettings,
+    WorkQueue,
+)
 from agent_platform.server.evals.errors import TrialRateLimitedError
 
 
@@ -26,8 +30,8 @@ class _StubRepository(background_worker.TaskRepository[Trial]):
     async def get_tasks_by_ids(self, task_ids):
         return await self._get_tasks_by_ids(task_ids)
 
-    async def mark_incomplete_tasks_as_error(self, task_ids):
-        return await self._mark_incomplete(task_ids)
+    async def mark_incomplete_tasks_as_error(self, task_ids, error: str | None = None):
+        return await self._mark_incomplete(task_ids, error)
 
     async def get_task(self, task):
         return await self._get_task(task)
@@ -197,6 +201,39 @@ async def test_execute_task_honors_zero_retry_after(monkeypatch):
     call_kwargs = queue._compute_retry_after_at.call_args.kwargs
     assert call_kwargs["base_delay"] == 0
     assert call_kwargs["next_attempt"] == 1
+
+
+@pytest.mark.asyncio
+async def test_run_batch_sets_timeout_error_message():
+    import asyncio
+
+    trial = Trial(
+        trial_id="timeout-trial",
+        scenario_run_id="run-1",
+        scenario_id="scenario-1",
+        index_in_run=0,
+        status=TrialStatus.EXECUTING,
+    )
+    repo = _StubRepository()
+    repo.get_tasks_by_ids_mock.return_value = [trial]
+
+    queue = WorkQueue(
+        repo,
+        runner=AsyncMock(),
+        settings=QueueSettings(),
+    )
+
+    async def _blocking(self, task_obj: Trial) -> bool:
+        await asyncio.sleep(3600)
+        return True
+
+    queue._execute_task = _blocking.__get__(queue, WorkQueue)
+
+    results = await queue._run_batch([trial.trial_id], batch_timeout=0.01)
+
+    assert len(results) == 1
+    assert isinstance(results[0], TimeoutError)
+    repo.mark_incomplete_mock.assert_awaited_once_with([trial.trial_id], TASK_TIMEOUT_ERROR_MESSAGE)
 
 
 @freeze_time("2024-01-01T00:00:00Z")

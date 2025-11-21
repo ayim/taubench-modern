@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Worker name constant for shutdown manager
 WORKER_NAME = "evals"
+TASK_TIMEOUT_ERROR_MESSAGE = "Trial timed out while executing."
 
 
 @runtime_checkable
@@ -51,7 +52,9 @@ class TaskRepository(Protocol[T]):
 
     async def get_tasks_by_ids(self, task_ids: Sequence[str]) -> Sequence[T]: ...
 
-    async def mark_incomplete_tasks_as_error(self, task_ids: Sequence[str]) -> None: ...
+    async def mark_incomplete_tasks_as_error(
+        self, task_ids: Sequence[str], error: str | None = None
+    ) -> None: ...
 
     async def get_task(self, task: T) -> T | None:
         """Return the latest persisted task, if available.
@@ -261,7 +264,9 @@ class WorkQueue(Generic[T]):
                 logger.error("Task %s timed out, marking as ERROR", task_id)
 
         if len(incomplete_ids) > 0:
-            await self.repo.mark_incomplete_tasks_as_error(incomplete_ids)
+            await self.repo.mark_incomplete_tasks_as_error(
+                incomplete_ids, TASK_TIMEOUT_ERROR_MESSAGE
+            )
 
         return results
 

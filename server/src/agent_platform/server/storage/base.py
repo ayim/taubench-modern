@@ -1294,7 +1294,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return Trial.model_validate(dict(row))
 
-    async def mark_trials_as_failed(self, trial_ids: list[str]):
+    async def mark_trials_as_failed(self, trial_ids: list[str], error: str | None = None):
         trials = self._get_table("trials")
         now = datetime.now(UTC)
 
@@ -1303,6 +1303,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             .where(trials.c.trial_id.in_(trial_ids))
             .values(
                 status=TrialStatus.ERROR,
+                error_message=error,
                 updated_at=now,
                 status_updated_at=now,
             )

@@ -19,8 +19,10 @@ class ScenarioRunTrialRepository(TaskRepository[Trial]):
     async def get_tasks_by_ids(self, task_ids: Sequence[str]) -> Sequence[Trial]:
         return await self.storage.get_trials_by_ids(list(task_ids))
 
-    async def mark_incomplete_tasks_as_error(self, task_ids: Sequence[str]) -> None:
-        await self.storage.mark_trials_as_failed(list(task_ids))
+    async def mark_incomplete_tasks_as_error(
+        self, task_ids: Sequence[str], error: str | None = None
+    ) -> None:
+        await self.storage.mark_trials_as_failed(list(task_ids), error)
 
     async def get_task(self, task: Trial) -> Trial | None:
         try:
