@@ -1,16 +1,13 @@
 import { FC, ReactNode } from 'react';
-import { useFormContext } from 'react-hook-form';
 import { Box, Tooltip, Typography } from '@sema4ai/components';
 import { IconHelpSmall } from '@sema4ai/icons';
-import { Color } from '@sema4ai/theme';
-
-import { DataConnectionFormSchema } from '../../form';
-import { getTableDimensions } from '../../../../../../lib/SemanticDataModels';
 
 type Props = {
   children?: ReactNode;
 };
 
+/*
+ TODO: Scoring is disable until Agent Server is updated to return the actual scoring
 const scoringMeta: { min: number; max: number; label: string; backgroundColor: Color; borderColor: Color }[] = [
   {
     min: 0,
@@ -41,35 +38,9 @@ const scoringMeta: { min: number; max: number; label: string; backgroundColor: C
     borderColor: 'green80',
   },
 ];
+*/
 
 export const ModelScore: FC<Props> = ({ children }) => {
-  const { watch } = useFormContext<DataConnectionFormSchema>();
-
-  const { tables } = watch();
-
-  // TODO: This is a very rudimentary scoring, should be upodated with a backend solution for actual quality score
-  const modelScore = (() => {
-    const score = tables?.reduce<{ total: number; filled: number }>(
-      (acc, table) => {
-        const dimensions = getTableDimensions(table);
-
-        const total = acc.total + dimensions.length * 2;
-        const filled =
-          acc.filled +
-          dimensions.filter((dimension) => dimension.description).length +
-          dimensions.filter((dimension) => dimension.synonyms && dimension.synonyms?.length > 0).length;
-
-        return { total, filled };
-      },
-      { total: 0, filled: 0 },
-    ) || { total: 0, filled: 0 };
-
-    const finalScore = Math.round((score.filled / score.total) * 100);
-    const meta = scoringMeta.find((curr) => finalScore >= curr.min && finalScore <= curr.max);
-
-    return { finalScore, ...meta };
-  })();
-
   return (
     <Box
       display="flex"
@@ -89,16 +60,9 @@ export const ModelScore: FC<Props> = ({ children }) => {
           </Tooltip>
         </Box>
         <Typography fontWeight="medium" mb="$8">
-          {modelScore.label}
+          Coming soon!
         </Typography>
-        <Box height="$8" borderRadius="$8" backgroundColor={modelScore.backgroundColor}>
-          <Box
-            height="100%"
-            borderRadius="$8"
-            width={`${modelScore.finalScore}%`}
-            backgroundColor={modelScore.borderColor}
-          />
-        </Box>
+        <Box height="$8" borderRadius="$8" backgroundColor="background.disabled" />
       </Box>
       {children && (
         <Box display="flex" alignItems="center" justifyContent="flex-end">
