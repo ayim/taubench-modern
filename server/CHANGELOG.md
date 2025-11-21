@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.2.0b2 (2025-11-21)
+
+- [GH-1733](https://github.com/Sema4AI/agent-platform/pull/1733) Show message when evals fail because of timeout error
+- [GPT-1518] Migrate Grafana and LangSmith settings objects to Pydantic BaseModels
+
 # Sema4.ai Agent Server 2.2.0b1 (2025-11-20)
 
 - GPT-1556 Enables the "slot" execution mode for Work Items by default.
