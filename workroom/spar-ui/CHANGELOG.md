@@ -1,5 +1,14 @@
 # @sema4ai/spar-ui
 
+## 0.7.1
+
+### Patch Changes
+
+- e567e1c: Remove Semantic Data model background validation interval
+- 3379e79: Semantic Data Model related layout fixes and updates
+- 1780916: Include hidden UI for work-items execution
+- 786dd8d: feat: add user facing metrics UI
+
 ## 0.7.0
 
 ### Minor Changes
