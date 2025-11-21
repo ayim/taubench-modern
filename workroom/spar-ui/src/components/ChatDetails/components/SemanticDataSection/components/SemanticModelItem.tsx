@@ -11,8 +11,10 @@ import {
   SemanticModel,
   useDeleteSemanticDataModelMutation,
   useExportSemanticDataModelQuery,
+  useUpdateSemanticDataModelMutation,
 } from '../../../../../queries/semanticData';
 import { useMessageStream, useParams } from '../../../../../hooks';
+import { RenameDialog } from '../../../../../common/dialogs/RenameDialog';
 import { downloadFile } from '../../../../../lib/utils';
 import { parseSemanticModelErrors, requiresDataConnection } from '../../../../../lib/SemanticDataModels';
 import { ErrorPopover } from './ErrorPopover';
@@ -42,7 +44,9 @@ const Item = styled(Box)`
 export const SemanticModelItem: FC<Props> = ({ model }) => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const { mutate: deleteSemanticDataModel } = useDeleteSemanticDataModelMutation({});
+  const { mutate: updateSemanticDataModel } = useUpdateSemanticDataModelMutation({});
   const { mutateAsync: exportSemanticDataModel } = useExportSemanticDataModelQuery({});
   const { addSnackbar } = useSnackbar();
   const { sendMessage } = useMessageStream({ agentId, threadId });
@@ -68,6 +72,10 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
     setIsConfigurationOpen(!isConfigurationOpen);
   };
 
+  const onToggleRenameDialog = () => {
+    setIsRenameDialogOpen(!isRenameDialogOpen);
+  };
+
   const onDelete = onDeleteConfirm(() => {
     deleteSemanticDataModel(
       { agentId, modelId: model.id },
@@ -87,6 +95,26 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       },
     );
   });
+
+  const onModelRename = (newName: string) => {
+    setIsRenameDialogOpen(false);
+
+    updateSemanticDataModel(
+      {
+        agentId,
+        ...model,
+        name: newName,
+        modelId: model.id,
+        dataSelection: [],
+        shouldRegenerateModel: false,
+      },
+      {
+        onSuccess: () => {
+          addSnackbar({ message: 'Semantic Data Model renamed successfully', variant: 'success' });
+        },
+      },
+    );
+  };
 
   const onExportModel = async () => {
     const yamlData = await exportSemanticDataModel({ modelId: model.id });
@@ -154,10 +182,19 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       <Menu trigger={<Button variant="outline" size="small" icon={IconDotsHorizontal} round aria-label="Actions" />}>
         <Menu.Item onClick={onToggleEditModel}>View</Menu.Item>
         <Menu.Item onClick={onToggleEditModel}>Edit</Menu.Item>
+        <Menu.Item onClick={onToggleRenameDialog}>Rename</Menu.Item>
         <Menu.Item onClick={onExportModel}>Export</Menu.Item>
         <Menu.Item onClick={onDelete}>Delete</Menu.Item>
       </Menu>
       {isConfigurationOpen && <SemanticDataConfiguration onClose={onToggleEditModel} modelId={model.id} />}
+      {isRenameDialogOpen && (
+        <RenameDialog
+          onClose={onToggleRenameDialog}
+          onRename={onModelRename}
+          entityName={model.name}
+          entityType="Model Name"
+        />
+      )}
       <input {...getInputProps()} />
     </Item>
   );

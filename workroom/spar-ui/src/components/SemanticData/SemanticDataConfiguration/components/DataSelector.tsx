@@ -1,10 +1,10 @@
 import { TreeList } from '@sema4ai/layouts';
-import { Box, Typography } from '@sema4ai/components';
+import { Box, Button, Typography } from '@sema4ai/components';
 import { components } from '@sema4ai/agent-server-interface';
 import { IconDbColumn, IconDbDatabase, IconDbSpreadsheet } from '@sema4ai/icons';
 import { useFormContext } from 'react-hook-form';
 
-import { DataConnectionFormSchema } from './form';
+import { DataConnectionFormSchema, tablesToDataSelection } from './form';
 
 export const DataSelector = ({
   data,
@@ -16,7 +16,7 @@ export const DataSelector = ({
 
   const isColumnSelected = (tableName: string, columnName: string) => {
     const tableSelection = dataSelection.find((selection) => selection.name === tableName);
-    return tableSelection && tableSelection.columns.findIndex((column) => column.name === columnName) > -1;
+    return !!tableSelection && tableSelection.columns.findIndex((column) => column.name === columnName) > -1;
   };
 
   const isTableSelected = (tableName: string): boolean | 'partial' => {
@@ -105,8 +105,29 @@ export const DataSelector = ({
     setValue('dataSelection', nextSelection, { shouldDirty: true });
   };
 
+  const onSelectAll = () => {
+    setValue('dataSelection', tablesToDataSelection({ tables: data }), { shouldDirty: true });
+  };
+
+  const onDeselectAll = () => {
+    setValue('dataSelection', [], { shouldDirty: true });
+  };
+
   return (
     <Box pb="$32">
+      <Box display="flex" alignItems="center" mt="$16" mb="$8">
+        <Typography variant="body-medium-loose" fontWeight="medium">
+          Select data
+        </Typography>
+        <Box display="flex" gap="$4" ml="auto">
+          <Button variant="ghost-subtle" onClick={onSelectAll}>
+            Select All
+          </Button>
+          <Button variant="ghost-subtle" onClick={onDeselectAll}>
+            Deselect All
+          </Button>
+        </Box>
+      </Box>
       <TreeList>
         {data.map((table) => {
           const selecteditems = dataSelection.find((selection) => selection.name === table.name)?.columns.length || 0;
