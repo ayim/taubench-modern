@@ -1,9 +1,9 @@
 import uuid
 from collections import defaultdict
 from http import HTTPStatus
-from typing import TypedDict
+from typing import Any, TypedDict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from structlog import get_logger
 
 from agent_platform.core.actions.action_package import (
@@ -29,6 +29,7 @@ from agent_platform.core.payloads import (
 )
 from agent_platform.core.utils import SecretString
 from agent_platform.core.utils.url import safe_urljoin
+from agent_platform.server.api.agent_filters import filter_hidden_agents
 from agent_platform.server.api.dependencies import (
     AgentQuotaCheck,
     PlatformParamsValidationCheck,
@@ -61,6 +62,14 @@ def _to_human_friendly_name(name: str) -> str:
 
     # Step 3: Title case each word (capitalize first letter, lowercase the rest)
     return " ".join(word.title() for word in formatted.split())
+
+
+def _metadata_contains(candidate_metadata: object, required_metadata: dict[str, Any]) -> bool:
+    """Return True if candidate metadata contains all required key/value pairs."""
+    if not isinstance(candidate_metadata, dict):
+        return False
+
+    return all(candidate_metadata.get(key) == value for key, value in required_metadata.items())
 
 
 async def _fetch_action_packages_data(url: str, api_key: str) -> dict[str, ActionPackageData]:
@@ -222,7 +231,37 @@ async def list_agents(
     user: AuthedUser,
     storage: StorageDependency,
 ) -> list[AgentCompat]:
-    return [AgentCompat.from_agent(a) for a in await storage.list_agents(user.user_id)]
+    agents = filter_hidden_agents(await storage.list_agents(user.user_id))
+    return [AgentCompat.from_agent(a) for a in agents]
+
+
+@router.get(
+    "/search/by-metadata",
+    response_model=list[AgentCompat],
+    summary="Find agents by metadata",
+    description=(
+        "Provide metadata key/value pairs as "
+        "query parameters (e.g., ?project=xyz&visibility=hidden)."
+    ),
+)
+async def search_agents_by_metadata(
+    user: AuthedUser,
+    storage: StorageDependency,
+    request: Request,
+) -> list[AgentCompat]:
+    required_metadata = dict(request.query_params)
+    if not required_metadata:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one metadata query parameter is required.",
+        )
+
+    agents = await storage.list_agents(user.user_id)
+    return [
+        AgentCompat.from_agent(agent)
+        for agent in agents
+        if _metadata_contains((agent.extra or {}).get("metadata"), required_metadata)
+    ]
 
 
 # Backwards compatibility
@@ -231,10 +270,8 @@ async def list_agents_raw(
     user: AuthedUser,
     storage: StorageDependency,
 ) -> list[AgentCompat]:
-    return [
-        AgentCompat.from_agent(a, reveal_sensitive=True)
-        for a in await storage.list_agents(user.user_id)
-    ]
+    agents = filter_hidden_agents(await storage.list_agents(user.user_id))
+    return [AgentCompat.from_agent(a, reveal_sensitive=True) for a in agents]
 
 
 @router.get("/by-name", response_model=AgentCompat)

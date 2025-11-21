@@ -21,6 +21,7 @@ from agent_platform.core.thread import Thread
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.server.agent_architectures.arch_manager import AgentArchManager
+from agent_platform.server.api.agent_filters import filter_hidden_agents
 from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
 from agent_platform.server.api.private_v2.runs import sync_run
 from agent_platform.server.api.public_v2.interface import (
@@ -62,7 +63,10 @@ async def get_agents(
         description="Filter agents by name (starts with, case insensitive).",
     ),
 ) -> PaginatedResponse:
-    agents = [AgentCompat.from_agent(a) for a in await storage.list_agents(user.user_id)]
+    agents = [
+        AgentCompat.from_agent(a)
+        for a in filter_hidden_agents(await storage.list_agents(user.user_id))
+    ]
     if name:
         agents = [agent for agent in agents if agent.name.lower().startswith(name.lower())]
     return PaginatedResponse(next=None, has_more=False, data=agents)

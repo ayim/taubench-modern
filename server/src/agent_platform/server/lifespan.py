@@ -21,6 +21,7 @@ from agent_platform.server.evals.background_worker import (
 )
 from agent_platform.server.evals.repository import ScenarioRunTrialRepository
 from agent_platform.server.evals.run_scenario import run_evaluations, run_scenario
+from agent_platform.server.preinstalled_agents import ensure_preinstalled_agents
 
 # Import the data migration function
 from agent_platform.server.scripts.migration.auto_migrate import run_automatic_migration
@@ -83,7 +84,7 @@ def _start_pool_monitor() -> tuple[asyncio.Task, asyncio.Event]:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):  # noqa: PLR0915
     from agent_platform.core.otel_orchestrator import OtelOrchestrator
     from agent_platform.server.telemetry.setup_telemetry import setup_telemetry
 
@@ -109,16 +110,15 @@ async def lifespan(app: FastAPI):
     SecretService.get_instance().setup()
     logger.info("Secret Service initialized")
 
-    await StorageService.get_instance().setup()
+    storage = StorageService.get_instance()
+    await storage.setup()
     logger.info("Storage Service initialized")
-
     # Initialize QuotasService singleton with configuration values from storage
     await QuotasService.get_instance()
     logger.info("QuotasService initialized")
 
     # Load enabled observability integrations into orchestrator
     logger.info("Loading observability integrations...")
-    storage = StorageService.get_instance()
     observability_integrations = await storage.list_enabled_observability_integrations()
     orchestrator = OtelOrchestrator.get_instance()
     orchestrator.load_integrations(observability_integrations)
@@ -134,6 +134,9 @@ async def lifespan(app: FastAPI):
     migration_success = await run_automatic_migration()
     if not migration_success:
         logger.warning("Data migration from v1 to v2 failed, but server will continue")
+
+    await ensure_preinstalled_agents(storage=storage)
+    logger.info("Pre-installed agents ensured")
 
     # Start the database connection pool monitor (only for PostgreSQL)
     pool_monitor_task: asyncio.Task | None = None
@@ -169,7 +172,7 @@ async def lifespan(app: FastAPI):
         ResponseStreamPipe._DIFF_POOL.shutdown(wait=False)
 
         logger.info("Shutting down storage")
-        await StorageService.get_instance().teardown()
+        await storage.teardown()
         logger.info("Storage shut down")
 
 

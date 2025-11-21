@@ -38,6 +38,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/agents/search/by-metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Find agents by metadata
+     * @description Provide metadata key/value pairs as query parameters (e.g., ?project=xyz&visibility=hidden).
+     */
+    get: operations['search_agents_by_metadata_agents_search_by_metadata_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/agents/raw': {
     parameters: {
       query?: never;
@@ -12798,6 +12818,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  search_agents_by_metadata_agents_search_by_metadata_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'][];
         };
       };
     };
