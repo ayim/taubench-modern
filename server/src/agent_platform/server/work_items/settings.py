@@ -4,8 +4,8 @@ from typing import Literal
 
 
 def _execution_mode() -> Literal["batch", "slots"]:
-    # Default to batch mode
-    val = getenv("WORKITEMS_EXECUTION_MODE", "batch").strip().lower()
+    # Default to slots mode
+    val = getenv("WORKITEMS_EXECUTION_MODE", "slots").strip().lower()
     if val not in ["batch", "slots"]:
         raise ValueError(f"Invalid work-item execution mode: {val}")
     return val  # type: ignore[return-value]

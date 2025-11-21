@@ -1,3 +1,7 @@
+# Sema4.ai Agent Server 2.2.0b1 (2025-11-20)
+
+- GPT-1556 Enables the "slot" execution mode for Work Items by default.
+
 # Sema4.ai Agent Server 2.1.22 (2025-11-20)
 
 - add support for gpt 5.1 and gpt5-codex (#1702)
