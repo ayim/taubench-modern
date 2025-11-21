@@ -482,7 +482,11 @@ async def di_service_with_persistence(
             message=f"Agent {agent_id} not found",
         )
 
-    persistence_mode = await _persistence_mode(agent)
+    # TODO we haven't implemented the DATABASE persistence mode yet.
+    # Hard-code it to always be FILE.
+    # persistence_mode = await _persistence_mode(agent)
+    persistence_mode = PersistenceMode.FILE
+
     if persistence_mode == PersistenceMode.DATABASE:
         # Fall back to "classic" Document Intelligence service with a required Postgres datasource
         # Manually resolve the datasource dependency only when needed
