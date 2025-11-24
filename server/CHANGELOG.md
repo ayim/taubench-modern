@@ -1,11 +1,12 @@
-# Sema4.ai Agent Server 2.2.0b2 (2025-11-21)
+# Sema4.ai Agent Server 2.2.0 (2025-11-24)
 
-- [GH-1733](https://github.com/Sema4AI/agent-platform/pull/1733) Show message when evals fail because of timeout error
-- [GPT-1518] Migrate Grafana and LangSmith settings objects to Pydantic BaseModels
-
-# Sema4.ai Agent Server 2.2.0b1 (2025-11-20)
-
-- GPT-1556 Enables the "slot" execution mode for Work Items by default.
+- GH-1733 Show message when evals fail because of timeout error (#1733)
+- GPT-1518 Migrate Grafana and LangSmith settings objects to Pydantic BaseModels(#1688)
+- GPT-1556 Enables the "slot" execution mode for Work Items by default. (#1724)
+- GPT-1552 Server Boots w/ Pre-Installed Agent (#1721)
+- SDM-161 Update SDM prompt when using Snowflake to not require fully qualified columns (#1725)
+- DIN-796 Disable the DATABASE persistence. (#1741)
+- SDM-170 Return retry status for SDM SQL query tool failures instead of errors (#1740)
 
 # Sema4.ai Agent Server 2.1.22 (2025-11-20)
 
