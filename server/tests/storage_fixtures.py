@@ -12,6 +12,7 @@ if typing.TYPE_CHECKING:
 
     from agent_platform.server.storage.postgres import PostgresStorage
     from agent_platform.server.storage.sqlite import SQLiteStorage
+    from server.tests.storage.sample_model_creator import SampleModelCreator
 
 
 @pytest.fixture
@@ -217,3 +218,25 @@ async def storage(
 
     StorageService.reset()
     FileManagerService.reset()
+
+
+@pytest.fixture
+async def sqlite_model_creator(
+    sqlite_storage: "SQLiteStorage", tmp_path: Path
+) -> "SampleModelCreator":
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    smc = SampleModelCreator(sqlite_storage, tmp_path)
+    await smc.setup()
+    return smc
+
+
+@pytest.fixture
+async def postgres_model_creator(
+    postgres_storage: "PostgresStorage", tmp_path: Path
+) -> "SampleModelCreator":
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    smc = SampleModelCreator(postgres_storage, tmp_path)
+    await smc.setup()
+    return smc
