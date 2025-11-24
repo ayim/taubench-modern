@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { initializeSDK, createScenario, createContext, ScenarioTool, SaiSDK } from '../../src/index';
-import { AGENT_SETUP_PROMPTS, AgentSetupContextBuilder } from '../../src/sdk/scenarios/agentSetupBuilder';
+import { initializeSDK, createContext, SaiSDK } from '../../src/index';
+import { AGENT_SETUP_PROMPTS, AgentSetupContextBuilder } from '../../src/sdk/scenarios/agent-setup/context-builder';
 
 type Scenario =
   | 'generateName'
@@ -107,6 +107,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
             )
             .setContext(
               AgentSetupContextBuilder.forAgentNameGeneration({
+                agentModel: model,
+                agentModelProvider: provider,
                 agentName,
                 agentDescription,
                 agentRunbook,
@@ -121,6 +123,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           const systemInstruction: SaiSDK.Context = customSystemInstructions
             ? createContext().setSystemInstruction(customSystemInstructions).build()
             : AgentSetupContextBuilder.forAgentDescriptionGeneration({
+                agentModel: model,
+                agentModelProvider: provider,
                 agentName,
                 agentDescription,
                 agentRunbook,
@@ -149,6 +153,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           const systemInstruction: SaiSDK.Context = customSystemInstructions
             ? createContext().setSystemInstruction(customSystemInstructions).build()
             : AgentSetupContextBuilder.forRunbookGeneration({
+                agentModel: model,
+                agentModelProvider: provider,
                 agentName,
                 agentDescription,
                 agentRunbook,
@@ -173,6 +179,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           const systemInstruction: SaiSDK.Context = customSystemInstructions
             ? createContext().setSystemInstruction(customSystemInstructions).build()
             : AgentSetupContextBuilder.forConversationStarter({
+                agentModel: model,
+                agentModelProvider: provider,
                 agentName,
                 agentDescription,
                 agentRunbook,
@@ -200,6 +208,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           const systemInstruction: SaiSDK.Context = customSystemInstructions
             ? createContext().setSystemInstruction(customSystemInstructions).build()
             : AgentSetupContextBuilder.forConversationGuide({
+                agentModel: model,
+                agentModelProvider: provider,
                 agentName,
                 agentDescription,
                 agentRunbook,
@@ -246,6 +256,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           const systemInstruction: SaiSDK.Context = customSystemInstructions
             ? createContext().setSystemInstruction(customSystemInstructions).build()
             : AgentSetupContextBuilder.forActionSuggestion({
+                agentModel: model,
+                agentModelProvider: provider,
                 agentName,
                 agentDescription,
                 agentRunbook,
@@ -286,6 +298,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           const systemInstruction: SaiSDK.Context = customSystemInstructions
             ? createContext().setSystemInstruction(customSystemInstructions).build()
             : AgentSetupContextBuilder.forRunbookImprovementGeneration({
+                agentModel: model,
+                agentModelProvider: provider,
                 agentName,
                 agentDescription,
                 agentRunbook,
@@ -319,7 +333,16 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           return null;
       }
     },
-    [agentName, agentDescription],
+    [
+      model,
+      provider,
+      agentName,
+      agentDescription,
+      agentRunbook,
+      agentQuestionGroups,
+      agentConversationStarter,
+      agentAvailableActions,
+    ],
   );
 
   const handleExecute = useCallback(async () => {
@@ -377,6 +400,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           setScenarioPrompt(AGENT_SETUP_PROMPTS.generateName);
           setSystemInstruction(
             AgentSetupContextBuilder.forAgentNameGeneration({
+              agentModel: model,
+              agentModelProvider: provider,
               agentName,
               agentDescription,
               agentRunbook,
@@ -391,6 +416,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           setScenarioPrompt(AGENT_SETUP_PROMPTS.generateDescription);
           setSystemInstruction(
             AgentSetupContextBuilder.forAgentDescriptionGeneration({
+              agentModel: model,
+              agentModelProvider: provider,
               agentName,
               agentDescription,
               agentRunbook,
@@ -405,6 +432,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           setScenarioPrompt(AGENT_SETUP_PROMPTS.generateRunbook);
           setSystemInstruction(
             AgentSetupContextBuilder.forRunbookGeneration({
+              agentModel: model,
+              agentModelProvider: provider,
               agentName,
               agentDescription,
               agentRunbook,
@@ -419,6 +448,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           setScenarioPrompt(AGENT_SETUP_PROMPTS.generateConversationStarter);
           setSystemInstruction(
             AgentSetupContextBuilder.forConversationStarter({
+              agentModel: model,
+              agentModelProvider: provider,
               agentName,
               agentDescription,
               agentRunbook,
@@ -433,6 +464,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           setScenarioPrompt(AGENT_SETUP_PROMPTS.generateQuestionGroups);
           setSystemInstruction(
             AgentSetupContextBuilder.forConversationGuide({
+              agentModel: model,
+              agentModelProvider: provider,
               agentName,
               agentDescription,
               agentRunbook,
@@ -447,6 +480,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           setScenarioPrompt(AGENT_SETUP_PROMPTS.generateActionSuggestions);
           setSystemInstruction(
             AgentSetupContextBuilder.forActionSuggestion({
+              agentModel: model,
+              agentModelProvider: provider,
               agentName,
               agentDescription,
               agentRunbook,
@@ -462,6 +497,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
           setScenarioPrompt(AGENT_SETUP_PROMPTS.generateRunbookImprovements);
           setSystemInstruction(
             AgentSetupContextBuilder.forRunbookImprovementGeneration({
+              agentModel: model,
+              agentModelProvider: provider,
               agentName,
               agentDescription,
               agentRunbook,
@@ -482,6 +519,8 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
   }, [
     context,
     scenario,
+    model,
+    provider,
     agentName,
     agentDescription,
     agentRunbook,
@@ -518,8 +557,20 @@ export const ScenarioDemo: React.FC<ScenarioDemoProps> = ({
       setAgentDescription(context?.agentDescription || '');
       setAgentRunbook(context?.agentRunbook || '');
       setAgentConversationStarter(context?.agentConversationStarter || '');
-      setAgentQuestionGroups(context?.agentQuestionGroups || '');
-      setAgentAvailableActions(context?.agentAvailableActions || '');
+      setAgentQuestionGroups(
+        context?.agentQuestionGroups
+          ? typeof context.agentQuestionGroups === 'string'
+            ? context.agentQuestionGroups
+            : JSON.stringify(context.agentQuestionGroups)
+          : '',
+      );
+      setAgentAvailableActions(
+        context?.agentAvailableActions
+          ? typeof context.agentAvailableActions === 'string'
+            ? context.agentAvailableActions
+            : JSON.stringify(context.agentAvailableActions)
+          : '',
+      );
     } catch (err) {
       console.error('Failed to initialize SDK:', err);
     }

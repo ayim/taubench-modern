@@ -274,7 +274,7 @@ describe('EphemeralAgentClient', () => {
 
       expect(agentConfig).toBeDefined();
       expect(agentConfig.name).toContain('sai-sdk-generic-agent');
-      expect(agentConfig.description).toBe('Sai SDK Generic Agent');
+      expect(agentConfig.description).toBe('Sai General Purpose Agent');
       expect(agentConfig.runbook).toContain('OBJECTIVE');
       expect(agentConfig.platform_configs).toHaveLength(1);
     });
@@ -368,13 +368,13 @@ describe('EphemeralAgentClient', () => {
       30000,
     ); // 30 second timeout
 
-    it.skipIf(!hasValidApiKey()).only(
+    it.skipIf(!hasValidApiKey())(
       'should stream with generic agent successfully with sub context',
       async () => {
         const platformConfig = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
         const agentConfig = createSaiGenericAgentConfig({
           platform_configs: [platformConfig],
-          sub_context: '{"name": "John", "age": 30}',
+          agent_context: { raw: '{"name": "John", "age": 30}' },
           name: 'Test Generic Agent',
           description: 'Testing generic agent streaming',
         });

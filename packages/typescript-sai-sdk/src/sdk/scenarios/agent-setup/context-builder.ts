@@ -1,16 +1,17 @@
 /* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { ContextDefinitionBuilder } from '../context';
-import { ScenarioContextBuilder, ScenarioContextType } from '../scenarioContext';
-import { AGENT_SETUP_GENERATE_CONVERSATION_STARTER_INSTRUCTIONS } from './agentSetupGenConvStarter';
-import { AGENT_SETUP_GENERATE_DESCRIPTION_INSTRUCTIONS } from './agentSetupGenDescription';
-import { AGENT_SETUP_GENERATE_NAME_INSTRUCTIONS } from './agentSetupGenName';
-import { AGENT_SETUP_GENERATE_CONVERSATION_GUIDE_INSTRUCTIONS } from './agentSetupGenConvGuide';
-import { AGENT_SETUP_GENERATE_RUNBOOK_INSTRUCTIONS } from './agentSetupGenRunbook';
-import { AGENT_SETUP_GENERATE_RUNBOOK_IMPROVEMENT_INSTRUCTIONS } from './agentSetupGenRunbookImprov';
-import { AGENT_SETUP_GENERATE_RUNBOOK_SAI_WRITE_INSTRUCTIONS } from './agentSetupGenRunbookSaiWrite';
-import { AGENT_SETUP_GENERATE_RUNBOOK_SAI_REWRITE_INSTRUCTIONS } from './agentSetupGenRunbookSaiRewrite';
+import { ContextDefinitionBuilder } from '../../context';
+import { ContextBuilder, ContextBuilderType } from '../../../context-builder';
+import { AGENT_SETUP_GENERATE_CONVERSATION_STARTER_INSTRUCTIONS } from './gen-conv-starter';
+import { AGENT_SETUP_GENERATE_DESCRIPTION_INSTRUCTIONS } from './gen-description';
+import { AGENT_SETUP_GENERATE_NAME_INSTRUCTIONS } from './gen-name';
+import { AGENT_SETUP_GENERATE_CONVERSATION_GUIDE_INSTRUCTIONS } from './gen-conv-guide';
+import { AGENT_SETUP_GENERATE_RUNBOOK_INSTRUCTIONS } from './gen-runbook';
+import { AGENT_SETUP_GENERATE_RUNBOOK_IMPROVEMENT_INSTRUCTIONS } from './gen-runbook-improvements';
+import { AGENT_SETUP_GENERATE_RUNBOOK_SAI_WRITE_INSTRUCTIONS } from './gen-runbook-sai-write';
+import { AGENT_SETUP_GENERATE_RUNBOOK_SAI_REWRITE_INSTRUCTIONS } from './gen-runbook-sai-rewrite';
+import { AgentContext } from '../../../types';
 
 // System Instructions
 const AGENT_SETUP_GENERAL_INSTRUCTIONS = [
@@ -58,30 +59,15 @@ export const AGENT_SETUP_PROMPTS = {
 };
 
 /**
- * Agent configuration interface for context building
- */
-export interface AgentContextData {
-  agentName?: string;
-  agentDescription?: string;
-  agentRunbook?: string;
-  agentConversationStarter?: string;
-  agentQuestionGroups?: any[];
-  selectedActionPackages?: any[];
-  availableActionPackages?: any[];
-  availableMcpServers?: any[];
-  selectedMcpServers?: any[];
-}
-
-/**
  * Specialized context builder for Agent Setup scenarios
  */
-export class AgentSetupContextBuilder extends ScenarioContextBuilder {
-  private agentData: AgentContextData = {};
+export class AgentSetupContextBuilder extends ContextBuilder {
+  private agentData: AgentContext = {};
 
   /**
    * Set agent data from the agent configuration context
    */
-  setAgentData(agentData: AgentContextData): this {
+  setAgentData(agentData: AgentContext): this {
     this.agentData = { ...agentData };
     return this;
   }
@@ -91,6 +77,14 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
    */
   createAgentContext(): this {
     const context: Record<string, any> = {};
+
+    if (this.agentData.agentModel) {
+      context.agentModel = this.agentData.agentModel;
+    }
+
+    if (this.agentData.agentModelProvider) {
+      context.agentModelProvider = this.agentData.agentModelProvider;
+    }
 
     if (this.agentData.agentName) {
       context.agentName = this.agentData.agentName;
@@ -183,7 +177,7 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   /**
    * Create a context builder specifically for agent name generation
    */
-  static forAgentNameGeneration(agentData: AgentContextData): ContextDefinitionBuilder {
+  static forAgentNameGeneration(agentData: AgentContext): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
       .setRawSystemInstructions(AGENT_SETUP_GENERATE_NAME_INSTRUCTIONS)
@@ -193,7 +187,7 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   /**
    * Create a context builder specifically for runbook generation
    */
-  static forAgentDescriptionGeneration(agentData: AgentContextData): ContextDefinitionBuilder {
+  static forAgentDescriptionGeneration(agentData: AgentContext): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
       .setRawSystemInstructions(AGENT_SETUP_GENERATE_DESCRIPTION_INSTRUCTIONS)
@@ -205,8 +199,8 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
    * Create a context builder specifically for runbook generation
    */
   static forRunbookGeneration(
-    agentData: AgentContextData,
-    type: ScenarioContextType = 'creative',
+    agentData: AgentContext,
+    type: ContextBuilderType = 'creative',
   ): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
@@ -220,8 +214,8 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
    * Create a context builder specifically for runbook improvement generation
    */
   static forRunbookImprovementGeneration(
-    agentData: AgentContextData,
-    type: ScenarioContextType = 'creative',
+    agentData: AgentContext,
+    type: ContextBuilderType = 'creative',
   ): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
@@ -234,7 +228,7 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   /**
    * Create a context builder specifically for runbook generation
    */
-  static forRunbookWriteWithSai(agentData: AgentContextData): ContextDefinitionBuilder {
+  static forRunbookWriteWithSai(agentData: AgentContext): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
       .setRawSystemInstructions(AGENT_SETUP_GENERATE_RUNBOOK_SAI_WRITE_INSTRUCTIONS)
@@ -245,7 +239,7 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   /**
    * Create a context builder specifically for runbook generation
    */
-  static forRunbookRewriteWithSai(agentData: AgentContextData, selectedText?: string): ContextDefinitionBuilder {
+  static forRunbookRewriteWithSai(agentData: AgentContext, selectedText?: string): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
       .setRawSystemInstructions(AGENT_SETUP_GENERATE_RUNBOOK_SAI_REWRITE_INSTRUCTIONS)
@@ -257,7 +251,7 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   /**
    * Create a context builder specifically for action package suggestions
    */
-  static forActionSuggestion(agentData: AgentContextData): ContextDefinitionBuilder {
+  static forActionSuggestion(agentData: AgentContext): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
       .addAgentSetupObjectives([
@@ -295,7 +289,7 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   /**
    * Create a context builder specifically for conversation starter generation
    */
-  static forConversationStarter(agentData: AgentContextData): ContextDefinitionBuilder {
+  static forConversationStarter(agentData: AgentContext): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
       .setRawSystemInstructions(AGENT_SETUP_GENERATE_CONVERSATION_STARTER_INSTRUCTIONS)
@@ -307,7 +301,7 @@ export class AgentSetupContextBuilder extends ScenarioContextBuilder {
   /**
    * Create a context builder specifically for conversation guide generation
    */
-  static forConversationGuide(agentData: AgentContextData): ContextDefinitionBuilder {
+  static forConversationGuide(agentData: AgentContext): ContextDefinitionBuilder {
     const builder = new AgentSetupContextBuilder()
       .setAgentData(agentData)
       .setRawSystemInstructions(AGENT_SETUP_GENERATE_CONVERSATION_GUIDE_INSTRUCTIONS)

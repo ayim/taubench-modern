@@ -44,6 +44,7 @@ export class EphemeralAgentClient {
    */
   async createStream(options: CreateEphemeralStreamOptions): Promise<EphemeralStreamResult> {
     const { agent, messages = [], handlers, client_tools } = options;
+    logger.infoIf(this.verbose, `[EphemeralAgentClient.createStream] Creating stream with options:`, options);
 
     // Convert HTTP URL to WebSocket URL or use existing WebSocket URL
     let wsUrl: string;
@@ -362,6 +363,22 @@ export function createUserThreadMessageWithCitations(
 
 // Legacy aliases for backward compatibility
 export const createHumanThreadMessage = createUserThreadMessage;
+
+/**
+ * Utility function to create a agent thread message
+ */
+export function createAgentThreadMessage(text: string): ThreadMessage {
+  return {
+    role: 'agent',
+    content: [{ text, citations: [], kind: 'text' }],
+    complete: true,
+    message_id: crypto.randomUUID(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    agent_metadata: {},
+    server_metadata: {},
+  };
+}
 
 /**
  * Utility function to check if an error is an EphemeralAgentStreamError

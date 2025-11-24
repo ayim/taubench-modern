@@ -18,6 +18,14 @@ export * as SaiAgentPrompt from './agent-prompt';
 export * from './agent-ephemeral';
 export * as SaiAgentEphemeral from './agent-ephemeral';
 
+// Context builder module exports
+export * from './context-builder';
+export * as SaiContextBuilder from './context-builder';
+
+// Re-export commonly used types for convenience
+export * from './types';
+export type * from './types';
+
 // SDK module exports
 // Explicitly re-export to avoid ambiguity with './agent-prompt'
 export * from './sdk/index';

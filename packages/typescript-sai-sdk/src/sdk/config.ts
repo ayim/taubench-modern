@@ -1,15 +1,18 @@
 import { logger } from '../logger';
 import { PromptEndpointClient, PromptEndpointClientConfig } from '../agent-prompt/client';
 import { PlatformConfig } from '../platform-config';
+import { AgentArchitecture, EphemeralAgentClient } from '../agent-ephemeral';
+import { AgentContext } from '../types';
 import {
-  ActionPackage,
-  AgentArchitecture,
-  createSaiGenericAgentConfig,
-  EphemeralAgentClient,
-  McpServer,
-  UpsertAgentPayload,
-} from '../agent-ephemeral';
-import { createSaiAgentSetupConfig } from '../agent-ephemeral/agents/agentSetup';
+  EphemeralAgentRunbookEditor,
+  EphemeralAgents,
+  EphemeralAgentSetup,
+  EphemeralAgentsNames,
+  EphemeralAgentsNamesType,
+  EphemeralGeneric,
+} from '../agent-ephemeral/ephemeral-agents';
+
+const DEFAULT_EPHEMERAL_AGENT_TIMEOUT = 30000;
 
 /**
  * Configuration interface for the SAI SDK
@@ -19,17 +22,14 @@ export interface SaiSDKConfig {
   promptClient: PromptEndpointClientConfig;
   /** Platform configuration (API keys, etc.) for PromptRequest */
   platformConfig: PlatformConfig;
-  /** Available resources for the SAI SDK */
-  availableResources?: {
-    actionPackages?: ActionPackage[];
-    mcpServers?: McpServer[];
-  };
   /** Agent ID */
   agentId?: string;
   /** Agent architecture */
   agentArchitecture?: AgentArchitecture;
   /** Default model to use for scenario execution */
   defaultModel?: string;
+  /** Agent context for the SAI SDK */
+  agentContext?: AgentContext;
   /** Additional configuration options */
   options?: {
     /** Whether to enable debug logging */
@@ -43,11 +43,6 @@ export interface SaiSDKConfig {
     };
   };
 }
-
-type EphemeralAgents = {
-  generic: UpsertAgentPayload;
-  agentSetup: UpsertAgentPayload;
-};
 
 /**
  * Singleton class to manage global SDK configuration
@@ -94,22 +89,14 @@ export class SaiSDKConfiguration {
     // Initialize the ephemeral agent client
     this.ephemeralAgentClient = new EphemeralAgentClient({
       baseUrl: config.promptClient.baseUrl,
-      timeout: 30000,
+      timeout: config.options?.timeout ?? DEFAULT_EPHEMERAL_AGENT_TIMEOUT,
+      verbose: config.options?.debug,
     });
     // Initialize the ephemeral agents
     this.ephemeralAgents = {
-      generic: createSaiGenericAgentConfig({
-        platform_configs: [config.platformConfig],
-        agent_id: config.agentId,
-        agent_architecture: config.agentArchitecture,
-      }),
-      agentSetup: createSaiAgentSetupConfig({
-        platform_configs: [config.platformConfig],
-        availableActionPackages: config.availableResources?.actionPackages,
-        availableMcpServers: config.availableResources?.mcpServers,
-        agent_id: config.agentId,
-        agent_architecture: config.agentArchitecture,
-      }),
+      generic: new EphemeralGeneric(config),
+      agentSetup: new EphemeralAgentSetup(config),
+      agentRunbookEditor: new EphemeralAgentRunbookEditor(config),
     };
 
     // Log the configuration
@@ -166,6 +153,9 @@ export class SaiSDKConfiguration {
     return this.ephemeralAgentClient;
   }
 
+  /**
+   * Get the ephemeral agents
+   */
   public getEphemeralAgents(): EphemeralAgents {
     if (!this.ephemeralAgents) {
       throw new Error('SDK not initialized. Call initialize() first.');
@@ -230,6 +220,28 @@ export class SaiSDKConfiguration {
 
     if (this.config.options?.debug) {
       logger.info('SDK Configuration updated!');
+    }
+  }
+
+  /**
+   * Update the ephemeral agent configuration
+   */
+  public updateEphemeralAgentConfig(agentName: EphemeralAgentsNamesType, config: SaiSDKConfig): void {
+    if (!this.ephemeralAgents) {
+      throw new Error('SDK not initialized. Call initialize() first.');
+    }
+    switch (agentName) {
+      case EphemeralAgentsNames.generic:
+        this.ephemeralAgents.generic = new EphemeralGeneric(config);
+        break;
+      case EphemeralAgentsNames.agentSetup:
+        this.ephemeralAgents.agentSetup = new EphemeralAgentSetup(config);
+        break;
+      case EphemeralAgentsNames.agentRunbookEditor:
+        this.ephemeralAgents.agentRunbookEditor = new EphemeralAgentRunbookEditor(config);
+        break;
+      default:
+        throw new Error(`Invalid agent name: ${agentName}`);
     }
   }
 }

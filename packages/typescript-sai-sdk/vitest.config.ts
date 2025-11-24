@@ -34,6 +34,14 @@ export default defineConfig({
 
     // Allow only tests to be run
     allowOnly: true,
+
+    // Use single worker to avoid cleanup issues with tinypool
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
 
   // Resolve configuration for imports

@@ -1,11 +1,11 @@
-import { AGENT_SETUP_GENERATE_CONVERSATION_GUIDE_INSTRUCTIONS } from '../../../sdk/scenarios/agentSetupGenConvGuide';
-import { AGENT_SETUP_GENERATE_CONVERSATION_STARTER_INSTRUCTIONS } from '../../../sdk/scenarios/agentSetupGenConvStarter';
-import { AGENT_SETUP_GENERATE_DESCRIPTION_INSTRUCTIONS } from '../../../sdk/scenarios/agentSetupGenDescription';
-import { AGENT_SETUP_GENERATE_NAME_INSTRUCTIONS } from '../../../sdk/scenarios/agentSetupGenName';
-import { SAI_AGENT_SETUP_RUNBOOK_INTENT_DISCOVERY } from './runbookIntentDiscovery';
-import { SAI_AGENT_SETUP_RUNBOOK_GENERATE_RUNBOOKS } from './runbookGenRunbooks';
-import { SAI_AGENT_SETUP_RUNBOOK_GENERATE_ACTION_PACKAGES } from './runbookGenActionPackages';
-import { SAI_AGENT_SETUP_RUNBOOK_GENERATE_MCPSERVERS } from './runbookGenMCPServers';
+import { AGENT_SETUP_GENERATE_CONVERSATION_GUIDE_INSTRUCTIONS } from '../../../sdk/scenarios/agent-setup/gen-conv-guide';
+import { AGENT_SETUP_GENERATE_CONVERSATION_STARTER_INSTRUCTIONS } from '../../../sdk/scenarios/agent-setup/gen-conv-starter';
+import { AGENT_SETUP_GENERATE_DESCRIPTION_INSTRUCTIONS } from '../../../sdk/scenarios/agent-setup/gen-description';
+import { AGENT_SETUP_GENERATE_NAME_INSTRUCTIONS } from '../../../sdk/scenarios/agent-setup/gen-name';
+import { SAI_AGENT_SETUP_RUNBOOK_INTENT_DISCOVERY } from './runbook-intent-discovery';
+import { SAI_AGENT_SETUP_RUNBOOK_GENERATE_RUNBOOKS } from './runbook-gen-runbooks';
+import { SAI_AGENT_SETUP_RUNBOOK_GENERATE_ACTION_PACKAGES } from './runbook-gen-action-packages';
+import { SAI_AGENT_SETUP_RUNBOOK_GENERATE_MCPSERVERS } from './runbook-gen-mcp';
 
 export const SAI_AGENT_SETUP_RUNBOOK = `
 🚨🚨🚨 CRITICAL - READ THIS FIRST 🚨🚨🚨

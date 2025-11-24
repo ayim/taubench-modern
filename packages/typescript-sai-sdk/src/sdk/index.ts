@@ -10,9 +10,6 @@ export * from './scenarios';
 // Export context definition functions
 export * from './context';
 
-// Export scenario context builder
-export * from './scenarioContext';
-
 // Export configuration and SDK
 export * from './config';
 
@@ -20,4 +17,4 @@ export * from './config';
 export * from './scenarios';
 
 // Export agent setup builder
-export * from './scenarios/agentSetupBuilder';
+export * from './scenarios/agent-setup/context-builder';

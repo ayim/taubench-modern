@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/sai-sdk",
-  "version": "2.2.3",
+  "version": "2.3.0",
   "description": "Sema4.ai SDK for building AI scenarios with client side tools for the UI",
   "author": "Sema4.ai",
   "license": "SEE LICENSE IN LICENSE",

@@ -1,8 +1,8 @@
 import { createBasicAgentConfig } from '../client';
 import { ActionPackage, McpServer, QuestionGroup, ToolDefinitionPayload, UpsertAgentPayload } from '../types';
 import { createSimpleTool } from '../../sdk/tools';
-import { GenericAgentOptions } from './generic';
-import { SAI_AGENT_SETUP_RUNBOOK } from './agentSetupRunbooks/theRunbook';
+import { SAI_AGENT_SETUP_RUNBOOK } from './agent-setup-runbooks/the-runbook';
+import { AgentConfigurationOptions } from './types';
 
 const SAI_AGENT_SETUP_NAME = 'sai-sdk-agent-setup';
 const SAI_AGENT_SETUP_DESCRIPTION = 'Sai Expert Agent Setup';
@@ -20,16 +20,18 @@ type AgentSetupTools = {
 /**
  * Utility function to create a basic ephemeral agent configuration
  */
-export function createSaiAgentSetupConfig(options: GenericAgentOptions): UpsertAgentPayload {
+export function createSaiAgentSetupConfig(options: AgentConfigurationOptions): UpsertAgentPayload {
   const runbook = SAI_AGENT_SETUP_RUNBOOK.replace(
     '{AVAILABLE_ACTION_PACKAGES_PLACEHOLDER}',
-    options.availableActionPackages?.map((actionPackage) => JSON.stringify(actionPackage)).join('\n\n') || '',
+    options.agent_context?.availableActionPackages
+      ?.map((actionPackage) => JSON.stringify(actionPackage))
+      .join('\n\n') || '',
   ).replace(
     '{AVAILABLE_MCP_SERVERS_PLACEHOLDER}',
-    options.availableMcpServers?.map((mcpServer) => JSON.stringify(mcpServer)).join('\n\n') || '',
+    options.agent_context?.availableMcpServers?.map((mcpServer) => JSON.stringify(mcpServer)).join('\n\n') || '',
   );
 
-  return createBasicAgentConfig({
+  const agentConfig = createBasicAgentConfig({
     name: options.name || SAI_AGENT_SETUP_NAME + Date.now().toString(),
     description: options.description || SAI_AGENT_SETUP_DESCRIPTION,
     runbook: options.runbook || runbook,
@@ -37,6 +39,7 @@ export function createSaiAgentSetupConfig(options: GenericAgentOptions): UpsertA
     agent_id: options.agent_id,
     agent_architecture: options.agent_architecture,
   });
+  return agentConfig;
 }
 
 /**

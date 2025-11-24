@@ -4,15 +4,15 @@ import {
   createConservativeContext,
   createCreativeContext,
   createDefaultContext,
-} from './context';
-import { Context } from './types';
+} from './sdk/context';
+import { Context } from './sdk/types';
 
-export type ScenarioContextType = 'default' | 'conservative' | 'balanced' | 'creative';
+export type ContextBuilderType = 'default' | 'conservative' | 'balanced' | 'creative';
 
 /**
  * Base interface for context instruction builders
  */
-export interface IScenarioContextBuilder {
+export interface IContextBuilder {
   /**
    * Add a section with a title and content
    */
@@ -51,18 +51,18 @@ export interface IScenarioContextBuilder {
   /**
    * Build and return the Sai SDK creative context builder
    */
-  buildContextBuilder(type: ScenarioContextType): ContextDefinitionBuilder;
+  buildContextBuilder(type: ContextBuilderType): ContextDefinitionBuilder;
 
   /**
    * Build and return the final built context
    */
-  buildContext(type: ScenarioContextType): any;
+  buildContext(type: ContextBuilderType): any;
 }
 
 /**
  * Generic context class for building system instructions for Sai SDK scenarios
  */
-export class ScenarioContextBuilder implements IScenarioContextBuilder {
+export class ContextBuilder implements IContextBuilder {
   private sections: string[] = [];
   private objectives: string[] = [];
   private steps: string[] = [];
@@ -144,19 +144,19 @@ export class ScenarioContextBuilder implements IScenarioContextBuilder {
     const addContextData = (parts: string[]) => {
       if (Object.keys(this.contextData).length > 0) {
         parts.push(`========================================`);
-        parts.push('# Context');
+        parts.push('# --- START OF INPUT CONTEXT');
         Object.entries(this.contextData).forEach(([key, value]) => {
           const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
-          parts.push(`--------------------------------`);
+          parts.push(`------- START OF ${formattedKey.toLocaleUpperCase()} -------`);
           if (typeof value === 'object') {
-            parts.push(`## ${formattedKey}:`);
-            parts.push(`${JSON.stringify(value)}`);
+            parts.push(`   ${JSON.stringify(value).replace(/\n/gm, '\n    ')}`);
           } else {
-            parts.push(`## ${formattedKey}:`);
-            parts.push(`${value}`);
+            parts.push(`   ${String(value).replace(/\n/gm, '\n    ')}`);
           }
-          parts.push(`--------------------------------`);
+          parts.push(`------- END OF ${formattedKey.toLocaleUpperCase()} -------`);
+          parts.push(''); // Add empty line for spacing
         });
+        parts.push('# --- END OF INPUT CONTEXT');
         parts.push('========================================');
         parts.push(''); // Add empty line for spacing
       }
@@ -237,7 +237,7 @@ export class ScenarioContextBuilder implements IScenarioContextBuilder {
   /**
    * Build and return the Sai SDK creative context builder
    */
-  buildContextBuilder(type: ScenarioContextType): ContextDefinitionBuilder {
+  buildContextBuilder(type: ContextBuilderType): ContextDefinitionBuilder {
     const systemInstruction = this.buildContextInstructions();
 
     switch (type) {
@@ -257,7 +257,7 @@ export class ScenarioContextBuilder implements IScenarioContextBuilder {
   /**
    * Build and return the final built context
    */
-  buildContext(type: ScenarioContextType): Context {
+  buildContext(type: ContextBuilderType): Context {
     return this.buildContextBuilder(type).build();
   }
 
@@ -278,8 +278,8 @@ export class ScenarioContextBuilder implements IScenarioContextBuilder {
   /**
    * Create a copy of the current builder
    */
-  clone(): ScenarioContextBuilder {
-    const cloned = new ScenarioContextBuilder();
+  clone(): ContextBuilder {
+    const cloned = new ContextBuilder();
     cloned.sections = [...this.sections];
     cloned.objectives = [...this.objectives];
     cloned.steps = [...this.steps];

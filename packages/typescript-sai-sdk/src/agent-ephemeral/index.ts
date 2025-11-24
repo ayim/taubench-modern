@@ -12,3 +12,7 @@ export type * from './types';
 
 // Export client and utilities
 export * from './client';
+
+// Export ephemeral agents
+export * from './ephemeral-agents';
+export type * from './ephemeral-agents';

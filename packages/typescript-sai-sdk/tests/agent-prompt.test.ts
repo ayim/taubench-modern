@@ -275,10 +275,10 @@ describe('PromptEndpointClient', () => {
     });
   });
 
-  describe(
-    'Conversation with multiple turns',
-    () => {
-      it.skipIf(!hasValidApiKey()).skip('should handle multi-turn conversations', async () => {
+  describe('Conversation with multiple turns', () => {
+    it.skipIf(!hasValidApiKey()).skip(
+      'should handle multi-turn conversations',
+      async () => {
         const config = createOpenAIConfig(process.env.OPENAI_API_KEY || '');
 
         // 1st turn: user initiates conversation
@@ -339,10 +339,10 @@ describe('PromptEndpointClient', () => {
               text.includes('party') || text.includes('birthday') || text.includes('kids') || text.includes('daughter'),
           ),
         ).toBe(true);
-      });
-    },
-    { timeout: 90000 },
-  );
+      },
+      90000,
+    );
+  });
 
   describe('Model selection', () => {
     it.skipIf(!hasValidApiKey())('should include model parameter in URL when specified', async () => {
