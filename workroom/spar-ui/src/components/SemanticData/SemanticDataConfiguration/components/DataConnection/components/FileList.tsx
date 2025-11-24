@@ -15,7 +15,7 @@ export const FileList: FC<Props> = ({ files, onRemoveFile }) => {
   return (
     <Box py="$24">
       <Typography fontWeight="medium" mb="$8">
-        Added files
+        Added file
       </Typography>
       <Box
         display="flex"

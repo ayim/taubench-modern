@@ -63,10 +63,10 @@ export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveSte
     <>
       <Dialog.Content maxWidth={768}>
         <Typography variant="display-medium" mb="$12">
-          Upload Files
+          Upload a File
         </Typography>
         <Typography variant="body-large" color="content.subtle" mb="$40">
-          Upload your data files (.xlsx, .xls, or .csv) to start building your data model. The file will be used to
+          Upload your data file (.xlsx, .xls, or .csv) to start building your data model. The file will be used to
           extract its structure and columns in the next step — it won’t be stored in your agent.{' '}
           <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
             Learn more

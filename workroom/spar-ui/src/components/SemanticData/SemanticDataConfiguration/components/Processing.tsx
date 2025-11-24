@@ -28,7 +28,7 @@ export const Processing: FC = () => {
         <IconSai size={48} />
       </Box>
       <Typography variant="display-small" mb="$8">
-        SAI is working on your data model...
+        Sai is working on your data model...
       </Typography>
       <Typography variant="body-medium-loose" color="content.subtle" textAlign="center" mb="$32">
         Data model creation may take a few minutes,
