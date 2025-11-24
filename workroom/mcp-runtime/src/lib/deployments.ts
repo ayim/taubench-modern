@@ -1,12 +1,13 @@
+import type { AsyncResult } from '@sema4ai/robocloud-shared-utils';
 import { exec, spawn, type ChildProcess } from 'node:child_process';
-import { mkdir, rm, writeFile, readdir } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
+import { join } from 'node:path';
+import unzipper from 'unzipper';
 import z from 'zod';
+import type { Configuration } from '../configuration.ts';
 import type { Deployment } from '../types.ts';
 import { Mutex } from '../util/mutex.ts';
-import type { AsyncResult } from '@sema4ai/robocloud-shared-utils';
-import type { Configuration } from '../configuration.ts';
 import type { DatabaseClient } from './database.ts';
 
 // How long to delay the reboot of an Action Server process in case it stops unexpectedly
@@ -15,6 +16,19 @@ const ACTION_SERVER_REBOOT_DELAY_IN_MS = 5000;
 // Timeout / interval for polling for Action Server responsiveness
 const ACTION_SERVER_RESPONSIVENESS_TIMEOUT_IN_MS = 30_000;
 const ACTION_SERVER_RESPONSIVENESS_POLL_INTERVAL_IN_MS = 1000;
+
+type AgentPackageMetadata = z.infer<typeof AgentPackageMetadata>;
+const AgentPackageMetadata = z.array(
+  z.object({
+    action_packages: z.array(
+      z.object({
+        path: z.string(),
+        whitelist: z.string(),
+        action_package_version: z.string(),
+      }),
+    ),
+  }),
+);
 
 export const getDeploymentUrl = ({
   configuration,
@@ -44,17 +58,118 @@ const execAsync = (cmd: string) => {
   });
 };
 
-type IntrospectionResult = z.infer<typeof IntrospectionResult>;
-const IntrospectionResult = z.array(
-  z.object({
-    action_packages: z.array(
-      z.object({
-        path: z.string(),
-        whitelist: z.string(),
-      }),
-    ),
-  }),
-);
+const extractAgentPackage = async ({
+  agentPackageZipPath,
+  agentOutputDir,
+}: {
+  agentPackageZipPath: string;
+  agentOutputDir: string;
+}): AsyncResult<void> => {
+  try {
+    const zip = await unzipper.Open.file(agentPackageZipPath);
+    await zip.extract({ path: agentOutputDir });
+    return {
+      success: true,
+      data: undefined,
+    };
+  } catch (error) {
+    console.error(`Failed to extract Agent Package from ${agentPackageZipPath} to ${agentOutputDir}`);
+    return {
+      success: false,
+      error: {
+        code: 'failed_to_extract_agent_package',
+        message: 'Failed to extract Agent Package',
+      },
+    };
+  }
+};
+
+const getAgentPackageMetadata = async ({
+  agentOutputDir,
+}: {
+  agentOutputDir: string;
+}): AsyncResult<AgentPackageMetadata> => {
+  const agentPackageMetadataPath = join(agentOutputDir, '__agent_package_metadata__.json');
+  const agentPackageMetadataJson = await (async () => {
+    const fileContents = await readFile(agentPackageMetadataPath, {
+      encoding: 'utf-8',
+    });
+    try {
+      return JSON.parse(fileContents);
+    } catch {
+      return null;
+    }
+  })();
+  if (agentPackageMetadataJson === null) {
+    return {
+      success: false,
+      error: {
+        code: 'failed_to_parse_agent_metadata',
+        message: 'Failed to parse agent metadata as JSON',
+      },
+    };
+  }
+
+  const parseResult = AgentPackageMetadata.safeParse(agentPackageMetadataJson);
+  if (!parseResult.success) {
+    console.error(`Failed to parse Agent metadata: ${parseResult.error.message}`);
+    return {
+      success: false,
+      error: {
+        code: 'failed_to_parse_agent_metadata',
+        message: 'Failed to parse Agent metadata',
+      },
+    };
+  }
+
+  return {
+    success: true,
+    data: parseResult.data,
+  };
+};
+
+const importActionPackages = async ({
+  agentPackageMetadata,
+  agentOutputDir,
+  actionServerDataDir,
+  deploymentId,
+}: {
+  agentPackageMetadata: AgentPackageMetadata;
+  agentOutputDir: string;
+  actionServerDataDir: string;
+  deploymentId: string;
+}): AsyncResult<void> => {
+  for (const actionPackage of agentPackageMetadata[0].action_packages) {
+    const { path, whitelist, action_package_version } = actionPackage;
+    try {
+      console.log(`[${deploymentId}] Extracting Action Package`);
+      const actionPackageDir = `${agentOutputDir}/actions/${path}`;
+      const actionPackageZipPath = join(actionPackageDir, `${action_package_version}.zip`);
+      const actionPackageZip = await unzipper.Open.file(actionPackageZipPath);
+      await actionPackageZip.extract({ path: actionPackageDir });
+      await rm(actionPackageZipPath);
+
+      console.log(`[${deploymentId}] Importing Action Package to Action Server`);
+      await execAsync(
+        `action-server import --verbose --dir="${actionPackageDir}" --datadir="${actionServerDataDir}" --whitelist="${whitelist}"`,
+      );
+    } catch (error) {
+      console.error('Failed to import Action Package', (error as Error).message);
+      return {
+        success: false,
+        error: {
+          code: 'failed_to_import_action_package',
+          message: 'Failed to import Action Package',
+        },
+      };
+    }
+  }
+
+  return {
+    success: true,
+    data: undefined,
+  };
+};
 
 export const createActionDeployer = (ctx: { configuration: Configuration; db: DatabaseClient }) => {
   const { configuration, db } = ctx;
@@ -102,75 +217,26 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
     try {
       const agentOutputDir = await getAgentPackageExtractDir({ deploymentId });
 
-      try {
-        await execAsync(
-          `agent-cli package extract --verbose --overwrite --package "${agentPackageZipPath}" --output-dir "${agentOutputDir}"`,
-        );
-      } catch (error) {
-        console.error(`Failed to extract Agent Package from ${agentPackageZipPath} to ${agentOutputDir}`);
-        return {
-          success: false,
-          error: {
-            code: 'failed_to_extract_agent_package',
-            message: 'Failed to extract Agent Package',
-          },
-        };
+      const extractAgentPackageResult = await extractAgentPackage({ agentPackageZipPath, agentOutputDir });
+      if (!extractAgentPackageResult.success) {
+        return extractAgentPackageResult;
       }
 
-      console.log(`[${deploymentId}] Introspecting Agent Package`);
-
-      const introspectionResult = await (async (): AsyncResult<IntrospectionResult> => {
-        try {
-          const agentCliOutput = await execAsync(`agent-cli package metadata --package "${agentPackageZipPath}"`);
-          const parsedOutput = IntrospectionResult.safeParse(JSON.parse(agentCliOutput));
-          if (!parsedOutput.success) {
-            return {
-              success: false,
-              error: {
-                code: 'failed_to_parse_introspection_result',
-                message: 'Failed to parse Agent Package introspection result',
-              },
-            };
-          }
-          return {
-            success: true,
-            data: parsedOutput.data,
-          };
-        } catch (error) {
-          console.error('Agent Package introspection failed', (error as Error).message);
-          return {
-            success: false,
-            error: {
-              code: 'failed_to_introspect_agent_package',
-              message: 'Agent Package introspection failed',
-            },
-          };
-        }
-      })();
-      if (!introspectionResult.success) {
-        return introspectionResult;
+      const getAgentPackageMetadataResult = await getAgentPackageMetadata({ agentOutputDir });
+      if (!getAgentPackageMetadataResult.success) {
+        return getAgentPackageMetadataResult;
       }
+      const agentPackageMetadata = getAgentPackageMetadataResult.data;
 
       const actionServerDataDir = await getActionServerDataDir({ deploymentId });
-
-      const agentPackageMetadata = introspectionResult.data;
-      for (const actionPackage of agentPackageMetadata[0].action_packages) {
-        const { path, whitelist } = actionPackage;
-        try {
-          console.log(`[${deploymentId}] Importing deployment to Action Server`);
-          await execAsync(
-            `action-server import --verbose --dir="${agentOutputDir}/actions/${path}" --datadir="${actionServerDataDir}" --whitelist="${whitelist}"`,
-          );
-        } catch (error) {
-          console.error('Failed to import Action Package', (error as Error).message);
-          return {
-            success: false,
-            error: {
-              code: 'failed_to_import_action_package',
-              message: 'Failed to import Action Package',
-            },
-          };
-        }
+      const importActionPackagesResult = await importActionPackages({
+        agentPackageMetadata,
+        agentOutputDir,
+        actionServerDataDir,
+        deploymentId,
+      });
+      if (!importActionPackagesResult.success) {
+        return importActionPackagesResult;
       }
 
       console.log(`Done preparing environment for ${deploymentId}`);
@@ -207,7 +273,9 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
       console.log(`[${deploymentId}] Action Server runtime data directory is empty, preparing environment`);
       await prepareEnvironment({ deploymentId, agentPackageZipPath: await getAgentZipPath({ deploymentId }) });
     } else {
-      console.log(`[${deploymentId}] Action Server runtime data directory is not empty, skipping environment preparation`);
+      console.log(
+        `[${deploymentId}] Action Server runtime data directory is not empty, skipping environment preparation`,
+      );
     }
 
     const actionServer = spawn(

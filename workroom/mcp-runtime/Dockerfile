@@ -64,8 +64,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ARG ACTION_SERVER_VERSION=2.17.0
 ADD --chmod=755 https://cdn.sema4.ai/action-server/releases/${ACTION_SERVER_VERSION}/linux64/action-server /usr/local/bin/action-server
-ARG AGENT_CLI_VERSION=2.2.0
-ADD --chmod=755 https://cdn.sema4.ai/agent-cli/releases/v${AGENT_CLI_VERSION}/linux64/agent-cli /usr/local/bin/agent-cli
 
 ARG USERNAME=mcp-runtime
 # Directory for data persisted across container reboots
