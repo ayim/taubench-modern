@@ -42,7 +42,7 @@ export const DataConnectionFormSchema = z.object({
       name: z.string().min(1),
       columns: z.array(
         z.object({
-          name: z.string().min(1),
+          name: z.string(),
           data_type: z.string().min(1),
           sample_values: z.array(z.any()).optional(),
           description: z.string().optional(),

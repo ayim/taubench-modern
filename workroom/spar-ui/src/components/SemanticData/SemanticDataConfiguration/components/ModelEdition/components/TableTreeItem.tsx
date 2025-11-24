@@ -43,7 +43,7 @@ export const TableTreeItem: FC<Props> = ({ baseTableName, tableIndex, dimensionI
 
   const description = (
     <>
-      {`${dimension.expr} • ${dimension.data_type.replace('!', '')}  `}{' '}
+      {`${dimension.expr || 'No name'} • ${dimension.data_type.replace('!', '')}  `}{' '}
       {errors && (
         <>
           <br />
@@ -69,7 +69,7 @@ export const TableTreeItem: FC<Props> = ({ baseTableName, tableIndex, dimensionI
   return (
     <TreeList.Item
       key={dimension.name}
-      label={dimension.name}
+      label={dimension.name || <Typography color="content.subtle.light">No name</Typography>}
       icon={IconDbColumn}
       description={description}
       columns={

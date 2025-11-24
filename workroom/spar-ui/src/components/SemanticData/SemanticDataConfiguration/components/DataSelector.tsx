@@ -154,7 +154,7 @@ export const DataSelector = ({
                   key={`${table.name}.${column.name}`}
                   checked={isColumnSelected(table.name, column.name)}
                   onChange={() => toggleColumnSelection(table.name, column)}
-                  label={column.name}
+                  label={column.name || '-'}
                   icon={IconDbColumn}
                 />
               ))}

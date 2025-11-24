@@ -11,6 +11,7 @@ import {
   DataConnectionFormContext,
   DataConnectionFormSchema,
   DataSourceType,
+  tablesToDataSelection,
 } from '../../form';
 
 type Props = {
@@ -37,6 +38,8 @@ export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveSte
         error: undefined,
         inspectionResult,
       });
+      setValue('dataSelection', tablesToDataSelection(inspectionResult));
+
       setAddedFiles([file.name]);
       setValue('fileRefId', file.name);
     } catch (error) {
