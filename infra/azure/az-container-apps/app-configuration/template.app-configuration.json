@@ -419,10 +419,22 @@
                 "path": "/api/health",
                 "port": 8003
               },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 5,
+              "failureThreshold": 5,
+              "successThreshold": 1
+            },
+            {
+              "type": "readiness",
+              "httpGet": {
+                "path": "/api/ready",
+                "port": 8003
+              },
               "initialDelaySeconds": 60,
               "periodSeconds": 30,
               "timeoutSeconds": 5,
-              "failureThreshold": 3,
+              "failureThreshold": 15,
               "successThreshold": 1
             }
           ]

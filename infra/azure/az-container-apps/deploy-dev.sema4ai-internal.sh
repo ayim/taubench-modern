@@ -7,9 +7,14 @@
 set -euo pipefail
 
 # Component tags on CI ECR
-SPAR_TAG="2.1.21_ec51afea6.20251119T082059Z"
-MCP_RUNTIME_TAG="1.0.0_91f9670.20251118T094215Z"
-DATA_SERVER_TAG="1.4.0_952c28f.20251106T060331Z"
+spar_ecr_ref="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/ace/spar:2.1.21_ec51afea6.20251119T082059Z"
+mcp_runtime_ecr_ref="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/ace/mcp-runtime:1.0.0_91f9670.20251118T094215Z"
+data_server_ecr_ref="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:1.4.0_952c28f.20251106T060331Z"
+
+# Extract image tags
+spar_tag="$(cut -d: -f2 <<< ${spar_ecr_ref})"
+mcp_runtime_tag="$(cut -d: -f2 <<< ${mcp_runtime_ecr_ref})"
+data_server_tag="$(cut -d: -f2 <<< ${data_server_ecr_ref})"
 
 # Export Terraform output
 tf_output=$(terraform output -json)
@@ -29,25 +34,29 @@ export ACR_LOGIN_SERVER
 # Copy CI images to Azure
 az acr login --name "${ACR_REGISTRY_NAME}"
 
-export SPAR_IMAGE_REF="${ACR_LOGIN_SERVER}/s4te-spar:${SPAR_TAG}"
+# Pull, retag and push images
+export SPAR_IMAGE_REF="${ACR_LOGIN_SERVER}/s4te-spar:${spar_tag}"
+docker pull "${spar_ecr_ref}"
 docker tag \
-  "024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/ace/spar:${SPAR_TAG}" \
+  "${spar_ecr_ref}" \
   "${SPAR_IMAGE_REF}"
 docker push "${SPAR_IMAGE_REF}"
 
-export MCP_RUNTIME_IMAGE_REF="${ACR_LOGIN_SERVER}/s4te-mcp-runtime:${MCP_RUNTIME_TAG}"
+export MCP_RUNTIME_IMAGE_REF="${ACR_LOGIN_SERVER}/s4te-mcp-runtime:${mcp_runtime_tag}"
+docker pull "${mcp_runtime_ecr_ref}"
 docker tag \
-  "024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/ace/mcp-runtime:${MCP_RUNTIME_TAG}" \
+  "${mcp_runtime_ecr_ref}" \
   "${MCP_RUNTIME_IMAGE_REF}"
 docker push "${MCP_RUNTIME_IMAGE_REF}"
 
-export DATA_SERVER_IMAGE_REF="${ACR_LOGIN_SERVER}/s4te-data-server:${DATA_SERVER_TAG}"
+export DATA_SERVER_IMAGE_REF="${ACR_LOGIN_SERVER}/s4te-data-server:${data_server_tag}"
+docker pull "${data_server_ecr_ref}"
 docker tag \
-  "024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:${DATA_SERVER_TAG}" \
+  "${data_server_ecr_ref}" \
   "${DATA_SERVER_IMAGE_REF}"
 docker push "${DATA_SERVER_IMAGE_REF}"
 
-# Our CI deployment configuration
+# Export our CI deployment configuration
 export RELEASE_NAME="main"
 export DB_NAME="agents_teamedition1"
 

@@ -10,10 +10,9 @@ import { createActionDeployer, getDeploymentUrl } from './lib/deployments.ts';
 import { appRouter } from './router.ts';
 
 const run = async () => {
+  let applicationReady = false;
+
   const configuration = getConfiguration();
-  const db = await runMigrationsAndGetDatabaseClient(configuration);
-  const runner = createActionDeployer({ configuration, db });
-  await runner.rehydrateDeployments();
 
   await mkdir(join(configuration.persistentDataDirectory, 'sema4ai'), {
     recursive: true,
@@ -22,8 +21,29 @@ const run = async () => {
   const app = express();
 
   app.get('/api/health', (_req, res) => {
-    return res.status(200).json({ status: 'ok' });
+    return res.status(200).json({
+      status: 'ok',
+    });
   });
+
+  app.get('/api/ready', (_req, res) => {
+    if (applicationReady) {
+      return res.status(200).json({
+        status: 'ok',
+      });
+    }
+    return res.status(503).json({
+      status: 'error',
+      reason: 'action server rehydration in progress',
+    });
+  });
+
+  console.log(`mcp-runtime listening on ${configuration.httpApiPort}`);
+  const server = app.listen(configuration.httpApiPort);
+
+  const db = await runMigrationsAndGetDatabaseClient(configuration);
+  const runner = createActionDeployer({ configuration, db });
+  await runner.rehydrateDeployments();
 
   app.post(
     '/api/deployments/:deploymentId',
@@ -95,8 +115,7 @@ const run = async () => {
     }),
   );
 
-  console.log(`mcp-runtime listening on ${configuration.httpApiPort}`);
-  const server = app.listen(configuration.httpApiPort);
+  applicationReady = true;
 
   const activeConnections = new Set<Socket>();
 
