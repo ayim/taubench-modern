@@ -4,11 +4,14 @@ on:
   workflow_dispatch:
   pull_request:
     types: [labeled]
+  schedule:
+    # Run every 12 hours
+    - cron: '0 */12 * * *'
 
 jobs:
   semantic-data-models:
     runs-on: ubuntu-24.04
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'semantic-data-models'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event.label.name == 'semantic-data-models'
     timeout-minutes: 90
 
     steps:
@@ -77,10 +80,11 @@ jobs:
           POSTGRES_PASSWORD: agents
           POSTGRES_DB: agents
           # Snowflake credentials (optional - tests will skip if not provided)
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_ACCOUNT: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_USERNAME }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.INTEGRATION_TEST_SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_ROLE: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_ROLE }}
 
       - name: Stop SPAR stack
         if: always()
@@ -95,3 +99,25 @@ jobs:
           docker compose logs
           echo "=== Container Status ==="
           docker compose ps -a
+
+      - name: Send Slack notification on success
+        if: success()
+        uses: slackapi/slack-github-action@37ebaef184d7626c5f204ab8d3baff4262dd30f0
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SEMANTIC_TEAM_WEBHOOK_URL }}
+        with:
+          payload: |
+            {
+              "text": "✅ *Semantic Data Models Tests Passed*\n\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Triggered by:* ${{ github.event_name }}\n*Workflow Run:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+
+      - name: Send Slack notification on failure
+        if: failure()
+        uses: slackapi/slack-github-action@37ebaef184d7626c5f204ab8d3baff4262dd30f0
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SEMANTIC_TEAM_WEBHOOK_URL }}
+        with:
+          payload: |
+            {
+              "text": "❌ *Semantic Data Models Tests Failed*\n\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Triggered by:* ${{ github.event_name }}\n*Workflow Run:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
