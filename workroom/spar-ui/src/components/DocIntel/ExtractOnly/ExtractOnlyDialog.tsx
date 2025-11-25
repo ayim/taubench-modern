@@ -2,8 +2,10 @@ import { FC, useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { Box, Dialog, Typography, Switch, Button, Steps, Divider, Tooltip } from '@sema4ai/components';
 import { IconPencil, IconCheckCircle, IconRefresh, IconStatusIdle, IconStatusEnabled } from '@sema4ai/icons';
 import { ConfigurationPanel, ConfigurationPanelRef } from './ConfigurationPanel';
+import { ExtractResultsPanel } from './ExtractResultsPanel';
 import { DocumentViewer } from '../shared/components/DocumentViewer';
-import { useResizablePanel } from '../shared/hooks/useResizablePanel';
+import { useResizablePanel, useResultsSelection } from '../shared/hooks';
+import { extractedDataToBlocks } from '../shared/utils';
 import type { ExtractSchemaResponse, ExtractResponse } from '../shared/types';
 import { usePdfAnnotations } from '../shared/hooks/usePdfAnnotations';
 import { useExtractDialogState } from './hooks/useExtractDialogState';
@@ -74,10 +76,66 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     extractResult,
   });
 
+  // Prevent switching to Results tab while generating or extracting
+  const handleTabChange = useCallback(
+    (newTab: number) => {
+      if (newTab === 1 && (isGeneratingSchema || isExtracting)) {
+        return; // Don't allow switching to Results tab during processing
+      }
+      setActiveTab(newTab);
+    },
+    [isGeneratingSchema, isExtracting],
+  );
+
   const canReExtract = useMemo(
     () => hasChanges && !!currentSchema && !isGeneratingSchema && !isExtracting,
     [hasChanges, currentSchema, isGeneratingSchema, isExtracting],
   );
+
+  // Transform extracted data to blocks for Results tab
+  const extractedBlocks = useMemo(() => {
+    if (!extractResultData) return [];
+    return extractedDataToBlocks(extractResultData);
+  }, [extractResultData]);
+
+  // Bidirectional selection between PDF and Results
+  const { selectedBlockId, selectedFieldId, handlePdfFieldClick, handleBlockClick } = useResultsSelection({
+    blocks: extractedBlocks,
+  });
+
+  // Render content based on active tab
+  const renderTabContent = () => {
+    if (activeTab === 0) {
+      return (
+        <ConfigurationPanel
+          ref={configPanelRef}
+          currentSchema={currentSchema}
+          extractResultData={extractResultData}
+          showRawJson={showRawJson}
+          isGeneratingSchema={isGeneratingSchema}
+          isExtracting={isExtracting}
+          error={error}
+          onReExtract={handleReExtract}
+          onSchemaChange={handleSchemaChange}
+          onHasChanges={setHasChanges}
+        />
+      );
+    }
+
+    return (
+      <ExtractResultsPanel
+        currentSchema={currentSchema}
+        extractResult={extractResultData}
+        extractedBlocks={extractedBlocks}
+        isGeneratingSchema={isGeneratingSchema}
+        isExtracting={isExtracting}
+        error={error}
+        showRawJson={showRawJson}
+        selectedBlockId={selectedBlockId}
+        onBlockClick={handleBlockClick}
+      />
+    );
+  };
 
   const handleClose = useCallback(() => {
     if (hasChanges) {
@@ -118,13 +176,12 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
         .replace(/_+/g, '_')
         .replace(/^_|_$/g, '');
 
-      // Add field to schema (mark as new field until re-extraction)
+      // Add field to schema
       const updatedProperties = {
         ...currentSchema.properties,
         [fieldName]: {
           type: 'string',
           description: userDescription, // User's typed instruction
-          isNewField: true,
         },
       };
 
@@ -140,6 +197,29 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     },
     [currentSchema, saveTextSelectionAsField, handleSchemaChange, setHasChanges],
   );
+
+  // Prevent escape key from closing the dialog
+  useEffect(() => {
+    if (!isOpen) {
+      return () => {
+        // No-op cleanup when dialog is closed
+      };
+    }
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey, true);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey, true);
+    };
+  }, [isOpen]);
 
   // Initialize data once on mount: use provided initial data or generate fresh
   useEffect(() => {
@@ -189,14 +269,15 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
         <Dialog.Content>
           <Box display="flex" gap="$16" flex="1" height="100%" width="100%" maxWidth="100%" overflow="scroll">
             <Box display="flex" flexDirection="column" flex="1" height="100%" minWidth="600px">
+              {/* Temporarily disabled: onAnnotateToggle prop removed */}
               <DocumentViewer
                 key={`extract-${extractRevision}`}
                 file={file}
                 extractedData={extractedDataWithCitations}
                 isAnnotating={isAnnotating}
-                isProcessing={isGeneratingSchema || isExtracting}
+                selectedFieldId={selectedFieldId}
+                onFieldClick={handlePdfFieldClick}
                 onAnnotationCreate={handleAnnotationCreate}
-                onAnnotateToggle={() => setIsAnnotating(!isAnnotating)}
                 showAnnotationPopup={showAnnotationPopup}
                 pendingAnnotation={pendingAnnotation}
                 onSaveAnnotation={handleSaveAnnotationField}
@@ -241,13 +322,13 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
                 flex="1"
               >
                 <Box p="$24" width="50%" margin="0 auto">
-                  <Steps activeStep={activeTab} setActiveStep={setActiveTab} size="large">
+                  <Steps activeStep={activeTab} setActiveStep={handleTabChange} size="large">
                     <Steps.Step stepIcon={IconPencil}>
                       <Typography fontSize="$14" fontWeight="medium">
                         Configuration
                       </Typography>
                     </Steps.Step>
-                    <Steps.Step stepIcon={IconCheckCircle}>
+                    <Steps.Step stepIcon={IconCheckCircle} disabled={isGeneratingSchema || isExtracting}>
                       <Typography fontSize="$14" fontWeight="medium">
                         Results
                       </Typography>
@@ -256,27 +337,9 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
                 </Box>
                 <Divider />
 
+                {/* RESULTS CONTENT */}
                 <Box flex="1" overflow="hidden" minHeight="0" display="flex" flexDirection="column">
-                  {activeTab === 0 ? (
-                    <ConfigurationPanel
-                      ref={configPanelRef}
-                      currentSchema={currentSchema}
-                      extractResult={extractResultData}
-                      isGeneratingSchema={isGeneratingSchema}
-                      isExtracting={isExtracting}
-                      error={error}
-                      onReExtract={handleReExtract}
-                      onSchemaChange={handleSchemaChange}
-                      onHasChanges={setHasChanges}
-                      showRawJson={showRawJson}
-                    />
-                  ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" flex="1" padding="$32">
-                      <Typography variant="display-large" fontWeight="medium">
-                        Coming Soon
-                      </Typography>
-                    </Box>
-                  )}
+                  {renderTabContent()}
                 </Box>
 
                 <Box

@@ -1,7 +1,5 @@
-import { Table, Input, Box, TableRowProps, Select, Button, Tooltip } from '@sema4ai/components';
-import { IconTrash } from '@sema4ai/icons';
-import { FC, useState, useEffect, useMemo } from 'react';
-import { StyledDeleteButton } from '../../DocumentIntelligence/components/common/styles';
+import { Table, Input, Box, TableRowProps, Select, Button } from '@sema4ai/components';
+import { FC, useState, useEffect, useRef } from 'react';
 
 export interface SchemaFieldData {
   id: string;
@@ -12,15 +10,12 @@ export interface SchemaFieldData {
   level?: number;
   parentPath?: string;
   hasChildren?: boolean;
-  isNewField?: boolean;
 }
 
 export interface SchemaFieldRowProps {
   onChange: (id: string, key: 'name' | 'type' | 'description', value: string) => void;
-  onDelete?: (id: string) => void;
   onToggleExpand?: (fieldId: string) => void;
   expandedFields?: Set<string>;
-  showDeleteButton?: boolean;
   disabled?: boolean;
   onBlur?: (id: string, key: 'name' | 'type' | 'description') => (e: React.FocusEvent<HTMLInputElement>) => void;
 }
@@ -35,50 +30,48 @@ const TYPE_OPTIONS = [
 ];
 
 export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowProps>> = ({ rowData, props }) => {
-  const { onChange, onDelete, onToggleExpand, expandedFields, showDeleteButton, disabled, onBlur } = props;
+  const { onChange, onToggleExpand, expandedFields, disabled, onBlur } = props;
 
   const [localName, setLocalName] = useState(rowData.name);
   const [localDescription, setLocalDescription] = useState(rowData.description || '');
 
+  const prevFieldIdRef = useRef(rowData.id);
+  const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync props only when field ID changes to prevent overwriting local state during typing
   useEffect(() => {
-    setLocalName(rowData.name);
-    setLocalDescription(rowData.description || '');
-  }, [rowData.name, rowData.description]);
+    if (prevFieldIdRef.current !== rowData.id) {
+      if (descriptionTimeoutRef.current) {
+        clearTimeout(descriptionTimeoutRef.current);
+        descriptionTimeoutRef.current = null;
+      }
+      setLocalName(rowData.name);
+      setLocalDescription(rowData.description || '');
+      prevFieldIdRef.current = rowData.id;
+    }
+
+    return () => {
+      if (descriptionTimeoutRef.current) {
+        clearTimeout(descriptionTimeoutRef.current);
+      }
+    };
+  }, [rowData.id, rowData.name, rowData.description]);
 
   const indent = (rowData.level || 0) * 32;
   const isExpanded = expandedFields?.has(rowData.id) ?? false;
   const hasChildren = rowData.hasChildren ?? false;
 
   // Get row styling based on nesting level
-  const rowStyle = useMemo(() => {
-    if ((rowData.level || 0) === 0) return {};
-
-    return {
-      backgroundColor: 'rgba(229, 231, 235, 0.25)',
-      borderLeft: '4px solid rgba(64, 176, 50, 0.4)',
-    };
-  }, [rowData.level]);
+  const rowStyle: React.CSSProperties = {};
+  if ((rowData.level || 0) > 0) {
+    rowStyle.backgroundColor = 'rgba(229, 231, 235, 0.25)';
+    rowStyle.borderLeft = '4px solid rgba(64, 176, 50, 0.4)';
+  }
 
   return (
     <Table.Row data-field-id={rowData.id} style={rowStyle}>
       <Table.Cell>
         <Box display="flex" alignItems="center" gap="$4" style={{ paddingLeft: `${indent}px` }}>
-          {/* NEW indicator for fields not yet extracted */}
-          {rowData.isNewField && (
-            <Tooltip text="New field - will be extracted on re-run" placement="top">
-              <Box
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: '#f97316',
-                  flexShrink: 0,
-                }}
-              />
-            </Tooltip>
-          )}
-
-          {/* Expand/Collapse button for fields with children */}
           {hasChildren ? (
             <Button
               variant="ghost"
@@ -111,9 +104,13 @@ export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowPro
             value={localName}
             onChange={(e) => {
               setLocalName(e.target.value);
-              onChange(rowData.id, 'name', e.target.value);
             }}
-            onBlur={onBlur?.(rowData.id, 'name')}
+            onBlur={(e) => {
+              if (e.target.value !== rowData.name) {
+                onChange(rowData.id, 'name', e.target.value);
+              }
+              onBlur?.(rowData.id, 'name')(e);
+            }}
             onClick={(e) => {
               e.stopPropagation();
             }}
@@ -145,10 +142,25 @@ export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowPro
           placeholder="Description"
           value={localDescription}
           onChange={(e) => {
-            setLocalDescription(e.target.value);
-            onChange(rowData.id, 'description', e.target.value);
+            const newValue = e.target.value;
+            setLocalDescription(newValue);
+            if (descriptionTimeoutRef.current) {
+              clearTimeout(descriptionTimeoutRef.current);
+            }
+            descriptionTimeoutRef.current = setTimeout(() => {
+              onChange(rowData.id, 'description', newValue);
+            }, 300);
           }}
-          onBlur={onBlur?.(rowData.id, 'description')}
+          onBlur={(e) => {
+            if (descriptionTimeoutRef.current) {
+              clearTimeout(descriptionTimeoutRef.current);
+              descriptionTimeoutRef.current = null;
+            }
+            if (e.target.value !== rowData.description) {
+              onChange(rowData.id, 'description', e.target.value);
+            }
+            onBlur?.(rowData.id, 'description')(e);
+          }}
           onClick={(e) => {
             e.stopPropagation();
           }}
@@ -159,23 +171,6 @@ export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowPro
           disabled={disabled}
         />
       </Table.Cell>
-
-      {showDeleteButton && onDelete && (
-        <Table.Cell style={{ textAlign: 'left' }}>
-          <StyledDeleteButton
-            aria-label="Delete Field"
-            size="medium"
-            variant="outline"
-            icon={IconTrash}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(rowData.id);
-            }}
-            disabled={disabled}
-            round
-          />
-        </Table.Cell>
-      )}
     </Table.Row>
   );
 };

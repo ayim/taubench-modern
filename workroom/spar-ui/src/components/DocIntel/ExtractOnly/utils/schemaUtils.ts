@@ -1,9 +1,17 @@
 import type { ExtractionSchemaPayload } from '../../shared/types';
 
-interface FieldDefinition {
+/**
+ * Type definitions for schema field structures
+ */
+export interface SchemaFieldDefinition {
   type?: string;
-  properties?: Record<string, unknown>;
-  items?: { type?: string; properties?: Record<string, unknown> };
+  description?: string;
+  properties?: Record<string, SchemaFieldDefinition>;
+  items?: SchemaFieldDefinition;
+}
+
+export interface SchemaFieldProperties {
+  [key: string]: SchemaFieldDefinition;
 }
 
 /**
@@ -24,7 +32,7 @@ export const extractFieldPathsFromSchema = (
     const currentPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
     paths.add(currentPath);
 
-    const fieldDefTyped = fieldDef as FieldDefinition;
+    const fieldDefTyped = fieldDef as SchemaFieldDefinition;
 
     if (fieldDefTyped.type === 'object' && fieldDefTyped.properties) {
       const nestedPaths = extractFieldPathsFromSchema(
@@ -113,36 +121,4 @@ export const filterCitationsBySchema = (
 
   const result = filterCitationsRecursive(citations);
   return result as Record<string, unknown>;
-};
-
-/**
- * Finds all parent fields in a schema that have children (object or array types)
- */
-export const findParentFields = (properties: Record<string, unknown>, parentPath: string = ''): Set<string> => {
-  const expanded = new Set<string>();
-
-  const traverse = (props: Record<string, unknown>, path: string = '') => {
-    Object.entries(props).forEach(([fieldName, fieldValue]) => {
-      const value = fieldValue as FieldDefinition;
-      const fieldPath = path ? `${path}.${fieldName}` : fieldName;
-      const hasChildren = Boolean(
-        (value.type === 'object' && value.properties) ||
-          (value.type === 'array' && value.items?.type === 'object' && value.items?.properties),
-      );
-
-      if (hasChildren) {
-        expanded.add(fieldPath);
-
-        if (value.type === 'object' && value.properties) {
-          traverse(value.properties, fieldPath);
-        }
-        if (value.type === 'array' && value.items?.properties) {
-          traverse(value.items.properties, fieldPath);
-        }
-      }
-    });
-  };
-
-  traverse(properties, parentPath);
-  return expanded;
 };

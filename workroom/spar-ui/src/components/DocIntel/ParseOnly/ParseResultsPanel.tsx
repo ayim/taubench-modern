@@ -52,7 +52,7 @@ export const ParseResultsPanel: FC<ParseResultsPanelProps> = ({ parseResult, isL
 
   // Toggle between summary view and raw JSON view
   return showRawJson ? (
-    <FormattedJsonData data={parseResult} downloadFileName="parse_results.json" ariaLabel="parse-results-json" />
+    <FormattedJsonData data={parseResult} variant="parse-results" />
   ) : (
     <ParseResultsSummary parseResult={chunks} />
   );

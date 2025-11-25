@@ -2,31 +2,40 @@ import { FC } from 'react';
 import { Box, Typography } from '@sema4ai/components';
 import { ProcessingLoadingState } from '../shared/components/ProcessingLoadingState';
 import { FormattedJsonData } from '../shared/components/FormattedJsonData';
+import { DocumentResultsRenderer } from '../shared/components/DocumentResultsRenderer';
 import { ExtractResponse, ExtractionSchemaPayload } from '../shared/types';
 import { PROCESSING_STATES } from '../shared/constants/processingStates';
+import type { ParsedBlock } from '../shared/components/DocumentResultsRenderer';
 
 /**
- * ExtractResultsPanel - Display extraction schema and extracted data
- * Handles loading states for both schema generation and extraction steps
+ * ExtractResultsPanel - Display extraction results UI for extract-only flow
+ * Handles loading states, error states, and displays extraction results
  */
 
 interface ExtractResultsPanelProps {
   currentSchema: ExtractionSchemaPayload | null;
   extractResult: ExtractResponse | null;
+  extractedBlocks?: ParsedBlock[];
   isGeneratingSchema: boolean;
   isExtracting: boolean;
   error: string | null;
   showRawJson: boolean;
+  selectedBlockId?: string | null;
+  onBlockClick?: (blockId: string) => void;
 }
 
 export const ExtractResultsPanel: FC<ExtractResultsPanelProps> = ({
   currentSchema,
   extractResult,
+  extractedBlocks = [],
   isGeneratingSchema,
   isExtracting,
   error,
   showRawJson,
+  selectedBlockId,
+  onBlockClick,
 }) => {
+  // Loading states
   if (isGeneratingSchema) {
     return <ProcessingLoadingState {...PROCESSING_STATES.GENERATING_SCHEMA} />;
   }
@@ -35,6 +44,7 @@ export const ExtractResultsPanel: FC<ExtractResultsPanelProps> = ({
     return <ProcessingLoadingState {...PROCESSING_STATES.EXTRACTING} />;
   }
 
+  // Error state
   if (error) {
     return (
       <Box padding="$16">
@@ -50,35 +60,46 @@ export const ExtractResultsPanel: FC<ExtractResultsPanelProps> = ({
         <Typography fontSize="$16" fontWeight="bold">
           Generated Schema
         </Typography>
-        <FormattedJsonData
-          data={currentSchema}
-          downloadFileName="extraction_schema.json"
-          ariaLabel="extraction-schema-json"
-        />
+        <FormattedJsonData data={currentSchema} variant="extraction-schema" />
       </Box>
     );
   }
 
   // Show extracted data
   if (extractResult) {
-    const dataToDisplay = extractResult.result || extractResult;
-    return (
-      <Box padding="$16" display="flex" flexDirection="column" gap="$16" overflow="auto" flex="1">
-        {!showRawJson && (
-          <Typography fontSize="$16" fontWeight="bold">
-            Extracted Data
+    if (!extractedBlocks || extractedBlocks.length === 0) {
+      return (
+        <Box display="flex" alignItems="center" justifyContent="center" flex="1" padding="$32">
+          <Typography color="content.subtle">
+            {isExtracting
+              ? 'Extracting data...'
+              : 'No extraction results yet. Generate a schema and extract data to see results.'}
           </Typography>
-        )}
-        <FormattedJsonData
-          data={dataToDisplay}
-          downloadFileName="extracted_data.json"
-          ariaLabel="extracted-data-json"
-        />
-      </Box>
+        </Box>
+      );
+    }
+
+    // Raw JSON view
+    if (showRawJson) {
+      const dataToDisplay = extractResult.result || extractResult;
+      return (
+        <Box padding="$24" display="flex" flexDirection="column" height="100%" overflow="auto">
+          <FormattedJsonData data={dataToDisplay} variant="extraction-data" />
+        </Box>
+      );
+    }
+
+    // Interactive results view with DocumentResultsRenderer
+    return (
+      <DocumentResultsRenderer
+        blocks={extractedBlocks}
+        selectedBlockId={selectedBlockId}
+        onBlockClick={onBlockClick}
+        title="Extracted fields are shown below. Click a field to highlight its location in the PDF."
+      />
     );
   }
 
-  // Empty state
   return (
     <Box padding="$16" display="flex" alignItems="center" justifyContent="center" height="100%">
       <Typography color="content.subtle">No extraction results yet</Typography>

@@ -191,7 +191,7 @@ export function extractDataToBoundingBoxes(
   const allCitations = extractAllCitations(citations);
 
   // Process each citation
-  allCitations.forEach(({ citation, fieldName }, index) => {
+  allCitations.forEach(({ citation, path, fieldName }, index) => {
     const bbox = citation.bbox as { left: number; top: number; width?: number; height?: number; page?: number };
     const content = citation.content as string;
 
@@ -199,7 +199,8 @@ export function extractDataToBoundingBoxes(
       const screenCoords = calculateReactPdfCoordinates(bbox, pageWidth, pageHeight, scale);
 
       if (screenCoords) {
-        const fieldId = `citation-${pageNumber}-${index}`;
+        // Use path-based ID for better mapping to extracted blocks
+        const fieldId = `citation-${path}-${index}`;
 
         boundingBoxes.push({
           fieldId,

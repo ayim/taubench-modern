@@ -8,49 +8,6 @@ import {
 import type { ExtractSchemaResponse, ExtractResponse, ExtractionSchemaPayload } from '../../shared/types';
 import { extractFieldPathsFromSchema, filterDataBySchema, filterCitationsBySchema } from '../utils/schemaUtils';
 
-/**
- * Remove isNewField flags from schema properties after successful extraction
- */
-const clearNewFieldFlags = (schema: ExtractionSchemaPayload): ExtractionSchemaPayload => {
-  const cleanProperties = (properties: Record<string, unknown>): Record<string, unknown> => {
-    const cleaned: Record<string, unknown> = {};
-
-    Object.entries(properties).forEach(([key, value]) => {
-      const fieldValue = value as Record<string, unknown>;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { isNewField, ...rest } = fieldValue;
-
-      cleaned[key] = rest;
-
-      // Recursively clean nested properties
-      if (rest.type === 'object' && rest.properties) {
-        cleaned[key] = {
-          ...rest,
-          properties: cleanProperties(rest.properties as Record<string, unknown>),
-        };
-      } else if (rest.type === 'array' && rest.items && typeof rest.items === 'object') {
-        const items = rest.items as Record<string, unknown>;
-        if (items.type === 'object' && items.properties) {
-          cleaned[key] = {
-            ...rest,
-            items: {
-              ...items,
-              properties: cleanProperties(items.properties as Record<string, unknown>),
-            },
-          };
-        }
-      }
-    });
-
-    return cleaned;
-  };
-
-  return {
-    ...schema,
-    properties: cleanProperties(schema.properties),
-  };
-};
-
 interface UseExtractDialogStateProps {
   agentId: string;
   threadId: string;
@@ -144,9 +101,8 @@ export const useExtractDialogState = ({
           generateCitations: true,
         });
 
-        // Clear isNewField flags after successful extraction
-        const cleanedSchema = clearNewFieldFlags(extractionSchema);
-        setCurrentSchema(cleanedSchema);
+        // Update current schema
+        setCurrentSchema(extractionSchema);
         setExtractResult(result);
         setExtractRevision((prev) => prev + 1);
         setHasChanges(false);
@@ -172,9 +128,8 @@ export const useExtractDialogState = ({
           generateCitations: true,
         });
 
-        // Clear isNewField flags after successful extraction
-        const cleanedSchema = clearNewFieldFlags(updatedSchema);
-        setCurrentSchema(cleanedSchema);
+        // Update current schema
+        setCurrentSchema(updatedSchema);
         setExtractResult(result);
         setExtractRevision((prev) => prev + 1);
         setHasChanges(false);

@@ -9,6 +9,5 @@
 export { ExtractOnlyDialog } from './ExtractOnlyDialog';
 export { ExtractResultsPanel } from './ExtractResultsPanel';
 export { ConfigurationPanel } from './ConfigurationPanel';
-export { ExtractionPromptEditor, type AdditionalExtractionInfo } from './ExtractionPromptEditor';
 export { SchemaEditor } from './SchemaEditor';
-export { SchemaFieldRow, type SchemaFieldData, type SchemaFieldRowProps } from './SchemaFieldRow';
+export { SchemaFieldRow, type SchemaFieldData, type SchemaFieldRowProps } from '../shared/components/SchemaFieldRow';

@@ -1,6 +1,6 @@
 import { Box, Button, Divider, Typography, Switch } from '@sema4ai/components';
-import { IconArrowLeft, IconArrowRight, IconMinus, IconPlus, IconPencil } from '@sema4ai/icons';
-import { FC, useState, useEffect } from 'react';
+import { IconArrowLeft, IconArrowRight, IconMinus, IconPlus } from '@sema4ai/icons';
+import { FC, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -17,7 +17,8 @@ interface DocumentViewerProps {
   parseData?: Record<string, unknown> | null; // Optional parse data for bounding boxes
   extractedData?: Record<string, unknown> | null; // Optional extracted data for citations
   isAnnotating?: boolean; // Whether annotation mode is active
-  isProcessing?: boolean; // Whether document is being processed (schema generation, extraction, etc.)
+  selectedFieldId?: string | null; // Controlled selected field ID for bidirectional selection
+  onFieldClick?: (fieldId: string) => void; // Callback when a PDF field/annotation is clicked
   onAnnotationCreate?: (selection: {
     pageNumber: number;
     left: number;
@@ -26,7 +27,6 @@ interface DocumentViewerProps {
     height: number;
     selectedText: string;
   }) => void;
-  onAnnotateToggle?: () => void; // Callback to toggle annotation mode
   showAnnotationPopup?: boolean; // Whether to show the annotation popup
   pendingAnnotation?: Partial<Annotation> | null; // Pending annotation data
   onSaveAnnotation?: (fieldName: string, fieldValue: string) => void; // Save annotation callback
@@ -38,16 +38,29 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({
   parseData = null,
   extractedData = null,
   isAnnotating = false,
-  isProcessing = false,
+  selectedFieldId: selectedFieldIdProp,
+  onFieldClick,
   onAnnotationCreate,
-  onAnnotateToggle,
   showAnnotationPopup = false,
   pendingAnnotation = null,
   onSaveAnnotation,
   onCancelAnnotation,
 }) => {
-  // Local state for UI interactions
-  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  // Local state for UI interactions (can be controlled via prop)
+  const [selectedFieldIdInternal, setSelectedFieldIdInternal] = useState<string | null>(null);
+  const selectedFieldId = selectedFieldIdProp !== undefined ? selectedFieldIdProp : selectedFieldIdInternal;
+
+  // Use callback if provided, otherwise use internal state setter
+  const handleFieldClick = useCallback(
+    (fieldId: string | null) => {
+      if (onFieldClick && fieldId) {
+        onFieldClick(fieldId);
+      } else {
+        setSelectedFieldIdInternal(fieldId);
+      }
+    },
+    [onFieldClick],
+  );
   // Default to showing parse boxes if we only have parseData (no extractedData)
   const [showingParseBoxes, setShowingParseBoxes] = useState(false);
 
@@ -197,7 +210,7 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({
                 extractedData={extractedData}
                 showingParseBoxes={showingParseBoxes}
                 selectedFieldId={selectedFieldId}
-                setSelectedFieldId={setSelectedFieldId}
+                setSelectedFieldId={handleFieldClick}
               />
             )}
 
@@ -332,18 +345,17 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({
             </Button>
           </Box>
 
-          {/* Annotate Button */}
-          {onAnnotateToggle && (
+          {/* Annotate Button - Temporarily hidden */}
+          {/* {onAnnotateToggle && (
             <Button
               variant={isAnnotating ? 'primary' : 'outline'}
               onClick={onAnnotateToggle}
-              disabled={isProcessing}
               round
               icon={IconPencil}
             >
               {isAnnotating ? 'Exit Annotate' : 'Annotate'}
             </Button>
-          )}
+          )} */}
         </Box>
       </Box>
 

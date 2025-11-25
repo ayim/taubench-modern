@@ -66,7 +66,7 @@ export const ParseOnlyDialog: FC<ParseOnlyDialogProps> = ({ isOpen, onClose, fil
         <Box display="flex" gap="$16" flex="1" height="100%" width="100%" maxWidth="100%" overflow="scroll">
           {/* DOCUMENT VIEWER */}
           <Box display="flex" flexDirection="column" flex="1" height="100%" minWidth="600px">
-            <DocumentViewer file={file} parseData={parseResult} isProcessing={isPending} />
+            <DocumentViewer file={file} parseData={parseResult} />
           </Box>
 
           {/* RESULTS PANEL */}

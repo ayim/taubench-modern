@@ -2,9 +2,9 @@ import { FC, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Box, Typography, Button, Column } from '@sema4ai/components';
 import { IconPlus } from '@sema4ai/icons';
 import type { ExtractionSchemaPayload } from '../shared/types';
-import { StepDataTable } from '../../DocumentIntelligence/components/common/StepDataTable';
-import { SchemaFieldRow, SchemaFieldData, SchemaFieldRowProps } from './SchemaFieldRow';
-import { findParentFields } from './utils/schemaUtils';
+import { SchemaDataTable } from '../shared/components/SchemaDataTable';
+import { SchemaFieldRow, SchemaFieldData, SchemaFieldRowProps } from '../shared/components/SchemaFieldRow';
+import type { SchemaFieldDefinition } from './utils/schemaUtils';
 
 /**
  * SchemaEditor - Visual schema builder/editor
@@ -16,11 +16,8 @@ interface SchemaEditorProps {
 }
 
 export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled = false }) => {
-  // Track which parent fields are expanded (initialize with all parent fields expanded)
-  const [expandedFields, setExpandedFields] = useState<Set<string>>(() => {
-    if (!schema?.properties) return new Set();
-    return findParentFields(schema.properties);
-  });
+  // Track which parent fields are expanded
+  const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
 
   // Track the last added field for auto-focus
   const lastAddedFieldRef = useRef<string | null>(null);
@@ -42,15 +39,13 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
 
     const fields: SchemaFieldData[] = [];
 
-    const processProperties = (properties: Record<string, unknown>, level: number = 0, parentPath: string = '') => {
+    const processProperties = (
+      properties: Record<string, SchemaFieldDefinition>,
+      level: number = 0,
+      parentPath: string = '',
+    ) => {
       Object.entries(properties).forEach(([fieldName, fieldValue]) => {
-        const value = fieldValue as {
-          type?: string;
-          description?: string;
-          properties?: Record<string, unknown>;
-          items?: { type?: string; properties?: Record<string, unknown> };
-          isNewField?: boolean;
-        };
+        const value = fieldValue as SchemaFieldDefinition;
         const fieldPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
         const hasChildren = Boolean(
           (value.type === 'object' && value.properties) ||
@@ -66,22 +61,21 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
           level,
           parentPath,
           hasChildren,
-          isNewField: value.isNewField,
         });
 
         // Process nested properties for objects
         if (value.type === 'object' && value.properties) {
-          processProperties(value.properties, level + 1, fieldPath);
+          processProperties(value.properties as Record<string, SchemaFieldDefinition>, level + 1, fieldPath);
         }
 
         // Process array items if they have properties
         if (value.type === 'array' && value.items?.type === 'object' && value.items?.properties) {
-          processProperties(value.items.properties, level + 1, fieldPath);
+          processProperties(value.items.properties as Record<string, SchemaFieldDefinition>, level + 1, fieldPath);
         }
       });
     };
 
-    processProperties(schema.properties);
+    processProperties(schema.properties as Record<string, SchemaFieldDefinition>, 0, '');
     return fields;
   }, [schema]);
 
@@ -124,10 +118,10 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
       // For simple top-level fields
       if (pathParts.length === 1) {
         const updatedProperties = { ...schema.properties };
-        const field = updatedProperties[fieldName] as Record<string, unknown> | undefined;
+        const field = updatedProperties[fieldName] as SchemaFieldDefinition | undefined;
 
         if (key === 'name' && value !== fieldName) {
-          // Rename field - preserve isNewField flag
+          // Rename field
           updatedProperties[value] = field;
           delete updatedProperties[fieldName];
 
@@ -140,7 +134,7 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
             required: updatedRequired,
           });
         } else if (field) {
-          // Update field property - preserve isNewField flag
+          // Update field property
           updatedProperties[fieldName] = {
             ...field,
             [key]: value,
@@ -167,7 +161,6 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
       [tempKey]: {
         type: 'string',
         description: '',
-        isNewField: true,
       },
     };
 
@@ -180,35 +173,12 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
     });
   }, [schema, onChange]);
 
-  // Handle deleting field
-  const handleDeleteField = useCallback(
-    (fieldId: string) => {
-      if (!schema || !onChange) return;
-
-      const pathParts = fieldId.split(/\.|\[\]/);
-      const fieldName = pathParts[0]; // Top-level field name
-
-      const updatedProperties = { ...schema.properties };
-      delete updatedProperties[fieldName];
-
-      const updatedRequired = schema.required?.filter((req) => req !== fieldName) || [];
-
-      onChange({
-        ...schema,
-        properties: updatedProperties,
-        required: updatedRequired,
-      });
-    },
-    [schema, onChange],
-  );
-
   // Table columns definition
   const columns: Column[] = useMemo(
     () => [
       { id: 'name', title: 'Name', sortable: false, width: 250 },
       { id: 'type', title: 'Type', sortable: false, width: 150 },
       { id: 'description', title: 'Description', sortable: false, width: 400 },
-      { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
     ],
     [],
   );
@@ -217,13 +187,11 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
   const rowProps: SchemaFieldRowProps = useMemo(
     () => ({
       onChange: handleFieldChange,
-      onDelete: handleDeleteField,
       onToggleExpand: handleToggleExpand,
       expandedFields,
-      showDeleteButton: !disabled,
       disabled,
     }),
-    [handleFieldChange, handleDeleteField, handleToggleExpand, expandedFields, disabled],
+    [handleFieldChange, handleToggleExpand, expandedFields, disabled],
   );
 
   if (!schema) {
@@ -267,7 +235,7 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
 
             {/* Schema Fields Table */}
             <Box marginTop="$8">
-              <StepDataTable
+              <SchemaDataTable
                 selectable={false}
                 columns={columns}
                 data={schemaFieldsData}
